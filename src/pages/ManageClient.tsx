@@ -279,13 +279,13 @@ const ManageClient = () => {
                       {(() => {
                         const conditions = [];
                         const isYes = (value: string) => value?.toString().trim().toLowerCase() === "yes";
+                        if (isYes(serviceData.dents)) conditions.push("Dents");
+                        if (isYes(serviceData.scratches)) conditions.push("Scratches");
+                        if (isYes(serviceData.missingParts)) conditions.push("Missing Parts");
                         if (isYes(serviceData.physicalDamage)) conditions.push("Physical Damage");
-                        if (isYes(serviceData.waterDamage)) conditions.push("Water Damage");
-                        if (isYes(serviceData.brokenGlass)) conditions.push("Broken Glass");
-                        if (isYes(serviceData.batteryIssue)) conditions.push("Battery Issue");
-                        if (isYes(serviceData.softwareIssue)) conditions.push("Software Issue");
-                        if (isYes(serviceData.displayIssue)) conditions.push("Display Issue");
-                        if (isYes(serviceData.otherIssue)) conditions.push("Other Issue");
+                        if (isYes(serviceData.importantFiles)) conditions.push("Important Files");
+                        if (isYes(serviceData.noPower)) conditions.push("No Power");
+                        if (isYes(serviceData.repairHistory)) conditions.push("Repair History");
                         return conditions.length > 0 ? conditions.join(", ") : "N/A";
                       })()}
                     </p>
