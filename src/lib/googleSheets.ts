@@ -22,10 +22,11 @@ function doGet(e) {
         return ContentService.createTextOutput(JSON.stringify({
           "found": true,
           "data": {
-            "name": data[i][2],           // Column C - Name
-            "contactNumber": data[i][3],  // Column D - Contact Number
-            "device": data[i][4],         // Column E - Device
-            "initialDiagnosis": data[i][5] // Column F - Initial Diagnosis
+            "name": data[i][4],            // Column E - Client Name
+            "contactNumber": data[i][6],   // Column G - Phone
+            "device": data[i][8],          // Column I - Model
+            "initialDiagnosis": data[i][9], // Column J - Chief Complaint
+            "estimatedCost": data[i][10]   // Column K - Estimated Cost
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }

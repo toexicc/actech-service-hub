@@ -127,6 +127,7 @@ const ServiceForm = () => {
           form.setValue("phone", result.data.contactNumber || "");
           form.setValue("model", result.data.device || "");
           form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
+          form.setValue("estimatedCost", result.data.estimatedCost || "");
           toast({
             title: "Success",
             description: "Service information loaded successfully!",
@@ -202,7 +203,6 @@ const ServiceForm = () => {
         form.reset();
         setServiceId("");
         setSearchServiceId("");
-        navigate("/admin-portal");
       } else {
         throw new Error("Failed to submit form");
       }
