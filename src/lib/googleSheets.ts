@@ -35,7 +35,16 @@ function doGet(e) {
             "technician": data[i][3],        // Column D - Technician
             "techNotes": data[i][39],        // Column AN - Technician Notes
             "adminNotes": data[i][37],       // Column AL - Admin Notes
-            "finalCost": data[i][31]         // Column AF - Final Cost
+            "finalCost": data[i][31],        // Column AF - Final Cost
+            "clientType": data[i][7],        // Column H - Client Type
+            "priority": data[i][6],          // Column G - Priority
+            "physicalDamage": data[i][22],   // Column W - Physical Damage
+            "waterDamage": data[i][19],      // Column T - Dents (assuming this is water damage)
+            "brokenGlass": data[i][20],      // Column U - Scratches (assuming this is broken glass)
+            "batteryIssue": data[i][24],     // Column Y - No Power (battery issue)
+            "softwareIssue": data[i][21],    // Column V - Missing Parts (assuming software)
+            "displayIssue": data[i][23],     // Column X - Important Files (assuming display)
+            "otherIssue": data[i][25]        // Column Z - Repair History (other issue)
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
