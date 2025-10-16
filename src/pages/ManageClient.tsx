@@ -31,6 +31,7 @@ const ManageClient = () => {
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState("");
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
+  const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
 
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
@@ -60,6 +61,7 @@ const ManageClient = () => {
         setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
         setUpdateTargetDate(data.data.timeFrame || "");
         setUpdateAdminNotes(data.data.adminNotes || "");
+        setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
       } else {
         toast({
           title: "Not Found",
@@ -95,6 +97,7 @@ const ManageClient = () => {
       formData.append("finalCost", updateServiceCost);
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
+      formData.append("adminNotesInternal", updateAdminNotesInternal);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -382,7 +385,7 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Rush">Rush</SelectItem>
+                      <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
                       <SelectItem value="Loyalty">Loyalty</SelectItem>
                       <SelectItem value="Walk-In">Walk-In</SelectItem>
                     </SelectContent>
@@ -417,6 +420,7 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select time frame" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Same-Day">Same-Day</SelectItem>
                       <SelectItem value="Next Business Day">Next Business Day</SelectItem>
                       <SelectItem value="1-2 Days">1-2 Days</SelectItem>
                       <SelectItem value="3-5 Days">3-5 Days</SelectItem>
@@ -433,6 +437,17 @@ const ManageClient = () => {
                     placeholder="Enter admin notes"
                     value={updateAdminNotes}
                     onChange={(e) => setUpdateAdminNotes(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="adminNotesInternal">Admin Notes (Internal):</Label>
+                  <Textarea
+                    id="adminNotesInternal"
+                    placeholder="Enter internal admin notes"
+                    value={updateAdminNotesInternal}
+                    onChange={(e) => setUpdateAdminNotesInternal(e.target.value)}
                     rows={4}
                   />
                 </div>

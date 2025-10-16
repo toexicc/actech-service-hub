@@ -106,6 +106,7 @@ function doPost(e) {
         if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame); // Column AB - Time Frame
         if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
+        if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
