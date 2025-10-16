@@ -84,7 +84,7 @@ function doPost(e) {
   // Map the form data to the correct columns
   var row = [
     params["Service ID"], // Column A
-    "", // Column B
+    "Pending Diagnosis", // Column B
     params["Admin Representative"], // Column C
     params["Technician"], // Column D
     params["Timestamp"], // Column E
