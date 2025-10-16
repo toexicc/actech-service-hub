@@ -264,10 +264,7 @@ const ManageClient = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
                     <p className="text-lg">
-                      {serviceData.timestamp ? 
-                        format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : 
-                        "N/A"
-                      }
+                      {serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "N/A"}
                     </p>
                   </div>
 
@@ -281,13 +278,13 @@ const ManageClient = () => {
                     <p className="text-lg">
                       {(() => {
                         const conditions = [];
-                        if (serviceData.physicalDamage === "yes") conditions.push("Physical Damage");
-                        if (serviceData.waterDamage === "yes") conditions.push("Water Damage");
-                        if (serviceData.brokenGlass === "yes") conditions.push("Broken Glass");
-                        if (serviceData.batteryIssue === "yes") conditions.push("Battery Issue");
-                        if (serviceData.softwareIssue === "yes") conditions.push("Software Issue");
-                        if (serviceData.displayIssue === "yes") conditions.push("Display Issue");
-                        if (serviceData.otherIssue === "yes") conditions.push("Other Issue");
+                        if (serviceData.physicalDamage === "Yes") conditions.push("Physical Damage");
+                        if (serviceData.waterDamage === "Yes") conditions.push("Water Damage");
+                        if (serviceData.brokenGlass === "Yes") conditions.push("Broken Glass");
+                        if (serviceData.batteryIssue === "Yes") conditions.push("Battery Issue");
+                        if (serviceData.softwareIssue === "Yes") conditions.push("Software Issue");
+                        if (serviceData.displayIssue === "Yes") conditions.push("Display Issue");
+                        if (serviceData.otherIssue === "Yes") conditions.push("Other Issue");
                         return conditions.length > 0 ? conditions.join(", ") : "N/A";
                       })()}
                     </p>
@@ -421,11 +418,7 @@ const ManageClient = () => {
                   />
                 </div>
 
-                <Button 
-                  onClick={handleUpdate} 
-                  disabled={isUpdating} 
-                  className="w-full"
-                >
+                <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
                   {isUpdating ? "Updating..." : "Update"}
                 </Button>
               </CardContent>
