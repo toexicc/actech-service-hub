@@ -99,8 +99,9 @@ const ServiceForm = () => {
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = String(now.getFullYear()).slice(-2);
-    const timestamp = String(now.getTime()).slice(-4);
-    return `${day}${month}${year}${timestamp}`;
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const milliseconds = String(now.getMilliseconds()).charAt(0);
+    return `${day}${month}${year}${seconds}${milliseconds}`;
   };
 
   const handleSearchServiceId = async () => {
@@ -156,7 +157,13 @@ const ServiceForm = () => {
     setIsSubmitting(true);
     
     try {
-      const timestamp = new Date().toISOString();
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const year = now.getFullYear();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
       const finalServiceId = serviceId || generateServiceId();
       
       const formData = new FormData();
