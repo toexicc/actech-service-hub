@@ -78,8 +78,38 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
   var params = e.parameter;
+  
+  // Handle update requests for Manage Client
+  if (params.action === 'updateService' && params.serviceId) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = sheet.getDataRange().getValues();
+    
+    // Search for the service ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.serviceId) {
+        // Update the specified columns
+        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B - Status
+        if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D - Technician
+        if (params.priority) sheet.getRange(i + 1, 7).setValue(params.priority); // Column G - Priority
+        if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType); // Column H - Client Type
+        if (params.timeFrame) sheet.getRange(i + 1, 27).setValue(params.timeFrame); // Column AB - Time Frame
+        if (params.finalCost) sheet.getRange(i + 1, 32).setValue(params.finalCost); // Column AF - Final Cost
+        if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle service form submissions
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
   
   // Map the form data to the correct columns
   var row = [
