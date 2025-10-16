@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Menu from "./pages/Menu";
 import AdminPortal from "./pages/AdminPortal";
 import ServiceForm from "./pages/ServiceForm";
+import ServiceTracking from "./pages/ServiceTracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/menu" element={<Menu />} />
           <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/service-form" element={<ServiceForm />} />
+          <Route path="/track" element={<ServiceTracking />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
