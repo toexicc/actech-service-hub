@@ -8,21 +8,54 @@ export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfy
 
 // Sample Google Apps Script code for your Google Sheet:
 /*
+function doGet(e) {
+  var params = e.parameter;
+  
+  // Handle search requests
+  if (params.action === 'search' && params.serviceId) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    var data = inquirySheet.getDataRange().getValues();
+    
+    // Search for the service ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.serviceId) {
+        return ContentService.createTextOutput(JSON.stringify({
+          "found": true,
+          "data": {
+            "name": data[i][1],           // Column B - Name
+            "contactNumber": data[i][2],  // Column C - Contact Number
+            "device": data[i][3],         // Column D - Device
+            "initialDiagnosis": data[i][4] // Column E - Initial Diagnosis
+          }
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "found": false
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "error": "Invalid request"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
   var params = e.parameter;
   
   // Map the form data to the correct columns
   var row = [
-    "", // Column A
+    params["Service ID"], // Column A
     "", // Column B
-    params["Client Name"], // Column C
+    params["Admin Representative"], // Column C
     params["Technician"], // Column D
     params["Timestamp"], // Column E
     "", // Column F
     params["Priority"], // Column G
     params["Client Type"], // Column H
-    "", // Column I
+    params["Client Name"], // Column I
     params["Username"], // Column J
     params["Email"], // Column K
     params["Phone"], // Column L
