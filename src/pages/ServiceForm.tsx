@@ -37,7 +37,7 @@ const formSchema = z.object({
   importantFiles: z.boolean().default(false),
   noPower: z.boolean().default(false),
   repairHistory: z.boolean().default(false),
-  estimatedCost: z.string().min(1, "Estimated Cost is required"),
+  estimatedCost: z.number().min(1, "Estimated Cost is required"),
   timeFrame: z.string().min(1, "Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
@@ -87,7 +87,7 @@ const ServiceForm = () => {
       importantFiles: false,
       noPower: false,
       repairHistory: false,
-      estimatedCost: "",
+      estimatedCost: 0,
       timeFrame: "",
       ack1: false,
       ack2: false,
@@ -129,7 +129,7 @@ const ServiceForm = () => {
           form.setValue("phone", result.data.contactNumber || "");
           form.setValue("model", result.data.device || "");
           form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
-          form.setValue("estimatedCost", result.data.estimatedCost || "");
+          form.setValue("estimatedCost", parseFloat(result.data.estimatedCost) || 0);
           toast({
             title: "Success",
             description: "Service information loaded successfully!",
@@ -193,7 +193,7 @@ const ServiceForm = () => {
       formData.append("No Power", data.noPower ? "Yes" : "No");
       formData.append("Repair History", data.repairHistory ? "Yes" : "No");
       formData.append("Time Frame", data.timeFrame);
-      formData.append("Estimated Cost", data.estimatedCost);
+      formData.append("Estimated Cost", data.estimatedCost.toString());
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
@@ -676,7 +676,12 @@ const ServiceForm = () => {
                   <FormItem>
                     <FormLabel>Estimated Cost:</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" placeholder="PHP" />
+                      <Input 
+                        type="number" 
+                        placeholder="PHP" 
+                        value={field.value || ""} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
