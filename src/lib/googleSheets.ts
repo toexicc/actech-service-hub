@@ -4,7 +4,8 @@
 // 2. Deploy it as a web app
 // 3. Replace YOUR_SCRIPT_ID with your actual script ID
 
-export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
+export const GOOGLE_SHEETS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
 
 // Sample Google Apps Script code for your Google Sheet:
 /*
@@ -192,8 +193,8 @@ function doPost(e) {
     "", // Column AG
     params["Acknowledgement 1"], // Column AH
     params["Acknowledgement 2"], // Column AI
-    "", // Column AJ
-    params["Acknowledgement 3"] // Column AK
+    params["Acknowledgement 3"], // Column AJ
+    "", // Column AK
   ];
   
   sheet.appendRow(row);
