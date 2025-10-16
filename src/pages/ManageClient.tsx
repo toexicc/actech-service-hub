@@ -278,13 +278,14 @@ const ManageClient = () => {
                     <p className="text-lg">
                       {(() => {
                         const conditions = [];
-                        if (serviceData.physicalDamage === "Yes") conditions.push("Physical Damage");
-                        if (serviceData.waterDamage === "Yes") conditions.push("Water Damage");
-                        if (serviceData.brokenGlass === "Yes") conditions.push("Broken Glass");
-                        if (serviceData.batteryIssue === "Yes") conditions.push("Battery Issue");
-                        if (serviceData.softwareIssue === "Yes") conditions.push("Software Issue");
-                        if (serviceData.displayIssue === "Yes") conditions.push("Display Issue");
-                        if (serviceData.otherIssue === "Yes") conditions.push("Other Issue");
+                        const isYes = (value: string) => value?.toString().trim().toLowerCase() === "yes";
+                        if (isYes(serviceData.physicalDamage)) conditions.push("Physical Damage");
+                        if (isYes(serviceData.waterDamage)) conditions.push("Water Damage");
+                        if (isYes(serviceData.brokenGlass)) conditions.push("Broken Glass");
+                        if (isYes(serviceData.batteryIssue)) conditions.push("Battery Issue");
+                        if (isYes(serviceData.softwareIssue)) conditions.push("Software Issue");
+                        if (isYes(serviceData.displayIssue)) conditions.push("Display Issue");
+                        if (isYes(serviceData.otherIssue)) conditions.push("Other Issue");
                         return conditions.length > 0 ? conditions.join(", ") : "N/A";
                       })()}
                     </p>
