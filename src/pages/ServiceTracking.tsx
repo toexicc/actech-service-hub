@@ -215,26 +215,15 @@ const ServiceTracking = () => {
 
               {serviceData.techNotes && (
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Notes (C):</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician Notes:</h3>
                   <p className="text-lg">{serviceData.techNotes}</p>
                 </div>
               )}
 
-              {serviceData.finalCost && (
+              {serviceData.adminNotes && (
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost to be Updated:</h3>
-                  <p className="text-lg">{serviceData.finalCost}</p>
-                </div>
-              )}
-
-              {serviceData.serviceReport && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">Service Report:</h3>
-                  <Button variant="outline" asChild>
-                    <a href={serviceData.serviceReport} target="_blank" rel="noopener noreferrer">
-                      Download Report Here
-                    </a>
-                  </Button>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Notes:</h3>
+                  <p className="text-lg">{serviceData.adminNotes}</p>
                 </div>
               )}
             </CardContent>
