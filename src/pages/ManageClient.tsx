@@ -278,7 +278,19 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Condition:</h3>
-                    <p className="text-lg">{serviceData.deviceCondition || "N/A"}</p>
+                    <p className="text-lg">
+                      {(() => {
+                        const conditions = [];
+                        if (serviceData.physicalDamage === "yes") conditions.push("Physical Damage");
+                        if (serviceData.waterDamage === "yes") conditions.push("Water Damage");
+                        if (serviceData.brokenGlass === "yes") conditions.push("Broken Glass");
+                        if (serviceData.batteryIssue === "yes") conditions.push("Battery Issue");
+                        if (serviceData.softwareIssue === "yes") conditions.push("Software Issue");
+                        if (serviceData.displayIssue === "yes") conditions.push("Display Issue");
+                        if (serviceData.otherIssue === "yes") conditions.push("Other Issue");
+                        return conditions.length > 0 ? conditions.join(", ") : "N/A";
+                      })()}
+                    </p>
                   </div>
 
                   <div>
