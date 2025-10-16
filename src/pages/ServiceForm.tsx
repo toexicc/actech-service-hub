@@ -676,7 +676,7 @@ const ServiceForm = () => {
                   <FormItem>
                     <FormLabel>Estimated Cost:</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="PHP" />
+                      <Input {...field} type="number" placeholder="PHP" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
