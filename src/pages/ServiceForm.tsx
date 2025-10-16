@@ -436,10 +436,21 @@ const ServiceForm = () => {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
+                          <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
+                          <SelectItem value="iPad">iPad</SelectItem>
+                          <SelectItem value="Apple Watch">Apple Watch</SelectItem>
+                          <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
+                          <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
                           <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
-                          <SelectItem value="Macbook">Macbook</SelectItem>
-                          <SelectItem value="Mac">Mac</SelectItem>
-                          <SelectItem value="Windows PC">Windows PC</SelectItem>
+                          <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
+                          <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
+                          <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
+                          <SelectItem value="Drone">Drone</SelectItem>
+                          <SelectItem value="Speakers">Speakers</SelectItem>
+                          <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
+                          <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
+                          <SelectItem value="Headphones ">Headphones </SelectItem>
+                          <SelectItem value="Others">Others</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
