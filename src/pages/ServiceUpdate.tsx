@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import logo from "@/assets/ac-tech-logo.jpg";
 
-const ManageClient = () => {
+const ServiceUpdate = () => {
   const navigate = useNavigate();
   const [serviceId, setServiceId] = useState("");
   const [deviceType, setDeviceType] = useState("");
@@ -24,15 +24,10 @@ const ManageClient = () => {
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
-  const [updateTechnician, setUpdateTechnician] = useState("");
-  const [updateClientType, setUpdateClientType] = useState("");
-  const [updatePriority, setUpdatePriority] = useState("");
-  const [updateServices, setUpdateServices] = useState("");
-  const [updateServiceCost, setUpdateServiceCost] = useState("");
-  const [updateTargetDate, setUpdateTargetDate] = useState("");
-  const [updateAdminNotes, setUpdateAdminNotes] = useState("");
-  const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
-  const [updateTechNotesInternal, setUpdateTechNotesInternal] = useState("");
+  const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
+  const [updateSuggestedRepair, setUpdateSuggestedRepair] = useState("");
+  const [updateTechnicianNotesCustomer, setUpdateTechnicianNotesCustomer] = useState("");
+  const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
 
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
@@ -55,15 +50,10 @@ const ManageClient = () => {
         setServiceData(data.data);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
-        setUpdateTechnician(data.data.technician || "");
-        setUpdateClientType(data.data.clientType || "");
-        setUpdatePriority(data.data.priority || "");
-        setUpdateServices(data.data.service || "");
-        setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
-        setUpdateTargetDate(data.data.timeFrame || "");
-        setUpdateAdminNotes(data.data.adminNotes || "");
-        setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
-        setUpdateTechNotesInternal(data.data.technicianNotesInternal || "");
+        setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
+        setUpdateSuggestedRepair(data.data.suggestedRepair || "");
+        setUpdateTechnicianNotesCustomer(data.data.technicianNotesCustomer || "");
+        setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
       } else {
         toast({
           title: "Not Found",
@@ -89,18 +79,13 @@ const ManageClient = () => {
     setIsUpdating(true);
     try {
       const formData = new FormData();
-      formData.append("action", "updateService");
+      formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
       formData.append("status", updateStatus);
-      formData.append("technician", updateTechnician);
-      formData.append("clientType", updateClientType);
-      formData.append("priority", updatePriority);
-      formData.append("services", updateServices);
-      formData.append("finalCost", updateServiceCost);
-      formData.append("timeFrame", updateTargetDate);
-      formData.append("adminNotes", updateAdminNotes);
-      formData.append("adminNotesInternal", updateAdminNotesInternal);
-      formData.append("technicianNotesInternal", updateTechNotesInternal);
+      formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
+      formData.append("suggestedRepair", updateSuggestedRepair);
+      formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
+      formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -112,21 +97,21 @@ const ManageClient = () => {
       if (result.result === "success") {
         toast({
           title: "Success",
-          description: "Client information updated successfully",
+          description: "Service information updated successfully",
         });
         // Refresh the data
         handleSearch();
       } else {
         toast({
           title: "Error",
-          description: "Failed to update client information",
+          description: "Failed to update service information",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update client information",
+        description: "Failed to update service information",
         variant: "destructive",
       });
     } finally {
@@ -142,12 +127,12 @@ const ManageClient = () => {
           <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
           <div>
             <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Manage Client</p>
+            <p className="text-muted-foreground">Service Update</p>
           </div>
         </div>
 
-        <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
-          Back to Admin Portal
+        <Button onClick={() => navigate("/technician-portal")} variant="outline" className="mb-6">
+          Back to Technician Portal
         </Button>
 
         {/* Search Form */}
@@ -218,7 +203,7 @@ const ManageClient = () => {
             </div>
 
             <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
-              {isLoading ? "Searching..." : "Search Client"}
+              {isLoading ? "Searching..." : "Search Service"}
             </Button>
           </CardContent>
         </Card>
@@ -305,6 +290,11 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Chief Complaint:</h3>
+                    <p className="text-lg">{serviceData.chiefComplaint || "N/A"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
                     <p className="text-lg">{serviceData.service}</p>
                   </div>
@@ -322,17 +312,17 @@ const ManageClient = () => {
                   )}
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician Notes (Internal):</h3>
-                    <p className="text-lg">{serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : "N/A"}</p>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Notes (Internal):</h3>
+                    <p className="text-lg">{serviceData.adminNotesInternal?.trim() ? serviceData.adminNotesInternal : "N/A"}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Update Client Information */}
+            {/* Service Update */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">Update Client Information</CardTitle>
+                <CardTitle className="text-2xl">Service Update</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -355,113 +345,45 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="technician">Technician:</Label>
-                  <Select value={updateTechnician} onValueChange={setUpdateTechnician}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select technician" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Tech 1">Tech 1</SelectItem>
-                      <SelectItem value="Tech 2">Tech 2</SelectItem>
-                      <SelectItem value="Tech 3">Tech 3</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="clientType">Client Type:</Label>
-                  <Select value={updateClientType} onValueChange={setUpdateClientType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="New Client">New Client</SelectItem>
-                      <SelectItem value="Returning Client">Returning Client</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priority:</Label>
-                  <Select value={updatePriority} onValueChange={setUpdatePriority}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
-                      <SelectItem value="Loyalty">Loyalty</SelectItem>
-                      <SelectItem value="Walk-In">Walk-In</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="services">Service/s:</Label>
+                  <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
                   <Textarea
-                    id="services"
-                    placeholder="Enter service(s)"
-                    value={updateServices}
-                    onChange={(e) => setUpdateServices(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="serviceCost">Service Cost:</Label>
-                  <Input
-                    id="serviceCost"
-                    placeholder="Enter service cost"
-                    value={updateServiceCost}
-                    onChange={(e) => setUpdateServiceCost(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="timeFrame">Time Frame:</Label>
-                  <Select value={updateTargetDate} onValueChange={setUpdateTargetDate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time frame" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Same-Day">Same-Day</SelectItem>
-                      <SelectItem value="Next Business Day">Next Business Day</SelectItem>
-                      <SelectItem value="1-2 Days">1-2 Days</SelectItem>
-                      <SelectItem value="3-5 Days">3-5 Days</SelectItem>
-                      <SelectItem value="1-2 Weeks">1-2 Weeks</SelectItem>
-                      <SelectItem value="2-4 Weeks">2-4 Weeks</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="adminNotes">Admin Notes (Customer):</Label>
-                  <Textarea
-                    id="adminNotes"
-                    placeholder="Enter admin notes"
-                    value={updateAdminNotes}
-                    onChange={(e) => setUpdateAdminNotes(e.target.value)}
+                    id="technicianDiagnosis"
+                    placeholder="Enter technician diagnosis"
+                    value={updateTechnicianDiagnosis}
+                    onChange={(e) => setUpdateTechnicianDiagnosis(e.target.value)}
                     rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="adminNotesInternal">Admin Notes (Internal):</Label>
+                  <Label htmlFor="suggestedRepair">Suggested Repair:</Label>
                   <Textarea
-                    id="adminNotesInternal"
-                    placeholder="Enter internal admin notes"
-                    value={updateAdminNotesInternal}
-                    onChange={(e) => setUpdateAdminNotesInternal(e.target.value)}
+                    id="suggestedRepair"
+                    placeholder="Enter suggested repair"
+                    value={updateSuggestedRepair}
+                    onChange={(e) => setUpdateSuggestedRepair(e.target.value)}
                     rows={4}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="techNotesInternal">Technician Notes (Internal):</Label>
+                  <Label htmlFor="technicianNotesCustomer">Technician Notes (Customer):</Label>
                   <Textarea
-                    id="techNotesInternal"
+                    id="technicianNotesCustomer"
+                    placeholder="Enter technician notes for customer"
+                    value={updateTechnicianNotesCustomer}
+                    onChange={(e) => setUpdateTechnicianNotesCustomer(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
+                  <Textarea
+                    id="technicianNotesInternal"
                     placeholder="Enter internal technician notes"
-                    value={updateTechNotesInternal}
-                    onChange={(e) => setUpdateTechNotesInternal(e.target.value)}
+                    value={updateTechnicianNotesInternal}
+                    onChange={(e) => setUpdateTechnicianNotesInternal(e.target.value)}
                     rows={4}
                   />
                 </div>
@@ -481,4 +403,4 @@ const ManageClient = () => {
   );
 };
 
-export default ManageClient;
+export default ServiceUpdate;

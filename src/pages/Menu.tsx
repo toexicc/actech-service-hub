@@ -44,14 +44,14 @@ const Menu = () => {
             </div>
           </Card>
 
-          <Card className="p-8 hover:shadow-xl transition-shadow bg-white">
+          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/technician-portal")}>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-400 mb-4">Technician Portal</h2>
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Technician Portal</h2>
               <p className="text-muted-foreground mb-6">
-                Technician Report Form (Coming Soon) and Service Update
+                Service Update and Technician Report Form
               </p>
-              <Button disabled className="bg-gray-300">
-                Coming Soon
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Enter Technician Portal
               </Button>
             </div>
           </Card>

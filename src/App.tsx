@@ -9,6 +9,7 @@ import AdminPortal from "./pages/AdminPortal";
 import ServiceForm from "./pages/ServiceForm";
 import ServiceTracking from "./pages/ServiceTracking";
 import ManageClient from "./pages/ManageClient";
+import ServiceUpdate from "./pages/ServiceUpdate";
 import TechnicianPortal from "./pages/TechnicianPortal";
 import NotFound from "./pages/NotFound";
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/track" element={<ServiceTracking />} />
           <Route path="/manage-client" element={<ManageClient />} />
           <Route path="/technician-portal" element={<TechnicianPortal />} />
+          <Route path="/service-update" element={<ServiceUpdate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
