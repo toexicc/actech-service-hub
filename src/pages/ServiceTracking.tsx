@@ -18,10 +18,10 @@ const ServiceTracking = () => {
   const { toast } = useToast();
 
   const handleSearch = async () => {
-    if (!serviceId || !deviceType) {
+    if (!serviceId) {
       toast({
         title: "Missing Information",
-        description: "Please enter both Service ID and Device Type",
+        description: "Please enter Service ID",
         variant: "destructive",
       });
       return;
@@ -30,7 +30,7 @@ const ServiceTracking = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}&deviceType=${deviceType}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
       );
       const data = await response.json();
 
@@ -70,68 +70,14 @@ const ServiceTracking = () => {
         {/* Search Form */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="serviceId">Enter Service ID:</Label>
-                <Input
-                  id="serviceId"
-                  placeholder="Enter service ID"
-                  value={serviceId}
-                  onChange={(e) => setServiceId(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="deviceType">Select Device Type:</Label>
-                {!showOtherDeviceInput ? (
-                  <Select
-                    value={deviceType}
-                    onValueChange={(value) => {
-                      if (value === "Others") {
-                        setShowOtherDeviceInput(true);
-                        setDeviceType("");
-                      } else {
-                        setDeviceType(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select device type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
-                      <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
-                      <SelectItem value="iPad">iPad</SelectItem>
-                      <SelectItem value="Apple Watch">Apple Watch</SelectItem>
-                      <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
-                      <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
-                      <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
-                      <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
-                      <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
-                      <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
-                      <SelectItem value="Drone">Drone</SelectItem>
-                      <SelectItem value="Speakers">Speakers</SelectItem>
-                      <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
-                      <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
-                      <SelectItem value="Headphones">Headphones</SelectItem>
-                      <SelectItem value="Others">Others</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="deviceType"
-                    placeholder="Enter device type"
-                    value={deviceType}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setDeviceType(value);
-                      if (value === "") {
-                        setShowOtherDeviceInput(false);
-                      }
-                    }}
-                  />
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="serviceId">Enter Service ID:</Label>
+              <Input
+                id="serviceId"
+                placeholder="Enter service ID"
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+              />
             </div>
 
             <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
