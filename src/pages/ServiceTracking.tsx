@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -184,7 +185,12 @@ const ServiceTracking = () => {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
-                  <p className="text-lg">{serviceData.timestamp}</p>
+                  <p className="text-lg">
+                    {serviceData.timestamp ? 
+                      format(new Date(serviceData.timestamp), "MM-dd-yyyy, HH:mm") : 
+                      "N/A"
+                    }
+                  </p>
                 </div>
 
                 <div>
