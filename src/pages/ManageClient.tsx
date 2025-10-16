@@ -274,11 +274,15 @@ const ManageClient = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Condition:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Notes:</h3>
                     <p className="text-lg">
                       {(() => {
-                        const conditions = [];
-                        const isYes = (value: string) => value?.toString().trim().toLowerCase() === "yes";
+                        const conditions: string[] = [];
+                        const isYes = (value: any) => {
+                          if (value === true || value === 1) return true;
+                          const v = typeof value === "string" ? value.trim().toLowerCase() : value;
+                          return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
+                        };
                         if (isYes(serviceData.dents)) conditions.push("Dents");
                         if (isYes(serviceData.scratches)) conditions.push("Scratches");
                         if (isYes(serviceData.missingParts)) conditions.push("Missing Parts");
