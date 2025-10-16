@@ -96,10 +96,10 @@ const ServiceForm = () => {
 
   const generateServiceId = () => {
     const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = String(now.getFullYear()).slice(-2);
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, "0");
     const milliseconds = String(now.getMilliseconds()).charAt(0);
     return `${day}${month}${year}${seconds}${milliseconds}`;
   };
@@ -117,9 +117,9 @@ const ServiceForm = () => {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`,
       );
-      
+
       if (response.ok) {
         const result = await response.json();
         if (result.found) {
@@ -155,17 +155,17 @@ const ServiceForm = () => {
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    
+
     try {
       const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
       const year = now.getFullYear();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
       const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
       const finalServiceId = serviceId || generateServiceId();
-      
+
       const formData = new FormData();
       formData.append("Service ID", finalServiceId);
       formData.append("Timestamp", timestamp);
@@ -230,11 +230,7 @@ const ServiceForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6 md:p-8">
         <div className="text-center mb-8">
-          <img 
-            src={acTechLogo} 
-            alt="AC Tech Repair" 
-            className="mx-auto h-16 mb-4 object-contain"
-          />
+          <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
           <h1 className="text-3xl font-bold text-blue-600 mb-2">Initial Diagnosis Form</h1>
           <p className="text-muted-foreground">Client Initial Diagnosis Form</p>
         </div>
@@ -247,10 +243,10 @@ const ServiceForm = () => {
               placeholder="Enter Service ID to load existing data"
               value={searchServiceId}
               onChange={(e) => setSearchServiceId(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchServiceId()}
+              onKeyDown={(e) => e.key === "Enter" && handleSearchServiceId()}
               className="flex-1"
             />
-            <Button 
+            <Button
               type="button"
               onClick={handleSearchServiceId}
               disabled={isSearching}
@@ -260,11 +256,7 @@ const ServiceForm = () => {
               {isSearching ? "Searching..." : "Search"}
             </Button>
           </div>
-          {serviceId && (
-            <p className="mt-2 text-sm text-green-600 font-medium">
-              Loaded Service ID: {serviceId}
-            </p>
-          )}
+          {serviceId && <p className="mt-2 text-sm text-green-600 font-medium">Loaded Service ID: {serviceId}</p>}
         </div>
 
         <Form {...form}>
@@ -669,8 +661,12 @@ const ServiceForm = () => {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Same Day">Same Day</SelectItem>
-                        <SelectItem value="Next Business">Next Business</SelectItem>
+                        <SelectItem value="Next Business Day">Next Business Day</SelectItem>
                         <SelectItem value="1-2 Days">1-2 Days</SelectItem>
+                        <SelectItem value="2-3 Days">2-3 Days</SelectItem>
+                        <SelectItem value="5-7 Days">5-7 Days</SelectItem>
+                        <SelectItem value="1-2 Weeks">1-2 Weeks</SelectItem>
+                        <SelectItem value="2-5 Weeks">2-5 Weeks</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -689,8 +685,8 @@ const ServiceForm = () => {
                   render={({ field }) => (
                     <FormItem className="flex items-start space-x-2 space-y-0">
                       <FormControl>
-                        <Checkbox 
-                          checked={field.value} 
+                        <Checkbox
+                          checked={field.value}
                           onCheckedChange={field.onChange}
                           disabled={!termsRead}
                           className={!termsRead ? "opacity-50" : ""}
@@ -756,18 +752,10 @@ const ServiceForm = () => {
 
             {/* Submit Button */}
             <div className="flex gap-4">
-              <Button 
-                type="submit" 
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
                 {isSubmitting ? "Submitting..." : "Submit"}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => navigate("/admin-portal")}
-              >
+              <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
                 Cancel
               </Button>
             </div>
