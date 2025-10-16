@@ -2,13 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -36,16 +30,12 @@ const ServiceTracking = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${serviceId}&deviceType=${deviceType}`
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${serviceId}&deviceType=${deviceType}`,
       );
       const data = await response.json();
 
-      if (data.found) {
+      if (data.status === "found") {
         setServiceData(data.data);
-        toast({
-          title: "Service Found",
-          description: "Service details loaded successfully",
-        });
       } else {
         toast({
           title: "Not Found",
@@ -55,7 +45,6 @@ const ServiceTracking = () => {
         setServiceData(null);
       }
     } catch (error) {
-      console.error("Search error:", error);
       toast({
         title: "Error",
         description: "Failed to fetch service data",
@@ -95,8 +84,8 @@ const ServiceTracking = () => {
               <div className="space-y-2">
                 <Label htmlFor="deviceType">Select Device Type:</Label>
                 {!showOtherDeviceInput ? (
-                  <Select 
-                    value={deviceType} 
+                  <Select
+                    value={deviceType}
                     onValueChange={(value) => {
                       if (value === "Others") {
                         setShowOtherDeviceInput(true);
@@ -145,11 +134,7 @@ const ServiceTracking = () => {
               </div>
             </div>
 
-            <Button
-              onClick={handleSearch}
-              disabled={isLoading}
-              className="w-full mt-6"
-            >
+            <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
               {isLoading ? "Searching..." : "Track Service"}
             </Button>
           </CardContent>
@@ -164,12 +149,8 @@ const ServiceTracking = () => {
             <CardContent className="space-y-6">
               {/* Status */}
               <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                  Status:
-                </h3>
-                <p className="text-lg font-bold text-primary">
-                  {serviceData.status || "PENDING - APPROVAL"}
-                </p>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
+                <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
               </div>
 
               <Separator />
@@ -177,31 +158,33 @@ const ServiceTracking = () => {
               {/* Client and Device Info */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Client Name:
-                  </h3>
-                  <p className="text-lg">{serviceData.name}</p>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Name:</h3>
+                  <p className="text-lg">{serviceData.clientName}</p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Contact Number:
-                  </h3>
-                  <p className="text-lg">{serviceData.contactNumber}</p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Device:
-                  </h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device:</h3>
                   <p className="text-lg">{serviceData.device}</p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Service ID:
-                  </h3>
-                  <p className="text-lg">{serviceId}</p>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Serial Number:</h3>
+                  <p className="text-lg">{serviceData.serialNumber}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Color & Memory:</h3>
+                  <p className="text-lg">{serviceData.colorMemory}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
+                  <p className="text-lg">{serviceData.timestamp}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Time Frame:</h3>
+                  <p className="text-lg">{serviceData.timeFrame}</p>
                 </div>
               </div>
 
@@ -209,29 +192,52 @@ const ServiceTracking = () => {
 
               {/* Service Details */}
               <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                  Initial Diagnosis:
-                </h3>
-                <p className="text-lg">{serviceData.initialDiagnosis}</p>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
+                <p className="text-lg">{serviceData.service}</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                  Estimated Cost:
-                </h3>
-                <p className="text-lg font-semibold">
-                  Php {serviceData.estimatedCost}
-                </p>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Cost:</h3>
+                <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
               </div>
 
+              {serviceData.technician && (
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician:</h3>
+                  <p className="text-lg">{serviceData.technician}</p>
+                </div>
+              )}
+
+              {serviceData.techNotes && (
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Notes (C):</h3>
+                  <p className="text-lg">{serviceData.techNotes}</p>
+                </div>
+              )}
+
+              {serviceData.finalCost && (
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost to be Updated:</h3>
+                  <p className="text-lg">{serviceData.finalCost}</p>
+                </div>
+              )}
+
+              {serviceData.serviceReport && (
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">Service Report:</h3>
+                  <Button variant="outline" asChild>
+                    <a href={serviceData.serviceReport} target="_blank" rel="noopener noreferrer">
+                      Download Report Here
+                    </a>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-muted-foreground">
-          powered by techbros
-        </div>
+        <div className="text-center mt-8 text-sm text-muted-foreground">powered by Stack&Scale</div>
       </div>
     </div>
   );
