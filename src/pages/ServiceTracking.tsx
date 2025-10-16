@@ -40,8 +40,12 @@ const ServiceTracking = () => {
       );
       const data = await response.json();
 
-      if (data.status === "found") {
+      if (data.found) {
         setServiceData(data.data);
+        toast({
+          title: "Service Found",
+          description: "Service details loaded successfully",
+        });
       } else {
         toast({
           title: "Not Found",
@@ -51,6 +55,7 @@ const ServiceTracking = () => {
         setServiceData(null);
       }
     } catch (error) {
+      console.error("Search error:", error);
       toast({
         title: "Error",
         description: "Failed to fetch service data",
@@ -175,7 +180,14 @@ const ServiceTracking = () => {
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">
                     Client Name:
                   </h3>
-                  <p className="text-lg">{serviceData.clientName}</p>
+                  <p className="text-lg">{serviceData.name}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
+                    Contact Number:
+                  </h3>
+                  <p className="text-lg">{serviceData.contactNumber}</p>
                 </div>
 
                 <div>
@@ -187,30 +199,9 @@ const ServiceTracking = () => {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Serial Number:
+                    Service ID:
                   </h3>
-                  <p className="text-lg">{serviceData.serialNumber}</p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Color & Memory:
-                  </h3>
-                  <p className="text-lg">{serviceData.colorMemory}</p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Service Date:
-                  </h3>
-                  <p className="text-lg">{serviceData.timestamp}</p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Time Frame:
-                  </h3>
-                  <p className="text-lg">{serviceData.timeFrame}</p>
+                  <p className="text-lg">{serviceId}</p>
                 </div>
               </div>
 
@@ -219,59 +210,20 @@ const ServiceTracking = () => {
               {/* Service Details */}
               <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                  Service/s:
+                  Initial Diagnosis:
                 </h3>
-                <p className="text-lg">{serviceData.service}</p>
+                <p className="text-lg">{serviceData.initialDiagnosis}</p>
               </div>
 
               <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                  Service Cost:
+                  Estimated Cost:
                 </h3>
                 <p className="text-lg font-semibold">
-                  Php {serviceData.serviceCost}
+                  Php {serviceData.estimatedCost}
                 </p>
               </div>
 
-              {serviceData.technician && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Technician:
-                  </h3>
-                  <p className="text-lg">{serviceData.technician}</p>
-                </div>
-              )}
-
-              {serviceData.techNotes && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Tech Notes (C):
-                  </h3>
-                  <p className="text-lg">{serviceData.techNotes}</p>
-                </div>
-              )}
-
-              {serviceData.finalCost && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">
-                    Final Cost to be Updated:
-                  </h3>
-                  <p className="text-lg">{serviceData.finalCost}</p>
-                </div>
-              )}
-
-              {serviceData.serviceReport && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-2">
-                    Service Report:
-                  </h3>
-                  <Button variant="outline" asChild>
-                    <a href={serviceData.serviceReport} target="_blank" rel="noopener noreferrer">
-                      Download Report Here
-                    </a>
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}
