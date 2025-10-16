@@ -16,16 +16,16 @@ function doGet(e) {
     var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
     var data = inquirySheet.getDataRange().getValues();
     
-    // Search for the service ID in column A (index 0)
+    // Search for the service ID in column B (index 1)
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == params.serviceId) {
+      if (data[i][1] == params.serviceId) {
         return ContentService.createTextOutput(JSON.stringify({
           "found": true,
           "data": {
-            "name": data[i][1],           // Column B - Name
-            "contactNumber": data[i][2],  // Column C - Contact Number
-            "device": data[i][3],         // Column D - Device
-            "initialDiagnosis": data[i][4] // Column E - Initial Diagnosis
+            "name": data[i][2],           // Column C - Name
+            "contactNumber": data[i][3],  // Column D - Contact Number
+            "device": data[i][4],         // Column E - Device
+            "initialDiagnosis": data[i][5] // Column F - Initial Diagnosis
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
