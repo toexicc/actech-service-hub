@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { Search } from "lucide-react";
 
 const formSchema = z.object({
   adminRep: z.string().min(1, "Admin Representative is required"),
@@ -49,6 +51,9 @@ const ServiceForm = () => {
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serviceId, setServiceId] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchServiceId, setSearchServiceId] = useState("");
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -89,14 +94,72 @@ const ServiceForm = () => {
     },
   });
 
+  const generateServiceId = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const timestamp = String(now.getTime()).slice(-4);
+    return `${day}${month}${year}${timestamp}`;
+  };
+
+  const handleSearchServiceId = async () => {
+    if (!searchServiceId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a Service ID to search",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`
+      );
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.found) {
+          setServiceId(searchServiceId);
+          form.setValue("clientName", result.data.name || "");
+          form.setValue("phone", result.data.contactNumber || "");
+          form.setValue("model", result.data.device || "");
+          form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
+          toast({
+            title: "Success",
+            description: "Service information loaded successfully!",
+          });
+        } else {
+          toast({
+            title: "Not Found",
+            description: "Service ID not found in database",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error searching service ID:", error);
+      toast({
+        title: "Error",
+        description: "Failed to search service ID. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     
     try {
-      // Prepare data for Google Sheets
       const timestamp = new Date().toISOString();
+      const finalServiceId = serviceId || generateServiceId();
       
       const formData = new FormData();
+      formData.append("Service ID", finalServiceId);
       formData.append("Timestamp", timestamp);
       formData.append("Admin Representative", data.adminRep);
       formData.append("Technician", data.technician);
@@ -126,22 +189,19 @@ const ServiceForm = () => {
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
 
-      // Submit to Google Sheets
-      // Note: You'll need to set up a Google Apps Script Web App to receive this data
-      const response = await fetch(
-        "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      });
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Service form submitted successfully!",
+          description: `Service form submitted successfully! Service ID: ${finalServiceId}`,
         });
         form.reset();
+        setServiceId("");
+        setSearchServiceId("");
         navigate("/admin-portal");
       } else {
         throw new Error("Failed to submit form");
@@ -169,6 +229,34 @@ const ServiceForm = () => {
           />
           <h1 className="text-3xl font-bold text-blue-600 mb-2">Initial Diagnosis Form</h1>
           <p className="text-muted-foreground">Client Initial Diagnosis Form</p>
+        </div>
+
+        {/* Service ID Search */}
+        <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h2 className="text-lg font-semibold text-blue-600 mb-3">Service ID Search</h2>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter Service ID to load existing data"
+              value={searchServiceId}
+              onChange={(e) => setSearchServiceId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchServiceId()}
+              className="flex-1"
+            />
+            <Button 
+              type="button"
+              onClick={handleSearchServiceId}
+              disabled={isSearching}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              {isSearching ? "Searching..." : "Search"}
+            </Button>
+          </div>
+          {serviceId && (
+            <p className="mt-2 text-sm text-green-600 font-medium">
+              Loaded Service ID: {serviceId}
+            </p>
+          )}
         </div>
 
         <Form {...form}>
