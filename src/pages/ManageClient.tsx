@@ -32,7 +32,6 @@ const ManageClient = () => {
   const [updateTargetDate, setUpdateTargetDate] = useState("");
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
-  const [updateTechNotesInternal, setUpdateTechNotesInternal] = useState("");
 
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
@@ -63,7 +62,6 @@ const ManageClient = () => {
         setUpdateTargetDate(data.data.timeFrame || "");
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
-        setUpdateTechNotesInternal(data.data.technicianNotesInternal || "");
       } else {
         toast({
           title: "Not Found",
@@ -100,7 +98,6 @@ const ManageClient = () => {
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
-      formData.append("technicianNotesInternal", updateTechNotesInternal);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -451,17 +448,6 @@ const ManageClient = () => {
                     placeholder="Enter internal admin notes"
                     value={updateAdminNotesInternal}
                     onChange={(e) => setUpdateAdminNotesInternal(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="techNotesInternal">Technician Notes (Internal):</Label>
-                  <Textarea
-                    id="techNotesInternal"
-                    placeholder="Enter internal technician notes"
-                    value={updateTechNotesInternal}
-                    onChange={(e) => setUpdateTechNotesInternal(e.target.value)}
                     rows={4}
                   />
                 </div>
