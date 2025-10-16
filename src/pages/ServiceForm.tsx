@@ -351,7 +351,7 @@ const ServiceForm = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Rush">Rush</SelectItem>
+                          <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
                           <SelectItem value="Loyalty">Loyalty</SelectItem>
                           <SelectItem value="Normal">Normal</SelectItem>
                         </SelectContent>
@@ -701,13 +701,12 @@ const ServiceForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Same Day">Same Day</SelectItem>
+                        <SelectItem value="Same-Day">Same-Day</SelectItem>
                         <SelectItem value="Next Business Day">Next Business Day</SelectItem>
                         <SelectItem value="1-2 Days">1-2 Days</SelectItem>
-                        <SelectItem value="2-3 Days">2-3 Days</SelectItem>
-                        <SelectItem value="5-7 Days">5-7 Days</SelectItem>
+                        <SelectItem value="3-5 Days">3-5 Days</SelectItem>
                         <SelectItem value="1-2 Weeks">1-2 Weeks</SelectItem>
-                        <SelectItem value="2-5 Weeks">2-5 Weeks</SelectItem>
+                        <SelectItem value="2-4 Weeks">2-4 Weeks</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
