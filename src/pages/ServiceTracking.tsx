@@ -169,7 +169,12 @@ const ServiceTracking = () => {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Serial Number:</h3>
-                  <p className="text-lg">{serviceData.serialNumber}</p>
+                  <p className="text-lg">
+                    {serviceData.serialNumber ? 
+                      serviceData.serialNumber.slice(0, -5) + "*****" : 
+                      "N/A"
+                    }
+                  </p>
                 </div>
 
                 <div>

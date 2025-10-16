@@ -26,10 +26,10 @@ function doGet(e) {
             "device": data[i][16],           // Column Q - Model
             "deviceType": data[i][12],       // Column M - Device Type
             "serialNumber": data[i][13],     // Column N - Serial
-            "colorMemory": data[i][15] + " " + data[i][17], // Column P (Color) + R (Memory)
-            "timestamp": data[i][4],         // Column E - Timestamp
+            "colorMemory": data[i][15] + " | " + data[i][17], // Column P (Color) | R (Memory)
+            "timestamp": data[i][4],         // Column E - Service Date
             "timeFrame": data[i][27],        // Column AB - Time Frame
-            "service": data[i][18],          // Column S - Chief Complaint/Service
+            "service": data[i][32],          // Column AG - Service Report
             "serviceCost": data[i][29],      // Column AD - Estimated Cost
             "status": data[i][1] || "PENDING - APPROVAL",  // Column B - Status
             "technician": data[i][3],        // Column D - Technician
