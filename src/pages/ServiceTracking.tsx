@@ -219,19 +219,15 @@ const ServiceTracking = () => {
                 </div>
               )}
 
-              {serviceData.techNotes && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician Notes:</h3>
-                  <p className="text-lg">{serviceData.techNotes}</p>
-                </div>
-              )}
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician Notes:</h3>
+                <p className="text-lg">{serviceData.techNotes?.trim() ? serviceData.techNotes : "N/A"}</p>
+              </div>
 
-              {serviceData.adminNotes && (
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Notes:</h3>
-                  <p className="text-lg">{serviceData.adminNotes}</p>
-                </div>
-              )}
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Notes:</h3>
+                <p className="text-lg">{serviceData.adminNotes?.trim() ? serviceData.adminNotes : "N/A"}</p>
+              </div>
             </CardContent>
           </Card>
         )}
