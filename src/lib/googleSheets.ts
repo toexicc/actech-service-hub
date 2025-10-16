@@ -33,7 +33,7 @@ function doGet(e) {
             "serviceCost": data[i][29],      // Column AD - Estimated Cost
             "status": data[i][1] || "PENDING - APPROVAL",  // Column B - Status
             "technician": data[i][3],        // Column D - Technician
-            "techNotes": data[i][39],        // Column AN - Tech Notes
+            "techNotes": data[i][39],        // Column AN - Technician Notes
             "adminNotes": data[i][37],       // Column AL - Admin Notes
             "finalCost": data[i][31]         // Column AF - Final Cost
           }
