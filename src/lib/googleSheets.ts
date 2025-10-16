@@ -11,8 +11,8 @@ export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfy
 function doGet(e) {
   var params = e.parameter;
   
-  // Handle search requests
-  if (params.action === 'search' && params.serviceId) {
+  // Handle search requests for Service Database (tracking page)
+  if (params.action === 'searchService' && params.serviceId) {
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
     var data = serviceSheet.getDataRange().getValues();
     
@@ -27,6 +27,32 @@ function doGet(e) {
             "device": data[i][16],         // Column Q - Model
             "initialDiagnosis": data[i][18], // Column S - Chief Complaint
             "estimatedCost": data[i][29]   // Column AD - Estimated Cost
+          }
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "found": false
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle search requests for Inquiry Database (service form)
+  if (params.action === 'search' && params.serviceId) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    var data = inquirySheet.getDataRange().getValues();
+    
+    // Search for the service ID in column B (index 1)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] == params.serviceId) {
+        return ContentService.createTextOutput(JSON.stringify({
+          "found": true,
+          "data": {
+            "name": data[i][4],            // Column E - Client Name
+            "contactNumber": data[i][6],   // Column G - Phone
+            "device": data[i][8],          // Column I - Model
+            "initialDiagnosis": data[i][9], // Column J - Chief Complaint
+            "estimatedCost": data[i][10]   // Column K - Estimated Cost
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
