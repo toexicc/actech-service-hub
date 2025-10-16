@@ -54,6 +54,7 @@ const ServiceForm = () => {
   const [serviceId, setServiceId] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchServiceId, setSearchServiceId] = useState("");
+  const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -428,31 +429,55 @@ const ServiceForm = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Device Type:</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      {showOtherDeviceInput ? (
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Device" />
-                          </SelectTrigger>
+                          <Input 
+                            {...field} 
+                            placeholder="Enter device type"
+                            onBlur={() => {
+                              if (!field.value) {
+                                setShowOtherDeviceInput(false);
+                              }
+                            }}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
-                          <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
-                          <SelectItem value="iPad">iPad</SelectItem>
-                          <SelectItem value="Apple Watch">Apple Watch</SelectItem>
-                          <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
-                          <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
-                          <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
-                          <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
-                          <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
-                          <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
-                          <SelectItem value="Drone">Drone</SelectItem>
-                          <SelectItem value="Speakers">Speakers</SelectItem>
-                          <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
-                          <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
-                          <SelectItem value="Headphones ">Headphones </SelectItem>
-                          <SelectItem value="Others">Others</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      ) : (
+                        <Select 
+                          onValueChange={(value) => {
+                            if (value === "Others") {
+                              setShowOtherDeviceInput(true);
+                              field.onChange("");
+                            } else {
+                              field.onChange(value);
+                            }
+                          }} 
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Device" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
+                            <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
+                            <SelectItem value="iPad">iPad</SelectItem>
+                            <SelectItem value="Apple Watch">Apple Watch</SelectItem>
+                            <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
+                            <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
+                            <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
+                            <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
+                            <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
+                            <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
+                            <SelectItem value="Drone">Drone</SelectItem>
+                            <SelectItem value="Speakers">Speakers</SelectItem>
+                            <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
+                            <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
+                            <SelectItem value="Headphones ">Headphones </SelectItem>
+                            <SelectItem value="Others">Others</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
