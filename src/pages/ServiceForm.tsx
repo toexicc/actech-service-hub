@@ -210,6 +210,7 @@ const ServiceForm = () => {
         form.reset();
         setServiceId("");
         setSearchServiceId("");
+        setTermsRead(false);
       } else {
         throw new Error("Failed to submit form");
       }
