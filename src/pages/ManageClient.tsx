@@ -299,7 +299,7 @@ const ManageClient = () => {
                   )}
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Notes (IT):</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Notes (Internal):</h3>
                     <p className="text-lg">{serviceData.techNotes?.trim() ? serviceData.techNotes : "N/A"}</p>
                   </div>
                 </div>
@@ -319,12 +319,14 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PENDING - APPROVAL">PENDING - APPROVAL</SelectItem>
                       <SelectItem value="Pending Diagnosis">Pending Diagnosis</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Ready for Pickup">Ready for Pickup</SelectItem>
+                      <SelectItem value="Pending - Approval">Pending - Approval</SelectItem>
+                      <SelectItem value="Ongoing Service">Ongoing Service</SelectItem>
+                      <SelectItem value="Complete - Approval">Complete - Approval</SelectItem>
                       <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="On Hold">On Hold</SelectItem>
                       <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      <SelectItem value="Closed">Closed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -381,10 +383,10 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="targetDate">Target Date:</Label>
+                  <Label htmlFor="timeFrame">Time Frame:</Label>
                   <Select value={updateTargetDate} onValueChange={setUpdateTargetDate}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select target date" />
+                      <SelectValue placeholder="Select time frame" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Next Business Day">Next Business Day</SelectItem>
@@ -397,7 +399,7 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="adminNotes">Admin Notes (Internal):</Label>
+                  <Label htmlFor="adminNotes">Admin Notes (Customer):</Label>
                   <Textarea
                     id="adminNotes"
                     placeholder="Enter admin notes"
