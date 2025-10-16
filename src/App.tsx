@@ -9,6 +9,7 @@ import AdminPortal from "./pages/AdminPortal";
 import ServiceForm from "./pages/ServiceForm";
 import ServiceTracking from "./pages/ServiceTracking";
 import ManageClient from "./pages/ManageClient";
+import TechnicianPortal from "./pages/TechnicianPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/service-form" element={<ServiceForm />} />
           <Route path="/track" element={<ServiceTracking />} />
           <Route path="/manage-client" element={<ManageClient />} />
+          <Route path="/technician-portal" element={<TechnicianPortal />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

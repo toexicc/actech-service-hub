@@ -35,6 +35,12 @@ function doGet(e) {
             "technician": data[i][3],        // Column D - Technician
             "techNotes": data[i][39],        // Column AN - Technician Notes
             "adminNotes": data[i][37],       // Column AL - Admin Notes
+            "adminNotesInternal": data[i][38], // Column AM - Admin Notes (Internal)
+            "chiefComplaint": data[i][18],   // Column S - Chief Complaint
+            "technicianDiagnosis": data[i][30], // Column AE - Technician Diagnosis
+            "suggestedRepair": data[i][32],  // Column AG - Suggested Repair
+            "technicianNotesCustomer": data[i][39], // Column AN - Technician Notes (Customer)
+            "technicianNotesInternal": data[i][40], // Column AO - Technician Notes (Internal)
             "finalCost": data[i][31],        // Column AF - Final Cost
             "clientType": data[i][7],        // Column H - Client Type
             "priority": data[i][6],          // Column G - Priority
@@ -107,6 +113,32 @@ function doPost(e) {
         if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
         if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle update requests for Technician Portal
+  if (params.action === 'updateTechnicianService' && params.serviceId) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = sheet.getDataRange().getValues();
+    
+    // Search for the service ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.serviceId) {
+        // Update the specified columns for technician
+        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B - Status
+        if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis); // Column AE - Technician Diagnosis
+        if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG - Suggested Repair
+        if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN - Technician Notes (Customer)
+        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO - Technician Notes (Internal)
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
