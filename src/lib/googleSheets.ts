@@ -20,20 +20,29 @@ function doGet(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId) {
         return ContentService.createTextOutput(JSON.stringify({
-          "found": true,
+          "status": "found",
           "data": {
-            "name": data[i][8],            // Column I - Client Name
-            "contactNumber": data[i][11],  // Column L - Phone
-            "device": data[i][16],         // Column Q - Model
-            "initialDiagnosis": data[i][18], // Column S - Chief Complaint
-            "estimatedCost": data[i][29]   // Column AD - Estimated Cost
+            "clientName": data[i][8],        // Column I - Client Name
+            "device": data[i][16],           // Column Q - Model
+            "deviceType": data[i][12],       // Column M - Device Type
+            "serialNumber": data[i][13],     // Column N - Serial
+            "colorMemory": data[i][15] + " " + data[i][17], // Column P (Color) + R (Memory)
+            "timestamp": data[i][4],         // Column E - Timestamp
+            "timeFrame": data[i][27],        // Column AB - Time Frame
+            "service": data[i][18],          // Column S - Chief Complaint/Service
+            "serviceCost": data[i][29],      // Column AD - Estimated Cost
+            "status": data[i][1] || "PENDING - APPROVAL",  // Column B - Status
+            "technician": data[i][3],        // Column D - Technician
+            "techNotes": data[i][30],        // Column AE - Tech Notes
+            "finalCost": data[i][31],        // Column AF - Final Cost
+            "serviceReport": data[i][32]     // Column AG - Service Report
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
     }
     
     return ContentService.createTextOutput(JSON.stringify({
-      "found": false
+      "status": "not_found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
