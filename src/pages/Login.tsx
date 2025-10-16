@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Search } from "lucide-react";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
 
 const Login = () => {
@@ -56,6 +57,17 @@ const Login = () => {
             Login
           </Button>
         </form>
+
+        <div className="mt-6 pt-6 border-t">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => navigate("/track")}
+          >
+            <Search className="mr-2 h-4 w-4" />
+            Track Your Service
+          </Button>
+        </div>
       </div>
     </div>
   );
