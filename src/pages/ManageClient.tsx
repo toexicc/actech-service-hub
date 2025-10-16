@@ -27,6 +27,7 @@ const ManageClient = () => {
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
+  const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState("");
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
@@ -55,6 +56,7 @@ const ManageClient = () => {
         setUpdateTechnician(data.data.technician || "");
         setUpdateClientType(data.data.clientType || "");
         setUpdatePriority(data.data.priority || "");
+        setUpdateServices(data.data.service || "");
         setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
         setUpdateTargetDate(data.data.timeFrame || "");
         setUpdateAdminNotes(data.data.adminNotes || "");
@@ -89,6 +91,7 @@ const ManageClient = () => {
       formData.append("technician", updateTechnician);
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
+      formData.append("services", updateServices);
       formData.append("finalCost", updateServiceCost);
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
@@ -384,6 +387,17 @@ const ManageClient = () => {
                       <SelectItem value="Walk-In">Walk-In</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="services">Service/s:</Label>
+                  <Textarea
+                    id="services"
+                    placeholder="Enter service(s)"
+                    value={updateServices}
+                    onChange={(e) => setUpdateServices(e.target.value)}
+                    rows={3}
+                  />
                 </div>
 
                 <div className="space-y-2">

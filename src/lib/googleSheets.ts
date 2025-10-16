@@ -102,6 +102,7 @@ function doPost(e) {
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D - Technician
         if (params.priority) sheet.getRange(i + 1, 7).setValue(params.priority); // Column G - Priority
         if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType); // Column H - Client Type
+        if (params.services) sheet.getRange(i + 1, 27).setValue(params.services); // Column AA - Service/s
         if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame); // Column AB - Time Frame
         if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
