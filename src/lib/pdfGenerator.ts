@@ -30,7 +30,10 @@ interface PDFData {
 }
 
 export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    format: 'letter',
+    unit: 'mm'
+  });
   
   // Add logo
   const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.png')
@@ -62,12 +65,12 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.setFont("helvetica", "bold");
   doc.text("DIAGNOSIS REPORT | CLIENT INTAKE FORM", 105, yPos, { align: "center" });
   
-  // Table layout matching template
+  // Table layout matching template with proper margins
   yPos += 10;
-  const leftCol = 20;
-  const midCol = 70;
+  const leftCol = 15;
+  const midCol = 60;
   const rightCol = 115;
-  const valueCol = 165;
+  const valueCol = 150;
   
   // Row 1: Date/Time and Service ID
   doc.setFontSize(10);
@@ -193,7 +196,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   yPos += 8;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const complaintLines = doc.splitTextToSize(data.chiefComplaint, 170);
+  const complaintLines = doc.splitTextToSize(data.chiefComplaint, 180);
   doc.text(complaintLines, leftCol, yPos);
   yPos += (complaintLines.length * 5);
   
@@ -218,7 +221,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   
   const notesText = deviceNotes.length > 0 ? deviceNotes.join(", ") : "";
   if (notesText) {
-    const notesLines = doc.splitTextToSize(notesText, 170);
+    const notesLines = doc.splitTextToSize(notesText, 180);
     doc.text(notesLines, leftCol, yPos);
     yPos += (notesLines.length * 5);
   }
@@ -241,7 +244,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   const footerText = "This document is automatically generated after you submit the digital form. Please note that by completing the form, you have already acknowledged and agreed to the Terms and Conditions of AC Tech Repair Ph, confirmed the accuracy of all information provided, and consented to the servicing of your device with costs to be finalized based on the final diagnosis.";
-  const footerLines = doc.splitTextToSize(footerText, 170);
+  const footerLines = doc.splitTextToSize(footerText, 180);
   doc.text(footerLines, leftCol, yPos);
   
   // Return as blob
