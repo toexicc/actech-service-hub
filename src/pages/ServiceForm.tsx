@@ -169,6 +169,7 @@ const ServiceForm = () => {
       const finalServiceId = serviceId || generateServiceId();
 
       // Generate PDF
+      console.log("Generating PDF...");
       const pdfBlob = await generateServicePDF({
         serviceId: finalServiceId,
         timestamp,
@@ -197,6 +198,7 @@ const ServiceForm = () => {
         estimatedCost: data.estimatedCost,
         timeFrame: data.timeFrame,
       });
+      console.log("PDF generated successfully:", pdfBlob);
 
       const formData = new FormData();
       formData.append("Service ID", finalServiceId);
@@ -232,6 +234,7 @@ const ServiceForm = () => {
       // Append PDF file with sanitized filename
       const sanitizeFileName = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '_');
       const pdfFileName = `${sanitizeFileName(data.serial)}_${sanitizeFileName(data.clientName)}_${sanitizeFileName(data.deviceType)}.pdf`;
+      console.log("Appending PDF with filename:", pdfFileName);
       formData.append("PDF", pdfBlob, pdfFileName);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
