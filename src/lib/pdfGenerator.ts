@@ -1,5 +1,4 @@
 import jsPDF from "jspdf";
-import logoPdf from "@/assets/ac-tech-logo-pdf.png";
 
 interface PDFData {
   serviceId: string;
@@ -37,23 +36,16 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   });
   
   // Add logo
-  let logoDataUrl: string | null = null;
-  try {
-    const res = await fetch(logoPdf);
-    const blob = await res.blob();
-    logoDataUrl = await new Promise<string>((resolve) => {
+  const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.png')
+    .then(res => res.blob())
+    .then(blob => new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
       reader.readAsDataURL(blob);
-    });
-  } catch (e) {
-    console.warn('PDF logo load failed', e);
-  }
-
+    }));
+  
   // Center logo at top with proper aspect ratio (square logo)
-  if (logoDataUrl) {
-    doc.addImage(logoDataUrl, 'PNG', 80, 10, 50, 50);
-  }
+  doc.addImage(logoImg, 'PNG', 80, 10, 50, 50);
   
   let yPos = 65;
   
