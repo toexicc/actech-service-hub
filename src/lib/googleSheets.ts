@@ -51,7 +51,8 @@ function doGet(e) {
             "physicalDamage": data[i][22],   // Column W - Physical Damage
             "importantFiles": data[i][23],   // Column X - Important Files
             "noPower": data[i][24],          // Column Y - No Power
-            "repairHistory": data[i][25]     // Column Z - Repair History
+            "repairHistory": data[i][25],    // Column Z - Repair History
+            "pdfUrl": data[i][41]            // Column AP - PDF Link
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
