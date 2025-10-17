@@ -54,24 +54,20 @@ const ServiceUpdate = () => {
       return;
     }
     const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
-    // Create hidden iframe for printing (Drive preview is embeddable)
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-      } catch (_) {
-        // Fallback: open in a new tab if printing is blocked
-        window.open(url, '_blank');
-      }
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1500);
-    };
+    // Open Google Drive preview in new tab - it has a built-in print button
+    const printWindow = window.open(url, '_blank');
+    if (printWindow) {
+      toast({
+        title: "PDF Opened",
+        description: "Use the print button in Google Drive to print the PDF",
+      });
+    } else {
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups to print the PDF",
+        variant: "destructive",
+      });
+    }
   };
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
