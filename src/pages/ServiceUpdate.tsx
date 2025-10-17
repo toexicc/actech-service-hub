@@ -31,110 +31,34 @@ const ServiceUpdate = () => {
   const [updateTechnicianNotesCustomer, setUpdateTechnicianNotesCustomer] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
 
-  const handleViewPDF = async () => {
-    if (!serviceData) return;
-
-    try {
-      const isYes = (value: any) => {
-        if (value === true || value === 1) return true;
-        const v = typeof value === "string" ? value.trim().toLowerCase() : value;
-        return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
-      };
-
-      const pdfBlob = await generateServicePDF({
-        serviceId: serviceId,
-        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
-        adminRep: serviceData.adminRep || "N/A",
-        technician: serviceData.technician || "N/A",
-        clientType: serviceData.clientType || "N/A",
-        priority: serviceData.priority || "N/A",
-        clientName: serviceData.clientName || "",
-        username: serviceData.username || "N/A",
-        phone: serviceData.phone || "N/A",
-        email: serviceData.email || "N/A",
-        deviceType: deviceType,
-        serial: serviceData.serialNumber || "N/A",
-        brand: serviceData.brand || "N/A",
-        color: serviceData.color || serviceData.colorMemory || "N/A",
-        model: serviceData.device || "",
-        memory: serviceData.memory || serviceData.colorMemory || "N/A",
-        chiefComplaint: serviceData.chiefComplaint || "N/A",
-        dents: isYes(serviceData.dents),
-        scratches: isYes(serviceData.scratches),
-        missingParts: isYes(serviceData.missingParts),
-        physicalDamage: isYes(serviceData.physicalDamage),
-        importantFiles: isYes(serviceData.importantFiles),
-        noPower: isYes(serviceData.noPower),
-        repairHistory: isYes(serviceData.repairHistory),
-        estimatedCost: Number(serviceData.serviceCost) || 0,
-        timeFrame: serviceData.timeFrame || "N/A",
-      });
-
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      window.open(pdfUrl, '_blank');
-    } catch (error) {
-      console.error("PDF generation error:", error);
+  const handleViewPDF = () => {
+    if (!serviceData?.pdfUrl) {
       toast({
-        title: "Error",
-        description: "Failed to generate PDF",
+        title: "No PDF Available",
+        description: "No PDF file found for this service",
         variant: "destructive",
       });
+      return;
     }
+
+    window.open(serviceData.pdfUrl, '_blank');
   };
 
-  const handlePrintPDF = async () => {
-    if (!serviceData) return;
-
-    try {
-      const isYes = (value: any) => {
-        if (value === true || value === 1) return true;
-        const v = typeof value === "string" ? value.trim().toLowerCase() : value;
-        return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
-      };
-
-      const pdfBlob = await generateServicePDF({
-        serviceId: serviceId,
-        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
-        adminRep: serviceData.adminRep || "N/A",
-        technician: serviceData.technician || "N/A",
-        clientType: serviceData.clientType || "N/A",
-        priority: serviceData.priority || "N/A",
-        clientName: serviceData.clientName || "",
-        username: serviceData.username || "N/A",
-        phone: serviceData.phone || "N/A",
-        email: serviceData.email || "N/A",
-        deviceType: deviceType,
-        serial: serviceData.serialNumber || "N/A",
-        brand: serviceData.brand || "N/A",
-        color: serviceData.color || serviceData.colorMemory || "N/A",
-        model: serviceData.device || "",
-        memory: serviceData.memory || serviceData.colorMemory || "N/A",
-        chiefComplaint: serviceData.chiefComplaint || "N/A",
-        dents: isYes(serviceData.dents),
-        scratches: isYes(serviceData.scratches),
-        missingParts: isYes(serviceData.missingParts),
-        physicalDamage: isYes(serviceData.physicalDamage),
-        importantFiles: isYes(serviceData.importantFiles),
-        noPower: isYes(serviceData.noPower),
-        repairHistory: isYes(serviceData.repairHistory),
-        estimatedCost: Number(serviceData.serviceCost) || 0,
-        timeFrame: serviceData.timeFrame || "N/A",
-      });
-
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const printWindow = window.open(pdfUrl, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-      }
-    } catch (error) {
-      console.error("PDF print error:", error);
+  const handlePrintPDF = () => {
+    if (!serviceData?.pdfUrl) {
       toast({
-        title: "Error",
-        description: "Failed to print PDF",
+        title: "No PDF Available",
+        description: "No PDF file found for this service",
         variant: "destructive",
       });
+      return;
+    }
+
+    const printWindow = window.open(serviceData.pdfUrl, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
     }
   };
 
@@ -187,6 +111,42 @@ const ServiceUpdate = () => {
 
     setIsUpdating(true);
     try {
+      // Generate updated PDF
+      const isYes = (value: any) => {
+        if (value === true || value === 1) return true;
+        const v = typeof value === "string" ? value.trim().toLowerCase() : value;
+        return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
+      };
+
+      const pdfBlob = await generateServicePDF({
+        serviceId: serviceId,
+        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
+        adminRep: serviceData.adminRep || "N/A",
+        technician: serviceData.technician || "N/A",
+        clientType: serviceData.clientType || "N/A",
+        priority: serviceData.priority || "N/A",
+        clientName: serviceData.clientName || "",
+        username: serviceData.username || "N/A",
+        phone: serviceData.phone || "N/A",
+        email: serviceData.email || "N/A",
+        deviceType: deviceType,
+        serial: serviceData.serialNumber || "N/A",
+        brand: serviceData.brand || "N/A",
+        color: serviceData.color || serviceData.colorMemory || "N/A",
+        model: serviceData.device || "",
+        memory: serviceData.memory || serviceData.colorMemory || "N/A",
+        chiefComplaint: serviceData.chiefComplaint || "N/A",
+        dents: isYes(serviceData.dents),
+        scratches: isYes(serviceData.scratches),
+        missingParts: isYes(serviceData.missingParts),
+        physicalDamage: isYes(serviceData.physicalDamage),
+        importantFiles: isYes(serviceData.importantFiles),
+        noPower: isYes(serviceData.noPower),
+        repairHistory: isYes(serviceData.repairHistory),
+        estimatedCost: Number(serviceData.serviceCost) || 0,
+        timeFrame: serviceData.timeFrame || "N/A",
+      });
+
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
@@ -195,6 +155,7 @@ const ServiceUpdate = () => {
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
+      formData.append("PDF", pdfBlob, `${serviceId}_updated.pdf`);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -206,7 +167,7 @@ const ServiceUpdate = () => {
       if (result.result === "success") {
         toast({
           title: "Success",
-          description: "Service information updated successfully",
+          description: "Service information and PDF updated successfully",
         });
         // Refresh the data
         handleSearch();
