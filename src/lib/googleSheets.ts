@@ -156,6 +156,25 @@ function doPost(e) {
   // Handle service form submissions
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
   
+  // Handle PDF file upload if present
+  var pdfUrl = "";
+  if (e && e.parameters && e.parameters.PDF) {
+    try {
+      var pdfBlob = e.parameters.PDF[0];
+      var fileName = params["Service ID"] + "_intake_form.pdf";
+      
+      // Upload to Google Drive (you can specify a specific folder ID)
+      var folder = DriveApp.getFolderById("YOUR_FOLDER_ID"); // Replace with your folder ID
+      var file = folder.createFile(pdfBlob.setName(fileName));
+      
+      // Make file shareable
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      pdfUrl = file.getUrl();
+    } catch (error) {
+      Logger.log("Error uploading PDF: " + error);
+    }
+  }
+  
   // Map the form data to the correct columns
   var row = [
     params["Service ID"], // Column A
@@ -195,6 +214,11 @@ function doPost(e) {
     params["Acknowledgement 2"], // Column AI
     params["Acknowledgement 3"], // Column AJ
     "", // Column AK
+    "", // Column AL
+    "", // Column AM
+    "", // Column AN
+    "", // Column AO
+    pdfUrl, // Column AP - PDF Link
   ];
   
   sheet.appendRow(row);

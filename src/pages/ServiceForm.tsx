@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search } from "lucide-react";
+import { generateServicePDF } from "@/lib/pdfGenerator";
 
 const formSchema = z.object({
   adminRep: z.string().min(1, "Admin Representative is required"),
@@ -167,6 +168,36 @@ const ServiceForm = () => {
       const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
       const finalServiceId = serviceId || generateServiceId();
 
+      // Generate PDF
+      const pdfBlob = await generateServicePDF({
+        serviceId: finalServiceId,
+        timestamp,
+        adminRep: data.adminRep,
+        technician: data.technician,
+        clientType: data.clientType,
+        priority: data.priority,
+        clientName: data.clientName,
+        username: data.username,
+        phone: data.phone,
+        email: data.email,
+        deviceType: data.deviceType,
+        serial: data.serial,
+        brand: data.brand,
+        color: data.color,
+        model: data.model,
+        memory: data.memory,
+        chiefComplaint: data.chiefComplaint,
+        dents: data.dents,
+        scratches: data.scratches,
+        missingParts: data.missingParts,
+        physicalDamage: data.physicalDamage,
+        importantFiles: data.importantFiles,
+        noPower: data.noPower,
+        repairHistory: data.repairHistory,
+        estimatedCost: data.estimatedCost,
+        timeFrame: data.timeFrame,
+      });
+
       const formData = new FormData();
       formData.append("Service ID", finalServiceId);
       formData.append("Timestamp", timestamp);
@@ -197,6 +228,9 @@ const ServiceForm = () => {
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
+      
+      // Append PDF file
+      formData.append("PDF", pdfBlob, `${finalServiceId}_intake_form.pdf`);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
