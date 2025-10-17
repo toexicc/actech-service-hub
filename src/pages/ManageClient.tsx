@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { generateServicePDF } from "@/lib/pdfGenerator";
+import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 const ManageClient = () => {
@@ -32,6 +34,99 @@ const ManageClient = () => {
   const [updateTargetDate, setUpdateTargetDate] = useState("");
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
+
+  const handleViewPDF = async () => {
+    if (!serviceData) return;
+
+    try {
+      const pdfBlob = await generateServicePDF({
+        serviceId: serviceId,
+        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
+        adminRep: serviceData.adminRep || "N/A",
+        technician: serviceData.technician || "N/A",
+        clientType: serviceData.clientType || "N/A",
+        priority: serviceData.priority || "N/A",
+        clientName: serviceData.clientName || "",
+        username: serviceData.username || "N/A",
+        phone: serviceData.phone || "N/A",
+        email: serviceData.email || "N/A",
+        deviceType: serviceData.deviceType || "",
+        serial: serviceData.serialNumber || "N/A",
+        brand: serviceData.brand || "N/A",
+        color: serviceData.color || "N/A",
+        model: serviceData.device || "",
+        memory: serviceData.memory || "N/A",
+        chiefComplaint: serviceData.chiefComplaint || "N/A",
+        dents: serviceData.dents === "yes" || serviceData.dents === true,
+        scratches: serviceData.scratches === "yes" || serviceData.scratches === true,
+        missingParts: serviceData.missingParts === "yes" || serviceData.missingParts === true,
+        physicalDamage: serviceData.physicalDamage === "yes" || serviceData.physicalDamage === true,
+        importantFiles: serviceData.importantFiles === "yes" || serviceData.importantFiles === true,
+        noPower: serviceData.noPower === "yes" || serviceData.noPower === true,
+        repairHistory: serviceData.repairHistory === "yes" || serviceData.repairHistory === true,
+        estimatedCost: Number(serviceData.serviceCost) || 0,
+        timeFrame: serviceData.timeFrame || "N/A",
+      });
+
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrintPDF = async () => {
+    if (!serviceData) return;
+
+    try {
+      const pdfBlob = await generateServicePDF({
+        serviceId: serviceId,
+        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
+        adminRep: serviceData.adminRep || "N/A",
+        technician: serviceData.technician || "N/A",
+        clientType: serviceData.clientType || "N/A",
+        priority: serviceData.priority || "N/A",
+        clientName: serviceData.clientName || "",
+        username: serviceData.username || "N/A",
+        phone: serviceData.phone || "N/A",
+        email: serviceData.email || "N/A",
+        deviceType: serviceData.deviceType || "",
+        serial: serviceData.serialNumber || "N/A",
+        brand: serviceData.brand || "N/A",
+        color: serviceData.color || "N/A",
+        model: serviceData.device || "",
+        memory: serviceData.memory || "N/A",
+        chiefComplaint: serviceData.chiefComplaint || "N/A",
+        dents: serviceData.dents === "yes" || serviceData.dents === true,
+        scratches: serviceData.scratches === "yes" || serviceData.scratches === true,
+        missingParts: serviceData.missingParts === "yes" || serviceData.missingParts === true,
+        physicalDamage: serviceData.physicalDamage === "yes" || serviceData.physicalDamage === true,
+        importantFiles: serviceData.importantFiles === "yes" || serviceData.importantFiles === true,
+        noPower: serviceData.noPower === "yes" || serviceData.noPower === true,
+        repairHistory: serviceData.repairHistory === "yes" || serviceData.repairHistory === true,
+        estimatedCost: Number(serviceData.serviceCost) || 0,
+        timeFrame: serviceData.timeFrame || "N/A",
+      });
+
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const printWindow = window.open(pdfUrl, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to print PDF",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
@@ -232,6 +327,17 @@ const ManageClient = () => {
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
                   <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleViewPDF} variant="outline" className="flex-1">
+                    <FileText className="mr-2 h-4 w-4" />
+                    View PDF
+                  </Button>
+                  <Button onClick={handlePrintPDF} variant="outline" className="flex-1">
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print PDF
+                  </Button>
                 </div>
 
                 <Separator />
