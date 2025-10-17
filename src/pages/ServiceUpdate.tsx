@@ -32,7 +32,10 @@ const ServiceUpdate = () => {
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
 
   const handleViewPDF = () => {
-    if (!serviceData?.pdfUrl) {
+    console.log("PDF URL:", serviceData?.pdfUrl);
+    console.log("Service Data:", serviceData);
+    
+    if (!serviceData?.pdfUrl || serviceData.pdfUrl.trim() === "") {
       toast({
         title: "No PDF Available",
         description: "No PDF file found for this service",
@@ -150,6 +153,7 @@ const ServiceUpdate = () => {
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
+      formData.append("deviceType", deviceType);
       formData.append("status", updateStatus);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", updateSuggestedRepair);
