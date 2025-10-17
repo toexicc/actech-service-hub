@@ -112,42 +112,10 @@ function doPost(e) {
         if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType); // Column H - Client Type
         if (params.services) sheet.getRange(i + 1, 27).setValue(params.services); // Column AA - Service/s
         if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame); // Column AB - Time Frame
-        if (params.finalCost) sheet.getRange(i + 1, 32).setValue(params.finalCost); // Column AF - Final Cost
+        if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
         if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO - Technician Notes (Internal)
-        
-        // Handle PDF replacement
-        if (e && e.files && e.files.PDF) {
-          try {
-            var oldPdfUrl = data[i][41]; // Column AP - PDF Link
-            
-            // Delete old PDF file if it exists
-            if (oldPdfUrl) {
-              try {
-                var fileIdMatch = oldPdfUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                if (fileIdMatch && fileIdMatch[1]) {
-                  var oldFileId = fileIdMatch[1];
-                  DriveApp.getFileById(oldFileId).setTrashed(true);
-                }
-              } catch (err) {
-                Logger.log("Could not delete old PDF: " + err);
-              }
-            }
-            
-            // Upload new PDF
-            var pdfBlob = e.files.PDF;
-            var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
-            var file = folder.createFile(pdfBlob);
-            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-            var newPdfUrl = file.getUrl();
-            
-            // Update PDF URL in Column AP
-            sheet.getRange(i + 1, 42).setValue(newPdfUrl);
-          } catch (error) {
-            Logger.log("Error replacing PDF: " + error);
-          }
-        }
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
@@ -159,7 +127,7 @@ function doPost(e) {
       "result": "not_found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
-
+  
   // Handle update requests for Technician Portal
   if (params.action === 'updateTechnicianService' && params.serviceId) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
