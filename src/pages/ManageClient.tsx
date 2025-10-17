@@ -56,12 +56,19 @@ const ManageClient = () => {
       });
       return;
     }
-    const printWindow = window.open(serviceData.pdfUrl, '_blank');
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    }
+    // Create hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = serviceData.pdfUrl;
+    document.body.appendChild(iframe);
+    
+    iframe.onload = () => {
+      iframe.contentWindow?.print();
+      // Remove iframe after printing dialog closes
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    };
   };
 
   const handleSearch = async () => {
