@@ -158,14 +158,18 @@ function doPost(e) {
   
   // Handle PDF file upload if present
   var pdfUrl = "";
-  if (e && e.parameters && e.parameters.PDF) {
+  if (e && e.files && e.files.PDF) {
     try {
-      var pdfBlob = e.parameters.PDF[0];
-      var fileName = params["Service ID"] + "_intake_form.pdf";
+      var pdfBlob = e.files.PDF; // File uploaded from the form field named "PDF"
       
-      // Upload to Google Drive (you can specify a specific folder ID)
-      var folder = DriveApp.getFolderById("YOUR_FOLDER_ID"); // Replace with your folder ID
-      var file = folder.createFile(pdfBlob.setName(fileName));
+      // Build filename: serialID_Name_DeviceType.pdf (sanitized)
+      var sanitize = function(str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
+      var fileName = sanitize(params["Serial"]) + "_" + sanitize(params["Client Name"]) + "_" + sanitize(params["Device Type"]) + ".pdf";
+      pdfBlob.setName(fileName);
+      
+      // Upload to Google Drive (set your folder ID)
+      var folder = DriveApp.getFolderById("YOUR_FOLDER_ID"); // TODO: Replace with your Drive folder ID
+      var file = folder.createFile(pdfBlob);
       
       // Make file shareable
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
