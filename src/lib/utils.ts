@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 // - https://drive.google.com/file/d/FILE_ID/preview
 // - https://drive.google.com/open?id=FILE_ID
 // - https://drive.google.com/uc?id=FILE_ID&export=...
-export function normalizeGoogleDrivePdfUrl(url: string, mode: "preview" | "embed" = "preview"): string {
+export function normalizeGoogleDrivePdfUrl(url: string, mode: "preview" | "embed" | "download" = "preview"): string {
   try {
     const u = new URL(url);
     const host = u.hostname;
@@ -26,6 +26,11 @@ export function normalizeGoogleDrivePdfUrl(url: string, mode: "preview" | "embed
     }
 
     if (!id) return url;
+
+    if (mode === "download") {
+      // Direct file URL (better for auto-print)
+      return `https://drive.google.com/uc?export=download&id=${id}`;
+    }
 
     // Use Drive preview which is iframe embeddable
     if (mode === "preview" || mode === "embed") {

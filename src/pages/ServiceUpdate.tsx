@@ -53,18 +53,18 @@ const ServiceUpdate = () => {
       });
       return;
     }
-    const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
-    // Open Google Drive preview in new tab - it has a built-in print button
-    const printWindow = window.open(url, '_blank');
-    if (printWindow) {
-      toast({
-        title: "PDF Opened",
-        description: "Use the print button in Google Drive to print the PDF",
-      });
+    const rawUrl = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "download");
+    const win = window.open("", "_blank");
+    if (win) {
+      const html = `<!doctype html><html><head><title>Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
     } else {
+      window.open(rawUrl, '_blank');
       toast({
         title: "Popup Blocked",
-        description: "Please allow popups to print the PDF",
+        description: "Allow popups to auto-print, PDF opened in a new tab.",
         variant: "destructive",
       });
     }
