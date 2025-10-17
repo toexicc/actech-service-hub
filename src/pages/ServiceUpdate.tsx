@@ -78,7 +78,7 @@ const ServiceUpdate = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}&deviceType=${deviceType}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(serviceId)}&deviceType=${encodeURIComponent(deviceType)}`,
       );
       const data = await response.json();
 
