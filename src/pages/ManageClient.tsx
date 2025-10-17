@@ -39,6 +39,12 @@ const ManageClient = () => {
     if (!serviceData) return;
 
     try {
+      const isYes = (value: any) => {
+        if (value === true || value === 1) return true;
+        const v = typeof value === "string" ? value.trim().toLowerCase() : value;
+        return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
+      };
+
       const pdfBlob = await generateServicePDF({
         serviceId: serviceId,
         timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
@@ -50,20 +56,20 @@ const ManageClient = () => {
         username: serviceData.username || "N/A",
         phone: serviceData.phone || "N/A",
         email: serviceData.email || "N/A",
-        deviceType: serviceData.deviceType || "",
+        deviceType: deviceType,
         serial: serviceData.serialNumber || "N/A",
         brand: serviceData.brand || "N/A",
-        color: serviceData.color || "N/A",
+        color: serviceData.color || serviceData.colorMemory || "N/A",
         model: serviceData.device || "",
-        memory: serviceData.memory || "N/A",
-        chiefComplaint: serviceData.chiefComplaint || "N/A",
-        dents: serviceData.dents === "yes" || serviceData.dents === true,
-        scratches: serviceData.scratches === "yes" || serviceData.scratches === true,
-        missingParts: serviceData.missingParts === "yes" || serviceData.missingParts === true,
-        physicalDamage: serviceData.physicalDamage === "yes" || serviceData.physicalDamage === true,
-        importantFiles: serviceData.importantFiles === "yes" || serviceData.importantFiles === true,
-        noPower: serviceData.noPower === "yes" || serviceData.noPower === true,
-        repairHistory: serviceData.repairHistory === "yes" || serviceData.repairHistory === true,
+        memory: serviceData.memory || serviceData.colorMemory || "N/A",
+        chiefComplaint: serviceData.chiefComplaint || serviceData.service || "N/A",
+        dents: isYes(serviceData.dents),
+        scratches: isYes(serviceData.scratches),
+        missingParts: isYes(serviceData.missingParts),
+        physicalDamage: isYes(serviceData.physicalDamage),
+        importantFiles: isYes(serviceData.importantFiles),
+        noPower: isYes(serviceData.noPower),
+        repairHistory: isYes(serviceData.repairHistory),
         estimatedCost: Number(serviceData.serviceCost) || 0,
         timeFrame: serviceData.timeFrame || "N/A",
       });
@@ -71,6 +77,7 @@ const ManageClient = () => {
       const pdfUrl = URL.createObjectURL(pdfBlob);
       window.open(pdfUrl, '_blank');
     } catch (error) {
+      console.error("PDF generation error:", error);
       toast({
         title: "Error",
         description: "Failed to generate PDF",
@@ -83,6 +90,12 @@ const ManageClient = () => {
     if (!serviceData) return;
 
     try {
+      const isYes = (value: any) => {
+        if (value === true || value === 1) return true;
+        const v = typeof value === "string" ? value.trim().toLowerCase() : value;
+        return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
+      };
+
       const pdfBlob = await generateServicePDF({
         serviceId: serviceId,
         timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "",
@@ -94,20 +107,20 @@ const ManageClient = () => {
         username: serviceData.username || "N/A",
         phone: serviceData.phone || "N/A",
         email: serviceData.email || "N/A",
-        deviceType: serviceData.deviceType || "",
+        deviceType: deviceType,
         serial: serviceData.serialNumber || "N/A",
         brand: serviceData.brand || "N/A",
-        color: serviceData.color || "N/A",
+        color: serviceData.color || serviceData.colorMemory || "N/A",
         model: serviceData.device || "",
-        memory: serviceData.memory || "N/A",
-        chiefComplaint: serviceData.chiefComplaint || "N/A",
-        dents: serviceData.dents === "yes" || serviceData.dents === true,
-        scratches: serviceData.scratches === "yes" || serviceData.scratches === true,
-        missingParts: serviceData.missingParts === "yes" || serviceData.missingParts === true,
-        physicalDamage: serviceData.physicalDamage === "yes" || serviceData.physicalDamage === true,
-        importantFiles: serviceData.importantFiles === "yes" || serviceData.importantFiles === true,
-        noPower: serviceData.noPower === "yes" || serviceData.noPower === true,
-        repairHistory: serviceData.repairHistory === "yes" || serviceData.repairHistory === true,
+        memory: serviceData.memory || serviceData.colorMemory || "N/A",
+        chiefComplaint: serviceData.chiefComplaint || serviceData.service || "N/A",
+        dents: isYes(serviceData.dents),
+        scratches: isYes(serviceData.scratches),
+        missingParts: isYes(serviceData.missingParts),
+        physicalDamage: isYes(serviceData.physicalDamage),
+        importantFiles: isYes(serviceData.importantFiles),
+        noPower: isYes(serviceData.noPower),
+        repairHistory: isYes(serviceData.repairHistory),
         estimatedCost: Number(serviceData.serviceCost) || 0,
         timeFrame: serviceData.timeFrame || "N/A",
       });
@@ -120,6 +133,7 @@ const ManageClient = () => {
         };
       }
     } catch (error) {
+      console.error("PDF print error:", error);
       toast({
         title: "Error",
         description: "Failed to print PDF",
