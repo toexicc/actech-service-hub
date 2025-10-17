@@ -168,7 +168,7 @@ function doPost(e) {
       pdfBlob.setName(fileName);
       
       // Upload to Google Drive (set your folder ID)
-      var folder = DriveApp.getFolderById("YOUR_FOLDER_ID"); // TODO: Replace with your Drive folder ID
+      var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj"); // TODO: Replace with your Drive folder ID
       var file = folder.createFile(pdfBlob);
       
       // Make file shareable
