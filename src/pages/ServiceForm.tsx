@@ -200,6 +200,15 @@ const ServiceForm = () => {
       });
       console.log("PDF generated successfully:", pdfBlob);
 
+      // Fallback: also send base64 for Apps Script environments where e.files is unavailable
+      const blobToBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve((reader.result as string).split(',')[1] || '');
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const pdfBase64 = await blobToBase64(pdfBlob);
+
       const formData = new FormData();
       formData.append("Service ID", finalServiceId);
       formData.append("Timestamp", timestamp);
@@ -237,6 +246,10 @@ const ServiceForm = () => {
       const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
       console.log("Appending PDF with filename:", pdfFileName);
       formData.append("PDF", pdfFile);
+      // Base64 fallback for Apps Script if e.files is not populated
+      formData.append("PDF_Base64", pdfBase64);
+      formData.append("PDF_FileName", pdfFileName);
+      formData.append("PDF_MimeType", "application/pdf");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",

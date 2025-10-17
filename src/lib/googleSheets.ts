@@ -158,25 +158,31 @@ function doPost(e) {
   
   // Handle PDF file upload if present
   var pdfUrl = "";
-  if (e && e.files && e.files.PDF) {
-    try {
-      var pdfBlob = e.files.PDF; // File uploaded from the form field named "PDF"
-      
-      // Build filename: serialID_Name_DeviceType.pdf (sanitized)
-      var sanitize = function(str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
-      var fileName = sanitize(params["Serial"]) + "_" + sanitize(params["Client Name"]) + "_" + sanitize(params["Device Type"]) + ".pdf";
-      pdfBlob.setName(fileName);
-      
-      // Upload to Google Drive (set your folder ID)
-      var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj"); // TODO: Replace with your Drive folder ID
+  try {
+    var sanitize = function(str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
+    var baseName = sanitize(params["Serial"]) + "_" + sanitize(params["Client Name"]) + "_" + sanitize(params["Device Type"]);
+
+    var pdfBlob = null;
+    if (e && e.files && e.files.PDF) {
+      // Preferred: multipart file upload
+      pdfBlob = e.files.PDF;
+      pdfBlob.setName(baseName + ".pdf");
+    } else if (params["PDF_Base64"]) {
+      // Fallback: base64 fields
+      var bytes = Utilities.base64Decode(params["PDF_Base64"]);
+      var mimeType = params["PDF_MimeType"] || "application/pdf";
+      var fileName = params["PDF_FileName"] || (baseName + ".pdf");
+      pdfBlob = Utilities.newBlob(bytes, mimeType, fileName);
+    }
+
+    if (pdfBlob) {
+      var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
       var file = folder.createFile(pdfBlob);
-      
-      // Make file shareable
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       pdfUrl = file.getUrl();
-    } catch (error) {
-      Logger.log("Error uploading PDF: " + error);
     }
+  } catch (error) {
+    Logger.log("Error uploading PDF: " + error);
   }
   
   // Map the form data to the correct columns
