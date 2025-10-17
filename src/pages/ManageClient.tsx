@@ -126,6 +126,37 @@ const ManageClient = () => {
 
     setIsUpdating(true);
     try {
+      // Generate updated PDF with new information
+      const pdfBlob = await generateServicePDF({
+        serviceId: serviceData.serviceId,
+        timestamp: serviceData.timestamp,
+        adminRep: serviceData.adminRep || "",
+        technician: updateTechnician,
+        clientType: updateClientType,
+        priority: updatePriority,
+        clientName: serviceData.clientName,
+        username: serviceData.username || "",
+        phone: serviceData.phone || "",
+        email: serviceData.email || "",
+        deviceType: serviceData.deviceType,
+        serial: serviceData.serialNumber || "",
+        brand: serviceData.brand || "",
+        color: serviceData.colorMemory?.split(" | ")[0] || "",
+        model: serviceData.device,
+        memory: serviceData.colorMemory?.split(" | ")[1] || "",
+        chiefComplaint: serviceData.chiefComplaint || "",
+        dents: serviceData.dents || false,
+        scratches: serviceData.scratches || false,
+        missingParts: serviceData.missingParts || false,
+        physicalDamage: serviceData.physicalDamage || false,
+        importantFiles: serviceData.importantFiles || false,
+        noPower: serviceData.noPower || false,
+        repairHistory: serviceData.repairHistory || false,
+        estimatedCost: parseFloat(updateServiceCost) || 0,
+        timeFrame: updateTargetDate,
+      });
+
+      // Prepare form data with updated PDF
       const formData = new FormData();
       formData.append("action", "updateService");
       formData.append("serviceId", serviceId);
@@ -138,6 +169,9 @@ const ManageClient = () => {
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
+      
+      // Attach the updated PDF
+      formData.append("PDF", pdfBlob, `${serviceData.serialNumber}_${serviceData.clientName}_${serviceData.deviceType}.pdf`);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -149,7 +183,7 @@ const ManageClient = () => {
       if (result.result === "success") {
         toast({
           title: "Success",
-          description: "Client information updated successfully",
+          description: "Client information and PDF updated successfully",
         });
         // Refresh the data
         handleSearch();
