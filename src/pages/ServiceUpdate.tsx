@@ -13,6 +13,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
+import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
@@ -40,9 +41,9 @@ const ServiceUpdate = () => {
       });
       return;
     }
-    window.open(serviceData.pdfUrl, '_blank');
+    const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
+    window.open(url, "_blank");
   };
-
   const handlePrintPDF = () => {
     if (!serviceData?.pdfUrl) {
       toast({
@@ -52,21 +53,26 @@ const ServiceUpdate = () => {
       });
       return;
     }
-    // Create hidden iframe for printing
+    const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
+    // Create hidden iframe for printing (Drive preview is embeddable)
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.src = serviceData.pdfUrl;
+    iframe.src = url;
     document.body.appendChild(iframe);
-    
+
     iframe.onload = () => {
-      iframe.contentWindow?.print();
-      // Remove iframe after printing dialog closes
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (_) {
+        // Fallback: open in a new tab if printing is blocked
+        window.open(url, '_blank');
+      }
       setTimeout(() => {
         document.body.removeChild(iframe);
-      }, 1000);
+      }, 1500);
     };
   };
-
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
       toast({
