@@ -32,133 +32,176 @@ interface PDFData {
 export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   const doc = new jsPDF();
   
-  // Set font
-  doc.setFont("helvetica");
+  // Add logo
+  const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.jpg')
+    .then(res => res.blob())
+    .then(blob => new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    }));
   
-  // Header
-  doc.setFontSize(10);
-  doc.text("AC TECH REPAIR INC. | UNIT 103, 1ST FLOOR, FBR ARCADE, 5 a KATIPUNAN AVE, QUEZON CITY", 105, 15, { align: "center" });
-  doc.text("MONDAY TO SATURDAY (10:00 PM - 7:00 PM)", 105, 20, { align: "center" });
+  // Center logo at top
+  doc.addImage(logoImg, 'JPEG', 75, 10, 60, 25);
+  
+  let yPos = 42;
+  
+  // Header text
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("AC TECH REPAIR INC. | UNIT 103, 1ST FLOOR, FBR ARCADE, 5 a KATIPUNAN AVE, QUEZON CITY", 105, yPos, { align: "center" });
+  yPos += 4;
+  doc.text("MONDAY TO SATURDAY (10:00 PM - 7:00 PM)", 105, yPos, { align: "center" });
+  yPos += 4;
   doc.setFontSize(8);
-  doc.text("powered by techbros", 105, 25, { align: "center" });
+  doc.text("powered by techbros", 105, yPos, { align: "center" });
   
   // Title
-  doc.setFontSize(16);
+  yPos += 10;
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("DIAGNOSIS REPORT | CLIENT INTAKE FORM", 105, 35, { align: "center" });
+  doc.text("DIAGNOSIS REPORT | CLIENT INTAKE FORM", 105, yPos, { align: "center" });
   
-  // Date/Time and Service ID table
-  let yPos = 45;
+  // Table layout matching template
+  yPos += 10;
+  const leftCol = 20;
+  const midCol = 70;
+  const rightCol = 115;
+  const valueCol = 165;
+  
+  // Row 1: Date/Time and Service ID
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("Date and Time:", 15, yPos);
-  doc.text("Service ID:", 105, yPos);
-  
-  yPos += 5;
+  doc.text("Date and Time:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.timestamp, 15, yPos);
-  doc.text(data.serviceId, 105, yPos);
+  doc.text(data.timestamp, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Service ID:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.serviceId, valueCol, yPos);
   
   yPos += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Admin Representative:", 15, yPos);
-  doc.text("Technician:", 105, yPos);
   
-  yPos += 5;
+  // Row 2: Admin Rep and Technician
+  doc.setFont("helvetica", "bold");
+  doc.text("Admin Representative:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.adminRep, 15, yPos);
-  doc.text(data.technician, 105, yPos);
+  doc.text(data.adminRep, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Technician:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.technician, valueCol, yPos);
   
   // Client Information Section
   yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("Client Information", 15, yPos);
+  doc.text("Client Information", leftCol, yPos);
   
   yPos += 8;
   doc.setFontSize(10);
-  doc.text("Client Type:", 15, yPos);
-  doc.text("Priority:", 105, yPos);
   
-  yPos += 5;
+  // Client Type and Priority
+  doc.text("Client Type:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.clientType, 15, yPos);
-  doc.text(data.priority, 105, yPos);
+  doc.text(data.clientType, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Priority:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.priority, valueCol, yPos);
   
   yPos += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Name:", 15, yPos);
-  doc.text("Username:", 105, yPos);
   
-  yPos += 5;
+  // Name and Username
+  doc.setFont("helvetica", "bold");
+  doc.text("Name:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.clientName, 15, yPos);
-  doc.text(data.username, 105, yPos);
+  doc.text(data.clientName, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Username:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.username, valueCol, yPos);
   
   yPos += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Phone:", 15, yPos);
-  doc.text("Email:", 105, yPos);
   
-  yPos += 5;
+  // Phone and Email
+  doc.setFont("helvetica", "bold");
+  doc.text("Phone:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.phone, 15, yPos);
-  doc.text(data.email, 105, yPos);
+  doc.text(data.phone, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Email:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.email, valueCol, yPos);
   
   // Device Information Section
   yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("Device Information", 15, yPos);
+  doc.text("Device Information", leftCol, yPos);
   
   yPos += 8;
   doc.setFontSize(10);
-  doc.text("Device Type:", 15, yPos);
-  doc.text("Serial No.:", 105, yPos);
   
-  yPos += 5;
+  // Device Type and Serial
+  doc.text("Device Type:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.deviceType, 15, yPos);
-  doc.text(data.serial, 105, yPos);
+  doc.text(data.deviceType, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Serial No.:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.serial, valueCol, yPos);
   
   yPos += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Brand:", 15, yPos);
-  doc.text("Color:", 105, yPos);
   
-  yPos += 5;
+  // Brand and Color
+  doc.setFont("helvetica", "bold");
+  doc.text("Brand:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.brand, 15, yPos);
-  doc.text(data.color, 105, yPos);
+  doc.text(data.brand, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Color:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.color, valueCol, yPos);
   
   yPos += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Model:", 15, yPos);
-  doc.text("Memory:", 105, yPos);
   
-  yPos += 5;
+  // Model and Memory
+  doc.setFont("helvetica", "bold");
+  doc.text("Model:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.model, 15, yPos);
-  doc.text(data.memory, 105, yPos);
+  doc.text(data.model, midCol, yPos);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("Memory:", rightCol, yPos);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.memory, valueCol, yPos);
   
   // Chief Complaint Section
   yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("Chief Complaint", 15, yPos);
+  doc.text("Chief Complaint", leftCol, yPos);
   
   yPos += 8;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const complaintLines = doc.splitTextToSize(data.chiefComplaint, 180);
-  doc.text(complaintLines, 15, yPos);
+  const complaintLines = doc.splitTextToSize(data.chiefComplaint, 170);
+  doc.text(complaintLines, leftCol, yPos);
   yPos += (complaintLines.length * 5);
   
   // Device Notes Section
   yPos += 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("Device Notes", 15, yPos);
+  doc.text("Device Notes", leftCol, yPos);
   
   yPos += 8;
   doc.setFontSize(10);
@@ -174,33 +217,32 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   if (data.repairHistory) deviceNotes.push("With Repair History");
   
   const notesText = deviceNotes.length > 0 ? deviceNotes.join(", ") : "";
-  const notesLines = doc.splitTextToSize(notesText, 180);
-  doc.text(notesLines, 15, yPos);
-  yPos += (notesLines.length * 5);
+  if (notesText) {
+    const notesLines = doc.splitTextToSize(notesText, 170);
+    doc.text(notesLines, leftCol, yPos);
+    yPos += (notesLines.length * 5);
+  }
   
   // Cost and Time Frame
   yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.text("Estimated Cost:", 15, yPos);
-  
-  yPos += 5;
+  doc.text("Estimated Cost:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(`PHP ${data.estimatedCost.toLocaleString()}`, 15, yPos);
+  doc.text(`PHP ${data.estimatedCost.toLocaleString()}`, midCol, yPos);
   
   yPos += 6;
   doc.setFont("helvetica", "bold");
-  doc.text("Time Frame:", 15, yPos);
-  
-  yPos += 5;
+  doc.text("Time Frame:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.timeFrame, 15, yPos);
+  doc.text(data.timeFrame, midCol, yPos);
   
   // Footer
   yPos += 15;
   doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
   const footerText = "This document is automatically generated after you submit the digital form. Please note that by completing the form, you have already acknowledged and agreed to the Terms and Conditions of AC Tech Repair Ph, confirmed the accuracy of all information provided, and consented to the servicing of your device with costs to be finalized based on the final diagnosis.";
-  const footerLines = doc.splitTextToSize(footerText, 180);
-  doc.text(footerLines, 15, yPos);
+  const footerLines = doc.splitTextToSize(footerText, 170);
+  doc.text(footerLines, leftCol, yPos);
   
   // Return as blob
   return doc.output("blob");

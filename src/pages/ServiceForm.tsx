@@ -240,9 +240,9 @@ const ServiceForm = () => {
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
       
-      // Append PDF file as a proper File with sanitized filename and correct MIME type
+      // Append PDF file with Service ID in filename
       const sanitizeFileName = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '_');
-      const pdfFileName = `${sanitizeFileName(data.serial)}_${sanitizeFileName(data.clientName)}_${sanitizeFileName(data.deviceType)}.pdf`;
+      const pdfFileName = `${finalServiceId}_${sanitizeFileName(data.clientName)}_${sanitizeFileName(data.deviceType)}.pdf`;
       const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
       console.log("Appending PDF with filename:", pdfFileName);
       formData.append("PDF", pdfFile);
