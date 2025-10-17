@@ -229,8 +229,10 @@ const ServiceForm = () => {
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
       
-      // Append PDF file
-      formData.append("PDF", pdfBlob, `${finalServiceId}_intake_form.pdf`);
+      // Append PDF file with sanitized filename
+      const sanitizeFileName = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '_');
+      const pdfFileName = `${sanitizeFileName(data.serial)}_${sanitizeFileName(data.clientName)}_${sanitizeFileName(data.deviceType)}.pdf`;
+      formData.append("PDF", pdfBlob, pdfFileName);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
