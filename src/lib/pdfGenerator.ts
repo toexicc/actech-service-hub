@@ -33,7 +33,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   const doc = new jsPDF();
   
   // Add logo
-  const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.jpg')
+  const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.png')
     .then(res => res.blob())
     .then(blob => new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -41,10 +41,10 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
       reader.readAsDataURL(blob);
     }));
   
-  // Center logo at top
-  doc.addImage(logoImg, 'JPEG', 75, 10, 60, 25);
+  // Center logo at top with proper aspect ratio (square logo)
+  doc.addImage(logoImg, 'PNG', 80, 10, 50, 50);
   
-  let yPos = 42;
+  let yPos = 65;
   
   // Header text
   doc.setFontSize(9);
