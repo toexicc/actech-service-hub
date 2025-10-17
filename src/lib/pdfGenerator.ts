@@ -47,18 +47,29 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.setFont("helvetica", "bold");
   doc.text("DIAGNOSIS REPORT | CLIENT INTAKE FORM", 105, 35, { align: "center" });
   
-  // Date/Time and Service ID
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
+  // Date/Time and Service ID table
   let yPos = 45;
-  doc.text(`Date and Time: ${data.timestamp}`, 15, yPos);
-  doc.text(`Service ID: ${data.serviceId}`, 120, yPos);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Date and Time:", 15, yPos);
+  doc.text("Service ID:", 105, yPos);
+  
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.timestamp, 15, yPos);
+  doc.text(data.serviceId, 105, yPos);
   
   yPos += 6;
-  doc.text(`Admin Representative: ${data.adminRep}`, 15, yPos);
-  doc.text(`Technician: ${data.technician}`, 120, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text("Admin Representative:", 15, yPos);
+  doc.text("Technician:", 105, yPos);
   
-  // Client Information
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.adminRep, 15, yPos);
+  doc.text(data.technician, 105, yPos);
+  
+  // Client Information Section
   yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -66,19 +77,35 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   
   yPos += 8;
   doc.setFontSize(10);
+  doc.text("Client Type:", 15, yPos);
+  doc.text("Priority:", 105, yPos);
+  
+  yPos += 5;
   doc.setFont("helvetica", "normal");
-  doc.text(`Client Type: ${data.clientType}`, 15, yPos);
-  doc.text(`Priority: ${data.priority}`, 120, yPos);
+  doc.text(data.clientType, 15, yPos);
+  doc.text(data.priority, 105, yPos);
   
   yPos += 6;
-  doc.text(`Name: ${data.clientName}`, 15, yPos);
-  doc.text(`Username: ${data.username}`, 120, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text("Name:", 15, yPos);
+  doc.text("Username:", 105, yPos);
+  
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.clientName, 15, yPos);
+  doc.text(data.username, 105, yPos);
   
   yPos += 6;
-  doc.text(`Phone: ${data.phone}`, 15, yPos);
-  doc.text(`Email: ${data.email}`, 120, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text("Phone:", 15, yPos);
+  doc.text("Email:", 105, yPos);
   
-  // Device Information
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.phone, 15, yPos);
+  doc.text(data.email, 105, yPos);
+  
+  // Device Information Section
   yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -86,19 +113,35 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   
   yPos += 8;
   doc.setFontSize(10);
+  doc.text("Device Type:", 15, yPos);
+  doc.text("Serial No.:", 105, yPos);
+  
+  yPos += 5;
   doc.setFont("helvetica", "normal");
-  doc.text(`Device Type: ${data.deviceType}`, 15, yPos);
-  doc.text(`Serial No.: ${data.serial}`, 120, yPos);
+  doc.text(data.deviceType, 15, yPos);
+  doc.text(data.serial, 105, yPos);
   
   yPos += 6;
-  doc.text(`Brand: ${data.brand}`, 15, yPos);
-  doc.text(`Color: ${data.color}`, 120, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text("Brand:", 15, yPos);
+  doc.text("Color:", 105, yPos);
+  
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.brand, 15, yPos);
+  doc.text(data.color, 105, yPos);
   
   yPos += 6;
-  doc.text(`Model: ${data.model}`, 15, yPos);
-  doc.text(`Memory: ${data.memory}`, 120, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text("Model:", 15, yPos);
+  doc.text("Memory:", 105, yPos);
   
-  // Chief Complaint
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.model, 15, yPos);
+  doc.text(data.memory, 105, yPos);
+  
+  // Chief Complaint Section
   yPos += 12;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -109,10 +152,10 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.setFont("helvetica", "normal");
   const complaintLines = doc.splitTextToSize(data.chiefComplaint, 180);
   doc.text(complaintLines, 15, yPos);
-  yPos += (complaintLines.length * 6);
+  yPos += (complaintLines.length * 5);
   
-  // Device Notes
-  yPos += 8;
+  // Device Notes Section
+  yPos += 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text("Device Notes", 15, yPos);
@@ -130,16 +173,27 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   if (data.noPower) deviceNotes.push("No Power");
   if (data.repairHistory) deviceNotes.push("With Repair History");
   
-  const notesText = deviceNotes.length > 0 ? deviceNotes.join(", ") : "None";
+  const notesText = deviceNotes.length > 0 ? deviceNotes.join(", ") : "";
   const notesLines = doc.splitTextToSize(notesText, 180);
   doc.text(notesLines, 15, yPos);
-  yPos += (notesLines.length * 6);
+  yPos += (notesLines.length * 5);
   
-  // Cost and Time
-  yPos += 8;
-  doc.text(`Estimated Cost: PHP ${data.estimatedCost.toLocaleString()}`, 15, yPos);
+  // Cost and Time Frame
+  yPos += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Estimated Cost:", 15, yPos);
+  
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(`PHP ${data.estimatedCost.toLocaleString()}`, 15, yPos);
+  
   yPos += 6;
-  doc.text(`Time Frame: ${data.timeFrame}`, 15, yPos);
+  doc.setFont("helvetica", "bold");
+  doc.text("Time Frame:", 15, yPos);
+  
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.timeFrame, 15, yPos);
   
   // Footer
   yPos += 15;
