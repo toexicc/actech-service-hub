@@ -95,6 +95,32 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle search requests for Client Database
+  if (params.action === 'searchClient' && params.clientId) {
+    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
+    var data = clientSheet.getDataRange().getDisplayValues();
+    
+    // Search for the client ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.clientId) {
+        return ContentService.createTextOutput(JSON.stringify({
+          "found": true,
+          "data": {
+            "clientName": data[i][1],
+            "username": data[i][2],
+            "contactNumber": data[i][3],
+            "email": data[i][4],
+            "serviceIds": data[i][5]
+          }
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "found": false
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   // Handle request for all ongoing services (service tracker)
   if (params.action === 'getAllOngoingServices') {
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
@@ -508,6 +534,48 @@ function doPost(e) {
   
   // Handle service form submissions
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+  var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
+  
+  // Generate or retrieve Client ID
+  var clientId = params["Client ID"] || "";
+  var serviceIdValue = params["Service ID"];
+  var clientNameValue = params["Client Name"];
+  var usernameValue = params["Username"];
+  var phoneValue = params["Phone"];
+  var emailValue = params["Email"];
+  
+  if (!clientId) {
+    // Generate new Client ID: CL + timestamp
+    clientId = "CL" + Date.now();
+  }
+  
+  // Update or create Client Database entry
+  var clientData = clientSheet.getDataRange().getValues();
+  var clientFound = false;
+  
+  for (var i = 1; i < clientData.length; i++) {
+    if (clientData[i][0] == clientId) {
+      // Existing client - append new Service ID
+      var existingServiceIds = clientData[i][5] || "";
+      var updatedServiceIds = existingServiceIds ? existingServiceIds + ", " + serviceIdValue : serviceIdValue;
+      clientSheet.getRange(i + 1, 6).setValue(updatedServiceIds);
+      clientFound = true;
+      break;
+    }
+  }
+  
+  if (!clientFound) {
+    // New client - add to Client Database
+    // Columns: Client ID, Client Name, Username, Contact Number, Email, Service IDs
+    clientSheet.appendRow([
+      clientId,
+      clientNameValue,
+      usernameValue,
+      phoneValue,
+      emailValue,
+      serviceIdValue
+    ]);
+  }
   
   // Handle PDF file upload if present
   var pdfUrl = "";
@@ -543,7 +611,7 @@ function doPost(e) {
     params["Admin Representative"],
     params["Technician"],
     params["Timestamp"],
-    "",
+    clientId,
     params["Priority"],
     params["Client Type"],
     params["Client Name"],

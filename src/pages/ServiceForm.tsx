@@ -17,6 +17,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { DEVICE_TYPES } from "@/lib/constants";
 
 const formSchema = z.object({
+  clientId: z.string().optional(),
   adminRep: z.string().min(1, "Admin Representative is required"),
   technician: z.string().min(1, "Technician is required"),
   clientType: z.string().min(1, "Client Type is required"),
@@ -57,6 +58,8 @@ const ServiceForm = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchServiceId, setSearchServiceId] = useState("");
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
+  const [searchClientId, setSearchClientId] = useState("");
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -67,6 +70,7 @@ const ServiceForm = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      clientId: "",
       adminRep: "",
       technician: "",
       clientType: "",
@@ -105,6 +109,58 @@ const ServiceForm = () => {
     const seconds = String(now.getSeconds()).padStart(2, "0");
     const milliseconds = String(now.getMilliseconds()).charAt(0);
     return `${day}${month}${year}${seconds}${milliseconds}`;
+  };
+
+  const handleSearchClientId = async () => {
+    if (!searchClientId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a Client ID to search",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearchingClient(true);
+    try {
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(searchClientId)}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.found) {
+        form.setValue("clientId", searchClientId);
+        form.setValue("clientName", result.data.clientName || "");
+        form.setValue("username", result.data.username || "");
+        form.setValue("phone", result.data.contactNumber || "");
+        form.setValue("email", result.data.email || "");
+        form.setValue("clientType", "Returning Client");
+        form.setValue("priority", "Loyalty");
+        toast({
+          title: "Success",
+          description: "Client information loaded successfully!",
+        });
+      } else {
+        toast({
+          title: "Not Found",
+          description: "Client ID not found in database",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error searching client ID:", error);
+      toast({
+        title: "Error",
+        description: "Failed to search client ID. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingClient(false);
+    }
   };
 
   const handleSearchServiceId = async () => {
@@ -214,6 +270,7 @@ const ServiceForm = () => {
 
       const formData = new FormData();
       formData.append("Service ID", finalServiceId);
+      formData.append("Client ID", data.clientId || "");
       formData.append("Timestamp", timestamp);
       formData.append("Admin Representative", data.adminRep);
       formData.append("Technician", data.technician);
@@ -294,6 +351,34 @@ const ServiceForm = () => {
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
           <h1 className="text-3xl font-bold text-blue-600 mb-2">Initial Diagnosis Form</h1>
           <p className="text-muted-foreground">Client Initial Diagnosis Form</p>
+        </div>
+
+        {/* Client ID Search */}
+        <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+          <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter Client ID to load client information"
+              value={searchClientId}
+              onChange={(e) => setSearchClientId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearchClientId()}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              onClick={handleSearchClientId}
+              disabled={isSearchingClient}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Search className="mr-2 h-4 w-4" />
+              {isSearchingClient ? "Searching..." : "Search"}
+            </Button>
+          </div>
+          {form.watch("clientId") && (
+            <p className="mt-2 text-sm text-green-600 font-medium">
+              Loaded Client ID: {form.watch("clientId")}
+            </p>
+          )}
         </div>
 
         {/* Service ID Search */}
