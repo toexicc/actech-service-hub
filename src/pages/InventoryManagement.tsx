@@ -46,6 +46,7 @@ const InventoryManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<InventoryItem | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states for new part
   const [newPart, setNewPart] = useState({
@@ -54,6 +55,7 @@ const InventoryManagement = () => {
     brand: "",
     model: "",
     quantity: "",
+    orderedQuantity: "", // Track ordered quantity separately
     dateOrdered: "",
     supplier: "",
     costPerUnit: "",
@@ -111,12 +113,28 @@ const InventoryManagement = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("action", "addInventoryItem");
-      Object.entries(newPart).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
+      
+      // If status is "On Order", set actual quantity to 0 and store ordered quantity in remarks
+      const isOnOrder = newPart.status === "On Order";
+      const actualQuantity = isOnOrder ? "0" : newPart.quantity;
+      const remarksWithOrder = isOnOrder 
+        ? `Ordered: ${newPart.quantity} units${newPart.remarks ? ` | ${newPart.remarks}` : ""}`
+        : newPart.remarks;
+      
+      formData.append("partName", newPart.partName);
+      formData.append("deviceType", newPart.deviceType);
+      formData.append("brand", newPart.brand);
+      formData.append("model", newPart.model);
+      formData.append("quantity", actualQuantity);
+      formData.append("dateOrdered", newPart.dateOrdered);
+      formData.append("supplier", newPart.supplier);
+      formData.append("costPerUnit", newPart.costPerUnit);
+      formData.append("status", newPart.status);
+      formData.append("remarks", remarksWithOrder);
       formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -129,7 +147,9 @@ const InventoryManagement = () => {
       if (result.result === "success") {
         toast({
           title: "Success",
-          description: "Part added successfully",
+          description: isOnOrder 
+            ? `Part added with "On Order" status. Click "Receive Order" when stock arrives.`
+            : "Part added successfully",
         });
         setIsAddDialogOpen(false);
         setNewPart({
@@ -138,6 +158,7 @@ const InventoryManagement = () => {
           brand: "",
           model: "",
           quantity: "",
+          orderedQuantity: "",
           dateOrdered: "",
           supplier: "",
           costPerUnit: "",
@@ -159,6 +180,8 @@ const InventoryManagement = () => {
         description: "Failed to add part",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -172,6 +195,7 @@ const InventoryManagement = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("action", "adjustStock");
@@ -216,10 +240,13 @@ const InventoryManagement = () => {
         description: "Failed to update stock",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleReceiveOrder = async (item: InventoryItem) => {
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
       formData.append("action", "receiveOrder");
@@ -253,6 +280,8 @@ const InventoryManagement = () => {
         description: "Failed to receive order",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -409,7 +438,9 @@ const InventoryManagement = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="quantity">Initial Quantity *</Label>
+                    <Label htmlFor="quantity">
+                      {newPart.status === "On Order" ? "Ordered Quantity *" : "Initial Quantity *"}
+                    </Label>
                     <Input
                       id="quantity"
                       type="number"
@@ -417,6 +448,9 @@ const InventoryManagement = () => {
                       onChange={(e) => setNewPart({...newPart, quantity: e.target.value})}
                       placeholder="0"
                     />
+                    {newPart.status === "On Order" && (
+                      <p className="text-xs text-muted-foreground">Stock will be set to 0 until order is received</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="costPerUnit">Cost per Unit</Label>
@@ -476,8 +510,12 @@ const InventoryManagement = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddPart}>Add Part</Button>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddPart} disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Add Part"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -689,8 +727,9 @@ const InventoryManagement = () => {
                                 variant="default"
                                 className="bg-green-600 hover:bg-green-700"
                                 onClick={() => handleReceiveOrder(item)}
+                                disabled={isSubmitting}
                               >
-                                Receive Order
+                                {isSubmitting ? "Processing..." : "Receive Order"}
                               </Button>
                             ) : (
                               <Button
@@ -781,14 +820,20 @@ const InventoryManagement = () => {
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setIsStockDialogOpen(false);
-                setSelectedPart(null);
-                setStockAdjustment({ quantity: "", type: "add", remarks: "" });
-              }}>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsStockDialogOpen(false);
+                  setSelectedPart(null);
+                  setStockAdjustment({ quantity: "", type: "add", remarks: "" });
+                }}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleStockAdjustment}>Update Stock</Button>
+              <Button onClick={handleStockAdjustment} disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Stock"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
