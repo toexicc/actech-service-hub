@@ -53,12 +53,6 @@ const StaffManagement = () => {
       navigate("/admin-portal");
     }
   }, [navigate, userRole]);
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("authenticated");
-    sessionStorage.removeItem("userRole");
-    navigate("/");
-  };
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [addingStaff, setAddingStaff] = useState(false);
@@ -291,12 +285,9 @@ const StaffManagement = () => {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="mb-6">
           <Button onClick={() => navigate("/admin-portal")} variant="outline">
             Back to Admin Portal
-          </Button>
-          <Button onClick={handleLogout} variant="outline">
-            Logout
           </Button>
         </div>
 
