@@ -347,7 +347,7 @@ const ServiceUpdate = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Chief Complaint:</h3>
-                    <p className="text-lg">{serviceData.chiefComplaint || "N/A"}</p>
+                    <p className="text-lg whitespace-pre-line">{serviceData.chiefComplaint || "N/A"}</p>
                   </div>
 
                   <div>
