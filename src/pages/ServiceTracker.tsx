@@ -24,7 +24,7 @@ interface ServiceRecord {
   clientName: string;
 }
 
-type SortField = "serviceId" | "timestamp" | "technician" | "inService" | "targetDate";
+type SortField = "timestamp" | "technician" | "inService" | "targetDate";
 type SortOrder = "asc" | "desc";
 
 const ServiceTracker = () => {
@@ -72,11 +72,17 @@ const ServiceTracker = () => {
   const calculateInServiceDays = (timestamp: string): number => {
     if (!timestamp) return 0;
     try {
-      // Parse the timestamp format: "MM-DD-YYYY, HH:mm"
+      // Parse the timestamp format: "MM/DD/YYYY, HH:mm:ss" or "MM-DD-YYYY, HH:mm"
       const [datePart] = timestamp.split(", ");
-      const [month, day, year] = datePart.split("-");
+      const parts = datePart.split(/[-/]/); // Handle both - and / separators
+      if (parts.length !== 3) return 0;
+      
+      const [month, day, year] = parts;
       const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      return differenceInDays(new Date(), serviceDate);
+      
+      if (isNaN(serviceDate.getTime())) return 0;
+      
+      return Math.max(0, differenceInDays(new Date(), serviceDate));
     } catch (error) {
       return 0;
     }
@@ -120,9 +126,6 @@ const ServiceTracker = () => {
       let compareValue = 0;
 
       switch (sortField) {
-        case "serviceId":
-          compareValue = (a.serviceId || "").localeCompare(b.serviceId || "");
-          break;
         case "timestamp":
           compareValue = (a.timestamp || "").localeCompare(b.timestamp || "");
           break;
@@ -208,7 +211,6 @@ const ServiceTracker = () => {
                     <SelectItem value="timestamp">Service Date</SelectItem>
                     <SelectItem value="inService">In Service Days</SelectItem>
                     <SelectItem value="technician">Technician</SelectItem>
-                    <SelectItem value="serviceId">Service ID</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -287,11 +289,8 @@ const ServiceTracker = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="cursor-pointer" onClick={() => handleSort("serviceId")}>
-                        <div className="flex items-center gap-1">
-                          Service ID <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
+                      <TableHead>Service ID</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("timestamp")}>
                         <div className="flex items-center gap-1">
                           Service Date <ArrowUpDown className="h-4 w-4" />
@@ -333,6 +332,7 @@ const ServiceTracker = () => {
                             {service.serviceId}
                             {overdueStatus && <AlertCircle className="inline-block ml-2 h-4 w-4 text-destructive" />}
                           </TableCell>
+                          <TableCell>{service.status || "N/A"}</TableCell>
                           <TableCell>{service.timestamp || "N/A"}</TableCell>
                           <TableCell>{service.technician || "Unassigned"}</TableCell>
                           <TableCell className="max-w-[200px] truncate" title={service.service}>
