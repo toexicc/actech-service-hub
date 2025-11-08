@@ -176,9 +176,6 @@ const ServiceTracker = () => {
     }
   };
 
-  const handleServiceClick = (serviceId: string, deviceType: string) => {
-    navigate(`/manage-client?serviceId=${serviceId}&deviceType=${deviceType}`);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -346,8 +343,7 @@ const ServiceTracker = () => {
                       return (
                         <TableRow
                           key={service.serviceId}
-                          className={`cursor-pointer hover:bg-muted/50 ${overdueStatus ? "bg-destructive/10" : ""}`}
-                          onClick={() => handleServiceClick(service.serviceId, service.deviceType)}
+                          className={overdueStatus ? "bg-destructive/10" : ""}
                         >
                           <TableCell className="font-medium">
                             {service.serviceId}
