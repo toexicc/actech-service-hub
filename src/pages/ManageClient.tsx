@@ -174,14 +174,28 @@ const ManageClient = () => {
       formData.append("adminNotesInternal", updateAdminNotesInternal);
       formData.append("PDF", pdfBlob, `${serviceData.serialNumber}_${serviceData.clientName}_${serviceData.deviceType}.pdf`);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-      });
+      // Try upload with PDF file, then retry once on failure
+      let result: any | null = null;
+      try {
+        const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+          method: "POST",
+          body: formData,
+          referrerPolicy: "no-referrer",
+        });
+        result = await response.json();
+      } catch (err) {
+        console.error("First update attempt failed, retrying...", err);
+        // Retry once after a short delay
+        await new Promise((r) => setTimeout(r, 600));
+        const response2 = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+          method: "POST",
+          body: formData,
+          referrerPolicy: "no-referrer",
+        });
+        result = await response2.json();
+      }
 
-      const result = await response.json();
-
-      if (result.result === "success") {
+      if (result && result.result === "success") {
         toast({
           title: "Success",
           description: "Client information and PDF updated successfully",
