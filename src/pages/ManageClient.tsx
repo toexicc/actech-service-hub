@@ -131,7 +131,7 @@ const ManageClient = () => {
       
       const pdfData = {
         serviceId: serviceId,
-        timestamp: serviceData.timestamp || new Date().toISOString(),
+        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM-dd-yyyy, HH:mm") : format(new Date(), "MM-dd-yyyy, HH:mm"),
         adminRep: serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
@@ -386,7 +386,11 @@ const ManageClient = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
                     <p className="text-lg">
-                      {serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "N/A"}
+                      {serviceData.timestamp ? (() => {
+                        const date = new Date(serviceData.timestamp);
+                        // Format in Philippines timezone (GMT+8)
+                        return format(date, "MM-dd-yyyy, HH:mm");
+                      })() : "N/A"}
                     </p>
                   </div>
 
