@@ -7,7 +7,7 @@
 export const GOOGLE_SHEETS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
 
-// Sample Google Apps Script code for your Google Sheet:
+// Complete Google Apps Script code for your Google Sheet:
 /*
 function doGet(e) {
   var params = e.parameter;
@@ -23,42 +23,42 @@ function doGet(e) {
         return ContentService.createTextOutput(JSON.stringify({
           "status": "found",
           "data": {
-            "adminRep": data[i][2],          // Column C - Admin Representative
-            "clientName": data[i][8],        // Column I - Client Name
-            "username": data[i][9],          // Column J - Username
-            "email": data[i][10],            // Column K - Email
-            "phone": data[i][11],            // Column L - Phone
-            "device": data[i][16],           // Column Q - Model
-            "deviceType": data[i][12],       // Column M - Device Type
-            "serialNumber": data[i][13],     // Column N - Serial
-            "brand": data[i][14],            // Column O - Brand
-            "colorMemory": data[i][15] + " | " + data[i][17], // Column P (Color) | R (Memory)
-            "timestamp": data[i][4],  // Column E - Service Date
-            "targetDate": data[i][28],       // Column AC - Target Date
-            "timeFrame": data[i][27],        // Column AB - Time Frame
-            "service": data[i][26],          // Column AA - Service/s
-            "serviceCost": data[i][29],      // Column AD - Estimated Cost
-            "status": data[i][1] || "PENDING - APPROVAL",  // Column B - Status
-            "technician": data[i][3],        // Column D - Technician
-            "techNotes": data[i][39],        // Column AN - Technician Notes
-            "adminNotes": data[i][37],       // Column AL - Admin Notes
-            "adminNotesInternal": data[i][38], // Column AM - Admin Notes (Internal)
-            "chiefComplaint": data[i][18],   // Column S - Chief Complaint
-            "technicianDiagnosis": data[i][30], // Column AE - Technician Diagnosis
-            "suggestedRepair": data[i][32],  // Column AG - Suggested Repair
-            "technicianNotesCustomer": data[i][39], // Column AN - Technician Notes (Customer)
-            "technicianNotesInternal": data[i][40], // Column AO - Technician Notes (Internal)
-            "finalCost": data[i][31],        // Column AF - Final Cost
-            "clientType": data[i][7],        // Column H - Client Type
-            "priority": data[i][6],          // Column G - Priority
-            "dents": data[i][19],            // Column T - Dents
-            "scratches": data[i][20],        // Column U - Scratches
-            "missingParts": data[i][21],     // Column V - Missing Parts
-            "physicalDamage": data[i][22],   // Column W - Physical Damage
-            "importantFiles": data[i][23],   // Column X - Important Files
-            "noPower": data[i][24],          // Column Y - No Power
-            "repairHistory": data[i][25],    // Column Z - Repair History
-            "pdfUrl": data[i][41]            // Column AP - PDF Link
+            "adminRep": data[i][2],
+            "clientName": data[i][8],
+            "username": data[i][9],
+            "email": data[i][10],
+            "phone": data[i][11],
+            "device": data[i][16],
+            "deviceType": data[i][12],
+            "serialNumber": data[i][13],
+            "brand": data[i][14],
+            "colorMemory": data[i][15] + " | " + data[i][17],
+            "timestamp": data[i][4],
+            "targetDate": data[i][28],
+            "timeFrame": data[i][27],
+            "service": data[i][26],
+            "serviceCost": data[i][29],
+            "status": data[i][1] || "PENDING - APPROVAL",
+            "technician": data[i][3],
+            "techNotes": data[i][39],
+            "adminNotes": data[i][37],
+            "adminNotesInternal": data[i][38],
+            "chiefComplaint": data[i][18],
+            "technicianDiagnosis": data[i][30],
+            "suggestedRepair": data[i][32],
+            "technicianNotesCustomer": data[i][39],
+            "technicianNotesInternal": data[i][40],
+            "finalCost": data[i][31],
+            "clientType": data[i][7],
+            "priority": data[i][6],
+            "dents": data[i][19],
+            "scratches": data[i][20],
+            "missingParts": data[i][21],
+            "physicalDamage": data[i][22],
+            "importantFiles": data[i][23],
+            "noPower": data[i][24],
+            "repairHistory": data[i][25],
+            "pdfUrl": data[i][41]
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -80,11 +80,11 @@ function doGet(e) {
         return ContentService.createTextOutput(JSON.stringify({
           "found": true,
           "data": {
-            "name": data[i][4],            // Column E - Client Name
-            "contactNumber": data[i][6],   // Column G - Phone
-            "device": data[i][8],          // Column I - Model
-            "initialDiagnosis": data[i][9], // Column J - Chief Complaint
-            "estimatedCost": data[i][10]   // Column K - Estimated Cost
+            "name": data[i][4],
+            "contactNumber": data[i][6],
+            "device": data[i][8],
+            "initialDiagnosis": data[i][9],
+            "estimatedCost": data[i][10]
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -104,22 +104,52 @@ function doGet(e) {
     // Loop through all rows (skip header row)
     for (var i = 1; i < data.length; i++) {
       services.push({
-        "serviceId": data[i][0],           // Column A - Service ID
-        "timestamp": data[i][4],           // Column E - Service Date
-        "technician": data[i][3],          // Column D - Technician
-        "service": data[i][26],            // Column AA - Service/s
-        "deviceType": data[i][12],         // Column M - Device Type
-        "brand": data[i][14],              // Column O - Brand
-        "device": data[i][16],             // Column Q - Model
-        "targetDate": data[i][28],         // Column AC - Target Date
-        "status": data[i][1],              // Column B - Status
-        "clientName": data[i][8]           // Column I - Client Name
+        "serviceId": data[i][0],
+        "timestamp": data[i][4],
+        "technician": data[i][3],
+        "service": data[i][26],
+        "deviceType": data[i][12],
+        "brand": data[i][14],
+        "device": data[i][16],
+        "targetDate": data[i][28],
+        "status": data[i][1],
+        "clientName": data[i][8]
       });
     }
     
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success",
       "services": services
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle request for inventory (inventory management)
+  if (params.action === 'getInventory') {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var data = inventorySheet.getDataRange().getDisplayValues();
+    var inventory = [];
+    
+    // Loop through all rows (skip header row)
+    for (var i = 1; i < data.length; i++) {
+      inventory.push({
+        "partId": data[i][0],
+        "partName": data[i][1],
+        "deviceType": data[i][2],
+        "brand": data[i][3],
+        "model": data[i][4],
+        "quantity": parseInt(data[i][5] || 0),
+        "dateOrdered": data[i][6],
+        "supplier": data[i][7],
+        "costPerUnit": data[i][8],
+        "status": data[i][9],
+        "lastUpdated": data[i][10],
+        "remarks": data[i][11]
+      });
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "inventory": inventory
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -140,26 +170,24 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId) {
         // Update the specified columns
-        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B - Status
-        if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D - Technician
-        if (params.priority) sheet.getRange(i + 1, 7).setValue(params.priority); // Column G - Priority
-        if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType); // Column H - Client Type
-        if (params.services) sheet.getRange(i + 1, 27).setValue(params.services); // Column AA - Service/s
-        if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame); // Column AB - Time Frame
-        if (params.targetDate) sheet.getRange(i + 1, 29).setValue(params.targetDate); // Column AC - Target Date
-        if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
-        if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
-        if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)
-        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO - Technician Notes (Internal)
+        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
+        if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician);
+        if (params.priority) sheet.getRange(i + 1, 7).setValue(params.priority);
+        if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType);
+        if (params.services) sheet.getRange(i + 1, 27).setValue(params.services);
+        if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame);
+        if (params.targetDate) sheet.getRange(i + 1, 29).setValue(params.targetDate);
+        if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost);
+        if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes);
+        if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal);
+        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal);
         
         // Upload NEW PDF if provided and update Column AP with its link
         try {
           var pdfBlob = null;
-          // Prefer multipart file upload
           if (e && e.files && e.files.PDF) {
             pdfBlob = e.files.PDF;
           } else if (params["PDF_Base64"]) {
-            // Fallback: base64 fields
             var bytes = Utilities.base64Decode(params["PDF_Base64"]);
             var mimeType = params["PDF_MimeType"] || "application/pdf";
             var fallbackName = "ServiceReport.pdf";
@@ -168,7 +196,6 @@ function doPost(e) {
           }
 
           if (pdfBlob) {
-            // Build updated, timestamped filename
             var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
             var tz = Session.getScriptTimeZone();
             var ts = Utilities.formatDate(new Date(), tz, "MM-dd HH.mm");
@@ -185,12 +212,10 @@ function doPost(e) {
 
             pdfBlob.setName(desiredName);
 
-            // Upload to Drive and set sharing
             var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
             var file = folder.createFile(pdfBlob);
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-            // Write new link to Column AP (column 42)
             var pdfUrl = file.getUrl();
             sheet.getRange(i + 1, 42).setValue(pdfUrl);
           }
@@ -217,12 +242,108 @@ function doPost(e) {
     // Search for the service ID in column A (index 0)
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId) {
-        // Update the specified columns for technician
-        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B - Status
-        if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis); // Column AE - Technician Diagnosis
-        if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG - Suggested Repair
-        if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN - Technician Notes (Customer)
-        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO - Technician Notes (Internal)
+        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
+        if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis);
+        if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair);
+        if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer);
+        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle add inventory item requests
+  if (params.action === 'addInventoryItem') {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var partId = "PART" + Date.now();
+    
+    // Add to Inventory Management sheet
+    inventorySheet.appendRow([
+      partId,
+      params.partName,
+      params.deviceType,
+      params.brand,
+      params.model,
+      params.quantity,
+      params.dateOrdered,
+      params.supplier,
+      params.costPerUnit,
+      params.status,
+      timestamp,
+      params.remarks
+    ]);
+    
+    // Log the initial stock to Inventory Log
+    logSheet.appendRow([
+      timestamp,
+      partId,
+      params.partName,
+      "Initial Stock",
+      params.quantity,
+      0,
+      params.quantity,
+      params.addedBy || "Admin",
+      params.remarks
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle stock adjustment requests
+  if (params.action === 'adjustStock' && params.partId) {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var data = inventorySheet.getDataRange().getValues();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    
+    // Search for the part ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.partId) {
+        var previousQty = parseInt(data[i][5] || 0);
+        var adjustQty = parseInt(params.quantity);
+        var newQty;
+        var adjustmentType = params.adjustmentType;
+        
+        // Calculate new quantity based on adjustment type
+        if (adjustmentType === "add") {
+          newQty = previousQty + adjustQty;
+        } else if (adjustmentType === "remove") {
+          newQty = Math.max(0, previousQty - adjustQty);
+        } else {
+          newQty = adjustQty;
+        }
+        
+        // Update quantity in Inventory Management sheet
+        inventorySheet.getRange(i + 1, 6).setValue(newQty);
+        inventorySheet.getRange(i + 1, 11).setValue(timestamp);
+        
+        // Auto-update status based on quantity
+        var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
+        inventorySheet.getRange(i + 1, 10).setValue(status);
+        
+        // Log the adjustment to Inventory Log
+        logSheet.appendRow([
+          timestamp,
+          params.partId,
+          data[i][1],
+          adjustmentType === "add" ? "Stock In" : adjustmentType === "remove" ? "Stock Out" : "Adjustment",
+          adjustQty,
+          previousQty,
+          newQty,
+          params.adjustedBy || "Admin",
+          params.remarks
+        ]);
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
@@ -246,11 +367,9 @@ function doPost(e) {
 
     var pdfBlob = null;
     if (e && e.files && e.files.PDF) {
-      // Preferred: multipart file upload
       pdfBlob = e.files.PDF;
       pdfBlob.setName(baseName + ".pdf");
     } else if (params["PDF_Base64"]) {
-      // Fallback: base64 fields
       var bytes = Utilities.base64Decode(params["PDF_Base64"]);
       var mimeType = params["PDF_MimeType"] || "application/pdf";
       var fileName = params["PDF_FileName"] || (baseName + ".pdf");
@@ -269,48 +388,48 @@ function doPost(e) {
   
   // Map the form data to the correct columns
   var row = [
-    params["Service ID"], // Column A
-    "Pending Diagnosis", // Column B
-    params["Admin Representative"], // Column C
-    params["Technician"], // Column D
-    params["Timestamp"], // Column E
-    "", // Column F
-    params["Priority"], // Column G
-    params["Client Type"], // Column H
-    params["Client Name"], // Column I
-    params["Username"], // Column J
-    params["Email"], // Column K
-    params["Phone"], // Column L
-    params["Device Type"], // Column M
-    params["Serial"], // Column N
-    params["Brand"], // Column O
-    params["Color"], // Column P
-    params["Model"], // Column Q
-    params["Memory"], // Column R
-    params["Chief Complaint"], // Column S
-    params["Dents"], // Column T
-    params["Scratches"], // Column U
-    params["Missing Parts"], // Column V
-    params["Physical Damage"], // Column W
-    params["Important Files"], // Column X
-    params["No Power"], // Column Y
-    params["Repair History"], // Column Z
-    "", // Column AA
-    params["Time Frame"], // Column AB
-    "", // Column AC
-    params["Estimated Cost"], // Column AD
-    "", // Column AE
-    "", // Column AF
-    "", // Column AG
-    params["Acknowledgement 1"], // Column AH
-    params["Acknowledgement 2"], // Column AI
-    params["Acknowledgement 3"], // Column AJ
-    "", // Column AK
-    "", // Column AL
-    "", // Column AM
-    "", // Column AN
-    "", // Column AO
-    pdfUrl, // Column AP - PDF Link
+    params["Service ID"],
+    "Pending Diagnosis",
+    params["Admin Representative"],
+    params["Technician"],
+    params["Timestamp"],
+    "",
+    params["Priority"],
+    params["Client Type"],
+    params["Client Name"],
+    params["Username"],
+    params["Email"],
+    params["Phone"],
+    params["Device Type"],
+    params["Serial"],
+    params["Brand"],
+    params["Color"],
+    params["Model"],
+    params["Memory"],
+    params["Chief Complaint"],
+    params["Dents"],
+    params["Scratches"],
+    params["Missing Parts"],
+    params["Physical Damage"],
+    params["Important Files"],
+    params["No Power"],
+    params["Repair History"],
+    "",
+    params["Time Frame"],
+    "",
+    params["Estimated Cost"],
+    "",
+    "",
+    "",
+    params["Acknowledgement 1"],
+    params["Acknowledgement 2"],
+    params["Acknowledgement 3"],
+    "",
+    "",
+    "",
+    "",
+    "",
+    pdfUrl,
   ];
   
   sheet.appendRow(row);
