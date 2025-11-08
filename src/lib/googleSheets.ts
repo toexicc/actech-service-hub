@@ -145,7 +145,7 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Handle getting staff list
+  // Handle getting staff list (ADD THIS INSIDE doGet FUNCTION)
   if (params.action === 'getStaffList') {
     var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     if (!staffSheet) {
@@ -712,15 +712,16 @@ function doPost(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Staff Management Functions (Add these to your Google Apps Script)
+// ===== STAFF MANAGEMENT ENDPOINTS =====
+// ADD THESE INSIDE THE doPost(e) FUNCTION BEFORE THE CLOSING BRACE
 
-// Handle adding staff member
+// Handle adding staff member (ADD THIS INSIDE doPost FUNCTION)
 if (params.action === 'addStaff') {
   var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
   if (!staffSheet) {
     return ContentService.createTextOutput(JSON.stringify({
       "status": "error",
-      "message": "Staff Management sheet not found. Please create a sheet named 'Staff Management' with headers: Staff ID, Name, Role, Status"
+      "message": "Staff Management sheet not found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -742,7 +743,7 @@ if (params.action === 'addStaff') {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Handle removing staff member
+// Handle removing staff member (ADD THIS INSIDE doPost FUNCTION)
 if (params.action === 'removeStaff' && params.staffId) {
   var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
   if (!staffSheet) {
