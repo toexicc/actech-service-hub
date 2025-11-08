@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DEVICE_TYPES } from "@/lib/constants";
 import { Package, Plus, ArrowUpDown, AlertTriangle, Search } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
@@ -20,9 +21,6 @@ interface InventoryItem {
   brand: string;
   model: string;
   quantity: number;
-  dateOrdered: string;
-  supplier: string;
-  costPerUnit: string;
   status: string;
   lastUpdated: string;
   remarks: string;
@@ -53,9 +51,6 @@ const InventoryManagement = () => {
     brand: "",
     model: "",
     quantity: "",
-    dateOrdered: "",
-    supplier: "",
-    costPerUnit: "",
     status: "In Stock",
     remarks: ""
   });
@@ -137,9 +132,6 @@ const InventoryManagement = () => {
           brand: "",
           model: "",
           quantity: "",
-          dateOrdered: "",
-          supplier: "",
-          costPerUnit: "",
           status: "In Stock",
           remarks: ""
         });
@@ -279,9 +271,9 @@ const InventoryManagement = () => {
     }
   };
 
-  const getStatusColor = (quantity: number, status: string) => {
-    if (status === "Out of Stock" || quantity === 0) return "text-destructive font-semibold";
-    if (quantity < 5) return "text-orange-600 font-semibold";
+  const getStatusColor = (item: InventoryItem) => {
+    if (item.status === "Out of Stock" || item.quantity === 0) return "text-destructive font-semibold";
+    if (item.quantity < 5) return "text-orange-600 font-semibold";
     return "";
   };
 
@@ -330,12 +322,21 @@ const InventoryManagement = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="deviceType">Device Type *</Label>
-                    <Input
-                      id="deviceType"
+                    <Select
                       value={newPart.deviceType}
-                      onChange={(e) => setNewPart({...newPart, deviceType: e.target.value})}
-                      placeholder="e.g., Mobile (iPhone)"
-                    />
+                      onValueChange={(value) => setNewPart({...newPart, deviceType: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select device type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEVICE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -360,47 +361,15 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Initial Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      value={newPart.quantity}
-                      onChange={(e) => setNewPart({...newPart, quantity: e.target.value})}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="costPerUnit">Cost per Unit</Label>
-                    <Input
-                      id="costPerUnit"
-                      value={newPart.costPerUnit}
-                      onChange={(e) => setNewPart({...newPart, costPerUnit: e.target.value})}
-                      placeholder="₱0.00"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier">Supplier</Label>
-                    <Input
-                      id="supplier"
-                      value={newPart.supplier}
-                      onChange={(e) => setNewPart({...newPart, supplier: e.target.value})}
-                      placeholder="Supplier name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOrdered">Date Ordered</Label>
-                    <Input
-                      id="dateOrdered"
-                      type="date"
-                      value={newPart.dateOrdered}
-                      onChange={(e) => setNewPart({...newPart, dateOrdered: e.target.value})}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Initial Quantity *</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={newPart.quantity}
+                    onChange={(e) => setNewPart({...newPart, quantity: e.target.value})}
+                    placeholder="0"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -620,12 +589,9 @@ const InventoryManagement = () => {
                         <TableCell>{item.deviceType || "N/A"}</TableCell>
                         <TableCell>{item.brand || "N/A"}</TableCell>
                         <TableCell>{item.model || "N/A"}</TableCell>
-                        <TableCell className={getStatusColor(item.quantity, item.status)}>
+                        <TableCell className={getStatusColor(item)}>
                           {item.quantity}
                         </TableCell>
-                        <TableCell>{item.dateOrdered || "N/A"}</TableCell>
-                        <TableCell>{item.supplier || "N/A"}</TableCell>
-                        <TableCell>{item.costPerUnit || "N/A"}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded text-xs ${
                             item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :

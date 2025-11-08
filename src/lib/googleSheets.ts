@@ -138,12 +138,9 @@ function doGet(e) {
         "brand": data[i][3],
         "model": data[i][4],
         "quantity": parseInt(data[i][5] || 0),
-        "dateOrdered": data[i][6],
-        "supplier": data[i][7],
-        "costPerUnit": data[i][8],
-        "status": data[i][9],
-        "lastUpdated": data[i][10],
-        "remarks": data[i][11]
+        "status": data[i][6],
+        "lastUpdated": data[i][7],
+        "remarks": data[i][8]
       });
     }
     
@@ -265,8 +262,10 @@ function doPost(e) {
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
     var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
     var partId = "PART" + Date.now();
+    var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Status, Last Updated, Remarks
     inventorySheet.appendRow([
       partId,
       params.partName,
@@ -274,24 +273,23 @@ function doPost(e) {
       params.brand,
       params.model,
       params.quantity,
-      params.dateOrdered,
-      params.supplier,
-      params.costPerUnit,
       params.status,
       timestamp,
       params.remarks
     ]);
     
     // Log the initial stock to Inventory Log
+    // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
     logSheet.appendRow([
-      timestamp,
+      logId,
       partId,
       params.partName,
+      params.deviceType,
       "Initial Stock",
       params.quantity,
       0,
       params.quantity,
-      params.addedBy || "Admin",
+      timestamp,
       params.remarks
     ]);
     
@@ -306,6 +304,7 @@ function doPost(e) {
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
     var data = inventorySheet.getDataRange().getValues();
     var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var logId = "LOG" + Date.now();
     
     // Search for the part ID in column A (index 0)
     for (var i = 1; i < data.length; i++) {
@@ -324,24 +323,27 @@ function doPost(e) {
           newQty = adjustQty;
         }
         
-        // Update quantity in Inventory Management sheet
+        // Update quantity in Inventory Management sheet (Column F)
         inventorySheet.getRange(i + 1, 6).setValue(newQty);
-        inventorySheet.getRange(i + 1, 11).setValue(timestamp);
+        // Update Last Updated (Column H)
+        inventorySheet.getRange(i + 1, 8).setValue(timestamp);
         
-        // Auto-update status based on quantity
+        // Auto-update status based on quantity (Column G)
         var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
-        inventorySheet.getRange(i + 1, 10).setValue(status);
+        inventorySheet.getRange(i + 1, 7).setValue(status);
         
         // Log the adjustment to Inventory Log
+        // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
         logSheet.appendRow([
-          timestamp,
+          logId,
           params.partId,
-          data[i][1],
+          data[i][1], // Part Name
+          data[i][2], // Device Type
           adjustmentType === "add" ? "Stock In" : adjustmentType === "remove" ? "Stock Out" : "Adjustment",
           adjustQty,
           previousQty,
           newQty,
-          params.adjustedBy || "Admin",
+          timestamp,
           params.remarks
         ]);
         
