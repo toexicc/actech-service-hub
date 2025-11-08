@@ -40,6 +40,8 @@ const ManageClient = () => {
   const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
+  const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
+  const [updateTechServiceBreakdown, setUpdateTechServiceBreakdown] = useState("");
 
   const handleViewPDF = () => {
     if (!serviceData?.pdfUrl) {
@@ -109,6 +111,8 @@ const ManageClient = () => {
         setUpdateTargetDate(data.data.targetDate ? new Date(data.data.targetDate) : undefined);
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
+        setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
+        setUpdateTechServiceBreakdown(data.data.suggestedRepair || "");
       } else {
         toast({
           title: "Not Found",
@@ -430,6 +434,16 @@ const ManageClient = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Chief Complaint:</h3>
                     <p className="text-lg">{serviceData.chiefComplaint || "N/A"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Diagnosis:</h3>
+                    <p className="text-lg">{serviceData.technicianDiagnosis || "N/A"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Service Breakdown:</h3>
+                    <p className="text-lg">{serviceData.suggestedRepair || "N/A"}</p>
                   </div>
 
                   <div>
