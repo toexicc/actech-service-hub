@@ -131,7 +131,12 @@ const ManageClient = () => {
       
       const pdfData = {
         serviceId: serviceId,
-        timestamp: serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM-dd-yyyy, HH:mm") : format(new Date(), "MM-dd-yyyy, HH:mm"),
+        timestamp: serviceData.timestamp ? (() => {
+          const date = new Date(serviceData.timestamp);
+          // Subtract 8 hours to convert from UTC to Philippines local time
+          date.setHours(date.getHours() - 8);
+          return format(date, "MM-dd-yyyy, HH:mm");
+        })() : format(new Date(), "MM-dd-yyyy, HH:mm"),
         adminRep: serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
@@ -388,7 +393,8 @@ const ManageClient = () => {
                     <p className="text-lg">
                       {serviceData.timestamp ? (() => {
                         const date = new Date(serviceData.timestamp);
-                        // Format in Philippines timezone (GMT+8)
+                        // Subtract 8 hours to convert from UTC to Philippines local time
+                        date.setHours(date.getHours() - 8);
                         return format(date, "MM-dd-yyyy, HH:mm");
                       })() : "N/A"}
                     </p>
