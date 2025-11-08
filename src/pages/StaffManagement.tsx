@@ -263,17 +263,18 @@ const StaffManagement = () => {
   }, [roleFilter, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <img
-            src={acTechLogo}
-            alt="AC Tech Repair"
-            className="mx-auto h-20 mb-4 object-contain"
-          />
-          <h1 className="text-3xl font-bold text-blue-600 mb-2">
-            Staff Management
-          </h1>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6 max-w-7xl">
+        {/* Header */}
+        <div className="flex items-center justify-center mb-8">
+          <img src={acTechLogo} alt="AC Tech Repair PH" className="h-16 mr-4" />
+          <div>
+            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
+            <p className="text-muted-foreground">Staff Management</p>
+          </div>
+        </div>
+
+        <div className="mb-6">
           <Button onClick={() => navigate("/admin-portal")} variant="outline">
             Back to Admin Portal
           </Button>
