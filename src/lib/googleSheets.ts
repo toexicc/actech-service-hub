@@ -136,17 +136,17 @@ function doPost(e) {
             // Build updated, timestamped filename
             var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
             var tz = Session.getScriptTimeZone();
-            var ts = Utilities.formatDate(new Date(), tz, "MM-dd-yyyy HH.mm");
+            var ts = Utilities.formatDate(new Date(), tz, "MM-dd HH.mm");
 
-            var serial = sanitize(params["Serial"]);
+            var serviceId = sanitize(params["serviceId"]);
             var clientName = sanitize(params["Client Name"]);
             var deviceType = sanitize(params["Device Type"]);
 
-            var baseName = [serial, clientName, deviceType].filter(Boolean).join("_");
+            var baseName = [serviceId, clientName, deviceType].filter(Boolean).join("_");
             var desiredName =
               (params["PDF_FileName"] && params["PDF_FileName"].trim())
                 ? params["PDF_FileName"].trim()
-                : (baseName ? (baseName + " - UPDATED " + ts + ".pdf") : ("ServiceReport - UPDATED " + ts + ".pdf"));
+                : (baseName ? (baseName + " - UPDATED (" + ts + ").pdf") : ("ServiceReport - UPDATED (" + ts + ").pdf"));
 
             pdfBlob.setName(desiredName);
 

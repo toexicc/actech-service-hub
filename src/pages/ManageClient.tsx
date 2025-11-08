@@ -162,12 +162,12 @@ const ManageClient = () => {
 
       // Build updated filename with timestamp for new PDF version
       const now = new Date();
-      const tsForName = format(now, "MM-dd-yyyy HH.mm");
+      const tsForName = format(now, "MM-dd HH.mm");
       const safe = (s: string) => (s || "").replace(/[\\\/:*?"<>|]+/g, "_");
-      const safeSerial = safe(serviceData.serialNumber || "");
+      const safeServiceId = safe(serviceId || "");
       const safeClient = safe(serviceData.clientName || "");
-      const safeDevice = safe(serviceData.deviceType || deviceType || "");
-      const updatedFileName = `${safeSerial}_${safeClient}_${safeDevice} - UPDATED ${tsForName}.pdf`;
+      const safeDevice = safe(serviceData.device || "");
+      const updatedFileName = `${safeServiceId}_${safeClient}_${safeDevice} - UPDATED (${tsForName}).pdf`;
 
       // Provide base64 alongside Blob for GAS compatibility
       const blobToBase64 = (blob: Blob) =>
