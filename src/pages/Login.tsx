@@ -52,7 +52,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <img 
@@ -107,6 +107,10 @@ const Login = () => {
           </Button>
         </div>
       </div>
+      
+      <footer className="mt-8 text-center text-sm text-muted-foreground">
+        Powered by Stack&Scale
+      </footer>
     </div>
   );
 };

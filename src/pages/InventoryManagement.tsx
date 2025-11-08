@@ -450,8 +450,8 @@ const InventoryManagement = () => {
   const outOfStockCount = inventory.filter(i => i.quantity === 0 || i.status === "Out of Stock").length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="container mx-auto p-6 max-w-7xl flex-grow">
         {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
@@ -1087,7 +1087,7 @@ const InventoryManagement = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          powered by Stack&Scale
+          Powered by Stack&Scale
         </div>
       </div>
     </div>

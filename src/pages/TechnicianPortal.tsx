@@ -25,8 +25,8 @@ const TechnicianPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8 flex flex-col">
+      <div className="max-w-6xl mx-auto flex-grow">
         <div className="text-center mb-12">
           <img 
             src={acTechLogo} 
@@ -51,29 +51,33 @@ const TechnicianPortal = () => {
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Update</h2>
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Update Form</h2>
               <p className="text-muted-foreground mb-6">
-                Update service status, diagnosis, and technician notes
+                Update service status and progress
               </p>
               <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Enter Service Update
+                Open Form
               </Button>
             </div>
           </Card>
 
-          <Card className="p-8 hover:shadow-xl transition-shadow bg-white">
+          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-tracking")}>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-400 mb-4">Technician Report Form</h2>
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Tracking</h2>
               <p className="text-muted-foreground mb-6">
-                Detailed technician report submission (Coming Soon)
+                View and track assigned services
               </p>
-              <Button disabled className="bg-gray-300 w-full">
-                Coming Soon
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                Open Tracker
               </Button>
             </div>
           </Card>
         </div>
       </div>
+      
+      <footer className="text-center text-sm text-muted-foreground mt-8">
+        Powered by Stack&Scale
+      </footer>
     </div>
   );
 };

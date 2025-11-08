@@ -274,8 +274,8 @@ const StaffManagement = () => {
   }, [roleFilter, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="container mx-auto p-6 max-w-7xl flex-grow">
         {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={acTechLogo} alt="AC Tech Repair PH" className="h-16 mr-4" />
@@ -623,6 +623,10 @@ const StaffManagement = () => {
           </DialogContent>
         </Dialog>
       </div>
+      
+      <footer className="text-center text-sm text-muted-foreground mt-8 pb-6">
+        Powered by Stack&Scale
+      </footer>
     </div>
   );
 };

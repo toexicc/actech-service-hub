@@ -25,8 +25,8 @@ const AdminPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8 flex flex-col">
+      <div className="max-w-6xl mx-auto flex-grow">
         <div className="text-center mb-12">
           <img 
             src={acTechLogo} 
@@ -122,6 +122,10 @@ const AdminPortal = () => {
           )}
         </div>
       </div>
+      
+      <footer className="text-center text-sm text-muted-foreground mt-8">
+        Powered by Stack&Scale
+      </footer>
     </div>
   );
 };
