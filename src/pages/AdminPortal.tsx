@@ -53,6 +53,18 @@ const AdminPortal = () => {
             </div>
           </Card>
 
+          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/customer-management")}>
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Customer Management</h2>
+              <p className="text-muted-foreground mb-6">
+                View Customer Service History
+              </p>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Open Customer
+              </Button>
+            </div>
+          </Card>
+
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-tracker")}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Tracker</h2>
