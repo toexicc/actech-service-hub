@@ -388,10 +388,9 @@ function doPost(e) {
         inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K = 11
         
         // Update remarks with order information
-        var currentRemarks = data[i][11] || "";
-        var newRemarks = "Ordered: " + orderedQty + " units";
+        var newRemarks = "Ordered: " + orderedQty + " units | Current Stock: " + currentQty + " units";
         if (params.remarks) {
-          newRemarks += " | " + params.remarks;
+          newRemarks += " | Notes: " + params.remarks;
         }
         inventorySheet.getRange(i + 1, 12).setValue(newRemarks); // Column L = 12
         
@@ -406,7 +405,7 @@ function doPost(e) {
           currentQty,
           currentQty,
           timestamp,
-          newRemarks
+          "Ordered: " + orderedQty + " units | Current Stock: " + currentQty + " units"
         ]);
         
         return ContentService.createTextOutput(JSON.stringify({
@@ -459,11 +458,11 @@ function doPost(e) {
           data[i][1], // Part Name
           data[i][2], // Device Type
           "Order Received",
-          0,
+          orderedQty,
           currentQty,
-          currentQty,
+          newQty,
           timestamp,
-          params.remarks || "Order received and confirmed"
+          "Received: " + orderedQty + " units | Current Stock: " + newQty + " units"
         ]);
         
         return ContentService.createTextOutput(JSON.stringify({
