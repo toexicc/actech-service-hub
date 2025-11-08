@@ -72,18 +72,29 @@ const ServiceTracker = () => {
   const calculateInServiceDays = (timestamp: string): number => {
     if (!timestamp) return 0;
     try {
-      // Parse the timestamp format: "MM/DD/YYYY, HH:mm:ss" or "MM-DD-YYYY, HH:mm"
+      // Parse the timestamp format: "MM/DD/YYYY" or "MM-DD-YYYY, HH:mm"
       const [datePart] = timestamp.split(", ");
       const parts = datePart.split(/[-/]/); // Handle both - and / separators
       if (parts.length !== 3) return 0;
       
       const [month, day, year] = parts;
       const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      serviceDate.setHours(0, 0, 0, 0); // Set to start of day
       
-      if (isNaN(serviceDate.getTime())) return 0;
+      if (isNaN(serviceDate.getTime())) {
+        console.error("Invalid service date:", timestamp, serviceDate);
+        return 0;
+      }
       
-      return Math.max(0, differenceInDays(new Date(), serviceDate));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of day for fair comparison
+      
+      const days = differenceInDays(today, serviceDate);
+      console.log("Calculating days for:", timestamp, "Service Date:", serviceDate, "Today:", today, "Days:", days);
+      
+      return Math.max(0, days);
     } catch (error) {
+      console.error("Error calculating in service days:", error);
       return 0;
     }
   };
