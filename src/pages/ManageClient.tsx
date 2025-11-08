@@ -448,7 +448,7 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
-                    <p className="text-lg">{serviceData.service}</p>
+                    <p className="text-lg whitespace-pre-line">{serviceData.service}</p>
                   </div>
 
                   <div>
