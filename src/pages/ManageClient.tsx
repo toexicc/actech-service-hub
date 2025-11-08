@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,12 +132,9 @@ const ManageClient = () => {
       
       const pdfData = {
         serviceId: serviceId,
-        timestamp: serviceData.timestamp ? (() => {
-          const date = new Date(serviceData.timestamp);
-          // Subtract 8 hours to convert from UTC to Philippines local time
-          date.setHours(date.getHours() - 8);
-          return format(date, "MM-dd-yyyy, HH:mm");
-        })() : format(new Date(), "MM-dd-yyyy, HH:mm"),
+        timestamp: serviceData.timestamp
+          ? formatInTimeZone(new Date(serviceData.timestamp), "Asia/Manila", "MM-dd-yyyy, HH:mm")
+          : formatInTimeZone(new Date(), "Asia/Manila", "MM-dd-yyyy, HH:mm"),
         adminRep: serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
@@ -391,12 +389,9 @@ const ManageClient = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
                     <p className="text-lg">
-                      {serviceData.timestamp ? (() => {
-                        const date = new Date(serviceData.timestamp);
-                        // Subtract 8 hours to convert from UTC to Philippines local time
-                        date.setHours(date.getHours() - 8);
-                        return format(date, "MM-dd-yyyy, HH:mm");
-                      })() : "N/A"}
+                      {serviceData.timestamp
+                        ? formatInTimeZone(new Date(serviceData.timestamp), "Asia/Manila", "MM-dd-yyyy, HH:mm")
+                        : "N/A"}
                     </p>
                   </div>
 
