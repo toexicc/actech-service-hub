@@ -432,9 +432,23 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === params.partId) {
         var currentQty = parseInt(data[i][5] || 0);
+        var remarks = data[i][11] || "";
         
-        // Update status based on current quantity
-        var newStatus = currentQty === 0 ? "Out of Stock" : currentQty < 5 ? "Low Stock" : "In Stock";
+        // Extract ordered quantity from remarks
+        var orderedQty = 0;
+        var match = remarks.match(/Ordered:\s*(\d+)\s*units/);
+        if (match && match[1]) {
+          orderedQty = parseInt(match[1]);
+        }
+        
+        // Add ordered quantity to current quantity
+        var newQty = currentQty + orderedQty;
+        
+        // Update quantity
+        inventorySheet.getRange(i + 1, 6).setValue(newQty); // Column F = 6
+        
+        // Update status based on new quantity
+        var newStatus = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
         inventorySheet.getRange(i + 1, 10).setValue(newStatus); // Column J = 10
         inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K = 11
         
