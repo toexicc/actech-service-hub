@@ -132,12 +132,12 @@ const ManageClient = () => {
       const pdfData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || new Date().toISOString(),
-        adminRep: "Admin",
+        adminRep: serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
         priority: updatePriority,
         clientName: serviceData.clientName || "",
-        username: serviceData.clientName || "",
+        username: serviceData.username || serviceData.clientName || "",
         phone: serviceData.phone || "",
         email: serviceData.email || "",
         deviceType: serviceData.deviceType || deviceType,
@@ -156,6 +156,7 @@ const ManageClient = () => {
         repairHistory: serviceData.repairHistory === "Yes" || serviceData.repairHistory === true,
         estimatedCost: parseFloat(updateServiceCost) || 0,
         timeFrame: updateTargetDate,
+        isUpdated: true,
       };
       
       const pdfBlob = await generateServicePDF(pdfData);

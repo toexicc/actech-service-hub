@@ -27,6 +27,7 @@ interface PDFData {
   repairHistory: boolean;
   estimatedCost: number;
   timeFrame: string;
+  isUpdated?: boolean;
 }
 
 export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
@@ -68,6 +69,16 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.text("DIAGNOSIS REPORT | CLIENT INTAKE FORM", 105, yPos, { align: "center" });
+  
+  // Add UPDATED watermark/badge if this is an updated PDF
+  if (data.isUpdated) {
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(220, 53, 69); // Red color for visibility
+    doc.setFont("helvetica", "bold");
+    doc.text("*** UPDATED VERSION ***", 105, yPos, { align: "center" });
+    doc.setTextColor(0, 0, 0); // Reset to black
+  }
   
   // Table layout matching template with proper margins
   yPos += 10;
