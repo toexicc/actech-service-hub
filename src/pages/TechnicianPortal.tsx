@@ -32,7 +32,7 @@ const TechnicianPortal = () => {
               <p className="text-muted-foreground mb-6">
                 Update service status, diagnosis, and technician notes
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Enter Service Update
               </Button>
             </div>
@@ -44,7 +44,7 @@ const TechnicianPortal = () => {
               <p className="text-muted-foreground mb-6">
                 Detailed technician report submission (Coming Soon)
               </p>
-              <Button disabled className="bg-gray-300">
+              <Button disabled className="bg-gray-300 w-full">
                 Coming Soon
               </Button>
             </div>

@@ -35,7 +35,7 @@ const AdminPortal = () => {
               <p className="text-muted-foreground mb-6">
                 Frontdesk Form
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Open Form
               </Button>
             </div>
@@ -47,7 +47,7 @@ const AdminPortal = () => {
               <p className="text-muted-foreground mb-6">
                 Client Information View/Update
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Open Manager
               </Button>
             </div>
@@ -59,7 +59,7 @@ const AdminPortal = () => {
               <p className="text-muted-foreground mb-6">
                 View Customer Service History
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Open Customer
               </Button>
             </div>
@@ -71,7 +71,7 @@ const AdminPortal = () => {
               <p className="text-muted-foreground mb-6">
                 Monitor All Ongoing Services
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Open Tracker
               </Button>
             </div>
@@ -83,7 +83,7 @@ const AdminPortal = () => {
               <p className="text-muted-foreground mb-6">
                 Track Parts & Materials
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Open Inventory
               </Button>
             </div>
