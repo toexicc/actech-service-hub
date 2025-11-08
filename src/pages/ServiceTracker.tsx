@@ -91,10 +91,20 @@ const ServiceTracker = () => {
   const isOverdue = (targetDate: string): boolean => {
     if (!targetDate) return false;
     try {
-      // Parse target date format: "MM-DD-YYYY"
-      const [month, day, year] = targetDate.split("-");
+      // Parse target date format: "MM-DD-YYYY" or "MM/DD/YYYY"
+      const parts = targetDate.split(/[-/]/); // Handle both - and / separators
+      if (parts.length !== 3) return false;
+      
+      const [month, day, year] = parts;
       const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      return new Date() > target;
+      target.setHours(23, 59, 59, 999); // Set to end of day
+      
+      if (isNaN(target.getTime())) return false;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of day
+      
+      return today > target;
     } catch (error) {
       return false;
     }
