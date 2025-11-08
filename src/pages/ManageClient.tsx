@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -26,6 +26,7 @@ const ManageClient = () => {
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [technicianList, setTechnicianList] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Update form fields
@@ -42,6 +43,25 @@ const ManageClient = () => {
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [updateTechServiceBreakdown, setUpdateTechServiceBreakdown] = useState("");
+
+  const fetchTechnicianList = async () => {
+    try {
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`
+      );
+      const data = await response.json();
+      
+      if (data.status === "success") {
+        const technicians = data.data
+          .filter((staff: any) => staff.role === "Technician" && staff.status !== "Inactive")
+          .map((staff: any) => staff.name);
+        
+        setTechnicianList(technicians);
+      }
+    } catch (error) {
+      console.error("Error fetching technician list:", error);
+    }
+  };
 
   const handleViewPDF = () => {
     if (!serviceData?.pdfUrl) {
@@ -80,6 +100,11 @@ const ManageClient = () => {
       });
     }
   };
+  
+  useEffect(() => {
+    fetchTechnicianList();
+  }, []);
+  
   const handleSearch = async () => {
     if (!serviceId || !deviceType) {
       toast({
@@ -503,9 +528,17 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select technician" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Tech 1">Tech 1</SelectItem>
-                      <SelectItem value="Tech 2">Tech 2</SelectItem>
-                      <SelectItem value="Tech 3">Tech 3</SelectItem>
+                      {technicianList.length > 0 ? (
+                        technicianList.map((tech) => (
+                          <SelectItem key={tech} value={tech}>
+                            {tech}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="No Technicians" disabled>
+                          No Technicians Available
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

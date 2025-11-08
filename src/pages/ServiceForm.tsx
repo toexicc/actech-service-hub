@@ -60,12 +60,40 @@ const ServiceForm = () => {
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
+  const [adminList, setAdminList] = useState<string[]>([]);
+  const [technicianList, setTechnicianList] = useState<string[]>([]);
+
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
+    } else {
+      fetchStaffLists();
     }
   }, [navigate]);
+
+  const fetchStaffLists = async () => {
+    try {
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`
+      );
+      const data = await response.json();
+      
+      if (data.status === "success") {
+        const admins = data.data
+          .filter((staff: any) => staff.role === "Admin" && staff.status !== "Inactive")
+          .map((staff: any) => staff.name);
+        const technicians = data.data
+          .filter((staff: any) => staff.role === "Technician" && staff.status !== "Inactive")
+          .map((staff: any) => staff.name);
+        
+        setAdminList(admins);
+        setTechnicianList(technicians);
+      }
+    } catch (error) {
+      console.error("Error fetching staff lists:", error);
+    }
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -444,9 +472,17 @@ const ServiceForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Admin 1">Admin 1</SelectItem>
-                        <SelectItem value="Admin 2">Admin 2</SelectItem>
-                        <SelectItem value="Admin 3">Admin 3</SelectItem>
+                        {adminList.length > 0 ? (
+                          adminList.map((admin) => (
+                            <SelectItem key={admin} value={admin}>
+                              {admin}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="No Admins" disabled>
+                            No Admins Available
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -467,9 +503,17 @@ const ServiceForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Tech 1">Tech 1</SelectItem>
-                        <SelectItem value="Tech 2">Tech 2</SelectItem>
-                        <SelectItem value="Tech 3">Tech 3</SelectItem>
+                        {technicianList.length > 0 ? (
+                          technicianList.map((tech) => (
+                            <SelectItem key={tech} value={tech}>
+                              {tech}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="No Technicians" disabled>
+                            No Technicians Available
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
