@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,12 +37,36 @@ const ServiceTracker = () => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
+  const [technicianFilter, setTechnicianFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+
+  const applyDatePreset = (preset: string) => {
+    const today = new Date();
+    
+    switch (preset) {
+      case "last7":
+        setStartDate(subDays(today, 7));
+        setEndDate(today);
+        break;
+      case "last30":
+        setStartDate(subDays(today, 30));
+        setEndDate(today);
+        break;
+      case "thisMonth":
+        setStartDate(startOfMonth(today));
+        setEndDate(endOfMonth(today));
+        break;
+      case "clear":
+        setStartDate(undefined);
+        setEndDate(undefined);
+        break;
+    }
+  };
 
   useEffect(() => {
     fetchAllServices();
@@ -134,6 +158,11 @@ const ServiceTracker = () => {
     return Array.from(types).sort();
   }, [services]);
 
+  const technicians = useMemo(() => {
+    const techs = new Set(services.map(s => s.technician).filter(Boolean));
+    return Array.from(techs).sort();
+  }, [services]);
+
   const filteredAndSortedServices = useMemo(() => {
     let filtered = services.filter(service => {
       // Filter out completed/closed services
@@ -144,6 +173,11 @@ const ServiceTracker = () => {
 
       // Device type filter
       if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) {
+        return false;
+      }
+
+      // Technician filter
+      if (technicianFilter !== "all" && service.technician !== technicianFilter) {
         return false;
       }
 
@@ -204,7 +238,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, startDate, endDate, sortField, sortOrder]);
+  }, [services, deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder]);
 
   const paginatedServices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -217,7 +251,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, startDate, endDate, sortField, sortOrder]);
+  }, [deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -254,7 +288,40 @@ const ServiceTracker = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {/* Quick Date Presets */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => applyDatePreset("last7")}
+              >
+                Last 7 Days
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => applyDatePreset("last30")}
+              >
+                Last 30 Days
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => applyDatePreset("thisMonth")}
+              >
+                This Month
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => applyDatePreset("clear")}
+              >
+                Clear Date Filter
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
               <div className="space-y-2">
                 <Label>Device Type</Label>
                 <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
@@ -265,6 +332,21 @@ const ServiceTracker = () => {
                     <SelectItem value="all">All Device Types</SelectItem>
                     {deviceTypes.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Technician</Label>
+                <Select value={technicianFilter} onValueChange={setTechnicianFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Technicians" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Technicians</SelectItem>
+                    {technicians.map(tech => (
+                      <SelectItem key={tech} value={tech}>{tech}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
