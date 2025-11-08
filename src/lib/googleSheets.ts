@@ -145,6 +145,37 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle getting staff list
+  if (params.action === 'getStaffList') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = staffSheet.getDataRange().getDisplayValues();
+    var staffList = [];
+    
+    // Skip header row (i = 1)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0]) { // If Staff ID exists
+        staffList.push({
+          "staffId": data[i][0],
+          "name": data[i][1],
+          "role": data[i][2],
+          "status": data[i][3]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "data": staffList
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   // Handle request for all ongoing services (service tracker)
   if (params.action === 'getAllOngoingServices') {
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
@@ -680,4 +711,63 @@ function doPost(e) {
     "result": "success"
   })).setMimeType(ContentService.MimeType.JSON);
 }
+
+// Staff Management Functions (Add these to your Google Apps Script)
+
+// Handle adding staff member
+if (params.action === 'addStaff') {
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+  if (!staffSheet) {
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "error",
+      "message": "Staff Management sheet not found. Please create a sheet named 'Staff Management' with headers: Staff ID, Name, Role, Status"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var timestamp = new Date().getTime();
+  var staffId = "STAFF" + timestamp;
+  
+  var row = [
+    staffId,
+    params.name,
+    params.role,
+    params.status
+  ];
+  
+  staffSheet.appendRow(row);
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "status": "success",
+    "staffId": staffId
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Handle removing staff member
+if (params.action === 'removeStaff' && params.staffId) {
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+  if (!staffSheet) {
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "error",
+      "message": "Staff Management sheet not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var data = staffSheet.getDataRange().getValues();
+  
+  // Find and delete the row with matching Staff ID (column A, index 0)
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] == params.staffId) {
+      staffSheet.deleteRow(i + 1);
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "success"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "status": "error",
+    "message": "Staff member not found"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
 */
