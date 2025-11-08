@@ -28,7 +28,7 @@ const AdminPortal = () => {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-form")}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-blue-600 mb-4">Client Intake Form</h2>
@@ -61,6 +61,18 @@ const AdminPortal = () => {
               </p>
               <Button className="bg-blue-600 hover:bg-blue-700">
                 Open Tracker
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/inventory-management")}>
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Inventory Management</h2>
+              <p className="text-muted-foreground mb-6">
+                Track Parts & Materials
+              </p>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Open Inventory
               </Button>
             </div>
           </Card>

@@ -12,6 +12,7 @@ import ManageClient from "./pages/ManageClient";
 import ServiceUpdate from "./pages/ServiceUpdate";
 import TechnicianPortal from "./pages/TechnicianPortal";
 import ServiceTracker from "./pages/ServiceTracker";
+import InventoryManagement from "./pages/InventoryManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/technician-portal" element={<TechnicianPortal />} />
           <Route path="/service-update" element={<ServiceUpdate />} />
           <Route path="/service-tracker" element={<ServiceTracker />} />
+          <Route path="/inventory-management" element={<InventoryManagement />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
