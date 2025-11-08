@@ -33,7 +33,7 @@ function doGet(e) {
             "serialNumber": data[i][13],     // Column N - Serial
             "brand": data[i][14],            // Column O - Brand
             "colorMemory": data[i][15] + " | " + data[i][17], // Column P (Color) | R (Memory)
-            "timestamp": data[i][4],         // Column E - Service Date
+            "timestamp": Utilities.formatDate(new Date(data[i][4]), Session.getScriptTimeZone(), "MM-dd-yyyy, HH:mm"),  // Column E - Service Date (formatted)
             "timeFrame": data[i][27],        // Column AB - Time Frame
             "service": data[i][26],          // Column AA - Service/s
             "serviceCost": data[i][29],      // Column AD - Estimated Cost
