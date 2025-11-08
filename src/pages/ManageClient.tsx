@@ -160,6 +160,25 @@ const ManageClient = () => {
       
       const pdfBlob = await generateServicePDF(pdfData);
 
+      // Build updated filename with timestamp for new PDF version
+      const now = new Date();
+      const tsForName = format(now, "MM-dd-yyyy HH.mm");
+      const safe = (s: string) => (s || "").replace(/[\\\/:*?"<>|]+/g, "_");
+      const safeSerial = safe(serviceData.serialNumber || "");
+      const safeClient = safe(serviceData.clientName || "");
+      const safeDevice = safe(serviceData.deviceType || deviceType || "");
+      const updatedFileName = `${safeSerial}_${safeClient}_${safeDevice} - UPDATED ${tsForName}.pdf`;
+
+      // Provide base64 alongside Blob for GAS compatibility
+      const blobToBase64 = (blob: Blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result).split(",")[1] || "");
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      const pdfBase64 = await blobToBase64(pdfBlob);
+
       const formData = new FormData();
       formData.append("action", "updateService");
       formData.append("serviceId", serviceId);
@@ -172,7 +191,11 @@ const ManageClient = () => {
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
-      formData.append("PDF", pdfBlob, `${serviceData.serialNumber}_${serviceData.clientName}_${serviceData.deviceType}.pdf`);
+      // Instruct backend to create a new Drive file and update the link
+      formData.append("forceNewPdf", "true");
+      formData.append("pdfFileName", updatedFileName);
+      formData.append("PDF", pdfBlob, updatedFileName);
+      formData.append("PDF_Base64", pdfBase64);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
