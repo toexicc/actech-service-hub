@@ -191,11 +191,16 @@ const ManageClient = () => {
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
-      // Instruct backend to create a new Drive file and update the link
-      formData.append("forceNewPdf", "true");
-      formData.append("pdfFileName", updatedFileName);
+      // Provide extra fields some GAS scripts expect for naming
+      formData.append("Serial", serviceData.serialNumber || "");
+      formData.append("Client Name", serviceData.clientName || "");
+      formData.append("Device Type", serviceData.deviceType || deviceType || "");
+
+      // Attach PDF using both multipart and base64 fallbacks
       formData.append("PDF", pdfBlob, updatedFileName);
       formData.append("PDF_Base64", pdfBase64);
+      formData.append("PDF_FileName", updatedFileName);
+      formData.append("PDF_MimeType", "application/pdf");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
