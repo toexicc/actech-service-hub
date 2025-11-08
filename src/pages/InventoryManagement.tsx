@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface InventoryItem {
@@ -63,6 +63,11 @@ const InventoryManagement = () => {
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<InventoryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [logsCurrentPage, setLogsCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Form states for new part
   const [newPart, setNewPart] = useState({
@@ -398,6 +403,23 @@ const InventoryManagement = () => {
     return filtered;
   }, [inventory, deviceTypeFilter, brandFilter, statusFilter, searchQuery, sortField, sortOrder]);
 
+  // Paginated inventory items
+  const paginatedInventory = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedInventory.slice(startIndex, endIndex);
+  }, [filteredAndSortedInventory, currentPage, itemsPerPage]);
+
+  // Paginated logs
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (logsCurrentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return logs.slice(startIndex, endIndex);
+  }, [logs, logsCurrentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedInventory.length / itemsPerPage);
+  const logsTotalPages = Math.ceil(logs.length / itemsPerPage);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -729,7 +751,8 @@ const InventoryManagement = () => {
                 ) : filteredAndSortedInventory.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No inventory items found</div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                    <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -762,7 +785,7 @@ const InventoryManagement = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredAndSortedInventory.map((item) => (
+                        {paginatedInventory.map((item) => (
                           <TableRow
                             key={item.partId}
                             className={item.quantity === 0 || item.status === "Out of Stock" ? "bg-destructive/10" : item.quantity < 5 ? "bg-orange-50" : ""}
@@ -825,6 +848,39 @@ const InventoryManagement = () => {
                       </TableBody>
                     </Table>
                   </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInventory.length)} of {filteredAndSortedInventory.length} items
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <div className="text-sm">
+                          Page {currentPage} of {totalPages}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
                 )}
               </CardContent>
             </Card>
@@ -842,7 +898,8 @@ const InventoryManagement = () => {
                 ) : logs.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No inventory logs found</div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                    <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -858,7 +915,7 @@ const InventoryManagement = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {logs.map((log) => (
+                        {paginatedLogs.map((log) => (
                           <TableRow key={log.logId}>
                             <TableCell className="font-medium">{log.logId}</TableCell>
                             <TableCell>{log.partId}</TableCell>
@@ -886,6 +943,39 @@ const InventoryManagement = () => {
                       </TableBody>
                     </Table>
                   </div>
+
+                  {/* Pagination Controls for Logs */}
+                  {logsTotalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {((logsCurrentPage - 1) * itemsPerPage) + 1} to {Math.min(logsCurrentPage * itemsPerPage, logs.length)} of {logs.length} logs
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLogsCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={logsCurrentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <div className="text-sm">
+                          Page {logsCurrentPage} of {logsTotalPages}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLogsCurrentPage(prev => Math.min(logsTotalPages, prev + 1))}
+                          disabled={logsCurrentPage === logsTotalPages}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
                 )}
               </CardContent>
             </Card>
