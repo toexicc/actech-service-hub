@@ -21,6 +21,9 @@ interface InventoryItem {
   brand: string;
   model: string;
   quantity: number;
+  dateOrdered?: string;
+  supplier?: string;
+  costPerUnit?: string;
   status: string;
   lastUpdated: string;
   remarks: string;
@@ -598,9 +601,6 @@ const InventoryManagement = () => {
                           Quantity <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
-                      <TableHead>Date Ordered</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Cost/Unit</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
                         <div className="flex items-center gap-1">

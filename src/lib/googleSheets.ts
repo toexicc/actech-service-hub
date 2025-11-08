@@ -130,6 +130,7 @@ function doGet(e) {
     var inventory = [];
     
     // Loop through all rows (skip header row)
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks
     for (var i = 1; i < data.length; i++) {
       inventory.push({
         "partId": data[i][0],
@@ -138,9 +139,12 @@ function doGet(e) {
         "brand": data[i][3],
         "model": data[i][4],
         "quantity": parseInt(data[i][5] || 0),
-        "status": data[i][6],
-        "lastUpdated": data[i][7],
-        "remarks": data[i][8]
+        "dateOrdered": data[i][6],
+        "supplier": data[i][7],
+        "costPerUnit": data[i][8],
+        "status": data[i][9],
+        "lastUpdated": data[i][10],
+        "remarks": data[i][11]
       });
     }
     
@@ -265,7 +269,7 @@ function doPost(e) {
     var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Status, Last Updated, Remarks, Date Ordered, Supplier, Cost per Unit
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks
     inventorySheet.appendRow([
       partId,
       params.partName,
@@ -273,12 +277,12 @@ function doPost(e) {
       params.brand,
       params.model,
       params.quantity,
-      params.status,
-      timestamp,
-      params.remarks,
       params.dateOrdered || "",
       params.supplier || "",
-      params.costPerUnit || ""
+      params.costPerUnit || "",
+      params.status,
+      timestamp,
+      params.remarks
     ]);
     
     // Log the initial stock to Inventory Log
@@ -326,14 +330,14 @@ function doPost(e) {
           newQty = adjustQty;
         }
         
-        // Update quantity in Inventory Management sheet (Column F)
+        // Update quantity in Inventory Management sheet (Column F = 6)
         inventorySheet.getRange(i + 1, 6).setValue(newQty);
-        // Update Last Updated (Column H)
-        inventorySheet.getRange(i + 1, 8).setValue(timestamp);
+        // Update Last Updated (Column K = 11)
+        inventorySheet.getRange(i + 1, 11).setValue(timestamp);
         
-        // Auto-update status based on quantity (Column G)
+        // Auto-update status based on quantity (Column J = 10)
         var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
-        inventorySheet.getRange(i + 1, 7).setValue(status);
+        inventorySheet.getRange(i + 1, 10).setValue(status);
         
         // Log the adjustment to Inventory Log
         // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
