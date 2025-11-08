@@ -38,7 +38,7 @@ const Menu = () => {
               <p className="text-muted-foreground mb-6">
                 Frontdesk Form and Client Info Update
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Enter Admin Portal
               </Button>
             </div>
@@ -50,7 +50,7 @@ const Menu = () => {
               <p className="text-muted-foreground mb-6">
                 Service Update and Technician Report Form
               </p>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
                 Enter Technician Portal
               </Button>
             </div>
