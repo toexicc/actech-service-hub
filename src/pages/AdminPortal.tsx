@@ -28,7 +28,7 @@ const AdminPortal = () => {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-form")}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-blue-600 mb-4">Client Intake Form</h2>
