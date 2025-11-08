@@ -185,7 +185,20 @@ const ServiceTracking = () => {
         </div>
 
         {/* Tabs for Search Modes */}
-        <Tabs value={searchMode} onValueChange={(value) => setSearchMode(value as "service" | "client")} className="mb-8">
+        <Tabs 
+          value={searchMode} 
+          onValueChange={(value) => {
+            setSearchMode(value as "service" | "client");
+            // Clear results when switching modes
+            if (value === "service") {
+              setCustomerData(null);
+              setServiceRecords([]);
+            } else {
+              setServiceData(null);
+            }
+          }} 
+          className="mb-8"
+        >
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
             <TabsTrigger value="service">
               <Search className="h-4 w-4 mr-2" />
