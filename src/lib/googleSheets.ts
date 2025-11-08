@@ -336,8 +336,12 @@ function doPost(e) {
         inventorySheet.getRange(i + 1, 11).setValue(timestamp);
         
         // Auto-update status based on quantity (Column J = 10)
-        var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
-        inventorySheet.getRange(i + 1, 10).setValue(status);
+        // BUT do NOT auto-update if current status is "On Order"
+        var currentStatus = data[i][9]; // Column J = index 9
+        if (currentStatus !== "On Order") {
+          var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
+          inventorySheet.getRange(i + 1, 10).setValue(status);
+        }
         
         // Log the adjustment to Inventory Log
         // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
@@ -356,6 +360,50 @@ function doPost(e) {
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle receive order action
+  if (params.action === "receiveOrder") {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var data = inventorySheet.getDataRange().getValues();
+    var timestamp = Utilities.formatDate(new Date(), "GMT+8", "MM-dd-yyyy, HH:mm");
+    var logId = "LOG" + Date.now();
+    
+    // Find the part
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.partId) {
+        var currentQty = parseInt(data[i][5] || 0);
+        
+        // Update status based on current quantity
+        var newStatus = currentQty === 0 ? "Out of Stock" : currentQty < 5 ? "Low Stock" : "In Stock";
+        inventorySheet.getRange(i + 1, 10).setValue(newStatus); // Column J = 10
+        inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K = 11
+        
+        // Log the receipt
+        logSheet.appendRow([
+          logId,
+          params.partId,
+          data[i][1], // Part Name
+          data[i][2], // Device Type
+          "Order Received",
+          0,
+          currentQty,
+          currentQty,
+          timestamp,
+          params.remarks || "Order received and confirmed"
+        ]);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success",
+          "newStatus": newStatus
         })).setMimeType(ContentService.MimeType.JSON);
       }
     }

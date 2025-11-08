@@ -219,6 +219,43 @@ const InventoryManagement = () => {
     }
   };
 
+  const handleReceiveOrder = async (item: InventoryItem) => {
+    try {
+      const formData = new FormData();
+      formData.append("action", "receiveOrder");
+      formData.append("partId", item.partId);
+      formData.append("remarks", "Order received and confirmed");
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        toast({
+          title: "Success",
+          description: `Order received! Status updated to: ${result.newStatus}`,
+        });
+        fetchInventory();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to receive order",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error receiving order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to receive order",
+        variant: "destructive",
+      });
+    }
+  };
+
   const deviceTypes = useMemo(() => {
     const types = new Set(inventory.map(i => i.deviceType).filter(Boolean));
     return Array.from(types).sort();
@@ -645,16 +682,29 @@ const InventoryManagement = () => {
                           {item.remarks || "N/A"}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedPart(item);
-                              setIsStockDialogOpen(true);
-                            }}
-                          >
-                            Adjust Stock
-                          </Button>
+                          <div className="flex gap-2">
+                            {item.status === "On Order" ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => handleReceiveOrder(item)}
+                              >
+                                Receive Order
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedPart(item);
+                                  setIsStockDialogOpen(true);
+                                }}
+                              >
+                                Adjust Stock
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
