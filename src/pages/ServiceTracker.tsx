@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/ac-tech-logo.jpg";
 
@@ -43,6 +44,7 @@ const ServiceTracker = () => {
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 15;
 
   const applyDatePreset = (preset: string) => {
@@ -171,6 +173,17 @@ const ServiceTracker = () => {
         return false;
       }
 
+      // Search filter - search by Service ID or Client Name
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesServiceId = service.serviceId?.toLowerCase().includes(query);
+        const matchesClientName = service.clientName?.toLowerCase().includes(query);
+        
+        if (!matchesServiceId && !matchesClientName) {
+          return false;
+        }
+      }
+
       // Device type filter
       if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) {
         return false;
@@ -251,7 +264,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder]);
+  }, [deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -278,6 +291,22 @@ const ServiceTracker = () => {
         <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
           Back to Admin Portal
         </Button>
+
+        {/* Search Bar */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by Service ID or Client Name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="mb-6">
@@ -516,6 +545,7 @@ const ServiceTracker = () => {
                     <TableRow>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Client Name</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("timestamp")}>
                         <div className="flex items-center gap-1">
                           Service Date <ArrowUpDown className="h-4 w-4" />
@@ -557,6 +587,7 @@ const ServiceTracker = () => {
                             {overdueStatus && <AlertCircle className="inline-block ml-2 h-4 w-4 text-destructive" />}
                           </TableCell>
                           <TableCell>{service.status || "N/A"}</TableCell>
+                          <TableCell>{service.clientName || "N/A"}</TableCell>
                           <TableCell>{service.timestamp || "N/A"}</TableCell>
                           <TableCell>{service.technician || "Unassigned"}</TableCell>
                           <TableCell className="max-w-[200px] truncate" title={service.service}>
