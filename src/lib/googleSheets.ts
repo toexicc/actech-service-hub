@@ -154,6 +154,35 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle request for inventory logs
+  if (params.action === 'getInventoryLogs') {
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var data = logSheet.getDataRange().getDisplayValues();
+    var logs = [];
+    
+    // Loop through all rows (skip header row)
+    // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
+    for (var i = 1; i < data.length; i++) {
+      logs.push({
+        "logId": data[i][0],
+        "partId": data[i][1],
+        "partName": data[i][2],
+        "deviceType": data[i][3],
+        "transactionType": data[i][4],
+        "quantityChanged": data[i][5],
+        "previousQuantity": data[i][6],
+        "newQuantity": data[i][7],
+        "dateTime": data[i][8],
+        "remarks": data[i][9]
+      });
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "logs": logs
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   return ContentService.createTextOutput(JSON.stringify({
     "error": "Invalid request"
   })).setMimeType(ContentService.MimeType.JSON);

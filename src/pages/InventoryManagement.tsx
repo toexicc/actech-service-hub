@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface InventoryItem {
@@ -29,6 +30,19 @@ interface InventoryItem {
   remarks: string;
 }
 
+interface InventoryLog {
+  logId: string;
+  partId: string;
+  partName: string;
+  deviceType: string;
+  transactionType: string;
+  quantityChanged: string;
+  previousQuantity: string;
+  newQuantity: string;
+  dateTime: string;
+  remarks: string;
+}
+
 type SortField = "partId" | "partName" | "quantity" | "lastUpdated";
 type SortOrder = "asc" | "desc";
 
@@ -36,7 +50,9 @@ const InventoryManagement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLogsLoading, setIsLogsLoading] = useState(true);
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -72,6 +88,7 @@ const InventoryManagement = () => {
 
   useEffect(() => {
     fetchInventory();
+    fetchInventoryLogs();
   }, []);
 
   const fetchInventory = async () => {
@@ -100,6 +117,35 @@ const InventoryManagement = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchInventoryLogs = async () => {
+    setIsLogsLoading(true);
+    try {
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryLogs`
+      );
+      const data = await response.json();
+
+      if (data.status === "success" && data.logs) {
+        setLogs(data.logs);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load inventory logs",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching inventory logs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load inventory logs",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLogsLoading(false);
     }
   };
 
@@ -166,6 +212,7 @@ const InventoryManagement = () => {
           remarks: ""
         });
         fetchInventory();
+        fetchInventoryLogs();
       } else {
         toast({
           title: "Error",
@@ -238,6 +285,7 @@ const InventoryManagement = () => {
           remarks: ""
         });
         fetchInventory();
+        fetchInventoryLogs();
       } else {
         toast({
           title: "Error",
@@ -278,6 +326,7 @@ const InventoryManagement = () => {
           description: `Order received! Status updated to: ${result.newStatus}`,
         });
         fetchInventory();
+        fetchInventoryLogs();
       } else {
         toast({
           title: "Error",
@@ -655,116 +704,193 @@ const InventoryManagement = () => {
           </CardContent>
         </Card>
 
-        {/* Inventory Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">Loading inventory...</div>
-            ) : filteredAndSortedInventory.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No inventory items found</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="cursor-pointer" onClick={() => handleSort("partId")}>
-                        <div className="flex items-center gap-1">
-                          Part ID <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => handleSort("partName")}>
-                        <div className="flex items-center gap-1">
-                          Part Name <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead>Device Type</TableHead>
-                      <TableHead>Brand</TableHead>
-                      <TableHead>Model</TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => handleSort("quantity")}>
-                        <div className="flex items-center gap-1">
-                          Quantity <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
-                        <div className="flex items-center gap-1">
-                          Last Updated <ArrowUpDown className="h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead>Remarks</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedInventory.map((item) => (
-                      <TableRow
-                        key={item.partId}
-                        className={item.quantity === 0 || item.status === "Out of Stock" ? "bg-destructive/10" : item.quantity < 5 ? "bg-orange-50" : ""}
-                      >
-                        <TableCell className="font-medium">
-                          {item.partId}
-                          {(item.quantity === 0 || item.status === "Out of Stock") && (
-                            <AlertTriangle className="inline-block ml-2 h-4 w-4 text-destructive" />
-                          )}
-                        </TableCell>
-                        <TableCell>{item.partName}</TableCell>
-                        <TableCell>{item.deviceType || "N/A"}</TableCell>
-                        <TableCell>{item.brand || "N/A"}</TableCell>
-                        <TableCell>{item.model || "N/A"}</TableCell>
-                        <TableCell className={getStatusColor(item)}>
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :
-                            item.status === "Low Stock" ? "bg-orange-100 text-orange-800" :
-                            item.status === "In Stock" ? "bg-green-100 text-green-800" :
-                            "bg-blue-100 text-blue-800"
-                          }`}>
-                            {item.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>{item.lastUpdated || "N/A"}</TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={item.remarks}>
-                          {item.remarks || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {item.status === "On Order" ? (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleReceiveOrder(item)}
-                                disabled={isSubmitting}
-                              >
-                                {isSubmitting ? "Processing..." : "Receive Order"}
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedPart(item);
-                                  setIsStockDialogOpen(true);
-                                }}
-                              >
-                                Adjust Stock
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Tabs for Inventory Items and Logs */}
+        <Tabs defaultValue="items" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="items">
+              <Package className="h-4 w-4 mr-2" />
+              Inventory Items
+            </TabsTrigger>
+            <TabsTrigger value="logs">
+              <FileText className="h-4 w-4 mr-2" />
+              Inventory Logs
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Inventory Items Tab */}
+          <TabsContent value="items">
+            <Card>
+              <CardHeader>
+                <CardTitle>Inventory Items</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-8">Loading inventory...</div>
+                ) : filteredAndSortedInventory.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No inventory items found</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="cursor-pointer" onClick={() => handleSort("partId")}>
+                            <div className="flex items-center gap-1">
+                              Part ID <ArrowUpDown className="h-4 w-4" />
+                            </div>
+                          </TableHead>
+                          <TableHead className="cursor-pointer" onClick={() => handleSort("partName")}>
+                            <div className="flex items-center gap-1">
+                              Part Name <ArrowUpDown className="h-4 w-4" />
+                            </div>
+                          </TableHead>
+                          <TableHead>Device Type</TableHead>
+                          <TableHead>Brand</TableHead>
+                          <TableHead>Model</TableHead>
+                          <TableHead className="cursor-pointer" onClick={() => handleSort("quantity")}>
+                            <div className="flex items-center gap-1">
+                              Quantity <ArrowUpDown className="h-4 w-4" />
+                            </div>
+                          </TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
+                            <div className="flex items-center gap-1">
+                              Last Updated <ArrowUpDown className="h-4 w-4" />
+                            </div>
+                          </TableHead>
+                          <TableHead>Remarks</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAndSortedInventory.map((item) => (
+                          <TableRow
+                            key={item.partId}
+                            className={item.quantity === 0 || item.status === "Out of Stock" ? "bg-destructive/10" : item.quantity < 5 ? "bg-orange-50" : ""}
+                          >
+                            <TableCell className="font-medium">
+                              {item.partId}
+                              {(item.quantity === 0 || item.status === "Out of Stock") && (
+                                <AlertTriangle className="inline-block ml-2 h-4 w-4 text-destructive" />
+                              )}
+                            </TableCell>
+                            <TableCell>{item.partName}</TableCell>
+                            <TableCell>{item.deviceType || "N/A"}</TableCell>
+                            <TableCell>{item.brand || "N/A"}</TableCell>
+                            <TableCell>{item.model || "N/A"}</TableCell>
+                            <TableCell className={getStatusColor(item)}>
+                              {item.quantity}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :
+                                item.status === "Low Stock" ? "bg-orange-100 text-orange-800" :
+                                item.status === "In Stock" ? "bg-green-100 text-green-800" :
+                                "bg-blue-100 text-blue-800"
+                              }`}>
+                                {item.status}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item.lastUpdated || "N/A"}</TableCell>
+                            <TableCell className="max-w-[200px] truncate" title={item.remarks}>
+                              {item.remarks || "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {item.status === "On Order" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => handleReceiveOrder(item)}
+                                    disabled={isSubmitting}
+                                  >
+                                    {isSubmitting ? "Processing..." : "Receive Order"}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedPart(item);
+                                      setIsStockDialogOpen(true);
+                                    }}
+                                  >
+                                    Adjust Stock
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Inventory Logs Tab */}
+          <TabsContent value="logs">
+            <Card>
+              <CardHeader>
+                <CardTitle>Inventory Logs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLogsLoading ? (
+                  <div className="text-center py-8">Loading logs...</div>
+                ) : logs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No inventory logs found</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Log ID</TableHead>
+                          <TableHead>Part ID</TableHead>
+                          <TableHead>Part Name</TableHead>
+                          <TableHead>Device Type</TableHead>
+                          <TableHead>Transaction Type</TableHead>
+                          <TableHead>Previous Quantity</TableHead>
+                          <TableHead>New Quantity</TableHead>
+                          <TableHead>Date & Time</TableHead>
+                          <TableHead>Remarks/Notes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {logs.map((log) => (
+                          <TableRow key={log.logId}>
+                            <TableCell className="font-medium">{log.logId}</TableCell>
+                            <TableCell>{log.partId}</TableCell>
+                            <TableCell>{log.partName}</TableCell>
+                            <TableCell>{log.deviceType || "N/A"}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                log.transactionType === "Stock In" ? "bg-green-100 text-green-800" :
+                                log.transactionType === "Stock Out" ? "bg-red-100 text-red-800" :
+                                log.transactionType === "Order Placed" ? "bg-blue-100 text-blue-800" :
+                                log.transactionType === "Order Received" ? "bg-purple-100 text-purple-800" :
+                                "bg-gray-100 text-gray-800"
+                              }`}>
+                                {log.transactionType}
+                              </span>
+                            </TableCell>
+                            <TableCell>{log.previousQuantity}</TableCell>
+                            <TableCell>{log.newQuantity}</TableCell>
+                            <TableCell>{log.dateTime}</TableCell>
+                            <TableCell className="max-w-[300px]" title={log.remarks}>
+                              {log.remarks || "N/A"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Stock Adjustment Dialog */}
         <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
