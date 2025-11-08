@@ -33,8 +33,10 @@ const ManageClient = () => {
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
+  const [updateChiefComplaint, setUpdateChiefComplaint] = useState("");
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
+  const [updateTimeFrame, setUpdateTimeFrame] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
@@ -100,8 +102,10 @@ const ManageClient = () => {
         setUpdateTechnician(data.data.technician || "");
         setUpdateClientType(data.data.clientType || "");
         setUpdatePriority(data.data.priority || "");
+        setUpdateChiefComplaint(data.data.chiefComplaint || "");
         setUpdateServices(data.data.service || "");
         setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
+        setUpdateTimeFrame(data.data.timeFrame || "");
         setUpdateTargetDate(data.data.targetDate ? new Date(data.data.targetDate) : undefined);
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
@@ -392,6 +396,11 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Time Frame:</h3>
+                    <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
                     <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
                   </div>
@@ -416,6 +425,11 @@ const ManageClient = () => {
                         return conditions.length > 0 ? conditions.join(", ") : "N/A";
                       })()}
                     </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Chief Complaint:</h3>
+                    <p className="text-lg">{serviceData.chiefComplaint || "N/A"}</p>
                   </div>
 
                   <div>
@@ -510,6 +524,17 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="chiefComplaint">Chief Complaint:</Label>
+                  <Textarea
+                    id="chiefComplaint"
+                    placeholder="Enter chief complaint"
+                    value={updateChiefComplaint}
+                    onChange={(e) => setUpdateChiefComplaint(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="services">Service/s:</Label>
                   <Textarea
                     id="services"
@@ -527,6 +552,16 @@ const ManageClient = () => {
                     placeholder="Enter service cost"
                     value={updateServiceCost}
                     onChange={(e) => setUpdateServiceCost(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timeFrame">Time Frame:</Label>
+                  <Input
+                    id="timeFrame"
+                    placeholder="Enter time frame (e.g., 3-5 days)"
+                    value={updateTimeFrame}
+                    onChange={(e) => setUpdateTimeFrame(e.target.value)}
                   />
                 </div>
 
