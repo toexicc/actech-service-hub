@@ -1,15 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, parseISO } from "date-fns";
+import { format, differenceInDays, parseISO, isSameDay } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { ArrowUpDown, Calendar, Clock, AlertCircle } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface ServiceRecord {
@@ -34,6 +37,7 @@ const ServiceTracker = () => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -142,6 +146,23 @@ const ServiceTracker = () => {
         return false;
       }
 
+      // Date filter - filter by service date
+      if (selectedDate) {
+        try {
+          const [datePart] = service.timestamp.split(", ");
+          const parts = datePart.split(/[-/]/);
+          if (parts.length === 3) {
+            const [month, day, year] = parts;
+            const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            if (!isSameDay(serviceDate, selectedDate)) {
+              return false;
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing date for filter:", error);
+        }
+      }
+
       return true;
     });
 
@@ -168,7 +189,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, sortField, sortOrder]);
+  }, [services, deviceTypeFilter, selectedDate, sortField, sortOrder]);
 
   const paginatedServices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -181,7 +202,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, sortField, sortOrder]);
+  }, [deviceTypeFilter, selectedDate, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -218,7 +239,7 @@ const ServiceTracker = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-4">
               <div className="space-y-2">
                 <Label>Device Type</Label>
                 <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
@@ -232,6 +253,42 @@ const ServiceTracker = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Filter by Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                      {selectedDate && (
+                        <X 
+                          className="ml-auto h-4 w-4" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDate(undefined);
+                          }}
+                        />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
