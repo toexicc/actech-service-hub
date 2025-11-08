@@ -434,10 +434,10 @@ const ServiceUpdate = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="technicianNotesInternal">Admin Notes (Internal):</Label>
+                  <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
                   <Textarea
                     id="technicianNotesInternal"
-                    placeholder="Enter internal admin notes"
+                    placeholder="Enter internal technician notes"
                     value={updateTechnicianNotesInternal}
                     onChange={(e) => setUpdateTechnicianNotesInternal(e.target.value)}
                     rows={4}
