@@ -95,29 +95,52 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Handle search requests for Client Database
+  // Handle search requests for Client Database (Customer Management)
   if (params.action === 'searchClient' && params.clientId) {
     var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
-    var data = clientSheet.getDataRange().getDisplayValues();
+    var clientData = clientSheet.getDataRange().getDisplayValues();
     
     // Search for the client ID in column A (index 0)
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == params.clientId) {
-        return ContentService.createTextOutput(JSON.stringify({
-          "found": true,
-          "data": {
-            "clientName": data[i][1],
-            "username": data[i][2],
-            "contactNumber": data[i][3],
-            "email": data[i][4],
-            "serviceIds": data[i][5]
+    for (var i = 1; i < clientData.length; i++) {
+      if (clientData[i][0] == params.clientId) {
+        var customer = {
+          "clientId": clientData[i][0],
+          "clientName": clientData[i][1],
+          "username": clientData[i][2],
+          "phone": clientData[i][3],
+          "email": clientData[i][4],
+          "serviceIds": clientData[i][5] ? clientData[i][5].split(',').map(function(id) { return id.trim(); }) : []
+        };
+        
+        // Now fetch service records for this customer
+        var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+        var serviceData = serviceSheet.getDataRange().getDisplayValues();
+        var services = [];
+        
+        // Get all services that match the service IDs
+        for (var j = 1; j < serviceData.length; j++) {
+          var serviceId = serviceData[j][0];
+          if (customer.serviceIds.indexOf(serviceId) > -1) {
+            services.push({
+              "serviceId": serviceId,
+              "status": serviceData[j][1] || "PENDING - APPROVAL",
+              "service": serviceData[j][26],
+              "targetDate": serviceData[j][28],
+              "serviceCost": serviceData[j][29]
+            });
           }
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "status": "success",
+          "customer": customer,
+          "services": services
         })).setMimeType(ContentService.MimeType.JSON);
       }
     }
     
     return ContentService.createTextOutput(JSON.stringify({
-      "found": false
+      "status": "not_found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
