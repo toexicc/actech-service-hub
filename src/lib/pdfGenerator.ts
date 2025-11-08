@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
-
+import logoJpg from "@/assets/ac-tech-logo-pdf.jpg";
+import logoPng from "@/assets/ac-tech-logo-pdf.png";
 interface PDFData {
   serviceId: string;
   timestamp: string;
@@ -35,17 +36,32 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     unit: 'mm'
   });
   
-  // Add logo
-  const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.png')
-    .then(res => res.blob())
-    .then(blob => new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    }));
-  
-  // Center logo at top with proper aspect ratio (square logo)
-  doc.addImage(logoImg, 'PNG', 80, 10, 50, 50);
+  // Add logo (prefer JPG for jsPDF compatibility, fallback to PNG)
+  const toDataURL = async (url: string) =>
+    fetch(url)
+      .then((res) => res.blob())
+      .then(
+        (blob) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          })
+      );
+
+  try {
+    const logoDataJpg = await toDataURL(logoJpg);
+    // Center logo at top with proper aspect ratio
+    doc.addImage(logoDataJpg, "JPEG", 80, 10, 50, 50);
+  } catch (e1) {
+    try {
+      const logoDataPng = await toDataURL(logoPng);
+      doc.addImage(logoDataPng, "PNG", 80, 10, 50, 50);
+    } catch (e2) {
+      // If both fail, continue without a logo
+      // console.warn("Logo load failed", e1, e2);
+    }
+  }
   
   let yPos = 65;
   
