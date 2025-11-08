@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, parseISO, isSameDay } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,7 +37,8 @@ const ServiceTracker = () => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,16 +147,30 @@ const ServiceTracker = () => {
         return false;
       }
 
-      // Date filter - filter by service date
-      if (selectedDate) {
+      // Date range filter - filter by service date
+      if (startDate || endDate) {
         try {
           const [datePart] = service.timestamp.split(", ");
           const parts = datePart.split(/[-/]/);
           if (parts.length === 3) {
             const [month, day, year] = parts;
             const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            if (!isSameDay(serviceDate, selectedDate)) {
-              return false;
+            serviceDate.setHours(0, 0, 0, 0);
+            
+            if (startDate) {
+              const start = new Date(startDate);
+              start.setHours(0, 0, 0, 0);
+              if (serviceDate < start) {
+                return false;
+              }
+            }
+            
+            if (endDate) {
+              const end = new Date(endDate);
+              end.setHours(23, 59, 59, 999);
+              if (serviceDate > end) {
+                return false;
+              }
             }
           }
         } catch (error) {
@@ -189,7 +204,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, selectedDate, sortField, sortOrder]);
+  }, [services, deviceTypeFilter, startDate, endDate, sortField, sortOrder]);
 
   const paginatedServices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -202,7 +217,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, selectedDate, sortField, sortOrder]);
+  }, [deviceTypeFilter, startDate, endDate, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -239,7 +254,7 @@ const ServiceTracker = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
                 <Label>Device Type</Label>
                 <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
@@ -256,24 +271,24 @@ const ServiceTracker = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Filter by Date</Label>
+                <Label>Start Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !selectedDate && "text-muted-foreground"
+                        !startDate && "text-muted-foreground"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                      {selectedDate && (
+                      {startDate ? format(startDate, "PPP") : "From date"}
+                      {startDate && (
                         <X 
                           className="ml-auto h-4 w-4" 
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedDate(undefined);
+                            setStartDate(undefined);
                           }}
                         />
                       )}
@@ -282,10 +297,47 @@ const ServiceTracker = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
+                      selected={startDate}
+                      onSelect={setStartDate}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PPP") : "To date"}
+                      {endDate && (
+                        <X 
+                          className="ml-auto h-4 w-4" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEndDate(undefined);
+                          }}
+                        />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                      disabled={(date) => startDate ? date < startDate : false}
                     />
                   </PopoverContent>
                 </Popover>
