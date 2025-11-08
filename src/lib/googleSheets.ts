@@ -23,10 +23,15 @@ function doGet(e) {
         return ContentService.createTextOutput(JSON.stringify({
           "status": "found",
           "data": {
+            "adminRep": data[i][2],          // Column C - Admin Representative
             "clientName": data[i][8],        // Column I - Client Name
+            "username": data[i][9],          // Column J - Username
+            "email": data[i][10],            // Column K - Email
+            "phone": data[i][11],            // Column L - Phone
             "device": data[i][16],           // Column Q - Model
             "deviceType": data[i][12],       // Column M - Device Type
             "serialNumber": data[i][13],     // Column N - Serial
+            "brand": data[i][14],            // Column O - Brand
             "colorMemory": data[i][15] + " | " + data[i][17], // Column P (Color) | R (Memory)
             "timestamp": data[i][4],         // Column E - Service Date
             "timeFrame": data[i][27],        // Column AB - Time Frame
