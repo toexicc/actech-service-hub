@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { ArrowUpDown, Calendar, Clock, AlertCircle } from "lucide-react";
@@ -35,6 +36,8 @@ const ServiceTracker = () => {
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   useEffect(() => {
     fetchAllServices();
@@ -166,6 +169,19 @@ const ServiceTracker = () => {
 
     return filtered;
   }, [services, deviceTypeFilter, sortField, sortOrder]);
+
+  const paginatedServices = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedServices.slice(startIndex, endIndex);
+  }, [filteredAndSortedServices, currentPage]);
+
+  const totalPages = Math.ceil(filteredAndSortedServices.length / itemsPerPage);
+
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [deviceTypeFilter, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -336,7 +352,7 @@ const ServiceTracker = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAndSortedServices.map((service) => {
+                    {paginatedServices.map((service) => {
                       const inServiceDays = calculateInServiceDays(service.timestamp);
                       const overdueStatus = isOverdue(service.targetDate);
 
@@ -371,6 +387,58 @@ const ServiceTracker = () => {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+
+            {!isLoading && filteredAndSortedServices.length > 0 && (
+              <div className="mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+                <div className="text-center mt-2 text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages} • Showing {paginatedServices.length} of {filteredAndSortedServices.length} services
+                </div>
               </div>
             )}
           </CardContent>

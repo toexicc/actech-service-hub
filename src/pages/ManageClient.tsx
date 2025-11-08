@@ -438,12 +438,12 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Diagnosis:</h3>
-                    <p className="text-lg">{serviceData.technicianDiagnosis || "N/A"}</p>
+                    <p className="text-lg whitespace-pre-line">{serviceData.technicianDiagnosis || "N/A"}</p>
                   </div>
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Service Breakdown:</h3>
-                    <p className="text-lg">{serviceData.suggestedRepair || "N/A"}</p>
+                    <p className="text-lg whitespace-pre-line">{serviceData.suggestedRepair || "N/A"}</p>
                   </div>
 
                   <div>
