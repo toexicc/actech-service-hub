@@ -285,6 +285,10 @@ const ServiceForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6 md:p-8">
+        <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
+          Back to Admin Portal
+        </Button>
+        
         <div className="text-center mb-8">
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
           <h1 className="text-3xl font-bold text-blue-600 mb-2">Initial Diagnosis Form</h1>

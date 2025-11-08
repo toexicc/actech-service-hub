@@ -19,9 +19,11 @@ const TechnicianPortal = () => {
           <p className="text-xl text-muted-foreground">Technician Portal</p>
         </div>
 
-        <Button onClick={() => navigate("/menu")} variant="outline" className="mb-8">
-          Back to Menu
-        </Button>
+        <div className="flex justify-center mb-8">
+          <Button onClick={() => navigate("/menu")} variant="outline">
+            Back to Menu
+          </Button>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>
