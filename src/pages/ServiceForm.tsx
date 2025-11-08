@@ -132,12 +132,34 @@ const ServiceForm = () => {
       }
 
       const result = await response.json();
-      if (result.found) {
+      // Support both legacy and new response shapes
+      let found = false;
+      let customer: { clientName?: string; username?: string; phone?: string; email?: string } = {};
+
+      if (result && result.found && result.data) {
+        found = true;
+        customer = {
+          clientName: result.data.clientName,
+          username: result.data.username,
+          phone: result.data.contactNumber, // legacy key
+          email: result.data.email,
+        };
+      } else if (result && result.status === "success" && result.customer) {
+        found = true;
+        customer = {
+          clientName: result.customer.clientName,
+          username: result.customer.username,
+          phone: result.customer.phone, // new key
+          email: result.customer.email,
+        };
+      }
+
+      if (found) {
         form.setValue("clientId", searchClientId);
-        form.setValue("clientName", result.data.clientName || "");
-        form.setValue("username", result.data.username || "");
-        form.setValue("phone", result.data.contactNumber || "");
-        form.setValue("email", result.data.email || "");
+        form.setValue("clientName", customer.clientName || "");
+        form.setValue("username", customer.username || "");
+        form.setValue("phone", customer.phone || "");
+        form.setValue("email", customer.email || "");
         form.setValue("clientType", "Returning Client");
         form.setValue("priority", "Loyalty");
         toast({
