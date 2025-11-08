@@ -35,12 +35,16 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     unit: 'mm'
   });
   
-  // Add logo
-  const logoImg = await fetch('/src/assets/ac-tech-logo-pdf.png')
-    .then(res => res.blob())
-    .then(blob => new Promise<string>((resolve) => {
+  // Add logo - use public path for production compatibility
+  const logoImg = await fetch('/ac-tech-logo-pdf.png')
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to load logo');
+      return res.blob();
+    })
+    .then(blob => new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read logo'));
       reader.readAsDataURL(blob);
     }));
   
