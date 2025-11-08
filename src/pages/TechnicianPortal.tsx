@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -5,6 +6,17 @@ import acTechLogo from "@/assets/ac-tech-logo.jpg";
 
 const TechnicianPortal = () => {
   const navigate = useNavigate();
+  const userRole = sessionStorage.getItem("userRole");
+
+  useEffect(() => {
+    if (!sessionStorage.getItem("authenticated")) {
+      navigate("/");
+    }
+    // Admin cannot access technician portal
+    if (userRole === "admin") {
+      navigate("/admin-portal");
+    }
+  }, [navigate, userRole]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
@@ -19,11 +31,13 @@ const TechnicianPortal = () => {
           <p className="text-xl text-muted-foreground">Technician Portal</p>
         </div>
 
-        <div className="flex justify-center mb-8">
-          <Button onClick={() => navigate("/menu")} variant="outline">
-            Back to Menu
-          </Button>
-        </div>
+        {userRole === "management" && (
+          <div className="flex justify-center mb-8">
+            <Button onClick={() => navigate("/menu")} variant="outline">
+              Back to Menu
+            </Button>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>

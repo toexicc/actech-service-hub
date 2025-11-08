@@ -13,8 +13,11 @@ const Menu = () => {
     }
   }, [navigate]);
 
+  const userRole = sessionStorage.getItem("userRole");
+
   const handleLogout = () => {
     sessionStorage.removeItem("authenticated");
+    sessionStorage.removeItem("userRole");
     navigate("/");
   };
 
@@ -32,29 +35,33 @@ const Menu = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/admin-portal")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Admin Portal</h2>
-              <p className="text-muted-foreground mb-6">
-                Frontdesk Form and Client Info Update
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Enter Admin Portal
-              </Button>
-            </div>
-          </Card>
+          {(userRole === "admin" || userRole === "management") && (
+            <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/admin-portal")}>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-blue-600 mb-4">Admin Portal</h2>
+                <p className="text-muted-foreground mb-6">
+                  Frontdesk Form and Client Info Update
+                </p>
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                  Enter Admin Portal
+                </Button>
+              </div>
+            </Card>
+          )}
 
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/technician-portal")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Technician Portal</h2>
-              <p className="text-muted-foreground mb-6">
-                Service Update and Technician Report Form
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Enter Technician Portal
-              </Button>
-            </div>
-          </Card>
+          {userRole === "management" && (
+            <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/technician-portal")}>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-blue-600 mb-4">Technician Portal</h2>
+                <p className="text-muted-foreground mb-6">
+                  Service Update and Technician Report Form
+                </p>
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                  Enter Technician Portal
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="text-center">

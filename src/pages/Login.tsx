@@ -6,22 +6,46 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Login = () => {
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password === "ACT3CH2025~*") {
+    if (!role) {
+      toast({
+        title: "Role Required",
+        description: "Please select a role before logging in.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const rolePasswords: Record<string, string> = {
+      technician: "ACT3CH2025~*Technician#",
+      admin: "ACT3CH2025~*Admin+",
+      management: "ACT3CH2025~*Management!",
+    };
+
+    if (password === rolePasswords[role]) {
       sessionStorage.setItem("authenticated", "true");
-      navigate("/menu");
+      sessionStorage.setItem("userRole", role);
+      
+      // Redirect based on role
+      if (role === "technician") {
+        navigate("/technician-portal");
+      } else {
+        navigate("/menu");
+      }
     } else {
       toast({
         title: "Invalid Password",
-        description: "Please enter the correct admin portal password.",
+        description: "Please enter the correct password for the selected role.",
         variant: "destructive",
       });
     }
@@ -42,7 +66,21 @@ const Login = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <Label htmlFor="password">Enter Admin Portal Password</Label>
+            <Label htmlFor="role">Select Role</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Select your role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="technician">Technician</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="management">Management</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="password">Enter Password</Label>
             <Input
               id="password"
               type="password"

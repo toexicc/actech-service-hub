@@ -42,6 +42,17 @@ interface StaffMember {
 const StaffManagement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const userRole = sessionStorage.getItem("userRole");
+  
+  useEffect(() => {
+    if (!sessionStorage.getItem("authenticated")) {
+      navigate("/");
+    }
+    // Only management can access staff management
+    if (userRole !== "management") {
+      navigate("/admin-portal");
+    }
+  }, [navigate, userRole]);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [addingStaff, setAddingStaff] = useState(false);

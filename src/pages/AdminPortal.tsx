@@ -6,12 +6,17 @@ import acTechLogo from "@/assets/ac-tech-logo.jpg";
 
 const AdminPortal = () => {
   const navigate = useNavigate();
+  const userRole = sessionStorage.getItem("userRole");
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-  }, [navigate]);
+    // Technicians cannot access admin portal
+    if (userRole === "technician") {
+      navigate("/technician-portal");
+    }
+  }, [navigate, userRole]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
@@ -77,29 +82,33 @@ const AdminPortal = () => {
             </div>
           </Card>
 
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/inventory-management")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Inventory Management</h2>
-              <p className="text-muted-foreground mb-6">
-                Track Parts & Materials
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Inventory
-              </Button>
-            </div>
-          </Card>
+          {userRole === "management" && (
+            <>
+              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/inventory-management")}>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Inventory Management</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Track Parts & Materials
+                  </p>
+                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                    Open Inventory
+                  </Button>
+                </div>
+              </Card>
 
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/staff-management")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Staff Management</h2>
-              <p className="text-muted-foreground mb-6">
-                Manage Staff & Roles
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Staff
-              </Button>
-            </div>
-          </Card>
+              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/staff-management")}>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Staff Management</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Manage Staff & Roles
+                  </p>
+                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                    Open Staff
+                  </Button>
+                </div>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

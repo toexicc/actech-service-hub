@@ -49,6 +49,17 @@ type SortOrder = "asc" | "desc";
 const InventoryManagement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const userRole = sessionStorage.getItem("userRole");
+  
+  useEffect(() => {
+    if (!sessionStorage.getItem("authenticated")) {
+      navigate("/");
+    }
+    // Only management can access inventory
+    if (userRole !== "management") {
+      navigate("/admin-portal");
+    }
+  }, [navigate, userRole]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
