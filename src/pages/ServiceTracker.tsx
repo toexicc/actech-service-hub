@@ -44,6 +44,7 @@ const ServiceTracker = () => {
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 15;
 
@@ -301,12 +302,26 @@ const ServiceTracker = () => {
                 <Input
                   type="text"
                   placeholder="Search by Service ID or Client Name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearchQuery(searchInput);
+                    }
+                  }}
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" onClick={() => setSearchQuery("")}>
+              <Button onClick={() => setSearchQuery(searchInput)}>
+                Search
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchQuery("");
+                }}
+              >
                 Clear
               </Button>
             </div>
