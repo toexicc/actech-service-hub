@@ -95,6 +95,34 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle request for all ongoing services (service tracker)
+  if (params.action === 'getAllOngoingServices') {
+    var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = serviceSheet.getDataRange().getDisplayValues();
+    var services = [];
+    
+    // Loop through all rows (skip header row)
+    for (var i = 1; i < data.length; i++) {
+      services.push({
+        "serviceId": data[i][0],           // Column A - Service ID
+        "timestamp": data[i][4],           // Column E - Service Date
+        "technician": data[i][3],          // Column D - Technician
+        "service": data[i][26],            // Column AA - Service/s
+        "deviceType": data[i][12],         // Column M - Device Type
+        "brand": data[i][14],              // Column O - Brand
+        "device": data[i][16],             // Column Q - Model
+        "targetDate": data[i][28],         // Column AC - Target Date
+        "status": data[i][1],              // Column B - Status
+        "clientName": data[i][8]           // Column I - Client Name
+      });
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "services": services
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   return ContentService.createTextOutput(JSON.stringify({
     "error": "Invalid request"
   })).setMimeType(ContentService.MimeType.JSON);
