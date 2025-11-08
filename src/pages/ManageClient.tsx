@@ -126,6 +126,18 @@ const ManageClient = () => {
 
     setIsUpdating(true);
     try {
+      // Generate updated PDF with new information
+      const updatedServiceData = {
+        ...serviceData,
+        technician: updateTechnician,
+        clientType: updateClientType,
+        priority: updatePriority,
+        serviceCost: updateServiceCost,
+        timeFrame: updateTargetDate,
+      };
+      
+      const pdfBlob = await generateServicePDF(updatedServiceData);
+
       const formData = new FormData();
       formData.append("action", "updateService");
       formData.append("serviceId", serviceId);
@@ -138,6 +150,7 @@ const ManageClient = () => {
       formData.append("timeFrame", updateTargetDate);
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
+      formData.append("PDF", pdfBlob, `${serviceData.serialNumber}_${serviceData.clientName}_${serviceData.deviceType}.pdf`);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -149,7 +162,7 @@ const ManageClient = () => {
       if (result.result === "success") {
         toast({
           title: "Success",
-          description: "Client information updated successfully",
+          description: "Client information and PDF updated successfully",
         });
         // Refresh the data
         handleSearch();
