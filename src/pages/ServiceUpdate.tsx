@@ -314,8 +314,13 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Time Frame:</h3>
+                    <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
-                    <p className="text-lg">{serviceData.timeFrame}</p>
+                    <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
                   </div>
 
                   <div>
@@ -429,10 +434,10 @@ const ServiceUpdate = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
+                  <Label htmlFor="technicianNotesInternal">Admin Notes (Internal):</Label>
                   <Textarea
                     id="technicianNotesInternal"
-                    placeholder="Enter internal technician notes"
+                    placeholder="Enter internal admin notes"
                     value={updateTechnicianNotesInternal}
                     onChange={(e) => setUpdateTechnicianNotesInternal(e.target.value)}
                     rows={4}
