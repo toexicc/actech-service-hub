@@ -117,6 +117,52 @@ function doPost(e) {
         if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO - Technician Notes (Internal)
         
+        // Upload NEW PDF if provided and update Column AP with its link
+        try {
+          var pdfBlob = null;
+          // Prefer multipart file upload
+          if (e && e.files && e.files.PDF) {
+            pdfBlob = e.files.PDF;
+          } else if (params["PDF_Base64"]) {
+            // Fallback: base64 fields
+            var bytes = Utilities.base64Decode(params["PDF_Base64"]);
+            var mimeType = params["PDF_MimeType"] || "application/pdf";
+            var fallbackName = "ServiceReport.pdf";
+            var base64FileName = params["PDF_FileName"] || fallbackName;
+            pdfBlob = Utilities.newBlob(bytes, mimeType, base64FileName);
+          }
+
+          if (pdfBlob) {
+            // Build updated, timestamped filename
+            var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
+            var tz = Session.getScriptTimeZone();
+            var ts = Utilities.formatDate(new Date(), tz, "MM-dd-yyyy HH.mm");
+
+            var serial = sanitize(params["Serial"]);
+            var clientName = sanitize(params["Client Name"]);
+            var deviceType = sanitize(params["Device Type"]);
+
+            var baseName = [serial, clientName, deviceType].filter(Boolean).join("_");
+            var desiredName =
+              (params["PDF_FileName"] && params["PDF_FileName"].trim())
+                ? params["PDF_FileName"].trim()
+                : (baseName ? (baseName + " - UPDATED " + ts + ".pdf") : ("ServiceReport - UPDATED " + ts + ".pdf"));
+
+            pdfBlob.setName(desiredName);
+
+            // Upload to Drive and set sharing
+            var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+            var file = folder.createFile(pdfBlob);
+            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+            // Write new link to Column AP (column 42)
+            var pdfUrl = file.getUrl();
+            sheet.getRange(i + 1, 42).setValue(pdfUrl);
+          }
+        } catch (err) {
+          Logger.log("Error uploading updated PDF: " + err);
+        }
+        
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
         })).setMimeType(ContentService.MimeType.JSON);
