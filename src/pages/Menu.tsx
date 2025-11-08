@@ -65,7 +65,7 @@ const Menu = () => {
         </div>
 
         <div className="text-center">
-          <Button onClick={handleLogout} variant="outline">
+          <Button onClick={handleLogout} variant="destructive">
             Logout
           </Button>
         </div>

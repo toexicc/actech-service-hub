@@ -43,7 +43,7 @@ const TechnicianPortal = () => {
               Back to Menu
             </Button>
           )}
-          <Button onClick={handleLogout} variant="outline">
+          <Button onClick={handleLogout} variant="destructive">
             Logout
           </Button>
         </div>
