@@ -34,6 +34,7 @@ function doGet(e) {
             "brand": data[i][14],            // Column O - Brand
             "colorMemory": data[i][15] + " | " + data[i][17], // Column P (Color) | R (Memory)
             "timestamp": data[i][4],  // Column E - Service Date
+            "targetDate": data[i][28],       // Column AC - Target Date
             "timeFrame": data[i][27],        // Column AB - Time Frame
             "service": data[i][26],          // Column AA - Service/s
             "serviceCost": data[i][29],      // Column AD - Estimated Cost
@@ -117,6 +118,7 @@ function doPost(e) {
         if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType); // Column H - Client Type
         if (params.services) sheet.getRange(i + 1, 27).setValue(params.services); // Column AA - Service/s
         if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame); // Column AB - Time Frame
+        if (params.targetDate) sheet.getRange(i + 1, 29).setValue(params.targetDate); // Column AC - Target Date
         if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
         if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)

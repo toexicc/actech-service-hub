@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
-import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 
 const ManageClient = () => {
   const navigate = useNavigate();
@@ -32,7 +35,7 @@ const ManageClient = () => {
   const [updatePriority, setUpdatePriority] = useState("");
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
-  const [updateTargetDate, setUpdateTargetDate] = useState("");
+  const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
 
@@ -99,7 +102,7 @@ const ManageClient = () => {
         setUpdatePriority(data.data.priority || "");
         setUpdateServices(data.data.service || "");
         setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
-        setUpdateTargetDate(data.data.timeFrame || "");
+        setUpdateTargetDate(data.data.targetDate ? new Date(data.data.targetDate) : undefined);
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
       } else {
@@ -155,7 +158,7 @@ const ManageClient = () => {
         noPower: serviceData.noPower === "Yes" || serviceData.noPower === true,
         repairHistory: serviceData.repairHistory === "Yes" || serviceData.repairHistory === true,
         estimatedCost: parseFloat(updateServiceCost) || 0,
-        timeFrame: updateTargetDate,
+        timeFrame: updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "",
         isUpdated: true,
       };
       
@@ -189,7 +192,7 @@ const ManageClient = () => {
       formData.append("priority", updatePriority);
       formData.append("services", updateServices);
       formData.append("finalCost", updateServiceCost);
-      formData.append("timeFrame", updateTargetDate);
+      formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
       // Provide extra fields some GAS scripts expect for naming
@@ -390,7 +393,7 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
-                    <p className="text-lg">{serviceData.timeFrame}</p>
+                    <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
                   </div>
 
                   <div>
@@ -528,20 +531,30 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="timeFrame">Time Frame:</Label>
-                  <Select value={updateTargetDate} onValueChange={setUpdateTargetDate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time frame" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Same-Day">Same-Day</SelectItem>
-                      <SelectItem value="Next Business Day">Next Business Day</SelectItem>
-                      <SelectItem value="1-2 Days">1-2 Days</SelectItem>
-                      <SelectItem value="3-5 Days">3-5 Days</SelectItem>
-                      <SelectItem value="1-2 Weeks">1-2 Weeks</SelectItem>
-                      <SelectItem value="2-4 Weeks">2-4 Weeks</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="targetDate">Target Date:</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !updateTargetDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={updateTargetDate}
+                        onSelect={setUpdateTargetDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">

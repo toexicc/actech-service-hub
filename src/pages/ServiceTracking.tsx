@@ -185,17 +185,12 @@ const ServiceTracking = () => {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
-                  <p className="text-lg">
-                    {serviceData.timestamp ? 
-                      format(new Date(serviceData.timestamp), "MM-dd-yyyy, HH:mm") : 
-                      "N/A"
-                    }
-                  </p>
+                  <p className="text-lg">{serviceData.timestamp || "N/A"}</p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Time Frame:</h3>
-                  <p className="text-lg">{serviceData.timeFrame}</p>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
+                  <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
                 </div>
               </div>
 
