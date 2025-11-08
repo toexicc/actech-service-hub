@@ -138,7 +138,7 @@ const ManageClient = () => {
         priority: updatePriority,
         clientName: serviceData.clientName || "",
         username: serviceData.username || serviceData.clientName || "",
-        phone: serviceData.phone || "",
+        phone: String(serviceData.phone || ""),
         email: serviceData.email || "",
         deviceType: serviceData.deviceType || deviceType,
         serial: serviceData.serialNumber || "",
