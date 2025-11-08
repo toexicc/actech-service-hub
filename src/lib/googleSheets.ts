@@ -580,9 +580,7 @@ function doPost(e) {
     if (clientData[i][0] == clientId) {
       // Existing client - append new Service ID
       var existingServiceIds = clientData[i][5] || "";
-      // Ensure Service ID is stored as text by prefixing with single quote
-      var formattedServiceId = "'" + serviceIdValue;
-      var updatedServiceIds = existingServiceIds ? existingServiceIds + ", " + formattedServiceId : formattedServiceId;
+      var updatedServiceIds = existingServiceIds ? existingServiceIds + ", " + serviceIdValue : serviceIdValue;
       clientSheet.getRange(i + 1, 6).setValue(updatedServiceIds);
       clientFound = true;
       break;
@@ -592,14 +590,13 @@ function doPost(e) {
   if (!clientFound) {
     // New client - add to Client Database
     // Columns: Client ID, Client Name, Username, Contact Number, Email, Service IDs
-    // Ensure Service ID is stored as text by prefixing with single quote
     clientSheet.appendRow([
       clientId,
       clientNameValue,
       usernameValue,
       phoneValue,
       emailValue,
-      "'" + serviceIdValue
+      serviceIdValue
     ]);
   }
   

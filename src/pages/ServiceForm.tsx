@@ -108,7 +108,7 @@ const ServiceForm = () => {
     const year = String(now.getFullYear()).slice(-2);
     const seconds = String(now.getSeconds()).padStart(2, "0");
     const milliseconds = String(now.getMilliseconds()).charAt(0);
-    return `${day}${month}${year}${seconds}${milliseconds}`;
+    return `AC${day}${month}${year}${seconds}${milliseconds}`;
   };
 
   const handleSearchClientId = async () => {
