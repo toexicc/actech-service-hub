@@ -265,7 +265,7 @@ function doPost(e) {
     var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Status, Last Updated, Remarks
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Status, Last Updated, Remarks, Date Ordered, Supplier, Cost per Unit
     inventorySheet.appendRow([
       partId,
       params.partName,
@@ -275,7 +275,10 @@ function doPost(e) {
       params.quantity,
       params.status,
       timestamp,
-      params.remarks
+      params.remarks,
+      params.dateOrdered || "",
+      params.supplier || "",
+      params.costPerUnit || ""
     ]);
     
     // Log the initial stock to Inventory Log

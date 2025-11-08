@@ -51,6 +51,9 @@ const InventoryManagement = () => {
     brand: "",
     model: "",
     quantity: "",
+    dateOrdered: "",
+    supplier: "",
+    costPerUnit: "",
     status: "In Stock",
     remarks: ""
   });
@@ -132,6 +135,9 @@ const InventoryManagement = () => {
           brand: "",
           model: "",
           quantity: "",
+          dateOrdered: "",
+          supplier: "",
+          costPerUnit: "",
           status: "In Stock",
           remarks: ""
         });
@@ -361,15 +367,47 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Initial Quantity *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={newPart.quantity}
-                    onChange={(e) => setNewPart({...newPart, quantity: e.target.value})}
-                    placeholder="0"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Initial Quantity *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      value={newPart.quantity}
+                      onChange={(e) => setNewPart({...newPart, quantity: e.target.value})}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="costPerUnit">Cost per Unit</Label>
+                    <Input
+                      id="costPerUnit"
+                      value={newPart.costPerUnit}
+                      onChange={(e) => setNewPart({...newPart, costPerUnit: e.target.value})}
+                      placeholder="₱0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="supplier">Supplier</Label>
+                    <Input
+                      id="supplier"
+                      value={newPart.supplier}
+                      onChange={(e) => setNewPart({...newPart, supplier: e.target.value})}
+                      placeholder="Supplier name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOrdered">Date Ordered</Label>
+                    <Input
+                      id="dateOrdered"
+                      type="date"
+                      value={newPart.dateOrdered}
+                      onChange={(e) => setNewPart({...newPart, dateOrdered: e.target.value})}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
