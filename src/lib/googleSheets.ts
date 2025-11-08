@@ -105,6 +105,57 @@ function doPost(e) {
     // Search for the service ID in column A (index 0)
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId) {
+        // Handle PDF replacement - DELETE OLD AND CREATE NEW
+        var newPdfUrl = "";
+        if (e && e.files && e.files.PDF) {
+          try {
+            // 1. DELETE OLD PDF FILE
+            var oldPdfUrl = data[i][41]; // Column AP - PDF Link
+            if (oldPdfUrl) {
+              try {
+                // Extract file ID from various Google Drive URL formats
+                var fileId = null;
+                
+                // Format: https://drive.google.com/file/d/FILE_ID/view
+                var match1 = oldPdfUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match1) fileId = match1[1];
+                
+                // Format: https://drive.google.com/open?id=FILE_ID
+                if (!fileId) {
+                  var match2 = oldPdfUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                  if (match2) fileId = match2[1];
+                }
+                
+                // Delete the file if we found the ID
+                if (fileId) {
+                  var oldFile = DriveApp.getFileById(fileId);
+                  oldFile.setTrashed(true);
+                  Logger.log("Deleted old PDF with ID: " + fileId);
+                }
+              } catch (deleteErr) {
+                Logger.log("Error deleting old PDF: " + deleteErr);
+                // Continue even if delete fails
+              }
+            }
+            
+            // 2. CREATE NEW PDF FILE
+            var pdfBlob = e.files.PDF;
+            var sanitize = function(str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
+            var fileName = sanitize(data[i][13]) + "_" + sanitize(data[i][8]) + "_" + sanitize(data[i][12]) + ".pdf";
+            pdfBlob.setName(fileName);
+            
+            var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+            var newFile = folder.createFile(pdfBlob);
+            newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            newPdfUrl = newFile.getUrl();
+            
+            Logger.log("Created new PDF: " + newPdfUrl);
+          } catch (pdfError) {
+            Logger.log("Error handling PDF: " + pdfError);
+            // Continue with update even if PDF fails
+          }
+        }
+        
         // Update the specified columns
         if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B - Status
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D - Technician
@@ -116,6 +167,11 @@ function doPost(e) {
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes); // Column AL - Admin Notes
         if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal); // Column AM - Admin Notes (Internal)
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO - Technician Notes (Internal)
+        
+        // Update PDF URL if new PDF was created
+        if (newPdfUrl) {
+          sheet.getRange(i + 1, 42).setValue(newPdfUrl); // Column AP - PDF Link
+        }
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
