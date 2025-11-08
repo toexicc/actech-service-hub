@@ -122,26 +122,28 @@ const ServiceForm = () => {
         `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`,
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.found) {
-          setServiceId(searchServiceId);
-          form.setValue("clientName", result.data.name || "");
-          form.setValue("phone", result.data.contactNumber || "");
-          form.setValue("model", result.data.device || "");
-          form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
-          form.setValue("estimatedCost", parseFloat(result.data.estimatedCost) || 0);
-          toast({
-            title: "Success",
-            description: "Service information loaded successfully!",
-          });
-        } else {
-          toast({
-            title: "Not Found",
-            description: "Service ID not found in database",
-            variant: "destructive",
-          });
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.found) {
+        setServiceId(searchServiceId);
+        form.setValue("clientName", result.data.name || "");
+        form.setValue("phone", result.data.contactNumber || "");
+        form.setValue("model", result.data.device || "");
+        form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
+        form.setValue("estimatedCost", parseFloat(result.data.estimatedCost) || 0);
+        toast({
+          title: "Success",
+          description: "Service information loaded successfully!",
+        });
+      } else {
+        toast({
+          title: "Not Found",
+          description: "Service ID not found in database",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error searching service ID:", error);
