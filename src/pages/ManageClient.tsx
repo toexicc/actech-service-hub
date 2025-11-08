@@ -126,17 +126,39 @@ const ManageClient = () => {
 
     setIsUpdating(true);
     try {
-      // Generate updated PDF with new information
-      const updatedServiceData = {
-        ...serviceData,
+      // Map service data to PDF format with updated fields
+      const [color, memory] = (serviceData.colorMemory || " | ").split(" | ");
+      
+      const pdfData = {
+        serviceId: serviceId,
+        timestamp: serviceData.timestamp || new Date().toISOString(),
+        adminRep: "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
         priority: updatePriority,
-        serviceCost: updateServiceCost,
+        clientName: serviceData.clientName || "",
+        username: serviceData.clientName || "",
+        phone: serviceData.phone || "",
+        email: serviceData.email || "",
+        deviceType: serviceData.deviceType || deviceType,
+        serial: serviceData.serialNumber || "",
+        brand: serviceData.brand || "",
+        color: color?.trim() || "",
+        model: serviceData.device || "",
+        memory: memory?.trim() || "",
+        chiefComplaint: serviceData.chiefComplaint || "",
+        dents: serviceData.dents === "Yes" || serviceData.dents === true,
+        scratches: serviceData.scratches === "Yes" || serviceData.scratches === true,
+        missingParts: serviceData.missingParts === "Yes" || serviceData.missingParts === true,
+        physicalDamage: serviceData.physicalDamage === "Yes" || serviceData.physicalDamage === true,
+        importantFiles: serviceData.importantFiles === "Yes" || serviceData.importantFiles === true,
+        noPower: serviceData.noPower === "Yes" || serviceData.noPower === true,
+        repairHistory: serviceData.repairHistory === "Yes" || serviceData.repairHistory === true,
+        estimatedCost: parseFloat(updateServiceCost) || 0,
         timeFrame: updateTargetDate,
       };
       
-      const pdfBlob = await generateServicePDF(updatedServiceData);
+      const pdfBlob = await generateServicePDF(pdfData);
 
       const formData = new FormData();
       formData.append("action", "updateService");
@@ -174,6 +196,7 @@ const ManageClient = () => {
         });
       }
     } catch (error) {
+      console.error("Update error:", error);
       toast({
         title: "Error",
         description: "Failed to update client information",
