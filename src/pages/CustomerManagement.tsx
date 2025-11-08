@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { Search, User } from "lucide-react";
+import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { Search, User, FileText } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface CustomerData {
@@ -26,6 +27,7 @@ interface ServiceRecord {
   service: string;
   targetDate: string;
   serviceCost: string;
+  pdfUrl?: string;
 }
 
 const CustomerManagement = () => {
@@ -107,6 +109,19 @@ const CustomerManagement = () => {
       return "bg-red-100 text-red-800";
     }
     return "bg-gray-100 text-gray-800";
+  };
+
+  const handleViewPDF = (pdfUrl: string) => {
+    if (!pdfUrl) {
+      toast({
+        title: "No PDF Available",
+        description: "PDF link not found for this service",
+        variant: "destructive",
+      });
+      return;
+    }
+    const url = normalizeGoogleDrivePdfUrl(pdfUrl, "preview");
+    window.open(url, "_blank");
   };
 
   return (
@@ -223,6 +238,7 @@ const CustomerManagement = () => {
                           <TableHead>Service/s</TableHead>
                           <TableHead>Expected Date</TableHead>
                           <TableHead>Service Cost</TableHead>
+                          <TableHead>Client Form</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -240,6 +256,21 @@ const CustomerManagement = () => {
                             <TableCell>{service.targetDate || "N/A"}</TableCell>
                             <TableCell className="font-semibold">
                               {service.serviceCost ? `Php ${service.serviceCost}` : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              {service.pdfUrl ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewPDF(service.pdfUrl!)}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  View PDF
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">N/A</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

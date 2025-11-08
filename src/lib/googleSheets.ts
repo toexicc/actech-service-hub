@@ -126,7 +126,8 @@ function doGet(e) {
               "status": serviceData[j][1] || "PENDING - APPROVAL",
               "service": serviceData[j][26],
               "targetDate": serviceData[j][28],
-              "serviceCost": serviceData[j][29]
+              "serviceCost": serviceData[j][29],
+              "pdfUrl": serviceData[j][41] // Column AP (42nd column, index 41)
             });
           }
         }
