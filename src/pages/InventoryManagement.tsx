@@ -60,6 +60,12 @@ const InventoryManagement = () => {
       navigate("/admin-portal");
     }
   }, [navigate, userRole]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("authenticated");
+    sessionStorage.removeItem("userRole");
+    navigate("/");
+  };
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -462,9 +468,14 @@ const InventoryManagement = () => {
         </div>
 
         <div className="flex justify-between items-center mb-6">
-          <Button onClick={() => navigate("/admin-portal")} variant="outline">
-            Back to Admin Portal
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => navigate("/admin-portal")} variant="outline">
+              Back to Admin Portal
+            </Button>
+            <Button onClick={handleLogout} variant="outline">
+              Logout
+            </Button>
+          </div>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>

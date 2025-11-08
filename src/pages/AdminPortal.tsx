@@ -18,6 +18,12 @@ const AdminPortal = () => {
     }
   }, [navigate, userRole]);
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("authenticated");
+    sessionStorage.removeItem("userRole");
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
       <div className="max-w-6xl mx-auto">
@@ -28,9 +34,14 @@ const AdminPortal = () => {
             className="mx-auto h-20 mb-4 object-contain"
           />
           <h1 className="text-3xl font-bold text-blue-600 mb-2">Admin Portal - Sections</h1>
-          <Button onClick={() => navigate("/menu")} variant="outline" className="mt-4">
-            Back to Menu
-          </Button>
+          <div className="flex gap-2 justify-center mt-4">
+            <Button onClick={() => navigate("/menu")} variant="outline">
+              Back to Menu
+            </Button>
+            <Button onClick={handleLogout} variant="outline">
+              Logout
+            </Button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

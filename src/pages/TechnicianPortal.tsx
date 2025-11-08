@@ -18,6 +18,12 @@ const TechnicianPortal = () => {
     }
   }, [navigate, userRole]);
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("authenticated");
+    sessionStorage.removeItem("userRole");
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8">
       <div className="max-w-6xl mx-auto">
@@ -31,13 +37,16 @@ const TechnicianPortal = () => {
           <p className="text-xl text-muted-foreground">Technician Portal</p>
         </div>
 
-        {userRole === "management" && (
-          <div className="flex justify-center mb-8">
+        <div className="flex justify-center gap-2 mb-8">
+          {userRole === "management" && (
             <Button onClick={() => navigate("/menu")} variant="outline">
               Back to Menu
             </Button>
-          </div>
-        )}
+          )}
+          <Button onClick={handleLogout} variant="outline">
+            Logout
+          </Button>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>
