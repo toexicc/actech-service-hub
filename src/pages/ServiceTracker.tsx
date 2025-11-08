@@ -252,7 +252,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder]);
+  }, [services, deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery]);
 
   const paginatedServices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
