@@ -587,6 +587,48 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle staff management (inside doPost)
+  if (params.action === 'addStaff') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var timestamp = new Date().getTime();
+    var staffId = "STAFF" + timestamp;
+    var row = [staffId, params.name, params.role, params.status];
+    staffSheet.appendRow(row);
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "staffId": staffId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (params.action === 'removeStaff' && params.staffId) {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var data = staffSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.staffId) {
+        staffSheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({
+          "status": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "error",
+      "message": "Staff member not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   // Handle service form submissions
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
   var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
@@ -709,65 +751,6 @@ function doPost(e) {
   
   return ContentService.createTextOutput(JSON.stringify({
     "result": "success"
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
-// ===== STAFF MANAGEMENT ENDPOINTS =====
-// ADD THESE INSIDE THE doPost(e) FUNCTION BEFORE THE CLOSING BRACE
-
-// Handle adding staff member (ADD THIS INSIDE doPost FUNCTION)
-if (params.action === 'addStaff') {
-  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
-  if (!staffSheet) {
-    return ContentService.createTextOutput(JSON.stringify({
-      "status": "error",
-      "message": "Staff Management sheet not found"
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  var timestamp = new Date().getTime();
-  var staffId = "STAFF" + timestamp;
-  
-  var row = [
-    staffId,
-    params.name,
-    params.role,
-    params.status
-  ];
-  
-  staffSheet.appendRow(row);
-  
-  return ContentService.createTextOutput(JSON.stringify({
-    "status": "success",
-    "staffId": staffId
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
-// Handle removing staff member (ADD THIS INSIDE doPost FUNCTION)
-if (params.action === 'removeStaff' && params.staffId) {
-  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
-  if (!staffSheet) {
-    return ContentService.createTextOutput(JSON.stringify({
-      "status": "error",
-      "message": "Staff Management sheet not found"
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-  
-  var data = staffSheet.getDataRange().getValues();
-  
-  // Find and delete the row with matching Staff ID (column A, index 0)
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] == params.staffId) {
-      staffSheet.deleteRow(i + 1);
-      return ContentService.createTextOutput(JSON.stringify({
-        "status": "success"
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({
-    "status": "error",
-    "message": "Staff member not found"
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
