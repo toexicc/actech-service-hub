@@ -597,7 +597,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     var timestamp = new Date().getTime();
-    var staffId = "STAFF" + timestamp;
+    var staffId = "ACTS" + timestamp;
     var row = [staffId, params.name, params.role, params.status];
     staffSheet.appendRow(row);
     return ContentService.createTextOutput(JSON.stringify({
