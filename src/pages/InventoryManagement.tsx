@@ -198,12 +198,22 @@ const InventoryManagement = () => {
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("action", "adjustStock");
-      formData.append("partId", selectedPart.partId);
-      formData.append("adjustmentType", stockAdjustment.type);
-      formData.append("quantity", stockAdjustment.quantity);
-      formData.append("remarks", stockAdjustment.remarks);
-      formData.append("previousQuantity", selectedPart.quantity.toString());
+      
+      // Handle "order" type differently - it updates status to "On Order"
+      if (stockAdjustment.type === "order") {
+        formData.append("action", "placeOrder");
+        formData.append("partId", selectedPart.partId);
+        formData.append("orderedQuantity", stockAdjustment.quantity);
+        formData.append("remarks", stockAdjustment.remarks || `Ordered: ${stockAdjustment.quantity} units`);
+      } else {
+        formData.append("action", "adjustStock");
+        formData.append("partId", selectedPart.partId);
+        formData.append("adjustmentType", stockAdjustment.type);
+        formData.append("quantity", stockAdjustment.quantity);
+        formData.append("remarks", stockAdjustment.remarks);
+        formData.append("previousQuantity", selectedPart.quantity.toString());
+      }
+      
       formData.append("adjustedBy", sessionStorage.getItem("username") || "Admin");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -216,7 +226,9 @@ const InventoryManagement = () => {
       if (result.result === "success") {
         toast({
           title: "Success",
-          description: "Stock updated successfully",
+          description: stockAdjustment.type === "order" 
+            ? "Order placed successfully. Click 'Receive Order' when stock arrives."
+            : "Stock updated successfully",
         });
         setIsStockDialogOpen(false);
         setSelectedPart(null);
@@ -780,12 +792,15 @@ const InventoryManagement = () => {
                     <SelectItem value="add">Add Stock (Stock In)</SelectItem>
                     <SelectItem value="remove">Remove Stock (Stock Out)</SelectItem>
                     <SelectItem value="adjust">Manual Adjustment</SelectItem>
+                    <SelectItem value="order">Place Order</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="adjustQuantity">Quantity</Label>
+                <Label htmlFor="adjustQuantity">
+                  {stockAdjustment.type === "order" ? "Order Quantity" : "Quantity"}
+                </Label>
                 <Input
                   id="adjustQuantity"
                   type="number"
@@ -793,6 +808,11 @@ const InventoryManagement = () => {
                   onChange={(e) => setStockAdjustment({...stockAdjustment, quantity: e.target.value})}
                   placeholder="Enter quantity"
                 />
+                {stockAdjustment.type === "order" && (
+                  <p className="text-xs text-muted-foreground">
+                    This will set status to "On Order" without changing current stock
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -805,7 +825,7 @@ const InventoryManagement = () => {
                 />
               </div>
 
-              {selectedPart && stockAdjustment.quantity && (
+              {selectedPart && stockAdjustment.quantity && stockAdjustment.type !== "order" && (
                 <div className="p-4 bg-muted rounded-md">
                   <p className="text-sm">
                     <strong>New Quantity:</strong>{" "}

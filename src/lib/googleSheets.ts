@@ -369,6 +369,57 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle place order action
+  if (params.action === "placeOrder") {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var data = inventorySheet.getDataRange().getValues();
+    var timestamp = Utilities.formatDate(new Date(), "GMT+8", "MM-dd-yyyy, HH:mm");
+    var logId = "LOG" + Date.now();
+    
+    // Find the part
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.partId) {
+        var currentQty = parseInt(data[i][5] || 0);
+        var orderedQty = parseInt(params.orderedQuantity || 0);
+        
+        // Update status to "On Order" without changing quantity
+        inventorySheet.getRange(i + 1, 10).setValue("On Order"); // Column J = 10
+        inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K = 11
+        
+        // Update remarks with order information
+        var currentRemarks = data[i][11] || "";
+        var newRemarks = "Ordered: " + orderedQty + " units";
+        if (params.remarks) {
+          newRemarks += " | " + params.remarks;
+        }
+        inventorySheet.getRange(i + 1, 12).setValue(newRemarks); // Column L = 12
+        
+        // Log the order
+        logSheet.appendRow([
+          logId,
+          params.partId,
+          data[i][1], // Part Name
+          data[i][2], // Device Type
+          "Order Placed",
+          orderedQty,
+          currentQty,
+          currentQty,
+          timestamp,
+          newRemarks
+        ]);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   // Handle receive order action
   if (params.action === "receiveOrder") {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
