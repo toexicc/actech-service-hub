@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Login = () => {
@@ -56,7 +55,7 @@ const Login = () => {
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <img 
-            src={acTechLogo} 
+            src="/ac-tech-logo-pdf.png" 
             alt="AC Tech Repair" 
             className="mx-auto h-20 mb-4 object-contain"
           />
