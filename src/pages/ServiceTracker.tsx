@@ -46,6 +46,7 @@ const ServiceTracker = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [dueDateFilter, setDueDateFilter] = useState("all");
   const itemsPerPage = 15;
 
   const applyDatePreset = (preset: string) => {
@@ -156,6 +157,27 @@ const ServiceTracker = () => {
     }
   };
 
+  const getDaysUntilDue = (targetDate: string): number => {
+    if (!targetDate) return 999;
+    try {
+      const parts = targetDate.split(/[-/]/);
+      if (parts.length !== 3) return 999;
+      
+      const [month, day, year] = parts;
+      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      target.setHours(23, 59, 59, 999);
+      
+      if (isNaN(target.getTime())) return 999;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      return differenceInDays(target, today);
+    } catch (error) {
+      return 999;
+    }
+  };
+
   const deviceTypes = useMemo(() => {
     const types = new Set(services.map(s => s.deviceType).filter(Boolean));
     return Array.from(types).sort();
@@ -226,6 +248,19 @@ const ServiceTracker = () => {
         }
       }
 
+      // Due date filter
+      if (dueDateFilter !== "all") {
+        const daysUntilDue = getDaysUntilDue(service.targetDate);
+        
+        if (dueDateFilter === "overdue") {
+          if (!isOverdue(service.targetDate)) return false;
+        } else if (dueDateFilter === "dueToday") {
+          if (daysUntilDue !== 0) return false;
+        } else if (dueDateFilter === "dueSoon") {
+          if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
+        }
+      }
+
       return true;
     });
 
@@ -252,7 +287,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery]);
+  }, [services, deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter]);
 
   const paginatedServices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -265,7 +300,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery]);
+  }, [deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -370,7 +405,22 @@ const ServiceTracker = () => {
             </div>
 
             {/* Filters */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <div className="space-y-2">
+                <Label>Due Date Status</Label>
+                <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Services" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Services</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="dueToday">Due Today</SelectItem>
+                    <SelectItem value="dueSoon">Due Soon (&lt;2 days)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Device Type</Label>
                 <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
