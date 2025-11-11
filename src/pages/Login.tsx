@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { findUser } from "@/lib/userCredentials";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -25,26 +26,32 @@ const Login = () => {
       return;
     }
 
-    const user = await findUser(username, password);
+    setIsLoading(true);
 
-    if (user) {
-      sessionStorage.setItem("authenticated", "true");
-      sessionStorage.setItem("userRole", user.role);
-      sessionStorage.setItem("username", user.username);
-      sessionStorage.setItem("userFullName", user.name);
-      
-      // Redirect based on role
-      if (user.role === "technician") {
-        navigate("/technician-portal");
+    try {
+      const user = await findUser(username, password);
+
+      if (user) {
+        sessionStorage.setItem("authenticated", "true");
+        sessionStorage.setItem("userRole", user.role);
+        sessionStorage.setItem("username", user.username);
+        sessionStorage.setItem("userFullName", user.name);
+        
+        // Redirect based on role
+        if (user.role === "technician") {
+          navigate("/technician-portal");
+        } else {
+          navigate("/menu");
+        }
       } else {
-        navigate("/menu");
+        toast({
+          title: "Invalid Credentials",
+          description: "Username or password is incorrect.",
+          variant: "destructive",
+        });
       }
-    } else {
-      toast({
-        title: "Invalid Credentials",
-        description: "Username or password is incorrect.",
-        variant: "destructive",
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,8 +95,15 @@ const Login = () => {
             />
           </div>
 
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-            Login
+          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
           </Button>
         </form>
 

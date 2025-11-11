@@ -77,15 +77,18 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
 
 export const addUser = async (user: UserCredential) => {
   try {
+    // Capitalize first letter of role for Google Sheets
+    const capitalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
+    
     const formData = new FormData();
     formData.append("action", "addStaff");
     formData.append("staffId", user.staffId);
     formData.append("username", user.username);
     formData.append("password", user.password);
     formData.append("name", user.name);
-    formData.append("role", user.role);
+    formData.append("role", capitalizedRole);
     formData.append("department", user.department || "");
-    formData.append("status", user.status);
+    formData.append("status", user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase());
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
@@ -161,15 +164,18 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
 
     const updatedUser = { ...user, ...updates };
     
+    // Capitalize first letter of role for Google Sheets
+    const capitalizedRole = updatedUser.role.charAt(0).toUpperCase() + updatedUser.role.slice(1).toLowerCase();
+    
     const formData = new FormData();
     formData.append("action", "updateStaff");
     formData.append("staffId", updatedUser.staffId);
     formData.append("username", username);
     formData.append("name", updatedUser.name);
     formData.append("password", updatedUser.password);
-    formData.append("role", updatedUser.role);
+    formData.append("role", capitalizedRole);
     formData.append("department", updatedUser.department || "");
-    formData.append("status", updatedUser.status);
+    formData.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",

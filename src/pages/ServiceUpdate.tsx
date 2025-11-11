@@ -473,14 +473,36 @@ const ServiceUpdate = () => {
                   <Label htmlFor="technician">Assigned Technician:</Label>
                   <Select value={updateTechnician} onValueChange={setUpdateTechnician}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select technician" />
+                      <SelectValue placeholder="Select technician">
+                        {updateTechnician && technicians.find(t => t.name === updateTechnician) && (
+                          <div className="flex flex-col items-start">
+                            <span>{updateTechnician}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {technicians.find(t => t.name === updateTechnician)?.department}
+                            </span>
+                          </div>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background z-50">
                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {technicians.map((tech) => (
-                        <SelectItem key={tech.name} value={tech.name}>
-                          {tech.displayName}
-                        </SelectItem>
+                      {Object.entries(
+                        technicians.reduce((acc, tech) => {
+                          if (!acc[tech.department]) acc[tech.department] = [];
+                          acc[tech.department].push(tech);
+                          return acc;
+                        }, {} as Record<string, typeof technicians>)
+                      ).map(([dept, techs]) => (
+                        <div key={dept}>
+                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                            {dept}
+                          </div>
+                          {techs.map((tech) => (
+                            <SelectItem key={tech.name} value={tech.name}>
+                              {tech.name}
+                            </SelectItem>
+                          ))}
+                        </div>
                       ))}
                     </SelectContent>
                   </Select>

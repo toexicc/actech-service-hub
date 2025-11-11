@@ -27,7 +27,7 @@ const ManageClient = () => {
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [technicianList, setTechnicianList] = useState<string[]>([]);
+  const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
   const { toast } = useToast();
 
   // Update form fields
@@ -47,17 +47,10 @@ const ManageClient = () => {
 
   const fetchTechnicianList = async () => {
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`
-      );
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTechnicians`);
       const data = await response.json();
-      
       if (data.status === "success") {
-        const technicians = data.data
-          .filter((staff: any) => staff.role === "Technician" && staff.status !== "Inactive")
-          .map((staff: any) => staff.name);
-        
-        setTechnicianList(technicians);
+        setTechnicians(data.technicians);
       }
     } catch (error) {
       console.error("Error fetching technician list:", error);
@@ -546,14 +539,36 @@ const ManageClient = () => {
                   <Label htmlFor="technician">Technician:</Label>
                   <Select value={updateTechnician} onValueChange={setUpdateTechnician}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select technician" />
+                      <SelectValue placeholder="Select technician">
+                        {updateTechnician && technicians.find(t => t.name === updateTechnician) && (
+                          <div className="flex flex-col items-start">
+                            <span>{updateTechnician}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {technicians.find(t => t.name === updateTechnician)?.department}
+                            </span>
+                          </div>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      {technicianList.length > 0 ? (
-                        technicianList.map((tech) => (
-                          <SelectItem key={tech} value={tech}>
-                            {tech}
-                          </SelectItem>
+                    <SelectContent className="bg-background z-50">
+                      {technicians.length > 0 ? (
+                        Object.entries(
+                          technicians.reduce((acc, tech) => {
+                            if (!acc[tech.department]) acc[tech.department] = [];
+                            acc[tech.department].push(tech);
+                            return acc;
+                          }, {} as Record<string, typeof technicians>)
+                        ).map(([dept, techs]) => (
+                          <div key={dept}>
+                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                              {dept}
+                            </div>
+                            {techs.map((tech) => (
+                              <SelectItem key={tech.name} value={tech.name}>
+                                {tech.name}
+                              </SelectItem>
+                            ))}
+                          </div>
                         ))
                       ) : (
                         <SelectItem value="No Technicians" disabled>
