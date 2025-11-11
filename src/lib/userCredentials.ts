@@ -23,15 +23,26 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
     const data = await response.json();
     
     if (data.status === "success" && data.data) {
-      userCredentials = data.data.map((staff: any) => ({
-        staffId: staff.staffId || staff["Staff ID"] || "",
-        username: staff.username,
-        password: staff.password,
-        name: staff.name,
-        role: staff.role.toLowerCase() as "admin" | "technician" | "management",
-        department: staff.department,
-        status: staff.status.toLowerCase() as "active" | "inactive"
-      }));
+      userCredentials = data.data.map((staff: any) => {
+        const staffId = staff.staffId ?? staff["Staff ID"] ?? "";
+        const username = staff.username ?? staff["Username"] ?? "";
+        const password = staff.password ?? staff["Password"] ?? "";
+        const name = staff.name ?? staff["Name"] ?? "";
+        const roleRaw = (staff.role ?? staff["Role"] ?? "").toString().trim().toLowerCase();
+        const department = staff.department ?? staff["Department"] ?? undefined;
+        const statusRaw = (staff.status ?? staff["Status"] ?? "").toString().trim().toLowerCase();
+        const normalizedStatus: "active" | "inactive" = statusRaw.includes("inactive") ? "inactive" : "active";
+
+        return {
+          staffId,
+          username,
+          password,
+          name,
+          role: (roleRaw as "admin" | "technician" | "management") || "management",
+          department,
+          status: normalizedStatus,
+        } as UserCredential;
+      });
       isLoaded = true;
     }
     return userCredentials;
