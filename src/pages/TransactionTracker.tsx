@@ -470,6 +470,8 @@ const TransactionTracker = () => {
                                 min="0"
                                 step="100"
                               />
+                            ) : service.department === "Mobile (Logic Board)" ? (
+                              <span className="text-muted-foreground">-</span>
                             ) : (
                               <span className="text-orange-600 font-medium">₱{commission.toLocaleString()}</span>
                             )}

@@ -489,7 +489,14 @@ const ServiceUpdate = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician:</Label>
-                  <Select value={updateTechnician} onValueChange={setUpdateTechnician}>
+                  <Select value={updateTechnician} onValueChange={(value) => {
+                    setUpdateTechnician(value);
+                    // Auto-update department when technician changes
+                    const selectedTech = technicians.find(t => t.name === value);
+                    if (selectedTech?.department) {
+                      // Department will be sent in the update
+                    }
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select technician">
                         {updateTechnician && technicians.find(t => t.name === updateTechnician) && (
