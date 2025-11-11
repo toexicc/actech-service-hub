@@ -820,17 +820,26 @@ function doPost(e) {
         "message": "Staff Management sheet not found"
       })).setMimeType(ContentService.MimeType.JSON);
     }
-    var timestamp = new Date().getTime();
-    var staffId = "ACTS" + timestamp;
-    var row = [staffId, params.name, params.role, params.status];
+    
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+    var row = [
+      params.staffId,
+      params.username,
+      params.password,
+      params.name,
+      params.role,
+      params.department || "",
+      params.status
+    ];
     staffSheet.appendRow(row);
+    
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success",
-      "staffId": staffId
+      "staffId": params.staffId
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  if (params.action === 'removeStaff' && params.staffId) {
+  if (params.action === 'updateStaff' && params.username) {
     var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     if (!staffSheet) {
       return ContentService.createTextOutput(JSON.stringify({
@@ -838,15 +847,51 @@ function doPost(e) {
         "message": "Staff Management sheet not found"
       })).setMimeType(ContentService.MimeType.JSON);
     }
+    
     var data = staffSheet.getDataRange().getValues();
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == params.staffId) {
+      if (data[i][1] == params.username) { // Column B = Username
+        // Update all fields
+        if (params.staffId) staffSheet.getRange(i + 1, 1).setValue(params.staffId);
+        if (params.password) staffSheet.getRange(i + 1, 3).setValue(params.password);
+        if (params.name) staffSheet.getRange(i + 1, 4).setValue(params.name);
+        if (params.role) staffSheet.getRange(i + 1, 5).setValue(params.role);
+        staffSheet.getRange(i + 1, 6).setValue(params.department || "");
+        if (params.status) staffSheet.getRange(i + 1, 7).setValue(params.status);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "status": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "error",
+      "message": "Staff member not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (params.action === 'removeStaff' && params.username) {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = staffSheet.getDataRange().getValues();
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] == params.username) { // Column B = Username
         staffSheet.deleteRow(i + 1);
         return ContentService.createTextOutput(JSON.stringify({
           "status": "success"
         })).setMimeType(ContentService.MimeType.JSON);
       }
     }
+    
     return ContentService.createTextOutput(JSON.stringify({
       "status": "error",
       "message": "Staff member not found"
