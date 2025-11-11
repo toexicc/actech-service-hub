@@ -191,12 +191,6 @@ const ServiceTracker = () => {
 
   const filteredAndSortedServices = useMemo(() => {
     let filtered = services.filter(service => {
-      // Filter out completed/closed services
-      const status = service.status?.toLowerCase() || "";
-      if (status.includes("completed") || status.includes("closed") || status.includes("cancelled")) {
-        return false;
-      }
-
       // Search filter - search by Service ID or Client Name
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
