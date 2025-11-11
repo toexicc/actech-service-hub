@@ -15,6 +15,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/ac-tech-logo.jpg";
+import ActivityLogRow from "@/components/ActivityLogRow";
 
 interface ServiceRecord {
   serviceId: string;
@@ -648,9 +649,11 @@ const ServiceTracker = () => {
                       const overdueStatus = isOverdue(service.targetDate);
 
                       return (
-                        <TableRow
+                        <ActivityLogRow
                           key={service.serviceId}
-                          className={overdueStatus ? "bg-destructive/10" : ""}
+                          service={service}
+                          overdueStatus={overdueStatus}
+                          inServiceDays={inServiceDays}
                         >
                           <TableCell className="font-medium">
                             {service.serviceId}
@@ -674,7 +677,7 @@ const ServiceTracker = () => {
                               {inServiceDays} {inServiceDays === 1 ? "day" : "days"}
                             </span>
                           </TableCell>
-                        </TableRow>
+                        </ActivityLogRow>
                       );
                     })}
                   </TableBody>

@@ -7,6 +7,18 @@
 export const GOOGLE_SHEETS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
 
+// IMPORTANT GOOGLE SHEETS SETUP:
+// 
+// 1. Create a new sheet named "Activity Logs" with these columns:
+//    A: Log ID | B: Service ID | C: Username | D: Role | E: Timestamp | F: Activity
+//
+// 2. Update "Staff Management" sheet to include:
+//    A: Staff ID | B: Name | C: Role | D: Status | E: Department (for technicians)
+//
+// 3. Add these columns to "Service Database" sheet:
+//    Column AS (44): Technician Department
+//    Column AT (45): Actual Cost (for Transaction Tracker profit calculations)
+//
 // Complete Google Apps Script code for your Google Sheet:
 /*
 function doGet(e) {
@@ -264,6 +276,113 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle request for done services (Transaction Tracker)
+  if (params.action === 'getDoneServices') {
+    var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = serviceSheet.getDataRange().getDisplayValues();
+    var services = [];
+    
+    // Loop through all rows and filter for "Done" status (skip header row)
+    for (var i = 1; i < data.length; i++) {
+      var status = data[i][1] ? data[i][1].trim().toLowerCase() : "";
+      if (status === "done" || status === "completed") {
+        services.push({
+          "serviceId": data[i][0],
+          "timestamp": data[i][4],
+          "technician": data[i][3],
+          "department": data[i][44] || "N/A", // Column AS (Technician Department)
+          "deviceType": data[i][12],
+          "clientName": data[i][8],
+          "service": data[i][26],
+          "quotedPrice": parseFloat(data[i][29]) || 0,
+          "actualCost": parseFloat(data[i][45]) || 0 // Column AT (Actual Cost)
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "services": services
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle request for service logs (Activity Logs)
+  if (params.action === 'getServiceLogs') {
+    var serviceId = params.serviceId;
+    var limit = parseInt(params.limit) || 10;
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Activity Logs");
+    
+    if (!logSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Activity Logs sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = logSheet.getDataRange().getDisplayValues();
+    var logs = [];
+    
+    // Loop through rows and filter by serviceId
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === serviceId) {
+        logs.push({
+          "logId": data[i][0],
+          "serviceId": data[i][1],
+          "username": data[i][2],
+          "role": data[i][3],
+          "timestamp": data[i][4],
+          "activity": data[i][5]
+        });
+      }
+    }
+    
+    // Sort by most recent and limit
+    logs.reverse();
+    if (logs.length > limit) {
+      logs = logs.slice(0, limit);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "logs": logs
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle request for all technicians with departments
+  if (params.action === 'getTechnicians') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = staffSheet.getDataRange().getDisplayValues();
+    var technicians = [];
+    
+    // Skip header row (i = 1)
+    for (var i = 1; i < data.length; i++) {
+      var role = data[i][2] ? data[i][2].trim().toLowerCase() : "";
+      if (role === "technician" && data[i][3] === "Active") {
+        var name = data[i][1];
+        var department = data[i][4] || ""; // Column E (Department)
+        var displayName = department ? name + " – " + department : name;
+        
+        technicians.push({
+          "name": name,
+          "department": department,
+          "displayName": displayName
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "technicians": technicians
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   return ContentService.createTextOutput(JSON.stringify({
     "error": "Invalid request"
   })).setMimeType(ContentService.MimeType.JSON);
@@ -354,6 +473,7 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId) {
         if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
+        if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician);
         if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis);
         if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair);
         if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer);
@@ -478,6 +598,35 @@ function doPost(e) {
       "result": "not_found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
+  
+  // Handle activity logging
+  if (params.action === 'logActivity') {
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Activity Logs");
+    
+    if (!logSheet) {
+      // Create the Activity Logs sheet if it doesn't exist
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      logSheet = ss.insertSheet("Activity Logs");
+      logSheet.appendRow(["Log ID", "Service ID", "Username", "Role", "Timestamp", "Activity"]);
+    }
+    
+    var logId = "LOG" + Date.now();
+    
+    logSheet.appendRow([
+      logId,
+      params.serviceId,
+      params.username,
+      params.role,
+      params.timestamp,
+      params.activity
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "logId": logId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   
   // Handle place order action
   if (params.action === "placeOrder") {

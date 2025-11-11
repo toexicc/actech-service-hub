@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { logActivity } from "@/lib/activityLogger";
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
@@ -23,14 +24,35 @@ const ServiceUpdate = () => {
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
   const { toast } = useToast();
+
+  const username = sessionStorage.getItem("username") || "Unknown";
+  const userRole = sessionStorage.getItem("userRole") || "Unknown";
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
+  const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateSuggestedRepair, setUpdateSuggestedRepair] = useState("");
   const [updateTechnicianNotesCustomer, setUpdateTechnicianNotesCustomer] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
+
+  useEffect(() => {
+    fetchTechnicians();
+  }, []);
+
+  const fetchTechnicians = async () => {
+    try {
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTechnicians`);
+      const data = await response.json();
+      if (data.status === "success") {
+        setTechnicians(data.technicians);
+      }
+    } catch (error) {
+      console.error("Error fetching technicians:", error);
+    }
+  };
 
   const handleViewPDF = () => {
     if (!serviceData?.pdfUrl) {
@@ -90,6 +112,7 @@ const ServiceUpdate = () => {
         setServiceData(data.data);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
+        setUpdateTechnician(data.data.technician || "");
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateSuggestedRepair(data.data.suggestedRepair || "");
         setUpdateTechnicianNotesCustomer(data.data.technicianNotesCustomer || "");
@@ -122,6 +145,7 @@ const ServiceUpdate = () => {
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
       formData.append("status", updateStatus);
+      formData.append("technician", updateTechnician);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
@@ -135,6 +159,22 @@ const ServiceUpdate = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        // Log the activity
+        const changes = [];
+        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status} → ${updateStatus}`);
+        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
+        if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
+        if (updateSuggestedRepair !== serviceData.suggestedRepair) changes.push("Updated suggested repair");
+        
+        if (changes.length > 0) {
+          await logActivity({
+            serviceId: serviceId,
+            username: username,
+            role: userRole,
+            activity: `Service updated: ${changes.join(", ")}`
+          });
+        }
+
         toast({
           title: "Success",
           description: "Service information updated successfully",
@@ -381,6 +421,23 @@ const ServiceUpdate = () => {
                 <CardTitle className="text-2xl">Service Update</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="technician">Assigned Technician:</Label>
+                  <Select value={updateTechnician} onValueChange={setUpdateTechnician}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select technician" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {technicians.map((tech) => (
+                        <SelectItem key={tech.name} value={tech.name}>
+                          {tech.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="status">Status:</Label>
                   <Select value={updateStatus} onValueChange={setUpdateStatus}>
