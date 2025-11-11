@@ -61,6 +61,7 @@ const StaffManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showPassword, setShowPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
   const itemsPerPage = 10;
 
   const [newStaff, setNewStaff] = useState({
@@ -87,6 +88,8 @@ const StaffManagement = () => {
   };
 
   const handleAddStaff = async () => {
+    if (isAddingStaff) return; // Prevent double-click
+    
     if (!newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
       toast({
         title: "Missing Information",
@@ -130,40 +133,45 @@ const StaffManagement = () => {
       return;
     }
 
-    const success = await addUser({
-      staffId: staffId,
-      username: newStaff.username,
-      password: newStaff.password,
-      name: newStaff.name,
-      role: newStaff.role,
-      department: newStaff.role === "technician" ? newStaff.department : undefined,
-      status: newStaff.status,
-    });
+    setIsAddingStaff(true);
+    
+    try {
+      const success = await addUser({
+        staffId: staffId,
+        username: newStaff.username,
+        password: newStaff.password,
+        name: newStaff.name,
+        role: newStaff.role,
+        department: newStaff.role === "technician" ? newStaff.department : undefined,
+        status: newStaff.status,
+      });
 
-    if (success) {
-      toast({
-        title: "Success",
-        description: "Staff member added successfully",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to add staff member",
-        variant: "destructive",
-      });
-      return;
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Staff member added successfully",
+        });
+        
+        setNewStaff({
+          username: "",
+          password: "",
+          name: "",
+          role: "" as "admin" | "technician" | "management",
+          department: "",
+          status: "active",
+        });
+        
+        loadStaffList();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add staff member",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsAddingStaff(false);
     }
-
-    setNewStaff({
-      username: "",
-      password: "",
-      name: "",
-      role: "" as "admin" | "technician" | "management",
-      department: "",
-      status: "active",
-    });
-
-    loadStaffList();
   };
 
   const handleRemoveStaff = async (username: string) => {
@@ -394,9 +402,17 @@ const StaffManagement = () => {
                 <div className="flex items-end">
                   <Button
                     onClick={handleAddStaff}
+                    disabled={isAddingStaff}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
-                    Add Staff
+                    {isAddingStaff ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      "Add Staff"
+                    )}
                   </Button>
                 </div>
               </div>
