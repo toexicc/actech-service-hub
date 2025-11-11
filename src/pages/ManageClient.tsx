@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
+import { logActivity } from "@/lib/activityLogger";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
@@ -248,6 +249,16 @@ const ManageClient = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        // Log the activity
+        const username = sessionStorage.getItem("username") || "Admin";
+        const role = sessionStorage.getItem("userRole") || "admin";
+        await logActivity({
+          serviceId: serviceId,
+          username: username,
+          role: role,
+          activity: `Updated service - Status: ${updateStatus}, Technician: ${updateTechnician}, Cost: ${updateServiceCost}`,
+        });
+
         toast({
           title: "Success",
           description: "Client information and PDF updated successfully",

@@ -5,7 +5,23 @@
 // 3. Replace YOUR_SCRIPT_ID with your actual script ID
 
 export const GOOGLE_SHEETS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
+  "https://script.google.com/macros/s/AKfycbz3ib8fNwG3BDMZdg-GwMYCcw9Nh9X_bW-2fv06vd1dYJ0jjD-Zqc0W5B3PlZ0jAH4bOw/exec";
+
+/**
+ * Google Sheets Integration - Required Setup:
+ * 
+ * The Google Apps Script must handle these actions in doGet/doPost:
+ * - getStaffList: Returns list of staff from Users sheet
+ * - addStaff: Adds new user to Users sheet
+ * - updateStaff: Updates existing user in Users sheet
+ * - removeStaff: Removes user from Users sheet
+ * - searchService: Finds service by ID and device type
+ * - updateService: Updates service details
+ * - updateTechnicianService: Updates service from technician portal
+ * - getServiceLogs: Gets activity logs for a service
+ * - logActivity: Logs service updates
+ * - getInventory: Returns available inventory items
+ */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
 // 

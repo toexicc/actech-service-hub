@@ -13,7 +13,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!username || !password) {
@@ -25,7 +25,7 @@ const Login = () => {
       return;
     }
 
-    const user = findUser(username, password);
+    const user = await findUser(username, password);
 
     if (user) {
       sessionStorage.setItem("authenticated", "true");

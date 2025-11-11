@@ -76,8 +76,9 @@ const StaffManagement = () => {
     loadStaffList();
   }, []);
 
-  const loadStaffList = () => {
-    setStaffList(getAllUsers());
+  const loadStaffList = async () => {
+    const users = await getAllUsers();
+    setStaffList(users);
   };
 
   const handleAddStaff = async () => {
@@ -110,7 +111,7 @@ const StaffManagement = () => {
       return;
     }
 
-    addUser({
+    const success = await addUser({
       username: newStaff.username,
       password: newStaff.password,
       name: newStaff.name,
@@ -119,10 +120,19 @@ const StaffManagement = () => {
       status: newStaff.status,
     });
 
-    toast({
-      title: "Success",
-      description: "Staff member added successfully",
-    });
+    if (success) {
+      toast({
+        title: "Success",
+        description: "Staff member added successfully",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to add staff member",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setNewStaff({
       username: "",
@@ -141,12 +151,21 @@ const StaffManagement = () => {
       return;
     }
 
-    removeUser(username);
+    const success = await removeUser(username);
 
-    toast({
-      title: "Success",
-      description: "Staff member removed successfully",
-    });
+    if (success) {
+      toast({
+        title: "Success",
+        description: "Staff member removed successfully",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to remove staff member",
+        variant: "destructive",
+      });
+      return;
+    }
 
     loadStaffList();
   };
@@ -177,7 +196,7 @@ const StaffManagement = () => {
       return;
     }
 
-    updateUser(selectedStaff.username, {
+    const success = await updateUser(selectedStaff.username, {
       name: selectedStaff.name,
       role: selectedStaff.role,
       department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
@@ -185,10 +204,19 @@ const StaffManagement = () => {
       password: selectedStaff.password,
     });
 
-    toast({
-      title: "Success",
-      description: "Staff member updated successfully",
-    });
+    if (success) {
+      toast({
+        title: "Success",
+        description: "Staff member updated successfully",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to update staff member",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setEditDialogOpen(false);
     setSelectedStaff(null);
