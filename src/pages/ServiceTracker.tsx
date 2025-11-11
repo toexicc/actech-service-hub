@@ -81,7 +81,7 @@ const ServiceTracker = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllServices`
       );
       const data = await response.json();
 

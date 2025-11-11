@@ -11,15 +11,26 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * Google Sheets Integration - Required Setup:
  * 
  * The Google Apps Script must handle these actions in doGet/doPost:
- * - getStaffList: Returns list of staff from Users sheet
- * - addStaff: Adds new user to Users sheet
- * - updateStaff: Updates existing user in Users sheet
- * - removeStaff: Removes user from Users sheet
+ * 
+ * STAFF MANAGEMENT (Users Sheet):
+ * Users sheet columns: Username | Password | Name | Role | Department | Status
+ * - getStaffList: Returns all users from Users sheet
+ * - addStaff: Adds new user (username, password, name, role, department, status)
+ * - updateStaff: Updates user by username
+ * - removeStaff: Removes user by username
+ * 
+ * SERVICE MANAGEMENT:
  * - searchService: Finds service by ID and device type
  * - updateService: Updates service details
  * - updateTechnicianService: Updates service from technician portal
+ * - getAllServices: Returns ALL services (for Service Tracker with filtering)
+ * - getAllOngoingServices: Returns only non-completed services
+ * 
+ * ACTIVITY LOGS:
  * - getServiceLogs: Gets activity logs for a service
  * - logActivity: Logs service updates
+ * 
+ * INVENTORY:
  * - getInventory: Returns available inventory items
  */
 
