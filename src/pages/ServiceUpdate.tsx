@@ -140,6 +140,8 @@ const ServiceUpdate = () => {
 
       if (data.status === "found") {
         setServiceData(data.data);
+        // Store the actual device type from the found service
+        setDeviceType(data.data.deviceType);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
@@ -183,7 +185,7 @@ const ServiceUpdate = () => {
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
-      formData.append("deviceType", deviceType);
+      formData.append("deviceType", serviceData.deviceType); // Use the actual device type from serviceData
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
@@ -558,32 +560,78 @@ const ServiceUpdate = () => {
                   {inventory.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No inventory items available</p>
                   ) : (
-                    <div className="space-y-3 max-h-64 overflow-y-auto border rounded-md p-3">
-                      {inventory.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-2 hover:bg-muted rounded">
-                          <div className="flex-1">
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              ₱{item.cost} • Stock: {item.quantity}
-                            </p>
-                          </div>
-                          <Input
-                            type="number"
-                            min="0"
-                            max={item.quantity}
-                            value={selectedParts[item.id] || 0}
-                            onChange={(e) => {
-                              const qty = Math.min(parseInt(e.target.value) || 0, item.quantity);
-                              setSelectedParts(prev => ({
-                                ...prev,
-                                [item.id]: qty
-                              }));
-                            }}
-                            className="w-20"
-                            placeholder="Qty"
-                          />
-                        </div>
-                      ))}
+                    <div className="space-y-3">
+                      <Input
+                        type="text"
+                        placeholder="Search by Part ID or Name..."
+                        className="w-full"
+                        onChange={(e) => {
+                          const search = e.target.value.toLowerCase();
+                          const filtered = inventory.filter(item => 
+                            item.id.toLowerCase().includes(search) || 
+                            item.name.toLowerCase().includes(search)
+                          );
+                          // Just update display - we'll filter in the map below
+                        }}
+                      />
+                      <div className="space-y-2 border rounded-md p-3">
+                        {inventory.map((item) => {
+                          const qty = selectedParts[item.id] || 0;
+                          if (qty === 0) return null; // Only show selected parts
+                          return (
+                            <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                              <div className="flex-1">
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  ID: {item.id} • ₱{item.cost} • Stock: {item.quantity}
+                                </p>
+                              </div>
+                              <Input
+                                type="number"
+                                min="0"
+                                max={item.quantity}
+                                value={qty}
+                                onChange={(e) => {
+                                  const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity);
+                                  setSelectedParts(prev => ({
+                                    ...prev,
+                                    [item.id]: newQty
+                                  }));
+                                }}
+                                className="w-20"
+                                placeholder="Qty"
+                              />
+                            </div>
+                          );
+                        })}
+                        {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-2">No parts selected yet</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm">Add Part:</Label>
+                        <Select
+                          value=""
+                          onValueChange={(partId) => {
+                            setSelectedParts(prev => ({
+                              ...prev,
+                              [partId]: 1
+                            }));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select part to add..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inventory.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   )}
                   

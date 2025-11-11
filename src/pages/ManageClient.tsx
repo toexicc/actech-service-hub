@@ -219,6 +219,7 @@ const ManageClient = () => {
       const formData = new FormData();
       formData.append("action", "updateService");
       formData.append("serviceId", serviceId);
+      formData.append("deviceType", serviceData.deviceType); // Use actual device type from serviceData
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       formData.append("clientType", updateClientType);
