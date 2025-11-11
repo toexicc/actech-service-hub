@@ -241,11 +241,16 @@ const ManageClient = () => {
       formData.append("PDF_FileName", updatedFileName);
       formData.append("PDF_MimeType", "application/pdf");
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       const result = await response.json();
 
       if (result.result === "success") {
@@ -274,9 +279,13 @@ const ManageClient = () => {
       }
     } catch (error) {
       console.error("Update error:", error);
+      const errorMessage = error instanceof Error && error.name === 'AbortError' 
+        ? "Request timed out - your Google Script may be taking too long to process the update"
+        : "Failed to update client information";
+      
       toast({
         title: "Error",
-        description: "Failed to update client information",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
