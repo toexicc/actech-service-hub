@@ -49,6 +49,7 @@ const TransactionTracker = () => {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [commissionRate, setCommissionRate] = useState(15);
+  const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchDoneServices();
@@ -159,8 +160,8 @@ const TransactionTracker = () => {
         const netSales = (service.quotedPrice || 0) - adjustedCost;
         serviceCommission = netSales * 0.30;
       } else if (service.department === "Laptop (Screens)") {
-        // Commission is flat 2000 per completed service
-        serviceCommission = 2000;
+        // Commission is editable per row
+        serviceCommission = screenCommissions[service.serviceId] || 0;
       } else if (service.department === "Mobile (Logic Board)") {
         // Commission is 25% on net sales
         const netSales = (service.quotedPrice || 0) - adjustedCost;
@@ -185,7 +186,7 @@ const TransactionTracker = () => {
       commission: totalCommission,
       profitAfterCommission,
     };
-  }, [filteredServices, commissionRate]);
+  }, [filteredServices, commissionRate, screenCommissions]);
 
   const uniqueTechnicians = useMemo(() => {
     return Array.from(new Set(services.map((s) => s.technician))).filter(Boolean);
@@ -421,11 +422,27 @@ const TransactionTracker = () => {
                       <TableHead className="text-right">Quoted Price</TableHead>
                       <TableHead className="text-right">Actual Cost</TableHead>
                       <TableHead className="text-right">Profit</TableHead>
+                      <TableHead className="text-right">Commission</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredServices.map((service) => {
-                      const profit = (service.quotedPrice || 0) - (service.actualCost || 0);
+                      let adjustedCost = service.actualCost || 0;
+                      let profit = (service.quotedPrice || 0) - adjustedCost;
+                      let commission = 0;
+                      
+                      if (service.department === "Laptop (Daily Repairs)") {
+                        adjustedCost = adjustedCost * 1.10;
+                        profit = (service.quotedPrice || 0) - adjustedCost;
+                        commission = profit * 0.30;
+                      } else if (service.department === "Laptop (Screens)") {
+                        commission = screenCommissions[service.serviceId] || 0;
+                      } else if (service.department === "Mobile (Logic Board)") {
+                        commission = profit * 0.25;
+                      } else {
+                        commission = (profit * commissionRate) / 100;
+                      }
+                      
                       return (
                         <TableRow key={service.serviceId}>
                           <TableCell className="font-medium">{service.serviceId}</TableCell>
@@ -435,9 +452,28 @@ const TransactionTracker = () => {
                           <TableCell>{service.technician}</TableCell>
                           <TableCell>{service.department}</TableCell>
                           <TableCell className="text-right">₱{service.quotedPrice?.toLocaleString() || 0}</TableCell>
-                          <TableCell className="text-right">₱{service.actualCost?.toLocaleString() || 0}</TableCell>
+                          <TableCell className="text-right">₱{adjustedCost.toLocaleString()}</TableCell>
                           <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                             ₱{profit.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {service.department === "Laptop (Screens)" ? (
+                              <Input
+                                type="number"
+                                className="w-32 text-right"
+                                value={screenCommissions[service.serviceId] || 0}
+                                onChange={(e) => {
+                                  setScreenCommissions(prev => ({
+                                    ...prev,
+                                    [service.serviceId]: parseFloat(e.target.value) || 0
+                                  }));
+                                }}
+                                min="0"
+                                step="100"
+                              />
+                            ) : (
+                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString()}</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
