@@ -3,6 +3,7 @@
 import { GOOGLE_SHEETS_SCRIPT_URL } from "./googleSheets";
 
 export interface UserCredential {
+  staffId: string;
   username: string;
   password: string;
   name: string;
@@ -23,6 +24,7 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
     
     if (data.status === "success" && data.data) {
       userCredentials = data.data.map((staff: any) => ({
+        staffId: staff.staffId || staff["Staff ID"] || "",
         username: staff.username,
         password: staff.password,
         name: staff.name,
@@ -43,6 +45,7 @@ export const addUser = async (user: UserCredential) => {
   try {
     const formData = new FormData();
     formData.append("action", "addStaff");
+    formData.append("staffId", user.staffId);
     formData.append("username", user.username);
     formData.append("password", user.password);
     formData.append("name", user.name);
@@ -126,6 +129,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     
     const formData = new FormData();
     formData.append("action", "updateStaff");
+    formData.append("staffId", updatedUser.staffId);
     formData.append("username", username);
     formData.append("name", updatedUser.name);
     formData.append("password", updatedUser.password);

@@ -64,6 +64,7 @@ const StaffManagement = () => {
   const itemsPerPage = 10;
 
   const [newStaff, setNewStaff] = useState({
+    staffId: "",
     username: "",
     password: "",
     name: "",
@@ -82,7 +83,7 @@ const StaffManagement = () => {
   };
 
   const handleAddStaff = async () => {
-    if (!newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
+    if (!newStaff.staffId || !newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -100,6 +101,17 @@ const StaffManagement = () => {
       return;
     }
 
+    // Check if Staff ID already exists
+    const existingStaffId = staffList.find((s) => s.staffId === newStaff.staffId);
+    if (existingStaffId) {
+      toast({
+        title: "Staff ID Exists",
+        description: "This Staff ID is already taken",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if username already exists
     const existingUser = staffList.find((s) => s.username === newStaff.username);
     if (existingUser) {
@@ -112,6 +124,7 @@ const StaffManagement = () => {
     }
 
     const success = await addUser({
+      staffId: newStaff.staffId,
       username: newStaff.username,
       password: newStaff.password,
       name: newStaff.name,
@@ -135,6 +148,7 @@ const StaffManagement = () => {
     }
 
     setNewStaff({
+      staffId: "",
       username: "",
       password: "",
       name: "",
@@ -265,6 +279,17 @@ const StaffManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="staffId">Staff ID *</Label>
+                  <Input
+                    id="staffId"
+                    value={newStaff.staffId}
+                    onChange={(e) =>
+                      setNewStaff({ ...newStaff, staffId: e.target.value })
+                    }
+                    placeholder="Enter Staff ID"
+                  />
+                </div>
                 <div>
                   <Label htmlFor="username">Username *</Label>
                   <Input
@@ -426,6 +451,7 @@ const StaffManagement = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Staff ID</TableHead>
                         <TableHead>Username</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
@@ -437,6 +463,9 @@ const StaffManagement = () => {
                     <TableBody>
                       {paginatedStaff.map((staff) => (
                         <TableRow key={staff.username}>
+                          <TableCell className="font-medium">
+                            {staff.staffId}
+                          </TableCell>
                           <TableCell className="font-medium">
                             {staff.username}
                           </TableCell>
@@ -547,6 +576,15 @@ const StaffManagement = () => {
             </DialogHeader>
             {selectedStaff && (
               <div className="grid gap-4 py-4">
+                <div>
+                  <Label htmlFor="edit-staffId">Staff ID</Label>
+                  <Input
+                    id="edit-staffId"
+                    value={selectedStaff.staffId}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
                 <div>
                   <Label htmlFor="edit-username">Username</Label>
                   <Input
