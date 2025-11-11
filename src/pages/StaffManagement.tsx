@@ -64,7 +64,6 @@ const StaffManagement = () => {
   const itemsPerPage = 10;
 
   const [newStaff, setNewStaff] = useState({
-    staffId: "",
     username: "",
     password: "",
     name: "",
@@ -82,19 +81,13 @@ const StaffManagement = () => {
     return `ACTS${timestamp}`;
   };
 
-  useEffect(() => {
-    if (!newStaff.staffId) {
-      setNewStaff(prev => ({ ...prev, staffId: generateStaffId() }));
-    }
-  }, []);
-
   const loadStaffList = async () => {
     const users = await getAllUsers();
     setStaffList(users);
   };
 
   const handleAddStaff = async () => {
-    if (!newStaff.staffId || !newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
+    if (!newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -112,12 +105,15 @@ const StaffManagement = () => {
       return;
     }
 
-    // Check if Staff ID already exists
-    const existingStaffId = staffList.find((s) => s.staffId === newStaff.staffId);
+    // Generate Staff ID when adding
+    const staffId = generateStaffId();
+
+    // Check if Staff ID already exists (very unlikely with timestamp but check anyway)
+    const existingStaffId = staffList.find((s) => s.staffId === staffId);
     if (existingStaffId) {
       toast({
-        title: "Staff ID Exists",
-        description: "This Staff ID is already taken",
+        title: "Error",
+        description: "Generated Staff ID already exists. Please try again.",
         variant: "destructive",
       });
       return;
@@ -135,7 +131,7 @@ const StaffManagement = () => {
     }
 
     const success = await addUser({
-      staffId: newStaff.staffId,
+      staffId: staffId,
       username: newStaff.username,
       password: newStaff.password,
       name: newStaff.name,
@@ -159,7 +155,6 @@ const StaffManagement = () => {
     }
 
     setNewStaff({
-      staffId: generateStaffId(), // Auto-generate new ID for next staff
       username: "",
       password: "",
       name: "",
@@ -289,30 +284,7 @@ const StaffManagement = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="staffId">Staff ID *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="staffId"
-                      value={newStaff.staffId}
-                      onChange={(e) =>
-                        setNewStaff({ ...newStaff, staffId: e.target.value })
-                      }
-                      placeholder="Auto-generated"
-                      disabled
-                      className="bg-muted"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setNewStaff({ ...newStaff, staffId: generateStaffId() })}
-                      className="shrink-0"
-                    >
-                      Regenerate
-                    </Button>
-                  </div>
-                </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="username">Username *</Label>
                   <Input
