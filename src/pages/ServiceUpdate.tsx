@@ -199,6 +199,10 @@ const ServiceUpdate = () => {
       formData.append("deviceType", serviceData.deviceType); // Use the actual device type from serviceData
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
+      
+      // Get technician department from the selected technician
+      const selectedTech = technicians.find(t => t.name === updateTechnician);
+      formData.append("technicianDepartment", selectedTech?.department || "");
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
