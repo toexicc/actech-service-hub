@@ -77,6 +77,17 @@ const StaffManagement = () => {
     loadStaffList();
   }, []);
 
+  const generateStaffId = () => {
+    const timestamp = Date.now();
+    return `ACTS${timestamp}`;
+  };
+
+  useEffect(() => {
+    if (!newStaff.staffId) {
+      setNewStaff(prev => ({ ...prev, staffId: generateStaffId() }));
+    }
+  }, []);
+
   const loadStaffList = async () => {
     const users = await getAllUsers();
     setStaffList(users);
@@ -148,7 +159,7 @@ const StaffManagement = () => {
     }
 
     setNewStaff({
-      staffId: "",
+      staffId: generateStaffId(), // Auto-generate new ID for next staff
       username: "",
       password: "",
       name: "",
@@ -281,14 +292,26 @@ const StaffManagement = () => {
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="staffId">Staff ID *</Label>
-                  <Input
-                    id="staffId"
-                    value={newStaff.staffId}
-                    onChange={(e) =>
-                      setNewStaff({ ...newStaff, staffId: e.target.value })
-                    }
-                    placeholder="Enter Staff ID"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="staffId"
+                      value={newStaff.staffId}
+                      onChange={(e) =>
+                        setNewStaff({ ...newStaff, staffId: e.target.value })
+                      }
+                      placeholder="Auto-generated"
+                      disabled
+                      className="bg-muted"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setNewStaff({ ...newStaff, staffId: generateStaffId() })}
+                      className="shrink-0"
+                    >
+                      Regenerate
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="username">Username *</Label>
