@@ -12,12 +12,16 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 // 1. Create a new sheet named "Activity Logs" with these columns:
 //    A: Log ID | B: Service ID | C: Username | D: Role | E: Timestamp | F: Activity
 //
-// 2. Update "Staff Management" sheet to include:
+// 2. Create a new sheet named "Inventory" with these columns:
+//    A: Item ID | B: Item Name | C: Cost | D: Quantity
+//
+// 3. Update "Staff Management" sheet to include:
 //    A: Staff ID | B: Name | C: Role | D: Status | E: Department (for technicians)
 //
-// 3. Add these columns to "Service Database" sheet:
+// 4. Add these columns to "Service Database" sheet:
 //    Column AS (44): Technician Department
 //    Column AT (45): Actual Cost (for Transaction Tracker profit calculations)
+//    Column AU (46): Parts Used
 //
 // Complete Google Apps Script code for your Google Sheet:
 /*
@@ -216,8 +220,45 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Handle request for inventory (inventory management)
+  // Handle request for inventory items (for Service Update)
   if (params.action === 'getInventory') {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    
+    if (!inventorySheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Inventory Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = inventorySheet.getDataRange().getDisplayValues();
+    var inventory = [];
+    
+    // Loop through all rows (skip header row)
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks
+    for (var i = 1; i < data.length; i++) {
+      var status = data[i][9]; // Status column
+      var quantity = parseInt(data[i][5] || 0);
+      
+      // Only include items that are in stock
+      if (status !== "Out of Stock" && quantity > 0) {
+        inventory.push({
+          "id": data[i][0],
+          "name": data[i][1],
+          "cost": parseFloat(data[i][8]) || 0,
+          "quantity": quantity
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "inventory": inventory
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle request for inventory (inventory management)
+  if (params.action === 'getInventoryFull') {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
     var data = inventorySheet.getDataRange().getDisplayValues();
     var inventory = [];
@@ -469,15 +510,17 @@ function doPost(e) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
     var data = sheet.getDataRange().getValues();
     
-    // Search for the service ID in column A (index 0)
+    // Search for the service ID and deviceType match
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == params.serviceId) {
-        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
-        if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician);
-        if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis);
-        if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair);
-        if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer);
-        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal);
+      if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
+        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B
+        if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D
+        if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis); // Column AE
+        if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG
+        if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN
+        if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO
+        if (params.actualCost) sheet.getRange(i + 1, 46).setValue(params.actualCost); // Column AT
+        if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
         
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
@@ -486,7 +529,8 @@ function doPost(e) {
     }
     
     return ContentService.createTextOutput(JSON.stringify({
-      "result": "not_found"
+      "result": "not_found",
+      "message": "Service ID not found or device type mismatch"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   

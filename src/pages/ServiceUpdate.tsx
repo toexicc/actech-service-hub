@@ -8,13 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
-import { FileText, Printer } from "lucide-react";
+import { FileText, Printer, Package } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  cost: number;
+  quantity: number;
+}
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
@@ -25,6 +33,8 @@ const ServiceUpdate = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
   const { toast } = useToast();
 
   const username = sessionStorage.getItem("username") || "Unknown";
@@ -40,6 +50,7 @@ const ServiceUpdate = () => {
 
   useEffect(() => {
     fetchTechnicians();
+    fetchInventory();
   }, []);
 
   const fetchTechnicians = async () => {
@@ -52,6 +63,25 @@ const ServiceUpdate = () => {
     } catch (error) {
       console.error("Error fetching technicians:", error);
     }
+  };
+
+  const fetchInventory = async () => {
+    try {
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventory`);
+      const data = await response.json();
+      if (data.status === "success") {
+        setInventory(data.inventory || []);
+      }
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+    }
+  };
+
+  const calculateActualCost = () => {
+    return Object.entries(selectedParts).reduce((total, [itemId, qty]) => {
+      const item = inventory.find(i => i.id === itemId);
+      return total + (item ? item.cost * qty : 0);
+    }, 0);
   };
 
   const handleViewPDF = () => {
@@ -141,15 +171,27 @@ const ServiceUpdate = () => {
 
     setIsUpdating(true);
     try {
+      const actualCost = calculateActualCost();
+      const partsUsed = Object.entries(selectedParts)
+        .filter(([_, qty]) => qty > 0)
+        .map(([itemId, qty]) => {
+          const item = inventory.find(i => i.id === itemId);
+          return `${item?.name} (${qty})`;
+        })
+        .join(", ");
+
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
+      formData.append("deviceType", deviceType);
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
+      formData.append("actualCost", actualCost.toString());
+      formData.append("partsUsed", partsUsed);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -165,14 +207,17 @@ const ServiceUpdate = () => {
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
         if (updateSuggestedRepair !== serviceData.suggestedRepair) changes.push("Updated suggested repair");
+        if (partsUsed) changes.push(`Parts used: ${partsUsed}`);
+        if (actualCost > 0) changes.push(`Actual cost: ₱${actualCost}`);
         
         if (changes.length > 0) {
-          await logActivity({
+          const logResult = await logActivity({
             serviceId: serviceId,
             username: username,
             role: userRole,
             activity: `Service updated: ${changes.join(", ")}`
           });
+          console.log("Activity log result:", logResult);
         }
 
         toast({
@@ -184,11 +229,12 @@ const ServiceUpdate = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to update service information",
+          description: result.message || "Failed to update service information",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error("Update error:", error);
       toast({
         title: "Error",
         description: "Failed to update service information",
@@ -499,6 +545,52 @@ const ServiceUpdate = () => {
                     onChange={(e) => setUpdateTechnicianNotesInternal(e.target.value)}
                     rows={4}
                   />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    <Label className="text-lg font-semibold">Parts Used from Inventory</Label>
+                  </div>
+                  
+                  {inventory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No inventory items available</p>
+                  ) : (
+                    <div className="space-y-3 max-h-64 overflow-y-auto border rounded-md p-3">
+                      {inventory.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-2 hover:bg-muted rounded">
+                          <div className="flex-1">
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              ₱{item.cost} • Stock: {item.quantity}
+                            </p>
+                          </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={item.quantity}
+                            value={selectedParts[item.id] || 0}
+                            onChange={(e) => {
+                              const qty = Math.min(parseInt(e.target.value) || 0, item.quantity);
+                              setSelectedParts(prev => ({
+                                ...prev,
+                                [item.id]: qty
+                              }));
+                            }}
+                            className="w-20"
+                            placeholder="Qty"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
+                    <span className="font-semibold">Total Actual Cost:</span>
+                    <span className="text-lg font-bold">₱{calculateActualCost().toLocaleString()}</span>
+                  </div>
                 </div>
 
                 <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
