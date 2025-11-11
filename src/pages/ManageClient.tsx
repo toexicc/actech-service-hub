@@ -47,10 +47,21 @@ const ManageClient = () => {
 
   const fetchTechnicianList = async () => {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTechnicians`);
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
       const data = await response.json();
-      if (data.status === "success") {
-        setTechnicians(data.technicians);
+      if (data.status === "success" && data.data) {
+        const techList = data.data
+          .filter((staff: any) => {
+            const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
+            const status = (staff.status ?? staff["Status"] ?? "").toString().trim();
+            return role === "Technician" && status === "Active";
+          })
+          .map((staff: any) => ({
+            name: staff.name ?? staff["Name"] ?? "",
+            department: staff.department ?? staff["Department"] ?? "",
+            displayName: `${staff.name ?? staff["Name"] ?? ""} - ${staff.department ?? staff["Department"] ?? ""}`,
+          }));
+        setTechnicians(techList);
       }
     } catch (error) {
       console.error("Error fetching technician list:", error);
