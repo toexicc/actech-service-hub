@@ -5,37 +5,37 @@
 // 3. Replace YOUR_SCRIPT_ID with your actual script ID
 
 export const GOOGLE_SHEETS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbz3ib8fNwG3BDMZdg-GwMYCcw9Nh9X_bW-2fv06vd1dYJ0jjD-Zqc0W5B3PlZ0jAH4bOw/exec";
+  "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
 
 /**
  * Google Sheets Integration - Required Setup:
- * 
+ *
  * The Google Apps Script must handle these actions in doGet/doPost:
- * 
+ *
  * STAFF MANAGEMENT (Users Sheet):
  * Users sheet columns: Staff ID | Username | Password | Name | Role | Department | Status
  * - getStaffList: Returns all users from Users sheet with staffId field
  * - addStaff: Adds new user (staffId, username, password, name, role, department, status)
  * - updateStaff: Updates user by username (includes staffId)
  * - removeStaff: Removes user by username
- * 
+ *
  * SERVICE MANAGEMENT:
  * - searchService: Finds service by ID and device type
  * - updateService: Updates service details
  * - updateTechnicianService: Updates service from technician portal
  * - getAllServices: Returns ALL services (for Service Tracker with filtering)
  * - getAllOngoingServices: Returns only non-completed services
- * 
+ *
  * ACTIVITY LOGS:
  * - getServiceLogs: Gets activity logs for a service
  * - logActivity: Logs service updates
- * 
+ *
  * INVENTORY:
  * - getInventory: Returns available inventory items
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
-// 
+//
 // 1. Create a new sheet named "Activity Logs" with these columns:
 //    A: Log ID | B: Service ID | C: Username | D: Role | E: Timestamp | F: Activity
 //
