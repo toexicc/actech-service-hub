@@ -230,7 +230,10 @@ const ManageClient = () => {
       
       // Get technician department from the selected technician
       const selectedTech = technicians.find(t => t.name === updateTechnician);
-      formData.append("technicianDepartment", selectedTech?.department || "");
+      const techDept = selectedTech?.department || "";
+      formData.append("technicianDepartment", techDept);
+      // Also send as "department" for compatibility with some GAS scripts
+      formData.append("department", techDept);
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
       formData.append("services", updateServices);

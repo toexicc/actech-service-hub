@@ -57,13 +57,37 @@ const TransactionTracker = () => {
   const fetchDoneServices = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDoneServices`
-      );
-      const data = await response.json();
+      const [doneRes, staffRes] = await Promise.all([
+        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getDoneServices`),
+        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`),
+      ]);
+      const [doneData, staffData] = await Promise.all([
+        doneRes.json(),
+        staffRes.json(),
+      ]);
 
-      if (data.status === "success" && data.services) {
-        setServices(data.services);
+      if (doneData.status === "success" && doneData.services) {
+        let servicesWithDept = doneData.services as DoneService[];
+
+        // Enrich missing department from Staff Management if backend didn't store it
+        if (staffData?.status === "success" && Array.isArray(staffData.data)) {
+          const deptByTech = new Map<string, string>();
+          for (const staff of staffData.data) {
+            const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
+            if (role === "Technician") {
+              const name = staff.name ?? staff["Name"] ?? "";
+              const dept = staff.department ?? staff["Department"] ?? "";
+              if (name) deptByTech.set(name, dept);
+            }
+          }
+          servicesWithDept = servicesWithDept.map((s: any) => {
+            const existing = (s.department || "").toString().trim();
+            const enriched = existing && existing !== "N/A" ? existing : deptByTech.get(s.technician) || existing;
+            return { ...s, department: enriched || "" } as DoneService;
+          });
+        }
+
+        setServices(servicesWithDept);
       } else {
         toast({
           title: "Error",

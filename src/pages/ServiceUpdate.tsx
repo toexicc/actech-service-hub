@@ -202,7 +202,10 @@ const ServiceUpdate = () => {
       
       // Get technician department from the selected technician
       const selectedTech = technicians.find(t => t.name === updateTechnician);
-      formData.append("technicianDepartment", selectedTech?.department || "");
+      const techDept = selectedTech?.department || "";
+      formData.append("technicianDepartment", techDept);
+      // Also send as "department" for compatibility with some GAS scripts
+      formData.append("department", techDept);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
