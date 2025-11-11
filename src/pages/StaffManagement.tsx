@@ -491,7 +491,7 @@ const StaffManagement = () => {
                                   : "bg-gray-100 text-gray-800"
                               }`}
                             >
-                              {staff.role}
+                              {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}
                             </span>
                           </TableCell>
                           <TableCell>{staff.department || "-"}</TableCell>
@@ -503,7 +503,7 @@ const StaffManagement = () => {
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {staff.status}
+                              {staff.status.charAt(0).toUpperCase() + staff.status.slice(1)}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">

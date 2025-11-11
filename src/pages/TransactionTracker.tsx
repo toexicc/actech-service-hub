@@ -48,7 +48,7 @@ const TransactionTracker = () => {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [commissionRate, setCommissionRate] = useState(15);
+  const [commissionRate, setCommissionRate] = useState(0);
   const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -163,9 +163,8 @@ const TransactionTracker = () => {
         // Commission is editable per row
         serviceCommission = screenCommissions[service.serviceId] || 0;
       } else if (service.department === "Mobile (Logic Board)") {
-        // Commission is 25% on net sales
-        const netSales = (service.quotedPrice || 0) - adjustedCost;
-        serviceCommission = netSales * 0.25;
+        // No commission per service for this department
+        serviceCommission = 0;
       } else {
         // Default: use the global commission rate on net sales
         const netSales = (service.quotedPrice || 0) - adjustedCost;
@@ -385,7 +384,7 @@ const TransactionTracker = () => {
                   setDepartmentFilter("all");
                   setStartDate(undefined);
                   setEndDate(undefined);
-                  setCommissionRate(15);
+                  setCommissionRate(0);
                 }}
               >
                 Clear All Filters
@@ -438,7 +437,7 @@ const TransactionTracker = () => {
                       } else if (service.department === "Laptop (Screens)") {
                         commission = screenCommissions[service.serviceId] || 0;
                       } else if (service.department === "Mobile (Logic Board)") {
-                        commission = profit * 0.25;
+                        commission = 0;
                       } else {
                         commission = (profit * commissionRate) / 100;
                       }
