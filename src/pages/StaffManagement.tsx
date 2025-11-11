@@ -28,87 +28,60 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
-import { Loader2, UserPlus, Trash2, Edit } from "lucide-react";
-
-interface StaffMember {
-  staffId: string;
-  name: string;
-  role: string;
-  status: string;
-}
+import { Loader2, UserPlus, Trash2, Edit, Eye, EyeOff } from "lucide-react";
+import {
+  getAllUsers,
+  addUser,
+  updateUser,
+  removeUser,
+  UserCredential,
+} from "@/lib/userCredentials";
+import { DEPARTMENTS } from "@/lib/constants";
 
 const StaffManagement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const userRole = sessionStorage.getItem("userRole");
-  
+
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-    // Only management can access staff management
     if (userRole !== "management") {
       navigate("/admin-portal");
     }
   }, [navigate, userRole]);
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [addingStaff, setAddingStaff] = useState(false);
+
+  const [staffList, setStaffList] = useState<UserCredential[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingStaff, setEditingStaff] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<UserCredential | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const itemsPerPage = 10;
-  
+
   const [newStaff, setNewStaff] = useState({
+    username: "",
+    password: "",
     name: "",
-    role: "",
-    status: "Full-Time",
+    role: "" as "admin" | "technician" | "management",
+    department: "",
+    status: "active" as "active" | "inactive",
   });
 
   useEffect(() => {
-    if (!sessionStorage.getItem("authenticated")) {
-      navigate("/");
-    } else {
-      fetchStaffList();
-    }
-  }, [navigate]);
+    loadStaffList();
+  }, []);
 
-  const fetchStaffList = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`
-      );
-      const data = await response.json();
-      
-      if (data.status === "success") {
-        setStaffList(data.data);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch staff list",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching staff:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to Google Sheets",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const loadStaffList = () => {
+    setStaffList(getAllUsers());
   };
 
   const handleAddStaff = async () => {
-    if (!newStaff.name || !newStaff.role) {
+    if (!newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -117,92 +90,68 @@ const StaffManagement = () => {
       return;
     }
 
-    setAddingStaff(true);
-    try {
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "addStaff",
-          name: newStaff.name,
-          role: newStaff.role,
-          status: newStaff.status,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.status === "success") {
-        toast({
-          title: "Success",
-          description: "Staff member added successfully",
-        });
-        setNewStaff({ name: "", role: "", status: "Full-Time" });
-        fetchStaffList();
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to add staff member",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error adding staff:", error);
+    if (newStaff.role === "technician" && !newStaff.department) {
       toast({
-        title: "Error",
-        description: "Failed to add staff member",
+        title: "Missing Department",
+        description: "Please select a department for technician role",
         variant: "destructive",
       });
-    } finally {
-      setAddingStaff(false);
+      return;
     }
+
+    // Check if username already exists
+    const existingUser = staffList.find((s) => s.username === newStaff.username);
+    if (existingUser) {
+      toast({
+        title: "Username Exists",
+        description: "This username is already taken",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addUser({
+      username: newStaff.username,
+      password: newStaff.password,
+      name: newStaff.name,
+      role: newStaff.role,
+      department: newStaff.role === "technician" ? newStaff.department : undefined,
+      status: newStaff.status,
+    });
+
+    toast({
+      title: "Success",
+      description: "Staff member added successfully",
+    });
+
+    setNewStaff({
+      username: "",
+      password: "",
+      name: "",
+      role: "" as "admin" | "technician" | "management",
+      department: "",
+      status: "active",
+    });
+
+    loadStaffList();
   };
 
-  const handleRemoveStaff = async (staffId: string) => {
+  const handleRemoveStaff = async (username: string) => {
     if (!confirm("Are you sure you want to remove this staff member?")) {
       return;
     }
 
-    try {
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "removeStaff",
-          staffId: staffId,
-        }),
-      });
+    removeUser(username);
 
-      const data = await response.json();
+    toast({
+      title: "Success",
+      description: "Staff member removed successfully",
+    });
 
-      if (data.status === "success") {
-        toast({
-          title: "Success",
-          description: "Staff member removed successfully",
-        });
-        fetchStaffList();
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to remove staff member",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error removing staff:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove staff member",
-        variant: "destructive",
-      });
-    }
+    loadStaffList();
   };
 
-  const handleEditStaff = (staff: StaffMember) => {
+  const handleEditStaff = (staff: UserCredential) => {
     setSelectedStaff({ ...staff });
     setEditDialogOpen(true);
   };
@@ -210,65 +159,53 @@ const StaffManagement = () => {
   const handleUpdateStaff = async () => {
     if (!selectedStaff) return;
 
-    setEditingStaff(true);
-    try {
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "updateStaff",
-          staffId: selectedStaff.staffId,
-          name: selectedStaff.name,
-          role: selectedStaff.role,
-          status: selectedStaff.status,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.status === "success") {
-        toast({
-          title: "Success",
-          description: "Staff member updated successfully",
-        });
-        setEditDialogOpen(false);
-        setSelectedStaff(null);
-        fetchStaffList();
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to update staff member",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating staff:", error);
+    if (!selectedStaff.name || !selectedStaff.role) {
       toast({
-        title: "Error",
-        description: "Failed to update staff member",
+        title: "Missing Information",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
-    } finally {
-      setEditingStaff(false);
+      return;
     }
+
+    if (selectedStaff.role === "technician" && !selectedStaff.department) {
+      toast({
+        title: "Missing Department",
+        description: "Please select a department for technician role",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateUser(selectedStaff.username, {
+      name: selectedStaff.name,
+      role: selectedStaff.role,
+      department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
+      status: selectedStaff.status,
+      password: selectedStaff.password,
+    });
+
+    toast({
+      title: "Success",
+      description: "Staff member updated successfully",
+    });
+
+    setEditDialogOpen(false);
+    setSelectedStaff(null);
+    loadStaffList();
   };
 
-  // Filter staff based on role and status
   const filteredStaff = staffList.filter((staff) => {
     const roleMatch = roleFilter === "all" || staff.role === roleFilter;
     const statusMatch = statusFilter === "all" || staff.status === statusFilter;
     return roleMatch && statusMatch;
   });
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedStaff = filteredStaff.slice(startIndex, endIndex);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [roleFilter, statusFilter]);
@@ -276,7 +213,6 @@ const StaffManagement = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="container mx-auto p-6 max-w-7xl flex-grow">
-        {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={acTechLogo} alt="AC Tech Repair PH" className="h-16 mr-4" />
           <div>
@@ -292,7 +228,6 @@ const StaffManagement = () => {
         </div>
 
         <div className="grid gap-6">
-          {/* Add New Staff Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -301,42 +236,101 @@ const StaffManagement = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="username">Username *</Label>
+                  <Input
+                    id="username"
+                    value={newStaff.username}
+                    onChange={(e) =>
+                      setNewStaff({ ...newStaff, username: e.target.value })
+                    }
+                    placeholder="Enter username"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={newStaff.password}
+                      onChange={(e) =>
+                        setNewStaff({ ...newStaff, password: e.target.value })
+                      }
+                      placeholder="Enter password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
                     value={newStaff.name}
                     onChange={(e) =>
                       setNewStaff({ ...newStaff, name: e.target.value })
                     }
-                    placeholder="Enter name"
+                    placeholder="Enter full name"
                   />
                 </div>
                 <div>
                   <Label htmlFor="role">Role *</Label>
                   <Select
                     value={newStaff.role}
-                    onValueChange={(value) =>
-                      setNewStaff({ ...newStaff, role: value })
+                    onValueChange={(value: "admin" | "technician" | "management") =>
+                      setNewStaff({ ...newStaff, role: value, department: value !== "technician" ? "" : newStaff.department })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Technician">Technician</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="technician">Technician</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                {newStaff.role === "technician" && (
+                  <div>
+                    <Label htmlFor="department">Department *</Label>
+                    <Select
+                      value={newStaff.department}
+                      onValueChange={(value) =>
+                        setNewStaff({ ...newStaff, department: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTMENTS.map((dept) => (
+                          <SelectItem key={dept} value={dept}>
+                            {dept}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={newStaff.status}
-                    onValueChange={(value) =>
+                    onValueChange={(value: "active" | "inactive") =>
                       setNewStaff({ ...newStaff, status: value })
                     }
                   >
@@ -344,34 +338,23 @@ const StaffManagement = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Full-Time">Full-Time</SelectItem>
-                      <SelectItem value="Part-Time">Part-Time</SelectItem>
-                      <SelectItem value="Internship">Internship</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-end">
                   <Button
                     onClick={handleAddStaff}
-                    disabled={addingStaff}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
-                    {addingStaff ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Adding...
-                      </>
-                    ) : (
-                      "Add Staff"
-                    )}
+                    Add Staff
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Staff List Table */}
           <Card>
             <CardHeader>
               <CardTitle>Staff Members</CardTitle>
@@ -384,10 +367,9 @@ const StaffManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Technician">Technician</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="technician">Technician</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -399,21 +381,15 @@ const StaffManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="Full-Time">Full-Time</SelectItem>
-                      <SelectItem value="Part-Time">Part-Time</SelectItem>
-                      <SelectItem value="Internship">Internship</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center items-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                </div>
-              ) : filteredStaff.length === 0 ? (
+              {filteredStaff.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   No staff members found
                 </p>
@@ -422,26 +398,27 @@ const StaffManagement = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Staff ID</TableHead>
+                        <TableHead>Username</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
+                        <TableHead>Department</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedStaff.map((staff) => (
-                        <TableRow key={staff.staffId}>
+                        <TableRow key={staff.username}>
                           <TableCell className="font-medium">
-                            {staff.staffId}
+                            {staff.username}
                           </TableCell>
                           <TableCell>{staff.name}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                staff.role === "Admin"
+                                staff.role === "admin"
                                   ? "bg-purple-100 text-purple-800"
-                                  : staff.role === "Technician"
+                                  : staff.role === "technician"
                                   ? "bg-blue-100 text-blue-800"
                                   : "bg-gray-100 text-gray-800"
                               }`}
@@ -449,15 +426,12 @@ const StaffManagement = () => {
                               {staff.role}
                             </span>
                           </TableCell>
+                          <TableCell>{staff.department || "-"}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                staff.status === "Full-Time"
+                                staff.status === "active"
                                   ? "bg-green-100 text-green-800"
-                                  : staff.status === "Part-Time"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : staff.status === "Internship"
-                                  ? "bg-blue-100 text-blue-800"
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
@@ -477,7 +451,7 @@ const StaffManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveStaff(staff.staffId)}
+                                onClick={() => handleRemoveStaff(staff.username)}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -491,11 +465,12 @@ const StaffManagement = () => {
                 </div>
               )}
 
-              {/* Pagination Controls */}
               {filteredStaff.length > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredStaff.length)} of {filteredStaff.length} staff members
+                    Showing {startIndex + 1}-
+                    {Math.min(endIndex, filteredStaff.length)} of{" "}
+                    {filteredStaff.length} staff members
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -534,19 +509,54 @@ const StaffManagement = () => {
           </Card>
         </div>
 
-        {/* Edit Staff Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="bg-white">
             <DialogHeader>
               <DialogTitle>Edit Staff Member</DialogTitle>
               <DialogDescription>
-                Update staff member information
+                Update staff member information and password
               </DialogDescription>
             </DialogHeader>
             {selectedStaff && (
               <div className="grid gap-4 py-4">
                 <div>
-                  <Label htmlFor="edit-name">Name</Label>
+                  <Label htmlFor="edit-username">Username</Label>
+                  <Input
+                    id="edit-username"
+                    value={selectedStaff.username}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-password">New Password (optional)</Label>
+                  <div className="relative">
+                    <Input
+                      id="edit-password"
+                      type={showEditPassword ? "text" : "password"}
+                      value={selectedStaff.password}
+                      onChange={(e) =>
+                        setSelectedStaff({ ...selectedStaff, password: e.target.value })
+                      }
+                      placeholder="Enter new password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                    >
+                      {showEditPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="edit-name">Full Name</Label>
                   <Input
                     id="edit-name"
                     value={selectedStaff.name}
@@ -559,26 +569,47 @@ const StaffManagement = () => {
                   <Label htmlFor="edit-role">Role</Label>
                   <Select
                     value={selectedStaff.role}
-                    onValueChange={(value) =>
-                      setSelectedStaff({ ...selectedStaff, role: value })
+                    onValueChange={(value: "admin" | "technician" | "management") =>
+                      setSelectedStaff({ ...selectedStaff, role: value, department: value !== "technician" ? "" : selectedStaff.department })
                     }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Technician">Technician</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="technician">Technician</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                {selectedStaff.role === "technician" && (
+                  <div>
+                    <Label htmlFor="edit-department">Department</Label>
+                    <Select
+                      value={selectedStaff.department || ""}
+                      onValueChange={(value) =>
+                        setSelectedStaff({ ...selectedStaff, department: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTMENTS.map((dept) => (
+                          <SelectItem key={dept} value={dept}>
+                            {dept}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="edit-status">Status</Label>
                   <Select
                     value={selectedStaff.status}
-                    onValueChange={(value) =>
+                    onValueChange={(value: "active" | "inactive") =>
                       setSelectedStaff({ ...selectedStaff, status: value })
                     }
                   >
@@ -586,10 +617,8 @@ const StaffManagement = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Full-Time">Full-Time</SelectItem>
-                      <SelectItem value="Part-Time">Part-Time</SelectItem>
-                      <SelectItem value="Internship">Internship</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -607,23 +636,15 @@ const StaffManagement = () => {
               </Button>
               <Button
                 onClick={handleUpdateStaff}
-                disabled={editingStaff}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {editingStaff ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Staff"
-                )}
+                Update Staff
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-      
+
       <footer className="text-center text-sm text-muted-foreground mt-8 pb-6">
         Powered by Stack&Scale
       </footer>

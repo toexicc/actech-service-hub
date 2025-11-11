@@ -21,3 +21,14 @@ export const DEVICE_TYPES = [
 ] as const;
 
 export type DeviceType = typeof DEVICE_TYPES[number];
+
+export const DEPARTMENTS = [
+  "Laptop (Daily Repairs)",
+  "Laptop (Screens)",
+  "Laptop (Logic Board)",
+  "Mobile (Daily Repairs)",
+  "Mobile (Logic Board)",
+  "Others"
+] as const;
+
+export type Department = typeof DEPARTMENTS[number];

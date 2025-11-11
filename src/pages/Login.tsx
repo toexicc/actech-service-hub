@@ -5,46 +5,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { findUser } from "@/lib/userCredentials";
 
 const Login = () => {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!role) {
+    if (!username || !password) {
       toast({
-        title: "Role Required",
-        description: "Please select a role before logging in.",
+        title: "Missing Information",
+        description: "Please enter both username and password.",
         variant: "destructive",
       });
       return;
     }
 
-    const rolePasswords: Record<string, string> = {
-      technician: "ACT3CH2025~*Technician#",
-      admin: "ACT3CH2025~*Admin+",
-      management: "ACT3CH2025~*Management!",
-    };
+    const user = findUser(username, password);
 
-    if (password === rolePasswords[role]) {
+    if (user) {
       sessionStorage.setItem("authenticated", "true");
-      sessionStorage.setItem("userRole", role);
+      sessionStorage.setItem("userRole", user.role);
+      sessionStorage.setItem("username", user.username);
+      sessionStorage.setItem("userFullName", user.name);
       
       // Redirect based on role
-      if (role === "technician") {
+      if (user.role === "technician") {
         navigate("/technician-portal");
       } else {
         navigate("/menu");
       }
     } else {
       toast({
-        title: "Invalid Password",
-        description: "Please enter the correct password for the selected role.",
+        title: "Invalid Credentials",
+        description: "Username or password is incorrect.",
         variant: "destructive",
       });
     }
@@ -65,21 +63,20 @@ const Login = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <Label htmlFor="role">Select Role</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger className="mt-2">
-                <SelectValue placeholder="Select your role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="technician">Technician</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="management">Management</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
+              className="mt-2"
+              autoComplete="username"
+            />
           </div>
 
           <div>
-            <Label htmlFor="password">Enter Password</Label>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -87,6 +84,7 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               className="mt-2"
+              autoComplete="current-password"
             />
           </div>
 
