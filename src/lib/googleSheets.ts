@@ -202,13 +202,17 @@ function doGet(e) {
     var staffList = [];
     
     // Skip header row (i = 1)
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Staff ID exists
         staffList.push({
           "staffId": data[i][0],
-          "name": data[i][1],
-          "role": data[i][2],
-          "status": data[i][3]
+          "username": data[i][1],
+          "password": data[i][2],
+          "name": data[i][3],
+          "role": data[i][4],
+          "department": data[i][5] || "",
+          "status": data[i][6]
         });
       }
     }
