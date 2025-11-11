@@ -428,7 +428,7 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select technician" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {technicians.map((tech) => (
                         <SelectItem key={tech.name} value={tech.name}>
                           {tech.displayName}
