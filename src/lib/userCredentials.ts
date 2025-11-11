@@ -16,6 +16,16 @@ export interface UserCredential {
 let userCredentials: UserCredential[] = [];
 let isLoaded = false;
 
+// Default fallback admin account
+const DEFAULT_ADMIN: UserCredential = {
+  staffId: "ACTECH-ADMIN-001",
+  username: "Admin-ACTECH",
+  password: "ACT3CH2025~*Management!",
+  name: "Default Admin",
+  role: "management",
+  status: "active"
+};
+
 // Load users from Google Sheets
 export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
   try {
@@ -44,10 +54,23 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
         } as UserCredential;
       });
       isLoaded = true;
+      
+      // Add default admin if not already in the list
+      const hasDefaultAdmin = userCredentials.some(u => u.username === DEFAULT_ADMIN.username);
+      if (!hasDefaultAdmin) {
+        userCredentials.unshift(DEFAULT_ADMIN);
+      }
+    } else {
+      // If Google Sheets fails, use default admin only
+      userCredentials = [DEFAULT_ADMIN];
+      isLoaded = true;
     }
     return userCredentials;
   } catch (error) {
     console.error("Error loading users from sheet:", error);
+    // On error, ensure default admin is available
+    userCredentials = [DEFAULT_ADMIN];
+    isLoaded = true;
     return userCredentials;
   }
 };
