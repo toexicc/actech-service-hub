@@ -119,17 +119,46 @@ const TransactionTracker = () => {
   }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate]);
 
   const financialSummary = useMemo(() => {
+    let totalCommission = 0;
+    let adjustedTotalCosts = 0;
     const grossSales = filteredServices.reduce((sum, s) => sum + (s.quotedPrice || 0), 0);
-    const totalCosts = filteredServices.reduce((sum, s) => sum + (s.actualCost || 0), 0);
-    const netProfit = grossSales - totalCosts;
-    const commission = (netProfit * commissionRate) / 100;
-    const profitAfterCommission = netProfit - commission;
+    
+    // Calculate costs and commissions based on department
+    filteredServices.forEach((service) => {
+      let adjustedCost = service.actualCost || 0;
+      let serviceCommission = 0;
+      
+      if (service.department === "Laptop (Daily Repairs)") {
+        // Add 10% to part cost
+        adjustedCost = adjustedCost * 1.10;
+        // Commission is 30% on net sales for this service
+        const netSales = (service.quotedPrice || 0) - adjustedCost;
+        serviceCommission = netSales * 0.30;
+      } else if (service.department === "Laptop (Screens)") {
+        // Commission is flat 2000 per completed service
+        serviceCommission = 2000;
+      } else if (service.department === "Mobile (Logic Board)") {
+        // Commission is 25% on net sales
+        const netSales = (service.quotedPrice || 0) - adjustedCost;
+        serviceCommission = netSales * 0.25;
+      } else {
+        // Default: use the global commission rate on net sales
+        const netSales = (service.quotedPrice || 0) - adjustedCost;
+        serviceCommission = (netSales * commissionRate) / 100;
+      }
+      
+      adjustedTotalCosts += adjustedCost;
+      totalCommission += serviceCommission;
+    });
+    
+    const netProfit = grossSales - adjustedTotalCosts;
+    const profitAfterCommission = netProfit - totalCommission;
 
     return {
       grossSales,
-      totalCosts,
+      totalCosts: adjustedTotalCosts,
       netProfit,
-      commission,
+      commission: totalCommission,
       profitAfterCommission,
     };
   }, [filteredServices, commissionRate]);
@@ -201,7 +230,7 @@ const TransactionTracker = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Commission ({commissionRate}%)
+                Commission
               </CardTitle>
             </CardHeader>
             <CardContent>
