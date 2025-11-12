@@ -402,38 +402,6 @@ const ServiceTracker = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Quick Date Presets */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => applyDatePreset("last7")}
-              >
-                Last 7 Days
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => applyDatePreset("last30")}
-              >
-                Last 30 Days
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => applyDatePreset("thisMonth")}
-              >
-                This Month
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => applyDatePreset("clear")}
-              >
-                Clear Date Filter
-              </Button>
-            </div>
-
             {/* Filters */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <div className="space-y-2">
@@ -601,6 +569,40 @@ const ServiceTracker = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2 lg:col-span-4">
+                <Label>Quick Date Filters</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => applyDatePreset("last7")}
+                  >
+                    Last 7 Days
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => applyDatePreset("last30")}
+                  >
+                    Last 30 Days
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => applyDatePreset("thisMonth")}
+                  >
+                    This Month
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => applyDatePreset("clear")}
+                  >
+                    Clear Date Filter
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -630,7 +632,11 @@ const ServiceTracker = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Overdue</p>
                   <p className="text-2xl font-bold text-destructive">
-                    {filteredAndSortedServices.filter(s => isOverdue(s.targetDate)).length}
+                    {services.filter(s => {
+                      const status = s.status?.toLowerCase() || "";
+                      const isOngoing = !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
+                      return isOngoing && isOverdue(s.targetDate);
+                    }).length}
                   </p>
                 </div>
                 <AlertCircle className="h-8 w-8 text-destructive" />
@@ -644,7 +650,11 @@ const ServiceTracker = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">On Track</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {filteredAndSortedServices.filter(s => !isOverdue(s.targetDate) && s.targetDate).length}
+                    {services.filter(s => {
+                      const status = s.status?.toLowerCase() || "";
+                      const isOngoing = !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
+                      return isOngoing && !isOverdue(s.targetDate) && s.targetDate;
+                    }).length}
                   </p>
                 </div>
                 <Calendar className="h-8 w-8 text-green-600" />

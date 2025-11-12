@@ -476,9 +476,9 @@ function doPost(e) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
     var data = sheet.getDataRange().getValues();
     
-    // Search for the service ID in column A (index 0)
+    // Search for the service ID and device type match
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == params.serviceId) {
+      if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
         // Update the specified columns
         if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician);
@@ -568,59 +568,107 @@ function doPost(e) {
         if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG
         if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO
-        if (params.actualCost) sheet.getRange(i + 1, 47).setValue(params.actualCost); // Column AU
-        if (params.partsUsed) sheet.getRange(i + 1, 48).setValue(params.partsUsed); // Column AV
+        if (params.actualCost) sheet.getRange(i + 1, 46).setValue(params.actualCost); // Column AT
+        if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
         
-        // Check if this is an UPDATE vs NEW parts submission
-        var isUpdate = params.isUpdate === "true" || params.isUpdate === true;
-        var existingPartsUsed = data[i][47]; // Column AV
+        // Parse existing and new parts to calculate the delta
+        var existingPartsUsed = data[i][46] || ""; // Column AU - parts used text
+        var existingPartsData = [];
+        var newPartsData = [];
         
-        // If parts were used, log them to inventory
-        if (params.partsUsedData && !isUpdate) {
-          try {
-            var partsData = JSON.parse(params.partsUsedData);
-            var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
-            var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
-            var invData = inventorySheet.getDataRange().getValues();
-            var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+        try {
+          // Parse new parts from params
+          if (params.partsUsedData) {
+            newPartsData = JSON.parse(params.partsUsedData);
+          }
+          
+          // Parse existing parts from the database (format: "Part Name (qty), Part Name (qty)")
+          if (existingPartsUsed) {
+            var existingParts = existingPartsUsed.split(", ");
+            existingParts.forEach(function(part) {
+              var match = part.match(/^(.+?)\s*\((\d+)\)$/);
+              if (match) {
+                existingPartsData.push({ name: match[1].trim(), quantity: parseInt(match[2]) });
+              }
+            });
+          }
+          
+          // Calculate changes: what was added/removed
+          var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+          var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+          var invData = inventorySheet.getDataRange().getValues();
+          var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+          
+          // Build a map of part ID to quantities
+          var existingMap = {};
+          var newMap = {};
+          
+          // Map existing parts by their IDs
+          existingPartsData.forEach(function(part) {
+            // Find part ID by name
+            for (var j = 1; j < invData.length; j++) {
+              if (invData[j][1] === part.name) {
+                existingMap[invData[j][0]] = part.quantity;
+                break;
+              }
+            }
+          });
+          
+          // Map new parts
+          newPartsData.forEach(function(part) {
+            newMap[part.id] = part.quantity;
+          });
+          
+          // Process changes
+          var allPartIds = Object.keys(existingMap).concat(Object.keys(newMap));
+          var uniquePartIds = allPartIds.filter(function(value, index, self) {
+            return self.indexOf(value) === index;
+          });
+          
+          uniquePartIds.forEach(function(partId) {
+            var oldQty = existingMap[partId] || 0;
+            var newQty = newMap[partId] || 0;
+            var delta = newQty - oldQty;
             
-            partsData.forEach(function(part) {
+            if (delta !== 0) {
+              // Find part in inventory
               for (var j = 1; j < invData.length; j++) {
-                if (invData[j][0] === part.id) {
-                  var previousQty = parseInt(invData[j][5] || 0);
-                  var newQty = Math.max(0, previousQty - part.quantity);
+                if (invData[j][0] === partId) {
+                  var previousStockQty = parseInt(invData[j][5] || 0);
+                  var newStockQty = Math.max(0, previousStockQty - delta);
+                  var transactionType = delta > 0 ? "Removed" : "Returned";
                   
                   // Update inventory quantity
-                  inventorySheet.getRange(j + 1, 6).setValue(newQty);
+                  inventorySheet.getRange(j + 1, 6).setValue(newStockQty);
                   inventorySheet.getRange(j + 1, 11).setValue(timestamp);
                   
                   // Update status
-                  var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
+                  var status = newStockQty === 0 ? "Out of Stock" : newStockQty < 5 ? "Low Stock" : "In Stock";
                   inventorySheet.getRange(j + 1, 10).setValue(status);
                   
-                  // Log to inventory as "Removed"
+                  // Log the change
                   var logId = "LOG" + Date.now() + "_" + j;
                   logSheet.appendRow([
                     logId,
-                    part.id,
+                    partId,
                     invData[j][1],
                     invData[j][2],
-                    "Removed",
-                    part.quantity,
-                    previousQty,
-                    newQty,
+                    transactionType,
+                    Math.abs(delta),
+                    previousStockQty,
+                    newStockQty,
                     timestamp,
-                    "Service ID: " + params.serviceId,
+                    "Service ID: " + params.serviceId + " (Updated)",
                     params.username || "Unknown",
                     params.userRole || "Technician"
                   ]);
                   break;
                 }
               }
-            });
-          } catch (err) {
-            Logger.log("Error logging parts usage: " + err);
-          }
+            }
+          });
+        } catch (err) {
+          Logger.log("Error processing parts changes: " + err);
         }
         
         return ContentService.createTextOutput(JSON.stringify({
@@ -1106,10 +1154,11 @@ function doPost(e) {
     params["Technician Department"],   // AN: Technician Department
     "",                                // AO: Tech Notes Customer
     pdfUrl,                            // AP: PDF URL
-    "",                                // AQ: (empty)
-    "",                                // AR: (empty)
-    params["Has Password"],            // AS: Has Password (Yes/No)
-    params["Device Password"]          // AT: Device Password
+    serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "",  // AQ: Folder Link
+    params["Has Password"],            // AR: Has Password (Yes/No)
+    params["Device Password"],         // AS: Device Password
+    "",                                // AT: Actual Cost
+    ""                                 // AU: Parts Used
   ];
   
   sheet.appendRow(row);
