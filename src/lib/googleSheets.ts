@@ -326,7 +326,7 @@ function doGet(e) {
     var logs = [];
     
     // Loop through all rows (skip header row)
-    // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
+    // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes, Username, Role
     for (var i = 1; i < data.length; i++) {
       logs.push({
         "logId": data[i][0],
@@ -338,7 +338,9 @@ function doGet(e) {
         "previousQuantity": data[i][6],
         "newQuantity": data[i][7],
         "dateTime": data[i][8],
-        "remarks": data[i][9]
+        "remarks": data[i][9],
+        "username": data[i][10] || "Unknown",
+        "role": data[i][11] || "Unknown"
       });
     }
     
@@ -563,6 +565,54 @@ function doPost(e) {
         if (params.actualCost) sheet.getRange(i + 1, 46).setValue(params.actualCost); // Column AT
         if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
         
+        // If parts were used, log them to inventory
+        if (params.partsUsedData) {
+          try {
+            var partsData = JSON.parse(params.partsUsedData);
+            var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+            var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+            var invData = inventorySheet.getDataRange().getValues();
+            var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+            
+            partsData.forEach(function(part) {
+              for (var j = 1; j < invData.length; j++) {
+                if (invData[j][0] === part.id) {
+                  var previousQty = parseInt(invData[j][5] || 0);
+                  var newQty = Math.max(0, previousQty - part.quantity);
+                  
+                  // Update inventory quantity
+                  inventorySheet.getRange(j + 1, 6).setValue(newQty);
+                  inventorySheet.getRange(j + 1, 11).setValue(timestamp);
+                  
+                  // Update status
+                  var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
+                  inventorySheet.getRange(j + 1, 10).setValue(status);
+                  
+                  // Log to inventory
+                  var logId = "LOG" + Date.now() + "_" + j;
+                  logSheet.appendRow([
+                    logId,
+                    part.id,
+                    invData[j][1],
+                    invData[j][2],
+                    "Used in Service",
+                    part.quantity,
+                    previousQty,
+                    newQty,
+                    timestamp,
+                    "Service ID: " + params.serviceId,
+                    params.username || "Unknown",
+                    params.userRole || "Technician"
+                  ]);
+                  break;
+                }
+              }
+            });
+          } catch (err) {
+            Logger.log("Error logging parts usage: " + err);
+          }
+        }
+        
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
         })).setMimeType(ContentService.MimeType.JSON);
@@ -601,7 +651,7 @@ function doPost(e) {
     ]);
     
     // Log the initial stock to Inventory Log
-    // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
+    // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes, Username, Role
     logSheet.appendRow([
       logId,
       partId,
@@ -612,7 +662,9 @@ function doPost(e) {
       0,
       params.quantity,
       timestamp,
-      params.remarks
+      params.remarks,
+      params.addedBy || "Admin",
+      "Management"
     ]);
     
     return ContentService.createTextOutput(JSON.stringify({
@@ -659,7 +711,7 @@ function doPost(e) {
         }
         
         // Log the adjustment to Inventory Log
-        // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes
+        // Columns: Log ID, Part ID, Part Name, Device Type, Transaction Type, Quantity Changed, Previous Quantity, New Quantity, Date & Time, Remarks/Notes, Username, Role
         logSheet.appendRow([
           logId,
           params.partId,
@@ -670,7 +722,9 @@ function doPost(e) {
           previousQty,
           newQty,
           timestamp,
-          params.remarks
+          params.remarks,
+          params.adjustedBy || "Admin",
+          params.userRole || "Management"
         ]);
         
         return ContentService.createTextOutput(JSON.stringify({
@@ -749,7 +803,9 @@ function doPost(e) {
           currentQty,
           currentQty,
           timestamp,
-          "Ordered: " + orderedQty + " units | Current Stock: " + currentQty + " units"
+          "Ordered: " + orderedQty + " units | Current Stock: " + currentQty + " units",
+          params.adjustedBy || "Admin",
+          params.userRole || "Management"
         ]);
         
         return ContentService.createTextOutput(JSON.stringify({
@@ -806,7 +862,9 @@ function doPost(e) {
           currentQty,
           newQty,
           timestamp,
-          "Received: " + orderedQty + " units | Current Stock: " + newQty + " units"
+          "Received: " + orderedQty + " units | Current Stock: " + newQty + " units",
+          params.receivedBy || "Admin",
+          params.userRole || "Management"
         ]);
         
         return ContentService.createTextOutput(JSON.stringify({

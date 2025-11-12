@@ -183,18 +183,25 @@ const ServiceUpdate = () => {
     setIsUpdating(true);
     try {
       const actualCost = calculateActualCost();
-      const partsUsed = Object.entries(selectedParts)
+      const partsUsedArray = Object.entries(selectedParts)
         .filter(([_, qty]) => qty > 0)
         .map(([itemId, qty]) => {
           const item = inventory.find(i => i.id === itemId);
-          return `${item?.name} (${qty})`;
-        })
+          return {
+            id: itemId,
+            name: item?.name || "Unknown",
+            quantity: qty
+          };
+        });
+      
+      const partsUsed = partsUsedArray
+        .map(part => `${part.name} (${part.quantity})`)
         .join(", ");
 
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", serviceId);
-      formData.append("deviceType", serviceData.deviceType); // Use the actual device type from serviceData
+      formData.append("deviceType", serviceData.deviceType);
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       
@@ -202,7 +209,6 @@ const ServiceUpdate = () => {
       const selectedTech = technicians.find(t => t.name === updateTechnician);
       const techDept = selectedTech?.department || "";
       formData.append("technicianDepartment", techDept);
-      // Also send as "department" for compatibility with some GAS scripts and alternative header
       formData.append("department", techDept);
       formData.append("Technician Department", techDept);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
@@ -210,6 +216,9 @@ const ServiceUpdate = () => {
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
       formData.append("actualCost", actualCost.toString());
       formData.append("partsUsed", partsUsed);
+      formData.append("partsUsedData", JSON.stringify(partsUsedArray));
+      formData.append("username", username);
+      formData.append("userRole", userRole);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -242,8 +251,11 @@ const ServiceUpdate = () => {
           title: "Success",
           description: "Service information updated successfully",
         });
+        // Clear selected parts
+        setSelectedParts({});
         // Refresh the data
         handleSearch();
+        fetchInventory();
       } else {
         toast({
           title: "Error",
