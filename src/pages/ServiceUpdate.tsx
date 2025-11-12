@@ -35,6 +35,7 @@ const ServiceUpdate = () => {
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
+  const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
   const { toast } = useToast();
 
   const username = sessionStorage.getItem("username") || "Unknown";
@@ -54,36 +55,69 @@ const ServiceUpdate = () => {
 
   // Parse existing parts when both service data and inventory are available
   useEffect(() => {
-    if (serviceData && serviceData.partsUsed && inventory.length > 0) {
-      console.log("Parsing parts from:", serviceData.partsUsed);
-      const partsMap: {[key: string]: number} = {};
+    if (serviceData && serviceData.partsUsed) {
+      const partsMapById: {[key: string]: number} = {};
+      const unmatched: {[name: string]: number} = {};
       
-      // Parse format: "LCD Screen (2), Battery (1)"
-      const parts = serviceData.partsUsed.split(',').map((p: string) => p.trim());
-      parts.forEach((partStr: string) => {
+      const raw = String(serviceData.partsUsed);
+      const items = raw.split(',').map((p: string) => p.trim()).filter(Boolean);
+      items.forEach((partStr: string) => {
         const match = partStr.match(/^(.+?)\s*\((\d+)\)$/);
-        if (match) {
-          const partName = match[1].trim();
-          const quantity = parseInt(match[2]);
-          console.log("Looking for part:", partName, "qty:", quantity);
-          
-          // Find the inventory item by name
-          const item = inventory.find(i => i.name === partName);
-          if (item) {
-            console.log("Found item:", item.id, item.name);
-            partsMap[item.id] = quantity;
-          } else {
-            console.log("Item not found in inventory:", partName);
-          }
+        if (!match) return;
+        const partNameRaw = match[1].trim();
+        const partName = partNameRaw.replace(/\s+/g, ' ').toLowerCase();
+        const qty = parseInt(match[2]);
+        
+        // Try to find in inventory by case-insensitive name match
+        const found = inventory.find(i => i.name.trim().toLowerCase() === partName);
+        if (found) {
+          partsMapById[found.id] = qty;
+        } else {
+          unmatched[partNameRaw] = qty;
         }
       });
-      
-      console.log("Final parts map:", partsMap);
-      setSelectedParts(partsMap);
-    } else if (serviceData && !serviceData.partsUsed) {
+      setSelectedParts(partsMapById);
+      setUnmatchedParts(unmatched);
+    } else {
       setSelectedParts({});
+      setUnmatchedParts({});
     }
   }, [serviceData, inventory]);
+
+  // Fallback: derive parts from recent activity logs if not present in record
+  useEffect(() => {
+    const run = async () => {
+      if (!serviceData || serviceData.partsUsed) return;
+      if (!serviceId) return;
+      try {
+        const res = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getServiceLogs&serviceId=${serviceId}&limit=50`);
+        const json = await res.json();
+        if (json.status === 'success' && Array.isArray(json.logs)) {
+          const entry = json.logs.find((l: any) => typeof l.activity === 'string' && l.activity.includes('Parts used:'));
+          if (entry) {
+            const idx = entry.activity.indexOf('Parts used:');
+            const raw = entry.activity.substring(idx + 'Parts used:'.length).trim();
+            const items = raw.split(',').map((p: string) => p.trim()).filter(Boolean);
+            const byId: {[k:string]:number} = {};
+            const unmatched: {[k:string]:number} = {};
+            items.forEach((partStr: string) => {
+              const m = partStr.match(/^(.+?)\s*\((\d+)\)$/);
+              if (!m) return;
+              const nameRaw = m[1].trim();
+              const qty = parseInt(m[2]);
+              const item = inventory.find(i => i.name.trim().toLowerCase() === nameRaw.toLowerCase());
+              if (item) byId[item.id] = qty; else unmatched[nameRaw] = qty;
+            });
+            setSelectedParts(byId);
+            setUnmatchedParts(unmatched);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to derive parts from logs', e);
+      }
+    };
+    run();
+  }, [serviceData, serviceId, inventory]);
 
   const fetchTechnicians = async () => {
     try {
@@ -226,8 +260,9 @@ const ServiceUpdate = () => {
             quantity: qty
           };
         });
+      const unmatchedArray = Object.entries(unmatchedParts).map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
       
-      const partsUsed = partsUsedArray
+      const partsUsed = [...partsUsedArray, ...unmatchedArray]
         .map(part => `${part.name} (${part.quantity})`)
         .join(", ");
 
@@ -700,10 +735,65 @@ const ServiceUpdate = () => {
                             </div>
                           );
                         })}
-                        {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length === 0 && (
+                        {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length === 0 && Object.keys(unmatchedParts).length === 0 && (
                           <p className="text-sm text-muted-foreground text-center py-2">No parts selected yet</p>
                         )}
                       </div>
+                      
+                      {Object.keys(unmatchedParts).length > 0 && (
+                        <div className="space-y-2 border rounded-md p-3">
+                          <Label className="text-sm">Unmatched parts from record:</Label>
+                          <div className="space-y-2">
+                            {Object.entries(unmatchedParts).map(([name, qty]) => (
+                              <div key={name} className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{name}</p>
+                                  <p className="text-xs text-muted-foreground">Not found in current inventory</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={qty}
+                                    onChange={(e) => {
+                                      const newQty = Math.max(1, parseInt(e.target.value) || 1);
+                                      setUnmatchedParts(prev => ({ ...prev, [name]: newQty }));
+                                    }}
+                                    className="w-20"
+                                  />
+                                  <Select
+                                    value=""
+                                    onValueChange={(partId) => {
+                                      setSelectedParts(prev => ({ ...prev, [partId]: qty }));
+                                      setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
+                                    }}
+                                  >
+                                    <SelectTrigger className="min-w-[220px]">
+                                      <SelectValue placeholder="Map to inventory item..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background z-50">
+                                      {inventory.map((item) => (
+                                        <SelectItem key={item.id} value={item.id}>
+                                          {item.name} (Stock: {item.quantity})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="space-y-2">
                         <Label className="text-sm">Add Part:</Label>
@@ -719,7 +809,7 @@ const ServiceUpdate = () => {
                           <SelectTrigger>
                             <SelectValue placeholder="Select part to add..." />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-background z-50">
                             {inventory.map((item) => (
                               <SelectItem key={item.id} value={item.id}>
                                 {item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
