@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,7 @@ const ManageClient = () => {
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [updateTechServiceBreakdown, setUpdateTechServiceBreakdown] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchTechnicianList = async () => {
     try {
@@ -354,54 +355,28 @@ const ManageClient = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="deviceType">Select Device Type:</Label>
-                {!showOtherDeviceInput ? (
-                  <Select
-                    value={deviceType}
-                    onValueChange={(value) => {
-                      if (value === "Others") {
-                        setShowOtherDeviceInput(true);
-                        setDeviceType("");
-                      } else {
-                        setDeviceType(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select device type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
-                      <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
-                      <SelectItem value="iPad">iPad</SelectItem>
-                      <SelectItem value="Apple Watch">Apple Watch</SelectItem>
-                      <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
-                      <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
-                      <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
-                      <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
-                      <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
-                      <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
-                      <SelectItem value="Drone">Drone</SelectItem>
-                      <SelectItem value="Speakers">Speakers</SelectItem>
-                      <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
-                      <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
-                      <SelectItem value="Headphones">Headphones</SelectItem>
-                      <SelectItem value="Others">Others</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="deviceType"
-                    placeholder="Enter device type"
-                    value={deviceType}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setDeviceType(value);
-                      if (value === "") {
-                        setShowOtherDeviceInput(false);
-                      }
-                    }}
-                  />
-                )}
+                <Select value={deviceType} onValueChange={setDeviceType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select device type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
+                    <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
+                    <SelectItem value="iPad">iPad</SelectItem>
+                    <SelectItem value="Apple Watch">Apple Watch</SelectItem>
+                    <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
+                    <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
+                    <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
+                    <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
+                    <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
+                    <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
+                    <SelectItem value="Drone">Drone</SelectItem>
+                    <SelectItem value="Speakers">Speakers</SelectItem>
+                    <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
+                    <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
+                    <SelectItem value="Headphones">Headphones</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -468,6 +443,27 @@ const ManageClient = () => {
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
                     <p className="text-lg">{serviceData.colorMemory}</p>
                   </div>
+
+                  {serviceData.devicePassword && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Password:</h3>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={serviceData.devicePassword}
+                          readOnly
+                          className="max-w-xs"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>

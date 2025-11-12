@@ -282,7 +282,7 @@ const TransactionTracker = () => {
             <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
               <div className="space-y-2">
                 <Label>Commission Rate (%)</Label>
                 <Input
@@ -346,28 +346,28 @@ const TransactionTracker = () => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 lg:col-span-2">
                 <Label>Date Range</Label>
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button variant="outline" className="flex-1 justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {startDate ? format(startDate, "MMM dd, yyyy") : "Start"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 bg-background z-50" align="start">
                       <CalendarComponent mode="single" selected={startDate} onSelect={setStartDate} />
                     </PopoverContent>
                   </Popover>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button variant="outline" className="flex-1 justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {endDate ? format(endDate, "MMM dd, yyyy") : "End"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 bg-background z-50" align="start">
                       <CalendarComponent mode="single" selected={endDate} onSelect={setEndDate} />
                     </PopoverContent>
                   </Popover>

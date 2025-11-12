@@ -23,8 +23,8 @@ const formSchema = z.object({
   clientType: z.string().min(1, "Client Type is required"),
   priority: z.string().min(1, "Priority is required"),
   clientName: z.string().min(1, "Client Name is required"),
-  username: z.string().min(1, "Username is required"),
-  email: z.string().email("Invalid email address"),
+  username: z.string().optional(),
+  email: z.string().optional(),
   phone: z.string().min(1, "Phone is required"),
   deviceType: z.string().min(1, "Device Type is required"),
   serial: z.string().min(1, "Serial is required"),
@@ -40,6 +40,8 @@ const formSchema = z.object({
   importantFiles: z.boolean().default(false),
   noPower: z.boolean().default(false),
   repairHistory: z.boolean().default(false),
+  hasPassword: z.boolean().default(false),
+  devicePassword: z.string().optional(),
   estimatedCost: z.number().min(1, "Estimated Cost is required"),
   timeFrame: z.string().min(1, "Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
@@ -61,7 +63,7 @@ const ServiceForm = () => {
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
   const [adminList, setAdminList] = useState<string[]>([]);
-  const [technicianList, setTechnicianList] = useState<string[]>([]);
+  const [technicianList, setTechnicianList] = useState<Array<{name: string, department: string}>>([]);
 
 
   useEffect(() => {
@@ -85,7 +87,10 @@ const ServiceForm = () => {
           .map((staff: any) => staff.name);
         const technicians = data.data
           .filter((staff: any) => staff.role === "Technician" && staff.status !== "Inactive")
-          .map((staff: any) => staff.name);
+          .map((staff: any) => ({
+            name: staff.name,
+            department: staff.department || ""
+          }));
         
         setAdminList(admins);
         setTechnicianList(technicians);
@@ -121,6 +126,8 @@ const ServiceForm = () => {
       importantFiles: false,
       noPower: false,
       repairHistory: false,
+      hasPassword: false,
+      devicePassword: "",
       estimatedCost: 0,
       timeFrame: "",
       ack1: false,
@@ -344,6 +351,13 @@ const ServiceForm = () => {
       formData.append("Important Files", data.importantFiles ? "Yes" : "No");
       formData.append("No Power", data.noPower ? "Yes" : "No");
       formData.append("Repair History", data.repairHistory ? "Yes" : "No");
+      formData.append("Has Password", data.hasPassword ? "Yes" : "No");
+      formData.append("Device Password", data.hasPassword ? (data.devicePassword || "") : "");
+      
+      // Get technician's department
+      const selectedTech = technicianList.find(t => t.name === data.technician);
+      formData.append("Technician Department", selectedTech?.department || "");
+      
       formData.append("Time Frame", data.timeFrame);
       formData.append("Estimated Cost", data.estimatedCost.toString());
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
@@ -502,12 +516,28 @@ const ServiceForm = () => {
                           <SelectValue placeholder="Select Technician" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-background z-50">
                         {technicianList.length > 0 ? (
-                          technicianList.map((tech) => (
-                            <SelectItem key={tech} value={tech}>
-                              {tech}
-                            </SelectItem>
+                          Object.entries(
+                            technicianList.reduce((acc, tech) => {
+                              if (!acc[tech.department]) acc[tech.department] = [];
+                              acc[tech.department].push(tech);
+                              return acc;
+                            }, {} as Record<string, typeof technicianList>)
+                          ).map(([dept, techs]) => (
+                            <div key={dept}>
+                              <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                                {dept}
+                              </div>
+                              {techs.map((tech) => (
+                                <SelectItem key={tech.name} value={tech.name}>
+                                  <div className="flex flex-col items-start">
+                                    <span>{tech.name}</span>
+                                    <span className="text-xs text-muted-foreground">{tech.department}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </div>
                           ))
                         ) : (
                           <SelectItem value="No Technicians" disabled>
@@ -864,7 +894,38 @@ const ServiceForm = () => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="hasPassword"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Password</FormLabel>
+                    </FormItem>
+                  )}
+                />
               </div>
+
+              {form.watch("hasPassword") && (
+                <div className="mt-4">
+                  <FormField
+                    control={form.control}
+                    name="devicePassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Device Password:</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="text" placeholder="Enter device password" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Cost and Time */}

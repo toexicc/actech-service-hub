@@ -40,8 +40,10 @@ const ServiceTracker = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [technicianFilter, setTechnicianFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [techniciansWithDept, setTechniciansWithDept] = useState<Array<{name: string, department: string}>>([]);
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,7 +77,26 @@ const ServiceTracker = () => {
 
   useEffect(() => {
     fetchAllServices();
+    fetchTechnicians();
   }, []);
+
+  const fetchTechnicians = async () => {
+    try {
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
+      const data = await response.json();
+      if (data.status === "success" && data.data) {
+        const techList = data.data
+          .filter((staff: any) => staff.role === "Technician" && staff.status === "Active")
+          .map((staff: any) => ({
+            name: staff.name,
+            department: staff.department || ""
+          }));
+        setTechniciansWithDept(techList);
+      }
+    } catch (error) {
+      console.error("Error fetching technicians:", error);
+    }
+  };
 
   const fetchAllServices = async () => {
     setIsLoading(true);
@@ -214,20 +235,27 @@ const ServiceTracker = () => {
         return false;
       }
 
-      // Date range filter - filter by service date
+      // Department filter
+      if (departmentFilter !== "all") {
+        const techDept = techniciansWithDept.find(t => t.name === service.technician)?.department;
+        if (techDept !== departmentFilter) {
+          return false;
+        }
+      }
+
+      // Date range filter - filter by TARGET DATE
       if (startDate || endDate) {
         try {
-          const [datePart] = service.timestamp.split(", ");
-          const parts = datePart.split(/[-/]/);
-          if (parts.length === 3) {
-            const [month, day, year] = parts;
-            const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            serviceDate.setHours(0, 0, 0, 0);
+          const targetParts = service.targetDate.split(/[-/]/);
+          if (targetParts.length === 3) {
+            const [month, day, year] = targetParts;
+            const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            targetDate.setHours(0, 0, 0, 0);
             
             if (startDate) {
               const start = new Date(startDate);
               start.setHours(0, 0, 0, 0);
-              if (serviceDate < start) {
+              if (targetDate < start) {
                 return false;
               }
             }
@@ -235,13 +263,13 @@ const ServiceTracker = () => {
             if (endDate) {
               const end = new Date(endDate);
               end.setHours(23, 59, 59, 999);
-              if (serviceDate > end) {
+              if (targetDate > end) {
                 return false;
               }
             }
           }
         } catch (error) {
-          console.error("Error parsing date for filter:", error);
+          console.error("Error parsing target date for filter:", error);
         }
       }
 
@@ -284,7 +312,12 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter, techniciansWithDept]);
+
+  const departments = useMemo(() => {
+    const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
+    return Array.from(depts).sort();
+  }, [techniciansWithDept]);
 
   const paginatedServices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -297,7 +330,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter]);
+  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -439,10 +472,30 @@ const ServiceTracker = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="All Technicians" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background z-50">
                     <SelectItem value="all">All Technicians</SelectItem>
-                    {technicians.map(tech => (
-                      <SelectItem key={tech} value={tech}>{tech}</SelectItem>
+                    {techniciansWithDept.map(tech => (
+                      <SelectItem key={tech.name} value={tech.name}>
+                        <div className="flex flex-col items-start">
+                          <span>{tech.name}</span>
+                          <span className="text-xs text-muted-foreground">{tech.department}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map(dept => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -663,7 +716,14 @@ const ServiceTracker = () => {
                           <TableCell>{service.status || "N/A"}</TableCell>
                           <TableCell>{service.clientName || "N/A"}</TableCell>
                           <TableCell>{service.timestamp || "N/A"}</TableCell>
-                          <TableCell>{service.technician || "Unassigned"}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span>{service.technician || "Unassigned"}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {techniciansWithDept.find(t => t.name === service.technician)?.department || ""}
+                              </span>
+                            </div>
+                          </TableCell>
                           <TableCell className="max-w-[200px] truncate" title={service.service}>
                             {service.service || "N/A"}
                           </TableCell>
