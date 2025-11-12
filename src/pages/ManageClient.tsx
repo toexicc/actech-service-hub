@@ -232,8 +232,9 @@ const ManageClient = () => {
       const selectedTech = technicians.find(t => t.name === updateTechnician);
       const techDept = selectedTech?.department || "";
       formData.append("technicianDepartment", techDept);
-      // Also send as "department" for compatibility with some GAS scripts
+      // Also send as "department" for compatibility with some GAS scripts and alternative header
       formData.append("department", techDept);
+      formData.append("Technician Department", techDept);
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
       formData.append("services", updateServices);
@@ -265,15 +266,32 @@ const ManageClient = () => {
       const result = await response.json();
 
       if (result.result === "success") {
-        // Log the activity
+        // Log only the fields that actually changed
         const username = sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
-        await logActivity({
-          serviceId: serviceId,
-          username: username,
-          role: role,
-          activity: `Updated service - Status: ${updateStatus}, Technician: ${updateTechnician}, Cost: ${updateServiceCost}`,
-        });
+        const changes: string[] = [];
+
+        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status || "N/A"} → ${updateStatus}`);
+        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
+        if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
+        if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
+        if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
+        const prevCost = String(serviceData.finalCost || serviceData.serviceCost || "");
+        if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
+        const prevTarget = serviceData.targetDate || "";
+        const newTarget = updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "";
+        if (newTarget !== prevTarget) changes.push(`Target date: ${prevTarget || "N/A"} → ${newTarget || "N/A"}`);
+        if (updateAdminNotes !== serviceData.adminNotes) changes.push("Admin notes updated");
+        if (updateAdminNotesInternal !== serviceData.adminNotesInternal) changes.push("Internal notes updated");
+
+        if (changes.length > 0) {
+          await logActivity({
+            serviceId: serviceId,
+            username: username,
+            role: role,
+            activity: `Service updated: ${changes.join(", ")}`,
+          });
+        }
 
         toast({
           title: "Success",
