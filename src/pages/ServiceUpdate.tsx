@@ -52,6 +52,39 @@ const ServiceUpdate = () => {
     fetchInventory();
   }, []);
 
+  // Parse existing parts when both service data and inventory are available
+  useEffect(() => {
+    if (serviceData && serviceData.partsUsed && inventory.length > 0) {
+      console.log("Parsing parts from:", serviceData.partsUsed);
+      const partsMap: {[key: string]: number} = {};
+      
+      // Parse format: "LCD Screen (2), Battery (1)"
+      const parts = serviceData.partsUsed.split(',').map((p: string) => p.trim());
+      parts.forEach((partStr: string) => {
+        const match = partStr.match(/^(.+?)\s*\((\d+)\)$/);
+        if (match) {
+          const partName = match[1].trim();
+          const quantity = parseInt(match[2]);
+          console.log("Looking for part:", partName, "qty:", quantity);
+          
+          // Find the inventory item by name
+          const item = inventory.find(i => i.name === partName);
+          if (item) {
+            console.log("Found item:", item.id, item.name);
+            partsMap[item.id] = quantity;
+          } else {
+            console.log("Item not found in inventory:", partName);
+          }
+        }
+      });
+      
+      console.log("Final parts map:", partsMap);
+      setSelectedParts(partsMap);
+    } else if (serviceData && !serviceData.partsUsed) {
+      setSelectedParts({});
+    }
+  }, [serviceData, inventory]);
+
   const fetchTechnicians = async () => {
     try {
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -158,28 +191,6 @@ const ServiceUpdate = () => {
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateSuggestedRepair(data.data.suggestedRepair || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
-        
-        // Parse and load existing parts used
-        if (data.data.partsUsed) {
-          const partsMap: {[key: string]: number} = {};
-          // Parse format: "LCD Screen (2), Battery (1)"
-          const parts = data.data.partsUsed.split(',').map((p: string) => p.trim());
-          parts.forEach((partStr: string) => {
-            const match = partStr.match(/^(.+?)\s*\((\d+)\)$/);
-            if (match) {
-              const partName = match[1].trim();
-              const quantity = parseInt(match[2]);
-              // Find the inventory item by name
-              const item = inventory.find(i => i.name === partName);
-              if (item) {
-                partsMap[item.id] = quantity;
-              }
-            }
-          });
-          setSelectedParts(partsMap);
-        } else {
-          setSelectedParts({});
-        }
       } else {
         toast({
           title: "Not Found",
