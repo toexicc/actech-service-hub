@@ -191,11 +191,7 @@ const ServiceTracker = () => {
 
   const filteredAndSortedServices = useMemo(() => {
     let filtered = services.filter(service => {
-      // Filter out completed/closed/cancelled services
-      const status = service.status?.toLowerCase() || "";
-      if (status.includes("completed") || status.includes("closed") || status.includes("cancelled")) {
-        return false;
-      }
+      // Do NOT filter out any services by status - show ALL services
 
       // Search filter - search by Service ID or Client Name
       if (searchQuery.trim()) {
@@ -563,7 +559,12 @@ const ServiceTracker = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Ongoing</p>
-                  <p className="text-2xl font-bold">{filteredAndSortedServices.length}</p>
+                  <p className="text-2xl font-bold">
+                    {services.filter(s => {
+                      const status = s.status?.toLowerCase() || "";
+                      return !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
+                    }).length}
+                  </p>
                 </div>
                 <Clock className="h-8 w-8 text-primary" />
               </div>
