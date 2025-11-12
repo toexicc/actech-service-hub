@@ -45,7 +45,6 @@ const ServiceUpdate = () => {
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateSuggestedRepair, setUpdateSuggestedRepair] = useState("");
-  const [updateTechnicianNotesCustomer, setUpdateTechnicianNotesCustomer] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
 
   useEffect(() => {
@@ -158,7 +157,6 @@ const ServiceUpdate = () => {
         setUpdateTechnician(data.data.technician || "");
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateSuggestedRepair(data.data.suggestedRepair || "");
-        setUpdateTechnicianNotesCustomer(data.data.technicianNotesCustomer || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
       } else {
         toast({
@@ -209,7 +207,6 @@ const ServiceUpdate = () => {
       formData.append("Technician Department", techDept);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", updateSuggestedRepair);
-      formData.append("technicianNotesCustomer", updateTechnicianNotesCustomer);
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
       formData.append("actualCost", actualCost.toString());
       formData.append("partsUsed", partsUsed);
@@ -571,17 +568,6 @@ const ServiceUpdate = () => {
                     placeholder="Enter suggested repair"
                     value={updateSuggestedRepair}
                     onChange={(e) => setUpdateSuggestedRepair(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="technicianNotesCustomer">Technician Notes (Customer):</Label>
-                  <Textarea
-                    id="technicianNotesCustomer"
-                    placeholder="Enter technician notes for customer"
-                    value={updateTechnicianNotesCustomer}
-                    onChange={(e) => setUpdateTechnicianNotesCustomer(e.target.value)}
                     rows={4}
                   />
                 </div>

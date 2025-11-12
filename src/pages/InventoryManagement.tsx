@@ -111,7 +111,7 @@ const InventoryManagement = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventory`
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`
       );
       const data = await response.json();
 
