@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface InventoryItem {
@@ -77,6 +77,14 @@ const InventoryManagement = () => {
   const [selectedPartForLogs, setSelectedPartForLogs] = useState<string | null>(null);
   const [selectedPart, setSelectedPart] = useState<InventoryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Log filters
+  const [logIdSearch, setLogIdSearch] = useState("");
+  const [logPartNameFilter, setLogPartNameFilter] = useState("all");
+  const [logDeviceTypeFilter, setLogDeviceTypeFilter] = useState("all");
+  const [logUsernameFilter, setLogUsernameFilter] = useState("all");
+  const [logDateFrom, setLogDateFrom] = useState("");
+  const [logDateTo, setLogDateTo] = useState("");
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -427,15 +435,77 @@ const InventoryManagement = () => {
     return filteredAndSortedInventory.slice(startIndex, endIndex);
   }, [filteredAndSortedInventory, currentPage, itemsPerPage]);
 
+  // Filtered logs
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      // Log ID search
+      if (logIdSearch && !log.logId.toLowerCase().includes(logIdSearch.toLowerCase())) {
+        return false;
+      }
+      
+      // Part name filter
+      if (logPartNameFilter !== "all" && log.partName !== logPartNameFilter) {
+        return false;
+      }
+      
+      // Device type filter
+      if (logDeviceTypeFilter !== "all" && log.deviceType !== logDeviceTypeFilter) {
+        return false;
+      }
+      
+      // Username filter
+      if (logUsernameFilter !== "all" && log.username !== logUsernameFilter) {
+        return false;
+      }
+      
+      // Date range filter
+      if (logDateFrom || logDateTo) {
+        try {
+          const logDate = new Date(log.dateTime);
+          if (logDateFrom) {
+            const fromDate = new Date(logDateFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            if (logDate < fromDate) return false;
+          }
+          if (logDateTo) {
+            const toDate = new Date(logDateTo);
+            toDate.setHours(23, 59, 59, 999);
+            if (logDate > toDate) return false;
+          }
+        } catch {
+          // Invalid date, skip filter
+        }
+      }
+      
+      return true;
+    });
+  }, [logs, logIdSearch, logPartNameFilter, logDeviceTypeFilter, logUsernameFilter, logDateFrom, logDateTo]);
+
   // Paginated logs
   const paginatedLogs = useMemo(() => {
     const startIndex = (logsCurrentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return logs.slice(startIndex, endIndex);
-  }, [logs, logsCurrentPage, itemsPerPage]);
+    return filteredLogs.slice(startIndex, endIndex);
+  }, [filteredLogs, logsCurrentPage, itemsPerPage]);
+
+  // Get unique values for filters
+  const logPartNames = useMemo(() => {
+    const names = new Set(logs.map(l => l.partName).filter(Boolean));
+    return Array.from(names).sort();
+  }, [logs]);
+
+  const logDeviceTypes = useMemo(() => {
+    const types = new Set(logs.map(l => l.deviceType).filter(Boolean));
+    return Array.from(types).sort();
+  }, [logs]);
+
+  const logUsernames = useMemo(() => {
+    const users = new Set(logs.map(l => l.username).filter(Boolean));
+    return Array.from(users).sort();
+  }, [logs]);
 
   const totalPages = Math.ceil(filteredAndSortedInventory.length / itemsPerPage);
-  const logsTotalPages = Math.ceil(logs.length / itemsPerPage);
+  const logsTotalPages = Math.ceil(filteredLogs.length / itemsPerPage);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -961,9 +1031,139 @@ const InventoryManagement = () => {
                 <CardTitle>Inventory Logs</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Filters */}
+                <div className="mb-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by Log ID..."
+                      value={logIdSearch}
+                      onChange={(e) => {
+                        setLogIdSearch(e.target.value);
+                        setLogsCurrentPage(1);
+                      }}
+                      className="max-w-xs"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label>Part Name</Label>
+                      <Select value={logPartNameFilter} onValueChange={(value) => {
+                        setLogPartNameFilter(value);
+                        setLogsCurrentPage(1);
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Parts</SelectItem>
+                          {logPartNames.map(name => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Device Type</Label>
+                      <Select value={logDeviceTypeFilter} onValueChange={(value) => {
+                        setLogDeviceTypeFilter(value);
+                        setLogsCurrentPage(1);
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {logDeviceTypes.map(type => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Username</Label>
+                      <Select value={logUsernameFilter} onValueChange={(value) => {
+                        setLogUsernameFilter(value);
+                        setLogsCurrentPage(1);
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Users</SelectItem>
+                          {logUsernames.map(user => (
+                            <SelectItem key={user} value={user}>{user}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Clear Filters</Label>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => {
+                          setLogIdSearch("");
+                          setLogPartNameFilter("all");
+                          setLogDeviceTypeFilter("all");
+                          setLogUsernameFilter("all");
+                          setLogDateFrom("");
+                          setLogDateTo("");
+                          setLogsCurrentPage(1);
+                        }}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="logDateFrom">
+                        <Calendar className="h-4 w-4 inline mr-2" />
+                        Date From
+                      </Label>
+                      <Input
+                        id="logDateFrom"
+                        type="date"
+                        value={logDateFrom}
+                        onChange={(e) => {
+                          setLogDateFrom(e.target.value);
+                          setLogsCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="logDateTo">
+                        <Calendar className="h-4 w-4 inline mr-2" />
+                        Date To
+                      </Label>
+                      <Input
+                        id="logDateTo"
+                        type="date"
+                        value={logDateTo}
+                        onChange={(e) => {
+                          setLogDateTo(e.target.value);
+                          setLogsCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''} 
+                    {(logIdSearch || logPartNameFilter !== "all" || logDeviceTypeFilter !== "all" || 
+                      logUsernameFilter !== "all" || logDateFrom || logDateTo) && " (filtered)"}
+                  </div>
+                </div>
+
                 {isLogsLoading ? (
                   <div className="text-center py-8">Loading logs...</div>
-                ) : logs.length === 0 ? (
+                ) : filteredLogs.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No inventory logs found</div>
                 ) : (
                   <>
@@ -1020,7 +1220,7 @@ const InventoryManagement = () => {
                   {logsTotalPages > 1 && (
                     <div className="flex items-center justify-between mt-4">
                       <div className="text-sm text-muted-foreground">
-                        Showing {((logsCurrentPage - 1) * itemsPerPage) + 1} to {Math.min(logsCurrentPage * itemsPerPage, logs.length)} of {logs.length} logs
+                        Showing {((logsCurrentPage - 1) * itemsPerPage) + 1} to {Math.min(logsCurrentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length} logs
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
