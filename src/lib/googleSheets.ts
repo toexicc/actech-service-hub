@@ -46,9 +46,11 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //    A: Staff ID | B: Name | C: Role | D: Status | E: Department (for technicians)
 //
 // 4. Add these columns to "Service Database" sheet:
-//    Column AS (44): Technician Department
-//    Column AT (45): Actual Cost (for Transaction Tracker profit calculations)
-//    Column AU (46): Parts Used
+//    Column AN (40): Technician Department
+//    Column AR (44): Has Password (Yes/No)
+//    Column AS (45): Device Password
+//    Column AT (46): Actual Cost (for Transaction Tracker profit calculations)
+//    Column AU (47): Parts Used
 //
 // Complete Google Apps Script code for your Google Sheet:
 /*
@@ -101,7 +103,10 @@ function doGet(e) {
             "importantFiles": data[i][23],
             "noPower": data[i][24],
             "repairHistory": data[i][25],
-            "pdfUrl": data[i][41]
+            "pdfUrl": data[i][41],
+            "hasPassword": data[i][43],
+            "devicePassword": data[i][44],
+            "technicianDepartment": data[i][39]
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -170,7 +175,8 @@ function doGet(e) {
               "service": serviceData[j][26],
               "targetDate": serviceData[j][28],
               "serviceCost": serviceData[j][29],
-              "pdfUrl": serviceData[j][41] // Column AP (42nd column, index 41)
+              "pdfUrl": serviceData[j][41],
+              "devicePassword": serviceData[j][44]
             });
           }
         }
@@ -553,7 +559,7 @@ function doPost(e) {
       if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
         if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D
-        // Update Technician Department (Column AN)
+        // Update Technician Department (Column AN = 40)
         if (params.technicianDepartment || params.department || params["Technician Department"]) {
           var dept = params.technicianDepartment || params.department || params["Technician Department"];
           sheet.getRange(i + 1, 40).setValue(dept); // Column AN - Technician Department
@@ -562,11 +568,15 @@ function doPost(e) {
         if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG
         if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO
-        if (params.actualCost) sheet.getRange(i + 1, 46).setValue(params.actualCost); // Column AT
-        if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
+        if (params.actualCost) sheet.getRange(i + 1, 47).setValue(params.actualCost); // Column AU
+        if (params.partsUsed) sheet.getRange(i + 1, 48).setValue(params.partsUsed); // Column AV
+        
+        // Check if this is an UPDATE vs NEW parts submission
+        var isUpdate = params.isUpdate === "true" || params.isUpdate === true;
+        var existingPartsUsed = data[i][47]; // Column AV
         
         // If parts were used, log them to inventory
-        if (params.partsUsedData) {
+        if (params.partsUsedData && !isUpdate) {
           try {
             var partsData = JSON.parse(params.partsUsedData);
             var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
@@ -588,14 +598,14 @@ function doPost(e) {
                   var status = newQty === 0 ? "Out of Stock" : newQty < 5 ? "Low Stock" : "In Stock";
                   inventorySheet.getRange(j + 1, 10).setValue(status);
                   
-                  // Log to inventory
+                  // Log to inventory as "Removed"
                   var logId = "LOG" + Date.now() + "_" + j;
                   logSheet.appendRow([
                     logId,
                     part.id,
                     invData[j][1],
                     invData[j][2],
-                    "Used in Service",
+                    "Removed",
                     part.quantity,
                     previousQty,
                     newQty,
@@ -1011,6 +1021,17 @@ function doPost(e) {
     ]);
   }
   
+  // Create folder for this service: SERVICE ID - NAME format
+  var serviceFolderId = "";
+  try {
+    var parentFolder = DriveApp.getFolderById("1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J");
+    var folderName = params["Service ID"] + " - " + params["Client Name"];
+    var serviceFolder = parentFolder.createFolder(folderName);
+    serviceFolderId = serviceFolder.getId();
+  } catch (error) {
+    Logger.log("Error creating service folder: " + error);
+  }
+  
   // Handle PDF file upload if present
   var pdfUrl = "";
   try {
@@ -1029,8 +1050,11 @@ function doPost(e) {
     }
 
     if (pdfBlob) {
-      var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
-      var file = folder.createFile(pdfBlob);
+      // Upload to service-specific folder if created, otherwise use default
+      var targetFolder = serviceFolderId 
+        ? DriveApp.getFolderById(serviceFolderId)
+        : DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+      var file = targetFolder.createFile(pdfBlob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       pdfUrl = file.getUrl();
     }
@@ -1040,48 +1064,52 @@ function doPost(e) {
   
   // Map the form data to the correct columns
   var row = [
-    params["Service ID"],
-    "Pending Diagnosis",
-    params["Admin Representative"],
-    params["Technician"],
-    params["Timestamp"],
-    clientId,
-    params["Priority"],
-    params["Client Type"],
-    params["Client Name"],
-    params["Username"],
-    params["Email"],
-    params["Phone"],
-    params["Device Type"],
-    params["Serial"],
-    params["Brand"],
-    params["Color"],
-    params["Model"],
-    params["Memory"],
-    params["Chief Complaint"],
-    params["Dents"],
-    params["Scratches"],
-    params["Missing Parts"],
-    params["Physical Damage"],
-    params["Important Files"],
-    params["No Power"],
-    params["Repair History"],
-    "",
-    params["Time Frame"],
-    "",
-    params["Estimated Cost"],
-    "",
-    "",
-    "",
-    params["Acknowledgement 1"],
-    params["Acknowledgement 2"],
-    params["Acknowledgement 3"],
-    "",
-    "",
-    "",
-    "",
-    "",
-    pdfUrl,
+    params["Service ID"],              // A: Service ID
+    "Pending Diagnosis",               // B: Status
+    params["Admin Representative"],    // C: Admin Rep
+    params["Technician"],              // D: Technician
+    params["Timestamp"],               // E: Timestamp
+    clientId,                          // F: Client ID
+    params["Priority"],                // G: Priority
+    params["Client Type"],             // H: Client Type
+    params["Client Name"],             // I: Client Name
+    params["Username"],                // J: Username
+    params["Email"],                   // K: Email
+    params["Phone"],                   // L: Phone
+    params["Device Type"],             // M: Device Type
+    params["Serial"],                  // N: Serial
+    params["Brand"],                   // O: Brand
+    params["Color"],                   // P: Color
+    params["Model"],                   // Q: Model
+    params["Memory"],                  // R: Memory
+    params["Chief Complaint"],         // S: Chief Complaint
+    params["Dents"],                   // T: Dents
+    params["Scratches"],               // U: Scratches
+    params["Missing Parts"],           // V: Missing Parts
+    params["Physical Damage"],         // W: Physical Damage
+    params["Important Files"],         // X: Important Files
+    params["No Power"],                // Y: No Power
+    params["Repair History"],          // Z: Repair History
+    "",                                // AA: Service (empty initially)
+    params["Time Frame"],              // AB: Time Frame
+    "",                                // AC: Target Date
+    params["Estimated Cost"],          // AD: Estimated Cost
+    "",                                // AE: Technician Diagnosis
+    "",                                // AF: Final Cost
+    "",                                // AG: Suggested Repair
+    params["Acknowledgement 1"],       // AH: Acknowledgement 1
+    params["Acknowledgement 2"],       // AI: Acknowledgement 2
+    params["Acknowledgement 3"],       // AJ: Acknowledgement 3
+    "",                                // AK: Admin Notes
+    "",                                // AL: Admin Notes Internal
+    "",                                // AM: Technician Notes Internal
+    params["Technician Department"],   // AN: Technician Department
+    "",                                // AO: Tech Notes Customer
+    pdfUrl,                            // AP: PDF URL
+    "",                                // AQ: (empty)
+    "",                                // AR: (empty)
+    params["Has Password"],            // AS: Has Password (Yes/No)
+    params["Device Password"]          // AT: Device Password
   ];
   
   sheet.appendRow(row);
