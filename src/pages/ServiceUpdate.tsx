@@ -158,6 +158,28 @@ const ServiceUpdate = () => {
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateSuggestedRepair(data.data.suggestedRepair || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
+        
+        // Parse and load existing parts used
+        if (data.data.partsUsed) {
+          const partsMap: {[key: string]: number} = {};
+          // Parse format: "LCD Screen (2), Battery (1)"
+          const parts = data.data.partsUsed.split(',').map((p: string) => p.trim());
+          parts.forEach((partStr: string) => {
+            const match = partStr.match(/^(.+?)\s*\((\d+)\)$/);
+            if (match) {
+              const partName = match[1].trim();
+              const quantity = parseInt(match[2]);
+              // Find the inventory item by name
+              const item = inventory.find(i => i.name === partName);
+              if (item) {
+                partsMap[item.id] = quantity;
+              }
+            }
+          });
+          setSelectedParts(partsMap);
+        } else {
+          setSelectedParts({});
+        }
       } else {
         toast({
           title: "Not Found",
@@ -620,33 +642,50 @@ const ServiceUpdate = () => {
                           // Just update display - we'll filter in the map below
                         }}
                       />
-                      <div className="space-y-2 border rounded-md p-3">
+                      <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
                         {inventory.map((item) => {
                           const qty = selectedParts[item.id] || 0;
                           if (qty === 0) return null; // Only show selected parts
                           return (
-                            <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                              <div className="flex-1">
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-sm text-muted-foreground">
+                            <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{item.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">
                                   ID: {item.id} • ₱{item.cost} • Stock: {item.quantity}
                                 </p>
                               </div>
-                              <Input
-                                type="number"
-                                min="0"
-                                max={item.quantity}
-                                value={qty}
-                                onChange={(e) => {
-                                  const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity);
-                                  setSelectedParts(prev => ({
-                                    ...prev,
-                                    [item.id]: newQty
-                                  }));
-                                }}
-                                className="w-20"
-                                placeholder="Qty"
-                              />
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={item.quantity + qty}
+                                  value={qty}
+                                  onChange={(e) => {
+                                    const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity + qty);
+                                    if (newQty > 0) {
+                                      setSelectedParts(prev => ({
+                                        ...prev,
+                                        [item.id]: newQty
+                                      }));
+                                    }
+                                  }}
+                                  className="w-20"
+                                  placeholder="Qty"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    setSelectedParts(prev => {
+                                      const newParts = { ...prev };
+                                      delete newParts[item.id];
+                                      return newParts;
+                                    });
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
