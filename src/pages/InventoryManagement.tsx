@@ -950,7 +950,7 @@ const InventoryManagement = () => {
                                         <FileText className="h-4 w-4" />
                                         Recent Activity (Last 10 Logs)
                                       </h4>
-                                      <div className="space-y-2">
+                                      <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
                                         {itemLogs.map((log) => (
                                           <div key={log.logId} className="text-sm bg-background p-3 rounded border">
                                             <div className="flex justify-between items-start mb-1">
