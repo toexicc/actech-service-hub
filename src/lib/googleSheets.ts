@@ -474,6 +474,11 @@ function doPost(e) {
         // Update the specified columns
         if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician);
+        // Update Technician Department (Column AS)
+        if (params.technicianDepartment || params.department || params["Technician Department"]) {
+          var dept = params.technicianDepartment || params.department || params["Technician Department"];
+          sheet.getRange(i + 1, 45).setValue(dept); // Column AS - Technician Department
+        }
         if (params.priority) sheet.getRange(i + 1, 7).setValue(params.priority);
         if (params.clientType) sheet.getRange(i + 1, 8).setValue(params.clientType);
         if (params.services) sheet.getRange(i + 1, 27).setValue(params.services);
@@ -546,6 +551,11 @@ function doPost(e) {
       if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
         if (params.status) sheet.getRange(i + 1, 2).setValue(params.status); // Column B
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician); // Column D
+        // Update Technician Department (Column AS)
+        if (params.technicianDepartment || params.department || params["Technician Department"]) {
+          var dept = params.technicianDepartment || params.department || params["Technician Department"];
+          sheet.getRange(i + 1, 45).setValue(dept); // Column AS - Technician Department
+        }
         if (params.technicianDiagnosis) sheet.getRange(i + 1, 31).setValue(params.technicianDiagnosis); // Column AE
         if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG
         if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN
