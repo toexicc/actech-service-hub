@@ -36,7 +36,10 @@ const ActivityLogRow = ({ service, overdueStatus, inServiceDays, children }: Act
   return (
     <>
       <TableRow
-        className={cn(overdueStatus && "bg-destructive/10", "cursor-pointer hover:bg-muted/50")}
+        className={cn(
+          overdueStatus && !service.status?.toLowerCase().includes("completed") && "bg-destructive/10",
+          "cursor-pointer hover:bg-muted/50"
+        )}
         onClick={() => setExpanded(!expanded)}
       >
         {children}

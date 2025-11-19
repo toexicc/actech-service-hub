@@ -32,3 +32,16 @@ export const DEPARTMENTS = [
 ] as const;
 
 export type Department = typeof DEPARTMENTS[number];
+
+export const STATUS_OPTIONS = [
+  "Pending Diagnosis",
+  "Pending - Approval",
+  "Ongoing Service",
+  "Complete - Approval",
+  "Completed",
+  "On Hold",
+  "Cancelled",
+  "Closed"
+] as const;
+
+export type Status = typeof STATUS_OPTIONS[number];

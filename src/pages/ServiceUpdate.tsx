@@ -27,8 +27,6 @@ interface InventoryItem {
 const ServiceUpdate = () => {
   const navigate = useNavigate();
   const [serviceId, setServiceId] = useState("");
-  const [deviceType, setDeviceType] = useState("");
-  const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -199,10 +197,10 @@ const ServiceUpdate = () => {
     }
   };
   const handleSearch = async () => {
-    if (!serviceId || !deviceType) {
+    if (!serviceId) {
       toast({
-        title: "Missing Information",
-        description: "Please enter both Service ID and Device Type",
+        title: "Service ID Required",
+        description: "Please enter a service ID",
         variant: "destructive",
       });
       return;
@@ -211,14 +209,12 @@ const ServiceUpdate = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}&deviceType=${deviceType}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
       );
       const data = await response.json();
 
       if (data.status === "found") {
         setServiceData(data.data);
-        // Store the actual device type from the found service
-        setDeviceType(data.data.deviceType);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
@@ -362,68 +358,14 @@ const ServiceUpdate = () => {
         {/* Search Form */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="serviceId">Enter Service ID:</Label>
-                <Input
-                  id="serviceId"
-                  placeholder="Enter service ID"
-                  value={serviceId}
-                  onChange={(e) => setServiceId(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="deviceType">Select Device Type:</Label>
-                {!showOtherDeviceInput ? (
-                  <Select
-                    value={deviceType}
-                    onValueChange={(value) => {
-                      if (value === "Others") {
-                        setShowOtherDeviceInput(true);
-                        setDeviceType("");
-                      } else {
-                        setDeviceType(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select device type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
-                      <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
-                      <SelectItem value="iPad">iPad</SelectItem>
-                      <SelectItem value="Apple Watch">Apple Watch</SelectItem>
-                      <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
-                      <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
-                      <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
-                      <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
-                      <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
-                      <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
-                      <SelectItem value="Drone">Drone</SelectItem>
-                      <SelectItem value="Speakers">Speakers</SelectItem>
-                      <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
-                      <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
-                      <SelectItem value="Headphones">Headphones</SelectItem>
-                      <SelectItem value="Others">Others</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="deviceType"
-                    placeholder="Enter device type"
-                    value={deviceType}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setDeviceType(value);
-                      if (value === "") {
-                        setShowOtherDeviceInput(false);
-                      }
-                    }}
-                  />
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="serviceId">Enter Service ID:</Label>
+              <Input
+                id="serviceId"
+                placeholder="Enter service ID"
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+              />
             </div>
 
             <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
