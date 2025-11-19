@@ -1092,6 +1092,19 @@ function doPost(e) {
   } catch (error) {
     Logger.log("Error creating service folder: " + error);
   }
+
+  // Resolve target folder (service-specific if created, otherwise default)
+  var targetFolder = null;
+  try {
+    if (serviceFolderId) {
+      targetFolder = DriveApp.getFolderById(serviceFolderId);
+    } else {
+      // fallback folder
+      targetFolder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+    }
+  } catch (error) {
+    Logger.log("Error getting target folder: " + error);
+  }
   
   // Handle PDF file upload if present
   var pdfUrl = "";
@@ -1110,17 +1123,39 @@ function doPost(e) {
       pdfBlob = Utilities.newBlob(bytes, mimeType, fileName);
     }
 
-    if (pdfBlob) {
-      // Upload to service-specific folder if created, otherwise use default
-      var targetFolder = serviceFolderId 
-        ? DriveApp.getFolderById(serviceFolderId)
-        : DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+    if (pdfBlob && targetFolder) {
       var file = targetFolder.createFile(pdfBlob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       pdfUrl = file.getUrl();
     }
   } catch (error) {
     Logger.log("Error uploading PDF: " + error);
+  }
+
+  // Handle SIGNATURE upload if present
+  var signatureUrl = "";
+  try {
+    var signatureBlob = null;
+
+    // 1) If coming as real file (FormData.append("Signature", file))
+    if (e && e.files && e.files.Signature) {
+      signatureBlob = e.files.Signature;
+    }
+    // 2) Fallback: base64 fields (Signature_Base64, Signature_MimeType, Signature_FileName)
+    else if (params["Signature_Base64"]) {
+      var sigBytes = Utilities.base64Decode(params["Signature_Base64"]);
+      var sigMimeType = params["Signature_MimeType"] || "image/png";
+      var sigFileName = params["Signature_FileName"] || (baseName + "_signature.png");
+      signatureBlob = Utilities.newBlob(sigBytes, sigMimeType, sigFileName);
+    }
+
+    if (signatureBlob && targetFolder) {
+      var sigFile = targetFolder.createFile(signatureBlob);
+      sigFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      signatureUrl = sigFile.getUrl();
+    }
+  } catch (error) {
+    Logger.log("Error uploading signature: " + error);
   }
   
   // Map the form data to the correct columns
@@ -1161,9 +1196,9 @@ function doPost(e) {
     params["Acknowledgement 1"],       // AH: Acknowledgement 1
     params["Acknowledgement 2"],       // AI: Acknowledgement 2
     params["Acknowledgement 3"],       // AJ: Acknowledgement 3
-    "",                                // AK: Admin Notes
-    "",                                // AL: Admin Notes Internal
-    "",                                // AM: Technician Notes Internal
+    signatureUrl,                      // AK: Physical Signature URL
+    "",                                // AL: Admin Notes
+    "",                                // AM: Admin Notes Internal
     params["Technician Department"],   // AN: Technician Department
     "",                                // AO: Tech Notes Customer
     pdfUrl,                            // AP: PDF URL
