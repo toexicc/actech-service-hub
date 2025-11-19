@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { DEVICE_TYPES } from "@/lib/constants";
+import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -42,6 +43,7 @@ const formSchema = z.object({
   repairHistory: z.boolean().default(false),
   hasPassword: z.boolean().default(false),
   devicePassword: z.string().optional(),
+  physicalSignature: z.boolean().default(false),
   estimatedCost: z.number().min(1, "Estimated Cost is required"),
   timeFrame: z.string().min(1, "Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
@@ -64,6 +66,8 @@ const ServiceForm = () => {
   const [searchClientId, setSearchClientId] = useState("");
   const [adminList, setAdminList] = useState<string[]>([]);
   const [technicianList, setTechnicianList] = useState<Array<{name: string, department: string}>>([]);
+  const [signatureUrl, setSignatureUrl] = useState("");
+  const signatureRef = useRef<SignatureCanvasRef>(null);
 
 
   useEffect(() => {
@@ -272,6 +276,16 @@ const ServiceForm = () => {
   };
 
   const onSubmit = async (data: FormValues) => {
+    // Validate signature if required
+    if (data.physicalSignature && (!signatureUrl || (signatureRef.current?.isEmpty() ?? true))) {
+      toast({
+        title: "Signature Required",
+        description: "Please draw and save your signature before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -374,6 +388,26 @@ const ServiceForm = () => {
       formData.append("PDF_Base64", pdfBase64);
       formData.append("PDF_FileName", pdfFileName);
       formData.append("PDF_MimeType", "application/pdf");
+
+      // Handle signature if provided
+      if (data.physicalSignature && signatureUrl) {
+        // Convert base64 to blob
+        const signatureBase64 = signatureUrl.split(',')[1];
+        const byteCharacters = atob(signatureBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const signatureBlob = new Blob([byteArray], { type: 'image/png' });
+        const signatureFileName = `${finalServiceId}_signature.png`;
+        const signatureFile = new File([signatureBlob], signatureFileName, { type: 'image/png' });
+        
+        formData.append("Signature", signatureFile);
+        formData.append("Signature_Base64", signatureBase64);
+        formData.append("Signature_MimeType", "image/png");
+        formData.append("Signature_FileName", signatureFileName);
+      }
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -907,6 +941,19 @@ const ServiceForm = () => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="physicalSignature"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Physical Signature (Optional)</FormLabel>
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {form.watch("hasPassword") && (
@@ -924,6 +971,28 @@ const ServiceForm = () => {
                       </FormItem>
                     )}
                   />
+                </div>
+              )}
+
+              {form.watch("physicalSignature") && (
+                <div className="mt-4">
+                  <FormLabel>Client Signature:</FormLabel>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Please draw your signature below
+                  </p>
+                  <SignatureCanvasComponent 
+                    ref={signatureRef}
+                    onSave={(dataUrl) => {
+                      setSignatureUrl(dataUrl);
+                      toast({
+                        title: "Signature Saved",
+                        description: "Signature will be uploaded with the form",
+                      });
+                    }}
+                  />
+                  {signatureUrl && (
+                    <p className="text-sm text-green-600 mt-2">✓ Signature captured</p>
+                  )}
                 </div>
               )}
             </div>
