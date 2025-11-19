@@ -688,13 +688,13 @@ function doPost(e) {
         // Handle DEVICE REPORT photos if present
         try {
           var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
-          if (photoCount > 0 && e && e.files) {
+          if (photoCount > 0) {
             // Get or create the Google Drive folder URL from Column AQ (43)
             var folderUrl = data[i][42]; // Column AQ = index 42
             var folderId = null;
             
             if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
-              folderId = folderUrl.split("/folders/")[1];
+              folderId = folderUrl.split("/folders/")[1].split("?")[0];
             }
             
             // If no folder exists yet (older records), create one now
@@ -730,28 +730,45 @@ function doPost(e) {
               // Create Device Report folder if it doesn't exist
               if (!deviceReportFolder) {
                 deviceReportFolder = parentFolder.createFolder("Device Report");
+                Logger.log("Created Device Report subfolder");
               }
               
               var deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
               
-              // Upload each photo
+              // Upload each photo - FILES ARE IN e.parameter, NOT e.files!
               for (var photoIdx = 1; photoIdx <= photoCount; photoIdx++) {
                 var photoKey = "DeviceReportPhoto" + photoIdx;
-                if (e.files[photoKey]) {
-                  var photoBlob = e.files[photoKey];
-                  photoBlob.setName("device_report_" + photoIdx + "_" + params.serviceId + "_" + Date.now() + ".jpg");
-                  var photoFile = deviceReportFolder.createFile(photoBlob);
-                  photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-                  Logger.log("Uploaded Device Report photo " + photoIdx);
+                
+                // Check if photo exists in parameters
+                if (e && e.parameter && e.parameter[photoKey]) {
+                  try {
+                    // The file comes as a Blob object in e.parameter
+                    var photoBlob = e.parameter[photoKey];
+                    
+                    // Set a unique filename
+                    var filename = "device_report_" + photoIdx + "_" + params.serviceId + "_" + Date.now() + ".jpg";
+                    photoBlob.setName(filename);
+                    
+                    // Upload to Device Report folder
+                    var photoFile = deviceReportFolder.createFile(photoBlob);
+                    photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+                    Logger.log("Uploaded Device Report photo " + photoIdx + ": " + filename);
+                  } catch (uploadErr) {
+                    Logger.log("Error uploading photo " + photoIdx + ": " + uploadErr);
+                  }
+                } else {
+                  Logger.log("Photo " + photoIdx + " not found in parameters");
                 }
               }
               
               // Save Device Report folder URL to Column AV (48)
               sheet.getRange(i + 1, 48).setValue(deviceReportFolderUrl);
-              Logger.log("Device Report folder URL saved to Column AV");
+              Logger.log("Device Report folder URL saved to Column AV: " + deviceReportFolderUrl);
             } else {
               Logger.log("No parent folder found for Device Report");
             }
+          } else {
+            Logger.log("No photos to upload (photoCount = 0)");
           }
         } catch (photoErr) {
           Logger.log("Error uploading Device Report photos: " + photoErr);
