@@ -48,7 +48,7 @@ const ActivityLogRow = ({ service, overdueStatus, inServiceDays, children }: Act
       <TableRow
         className={cn(
           getStatusColor(),
-          overdueStatus && !service.status?.toLowerCase().includes("completed") && "border-l-4 border-l-destructive",
+          overdueStatus && !service.status?.toLowerCase().includes("completed") && "border-l-4 border-l-destructive bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/30",
           "cursor-pointer transition-colors"
         )}
         onClick={() => setExpanded(!expanded)}
