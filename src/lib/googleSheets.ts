@@ -47,12 +47,19 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //
 // 4. Add these columns to "Service Database" sheet:
 //    Column AN (40): Technician Department
-//    Column AK (37): Physical Signature URL (Google Drive link to signature image)
-//    Column AQ (43): Google Drive Folder URL
+//    Column AK (37): Physical Signature URL (Google Drive link to signature image) - uploaded by Apps Script
+//    Column AQ (43): Google Drive Folder URL - created by Apps Script
 //    Column AR (44): Has Password (Yes/No)
 //    Column AS (45): Device Password
 //    Column AT (46): Actual Cost (for Transaction Tracker profit calculations)
 //    Column AU (47): Parts Used
+//
+// 5. Update your Google Apps Script doPost handler to:
+//    - Accept 'Signature', 'Signature_Base64', 'Signature_MimeType', 'Signature_FileName' parameters
+//    - Create a folder in Google Drive for each service (serviceId_clientName_deviceType)
+//    - Upload the signature image to the folder
+//    - Save the signature image URL to Column AK (37)
+//    - Save the folder URL to Column AQ (43)
 //
 // Complete Google Apps Script code for your Google Sheet:
 /*
