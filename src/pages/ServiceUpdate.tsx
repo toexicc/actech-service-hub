@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
-import { FileText, Printer, Package } from "lucide-react";
+import { FileText, Printer, Package, Camera } from "lucide-react";
+import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
@@ -34,6 +35,7 @@ const ServiceUpdate = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
   const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
+  const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const { toast } = useToast();
 
   const username = sessionStorage.getItem("username") || "Unknown";
@@ -284,6 +286,12 @@ const ServiceUpdate = () => {
       formData.append("username", username);
       formData.append("userRole", userRole);
 
+      // Append Device Report photos
+      deviceReportPhotos.forEach((photo, index) => {
+        formData.append(`DeviceReportPhoto${index + 1}`, photo);
+      });
+      formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
+
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
@@ -315,8 +323,9 @@ const ServiceUpdate = () => {
           title: "Success",
           description: "Service information updated successfully",
         });
-        // Clear selected parts
+        // Clear selected parts and device report photos
         setSelectedParts({});
+        setDeviceReportPhotos([]);
         // Refresh the data
         handleSearch();
         fetchInventory();
@@ -604,6 +613,14 @@ const ServiceUpdate = () => {
                     rows={4}
                   />
                 </div>
+
+                <Separator />
+
+                {/* Device Report Photo Upload */}
+                <DeviceReportUpload 
+                  photos={deviceReportPhotos}
+                  onPhotosChange={setDeviceReportPhotos}
+                />
 
                 <Separator />
 
