@@ -22,8 +22,6 @@ import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 const ManageClient = () => {
   const navigate = useNavigate();
   const [serviceId, setServiceId] = useState("");
-  const [deviceType, setDeviceType] = useState("");
-  const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -112,10 +110,10 @@ const ManageClient = () => {
   }, []);
   
   const handleSearch = async () => {
-    if (!serviceId || !deviceType) {
+    if (!serviceId) {
       toast({
-        title: "Missing Information",
-        description: "Please enter both Service ID and Device Type",
+        title: "Service ID Required",
+        description: "Please enter a service ID",
         variant: "destructive",
       });
       return;
@@ -124,7 +122,7 @@ const ManageClient = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}&deviceType=${deviceType}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
       );
       const data = await response.json();
 
@@ -182,7 +180,7 @@ const ManageClient = () => {
         username: serviceData.username || serviceData.clientName || "",
         phone: String(serviceData.phone || ""),
         email: serviceData.email || "",
-        deviceType: serviceData.deviceType || deviceType,
+        deviceType: serviceData.deviceType || "",
         serial: serviceData.serialNumber || "",
         brand: serviceData.brand || "",
         color: color?.trim() || "",
@@ -246,7 +244,7 @@ const ManageClient = () => {
       // Provide extra fields some GAS scripts expect for naming
       formData.append("Serial", serviceData.serialNumber || "");
       formData.append("Client Name", serviceData.clientName || "");
-      formData.append("Device Type", serviceData.deviceType || deviceType || "");
+      formData.append("Device Type", serviceData.deviceType || "");
 
       // Attach PDF using both multipart and base64 fallbacks
       formData.append("PDF", pdfBlob, updatedFileName);
@@ -342,42 +340,14 @@ const ManageClient = () => {
         {/* Search Form */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="serviceId">Enter Service ID:</Label>
-                <Input
-                  id="serviceId"
-                  placeholder="Enter service ID"
-                  value={serviceId}
-                  onChange={(e) => setServiceId(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="deviceType">Select Device Type:</Label>
-                <Select value={deviceType} onValueChange={setDeviceType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select device type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
-                    <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
-                    <SelectItem value="iPad">iPad</SelectItem>
-                    <SelectItem value="Apple Watch">Apple Watch</SelectItem>
-                    <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
-                    <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
-                    <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
-                    <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
-                    <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
-                    <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
-                    <SelectItem value="Drone">Drone</SelectItem>
-                    <SelectItem value="Speakers">Speakers</SelectItem>
-                    <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
-                    <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
-                    <SelectItem value="Headphones">Headphones</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="serviceId">Enter Service ID:</Label>
+              <Input
+                id="serviceId"
+                placeholder="Enter service ID"
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+              />
             </div>
 
             <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">

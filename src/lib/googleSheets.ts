@@ -636,7 +636,7 @@ function doPost(e) {
                 if (invData[j][0] === partId) {
                   var previousStockQty = parseInt(invData[j][5] || 0);
                   var newStockQty = Math.max(0, previousStockQty - delta);
-                  var transactionType = delta > 0 ? "Removed" : "Returned";
+                  var transactionType = delta > 0 ? "Used in Service" : "Returned";
                   
                   // Update inventory quantity
                   inventorySheet.getRange(j + 1, 6).setValue(newStockQty);
@@ -648,6 +648,10 @@ function doPost(e) {
                   
                   // Log the change
                   var logId = "LOG" + Date.now() + "_" + j;
+                  var remark = transactionType === "Used in Service" 
+                    ? "Service ID: " + params.serviceId 
+                    : "Returned from Service ID: " + params.serviceId;
+                  
                   logSheet.appendRow([
                     logId,
                     partId,
@@ -658,7 +662,7 @@ function doPost(e) {
                     previousStockQty,
                     newStockQty,
                     timestamp,
-                    "Service ID: " + params.serviceId + " (Updated)",
+                    remark,
                     params.username || "Unknown",
                     params.userRole || "Technician"
                   ]);

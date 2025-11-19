@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { STATUS_OPTIONS } from "@/lib/constants";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/ac-tech-logo.jpg";
@@ -41,6 +42,7 @@ const ServiceTracker = () => {
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [techniciansWithDept, setTechniciansWithDept] = useState<Array<{name: string, department: string}>>([]);
@@ -243,6 +245,11 @@ const ServiceTracker = () => {
         }
       }
 
+      // Status filter
+      if (statusFilter !== "all" && service.status !== statusFilter) {
+        return false;
+      }
+
       // Date range filter - filter by TARGET DATE
       if (startDate || endDate) {
         try {
@@ -312,7 +319,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter, techniciansWithDept]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter, techniciansWithDept]);
 
   const departments = useMemo(() => {
     const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
@@ -470,7 +477,22 @@ const ServiceTracker = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Start Date</Label>
+                <Label>Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {STATUS_OPTIONS.map(status => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Sort By</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
