@@ -1157,6 +1157,31 @@ function doPost(e) {
   } catch (error) {
     Logger.log("Error uploading signature: " + error);
   }
+
+  // Handle DEVICE REPORT photos if present
+  var deviceReportFolderUrl = "";
+  try {
+    var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
+    if (photoCount > 0 && targetFolder) {
+      // Create Device Report subfolder
+      var deviceReportFolder = targetFolder.createFolder("Device Report");
+      deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
+      
+      // Upload each photo
+      for (var i = 1; i <= photoCount; i++) {
+        var photoKey = "DeviceReportPhoto" + i;
+        if (e && e.files && e.files[photoKey]) {
+          var photoBlob = e.files[photoKey];
+          photoBlob.setName("device_report_" + i + "_" + baseName + ".jpg");
+          var photoFile = deviceReportFolder.createFile(photoBlob);
+          photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          Logger.log("Uploaded Device Report photo " + i);
+        }
+      }
+    }
+  } catch (error) {
+    Logger.log("Error uploading device report photos: " + error);
+  }
   
   // Map the form data to the correct columns
   var row = [
@@ -1206,7 +1231,8 @@ function doPost(e) {
     params["Has Password"],            // AR: Has Password (Yes/No)
     params["Device Password"],         // AS: Device Password
     "",                                // AT: Actual Cost
-    ""                                 // AU: Parts Used
+    "",                                // AU: Parts Used
+    deviceReportFolderUrl              // AV: Device Report Folder URL
   ];
   
   sheet.appendRow(row);

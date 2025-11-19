@@ -33,12 +33,23 @@ const ActivityLogRow = ({ service, overdueStatus, inServiceDays, children }: Act
     enabled: expanded,
   });
 
+  // Status-based row colors
+  const getStatusColor = () => {
+    const status = service.status?.toLowerCase() || '';
+    if (status.includes('completed')) return 'bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/30';
+    if (status.includes('ongoing')) return 'bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/30';
+    if (status.includes('on hold')) return 'bg-yellow-50 dark:bg-yellow-950/20 hover:bg-yellow-100 dark:hover:bg-yellow-950/30';
+    if (status.includes('cancelled') || status.includes('closed')) return 'bg-gray-100 dark:bg-gray-800/20 hover:bg-gray-200 dark:hover:bg-gray-800/30';
+    return 'hover:bg-muted/50';
+  };
+
   return (
     <>
       <TableRow
         className={cn(
-          overdueStatus && !service.status?.toLowerCase().includes("completed") && "bg-destructive/10",
-          "cursor-pointer hover:bg-muted/50"
+          getStatusColor(),
+          overdueStatus && !service.status?.toLowerCase().includes("completed") && "border-l-4 border-l-destructive",
+          "cursor-pointer transition-colors"
         )}
         onClick={() => setExpanded(!expanded)}
       >
