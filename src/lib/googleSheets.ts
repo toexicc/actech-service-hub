@@ -47,6 +47,8 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //
 // 4. Add these columns to "Service Database" sheet:
 //    Column AN (40): Technician Department
+//    Column AK (37): Physical Signature URL (Google Drive link to signature image)
+//    Column AQ (43): Google Drive Folder URL
 //    Column AR (44): Has Password (Yes/No)
 //    Column AS (45): Device Password
 //    Column AT (46): Actual Cost (for Transaction Tracker profit calculations)
