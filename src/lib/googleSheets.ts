@@ -1214,29 +1214,38 @@ function doPost(e) {
     Logger.log("Error uploading signature: " + error);
   }
 
-  // Handle DEVICE REPORT photos if present
+  // Handle DEVICE REPORT folder and optional photos
   var deviceReportFolderUrl = "";
   try {
-    var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
-    if (photoCount > 0 && targetFolder) {
-      // Create Device Report subfolder
-      var deviceReportFolder = targetFolder.createFolder("Device Report");
+    if (targetFolder) {
+      // Reuse existing Device Report subfolder if it exists, otherwise create it
+      var deviceReportFolder = null;
+      var existingDeviceReportFolders = targetFolder.getFoldersByName("Device Report");
+      if (existingDeviceReportFolders.hasNext()) {
+        deviceReportFolder = existingDeviceReportFolders.next();
+      } else {
+        deviceReportFolder = targetFolder.createFolder("Device Report");
+      }
+
       deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
-      
-      // Upload each photo
-      for (var i = 1; i <= photoCount; i++) {
-        var photoKey = "DeviceReportPhoto" + i;
-        if (e && e.files && e.files[photoKey]) {
-          var photoBlob = e.files[photoKey];
-          photoBlob.setName("device_report_" + i + "_" + baseName + ".jpg");
-          var photoFile = deviceReportFolder.createFile(photoBlob);
-          photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          Logger.log("Uploaded Device Report photo " + i);
+
+      // Upload photos if any were sent with the request
+      var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
+      if (photoCount > 0 && e && e.files) {
+        for (var i = 1; i <= photoCount; i++) {
+          var photoKey = "DeviceReportPhoto" + i;
+          if (e.files[photoKey]) {
+            var photoBlob = e.files[photoKey];
+            photoBlob.setName("device_report_" + i + "_" + baseName + ".jpg");
+            var photoFile = deviceReportFolder.createFile(photoBlob);
+            photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            Logger.log("Uploaded Device Report photo " + i);
+          }
         }
       }
     }
   } catch (error) {
-    Logger.log("Error uploading device report photos: " + error);
+    Logger.log("Error handling device report folder/photos: " + error);
   }
   
   // Map the form data to the correct columns
