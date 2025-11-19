@@ -684,6 +684,62 @@ function doPost(e) {
           Logger.log("Error processing parts changes: " + err);
         }
         
+        // Handle DEVICE REPORT photos if present
+        try {
+          var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
+          if (photoCount > 0 && e && e.files) {
+            // Get the Google Drive folder URL from Column AQ (43)
+            var folderUrl = data[i][42]; // Column AQ = index 42
+            var folderId = null;
+            
+            if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
+              folderId = folderUrl.split("/folders/")[1];
+            }
+            
+            if (folderId) {
+              var parentFolder = DriveApp.getFolderById(folderId);
+              
+              // Check if Device Report folder already exists
+              var deviceReportFolder = null;
+              var folders = parentFolder.getFolders();
+              while (folders.hasNext()) {
+                var folder = folders.next();
+                if (folder.getName() === "Device Report") {
+                  deviceReportFolder = folder;
+                  break;
+                }
+              }
+              
+              // Create Device Report folder if it doesn't exist
+              if (!deviceReportFolder) {
+                deviceReportFolder = parentFolder.createFolder("Device Report");
+              }
+              
+              var deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
+              
+              // Upload each photo
+              for (var photoIdx = 1; photoIdx <= photoCount; photoIdx++) {
+                var photoKey = "DeviceReportPhoto" + photoIdx;
+                if (e.files[photoKey]) {
+                  var photoBlob = e.files[photoKey];
+                  photoBlob.setName("device_report_" + photoIdx + "_" + params.serviceId + "_" + Date.now() + ".jpg");
+                  var photoFile = deviceReportFolder.createFile(photoBlob);
+                  photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+                  Logger.log("Uploaded Device Report photo " + photoIdx);
+                }
+              }
+              
+              // Save Device Report folder URL to Column AV (48)
+              sheet.getRange(i + 1, 48).setValue(deviceReportFolderUrl);
+              Logger.log("Device Report folder URL saved to Column AV");
+            } else {
+              Logger.log("No parent folder found for Device Report");
+            }
+          }
+        } catch (photoErr) {
+          Logger.log("Error uploading Device Report photos: " + photoErr);
+        }
+        
         return ContentService.createTextOutput(JSON.stringify({
           "result": "success"
         })).setMimeType(ContentService.MimeType.JSON);

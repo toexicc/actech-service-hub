@@ -296,8 +296,21 @@ const ServiceTracker = () => {
       return true;
     });
 
-    // Sort
+    // Sort: Put completed/closed/cancelled services at the bottom
     filtered.sort((a, b) => {
+      // First, check if either service is completed/closed/cancelled
+      const aIsCompleted = a.status?.toLowerCase().includes('completed') || 
+                          a.status?.toLowerCase().includes('closed') || 
+                          a.status?.toLowerCase().includes('cancelled');
+      const bIsCompleted = b.status?.toLowerCase().includes('completed') || 
+                          b.status?.toLowerCase().includes('closed') || 
+                          b.status?.toLowerCase().includes('cancelled');
+      
+      // If one is completed and the other isn't, put completed at the bottom
+      if (aIsCompleted && !bIsCompleted) return 1;
+      if (!aIsCompleted && bIsCompleted) return -1;
+      
+      // Both are either completed or not completed, sort by selected field
       let compareValue = 0;
 
       switch (sortField) {
