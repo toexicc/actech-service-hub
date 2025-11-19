@@ -941,19 +941,6 @@ const ServiceForm = () => {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="physicalSignature"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <FormLabel className="!mt-0">Physical Signature (Optional)</FormLabel>
-                    </FormItem>
-                  )}
-                />
               </div>
 
               {form.watch("hasPassword") && (
@@ -971,28 +958,6 @@ const ServiceForm = () => {
                       </FormItem>
                     )}
                   />
-                </div>
-              )}
-
-              {form.watch("physicalSignature") && (
-                <div className="mt-4">
-                  <FormLabel>Client Signature:</FormLabel>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Please draw your signature below
-                  </p>
-                  <SignatureCanvasComponent 
-                    ref={signatureRef}
-                    onSave={(dataUrl) => {
-                      setSignatureUrl(dataUrl);
-                      toast({
-                        title: "Signature Saved",
-                        description: "Signature will be uploaded with the form",
-                      });
-                    }}
-                  />
-                  {signatureUrl && (
-                    <p className="text-sm text-green-600 mt-2">✓ Signature captured</p>
-                  )}
                 </div>
               )}
             </div>
@@ -1117,7 +1082,47 @@ const ServiceForm = () => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="physicalSignature"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="flex-1">
+                        <FormLabel className="!mt-0 text-sm">
+                          Physical Signature (Optional)
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </div>
+
+              {form.watch("physicalSignature") && (
+                <div className="mt-4">
+                  <FormLabel>Client Signature:</FormLabel>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Please draw your signature below
+                  </p>
+                  <SignatureCanvasComponent 
+                    ref={signatureRef}
+                    onSave={(dataUrl) => {
+                      setSignatureUrl(dataUrl);
+                      toast({
+                        title: "Signature Saved",
+                        description: "Signature will be uploaded with the form",
+                      });
+                    }}
+                  />
+                  {signatureUrl && (
+                    <p className="text-sm text-green-600 mt-2">✓ Signature captured</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
