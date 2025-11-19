@@ -13,8 +13,8 @@ const MAX_PHOTOS = 5;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploadProps) => {
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
 
   const compressImage = async (file: File): Promise<File> => {
@@ -156,6 +156,14 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
           />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
+          />
           <Button
             type="button"
             variant="outline"
@@ -168,14 +176,7 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = 'image/*';
-              input.capture = 'environment';
-              input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement).files);
-              input.click();
-            }}
+            onClick={() => cameraInputRef.current?.click()}
             className="flex-1"
           >
             <Camera className="h-4 w-4 mr-2" />

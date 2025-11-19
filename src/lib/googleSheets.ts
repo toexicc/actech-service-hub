@@ -115,7 +115,8 @@ function doGet(e) {
             "pdfUrl": data[i][41],
             "hasPassword": data[i][43],
             "devicePassword": data[i][44],
-            "technicianDepartment": data[i][39]
+            "technicianDepartment": data[i][39],
+            "deviceReportFolderUrl": data[i][47]
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -688,12 +689,28 @@ function doPost(e) {
         try {
           var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
           if (photoCount > 0 && e && e.files) {
-            // Get the Google Drive folder URL from Column AQ (43)
+            // Get or create the Google Drive folder URL from Column AQ (43)
             var folderUrl = data[i][42]; // Column AQ = index 42
             var folderId = null;
             
             if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
               folderId = folderUrl.split("/folders/")[1];
+            }
+            
+            // If no folder exists yet (older records), create one now
+            if (!folderId) {
+              try {
+                var parentFolderForService = DriveApp.getFolderById("1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J");
+                var newServiceFolderName = params.serviceId + " - " + (data[i][8] || "Unknown Client");
+                var newServiceFolder = parentFolderForService.createFolder(newServiceFolderName);
+                folderId = newServiceFolder.getId();
+                folderUrl = "https://drive.google.com/drive/folders/" + folderId;
+                // Save the new service folder link back to Column AQ (43)
+                sheet.getRange(i + 1, 43).setValue(folderUrl);
+                Logger.log("Created new service folder for Device Report: " + folderUrl);
+              } catch (folderErr) {
+                Logger.log("Error creating service folder for Device Report: " + folderErr);
+              }
             }
             
             if (folderId) {
