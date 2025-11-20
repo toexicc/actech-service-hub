@@ -8,12 +8,23 @@ interface DeviceReportUploadProps {
   photos: File[];
   onPhotosChange: (photos: File[]) => void;
   existingPhotoUrls?: string[];
+  onRemoveExistingPhoto?: (index: number) => void;
 }
 
 const MAX_PHOTOS = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls }: DeviceReportUploadProps) => {
+export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, onRemoveExistingPhoto }: DeviceReportUploadProps) => {
+  
+  const getDisplayPhotoUrl = (url: string): string => {
+    if (!url) return url;
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (idMatch) {
+      const id = idMatch[1];
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+    }
+    return url;
+  };
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -206,12 +217,23 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls }
               className="relative group aspect-square rounded-lg overflow-hidden border"
             >
               <img
-                src={url}
+                src={getDisplayPhotoUrl(url)}
                 alt={`Existing device report ${index + 1}`}
                 loading="lazy"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
+              {onRemoveExistingPhoto && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => onRemoveExistingPhoto(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           ))}
 

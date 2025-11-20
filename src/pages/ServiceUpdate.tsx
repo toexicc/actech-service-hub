@@ -671,6 +671,9 @@ const ServiceUpdate = () => {
                   photos={deviceReportPhotos}
                   onPhotosChange={setDeviceReportPhotos}
                   existingPhotoUrls={existingDeviceReportPhotoUrls}
+                  onRemoveExistingPhoto={(index) => {
+                    setExistingDeviceReportPhotoUrls(prev => prev.filter((_, i) => i !== index));
+                  }}
                 />
 
                 <Separator />
