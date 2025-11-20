@@ -688,16 +688,16 @@ function doPost(e) {
         // Handle DEVICE REPORT photos if present
         try {
           var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
+          Logger.log("Photo count: " + photoCount);
+          
           if (photoCount > 0) {
-            // Get or create the Google Drive folder URL from Column AQ (43)
-            var folderUrl = data[i][42]; // Column AQ = index 42
+            var folderUrl = data[i][42]; // Column AQ
             var folderId = null;
             
             if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
               folderId = folderUrl.split("/folders/")[1].split("?")[0];
             }
             
-            // If no folder exists yet (older records), create one now
             if (!folderId) {
               try {
                 var parentFolderForService = DriveApp.getFolderById("1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J");
@@ -705,20 +705,18 @@ function doPost(e) {
                 var newServiceFolder = parentFolderForService.createFolder(newServiceFolderName);
                 folderId = newServiceFolder.getId();
                 folderUrl = "https://drive.google.com/drive/folders/" + folderId;
-                // Save the new service folder link back to Column AQ (43)
                 sheet.getRange(i + 1, 43).setValue(folderUrl);
-                Logger.log("Created new service folder for Device Report: " + folderUrl);
+                Logger.log("Created service folder: " + folderUrl);
               } catch (folderErr) {
-                Logger.log("Error creating service folder for Device Report: " + folderErr);
+                Logger.log("Folder creation error: " + folderErr);
               }
             }
             
             if (folderId) {
               var parentFolder = DriveApp.getFolderById(folderId);
-              
-              // Check if Device Report folder already exists
               var deviceReportFolder = null;
               var folders = parentFolder.getFolders();
+              
               while (folders.hasNext()) {
                 var folder = folders.next();
                 if (folder.getName() === "Device Report") {
@@ -727,48 +725,38 @@ function doPost(e) {
                 }
               }
               
-              // Create Device Report folder if it doesn't exist
               if (!deviceReportFolder) {
                 deviceReportFolder = parentFolder.createFolder("Device Report");
-                Logger.log("Created Device Report subfolder");
+                Logger.log("Created Device Report folder");
               }
               
               var deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
               
-              // Upload each photo - use e.files for uploaded blobs
               for (var photoIdx = 1; photoIdx <= photoCount; photoIdx++) {
                 var photoKey = "DeviceReportPhoto" + photoIdx;
-
+                
                 if (e && e.files && e.files[photoKey]) {
                   try {
                     var photoBlob = e.files[photoKey];
                     var filename = "device_report_" + photoIdx + "_" + params.serviceId + "_" + Date.now() + ".jpg";
                     photoBlob.setName(filename);
-
                     var photoFile = deviceReportFolder.createFile(photoBlob);
                     photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-                    Logger.log("Uploaded Device Report photo " + photoIdx + ": " + filename);
+                    Logger.log("Uploaded photo " + photoIdx);
                   } catch (uploadErr) {
-                    Logger.log("Error uploading photo " + photoIdx + ": " + uploadErr);
+                    Logger.log("Upload error " + photoIdx + ": " + uploadErr);
                   }
                 } else {
-                  Logger.log("Photo " + photoIdx + " not found in e.files");
-                }
-              }
+                  Logger.log("Photo " + photoIdx + " not in e.files");
                 }
               }
               
-              // Save Device Report folder URL to Column AV (48)
               sheet.getRange(i + 1, 48).setValue(deviceReportFolderUrl);
-              Logger.log("Device Report folder URL saved to Column AV: " + deviceReportFolderUrl);
-            } else {
-              Logger.log("No parent folder found for Device Report");
+              Logger.log("Saved folder URL to column AV");
             }
-          } else {
-            Logger.log("No photos to upload (photoCount = 0)");
           }
         } catch (photoErr) {
-          Logger.log("Error uploading Device Report photos: " + photoErr);
+          Logger.log("Photo process error: " + photoErr);
         }
         
         return ContentService.createTextOutput(JSON.stringify({
