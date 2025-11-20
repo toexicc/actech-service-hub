@@ -782,15 +782,17 @@ function doPost(e) {
     try {
       var folderId = params.folderId;
       var folder = DriveApp.getFolderById(folderId);
-      var files = folder.getFilesByType(MimeType.JPEG);
+      var files = folder.getFiles();
       var photos = [];
       
       while (files.hasNext()) {
         var file = files.next();
-        // Get direct view link
-        var fileId = file.getId();
-        var viewUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
-        photos.push(viewUrl);
+        var mime = file.getMimeType();
+        if (mime && mime.indexOf('image/') === 0) {
+          var fileId = file.getId();
+          var viewUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
+          photos.push(viewUrl);
+        }
       }
       
       return ContentService.createTextOutput(JSON.stringify({
