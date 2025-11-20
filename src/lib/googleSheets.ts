@@ -25,6 +25,7 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * - updateTechnicianService: Updates service from technician portal
  * - getAllServices: Returns ALL services (for Service Tracker with filtering)
  * - getAllOngoingServices: Returns only non-completed services
+ * - getDeviceReportPhotos: Returns photo URLs from Google Drive folder (folderId parameter)
  *
  * ACTIVITY LOGS:
  * - getServiceLogs: Gets activity logs for a service
@@ -774,6 +775,34 @@ function doPost(e) {
       "result": "not_found",
       "message": "Service ID not found or device type mismatch"
     })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle get device report photos from Google Drive folder
+  if (params.action === 'getDeviceReportPhotos') {
+    try {
+      var folderId = params.folderId;
+      var folder = DriveApp.getFolderById(folderId);
+      var files = folder.getFilesByType(MimeType.JPEG);
+      var photos = [];
+      
+      while (files.hasNext()) {
+        var file = files.next();
+        // Get direct view link
+        var fileId = file.getId();
+        var viewUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
+        photos.push(viewUrl);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "success",
+        "photos": photos
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
   }
   
   // Handle add inventory item requests

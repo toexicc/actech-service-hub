@@ -223,6 +223,13 @@ const ServiceUpdate = () => {
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateSuggestedRepair(data.data.suggestedRepair || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
+        
+        // Load existing photos from Google Drive folder
+        if (data.data.deviceReportFolderUrl) {
+          await loadExistingPhotos(data.data.deviceReportFolderUrl);
+        } else {
+          setDeviceReportPhotos([]);
+        }
       } else {
         toast({
           title: "Not Found",
@@ -230,6 +237,7 @@ const ServiceUpdate = () => {
           variant: "destructive",
         });
         setServiceData(null);
+        setDeviceReportPhotos([]);
       }
     } catch (error) {
       toast({
@@ -240,6 +248,36 @@ const ServiceUpdate = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadExistingPhotos = async (folderUrl: string) => {
+    try {
+      const folderId = extractFolderIdFromUrl(folderUrl);
+      if (!folderId) return;
+
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
+      );
+      const data = await response.json();
+
+      if (data.status === "success" && data.photos && data.photos.length > 0) {
+        // Convert URLs to File objects for the upload component
+        const photoFiles = await Promise.all(
+          data.photos.map(async (url: string, index: number) => {
+            const blob = await fetch(url).then(r => r.blob());
+            return new File([blob], `existing_photo_${index + 1}.jpg`, { type: 'image/jpeg' });
+          })
+        );
+        setDeviceReportPhotos(photoFiles);
+      }
+    } catch (error) {
+      console.error("Error loading existing photos:", error);
+    }
+  };
+
+  const extractFolderIdFromUrl = (url: string): string | null => {
+    const match = url.match(/folders\/([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : null;
   };
 
   const handleUpdate = async () => {

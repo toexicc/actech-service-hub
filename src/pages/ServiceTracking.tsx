@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
-import { Search, User, FileText } from "lucide-react";
+import { Search, User, FileText, Image as ImageIcon } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface CustomerData {
@@ -44,7 +44,53 @@ const ServiceTracking = () => {
   const [customerData, setCustomerData] = useState<CustomerData | null>(null);
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
   
+  // Device report photos
+  const [devicePhotos, setDevicePhotos] = useState<string[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  
   const { toast } = useToast();
+
+  // Fetch photos from Google Drive folder
+  useEffect(() => {
+    const fetchDevicePhotos = async () => {
+      if (!serviceData?.deviceReportFolderUrl) {
+        setDevicePhotos([]);
+        return;
+      }
+
+      setLoadingPhotos(true);
+      try {
+        const folderId = extractFolderIdFromUrl(serviceData.deviceReportFolderUrl);
+        if (!folderId) {
+          setDevicePhotos([]);
+          return;
+        }
+
+        const response = await fetch(
+          `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
+        );
+        const data = await response.json();
+
+        if (data.status === "success" && data.photos) {
+          setDevicePhotos(data.photos);
+        } else {
+          setDevicePhotos([]);
+        }
+      } catch (error) {
+        console.error("Error fetching device photos:", error);
+        setDevicePhotos([]);
+      } finally {
+        setLoadingPhotos(false);
+      }
+    };
+
+    fetchDevicePhotos();
+  }, [serviceData]);
+
+  const extractFolderIdFromUrl = (url: string): string | null => {
+    const match = url.match(/folders\/([a-zA-Z0-9_-]+)/);
+    return match ? match[1] : null;
+  };
 
   const handleSearch = async () => {
     if (!serviceId) {
@@ -327,18 +373,33 @@ const ServiceTracking = () => {
               {/* Device Report Gallery */}
               {serviceData.deviceReportFolderUrl && (
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Device Report</h3>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => window.open(serviceData.deviceReportFolderUrl, '_blank')}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    View Device Report Photos
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Click to view all device report photos in Google Drive
-                  </p>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Device Report Photos
+                  </h3>
+                  
+                  {loadingPhotos ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Loading photos...
+                    </div>
+                  ) : devicePhotos.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {devicePhotos.map((photoUrl, index) => (
+                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
+                          <img
+                            src={photoUrl}
+                            alt={`Device report ${index + 1}`}
+                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => window.open(photoUrl, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                      No photos available
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -171,7 +171,7 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
             ref={cameraInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
+            capture="user"
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
           />
