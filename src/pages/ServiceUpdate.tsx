@@ -36,6 +36,7 @@ const ServiceUpdate = () => {
   const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
   const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
+  const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
   const { toast } = useToast();
 
   const username = sessionStorage.getItem("username") || "Unknown";
@@ -266,15 +267,9 @@ const ServiceUpdate = () => {
       console.log("[UPDATE] Existing photos response", data);
 
       if (data.status === "success" && data.photos && data.photos.length > 0) {
-        // Convert URLs to File objects for the upload component
-        const photoFiles = await Promise.all(
-          data.photos.map(async (url: string, index: number) => {
-            const blob = await fetch(url).then(r => r.blob());
-            return new File([blob], `existing_photo_${index + 1}.jpg`, { type: 'image/jpeg' });
-          })
-        );
-        setDeviceReportPhotos(photoFiles);
+        setExistingDeviceReportPhotoUrls(data.photos);
       }
+
     } catch (error) {
       console.error("Error loading existing photos:", error);
     }
@@ -675,6 +670,7 @@ const ServiceUpdate = () => {
                 <DeviceReportUpload 
                   photos={deviceReportPhotos}
                   onPhotosChange={setDeviceReportPhotos}
+                  existingPhotoUrls={existingDeviceReportPhotoUrls}
                 />
 
                 <Separator />
