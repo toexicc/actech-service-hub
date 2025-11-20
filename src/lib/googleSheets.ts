@@ -512,6 +512,34 @@ function doGet(e) {
 function doPost(e) {
   var params = e.parameter;
   
+  // Handle device report photo deletion (Service Update page)
+  if (params.action === 'deleteDeviceReportPhoto') {
+    try {
+      var serviceId = params.serviceId;
+      var fileId = params.fileId;
+      
+      if (!serviceId || !fileId) {
+        return ContentService.createTextOutput(JSON.stringify({
+          result: 'error',
+          message: 'Missing serviceId or fileId'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      var file = DriveApp.getFileById(fileId);
+      // Move the file to trash so it is no longer listed in the folder
+      file.setTrashed(true);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        result: 'success'
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        result: 'error',
+        message: err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
   // Handle update requests for Manage Client
   if (params.action === 'updateService' && params.serviceId) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
