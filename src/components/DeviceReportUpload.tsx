@@ -9,7 +9,7 @@ interface DeviceReportUploadProps {
   onPhotosChange: (photos: File[]) => void;
 }
 
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploadProps) => {
