@@ -323,9 +323,8 @@ const ServiceUpdate = () => {
           title: "Success",
           description: "Service information updated successfully",
         });
-        // Clear selected parts and device report photos
+        // Clear selected parts; keep device report photos so technician can confirm uploads
         setSelectedParts({});
-        setDeviceReportPhotos([]);
         // Refresh the data
         handleSearch();
         fetchInventory();
