@@ -671,8 +671,36 @@ const ServiceUpdate = () => {
                   photos={deviceReportPhotos}
                   onPhotosChange={setDeviceReportPhotos}
                   existingPhotoUrls={existingDeviceReportPhotoUrls}
-                  onRemoveExistingPhoto={(index) => {
-                    setExistingDeviceReportPhotoUrls(prev => prev.filter((_, i) => i !== index));
+                  onRemoveExistingPhoto={async (index) => {
+                    const photoUrl = existingDeviceReportPhotoUrls[index];
+                    try {
+                      // Extract file ID from Google Drive URL
+                      const idMatch = photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                      if (idMatch && serviceId) {
+                        const fileId = idMatch[1];
+                        // Call backend to delete the photo
+                        await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=deleteDeviceReportPhoto`, {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            serviceId,
+                            fileId
+                          })
+                        });
+                      }
+                      // Remove from local state
+                      setExistingDeviceReportPhotoUrls(prev => prev.filter((_, i) => i !== index));
+                      toast({
+                        title: "Photo Deleted",
+                        description: "Photo removed successfully",
+                      });
+                    } catch (error) {
+                      console.error("Error deleting photo:", error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to delete photo",
+                        variant: "destructive"
+                      });
+                    }
                   }}
                 />
 

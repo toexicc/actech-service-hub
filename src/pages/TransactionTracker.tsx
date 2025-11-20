@@ -163,8 +163,12 @@ const TransactionTracker = () => {
         // Commission is editable per row
         serviceCommission = screenCommissions[service.serviceId] || 0;
       } else if (service.department === "Mobile (Logic Board)") {
-        // No commission per service for this department
-        serviceCommission = 0;
+        // Net profit is 50% of gross sales
+        const netSales = (service.quotedPrice || 0) * 0.50;
+        // Commission is 50% of net profit
+        serviceCommission = netSales * 0.50;
+        // Adjust cost to reflect the net profit calculation
+        adjustedCost = (service.quotedPrice || 0) - netSales;
       } else {
         // Default: use the global commission rate on net sales
         const netSales = (service.quotedPrice || 0) - adjustedCost;
@@ -337,11 +341,12 @@ const TransactionTracker = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Departments</SelectItem>
-                    {uniqueDepartments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Laptop (Daily Repairs)">Laptop (Daily Repairs)</SelectItem>
+                    <SelectItem value="Laptop (Screens)">Laptop (Screens)</SelectItem>
+                    <SelectItem value="Laptop (Logic Board)">Laptop (Logic Board)</SelectItem>
+                    <SelectItem value="Mobile (Daily Repairs)">Mobile (Daily Repairs)</SelectItem>
+                    <SelectItem value="Mobile (Logic Board)">Mobile (Logic Board)</SelectItem>
+                    <SelectItem value="Others">Others</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
