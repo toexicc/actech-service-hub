@@ -676,20 +676,25 @@ const ServiceUpdate = () => {
                     const photoUrl = existingDeviceReportPhotoUrls[index];
                     try {
                       // Extract file ID from Google Drive URL
-                      const idMatch = photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                      const idMatch =
+                        photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                        photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
                       if (idMatch && serviceId) {
                         const fileId = idMatch[1];
-                        // Call backend to delete the photo
-                        await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=deleteDeviceReportPhoto`, {
-                          method: 'POST',
-                          body: JSON.stringify({
-                            serviceId,
-                            fileId
-                          })
+                        const formData = new FormData();
+                        formData.append("action", "deleteDeviceReportPhoto");
+                        formData.append("serviceId", serviceId);
+                        formData.append("fileId", fileId);
+
+                        await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+                          method: "POST",
+                          body: formData,
                         });
                       }
                       // Remove from local state
-                      setExistingDeviceReportPhotoUrls(prev => prev.filter((_, i) => i !== index));
+                      setExistingDeviceReportPhotoUrls((prev) =>
+                        prev.filter((_, i) => i !== index)
+                      );
                       toast({
                         title: "Photo Deleted",
                         description: "Photo removed successfully",
@@ -699,7 +704,7 @@ const ServiceUpdate = () => {
                       toast({
                         title: "Error",
                         description: "Failed to delete photo",
-                        variant: "destructive"
+                        variant: "destructive",
                       });
                     }
                   }}

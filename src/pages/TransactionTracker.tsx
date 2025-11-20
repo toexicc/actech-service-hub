@@ -146,50 +146,63 @@ const TransactionTracker = () => {
   const financialSummary = useMemo(() => {
     let totalCommission = 0;
     let adjustedTotalCosts = 0;
-    const grossSales = filteredServices.reduce((sum, s) => sum + (s.quotedPrice || 0), 0);
-    
+    const grossSales = filteredServices.reduce(
+      (sum, s) => sum + (s.quotedPrice || 0),
+      0
+    );
+
+    const isMobileLogicBoardOnly =
+      departmentFilter === "Mobile (Logic Board)";
+
     // Calculate costs and commissions based on department
     filteredServices.forEach((service) => {
       let adjustedCost = service.actualCost || 0;
       let serviceCommission = 0;
-      
+
       if (service.department === "Laptop (Daily Repairs)") {
         // Add 10% to part cost
-        adjustedCost = adjustedCost * 1.10;
+        adjustedCost = adjustedCost * 1.1;
         // Commission is 30% on net sales for this service
         const netSales = (service.quotedPrice || 0) - adjustedCost;
-        serviceCommission = netSales * 0.30;
+        serviceCommission = netSales * 0.3;
       } else if (service.department === "Laptop (Screens)") {
         // Commission is editable per row
         serviceCommission = screenCommissions[service.serviceId] || 0;
       } else if (service.department === "Mobile (Logic Board)") {
-        // Net profit is 50% of gross sales for this department
-        const departmentNetProfit = (service.quotedPrice || 0) * 0.50;
-        // Commission is 50% of net profit
-        serviceCommission = departmentNetProfit * 0.50;
-        // Final profit is also 50% of net profit (same as commission)
-        // Cost remains the actual cost from database
+        // For Mobile (Logic Board), commission will be calculated
+        // from aggregated net profit when this department is filtered.
+        // Keep cost as actual cost from database.
       } else {
         // Default: use the global commission rate on net sales
         const netSales = (service.quotedPrice || 0) - adjustedCost;
         serviceCommission = (netSales * commissionRate) / 100;
       }
-      
+
       adjustedTotalCosts += adjustedCost;
       totalCommission += serviceCommission;
     });
-    
-    const netProfit = grossSales - adjustedTotalCosts;
-    const profitAfterCommission = netProfit - totalCommission;
+
+    let netProfit = grossSales - adjustedTotalCosts;
+    let commissionTotal = totalCommission;
+    let profitAfterCommission = netProfit - commissionTotal;
+
+    if (isMobileLogicBoardOnly) {
+      // For Mobile (Logic Board), net profit after costs is defined
+      // as 50% of gross sales. Commission and final profit are each
+      // 50% of that net profit.
+      netProfit = grossSales * 0.5;
+      commissionTotal = netProfit * 0.5;
+      profitAfterCommission = netProfit - commissionTotal;
+    }
 
     return {
       grossSales,
       totalCosts: adjustedTotalCosts,
       netProfit,
-      commission: totalCommission,
+      commission: commissionTotal,
       profitAfterCommission,
     };
-  }, [filteredServices, commissionRate, screenCommissions]);
+  }, [filteredServices, commissionRate, screenCommissions, departmentFilter]);
 
   const uniqueTechnicians = useMemo(() => {
     return Array.from(new Set(services.map((s) => s.technician))).filter(Boolean);
@@ -436,13 +449,16 @@ const TransactionTracker = () => {
                       let commission = 0;
                       
                       if (service.department === "Laptop (Daily Repairs)") {
-                        adjustedCost = adjustedCost * 1.10;
+                        adjustedCost = adjustedCost * 1.1;
                         profit = (service.quotedPrice || 0) - adjustedCost;
-                        commission = profit * 0.30;
+                        commission = profit * 0.3;
                       } else if (service.department === "Laptop (Screens)") {
                         commission = screenCommissions[service.serviceId] || 0;
                       } else if (service.department === "Mobile (Logic Board)") {
-                        commission = 0;
+                        // Net profit is 50% of gross sales for this department
+                        profit = (service.quotedPrice || 0) * 0.5;
+                        // Commission is 50% of net profit
+                        commission = profit * 0.5;
                       } else {
                         commission = (profit * commissionRate) / 100;
                       }
