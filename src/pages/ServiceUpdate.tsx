@@ -681,15 +681,18 @@ const ServiceUpdate = () => {
                         photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
                       if (idMatch && serviceId) {
                         const fileId = idMatch[1];
-                        const deleteUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=deleteDeviceReportPhoto&serviceId=${encodeURIComponent(serviceId)}&fileId=${encodeURIComponent(fileId)}`;
-                        
-                        const response = await fetch(deleteUrl, {
-                          method: 'GET',
+                        const formData = new FormData();
+                        formData.append("action", "deleteDeviceReportPhoto");
+                        formData.append("serviceId", serviceId);
+                        formData.append("fileId", fileId);
+
+                        const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+                          method: "POST",
+                          body: formData,
                         });
 
-                        const result = await response.json();
-                        if (result.result !== 'success' && result.status !== 'success') {
-                          throw new Error(result.message || 'Failed to delete photo');
+                        if (!response.ok) {
+                          throw new Error("Failed to delete photo");
                         }
                       }
                       // Remove from local state
