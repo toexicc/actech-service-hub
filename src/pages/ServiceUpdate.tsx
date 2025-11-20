@@ -359,6 +359,7 @@ const ServiceUpdate = () => {
         if (updateSuggestedRepair !== serviceData.suggestedRepair) changes.push("Updated suggested repair");
         if (partsUsed) changes.push(`Parts used: ${partsUsed}`);
         if (actualCost > 0) changes.push(`Actual cost: ₱${actualCost}`);
+        if (deviceReportPhotos.length > 0) changes.push(`Added ${deviceReportPhotos.length} device report photo${deviceReportPhotos.length > 1 ? 's' : ''}`);
         
         if (changes.length > 0) {
           const logResult = await logActivity({
@@ -699,6 +700,15 @@ const ServiceUpdate = () => {
                       setExistingDeviceReportPhotoUrls((prev) =>
                         prev.filter((_, i) => i !== index)
                       );
+                      
+                      // Log photo removal activity
+                      await logActivity({
+                        serviceId: serviceId,
+                        username: username,
+                        role: userRole,
+                        activity: "Device report photo removed"
+                      });
+                      
                       toast({
                         title: "Photo Deleted",
                         description: "Photo removed successfully",

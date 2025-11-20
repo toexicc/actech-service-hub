@@ -159,8 +159,10 @@ const ServiceTracker = () => {
     }
   };
 
-  const isOverdue = (targetDate: string): boolean => {
+  const isOverdue = (targetDate: string, status: string): boolean => {
     if (!targetDate) return false;
+    // Completed services should never be marked as overdue
+    if (status === "Completed") return false;
     try {
       // Parse target date format: "MM-DD-YYYY" or "MM/DD/YYYY"
       const parts = targetDate.split(/[-/]/); // Handle both - and / separators
@@ -285,7 +287,7 @@ const ServiceTracker = () => {
         const daysUntilDue = getDaysUntilDue(service.targetDate);
         
         if (dueDateFilter === "overdue") {
-          if (!isOverdue(service.targetDate)) return false;
+          if (!isOverdue(service.targetDate, service.status)) return false;
         } else if (dueDateFilter === "dueToday") {
           if (daysUntilDue !== 0) return false;
         } else if (dueDateFilter === "dueSoon") {
@@ -670,7 +672,7 @@ const ServiceTracker = () => {
                     {services.filter(s => {
                       const status = s.status?.toLowerCase() || "";
                       const isOngoing = !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
-                      return isOngoing && isOverdue(s.targetDate);
+                      return isOngoing && isOverdue(s.targetDate, s.status);
                     }).length}
                   </p>
                 </div>
@@ -688,7 +690,7 @@ const ServiceTracker = () => {
                     {services.filter(s => {
                       const status = s.status?.toLowerCase() || "";
                       const isOngoing = !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
-                      return isOngoing && !isOverdue(s.targetDate) && s.targetDate;
+                      return isOngoing && !isOverdue(s.targetDate, s.status) && s.targetDate;
                     }).length}
                   </p>
                 </div>
@@ -745,7 +747,7 @@ const ServiceTracker = () => {
                   <TableBody>
                     {paginatedServices.map((service) => {
                       const inServiceDays = calculateInServiceDays(service.timestamp);
-                      const overdueStatus = isOverdue(service.targetDate);
+                      const overdueStatus = isOverdue(service.targetDate, service.status);
 
                       return (
                         <ActivityLogRow
