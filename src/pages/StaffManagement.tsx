@@ -382,23 +382,6 @@ const StaffManagement = () => {
                     </Select>
                   </div>
                 )}
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={newStaff.status}
-                    onValueChange={(value: "active" | "inactive") =>
-                      setNewStaff({ ...newStaff, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="flex items-end">
                   <Button
                     onClick={handleAddStaff}
