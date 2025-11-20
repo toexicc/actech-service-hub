@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, Upload, X, Image as ImageIcon } from "lucide-react";
@@ -84,7 +84,6 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
     }
 
     const validFiles: File[] = [];
-    const newPreviews: string[] = [];
 
     for (const file of fileArray) {
       if (!file.type.startsWith('image/')) {
@@ -108,7 +107,6 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
       try {
         const compressed = await compressImage(file);
         validFiles.push(compressed);
-        newPreviews.push(URL.createObjectURL(compressed));
       } catch (error) {
         console.error("Error compressing image:", error);
         toast({
@@ -121,18 +119,30 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
 
     if (validFiles.length > 0) {
       const updatedPhotos = [...photos, ...validFiles];
-      const updatedPreviews = [...previews, ...newPreviews];
       onPhotosChange(updatedPhotos);
-      setPreviews(updatedPreviews);
     }
   };
 
+  useEffect(() => {
+    // Regenerate previews whenever photos change
+    previews.forEach((url) => URL.revokeObjectURL(url));
+
+    if (photos.length === 0) {
+      setPreviews([]);
+      return;
+    }
+
+    const urls = photos.map((file) => URL.createObjectURL(file));
+    setPreviews(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [photos]);
+
   const removePhoto = (index: number) => {
     const updatedPhotos = photos.filter((_, i) => i !== index);
-    const updatedPreviews = previews.filter((_, i) => i !== index);
-    URL.revokeObjectURL(previews[index]); // Clean up
     onPhotosChange(updatedPhotos);
-    setPreviews(updatedPreviews);
   };
 
   return (
