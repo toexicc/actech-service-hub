@@ -83,7 +83,9 @@ const TransactionTracker = () => {
           }
           servicesWithDept = servicesWithDept.map((s: any) => {
             const existing = (s.department || "").toString().trim();
-            const enriched = existing && existing !== "N/A" ? existing : deptByTech.get(s.technician) || existing;
+            // Replace if empty, "N/A", or numeric placeholder like "123456"
+            const isInvalid = !existing || existing === "N/A" || /^\d+$/.test(existing);
+            const enriched = isInvalid ? deptByTech.get(s.technician) || existing : existing;
             return { ...s, department: enriched || "" } as DoneService;
           });
         }
