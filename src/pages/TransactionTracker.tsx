@@ -498,7 +498,7 @@ const TransactionTracker = () => {
                                 step="100"
                               />
                             ) : service.department === "Mobile (Logic Board)" ? (
-                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <span className="text-muted-foreground">-</span>
                             ) : (
                               <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             )}
