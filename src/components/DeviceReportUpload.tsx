@@ -7,12 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 interface DeviceReportUploadProps {
   photos: File[];
   onPhotosChange: (photos: File[]) => void;
+  existingPhotoUrls?: string[];
 }
 
 const MAX_PHOTOS = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploadProps) => {
+export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls }: DeviceReportUploadProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +73,8 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
     if (!files) return;
 
     const fileArray = Array.from(files);
-    const remainingSlots = MAX_PHOTOS - photos.length;
+    const existingCount = existingPhotoUrls?.length ?? 0;
+    const remainingSlots = MAX_PHOTOS - (photos.length + existingCount);
 
     if (fileArray.length > remainingSlots) {
       toast({
@@ -153,7 +155,7 @@ export const DeviceReportUpload = ({ photos, onPhotosChange }: DeviceReportUploa
           <Label className="text-lg font-semibold">Device Report - Proof</Label>
         </div>
         <span className="text-sm text-muted-foreground">
-          {photos.length}/{MAX_PHOTOS} photos
+          {(existingPhotoUrls?.length ?? 0) + photos.length}/{MAX_PHOTOS} photos
         </span>
       </div>
 
