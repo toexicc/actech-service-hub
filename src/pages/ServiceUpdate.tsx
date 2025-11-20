@@ -286,10 +286,23 @@ const ServiceUpdate = () => {
       formData.append("username", username);
       formData.append("userRole", userRole);
 
-      // Append Device Report photos
-      deviceReportPhotos.forEach((photo, index) => {
-        formData.append(`DeviceReportPhoto${index + 1}`, photo);
+      // Convert Device Report photos to base64 (Google Apps Script doesn't support direct file uploads)
+      const photoPromises = deviceReportPhotos.map(async (photo, index) => {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+            const base64Data = result.split(',')[1];
+            resolve(base64Data);
+          };
+          reader.readAsDataURL(photo);
+        });
+        formData.append(`DeviceReportPhoto${index + 1}`, base64);
+        formData.append(`DeviceReportPhoto${index + 1}_Name`, photo.name);
       });
+      
+      await Promise.all(photoPromises);
       formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
