@@ -62,6 +62,8 @@ const StaffManagement = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [isUpdatingStaff, setIsUpdatingStaff] = useState(false);
+  const [isDeletingStaff, setIsDeletingStaff] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   const [newStaff, setNewStaff] = useState({
@@ -175,27 +177,32 @@ const StaffManagement = () => {
   };
 
   const handleRemoveStaff = async (username: string) => {
+    if (isDeletingStaff) return; // Prevent double-click
+    
     if (!confirm("Are you sure you want to remove this staff member?")) {
       return;
     }
 
-    const success = await removeUser(username);
+    setIsDeletingStaff(username);
+    try {
+      const success = await removeUser(username);
 
-    if (success) {
-      toast({
-        title: "Success",
-        description: "Staff member removed successfully",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to remove staff member",
-        variant: "destructive",
-      });
-      return;
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Staff member removed successfully",
+        });
+        loadStaffList();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to remove staff member",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsDeletingStaff(null);
     }
-
-    loadStaffList();
   };
 
   const handleEditStaff = (staff: UserCredential) => {
@@ -204,7 +211,7 @@ const StaffManagement = () => {
   };
 
   const handleUpdateStaff = async () => {
-    if (!selectedStaff) return;
+    if (!selectedStaff || isUpdatingStaff) return;
 
     if (!selectedStaff.name || !selectedStaff.role) {
       toast({
@@ -224,31 +231,34 @@ const StaffManagement = () => {
       return;
     }
 
-    const success = await updateUser(selectedStaff.username, {
-      name: selectedStaff.name,
-      role: selectedStaff.role,
-      department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
-      status: selectedStaff.status,
-      password: selectedStaff.password,
-    });
+    setIsUpdatingStaff(true);
+    try {
+      const success = await updateUser(selectedStaff.username, {
+        name: selectedStaff.name,
+        role: selectedStaff.role,
+        department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
+        status: selectedStaff.status,
+        password: selectedStaff.password,
+      });
 
-    if (success) {
-      toast({
-        title: "Success",
-        description: "Staff member updated successfully",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to update staff member",
-        variant: "destructive",
-      });
-      return;
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Staff member updated successfully",
+        });
+        setEditDialogOpen(false);
+        setSelectedStaff(null);
+        loadStaffList();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update staff member",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsUpdatingStaff(false);
     }
-
-    setEditDialogOpen(false);
-    setSelectedStaff(null);
-    loadStaffList();
   };
 
   const filteredStaff = staffList.filter((staff) => {
@@ -503,9 +513,14 @@ const StaffManagement = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleRemoveStaff(staff.username)}
+                                disabled={isDeletingStaff === staff.username}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {isDeletingStaff === staff.username ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </Button>
                             </div>
                           </TableCell>
@@ -691,14 +706,23 @@ const StaffManagement = () => {
                   setEditDialogOpen(false);
                   setSelectedStaff(null);
                 }}
+                disabled={isUpdatingStaff}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleUpdateStaff}
+                disabled={isUpdatingStaff}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                Update Staff
+                {isUpdatingStaff ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Staff"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

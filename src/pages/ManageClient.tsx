@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Eye, EyeOff } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -707,7 +707,14 @@ const ManageClient = () => {
                 </div>
 
                 <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
-                  {isUpdating ? "Updating..." : "Update"}
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update"
+                  )}
                 </Button>
               </CardContent>
             </Card>

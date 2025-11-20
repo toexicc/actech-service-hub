@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { DEVICE_TYPES } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
@@ -1133,7 +1133,14 @@ const ServiceForm = () => {
             {/* Submit Button */}
             <div className="flex gap-4">
               <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Submit"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit"
+                )}
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
                 Cancel
