@@ -137,6 +137,7 @@ const ServiceForm = () => {
       ack1: false,
       ack2: false,
       ack3: false,
+      physicalSignature: false,
     },
   });
 
