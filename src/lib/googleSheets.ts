@@ -734,20 +734,25 @@ function doPost(e) {
               
               for (var photoIdx = 1; photoIdx <= photoCount; photoIdx++) {
                 var photoKey = "DeviceReportPhoto" + photoIdx;
+                var photoNameKey = "DeviceReportPhoto" + photoIdx + "_Name";
                 
-                if (e && e.files && e.files[photoKey]) {
+                if (params[photoKey]) {
                   try {
-                    var photoBlob = e.files[photoKey];
+                    // Decode base64 photo data
+                    var base64Data = params[photoKey];
+                    var photoBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/jpeg');
+                    var originalName = params[photoNameKey] || ("photo_" + photoIdx + ".jpg");
                     var filename = "device_report_" + photoIdx + "_" + params.serviceId + "_" + Date.now() + ".jpg";
                     photoBlob.setName(filename);
+                    
                     var photoFile = deviceReportFolder.createFile(photoBlob);
                     photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-                    Logger.log("Uploaded photo " + photoIdx);
+                    Logger.log("Uploaded photo " + photoIdx + ": " + filename);
                   } catch (uploadErr) {
                     Logger.log("Upload error " + photoIdx + ": " + uploadErr);
                   }
                 } else {
-                  Logger.log("Photo " + photoIdx + " not in e.files");
+                  Logger.log("Photo " + photoIdx + " not in params");
                 }
               }
               
