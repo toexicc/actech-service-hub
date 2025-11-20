@@ -735,21 +735,16 @@ function doPost(e) {
               
               var deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
               
-              // Upload each photo - FILES ARE IN e.parameter, NOT e.files!
+              // Upload each photo - use e.files for uploaded blobs
               for (var photoIdx = 1; photoIdx <= photoCount; photoIdx++) {
                 var photoKey = "DeviceReportPhoto" + photoIdx;
-                
-                // Check if photo exists in parameters
-                if (e && e.parameter && e.parameter[photoKey]) {
+
+                if (e && e.files && e.files[photoKey]) {
                   try {
-                    // The file comes as a Blob object in e.parameter
-                    var photoBlob = e.parameter[photoKey];
-                    
-                    // Set a unique filename
+                    var photoBlob = e.files[photoKey];
                     var filename = "device_report_" + photoIdx + "_" + params.serviceId + "_" + Date.now() + ".jpg";
                     photoBlob.setName(filename);
-                    
-                    // Upload to Device Report folder
+
                     var photoFile = deviceReportFolder.createFile(photoBlob);
                     photoFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
                     Logger.log("Uploaded Device Report photo " + photoIdx + ": " + filename);
@@ -757,7 +752,9 @@ function doPost(e) {
                     Logger.log("Error uploading photo " + photoIdx + ": " + uploadErr);
                   }
                 } else {
-                  Logger.log("Photo " + photoIdx + " not found in parameters");
+                  Logger.log("Photo " + photoIdx + " not found in e.files");
+                }
+              }
                 }
               }
               
