@@ -423,6 +423,10 @@ const ServiceForm = () => {
         setServiceId("");
         setSearchServiceId("");
         setTermsRead(false);
+        setSignatureUrl("");
+        if (signatureRef.current) {
+          signatureRef.current.clear();
+        }
       } else {
         throw new Error("Failed to submit form");
       }
