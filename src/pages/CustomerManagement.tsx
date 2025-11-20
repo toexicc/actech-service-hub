@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
-import { Search, User, FileText } from "lucide-react";
+import { Search, User, FileText, Loader2 } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface CustomerData {
@@ -162,8 +162,17 @@ const CustomerManagement = () => {
               </div>
               <div className="flex items-end">
                 <Button onClick={handleSearch} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-                  <Search className="h-4 w-4 mr-2" />
-                  {isLoading ? "Searching..." : "Search"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

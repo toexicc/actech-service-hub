@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2 } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface InventoryItem {
@@ -1340,7 +1340,14 @@ const InventoryManagement = () => {
                 Cancel
               </Button>
               <Button onClick={handleStockAdjustment} disabled={isSubmitting}>
-                {isSubmitting ? "Updating..." : "Update Stock"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Stock"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
-import { FileText, Printer, Package, Camera } from "lucide-react";
+import { FileText, Printer, Package, Camera, Loader2 } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
@@ -889,7 +889,14 @@ const ServiceUpdate = () => {
                 </div>
 
                 <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
-                  {isUpdating ? "Updating..." : "Update"}
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update"
+                  )}
                 </Button>
               </CardContent>
             </Card>
