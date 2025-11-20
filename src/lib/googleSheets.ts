@@ -474,6 +474,36 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle get device report photos from Google Drive folder
+  if (params.action === 'getDeviceReportPhotos' && params.folderId) {
+    try {
+      var folderId = params.folderId;
+      var folder = DriveApp.getFolderById(folderId);
+      var files = folder.getFiles();
+      var photos = [];
+      
+      while (files.hasNext()) {
+        var file = files.next();
+        var mime = file.getMimeType();
+        if (mime && mime.indexOf('image/') === 0) {
+          var fileId = file.getId();
+          var viewUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
+          photos.push(viewUrl);
+        }
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "success",
+        "photos": photos
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
   return ContentService.createTextOutput(JSON.stringify({
     "error": "Invalid request"
   })).setMimeType(ContentService.MimeType.JSON);
@@ -777,36 +807,8 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Handle get device report photos from Google Drive folder
-  if (params.action === 'getDeviceReportPhotos') {
-    try {
-      var folderId = params.folderId;
-      var folder = DriveApp.getFolderById(folderId);
-      var files = folder.getFiles();
-      var photos = [];
-      
-      while (files.hasNext()) {
-        var file = files.next();
-        var mime = file.getMimeType();
-        if (mime && mime.indexOf('image/') === 0) {
-          var fileId = file.getId();
-          var viewUrl = "https://drive.google.com/uc?export=view&id=" + fileId;
-          photos.push(viewUrl);
-        }
-      }
-      
-      return ContentService.createTextOutput(JSON.stringify({
-        "status": "success",
-        "photos": photos
-      })).setMimeType(ContentService.MimeType.JSON);
-    } catch (err) {
-      return ContentService.createTextOutput(JSON.stringify({
-        "status": "error",
-        "message": err.toString()
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-  
+  // getDeviceReportPhotos logic is handled in doGet (see above)
+
   // Handle add inventory item requests
   if (params.action === 'addInventoryItem') {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
