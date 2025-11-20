@@ -188,12 +188,15 @@ const TransactionTracker = () => {
     let profitAfterCommission = netProfit - commissionTotal;
 
     if (isMobileLogicBoardOnly) {
-      // For Mobile (Logic Board), net profit shown is 50% of (gross sales - actual costs)
-      netProfit = netProfit * 0.5;
-      // Commission is the other 50%, so it equals the net profit shown
-      commissionTotal = netProfit;
-      // After commission, profit is 0 since both halves are accounted for
-      profitAfterCommission = 0;
+      // For Mobile (Logic Board), apply special sharing logic:
+      // 1) Compute overall net profit after costs
+      const netAfterCosts = grossSales - adjustedTotalCosts;
+      // 2) Displayed net profit is 50% of that amount
+      netProfit = netAfterCosts * 0.5;
+      // 3) Commission is 50% of displayed net profit
+      commissionTotal = netProfit * 0.5;
+      // 4) Final profit is the remaining 50% of displayed net profit
+      profitAfterCommission = netProfit - commissionTotal;
     }
 
     return {
