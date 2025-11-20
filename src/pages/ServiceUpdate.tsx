@@ -253,12 +253,17 @@ const ServiceUpdate = () => {
   const loadExistingPhotos = async (folderUrl: string) => {
     try {
       const folderId = extractFolderIdFromUrl(folderUrl);
-      if (!folderId) return;
+      if (!folderId) {
+        console.log("[UPDATE] No folderId extracted from URL", folderUrl);
+        return;
+      }
 
+      console.log("[UPDATE] Fetching existing photos", { folderId, url: folderUrl });
       const response = await fetch(
         `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
       );
       const data = await response.json();
+      console.log("[UPDATE] Existing photos response", data);
 
       if (data.status === "success" && data.photos && data.photos.length > 0) {
         // Convert URLs to File objects for the upload component
