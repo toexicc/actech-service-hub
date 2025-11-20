@@ -198,13 +198,31 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls }
         </div>
       )}
 
-      {photos.length > 0 && (
+      {(existingPhotoUrls?.length ?? 0) + photos.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {existingPhotoUrls?.map((url, index) => (
+            <div
+              key={`existing-${index}`}
+              className="relative group aspect-square rounded-lg overflow-hidden border"
+            >
+              <img
+                src={url}
+                alt={`Existing device report ${index + 1}`}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+
           {previews.map((preview, index) => (
-            <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
+            <div
+              key={`new-${index}`}
+              className="relative group aspect-square rounded-lg overflow-hidden border"
+            >
               <img
                 src={preview}
-                alt={`Device report ${index + 1}`}
+                alt={`Device report ${(existingPhotoUrls?.length ?? 0) + index + 1}`}
                 className="w-full h-full object-cover"
               />
               <Button

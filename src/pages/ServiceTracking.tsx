@@ -97,15 +97,18 @@ const ServiceTracking = () => {
 
   const getDisplayPhotoUrl = (url: string): string => {
     if (!url) return url;
-    // Normalize common Google Drive URLs to direct image URLs
-    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (fileIdMatch) {
-      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+
+    // Try to extract Google Drive file ID from common URL patterns
+    const idMatch =
+      url.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+      url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+
+    if (idMatch) {
+      const id = idMatch[1];
+      // Use Google Drive thumbnail endpoint which returns an embeddable image
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
     }
-    const idParamMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (idParamMatch) {
-      return `https://drive.google.com/uc?export=view&id=${idParamMatch[1]}`;
-    }
+
     return url;
   };
   const handleSearch = async () => {
