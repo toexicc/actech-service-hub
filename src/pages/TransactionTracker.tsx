@@ -169,9 +169,10 @@ const TransactionTracker = () => {
         // Commission is editable per row
         serviceCommission = screenCommissions[service.serviceId] || 0;
       } else if (service.department === "Mobile (Logic Board)") {
-        // For Mobile (Logic Board), commission will be calculated
-        // from aggregated net profit when this department is filtered.
-        // Keep cost as actual cost from database.
+        // For Mobile (Logic Board), net profit is gross sales - actual cost
+        const departmentNetProfit = (service.quotedPrice || 0) - adjustedCost;
+        // Commission is 50% of that net profit
+        serviceCommission = departmentNetProfit * 0.5;
       } else {
         // Default: use the global commission rate on net sales
         const netSales = (service.quotedPrice || 0) - adjustedCost;
@@ -187,10 +188,8 @@ const TransactionTracker = () => {
     let profitAfterCommission = netProfit - commissionTotal;
 
     if (isMobileLogicBoardOnly) {
-      // For Mobile (Logic Board), net profit after costs is defined
-      // as 50% of gross sales. Commission and final profit are each
-      // 50% of that net profit.
-      netProfit = grossSales * 0.5;
+      // For Mobile (Logic Board), net profit is gross sales - actual costs
+      // Commission and final profit are each 50% of that net profit.
       commissionTotal = netProfit * 0.5;
       profitAfterCommission = netProfit - commissionTotal;
     }
@@ -240,9 +239,9 @@ const TransactionTracker = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Gross Sales</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                ₱{financialSummary.grossSales.toLocaleString()}
-              </div>
+          <div className="text-2xl font-bold text-green-600">
+            ₱{financialSummary.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
             </CardContent>
           </Card>
 
@@ -251,9 +250,9 @@ const TransactionTracker = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Costs</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                ₱{financialSummary.totalCosts.toLocaleString()}
-              </div>
+          <div className="text-2xl font-bold text-red-600">
+            ₱{financialSummary.totalCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
             </CardContent>
           </Card>
 
@@ -262,9 +261,9 @@ const TransactionTracker = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                ₱{financialSummary.netProfit.toLocaleString()}
-              </div>
+          <div className="text-2xl font-bold text-blue-600">
+            ₱{financialSummary.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
             </CardContent>
           </Card>
 
@@ -275,9 +274,9 @@ const TransactionTracker = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                ₱{financialSummary.commission.toLocaleString()}
-              </div>
+          <div className="text-2xl font-bold text-orange-600">
+            ₱{financialSummary.commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
             </CardContent>
           </Card>
 
@@ -286,9 +285,9 @@ const TransactionTracker = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Final Profit</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                ₱{financialSummary.profitAfterCommission.toLocaleString()}
-              </div>
+          <div className="text-2xl font-bold text-purple-600">
+            ₱{financialSummary.profitAfterCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
             </CardContent>
           </Card>
         </div>
@@ -455,8 +454,8 @@ const TransactionTracker = () => {
                       } else if (service.department === "Laptop (Screens)") {
                         commission = screenCommissions[service.serviceId] || 0;
                       } else if (service.department === "Mobile (Logic Board)") {
-                        // Net profit is 50% of gross sales for this department
-                        profit = (service.quotedPrice || 0) * 0.5;
+                        // Net profit is gross sales - actual cost for this department
+                        profit = (service.quotedPrice || 0) - adjustedCost;
                         // Commission is 50% of net profit
                         commission = profit * 0.5;
                       } else {
@@ -471,11 +470,11 @@ const TransactionTracker = () => {
                           <TableCell>{service.deviceType}</TableCell>
                           <TableCell>{service.technician}</TableCell>
                           <TableCell>{service.department}</TableCell>
-                          <TableCell className="text-right">₱{service.quotedPrice?.toLocaleString() || 0}</TableCell>
-                          <TableCell className="text-right">₱{adjustedCost.toLocaleString()}</TableCell>
-                          <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
-                            ₱{profit.toLocaleString()}
-                          </TableCell>
+                      <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">₱{adjustedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
+                        ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
                           <TableCell className="text-right">
                             {service.department === "Laptop (Screens)" ? (
                               <Input
@@ -492,9 +491,9 @@ const TransactionTracker = () => {
                                 step="100"
                               />
                             ) : service.department === "Mobile (Logic Board)" ? (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             ) : (
-                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString()}</span>
+                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             )}
                           </TableCell>
                         </TableRow>
