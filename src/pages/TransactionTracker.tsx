@@ -165,8 +165,9 @@ const TransactionTracker = () => {
       } else if (service.department === "Mobile (Logic Board)") {
         // Net profit is 50% of gross sales for this department
         const departmentNetProfit = (service.quotedPrice || 0) * 0.50;
-        // Commission is 50% of that net profit
+        // Commission is 50% of net profit
         serviceCommission = departmentNetProfit * 0.50;
+        // Final profit is also 50% of net profit (same as commission)
         // Cost remains the actual cost from database
       } else {
         // Default: use the global commission rate on net sales
