@@ -95,6 +95,19 @@ const ServiceTracking = () => {
     return match ? match[1] : null;
   };
 
+  const getDisplayPhotoUrl = (url: string): string => {
+    if (!url) return url;
+    // Normalize common Google Drive URLs to direct image URLs
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch) {
+      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+    }
+    const idParamMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (idParamMatch) {
+      return `https://drive.google.com/uc?export=view&id=${idParamMatch[1]}`;
+    }
+    return url;
+  };
   const handleSearch = async () => {
     if (!serviceId) {
       toast({
@@ -390,10 +403,12 @@ const ServiceTracking = () => {
                       {devicePhotos.map((photoUrl, index) => (
                         <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
                           <img
-                            src={photoUrl}
+                            src={getDisplayPhotoUrl(photoUrl)}
                             alt={`Device report ${index + 1}`}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(photoUrl, '_blank')}
+                            onClick={() => window.open(getDisplayPhotoUrl(photoUrl), '_blank')}
                           />
                         </div>
                       ))}
