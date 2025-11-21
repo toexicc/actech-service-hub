@@ -339,7 +339,7 @@ const ManageClient = () => {
           </Button>
           <Button 
             onClick={() => window.open("https://docs.google.com/spreadsheets/d/1gpCaFtFu3IrpUfYFTRGHwQQqfghWRki6WHzDU-0ikAg/edit?usp=sharing", "_blank")} 
-            variant="outline"
+            className="bg-green-600 hover:bg-green-700 text-white"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             View Sheet
@@ -379,15 +379,18 @@ const ManageClient = () => {
                   <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button onClick={handleViewPDF} variant="outline" className="flex-1">
-                    <FileText className="mr-2 h-4 w-4" />
-                    View PDF
-                  </Button>
-                  <Button onClick={handlePrintPDF} variant="outline" className="flex-1">
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print PDF
-                  </Button>
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
+                  <div className="flex gap-2">
+                    <Button onClick={handleViewPDF} variant="outline" className="flex-1">
+                      <FileText className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                    <Button onClick={handlePrintPDF} variant="outline" className="flex-1">
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print PDF
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />
