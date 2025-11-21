@@ -172,7 +172,10 @@ const ServiceUpdate = () => {
       return;
     }
     const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
-    window.open(url, "_blank");
+    const win = window.open(url, "_blank");
+    if (win) {
+      win.document.title = "Client Intake Form";
+    }
   };
   const handlePrintPDF = () => {
     if (!serviceData?.pdfUrl) {
@@ -186,7 +189,7 @@ const ServiceUpdate = () => {
     const rawUrl = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "download");
     const win = window.open("", "_blank");
     if (win) {
-      const html = `<!doctype html><html><head><title>Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
+      const html = `<!doctype html><html><head><title>Client Intake Form - Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
       win.document.open();
       win.document.write(html);
       win.document.close();
@@ -492,6 +495,24 @@ const ServiceUpdate = () => {
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
                     <p className="text-lg">{serviceData.colorMemory}</p>
                   </div>
+
+                  {serviceData.annotationImageUrl && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Annotation Photo:</h3>
+                      <img 
+                        src={serviceData.annotationImageUrl} 
+                        alt="Device annotation" 
+                        className="w-full rounded-lg border border-border mt-2"
+                      />
+                    </div>
+                  )}
+
+                  {serviceData.annotationNotes && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Annotation Comment:</h3>
+                      <p className="text-lg whitespace-pre-line">{serviceData.annotationNotes}</p>
+                    </div>
+                  )}
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
