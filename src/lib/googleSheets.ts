@@ -60,7 +60,7 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 // 5. Update your Google Apps Script doPost handler to:
 //    - Accept 'Signature', 'Signature_Base64', 'Signature_MimeType', 'Signature_FileName' parameters
 //    - Accept 'DeviceAnnotation', 'DeviceAnnotation_Base64', 'DeviceAnnotation_MimeType', 'DeviceAnnotation_FileName' parameters
-//    - Accept 'AnnotationNotes' parameter for device annotation notes
+//    - Accept 'AnnotationNotes' parameter for device annotation notes (goes to Column AX)
 //    - Create a folder in Google Drive for each service (serviceId_clientName_deviceType)
 //    - Upload the signature image to the folder
 //    - Upload the device annotation image to the folder (if provided)
@@ -68,6 +68,9 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //    - Save the device annotation image URL to Column AW (49)
 //    - Save the annotation notes to Column AX (50)
 //    - Save the folder URL to Column AQ (43)
+//
+// IMPORTANT: The form sends DeviceAnnotation (NOT DeviceReportPhoto) for the annotation image!
+// Check for both e.parameter.DeviceAnnotation and e.parameter.DeviceAnnotation_Base64
 //
 // Complete Google Apps Script code for your Google Sheet:
 /*

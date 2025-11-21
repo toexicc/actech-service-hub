@@ -271,6 +271,15 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     doc.addImage(data.signatureUrl, "PNG", sigX, sigY, sigWidth, sigHeight);
   }
 
+  // Footer - ALWAYS on first page
+  yPos += 15;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  const footerText =
+    "This document is automatically generated after you submitted the digital form. Please note that by completing the form, you have already acknowledged and agreed to the Terms and Conditions of AC Tech Repair Ph, confirmed the accuracy of all information provided, and consented to the servicing of your device with costs to be finalized based on the final diagnosis.";
+  const footerLines = doc.splitTextToSize(footerText, 180);
+  doc.text(footerLines, leftCol, yPos);
+
   // Device Initial Condition Reference Section (if annotation provided) - PAGE 2
   if (data.annotationImageUrl) {
     // Add new page for Device Initial Condition Reference
@@ -288,9 +297,14 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     doc.addImage(data.annotationImageUrl, "PNG", leftCol, yPos, imgWidth, imgHeight);
     yPos += imgHeight + 5;
     
-    // Add annotation notes if provided (Column AX)
+    // Additional Comments title and notes (Column AX)
     if (data.annotationNotes) {
       yPos += 5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Additional Comments:", leftCol, yPos);
+      
+      yPos += 6;
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const notesLines = doc.splitTextToSize(data.annotationNotes, 180);
@@ -298,15 +312,6 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
       yPos += notesLines.length * 5;
     }
   }
-
-  // Footer
-  yPos += 15;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  const footerText =
-    "This document is automatically generated after you submitted the digital form. Please note that by completing the form, you have already acknowledged and agreed to the Terms and Conditions of AC Tech Repair Ph, confirmed the accuracy of all information provided, and consented to the servicing of your device with costs to be finalized based on the final diagnosis.";
-  const footerLines = doc.splitTextToSize(footerText, 180);
-  doc.text(footerLines, leftCol, yPos);
 
   // Return as blob
   return doc.output("blob");
