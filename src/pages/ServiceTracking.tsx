@@ -237,7 +237,7 @@ const ServiceTracking = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl w-full">
         {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
@@ -350,7 +350,7 @@ const ServiceTracking = () => {
               <Separator />
 
               {/* Client and Device Info */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Name:</h3>
                   <p className="text-lg">{serviceData.clientName}</p>
@@ -402,7 +402,7 @@ const ServiceTracking = () => {
                       Loading photos...
                     </div>
                   ) : devicePhotos.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                       {devicePhotos.map((photoUrl, index) => (
                         <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
                           <img

@@ -25,8 +25,8 @@ const TechnicianPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8 flex flex-col">
-      <div className="max-w-6xl mx-auto flex-grow">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-8 flex flex-col">
+      <div className="max-w-6xl mx-auto flex-grow w-full">
         <div className="text-center mb-12">
           <img 
             src={acTechLogo} 
@@ -48,7 +48,7 @@ const TechnicianPortal = () => {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-8">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Update Form</h2>
