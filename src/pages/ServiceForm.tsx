@@ -16,6 +16,7 @@ import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { DEVICE_TYPES } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
+import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -49,6 +50,9 @@ const formSchema = z.object({
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
+  enablePhotoAnnotation: z.boolean().default(false),
+  annotationDeviceType: z.string().optional(),
+  annotationNotes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -68,6 +72,7 @@ const ServiceForm = () => {
   const [technicianList, setTechnicianList] = useState<Array<{name: string, department: string}>>([]);
   const [signatureUrl, setSignatureUrl] = useState("");
   const signatureRef = useRef<SignatureCanvasRef>(null);
+  const [annotationImageUrl, setAnnotationImageUrl] = useState("");
 
 
   useEffect(() => {
@@ -138,6 +143,9 @@ const ServiceForm = () => {
       ack2: false,
       ack3: false,
       physicalSignature: false,
+      enablePhotoAnnotation: false,
+      annotationDeviceType: "",
+      annotationNotes: "",
     },
   });
 
@@ -410,6 +418,27 @@ const ServiceForm = () => {
         formData.append("Signature_FileName", signatureFileName);
       }
 
+      // Handle device annotation if provided
+      if (data.enablePhotoAnnotation && annotationImageUrl) {
+        const annotationBase64 = annotationImageUrl.split(',')[1];
+        const byteCharacters = atob(annotationBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const annotationBlob = new Blob([byteArray], { type: 'image/png' });
+        const annotationFileName = `${finalServiceId}_device_annotation.png`;
+        const annotationFile = new File([annotationBlob], annotationFileName, { type: 'image/png' });
+        
+        formData.append("DeviceAnnotation", annotationFile);
+        formData.append("DeviceAnnotation_Base64", annotationBase64);
+        formData.append("DeviceAnnotation_MimeType", "image/png");
+        formData.append("DeviceAnnotation_FileName", annotationFileName);
+        formData.append("AnnotationDeviceType", data.annotationDeviceType || "");
+        formData.append("AnnotationNotes", data.annotationNotes || "");
+      }
+
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
@@ -425,6 +454,7 @@ const ServiceForm = () => {
         setSearchServiceId("");
         setTermsRead(false);
         setSignatureUrl("");
+        setAnnotationImageUrl("");
         if (signatureRef.current) {
           signatureRef.current.clear();
         }
@@ -963,6 +993,89 @@ const ServiceForm = () => {
                       </FormItem>
                     )}
                   />
+                </div>
+              )}
+            </div>
+
+            {/* Photo Annotation Section */}
+            <div>
+              <h2 className="text-xl font-semibold text-blue-600 mb-4">Photo Annotation (Optional)</h2>
+              
+              <FormField
+                control={form.control}
+                name="enablePhotoAnnotation"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 space-y-0 mb-4">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="!mt-0">
+                      Enable Photo Annotation to mark device damages
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("enablePhotoAnnotation") && (
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="annotationDeviceType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Device Type for Annotation:</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Device Type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Laptop/Macbook">Laptop/Macbook</SelectItem>
+                            <SelectItem value="IPad/Tablet">IPad/Tablet</SelectItem>
+                            <SelectItem value="IPhone/Mobile">IPhone/Mobile</SelectItem>
+                            <SelectItem value="Apple Watch">Apple Watch</SelectItem>
+                            <SelectItem value="Computer/IMac">Computer/IMac</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch("annotationDeviceType") && (
+                    <>
+                      <div>
+                        <DeviceAnnotationCanvas
+                          deviceType={form.watch("annotationDeviceType") || ""}
+                          onSave={(dataUrl) => {
+                            setAnnotationImageUrl(dataUrl);
+                          }}
+                        />
+                        {annotationImageUrl && (
+                          <p className="text-sm text-green-600 mt-2">✓ Annotation saved</p>
+                        )}
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="annotationNotes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Additional Notes (Optional):</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                placeholder="Add any additional notes about the device condition or damages..."
+                                rows={3}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
                 </div>
               )}
             </div>
