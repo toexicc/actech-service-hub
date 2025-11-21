@@ -32,6 +32,7 @@ const App = () => (
           <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/service-form" element={<ServiceForm />} />
           <Route path="/track" element={<ServiceTracking />} />
+          <Route path="/service-tracking" element={<ServiceTracker />} />
           <Route path="/manage-client" element={<ManageClient />} />
           <Route path="/technician-portal" element={<TechnicianPortal />} />
           <Route path="/service-update" element={<ServiceUpdate />} />

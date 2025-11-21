@@ -54,6 +54,13 @@ const ServiceTracker = () => {
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const itemsPerPage = 15;
 
+  // Check if user is a technician with locked filters
+  const userRole = sessionStorage.getItem("userRole");
+  const username = sessionStorage.getItem("username");
+  const isTechnician = userRole === "technician";
+  const [technicianName, setTechnicianName] = useState("");
+  const [technicianDepartment, setTechnicianDepartment] = useState("");
+
   const applyDatePreset = (preset: string) => {
     const today = new Date();
     
@@ -78,8 +85,33 @@ const ServiceTracker = () => {
   };
 
   useEffect(() => {
-    fetchAllServices();
     fetchTechnicians();
+  }, []);
+
+  useEffect(() => {
+    // Fetch technician info and set filters if user is a technician
+    const initializeTechnicianFilters = async () => {
+      if (isTechnician && username) {
+        try {
+          const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
+          const data = await response.json();
+          if (data.status === "success" && data.data) {
+            const techInfo = data.data.find((staff: any) => staff.username === username);
+            if (techInfo) {
+              setTechnicianName(techInfo.name);
+              setTechnicianDepartment(techInfo.department || "");
+              setTechnicianFilter(techInfo.name);
+              setDepartmentFilter(techInfo.department || "all");
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching technician info:", error);
+        }
+      }
+      fetchAllServices();
+    };
+
+    initializeTechnicianFilters();
     
     // Set up polling for real-time updates every 30 seconds
     const intervalId = setInterval(() => {
@@ -87,7 +119,7 @@ const ServiceTracker = () => {
     }, 30000);
     
     return () => clearInterval(intervalId);
-  }, []);
+  }, [isTechnician, username]);
 
   // Refresh data when filters change to ensure accurate filtering
   useEffect(() => {
@@ -404,8 +436,8 @@ const ServiceTracker = () => {
           </div>
         </div>
 
-        <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
-          Back to Admin Portal
+        <Button onClick={() => navigate(isTechnician ? "/technician-portal" : "/admin-portal")} variant="outline" className="mb-6">
+          Back to {isTechnician ? "Technician" : "Admin"} Portal
         </Button>
 
         {/* Search Bar */}
@@ -492,8 +524,12 @@ const ServiceTracker = () => {
 
               <div className="space-y-2">
                 <Label>Technician</Label>
-                <Select value={technicianFilter} onValueChange={setTechnicianFilter}>
-                  <SelectTrigger>
+                <Select 
+                  value={technicianFilter} 
+                  onValueChange={setTechnicianFilter}
+                  disabled={isTechnician}
+                >
+                  <SelectTrigger className={isTechnician ? "opacity-60 cursor-not-allowed" : ""}>
                     <SelectValue placeholder="All Technicians" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
@@ -505,12 +541,19 @@ const ServiceTracker = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {isTechnician && (
+                  <p className="text-xs text-muted-foreground">Locked to your account</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label>Department</Label>
-                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger>
+                <Select 
+                  value={departmentFilter} 
+                  onValueChange={setDepartmentFilter}
+                  disabled={isTechnician}
+                >
+                  <SelectTrigger className={isTechnician ? "opacity-60 cursor-not-allowed" : ""}>
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border shadow-md z-[100]">
@@ -520,6 +563,9 @@ const ServiceTracker = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {isTechnician && (
+                  <p className="text-xs text-muted-foreground">Locked to your department</p>
+                )}
               </div>
 
               <div className="space-y-2">
