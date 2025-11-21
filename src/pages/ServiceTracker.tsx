@@ -366,7 +366,7 @@ const ServiceTracker = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 max-w-7xl">
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl w-full">
         {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
@@ -425,7 +425,7 @@ const ServiceTracker = () => {
           </CardHeader>
           <CardContent>
             {/* Filters */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-7">
               <div className="space-y-2">
                 <Label>Due Date Status</Label>
                 <Select value={dueDateFilter} onValueChange={setDueDateFilter}>

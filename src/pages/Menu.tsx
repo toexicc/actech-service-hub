@@ -22,8 +22,8 @@ const Menu = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-8 flex flex-col">
-      <div className="max-w-6xl mx-auto flex-grow">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-8 flex flex-col">
+      <div className="max-w-6xl mx-auto flex-grow w-full">
         <div className="text-center mb-12">
           <img 
             src={acTechLogo} 
@@ -34,7 +34,7 @@ const Menu = () => {
           <p className="text-xl text-muted-foreground">Internal Team Portal</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-8">
           {(userRole === "admin" || userRole === "management") && (
             <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/admin-portal")}>
               <div className="text-center">
