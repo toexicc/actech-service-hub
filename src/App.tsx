@@ -25,7 +25,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.MODE === 'production' ? '/actech-service-hub' : ''}>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/menu" element={<Menu />} />
