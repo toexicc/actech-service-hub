@@ -249,7 +249,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     yPos += notesLines.length * 5;
   }
 
-  // Cost and Time Frame
+  // Cost, Time Frame and Signature in one row
   yPos += 10;
   doc.setFont("helvetica", "bold");
   doc.text("Estimated Cost:", leftCol, yPos);
@@ -262,12 +262,21 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.setFont("helvetica", "normal");
   doc.text(data.timeFrame, midCol, yPos);
 
-  // Device Annotation Image (if provided)
+  // Signature beside cost/time frame (Column AK)
+  if (data.signatureUrl) {
+    const sigWidth = 50;
+    const sigHeight = 25;
+    const sigX = rightCol + 20;
+    const sigY = yPos - 10;
+    doc.addImage(data.signatureUrl, "PNG", sigX, sigY, sigWidth, sigHeight);
+  }
+
+  // Device Initial Condition Reference Section (if annotation provided)
   if (data.annotationImageUrl) {
     yPos += 15;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("Device Annotation", leftCol, yPos);
+    doc.text("Device Initial Condition Reference:", leftCol, yPos);
     
     yPos += 8;
     // Add annotation image - scale to fit width while maintaining aspect ratio
@@ -276,29 +285,15 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     doc.addImage(data.annotationImageUrl, "PNG", leftCol, yPos, imgWidth, imgHeight);
     yPos += imgHeight + 5;
     
-    // Add annotation notes if provided
+    // Add annotation notes if provided (Column AX)
     if (data.annotationNotes) {
+      yPos += 5;
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       const notesLines = doc.splitTextToSize(data.annotationNotes, 180);
       doc.text(notesLines, leftCol, yPos);
       yPos += notesLines.length * 5;
     }
-  }
-
-  // Signature (Column AK) - if provided
-  if (data.signatureUrl) {
-    yPos += 15;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Client Signature", leftCol, yPos);
-    
-    yPos += 8;
-    // Add signature image
-    const sigWidth = 80;
-    const sigHeight = 40;
-    doc.addImage(data.signatureUrl, "PNG", leftCol, yPos, sigWidth, sigHeight);
-    yPos += sigHeight + 10;
   }
 
   // Footer

@@ -54,12 +54,19 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //    Column AS (45): Device Password
 //    Column AT (46): Actual Cost (for Transaction Tracker profit calculations)
 //    Column AU (47): Parts Used
+//    Column AW (49): Device Annotation Image URL (Google Drive link to annotation image) - uploaded by Apps Script
+//    Column AX (50): Device Annotation Notes
 //
 // 5. Update your Google Apps Script doPost handler to:
 //    - Accept 'Signature', 'Signature_Base64', 'Signature_MimeType', 'Signature_FileName' parameters
+//    - Accept 'DeviceAnnotation', 'DeviceAnnotation_Base64', 'DeviceAnnotation_MimeType', 'DeviceAnnotation_FileName' parameters
+//    - Accept 'AnnotationNotes' parameter for device annotation notes
 //    - Create a folder in Google Drive for each service (serviceId_clientName_deviceType)
 //    - Upload the signature image to the folder
+//    - Upload the device annotation image to the folder (if provided)
 //    - Save the signature image URL to Column AK (37)
+//    - Save the device annotation image URL to Column AW (49)
+//    - Save the annotation notes to Column AX (50)
 //    - Save the folder URL to Column AQ (43)
 //
 // Complete Google Apps Script code for your Google Sheet:
