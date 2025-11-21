@@ -132,7 +132,9 @@ function doGet(e) {
             "hasPassword": data[i][43],
             "devicePassword": data[i][44],
             "technicianDepartment": data[i][39],
-            "deviceReportFolderUrl": data[i][47]
+            "deviceReportFolderUrl": data[i][47],
+            "annotationImageUrl": data[i][48],
+            "annotationNotes": data[i][49]
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -1314,20 +1316,7 @@ function doPost(e) {
     Logger.log("Error uploading signature: " + error);
   }
 
-  // Handle DEVICE REPORT folder and optional photos
-  var deviceReportFolderUrl = "";
-  var deviceReportFolder = null;
-  try {
-    if (targetFolder) {
-      deviceReportFolder = targetFolder.createFolder("Device Report - " + baseName);
-      deviceReportFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      deviceReportFolderUrl = deviceReportFolder.getUrl();
-    }
-  } catch (error) {
-    Logger.log("Error creating Device Report folder: " + error);
-  }
-
-  // Handle DEVICE REPORT folder first (needed for annotation upload)
+  // Handle DEVICE REPORT folder first (needed for device report photos later)
   var deviceReportFolderUrl = "";
   var deviceReportFolder = null;
   try {
@@ -1346,7 +1335,7 @@ function doPost(e) {
     Logger.log("Error creating Device Report folder: " + error);
   }
 
-  // Handle DEVICE ANNOTATION upload if present (upload to Device Report folder -> Column AW)
+  // Handle DEVICE ANNOTATION upload if present (upload to MAIN folder -> Column AW, NOT Device Report folder)
   var annotationImageUrl = "";
   try {
     var annotationBlob = null;
@@ -1363,8 +1352,9 @@ function doPost(e) {
       annotationBlob = Utilities.newBlob(annBytes, annMimeType, annFileName);
     }
 
-    if (annotationBlob && deviceReportFolder) {
-      var annotationFile = deviceReportFolder.createFile(annotationBlob);
+    // Upload annotation to MAIN folder (targetFolder), not Device Report folder
+    if (annotationBlob && targetFolder) {
+      var annotationFile = targetFolder.createFile(annotationBlob);
       annotationFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       annotationImageUrl = annotationFile.getUrl();
     }
