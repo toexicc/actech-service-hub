@@ -329,17 +329,19 @@ const ServiceUpdate = () => {
         .map(part => `${part.name} (${part.quantity})`)
         .join(", ");
       
-      // Ensure empty string when no parts (not undefined or null)
-      const partsUsed = partsUsedString || "";
+      const noParts = partsUsedString.trim() === "";
+      // For Google Sheets: send a single space when no parts so Apps Script updates the cell and clears previous value
+      const partsUsedForSheet = noParts ? " " : partsUsedString;
       
       console.log("[UPDATE] Parts data being sent:", {
-        partsUsed,
+        partsUsedForSheet,
+        partsUsedString,
         partsUsedArray,
         unmatchedArray,
         actualCost,
         selectedParts,
         unmatchedParts,
-        isEmpty: partsUsed === ""
+        isEmpty: noParts
       });
 
       const formData = new FormData();
@@ -359,7 +361,7 @@ const ServiceUpdate = () => {
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
       formData.append("actualCost", actualCost.toString());
-      formData.append("partsUsed", partsUsed); // Empty string if no parts
+      formData.append("partsUsed", partsUsedForSheet); // Single space if no parts so Apps Script clears cell
       formData.append("partsUsedData", JSON.stringify([...partsUsedArray, ...unmatchedArray])); // Empty array if no parts
       formData.append("username", username);
       formData.append("userRole", userRole);
@@ -399,10 +401,11 @@ const ServiceUpdate = () => {
         if (updateSuggestedRepair !== serviceData.suggestedRepair) changes.push("Updated suggested repair");
         
         // Log parts changes with more detail
-        const prevParts = serviceData.partsUsed || "";
-        if (partsUsed !== prevParts) {
-          if (partsUsed) {
-            changes.push(`Parts used: ${partsUsed}, Actual cost: ₱${actualCost}`);
+        const prevParts = (serviceData.partsUsed || "").trim();
+        const newPartsDisplay = partsUsedString.trim();
+        if (newPartsDisplay !== prevParts) {
+          if (newPartsDisplay) {
+            changes.push(`Parts used: ${newPartsDisplay}, Actual cost: ₱${actualCost}`);
           } else {
             changes.push("Parts removed");
           }

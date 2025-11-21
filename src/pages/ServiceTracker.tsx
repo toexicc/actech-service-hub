@@ -136,7 +136,11 @@ const ServiceTracker = () => {
     }
   };
 
-  const calculateInServiceDays = (timestamp: string): number => {
+  const calculateInServiceDays = (timestamp: string, status?: string): number => {
+    // Completed services should not accumulate in-service days
+    if (status && status.toLowerCase().includes("completed")) {
+      return 0;
+    }
     if (!timestamp) return 0;
     try {
       // Parse the timestamp format: "MM/DD/YYYY" or "MM-DD-YYYY, HH:mm"
@@ -310,21 +314,26 @@ const ServiceTracker = () => {
       return true;
     });
 
-    // Sort: Put completed/closed/cancelled services at the bottom
+    // Sort: Put overdue services at the top, and completed/closed/cancelled at the bottom
     filtered.sort((a, b) => {
-      // First, check if either service is completed/closed/cancelled
-      const aIsCompleted = a.status?.toLowerCase().includes('completed') || 
-                          a.status?.toLowerCase().includes('closed') || 
-                          a.status?.toLowerCase().includes('cancelled');
-      const bIsCompleted = b.status?.toLowerCase().includes('completed') || 
-                          b.status?.toLowerCase().includes('closed') || 
-                          b.status?.toLowerCase().includes('cancelled');
+      const aStatus = a.status?.toLowerCase() || "";
+      const bStatus = b.status?.toLowerCase() || "";
+
+      // 1. Overdue services always on top
+      const aOverdue = isOverdue(a.targetDate, a.status) || aStatus.includes("overdue");
+      const bOverdue = isOverdue(b.targetDate, b.status) || bStatus.includes("overdue");
+
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+
+      // 2. Completed/closed/cancelled services at the bottom
+      const aIsCompleted = aStatus.includes("completed") || aStatus.includes("closed") || aStatus.includes("cancelled");
+      const bIsCompleted = bStatus.includes("completed") || bStatus.includes("closed") || bStatus.includes("cancelled");
       
-      // If one is completed and the other isn't, put completed at the bottom
       if (aIsCompleted && !bIsCompleted) return 1;
       if (!aIsCompleted && bIsCompleted) return -1;
       
-      // Both are either completed or not completed, sort by selected field
+      // 3. Otherwise, sort by selected field
       let compareValue = 0;
 
       switch (sortField) {
@@ -335,7 +344,7 @@ const ServiceTracker = () => {
           compareValue = (a.technician || "").localeCompare(b.technician || "");
           break;
         case "inService":
-          compareValue = calculateInServiceDays(a.timestamp) - calculateInServiceDays(b.timestamp);
+          compareValue = calculateInServiceDays(a.timestamp, a.status) - calculateInServiceDays(b.timestamp, b.status);
           break;
         case "targetDate":
           compareValue = (a.targetDate || "").localeCompare(b.targetDate || "");
@@ -761,48 +770,53 @@ const ServiceTracker = () => {
                   </TableHeader>
                   <TableBody>
                     {paginatedServices.map((service) => {
-                      const inServiceDays = calculateInServiceDays(service.timestamp);
-                      const overdueStatus = isOverdue(service.targetDate, service.status);
+                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status);
+                       const overdueStatus = isOverdue(service.targetDate, service.status);
+                       const isCompleted = (service.status || "").toLowerCase().includes("completed");
 
-                      return (
-                        <ActivityLogRow
-                          key={service.serviceId}
-                          service={service}
-                          overdueStatus={overdueStatus}
-                          inServiceDays={inServiceDays}
-                        >
-                          <TableCell className="font-medium">
-                            {service.serviceId}
-                            {overdueStatus && <AlertCircle className="inline-block ml-2 h-4 w-4 text-destructive" />}
-                          </TableCell>
-                          <TableCell>{service.status || "N/A"}</TableCell>
-                          <TableCell>{service.clientName || "N/A"}</TableCell>
-                          <TableCell>{service.timestamp || "N/A"}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{service.technician || "Unassigned"}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {techniciansWithDept.find(t => t.name === service.technician)?.department || ""}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate" title={service.service}>
-                            {service.service || "N/A"}
-                          </TableCell>
-                          <TableCell>{service.deviceType || "N/A"}</TableCell>
-                          <TableCell>{service.brand || "N/A"}</TableCell>
-                          <TableCell>{service.device || "N/A"}</TableCell>
-                          <TableCell className={overdueStatus ? "text-destructive font-semibold" : ""}>
-                            {service.targetDate || "N/A"}
-                          </TableCell>
-                          <TableCell>
-                            <span className={`font-semibold ${inServiceDays > 7 ? "text-orange-600" : ""}`}>
-                              {inServiceDays} {inServiceDays === 1 ? "day" : "days"}
-                            </span>
-                          </TableCell>
-                        </ActivityLogRow>
-                      );
-                    })}
+                       return (
+                         <ActivityLogRow
+                           key={service.serviceId}
+                           service={service}
+                           overdueStatus={overdueStatus}
+                           inServiceDays={inServiceDays}
+                         >
+                           <TableCell className="font-medium">
+                             {service.serviceId}
+                             {overdueStatus && <AlertCircle className="inline-block ml-2 h-4 w-4 text-destructive" />}
+                           </TableCell>
+                           <TableCell>{service.status || "N/A"}</TableCell>
+                           <TableCell>{service.clientName || "N/A"}</TableCell>
+                           <TableCell>{service.timestamp || "N/A"}</TableCell>
+                           <TableCell>
+                             <div className="flex flex-col">
+                               <span>{service.technician || "Unassigned"}</span>
+                               <span className="text-xs text-muted-foreground">
+                                 {techniciansWithDept.find(t => t.name === service.technician)?.department || ""}
+                               </span>
+                             </div>
+                           </TableCell>
+                           <TableCell className="max-w-[200px] truncate" title={service.service}>
+                             {service.service || "N/A"}
+                           </TableCell>
+                           <TableCell>{service.deviceType || "N/A"}</TableCell>
+                           <TableCell>{service.brand || "N/A"}</TableCell>
+                           <TableCell>{service.device || "N/A"}</TableCell>
+                           <TableCell className={overdueStatus ? "text-destructive font-semibold" : ""}>
+                             {service.targetDate || "N/A"}
+                           </TableCell>
+                           <TableCell>
+                             {isCompleted ? (
+                               <span className="text-muted-foreground">-</span>
+                             ) : (
+                               <span className={`font-semibold ${inServiceDays > 7 ? "text-orange-600" : ""}`}>
+                                 {inServiceDays} {inServiceDays === 1 ? "day" : "days"}
+                               </span>
+                             )}
+                           </TableCell>
+                         </ActivityLogRow>
+                       );
+                     })}
                   </TableBody>
                 </Table>
               </div>
