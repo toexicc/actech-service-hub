@@ -1352,11 +1352,12 @@ function doPost(e) {
       annotationBlob = Utilities.newBlob(annBytes, annMimeType, annFileName);
     }
 
-    // Upload annotation to MAIN folder (targetFolder), not Device Report folder
+    // Upload annotation to MAIN folder (targetFolder) and save a direct image URL
     if (annotationBlob && targetFolder) {
       var annotationFile = targetFolder.createFile(annotationBlob);
       annotationFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      annotationImageUrl = annotationFile.getUrl();
+      var annotationFileId = annotationFile.getId();
+      annotationImageUrl = "https://drive.google.com/uc?export=view&id=" + annotationFileId;
     }
   } catch (error) {
     Logger.log("Error uploading device annotation: " + error);
