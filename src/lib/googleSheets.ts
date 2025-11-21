@@ -1314,6 +1314,32 @@ function doPost(e) {
     Logger.log("Error uploading signature: " + error);
   }
 
+  // Handle DEVICE ANNOTATION upload if present (image goes to Column AW, link saved in row)
+  var annotationImageUrl = "";
+  try {
+    var annotationBlob = null;
+
+    // 1) If coming as real file (FormData.append("DeviceAnnotation", file))
+    if (e && e.files && e.files.DeviceAnnotation) {
+      annotationBlob = e.files.DeviceAnnotation;
+    }
+    // 2) Fallback: base64 fields (DeviceAnnotation_Base64, DeviceAnnotation_MimeType, DeviceAnnotation_FileName)
+    else if (params["DeviceAnnotation_Base64"]) {
+      var annBytes = Utilities.base64Decode(params["DeviceAnnotation_Base64"]);
+      var annMimeType = params["DeviceAnnotation_MimeType"] || "image/png";
+      var annFileName = params["DeviceAnnotation_FileName"] || (baseName + "_device_annotation.png");
+      annotationBlob = Utilities.newBlob(annBytes, annMimeType, annFileName);
+    }
+
+    if (annotationBlob && targetFolder) {
+      var annotationFile = targetFolder.createFile(annotationBlob);
+      annotationFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      annotationImageUrl = annotationFile.getUrl();
+    }
+  } catch (error) {
+    Logger.log("Error uploading device annotation: " + error);
+  }
+
   // Handle DEVICE REPORT folder and optional photos
   var deviceReportFolderUrl = "";
   try {
@@ -1397,7 +1423,9 @@ function doPost(e) {
     params["Device Password"],         // AS: Device Password
     "",                                // AT: Actual Cost
     "",                                // AU: Parts Used
-    deviceReportFolderUrl              // AV: Device Report Folder URL
+    deviceReportFolderUrl,             // AV: Device Report Folder URL
+    annotationImageUrl,                // AW: Device Annotation Image URL
+    params["AnnotationNotes"]         // AX: Device Annotation Notes
   ];
   
   sheet.appendRow(row);
