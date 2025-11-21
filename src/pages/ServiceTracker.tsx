@@ -80,6 +80,13 @@ const ServiceTracker = () => {
   useEffect(() => {
     fetchAllServices();
     fetchTechnicians();
+    
+    // Set up polling for real-time updates every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchAllServices();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchTechnicians = async () => {
@@ -396,6 +403,12 @@ const ServiceTracker = () => {
                       setSearchQuery(searchInput);
                     }
                   }}
+                  onFocus={(e) => {
+                    if (!e.target.value) {
+                      setSearchInput("AC");
+                      e.target.setSelectionRange(2, 2);
+                    }
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -462,12 +475,12 @@ const ServiceTracker = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="All Technicians" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
                     <SelectItem value="all">All Technicians</SelectItem>
                     {techniciansWithDept.map(tech => (
                       <SelectItem key={tech.name} value={tech.name}>
-                        <div className="flex flex-col items-start">
-                          <span>{tech.name}</span>
+                        <div className="flex flex-col items-start py-1">
+                          <span className="font-medium">{tech.name}</span>
                           <span className="text-xs text-muted-foreground">{tech.department}</span>
                         </div>
                       </SelectItem>
@@ -482,7 +495,7 @@ const ServiceTracker = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent className="bg-popover border shadow-md z-[100]">
                     <SelectItem value="all">All Departments</SelectItem>
                     {departments.map(dept => (
                       <SelectItem key={dept} value={dept}>{dept}</SelectItem>
@@ -497,7 +510,7 @@ const ServiceTracker = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
+                  <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
                     <SelectItem value="all">All Statuses</SelectItem>
                     {STATUS_OPTIONS.map(status => (
                       <SelectItem key={status} value={status}>{status}</SelectItem>
@@ -652,9 +665,9 @@ const ServiceTracker = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Total Ongoing</p>
                   <p className="text-2xl font-bold">
-                    {services.filter(s => {
+                    {filteredAndSortedServices.filter(s => {
                       const status = s.status?.toLowerCase() || "";
-                      return !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
+                      return !status.includes("completed") && !status.includes("cancelled");
                     }).length}
                   </p>
                 </div>
@@ -669,9 +682,9 @@ const ServiceTracker = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Overdue</p>
                   <p className="text-2xl font-bold text-destructive">
-                    {services.filter(s => {
+                    {filteredAndSortedServices.filter(s => {
                       const status = s.status?.toLowerCase() || "";
-                      const isOngoing = !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
+                      const isOngoing = !status.includes("completed") && !status.includes("cancelled");
                       return isOngoing && isOverdue(s.targetDate, s.status);
                     }).length}
                   </p>
@@ -687,9 +700,9 @@ const ServiceTracker = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">On Track</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {services.filter(s => {
+                    {filteredAndSortedServices.filter(s => {
                       const status = s.status?.toLowerCase() || "";
-                      const isOngoing = !status.includes("completed") && !status.includes("closed") && !status.includes("cancelled");
+                      const isOngoing = !status.includes("completed") && !status.includes("cancelled");
                       return isOngoing && !isOverdue(s.targetDate, s.status) && s.targetDate;
                     }).length}
                   </p>

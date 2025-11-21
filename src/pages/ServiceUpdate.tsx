@@ -320,11 +320,21 @@ const ServiceUpdate = () => {
             quantity: qty
           };
         });
-      const unmatchedArray = Object.entries(unmatchedParts).map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
+      const unmatchedArray = Object.entries(unmatchedParts)
+        .filter(([_, qty]) => qty > 0)
+        .map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
       
       const partsUsed = [...partsUsedArray, ...unmatchedArray]
         .map(part => `${part.name} (${part.quantity})`)
         .join(", ");
+      
+      console.log("[UPDATE] Parts data being sent:", {
+        partsUsed,
+        partsUsedArray,
+        actualCost,
+        selectedParts,
+        unmatchedParts
+      });
 
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
@@ -381,8 +391,17 @@ const ServiceUpdate = () => {
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
         if (updateSuggestedRepair !== serviceData.suggestedRepair) changes.push("Updated suggested repair");
-        if (partsUsed) changes.push(`Parts used: ${partsUsed}`);
-        if (actualCost > 0) changes.push(`Actual cost: ₱${actualCost}`);
+        
+        // Log parts changes with more detail
+        const prevParts = serviceData.partsUsed || "";
+        if (partsUsed !== prevParts) {
+          if (partsUsed) {
+            changes.push(`Parts used: ${partsUsed}, Actual cost: ₱${actualCost}`);
+          } else {
+            changes.push("Parts removed");
+          }
+        }
+        
         if (deviceReportPhotos.length > 0) changes.push(`Added ${deviceReportPhotos.length} device report photo${deviceReportPhotos.length > 1 ? 's' : ''}`);
         
         if (changes.length > 0) {
@@ -450,6 +469,17 @@ const ServiceUpdate = () => {
                 placeholder="Enter service ID"
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
+                onFocus={(e) => {
+                  if (!e.target.value) {
+                    setServiceId("AC");
+                    setTimeout(() => e.target.setSelectionRange(2, 2), 0);
+                  }
+                }}
               />
             </div>
 

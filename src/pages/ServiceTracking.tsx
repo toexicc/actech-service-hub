@@ -290,6 +290,12 @@ const ServiceTracking = () => {
                           handleSearch();
                         }
                       }}
+                      onFocus={(e) => {
+                        if (!e.target.value) {
+                          setServiceId("AC");
+                          setTimeout(() => e.target.setSelectionRange(2, 2), 0);
+                        }
+                      }}
                     />
                   </div>
                 </div>

@@ -366,6 +366,17 @@ const ManageClient = () => {
                 placeholder="Enter service ID"
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
+                onFocus={(e) => {
+                  if (!e.target.value) {
+                    setServiceId("AC");
+                    setTimeout(() => e.target.setSelectionRange(2, 2), 0);
+                  }
+                }}
               />
             </div>
 
