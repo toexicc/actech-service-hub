@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,16 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
+
+const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
+  if (!value) return undefined;
+  try {
+    const parsed = parse(value, "MM-dd-yyyy", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  } catch {
+    return undefined;
+  }
+};
 
 const ManageClient = () => {
   const navigate = useNavigate();
@@ -137,7 +147,7 @@ const ManageClient = () => {
         setUpdateServices(data.data.service || "");
         setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
         setUpdateTimeFrame(data.data.timeFrame || "");
-        setUpdateTargetDate(data.data.targetDate ? new Date(data.data.targetDate) : undefined);
+        setUpdateTargetDate(parseDateMMDDYYYY(data.data.targetDate));
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
