@@ -69,8 +69,13 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //    - Save the annotation notes to Column AX (50)
 //    - Save the folder URL to Column AQ (43)
 //
-// IMPORTANT: The form sends DeviceAnnotation (NOT DeviceReportPhoto) for the annotation image!
-// Check for both e.parameter.DeviceAnnotation and e.parameter.DeviceAnnotation_Base64
+// IMPORTANT: The form sends:
+// - DeviceAnnotation, DeviceAnnotation_Base64, DeviceAnnotation_MimeType, DeviceAnnotation_FileName
+// - AnnotationNotes
+// You MUST update your Google Apps Script to:
+// 1. Upload DeviceAnnotation image to the Google Drive folder
+// 2. Save the Google Drive link to Column AW (row[49])
+// 3. Save AnnotationNotes to Column AX (row[50])
 //
 // Complete Google Apps Script code for your Google Sheet:
 /*
