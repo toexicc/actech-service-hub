@@ -271,9 +271,12 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     doc.addImage(data.signatureUrl, "PNG", sigX, sigY, sigWidth, sigHeight);
   }
 
-  // Device Initial Condition Reference Section (if annotation provided)
+  // Device Initial Condition Reference Section (if annotation provided) - PAGE 2
   if (data.annotationImageUrl) {
-    yPos += 15;
+    // Add new page for Device Initial Condition Reference
+    doc.addPage();
+    yPos = 20; // Reset Y position for new page
+    
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text("Device Initial Condition Reference:", leftCol, yPos);
