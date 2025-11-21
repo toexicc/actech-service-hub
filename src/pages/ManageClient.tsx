@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { CalendarIcon, Eye, EyeOff, Loader2 } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -333,9 +333,18 @@ const ManageClient = () => {
           </div>
         </div>
 
-        <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
-          Back to Admin Portal
-        </Button>
+        <div className="flex gap-3 mb-6">
+          <Button onClick={() => navigate("/admin-portal")} variant="outline">
+            Back to Admin Portal
+          </Button>
+          <Button 
+            onClick={() => window.open("https://docs.google.com/spreadsheets/d/1gpCaFtFu3IrpUfYFTRGHwQQqfghWRki6WHzDU-0ikAg/edit?usp=sharing", "_blank")} 
+            variant="outline"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Sheet
+          </Button>
+        </div>
 
         {/* Search Form */}
         <Card className="mb-8">
