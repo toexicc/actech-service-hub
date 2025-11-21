@@ -15,8 +15,19 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { FileText, Printer, Package, Camera, Loader2 } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import logo from "@/assets/ac-tech-logo.jpg";
-import { normalizeGoogleDrivePdfUrl, normalizeGoogleDriveImageUrl } from "@/lib/utils";
+import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
+
+// Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
+const getAnnotationImageUrl = (url: string): string => {
+  if (!url) return url;
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (idMatch) {
+    const id = idMatch[1];
+    return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+  }
+  return url;
+};
 
 interface InventoryItem {
   id: string;
@@ -505,15 +516,11 @@ const ServiceUpdate = () => {
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Annotation Photo:</h3>
                       <img
-                        src={normalizeGoogleDriveImageUrl(serviceData.annotationImageUrl)}
+                        src={getAnnotationImageUrl(serviceData.annotationImageUrl)}
                         alt="Device annotation"
                         className="w-full rounded-lg border border-border mt-2"
+                        loading="lazy"
                         referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          if (serviceData.annotationImageUrl && e.currentTarget.src !== serviceData.annotationImageUrl) {
-                            e.currentTarget.src = serviceData.annotationImageUrl;
-                          }
-                        }}
                       />
                       <a
                         href={serviceData.annotationImageUrl}
