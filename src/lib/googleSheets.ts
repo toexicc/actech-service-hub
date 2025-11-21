@@ -1314,7 +1314,39 @@ function doPost(e) {
     Logger.log("Error uploading signature: " + error);
   }
 
-  // Handle DEVICE ANNOTATION upload if present (image goes to Column AW, link saved in row)
+  // Handle DEVICE REPORT folder and optional photos
+  var deviceReportFolderUrl = "";
+  var deviceReportFolder = null;
+  try {
+    if (targetFolder) {
+      deviceReportFolder = targetFolder.createFolder("Device Report - " + baseName);
+      deviceReportFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      deviceReportFolderUrl = deviceReportFolder.getUrl();
+    }
+  } catch (error) {
+    Logger.log("Error creating Device Report folder: " + error);
+  }
+
+  // Handle DEVICE REPORT folder first (needed for annotation upload)
+  var deviceReportFolderUrl = "";
+  var deviceReportFolder = null;
+  try {
+    if (targetFolder) {
+      // Reuse existing Device Report subfolder if it exists, otherwise create it
+      var existingDeviceReportFolders = targetFolder.getFoldersByName("Device Report");
+      if (existingDeviceReportFolders.hasNext()) {
+        deviceReportFolder = existingDeviceReportFolders.next();
+      } else {
+        deviceReportFolder = targetFolder.createFolder("Device Report");
+      }
+
+      deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
+    }
+  } catch (error) {
+    Logger.log("Error creating Device Report folder: " + error);
+  }
+
+  // Handle DEVICE ANNOTATION upload if present (upload to Device Report folder -> Column AW)
   var annotationImageUrl = "";
   try {
     var annotationBlob = null;
@@ -1331,8 +1363,8 @@ function doPost(e) {
       annotationBlob = Utilities.newBlob(annBytes, annMimeType, annFileName);
     }
 
-    if (annotationBlob && targetFolder) {
-      var annotationFile = targetFolder.createFile(annotationBlob);
+    if (annotationBlob && deviceReportFolder) {
+      var annotationFile = deviceReportFolder.createFile(annotationBlob);
       annotationFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       annotationImageUrl = annotationFile.getUrl();
     }
@@ -1340,22 +1372,9 @@ function doPost(e) {
     Logger.log("Error uploading device annotation: " + error);
   }
 
-  // Handle DEVICE REPORT folder and optional photos
-  var deviceReportFolderUrl = "";
+  // Upload device report photos to Device Report folder
   try {
-    if (targetFolder) {
-      // Reuse existing Device Report subfolder if it exists, otherwise create it
-      var deviceReportFolder = null;
-      var existingDeviceReportFolders = targetFolder.getFoldersByName("Device Report");
-      if (existingDeviceReportFolders.hasNext()) {
-        deviceReportFolder = existingDeviceReportFolders.next();
-      } else {
-        deviceReportFolder = targetFolder.createFolder("Device Report");
-      }
-
-      deviceReportFolderUrl = "https://drive.google.com/drive/folders/" + deviceReportFolder.getId();
-
-      // Upload photos if any were sent with the request
+    if (deviceReportFolder) {
       var photoCount = parseInt(params["DeviceReportPhotoCount"] || "0");
       if (photoCount > 0 && e && e.files) {
         for (var i = 1; i <= photoCount; i++) {
@@ -1371,7 +1390,7 @@ function doPost(e) {
       }
     }
   } catch (error) {
-    Logger.log("Error handling device report folder/photos: " + error);
+    Logger.log("Error uploading device report photos: " + error);
   }
   
   // Map the form data to the correct columns

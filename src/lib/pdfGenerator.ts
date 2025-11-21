@@ -266,8 +266,8 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   if (data.signatureUrl) {
     const sigWidth = 50;
     const sigHeight = 25;
-    const sigX = rightCol + 20;
-    const sigY = yPos - 10;
+    const sigX = rightCol;
+    const sigY = yPos - 15;
     doc.addImage(data.signatureUrl, "PNG", sigX, sigY, sigWidth, sigHeight);
   }
 
