@@ -509,6 +509,11 @@ const ServiceUpdate = () => {
                         alt="Device annotation"
                         className="w-full rounded-lg border border-border mt-2"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          if (serviceData.annotationImageUrl && e.currentTarget.src !== serviceData.annotationImageUrl) {
+                            e.currentTarget.src = serviceData.annotationImageUrl;
+                          }
+                        }}
                       />
                       <a
                         href={serviceData.annotationImageUrl}
