@@ -324,16 +324,21 @@ const ServiceUpdate = () => {
         .filter(([_, qty]) => qty > 0)
         .map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
       
-      const partsUsed = [...partsUsedArray, ...unmatchedArray]
+      const partsUsedString = [...partsUsedArray, ...unmatchedArray]
         .map(part => `${part.name} (${part.quantity})`)
         .join(", ");
+      
+      // Ensure empty string when no parts (not undefined or null)
+      const partsUsed = partsUsedString || "";
       
       console.log("[UPDATE] Parts data being sent:", {
         partsUsed,
         partsUsedArray,
+        unmatchedArray,
         actualCost,
         selectedParts,
-        unmatchedParts
+        unmatchedParts,
+        isEmpty: partsUsed === ""
       });
 
       const formData = new FormData();
@@ -353,8 +358,8 @@ const ServiceUpdate = () => {
       formData.append("suggestedRepair", updateSuggestedRepair);
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
       formData.append("actualCost", actualCost.toString());
-      formData.append("partsUsed", partsUsed);
-      formData.append("partsUsedData", JSON.stringify(partsUsedArray));
+      formData.append("partsUsed", partsUsed); // Empty string if no parts
+      formData.append("partsUsedData", JSON.stringify([...partsUsedArray, ...unmatchedArray])); // Empty array if no parts
       formData.append("username", username);
       formData.append("userRole", userRole);
 

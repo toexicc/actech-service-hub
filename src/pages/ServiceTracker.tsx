@@ -241,13 +241,13 @@ const ServiceTracker = () => {
         return false;
       }
 
-      // Technician filter
-      if (technicianFilter !== "all" && service.technician !== technicianFilter) {
-        return false;
-      }
-
-      // Department filter
-      if (departmentFilter !== "all") {
+      // Technician filter - if a specific technician is selected, show ONLY their services
+      if (technicianFilter !== "all") {
+        if (service.technician !== technicianFilter) {
+          return false;
+        }
+      } else if (departmentFilter !== "all") {
+        // Department filter - only apply if no specific technician is selected
         const techDept = techniciansWithDept.find(t => t.name === service.technician)?.department;
         if (techDept !== departmentFilter) {
           return false;
@@ -479,10 +479,7 @@ const ServiceTracker = () => {
                     <SelectItem value="all">All Technicians</SelectItem>
                     {techniciansWithDept.map(tech => (
                       <SelectItem key={tech.name} value={tech.name}>
-                        <div className="flex flex-col items-start py-1">
-                          <span className="font-medium">{tech.name}</span>
-                          <span className="text-xs text-muted-foreground">{tech.department}</span>
-                        </div>
+                        {tech.name} - {tech.department}
                       </SelectItem>
                     ))}
                   </SelectContent>
