@@ -89,6 +89,13 @@ const ServiceTracker = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Refresh data when filters change to ensure accurate filtering
+  useEffect(() => {
+    if (technicianFilter !== "all" || departmentFilter !== "all") {
+      fetchAllServices();
+    }
+  }, [technicianFilter, departmentFilter]);
+
   const fetchTechnicians = async () => {
     try {
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
