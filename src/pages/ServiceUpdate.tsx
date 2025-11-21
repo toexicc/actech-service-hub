@@ -508,7 +508,16 @@ const ServiceUpdate = () => {
                         src={normalizeGoogleDriveImageUrl(serviceData.annotationImageUrl)}
                         alt="Device annotation"
                         className="w-full rounded-lg border border-border mt-2"
+                        referrerPolicy="no-referrer"
                       />
+                      <a
+                        href={serviceData.annotationImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-xs text-primary underline break-all"
+                      >
+                        Open in Google Drive
+                      </a>
                     </div>
                   )}
 
