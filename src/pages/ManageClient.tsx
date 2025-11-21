@@ -379,6 +379,9 @@ const ManageClient = () => {
                   <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
                 </div>
 
+
+                <Separator />
+
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
                   <div className="flex gap-2">
@@ -392,8 +395,6 @@ const ManageClient = () => {
                     </Button>
                   </div>
                 </div>
-
-                <Separator />
 
                 <div className="grid gap-4">
                   <div>
