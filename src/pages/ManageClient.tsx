@@ -323,7 +323,7 @@ const ManageClient = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 max-w-6xl">
+      <div className="container mx-auto p-4 sm:p-6 max-w-6xl w-full">
         {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
@@ -367,7 +367,7 @@ const ManageClient = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
             <Card>
               <CardHeader>
