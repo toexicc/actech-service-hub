@@ -60,7 +60,7 @@ const Login = () => {
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <img 
-            src="/ac-tech-logo-pdf.png" 
+            src={`${import.meta.env.MODE === 'production' ? '/actech-service-hub' : ''}/ac-tech-logo-pdf.png`}
             alt="AC Tech Repair" 
             className="mx-auto h-20 mb-4 object-contain"
           />

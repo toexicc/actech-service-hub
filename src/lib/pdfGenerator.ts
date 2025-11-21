@@ -40,7 +40,8 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   });
 
   // Add logo - use public path for production compatibility
-  const logoImg = await fetch("/ac-tech-logo-pdf.png")
+  const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
+  const logoImg = await fetch(`${basePath}/ac-tech-logo-pdf.png`)
     .then((res) => {
       if (!res.ok) throw new Error("Failed to load logo");
       return res.blob();
