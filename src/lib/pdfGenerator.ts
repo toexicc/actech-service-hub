@@ -28,6 +28,9 @@ interface PDFData {
   estimatedCost: number;
   timeFrame: string;
   isUpdated?: boolean;
+  signatureUrl?: string;
+  annotationImageUrl?: string;
+  annotationNotes?: string;
 }
 
 export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
@@ -258,6 +261,45 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.text("Time Frame:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
   doc.text(data.timeFrame, midCol, yPos);
+
+  // Device Annotation Image (if provided)
+  if (data.annotationImageUrl) {
+    yPos += 15;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Device Annotation", leftCol, yPos);
+    
+    yPos += 8;
+    // Add annotation image - scale to fit width while maintaining aspect ratio
+    const imgWidth = 180;
+    const imgHeight = 135; // Maintain 4:3 aspect ratio
+    doc.addImage(data.annotationImageUrl, "PNG", leftCol, yPos, imgWidth, imgHeight);
+    yPos += imgHeight + 5;
+    
+    // Add annotation notes if provided
+    if (data.annotationNotes) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const notesLines = doc.splitTextToSize(data.annotationNotes, 180);
+      doc.text(notesLines, leftCol, yPos);
+      yPos += notesLines.length * 5;
+    }
+  }
+
+  // Signature (Column AK) - if provided
+  if (data.signatureUrl) {
+    yPos += 15;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Client Signature", leftCol, yPos);
+    
+    yPos += 8;
+    // Add signature image
+    const sigWidth = 80;
+    const sigHeight = 40;
+    doc.addImage(data.signatureUrl, "PNG", leftCol, yPos, sigWidth, sigHeight);
+    yPos += sigHeight + 10;
+  }
 
   // Footer
   yPos += 15;

@@ -336,6 +336,9 @@ const ServiceForm = () => {
         repairHistory: data.repairHistory,
         estimatedCost: data.estimatedCost,
         timeFrame: data.timeFrame,
+        signatureUrl: signatureUrl || undefined,
+        annotationImageUrl: annotationImageUrl || undefined,
+        annotationNotes: data.annotationNotes || undefined,
       });
       console.log("PDF generated successfully:", pdfBlob);
 
@@ -418,7 +421,7 @@ const ServiceForm = () => {
         formData.append("Signature_FileName", signatureFileName);
       }
 
-      // Handle device annotation if provided
+      // Handle device annotation if provided (upload to device report folder)
       if (data.enablePhotoAnnotation && annotationImageUrl) {
         const annotationBase64 = annotationImageUrl.split(',')[1];
         const byteCharacters = atob(annotationBase64);
@@ -431,10 +434,11 @@ const ServiceForm = () => {
         const annotationFileName = `${finalServiceId}_device_annotation.png`;
         const annotationFile = new File([annotationBlob], annotationFileName, { type: 'image/png' });
         
-        formData.append("DeviceAnnotation", annotationFile);
-        formData.append("DeviceAnnotation_Base64", annotationBase64);
-        formData.append("DeviceAnnotation_MimeType", "image/png");
-        formData.append("DeviceAnnotation_FileName", annotationFileName);
+        // Upload to Device Report folder
+        formData.append("DeviceReportPhoto", annotationFile);
+        formData.append("DeviceReportPhoto_Base64", annotationBase64);
+        formData.append("DeviceReportPhoto_MimeType", "image/png");
+        formData.append("DeviceReportPhoto_FileName", annotationFileName);
         formData.append("AnnotationDeviceType", data.annotationDeviceType || "");
         formData.append("AnnotationNotes", data.annotationNotes || "");
       }
@@ -976,6 +980,19 @@ const ServiceForm = () => {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="enablePhotoAnnotation"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="!mt-0">Device Annotation</FormLabel>
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {form.watch("hasPassword") && (
@@ -995,29 +1012,9 @@ const ServiceForm = () => {
                   />
                 </div>
               )}
-            </div>
-
-            {/* Photo Annotation Section */}
-            <div>
-              <h2 className="text-xl font-semibold text-blue-600 mb-4">Photo Annotation (Optional)</h2>
-              
-              <FormField
-                control={form.control}
-                name="enablePhotoAnnotation"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2 space-y-0 mb-4">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel className="!mt-0">
-                      Enable Photo Annotation to mark device damages
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
 
               {form.watch("enablePhotoAnnotation") && (
-                <div className="space-y-4">
+                <div className="mt-4 space-y-4">
                   <FormField
                     control={form.control}
                     name="annotationDeviceType"
