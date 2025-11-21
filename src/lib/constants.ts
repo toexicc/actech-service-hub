@@ -35,13 +35,16 @@ export type Department = typeof DEPARTMENTS[number];
 
 export const STATUS_OPTIONS = [
   "Pending Diagnosis",
+  "Confirmed Diagnosis",
   "Pending - Approval",
   "Ongoing Service",
   "Complete - Approval",
   "Completed",
+  "Pending Pickup (Completed)",
   "On Hold",
-  "Cancelled",
-  "Closed"
+  "Backjob",
+  "RTO",
+  "Cancelled"
 ] as const;
 
 export type Status = typeof STATUS_OPTIONS[number];
