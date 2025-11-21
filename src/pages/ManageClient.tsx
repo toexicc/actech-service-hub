@@ -396,6 +396,8 @@ const ManageClient = () => {
                   </div>
                 </div>
 
+                <Separator />
+
                 <div className="grid gap-4">
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Type:</h3>
