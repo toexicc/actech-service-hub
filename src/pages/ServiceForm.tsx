@@ -421,7 +421,7 @@ const ServiceForm = () => {
         formData.append("Signature_FileName", signatureFileName);
       }
 
-      // Handle device annotation if provided (upload to device report folder)
+      // Handle device annotation if provided (Column AW and AX)
       if (data.enablePhotoAnnotation && annotationImageUrl) {
         const annotationBase64 = annotationImageUrl.split(',')[1];
         const byteCharacters = atob(annotationBase64);
@@ -434,13 +434,16 @@ const ServiceForm = () => {
         const annotationFileName = `${finalServiceId}_device_annotation.png`;
         const annotationFile = new File([annotationBlob], annotationFileName, { type: 'image/png' });
         
-        // Upload to Device Report folder
-        formData.append("DeviceReportPhoto", annotationFile);
-        formData.append("DeviceReportPhoto_Base64", annotationBase64);
-        formData.append("DeviceReportPhoto_MimeType", "image/png");
-        formData.append("DeviceReportPhoto_FileName", annotationFileName);
-        formData.append("AnnotationDeviceType", data.annotationDeviceType || "");
-        formData.append("AnnotationNotes", data.annotationNotes || "");
+        // Send as DeviceAnnotation for Column AW
+        formData.append("DeviceAnnotation", annotationFile);
+        formData.append("DeviceAnnotation_Base64", annotationBase64);
+        formData.append("DeviceAnnotation_MimeType", "image/png");
+        formData.append("DeviceAnnotation_FileName", annotationFileName);
+      }
+
+      // Always send annotation notes if provided (Column AX)
+      if (data.annotationNotes) {
+        formData.append("AnnotationNotes", data.annotationNotes);
       }
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
