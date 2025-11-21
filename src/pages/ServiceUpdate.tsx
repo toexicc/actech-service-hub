@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,16 @@ const getAnnotationImageUrl = (url: string): string => {
     return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
   }
   return url;
+};
+
+const parseServiceTimestamp = (ts: string | undefined | null): Date | null => {
+  if (!ts) return null;
+  try {
+    const parsed = parse(ts, "MM-dd-yyyy, H:mm", new Date());
+    return isNaN(parsed.getTime()) ? null : parsed;
+  } catch {
+    return null;
+  }
 };
 
 interface InventoryItem {
@@ -543,7 +553,12 @@ const ServiceUpdate = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
                     <p className="text-lg">
-                      {serviceData.timestamp ? format(new Date(serviceData.timestamp), "MM/dd/yyyy, HH:mm") : "N/A"}
+                      {(() => {
+                        const parsed = parseServiceTimestamp(serviceData.timestamp);
+                        return parsed
+                          ? format(parsed, "MM/dd/yyyy, HH:mm")
+                          : (serviceData.timestamp || "N/A");
+                      })()}
                     </p>
                   </div>
 
