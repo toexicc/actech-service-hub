@@ -54,6 +54,14 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //    Column AS (45): Device Password
 //    Column AT (46): Actual Cost (for Transaction Tracker profit calculations)
 //    Column AU (47): Parts Used
+//    
+//    IMPORTANT FIX NEEDED FOR PARTS REMOVAL:
+//    In the updateTechnicianService section (around line 658), change:
+//      if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed);
+//    TO:
+//      if (params.partsUsed !== undefined) sheet.getRange(i + 1, 47).setValue(params.partsUsed);
+//    
+//    This allows empty string "" to be set when all parts are removed, instead of only updating when partsUsed has a value.
 //    Column AW (49): Device Annotation Image URL (Google Drive link to annotation image) - uploaded by Apps Script
 //    Column AX (50): Device Annotation Notes
 //

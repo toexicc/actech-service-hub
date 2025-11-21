@@ -17,6 +17,7 @@ import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
+import { STATUS_OPTIONS } from "@/lib/constants";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -718,14 +719,9 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Pending Diagnosis">Pending Diagnosis</SelectItem>
-                      <SelectItem value="Pending - Approval">Pending - Approval</SelectItem>
-                      <SelectItem value="Ongoing Service">Ongoing Service</SelectItem>
-                      <SelectItem value="Complete - Approval">Complete - Approval</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="On Hold">On Hold</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
+                      {STATUS_OPTIONS.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
