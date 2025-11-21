@@ -222,6 +222,11 @@ const ServiceTracker = () => {
   }, [services]);
 
   const filteredAndSortedServices = useMemo(() => {
+    // Don't filter while loading to prevent showing unfiltered data
+    if (isLoading) {
+      return [];
+    }
+
     let filtered = services.filter(service => {
       // Do NOT filter out any services by status - show ALL services
 

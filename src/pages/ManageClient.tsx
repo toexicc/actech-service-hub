@@ -18,6 +18,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
+import { STATUS_OPTIONS } from "@/lib/constants";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -561,14 +562,9 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Pending Diagnosis">Pending Diagnosis</SelectItem>
-                      <SelectItem value="Pending - Approval">Pending - Approval</SelectItem>
-                      <SelectItem value="Ongoing Service">Ongoing Service</SelectItem>
-                      <SelectItem value="Complete - Approval">Complete - Approval</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="On Hold">On Hold</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
+                      {STATUS_OPTIONS.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
