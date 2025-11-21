@@ -15,7 +15,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { FileText, Printer, Package, Camera, Loader2 } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import logo from "@/assets/ac-tech-logo.jpg";
-import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { normalizeGoogleDrivePdfUrl, normalizeGoogleDriveImageUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
 
 interface InventoryItem {
@@ -504,9 +504,9 @@ const ServiceUpdate = () => {
                   {serviceData.annotationImageUrl && (
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Annotation Photo:</h3>
-                      <img 
-                        src={serviceData.annotationImageUrl} 
-                        alt="Device annotation" 
+                      <img
+                        src={normalizeGoogleDriveImageUrl(serviceData.annotationImageUrl)}
+                        alt="Device annotation"
                         className="w-full rounded-lg border border-border mt-2"
                       />
                     </div>
