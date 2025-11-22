@@ -849,9 +849,9 @@ const ServiceTracker = () => {
                                </span>
                              </div>
                            </TableCell>
-                           <TableCell className="max-w-[200px] truncate" title={service.service}>
-                             {service.service || "N/A"}
-                           </TableCell>
+                            <TableCell className="min-w-[200px] whitespace-normal break-words">
+                              {service.service || "N/A"}
+                            </TableCell>
                            <TableCell>{service.deviceType || "N/A"}</TableCell>
                            <TableCell>{service.brand || "N/A"}</TableCell>
                            <TableCell>{service.device || "N/A"}</TableCell>
