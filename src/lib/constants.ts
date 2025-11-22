@@ -37,12 +37,12 @@ export const STATUS_OPTIONS = [
   "Pending Diagnosis",
   "Confirmed Diagnosis",
   "Pending - Approval",
+  "Completed - Approval",
   "Ongoing Service",
-  "Complete - Approval",
+  "Pending Pickup (Completed)",
+  "Completed",
   "Backjob",
   "RTO",
-  "Completed",
-  "Pending Pickup (Completed)",
   "On Hold",
   "Cancelled"
 ] as const;
