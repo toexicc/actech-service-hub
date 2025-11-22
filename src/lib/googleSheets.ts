@@ -309,7 +309,7 @@ function doGet(e) {
     var inventory = [];
     
     // Loop through all rows (skip header row)
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks, QR Code (M)
     for (var i = 1; i < data.length; i++) {
       var status = data[i][9]; // Status column
       var quantity = parseInt(data[i][5] || 0);
@@ -320,7 +320,8 @@ function doGet(e) {
           "id": data[i][0],
           "name": data[i][1],
           "cost": parseFloat(data[i][8]) || 0,
-          "quantity": quantity
+          "quantity": quantity,
+          "qrCode": data[i][12] // Column M - QR Code data URL
         });
       }
     }
@@ -338,7 +339,7 @@ function doGet(e) {
     var inventory = [];
     
     // Loop through all rows (skip header row)
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks, QR Code (M)
     for (var i = 1; i < data.length; i++) {
       inventory.push({
         "partId": data[i][0],
@@ -352,7 +353,8 @@ function doGet(e) {
         "costPerUnit": data[i][8],
         "status": data[i][9],
         "lastUpdated": data[i][10],
-        "remarks": data[i][11]
+        "remarks": data[i][11],
+        "qrCode": data[i][12] // Column M - QR Code data URL
       });
     }
     
@@ -872,7 +874,7 @@ function doPost(e) {
     var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks
+    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks, QR Code (M)
     inventorySheet.appendRow([
       partId,
       params.partName,
@@ -885,7 +887,8 @@ function doPost(e) {
       params.costPerUnit || "",
       params.status,
       timestamp,
-      params.remarks
+      params.remarks,
+      params.qrCode || "" // Column M - QR Code data URL (generated client-side)
     ]);
     
     // Log the initial stock to Inventory Log
