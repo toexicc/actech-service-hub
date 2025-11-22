@@ -192,17 +192,11 @@ const InventoryManagement = () => {
 
     setIsSubmitting(true);
     try {
-      // Generate QR code for the part
-      const partData = {
-        partName: newPart.partName,
-        deviceType: newPart.deviceType,
-        brand: newPart.brand,
-        model: newPart.model,
-        costPerUnit: newPart.costPerUnit
-      };
+      // Generate temporary part ID for QR code (will be replaced with actual ID from backend)
+      const tempPartId = `PART${Date.now()}`;
       
-      // Generate QR code as data URL
-      const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(partData), {
+      // Generate QR code based on part ID only
+      const qrCodeDataUrl = await QRCode.toDataURL(tempPartId, {
         width: 300,
         margin: 1,
       });

@@ -188,13 +188,11 @@ const ServiceUpdate = () => {
 
   const handleQRScan = (decodedText: string) => {
     try {
-      const partData = JSON.parse(decodedText);
+      // The QR code contains the part ID directly
+      const partId = decodedText.trim();
       
-      // Find matching part in inventory
-      const foundPart = inventory.find(item => 
-        item.name.toLowerCase().includes(partData.partName.toLowerCase()) &&
-        (partData.brand ? item.name.toLowerCase().includes(partData.brand.toLowerCase()) : true)
-      );
+      // Find matching part in inventory by ID
+      const foundPart = inventory.find(item => item.id === partId);
 
       if (foundPart) {
         setSelectedParts(prev => ({
@@ -208,7 +206,7 @@ const ServiceUpdate = () => {
       } else {
         toast({
           title: "Part Not Found",
-          description: `Could not find matching part: ${partData.partName}`,
+          description: `Could not find part with ID: ${partId}`,
           variant: "destructive",
         });
       }
@@ -216,8 +214,8 @@ const ServiceUpdate = () => {
       setShowQRScanner(false);
     } catch (error) {
       toast({
-        title: "Invalid QR Code",
-        description: "The scanned QR code is not a valid part code",
+        title: "Scan Error",
+        description: "Failed to process the scanned QR code",
         variant: "destructive",
       });
       setShowQRScanner(false);
