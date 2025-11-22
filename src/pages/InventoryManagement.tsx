@@ -192,8 +192,18 @@ const InventoryManagement = () => {
 
     setIsSubmitting(true);
     try {
+      // Generate partId using the same pattern as backend (PART + timestamp)
+      const partId = `PART${Date.now()}`;
+      
+      // Generate QR code with the partId
+      const qrCodeDataUrl = await QRCode.toDataURL(partId, {
+        width: 300,
+        margin: 1,
+      });
+      
       const formData = new FormData();
       formData.append("action", "addInventoryItem");
+      formData.append("partId", partId);
       
       // If status is "On Order", set actual quantity to 0 and store ordered quantity in remarks
       const isOnOrder = newPart.status === "On Order";
@@ -212,9 +222,9 @@ const InventoryManagement = () => {
       formData.append("costPerUnit", newPart.costPerUnit);
       formData.append("status", newPart.status);
       formData.append("remarks", remarksWithOrder);
+      formData.append("qrCode", qrCodeDataUrl);
       formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
 
-      // First, add the part without QR code to get the actual partId
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
@@ -222,24 +232,7 @@ const InventoryManagement = () => {
 
       const result = await response.json();
 
-      if (result.result === "success" && result.partId) {
-        // Now generate QR code with the actual partId
-        const qrCodeDataUrl = await QRCode.toDataURL(result.partId, {
-          width: 300,
-          margin: 1,
-        });
-        
-        // Update the part with the QR code
-        const updateFormData = new FormData();
-        updateFormData.append("action", "updateInventoryQRCode");
-        updateFormData.append("partId", result.partId);
-        updateFormData.append("qrCode", qrCodeDataUrl);
-        
-        await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-          method: "POST",
-          body: updateFormData,
-        });
-        
+      if (result.result === "success") {
         toast({
           title: "Success",
           description: isOnOrder 
