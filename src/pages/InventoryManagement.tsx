@@ -79,6 +79,8 @@ const InventoryManagement = () => {
   const [selectedPartForLogs, setSelectedPartForLogs] = useState<string | null>(null);
   const [selectedPart, setSelectedPart] = useState<InventoryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
+  const [selectedQRCode, setSelectedQRCode] = useState<{partName: string, qrCode: string} | null>(null);
   
   // Log filters
   const [logIdSearch, setLogIdSearch] = useState("");
@@ -886,6 +888,7 @@ const InventoryManagement = () => {
                             </div>
                           </TableHead>
                           <TableHead>Remarks</TableHead>
+                          <TableHead>QR Code</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -932,6 +935,23 @@ const InventoryManagement = () => {
                                 <TableCell>{item.lastUpdated || "N/A"}</TableCell>
                                 <TableCell className="max-w-[200px] truncate" title={item.remarks}>
                                   {item.remarks || "N/A"}
+                                </TableCell>
+                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                  {item.qrCode ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedQRCode({ partName: item.partName, qrCode: item.qrCode! });
+                                        setQrCodeDialogOpen(true);
+                                      }}
+                                    >
+                                      <QrCode className="h-4 w-4 mr-1" />
+                                      View
+                                    </Button>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">No QR</span>
+                                  )}
                                 </TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                   <div className="flex gap-2">
@@ -1368,6 +1388,74 @@ const InventoryManagement = () => {
                 )}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* QR Code View Dialog */}
+        <Dialog open={qrCodeDialogOpen} onOpenChange={setQrCodeDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>QR Code - {selectedQRCode?.partName}</DialogTitle>
+              <DialogDescription>
+                Scan this QR code to quickly add this part to a service
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center p-6 space-y-4">
+              {selectedQRCode?.qrCode && (
+                <img 
+                  src={selectedQRCode.qrCode} 
+                  alt={`QR Code for ${selectedQRCode.partName}`}
+                  className="w-64 h-64 border-2 border-border rounded-lg"
+                />
+              )}
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    if (selectedQRCode?.qrCode) {
+                      const link = document.createElement('a');
+                      link.download = `${selectedQRCode.partName.replace(/\s+/g, '_')}_QRCode.png`;
+                      link.href = selectedQRCode.qrCode;
+                      link.click();
+                      toast({
+                        title: "Success",
+                        description: "QR code downloaded successfully",
+                      });
+                    }
+                  }}
+                >
+                  Download QR Code
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    if (selectedQRCode?.qrCode) {
+                      navigator.clipboard.write([
+                        new ClipboardItem({
+                          'image/png': fetch(selectedQRCode.qrCode)
+                            .then(res => res.blob())
+                        })
+                      ]).then(() => {
+                        toast({
+                          title: "Success",
+                          description: "QR code copied to clipboard",
+                        });
+                      }).catch(() => {
+                        toast({
+                          title: "Error",
+                          description: "Failed to copy QR code. Try downloading instead.",
+                          variant: "destructive",
+                        });
+                      });
+                    }
+                  }}
+                >
+                  Copy Image
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
