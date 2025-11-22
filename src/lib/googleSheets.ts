@@ -40,8 +40,9 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 // 1. Create a new sheet named "Activity Logs" with these columns:
 //    A: Log ID | B: Service ID | C: Username | D: Role | E: Timestamp | F: Activity
 //
-// 2. Create a new sheet named "Inventory" with these columns:
-//    A: Item ID | B: Item Name | C: Cost | D: Quantity
+// 2. Create a new sheet named "Inventory" with these columns (updated):
+//    A: Item ID | B: Item Name | C: Cost | D: Quantity | ... | M: QR Code
+//    Column M stores the QR code data URL for each part
 //
 // 3. Update "Staff Management" sheet to include:
 //    A: Staff ID | B: Name | C: Role | D: Status | E: Department (for technicians)

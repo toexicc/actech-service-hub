@@ -12,8 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
-import { FileText, Printer, Package, Camera, Loader2 } from "lucide-react";
+import { FileText, Printer, Package, Camera, Loader2, QrCode } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
+import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
@@ -59,6 +60,7 @@ const ServiceUpdate = () => {
   const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
+  const [showQRScanner, setShowQRScanner] = useState(false);
   const { toast } = useToast();
 
   const username = sessionStorage.getItem("username") || "Unknown";
@@ -182,6 +184,44 @@ const ServiceUpdate = () => {
       const item = inventory.find(i => i.id === itemId);
       return total + (item ? item.cost * qty : 0);
     }, 0);
+  };
+
+  const handleQRScan = (decodedText: string) => {
+    try {
+      const partData = JSON.parse(decodedText);
+      
+      // Find matching part in inventory
+      const foundPart = inventory.find(item => 
+        item.name.toLowerCase().includes(partData.partName.toLowerCase()) &&
+        (partData.brand ? item.name.toLowerCase().includes(partData.brand.toLowerCase()) : true)
+      );
+
+      if (foundPart) {
+        setSelectedParts(prev => ({
+          ...prev,
+          [foundPart.id]: (prev[foundPart.id] || 0) + 1
+        }));
+        toast({
+          title: "Part Added",
+          description: `${foundPart.name} has been added to the service`,
+        });
+      } else {
+        toast({
+          title: "Part Not Found",
+          description: `Could not find matching part: ${partData.partName}`,
+          variant: "destructive",
+        });
+      }
+      
+      setShowQRScanner(false);
+    } catch (error) {
+      toast({
+        title: "Invalid QR Code",
+        description: "The scanned QR code is not a valid part code",
+        variant: "destructive",
+      });
+      setShowQRScanner(false);
+    }
   };
 
   const handleViewPDF = () => {
@@ -953,28 +993,53 @@ const ServiceUpdate = () => {
                       )}
                       
                       <div className="space-y-2">
-                        <Label className="text-sm">Add Part:</Label>
-                        <Select
-                          value=""
-                          onValueChange={(partId) => {
-                            setSelectedParts(prev => ({
-                              ...prev,
-                              [partId]: 1
-                            }));
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select part to add..." />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background z-50">
-                            {inventory.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Label className="text-sm">Add Part:</Label>
+                            <Select
+                              value=""
+                              onValueChange={(partId) => {
+                                setSelectedParts(prev => ({
+                                  ...prev,
+                                  [partId]: 1
+                                }));
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select part to add..." />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background z-50">
+                                {inventory.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Scan QR:</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowQRScanner(true)}
+                              className="w-full"
+                            >
+                              <QrCode className="h-4 w-4 mr-2" />
+                              Scan Part
+                            </Button>
+                          </div>
+                        </div>
                       </div>
+
+                      {showQRScanner && (
+                        <div className="mt-4">
+                          <QRScanner
+                            onScan={handleQRScan}
+                            onClose={() => setShowQRScanner(false)}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                   
