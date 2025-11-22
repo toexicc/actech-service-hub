@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2 } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
+import QRCode from "qrcode";
 
 interface InventoryItem {
   partId: string;
@@ -28,6 +29,7 @@ interface InventoryItem {
   status: string;
   lastUpdated: string;
   remarks: string;
+  qrCode?: string;
 }
 
 interface InventoryLog {
@@ -188,6 +190,21 @@ const InventoryManagement = () => {
 
     setIsSubmitting(true);
     try {
+      // Generate QR code for the part
+      const partData = {
+        partName: newPart.partName,
+        deviceType: newPart.deviceType,
+        brand: newPart.brand,
+        model: newPart.model,
+        costPerUnit: newPart.costPerUnit
+      };
+      
+      // Generate QR code as data URL
+      const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(partData), {
+        width: 300,
+        margin: 1,
+      });
+      
       const formData = new FormData();
       formData.append("action", "addInventoryItem");
       
@@ -208,6 +225,7 @@ const InventoryManagement = () => {
       formData.append("costPerUnit", newPart.costPerUnit);
       formData.append("status", newPart.status);
       formData.append("remarks", remarksWithOrder);
+      formData.append("qrCode", qrCodeDataUrl);
       formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -221,8 +239,8 @@ const InventoryManagement = () => {
         toast({
           title: "Success",
           description: isOnOrder 
-            ? `Part added with "On Order" status. Click "Receive Order" when stock arrives.`
-            : "Part added successfully",
+            ? `Part added with "On Order" status and QR code generated. Click "Receive Order" when stock arrives.`
+            : "Part added successfully with QR code",
         });
         setIsAddDialogOpen(false);
         setNewPart({
