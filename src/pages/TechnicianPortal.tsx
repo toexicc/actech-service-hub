@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import OpenDashboard from "@/components/OpenDashboard";
 
 const TechnicianPortal = () => {
   const navigate = useNavigate();
@@ -72,6 +73,10 @@ const TechnicianPortal = () => {
               </Button>
             </div>
           </Card>
+        </div>
+
+        <div className="mb-8">
+          <OpenDashboard />
         </div>
       </div>
       
