@@ -43,7 +43,7 @@ const OpenDashboard = () => {
   useEffect(() => {
     fetchServices();
     fetchTechnicians();
-    const interval = setInterval(fetchServices, 30000);
+    const interval = setInterval(fetchServices, 5000); // Real-time: refresh every 5 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -55,19 +55,10 @@ const OpenDashboard = () => {
       const data = await response.json();
       
       if (data.status === "success" && data.services) {
-        console.log("Total services fetched (dashboard):", data.services.length);
-        console.log("Sample services (dashboard):", data.services.slice(0, 3));
         setServices(data.services);
-      } else {
-        console.error("Unexpected response for getAllOngoingServices", data);
       }
     } catch (error) {
       console.error("Error fetching services:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch services",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +75,6 @@ const OpenDashboard = () => {
             name: staff.name,
             department: staff.department || "",
           }));
-        console.log("Technicians with departments (dashboard):", techList);
         setTechniciansWithDept(techList);
       }
     } catch (error) {
@@ -100,36 +90,19 @@ const OpenDashboard = () => {
 
   const filterServicesByDate = (services: ServiceRecord[]) => {
     const today = startOfDay(new Date());
-    console.log("Today's date:", today);
-    console.log("View mode:", viewMode);
     
-    const filtered = services.filter((service) => {
-      if (!service.targetDate) {
-        console.log(`Service ${service.serviceId} has no target date`);
-        return false;
-      }
+    return services.filter((service) => {
+      if (!service.targetDate) return false;
       
       try {
         const parts = service.targetDate.split(/[-/]/);
-        if (parts.length !== 3) {
-          console.warn(`Unexpected targetDate format for service ${service.serviceId}: ${service.targetDate}`);
-          return false;
-        }
+        if (parts.length !== 3) return false;
+        
         const [month, day, year] = parts;
         const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         targetDate.setHours(0, 0, 0, 0);
         
-        if (isNaN(targetDate.getTime())) {
-          console.warn(`Invalid date for service ${service.serviceId}: ${service.targetDate}`);
-          return false;
-        }
-        
-        console.log(
-          `Service ${service.serviceId}: target=${service.targetDate}, parsed=${targetDate}, isSameDay=${isSameDay(
-            targetDate,
-            today
-          )}, isBefore=${isBefore(targetDate, today)}`
-        );
+        if (isNaN(targetDate.getTime())) return false;
         
         if (viewMode === "dueToday") {
           return isSameDay(targetDate, today);
@@ -137,13 +110,9 @@ const OpenDashboard = () => {
           return isBefore(targetDate, today);
         }
       } catch (error) {
-        console.error(`Error parsing date for service ${service.serviceId}:`, error);
         return false;
       }
     });
-    
-    console.log(`Filtered ${filtered.length} services out of ${services.length} total`);
-    return filtered;
   };
 
   const groupServicesByCategory = (services: ServiceRecord[]): GroupedServices => {
@@ -197,7 +166,6 @@ const OpenDashboard = () => {
       grouped[category][department].push(service);
     });
 
-    console.log("Grouped services (dashboard):", grouped);
     return grouped;
   };
 
@@ -205,97 +173,97 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 p-3 flex flex-col">
-      <div className="w-full flex flex-col h-full items-center">
-        <div className="text-center mb-3">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 p-4 flex flex-col">
+      <div className="w-full flex flex-col h-full">
+        <div className="text-center mb-2">
           <img 
             src={acTechLogo} 
             alt="AC Tech Repair" 
-            className="mx-auto h-16 mb-2 object-contain"
+            className="mx-auto h-12 mb-1 object-contain"
           />
-          <h1 className="text-3xl font-bold text-blue-600 mb-1">AC Tech Repair</h1>
-          <p className="text-lg text-muted-foreground">Open Dashboard</p>
+          <h1 className="text-2xl font-bold text-blue-600">AC Tech Repair - Open Dashboard</h1>
         </div>
 
-        <div className="flex justify-center gap-2 mb-3">
+        <div className="flex justify-center gap-2 mb-2">
           <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline" size="sm">
-            Back to {userRole === "management" ? "Menu" : "Portal"}
+            Back
+          </Button>
+          <Button
+            onClick={() => setViewMode("dueToday")}
+            size="sm"
+            className={cn(
+              "rounded-full px-6",
+              viewMode === "dueToday"
+                ? "bg-blue-900 hover:bg-blue-950 text-white"
+                : "bg-gray-400 hover:bg-gray-500 text-white"
+            )}
+          >
+            <Clock className="mr-1 h-3 w-3" />
+            Due Today
+          </Button>
+          <Button
+            onClick={() => setViewMode("overdue")}
+            size="sm"
+            className={cn(
+              "rounded-full px-6",
+              viewMode === "overdue"
+                ? "bg-blue-900 hover:bg-blue-950 text-white"
+                : "bg-gray-400 hover:bg-gray-500 text-white"
+            )}
+          >
+            <AlertCircle className="mr-1 h-3 w-3" />
+            Overdue
           </Button>
           <Button onClick={handleLogout} variant="destructive" size="sm">
             Logout
           </Button>
         </div>
 
-        <div className="flex gap-3 justify-center mb-3">
-          <Button
-            onClick={() => setViewMode("dueToday")}
-            className={cn(
-              "rounded-full px-8 py-4 text-base font-semibold",
-              viewMode === "dueToday"
-                ? "bg-blue-900 hover:bg-blue-950 text-white"
-                : "bg-gray-400 hover:bg-gray-500 text-white"
-            )}
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Due Today
-          </Button>
-          <Button
-            onClick={() => setViewMode("overdue")}
-            className={cn(
-              "rounded-full px-8 py-4 text-base font-semibold",
-              viewMode === "overdue"
-                ? "bg-blue-900 hover:bg-blue-950 text-white"
-                : "bg-gray-400 hover:bg-gray-500 text-white"
-            )}
-          >
-            <AlertCircle className="mr-2 h-4 w-4" />
-            Overdue
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-hidden w-full flex justify-center">
+        <div className="flex-1 overflow-hidden flex flex-col gap-3">
           {isLoading ? (
             <div className="text-center py-8 text-xl">Loading...</div>
           ) : (
-            <div className="h-full overflow-y-auto space-y-4 w-full max-w-7xl px-4">
+            <>
               {Object.entries(groupedServices).map(([category, departments]) => (
-                <div key={category} className="bg-white rounded-lg p-4 shadow-lg">
-                  <h2 className="text-3xl font-black text-center mb-4">{category}</h2>
-                  <div className="flex flex-wrap gap-3 justify-center">
+                <div key={category} className="bg-white rounded-lg p-3 shadow-lg flex-1 flex flex-col min-h-0">
+                  <h2 className="text-2xl font-black text-center mb-2">{category}</h2>
+                  <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
                     {Object.entries(departments).map(([department, serviceList]) => (
-                      <div key={department} className="border-2 border-gray-200 rounded-lg p-3 w-36">
-                        <h3 className="text-sm font-bold mb-2 text-center pb-2 border-b-2 border-gray-300 truncate">
+                      <div key={department} className="border-2 border-gray-300 rounded-lg p-2 flex flex-col min-h-0">
+                        <h3 className="text-base font-bold text-center pb-2 mb-2 border-b-2 border-gray-300">
                           {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                         </h3>
-                        {serviceList.length === 0 ? (
-                          <div className="text-center text-muted-foreground text-xs py-2">No services</div>
-                        ) : (
-                          <div className="space-y-2">
-                            {serviceList.map((service, idx) => (
-                              <div 
-                                key={idx}
-                                className="text-center bg-blue-50 rounded p-2"
-                              >
-                                <div className="font-mono text-lg font-black text-blue-600 break-all">
-                                  &lt;{service.serviceId}&gt;
+                        <div className="flex-1 overflow-hidden">
+                          {serviceList.length === 0 ? (
+                            <div className="text-center text-muted-foreground text-sm py-2">No services</div>
+                          ) : (
+                            <div className="space-y-1 h-full overflow-y-auto">
+                              {serviceList.map((service, idx) => (
+                                <div 
+                                  key={idx}
+                                  className="bg-blue-50 rounded p-1.5"
+                                >
+                                  <div className="font-mono text-base font-black text-blue-600 text-center break-all">
+                                    &lt;{service.serviceId}&gt;
+                                  </div>
+                                  <div className="text-[10px] text-center text-muted-foreground truncate">
+                                    {service.technician || "Unassigned"}
+                                  </div>
                                 </div>
-                                <div className="text-[10px] text-muted-foreground truncate">
-                                  {service.technician || "Unassigned"}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
-            </div>
+            </>
           )}
         </div>
 
-        <footer className="text-center text-xs text-muted-foreground mt-2 py-2">
+        <footer className="text-center text-xs text-muted-foreground py-1">
           Powered by Stack&Scale
         </footer>
       </div>
