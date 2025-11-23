@@ -205,9 +205,9 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col">
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
       {/* Header */}
-      <div className="bg-white text-center py-4 px-4 shadow-sm">
+      <div className="text-center py-4 px-4 border-b">
         <img 
           src={acTechLogo} 
           alt="AC Tech Repair" 
