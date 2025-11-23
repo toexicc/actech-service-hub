@@ -43,7 +43,7 @@ const OpenDashboard = () => {
   useEffect(() => {
     fetchServices();
     fetchTechnicians();
-    const interval = setInterval(fetchServices, 30000);
+    const interval = setInterval(fetchServices, 60000); // Reload every minute
     return () => clearInterval(interval);
   }, []);
 
@@ -207,83 +207,80 @@ const OpenDashboard = () => {
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-center py-4 px-4 border-b">
+      <div className="flex items-center py-4 px-6 border-b">
         <img src={acTechLogo} alt="AC Tech Repair" className="h-16 mr-4" />
         <div>
           <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-          <p className="text-muted-foreground">Open Dashboard</p>
+          <p className="text-muted-foreground">Service Tracker Dashboard</p>
         </div>
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-center gap-2 py-3 px-4">
+      <div className="flex justify-start gap-2 py-3 px-6">
         <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline">
-          Back to {userRole === "management" ? "Menu" : "Portal"}
-        </Button>
-        <Button onClick={handleLogout} variant="destructive">
-          Logout
+          Back to {userRole === "management" ? "Menu" : "Technician Portal"}
         </Button>
       </div>
 
       {/* Toggle */}
-      <div className="flex gap-3 justify-center py-3 px-4">
+      <div className="flex gap-4 justify-start py-3 px-6">
         <Button
           onClick={() => setViewMode("dueToday")}
           className={cn(
-            "rounded-full px-6 py-2 text-sm font-semibold",
+            "rounded-full px-8 py-3 text-lg font-semibold",
             viewMode === "dueToday"
               ? "bg-blue-900 hover:bg-blue-950 text-white"
               : "bg-gray-400 hover:bg-gray-500 text-white"
           )}
         >
-          <Clock className="mr-2 h-4 w-4" />
+          <Clock className="mr-2 h-5 w-5" />
           Due Today
         </Button>
         <Button
           onClick={() => setViewMode("overdue")}
           className={cn(
-            "rounded-full px-6 py-2 text-sm font-semibold",
+            "rounded-full px-8 py-3 text-lg font-semibold",
             viewMode === "overdue"
-              ? "bg-blue-900 hover:bg-blue-950 text-white"
+              ? "bg-red-600 hover:bg-red-700 text-white"
               : "bg-gray-400 hover:bg-gray-500 text-white"
           )}
         >
-          <AlertCircle className="mr-2 h-4 w-4" />
+          <AlertCircle className="mr-2 h-5 w-5" />
           Overdue
         </Button>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden px-4 pb-2">
+      <div className="flex-1 overflow-hidden px-6 pb-4">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-2xl">Loading...</div>
         ) : (
-          <div className="h-full flex flex-col justify-center gap-2">
+          <div className="h-full flex flex-col justify-center gap-3">
             {Object.entries(groupedServices).map(([category, departments]) => (
-              <div key={category} className="bg-white rounded-xl p-3 shadow-lg">
-                <h2 className="text-2xl font-black text-center mb-2">{category}</h2>
-                <div className="flex justify-center gap-2 flex-wrap">
+              <div key={category} className="bg-white rounded-xl p-4 shadow-lg border">
+                <h2 className="text-4xl font-black text-center mb-3">{category}</h2>
+                <div className="flex justify-center gap-3 flex-wrap">
                   {Object.entries(departments).map(([department, serviceList]) => (
                     <div
                       key={department}
-                      className="border-2 border-gray-300 rounded-lg p-2 min-w-[280px]"
+                      className="border-2 border-gray-400 rounded-lg p-3 min-w-[320px]"
                     >
-                      <h3 className="text-sm font-bold mb-2 text-center pb-1.5 border-b-2 border-gray-400">
+                      <h3 className="text-lg font-bold mb-3 text-center pb-2 border-b-2 border-gray-400">
                         {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                       </h3>
                       {serviceList.length === 0 ? (
-                        <div className="text-center text-muted-foreground text-xs py-2">No services</div>
+                        <div className="text-center text-muted-foreground text-base py-3">No services</div>
                       ) : (
-                        <div className="grid grid-cols-3 gap-2 mt-1.5">
+                        <div className="grid grid-cols-3 gap-3 mt-2">
                           {serviceList.map((service, idx) => (
                             <div
                               key={idx}
-                              className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center"
+                              className="bg-blue-50 rounded-lg p-3 flex flex-col items-center justify-center min-h-[80px]"
                             >
-                              <div className="font-mono text-xl font-black text-blue-600 text-center leading-tight break-all">
+                              <div className="font-mono text-2xl font-black text-blue-600 text-center leading-tight break-all">
                                 &lt;{service.serviceId}&gt;
                               </div>
-                              <div className="mt-0.5 text-[9px] text-muted-foreground text-center truncate w-full">
+                              <div className="mt-1 text-xs text-muted-foreground text-center truncate w-full">
                                 {service.technician || "Unassigned"}
                               </div>
                             </div>
