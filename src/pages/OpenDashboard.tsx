@@ -51,6 +51,8 @@ const OpenDashboard = () => {
       const data = await response.json();
       
       if (data.status === "success" && data.data) {
+        console.log("Total services fetched:", data.data.length);
+        console.log("Sample services:", data.data.slice(0, 3));
         setServices(data.data);
       }
     } catch (error) {
@@ -73,9 +75,14 @@ const OpenDashboard = () => {
 
   const filterServicesByDate = (services: ServiceRecord[]) => {
     const today = startOfDay(new Date());
+    console.log("Today's date:", today);
+    console.log("View mode:", viewMode);
     
-    return services.filter((service) => {
-      if (!service.targetDate) return false;
+    const filtered = services.filter((service) => {
+      if (!service.targetDate) {
+        console.log(`Service ${service.serviceId} has no target date`);
+        return false;
+      }
       
       try {
         // Parse MM-dd-yyyy format (e.g., "11-23-2025")
@@ -86,16 +93,22 @@ const OpenDashboard = () => {
           return false;
         }
         
+        const targetDateStart = startOfDay(targetDate);
+        console.log(`Service ${service.serviceId}: target=${service.targetDate}, parsed=${targetDateStart}, isSameDay=${isSameDay(targetDateStart, today)}, isBefore=${isBefore(targetDateStart, today)}`);
+        
         if (viewMode === "dueToday") {
-          return isSameDay(targetDate, today);
+          return isSameDay(targetDateStart, today);
         } else {
-          return isBefore(targetDate, today);
+          return isBefore(targetDateStart, today);
         }
       } catch (error) {
         console.error(`Error parsing date for service ${service.serviceId}:`, error);
         return false;
       }
     });
+    
+    console.log(`Filtered ${filtered.length} services out of ${services.length} total`);
+    return filtered;
   };
 
   const groupServicesByCategory = (services: ServiceRecord[]): GroupedServices => {
@@ -198,42 +211,39 @@ const OpenDashboard = () => {
           </div>
         ) : (
           <div className="space-y-12">
-            {Object.entries(groupedServices).map(([category, departments]) => {
-              const hasDepartments = Object.values(departments).some(services => services.length > 0);
-              if (!hasDepartments) return null;
-              
-              return (
-                <div key={category} className="bg-white rounded-lg p-8 shadow-lg">
-                  <h2 className="text-5xl font-black text-center mb-8">{category}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {Object.entries(departments)
-                      .filter(([_, serviceList]) => serviceList.length > 0)
-                      .map(([department, serviceList]) => (
-                        <div key={department} className="border-2 border-gray-200 rounded-lg p-6">
-                          <h3 className="text-2xl font-bold mb-6 text-center pb-3 border-b-2 border-gray-300">
-                            {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
-                          </h3>
-                          <div className="space-y-4">
-                            {serviceList.map((service, idx) => (
-                              <div 
-                                key={idx}
-                                className="text-center space-y-1"
-                              >
-                                <div className="font-mono text-lg font-bold">
-                                  &lt;{service.serviceId}&gt;
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {service.technician || "Unassigned"}
-                                </div>
+            {Object.entries(groupedServices).map(([category, departments]) => (
+              <div key={category} className="bg-white rounded-lg p-8 shadow-lg">
+                <h2 className="text-5xl font-black text-center mb-8">{category}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {Object.entries(departments).map(([department, serviceList]) => (
+                    <div key={department} className="border-2 border-gray-200 rounded-lg p-6">
+                      <h3 className="text-2xl font-bold mb-6 text-center pb-3 border-b-2 border-gray-300">
+                        {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
+                      </h3>
+                      {serviceList.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-4">No services</div>
+                      ) : (
+                        <div className="space-y-4">
+                          {serviceList.map((service, idx) => (
+                            <div 
+                              key={idx}
+                              className="text-center space-y-1"
+                            >
+                              <div className="font-mono text-lg font-bold">
+                                &lt;{service.serviceId}&gt;
                               </div>
-                            ))}
-                          </div>
+                              <div className="text-sm text-muted-foreground">
+                                {service.technician || "Unassigned"}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                  </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
 
