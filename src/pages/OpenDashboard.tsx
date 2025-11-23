@@ -43,7 +43,7 @@ const OpenDashboard = () => {
   useEffect(() => {
     fetchServices();
     fetchTechnicians();
-    const interval = setInterval(fetchServices, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchServices, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -91,11 +91,13 @@ const OpenDashboard = () => {
       console.error("Error fetching technicians for dashboard:", error);
     }
   };
+
   const handleLogout = () => {
     sessionStorage.removeItem("authenticated");
     sessionStorage.removeItem("userRole");
     navigate("/");
   };
+
   const filterServicesByDate = (services: ServiceRecord[]) => {
     const today = startOfDay(new Date());
     console.log("Today's date:", today);
@@ -108,7 +110,6 @@ const OpenDashboard = () => {
       }
       
       try {
-        // Parse target date format: "MM-DD-YYYY" or "MM/DD/YYYY"
         const parts = service.targetDate.split(/[-/]/);
         if (parts.length !== 3) {
           console.warn(`Unexpected targetDate format for service ${service.serviceId}: ${service.targetDate}`);
@@ -152,7 +153,6 @@ const OpenDashboard = () => {
       OTHERS: {},
     };
 
-    // Initialize all known departments so they always show
     DEPARTMENTS.forEach((dept) => {
       if (dept.startsWith("Laptop")) {
         grouped.LAPTOP[dept] = [];
@@ -206,7 +206,7 @@ const OpenDashboard = () => {
 
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 p-3 flex flex-col">
-      <div className="max-w-[1800px] mx-auto w-full flex flex-col h-full">
+      <div className="w-full flex flex-col h-full items-center">
         <div className="text-center mb-3">
           <img 
             src={acTechLogo} 
@@ -253,17 +253,17 @@ const OpenDashboard = () => {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden w-full flex justify-center">
           {isLoading ? (
             <div className="text-center py-8 text-xl">Loading...</div>
           ) : (
-            <div className="h-full overflow-y-auto space-y-4">
+            <div className="h-full overflow-y-auto space-y-4 w-full max-w-7xl px-4">
               {Object.entries(groupedServices).map(([category, departments]) => (
                 <div key={category} className="bg-white rounded-lg p-4 shadow-lg">
                   <h2 className="text-3xl font-black text-center mb-4">{category}</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                  <div className="flex flex-wrap gap-3 justify-center">
                     {Object.entries(departments).map(([department, serviceList]) => (
-                      <div key={department} className="border-2 border-gray-200 rounded-lg p-3">
+                      <div key={department} className="border-2 border-gray-200 rounded-lg p-3 w-36">
                         <h3 className="text-sm font-bold mb-2 text-center pb-2 border-b-2 border-gray-300 truncate">
                           {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                         </h3>
