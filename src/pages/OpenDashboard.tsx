@@ -206,18 +206,18 @@ const OpenDashboard = () => {
 
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 p-3 flex flex-col">
-      <div className="w-full flex flex-col h-full items-center">
-        <div className="text-center mb-3">
+      <div className="w-full flex flex-col h-full">
+        <div className="text-center mb-2">
           <img 
             src={acTechLogo} 
             alt="AC Tech Repair" 
-            className="mx-auto h-16 mb-2 object-contain"
+            className="mx-auto h-14 mb-1 object-contain"
           />
-          <h1 className="text-3xl font-bold text-blue-600 mb-1">AC Tech Repair</h1>
-          <p className="text-lg text-muted-foreground">Open Dashboard</p>
+          <h1 className="text-2xl font-bold text-blue-600 mb-0.5">AC Tech Repair</h1>
+          <p className="text-base text-muted-foreground">Open Dashboard</p>
         </div>
 
-        <div className="flex justify-center gap-2 mb-3">
+        <div className="flex justify-center gap-2 mb-2">
           <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline" size="sm">
             Back to {userRole === "management" ? "Menu" : "Portal"}
           </Button>
@@ -226,7 +226,7 @@ const OpenDashboard = () => {
           </Button>
         </div>
 
-        <div className="flex gap-3 justify-center mb-3">
+        <div className="flex gap-3 justify-center mb-2">
           <Button
             onClick={() => setViewMode("dueToday")}
             className={cn(
@@ -253,36 +253,36 @@ const OpenDashboard = () => {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-hidden w-full flex justify-center items-center">
+        <div className="flex-1 overflow-hidden w-full flex justify-center items-center px-4">
           {isLoading ? (
-            <div className="text-center py-8 text-xl">Loading...</div>
+            <div className="text-center py-8 text-2xl">Loading...</div>
           ) : (
-            <div className="space-y-3 w-full max-w-[95vw] px-4">
+            <div className="space-y-4 w-full h-full flex flex-col justify-center">
               {Object.entries(groupedServices).map(([category, departments]) => (
-                <div key={category} className="bg-white rounded-lg p-3 shadow-lg w-full">
-                  <h2 className="text-2xl font-black text-center mb-3">{category}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div key={category} className="bg-white rounded-lg p-4 shadow-lg w-full">
+                  <h2 className="text-4xl font-black text-center mb-4">{category}</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                     {Object.entries(departments).map(([department, serviceList]) => (
                       <div
                         key={department}
-                        className="border-2 border-gray-200 rounded-lg p-3"
+                        className="border-2 border-gray-300 rounded-lg p-4"
                       >
-                        <h3 className="text-xs font-bold mb-3 text-center pb-2 border-b-2 border-gray-300">
+                        <h3 className="text-base font-bold mb-3 text-center pb-2 border-b-2 border-gray-400">
                           {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                         </h3>
                         {serviceList.length === 0 ? (
-                          <div className="text-center text-muted-foreground text-xs py-4">No services</div>
+                          <div className="text-center text-muted-foreground text-sm py-4">No services</div>
                         ) : (
                           <div className="grid grid-cols-3 gap-2">
                             {serviceList.map((service, idx) => (
                               <div
                                 key={idx}
-                                className="bg-blue-50 rounded p-2 flex flex-col items-center justify-center min-h-[60px]"
+                                className="bg-blue-50 rounded p-2 flex flex-col items-center justify-center min-h-[70px]"
                               >
-                                <div className="font-mono text-sm font-black text-blue-600 whitespace-nowrap text-center leading-tight">
+                                <div className="font-mono text-lg font-black text-blue-600 whitespace-nowrap text-center leading-tight">
                                   &lt;{service.serviceId}&gt;
                                 </div>
-                                <div className="mt-1 text-[9px] text-muted-foreground truncate w-full text-center">
+                                <div className="mt-1 text-[10px] text-muted-foreground truncate w-full text-center">
                                   {service.technician || "Unassigned"}
                                 </div>
                               </div>
@@ -298,7 +298,7 @@ const OpenDashboard = () => {
           )}
         </div>
 
-        <footer className="text-center text-xs text-muted-foreground mt-2 py-2">
+        <footer className="text-center text-xs text-muted-foreground py-1">
           Powered by Stack&Scale
         </footer>
       </div>
