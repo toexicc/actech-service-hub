@@ -149,6 +149,7 @@ const OpenDashboard = () => {
     const grouped: GroupedServices = {
       LAPTOP: {},
       MOBILE: {},
+      OTHERS: {},
     };
 
     // Initialize all known departments so they always show
@@ -157,6 +158,8 @@ const OpenDashboard = () => {
         grouped.LAPTOP[dept] = [];
       } else if (dept.startsWith("Mobile")) {
         grouped.MOBILE[dept] = [];
+      } else if (dept === "Others") {
+        grouped.OTHERS[dept] = [];
       }
     });
 
@@ -169,6 +172,8 @@ const OpenDashboard = () => {
         category = "LAPTOP";
       } else if (department.startsWith("Mobile")) {
         category = "MOBILE";
+      } else if (department === "Others") {
+        category = "OTHERS";
       } else if (service.deviceType?.toLowerCase().includes("laptop") ||
                  service.deviceType?.toLowerCase().includes("mac") ||
                  service.deviceType?.toLowerCase().includes("computer") ||
@@ -179,6 +184,8 @@ const OpenDashboard = () => {
                  service.deviceType?.toLowerCase().includes("android") ||
                  service.deviceType?.toLowerCase().includes("ipad")) {
         category = "MOBILE";
+      } else {
+        category = "OTHERS";
       }
 
       if (!category) return;
@@ -198,8 +205,8 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-8">
-      <div className="max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+      <div className="max-w-[1800px] mx-auto">
         <div className="text-center mb-8">
           <img 
             src={acTechLogo} 
@@ -249,30 +256,30 @@ const OpenDashboard = () => {
         {isLoading ? (
           <div className="text-center py-8 text-xl">Loading...</div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-8">
             {Object.entries(groupedServices).map(([category, departments]) => (
 
-              <div key={category} className="bg-white rounded-lg p-8 shadow-lg">
-                <h2 className="text-5xl font-black text-center mb-8">{category}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div key={category} className="bg-white rounded-lg p-6 shadow-lg">
+                <h2 className="text-4xl font-black text-center mb-6">{category}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {Object.entries(departments).map(([department, serviceList]) => (
-                    <div key={department} className="border-2 border-gray-200 rounded-lg p-6">
-                      <h3 className="text-2xl font-bold mb-6 text-center pb-3 border-b-2 border-gray-300">
+                    <div key={department} className="border-2 border-gray-200 rounded-lg p-4">
+                      <h3 className="text-lg font-bold mb-4 text-center pb-2 border-b-2 border-gray-300">
                         {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                       </h3>
                       {serviceList.length === 0 ? (
-                        <div className="text-center text-muted-foreground py-4">No services</div>
+                        <div className="text-center text-muted-foreground text-sm py-2">No services</div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           {serviceList.map((service, idx) => (
                             <div 
                               key={idx}
-                              className="text-center space-y-1"
+                              className="text-center space-y-1 bg-blue-50 rounded p-2"
                             >
-                              <div className="font-mono text-lg font-bold">
+                              <div className="font-mono text-2xl font-black text-blue-600">
                                 &lt;{service.serviceId}&gt;
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-xs text-muted-foreground">
                                 {service.technician || "Unassigned"}
                               </div>
                             </div>
