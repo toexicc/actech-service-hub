@@ -205,30 +205,30 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col p-4">
       {/* Header */}
-      <div className="text-center py-1">
+      <div className="text-center mb-4">
         <img 
           src={acTechLogo} 
           alt="AC Tech Repair" 
-          className="mx-auto h-10 mb-0.5 object-contain"
+          className="mx-auto h-24 mb-4 object-contain"
         />
-        <h1 className="text-xl font-bold text-blue-600">AC Tech Repair</h1>
-        <p className="text-xs text-muted-foreground">Open Dashboard</p>
+        <h1 className="text-4xl font-bold text-blue-600 mb-2">AC Tech Repair</h1>
+        <p className="text-xl text-muted-foreground">Open Dashboard</p>
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-center gap-2 py-1">
-        <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline" size="sm">
+      <div className="flex justify-center gap-2 mb-4">
+        <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline">
           Back to {userRole === "management" ? "Menu" : "Portal"}
         </Button>
-        <Button onClick={handleLogout} variant="destructive" size="sm">
+        <Button onClick={handleLogout} variant="destructive">
           Logout
         </Button>
       </div>
 
       {/* Toggle */}
-      <div className="flex gap-3 justify-center py-1">
+      <div className="flex gap-3 justify-center mb-4">
         <Button
           onClick={() => setViewMode("dueToday")}
           className={cn(
@@ -256,7 +256,7 @@ const OpenDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden px-4 pb-2">
+      <div className="flex-1 overflow-hidden pb-2">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-2xl">Loading...</div>
         ) : (
