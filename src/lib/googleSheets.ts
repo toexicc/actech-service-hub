@@ -870,7 +870,8 @@ function doPost(e) {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
     var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
-    var partId = "PART" + Date.now();
+    // Use client-provided partId when available so it matches the QR code encoded on the frontend
+    var partId = params.partId || ("PART" + Date.now());
     var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
@@ -909,7 +910,8 @@ function doPost(e) {
     ]);
     
     return ContentService.createTextOutput(JSON.stringify({
-      "result": "success"
+      "result": "success",
+      "partId": partId
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
