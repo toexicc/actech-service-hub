@@ -205,9 +205,9 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col p-4">
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col">
       {/* Header */}
-      <div className="text-center mb-4">
+      <div className="bg-white text-center py-4 px-4 shadow-sm">
         <img 
           src={acTechLogo} 
           alt="AC Tech Repair" 
@@ -218,7 +218,7 @@ const OpenDashboard = () => {
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-center gap-2 mb-4">
+      <div className="flex justify-center gap-2 py-3 px-4">
         <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline">
           Back to {userRole === "management" ? "Menu" : "Portal"}
         </Button>
@@ -228,7 +228,7 @@ const OpenDashboard = () => {
       </div>
 
       {/* Toggle */}
-      <div className="flex gap-3 justify-center mb-4">
+      <div className="flex gap-3 justify-center py-3 px-4">
         <Button
           onClick={() => setViewMode("dueToday")}
           className={cn(
@@ -256,7 +256,7 @@ const OpenDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden pb-2">
+      <div className="flex-1 overflow-hidden px-4 pb-2">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-2xl">Loading...</div>
         ) : (
