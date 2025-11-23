@@ -15,6 +15,7 @@ interface ServiceRecord {
   service: string;
   deviceType: string;
   targetDate: string;
+  status: string;
 }
 
 interface GroupedServices {
@@ -57,7 +58,23 @@ const OpenDashboard = () => {
       if (data.status === "success" && data.services) {
         console.log("Total services fetched (dashboard):", data.services.length);
         console.log("Sample services (dashboard):", data.services.slice(0, 3));
-        setServices(data.services);
+        
+        // Filter out completed/cancelled statuses
+        const excludedStatuses = [
+          "Pending Pickup (Completed)",
+          "Completed",
+          "Backjob",
+          "RTO",
+          "On Hold",
+          "Cancelled"
+        ];
+        
+        const filteredServices = data.services.filter(
+          (service: ServiceRecord) => !excludedStatuses.includes(service.status)
+        );
+        
+        console.log("Filtered services count:", filteredServices.length);
+        setServices(filteredServices);
       } else {
         console.error("Unexpected response for getAllOngoingServices", data);
       }
