@@ -257,29 +257,32 @@ const OpenDashboard = () => {
           {isLoading ? (
             <div className="text-center py-8 text-xl">Loading...</div>
           ) : (
-            <div className="h-full overflow-y-auto space-y-4 w-full max-w-7xl px-4">
+            <div className="h-full space-y-4 w-full max-w-7xl px-4 flex flex-col items-center justify-center">
               {Object.entries(groupedServices).map(([category, departments]) => (
-                <div key={category} className="bg-white rounded-lg p-4 shadow-lg">
+                <div key={category} className="bg-white rounded-lg p-4 shadow-lg w-full">
                   <h2 className="text-3xl font-black text-center mb-4">{category}</h2>
                   <div className="flex flex-wrap gap-3 justify-center">
                     {Object.entries(departments).map(([department, serviceList]) => (
-                      <div key={department} className="border-2 border-gray-200 rounded-lg p-3 w-36">
+                      <div
+                        key={department}
+                        className="border-2 border-gray-200 rounded-lg p-4 flex-1 min-w-[260px] max-w-md"
+                      >
                         <h3 className="text-sm font-bold mb-2 text-center pb-2 border-b-2 border-gray-300 truncate">
                           {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                         </h3>
                         {serviceList.length === 0 ? (
                           <div className="text-center text-muted-foreground text-xs py-2">No services</div>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-3 gap-3">
                             {serviceList.map((service, idx) => (
-                              <div 
+                              <div
                                 key={idx}
-                                className="text-center bg-blue-50 rounded p-2"
+                                className="bg-blue-50 rounded p-3 flex flex-col items-center justify-center"
                               >
-                                <div className="font-mono text-lg font-black text-blue-600 break-all">
+                                <div className="font-mono text-3xl font-black text-blue-600 break-all w-full text-center">
                                   &lt;{service.serviceId}&gt;
                                 </div>
-                                <div className="text-[10px] text-muted-foreground truncate">
+                                <div className="mt-1 text-[10px] text-muted-foreground truncate w-full text-center">
                                   {service.technician || "Unassigned"}
                                 </div>
                               </div>
