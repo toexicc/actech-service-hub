@@ -205,103 +205,106 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 p-3 flex flex-col">
-      <div className="w-full flex flex-col h-full">
-        <div className="text-center mb-2">
-          <img 
-            src={acTechLogo} 
-            alt="AC Tech Repair" 
-            className="mx-auto h-14 mb-1 object-contain"
-          />
-          <h1 className="text-2xl font-bold text-blue-600 mb-0.5">AC Tech Repair</h1>
-          <p className="text-base text-muted-foreground">Open Dashboard</p>
-        </div>
-
-        <div className="flex justify-center gap-2 mb-2">
-          <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline" size="sm">
-            Back to {userRole === "management" ? "Menu" : "Portal"}
-          </Button>
-          <Button onClick={handleLogout} variant="destructive" size="sm">
-            Logout
-          </Button>
-        </div>
-
-        <div className="flex gap-3 justify-center mb-2">
-          <Button
-            onClick={() => setViewMode("dueToday")}
-            className={cn(
-              "rounded-full px-8 py-4 text-base font-semibold",
-              viewMode === "dueToday"
-                ? "bg-blue-900 hover:bg-blue-950 text-white"
-                : "bg-gray-400 hover:bg-gray-500 text-white"
-            )}
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            Due Today
-          </Button>
-          <Button
-            onClick={() => setViewMode("overdue")}
-            className={cn(
-              "rounded-full px-8 py-4 text-base font-semibold",
-              viewMode === "overdue"
-                ? "bg-blue-900 hover:bg-blue-950 text-white"
-                : "bg-gray-400 hover:bg-gray-500 text-white"
-            )}
-          >
-            <AlertCircle className="mr-2 h-4 w-4" />
-            Overdue
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-hidden w-full flex justify-center items-center px-4">
-          {isLoading ? (
-            <div className="text-center py-8 text-2xl">Loading...</div>
-          ) : (
-            <div className="space-y-4 w-full h-full flex flex-col justify-center">
-              {Object.entries(groupedServices).map(([category, departments]) => (
-                <div key={category} className="bg-white rounded-lg p-4 shadow-lg w-full">
-                  <h2 className="text-4xl font-black text-center mb-4">{category}</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                    {Object.entries(departments).map(([department, serviceList]) => (
-                      <div
-                        key={department}
-                        className="border-2 border-gray-300 rounded-lg p-4"
-                      >
-                        <h3 className="text-base font-bold mb-3 text-center pb-2 border-b-2 border-gray-400">
-                          {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
-                        </h3>
-                        {serviceList.length === 0 ? (
-                          <div className="text-center text-muted-foreground text-sm py-4">No services</div>
-                        ) : (
-                          <div className="grid grid-cols-3 gap-2">
-                            {serviceList.map((service, idx) => (
-                              <div
-                                key={idx}
-                                className="bg-blue-50 rounded p-2 flex flex-col items-center justify-center min-h-[70px]"
-                              >
-                                <div className="font-mono text-lg font-black text-blue-600 whitespace-nowrap text-center leading-tight">
-                                  &lt;{service.serviceId}&gt;
-                                </div>
-                                <div className="mt-1 text-[10px] text-muted-foreground truncate w-full text-center">
-                                  {service.technician || "Unassigned"}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <footer className="text-center text-xs text-muted-foreground py-1">
-          Powered by Stack&Scale
-        </footer>
+    <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col">
+      {/* Header */}
+      <div className="text-center py-2">
+        <img 
+          src={acTechLogo} 
+          alt="AC Tech Repair" 
+          className="mx-auto h-12 mb-1 object-contain"
+        />
+        <h1 className="text-2xl font-bold text-blue-600">AC Tech Repair</h1>
+        <p className="text-sm text-muted-foreground">Open Dashboard</p>
       </div>
+
+      {/* Buttons */}
+      <div className="flex justify-center gap-2 py-2">
+        <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline" size="sm">
+          Back to {userRole === "management" ? "Menu" : "Portal"}
+        </Button>
+        <Button onClick={handleLogout} variant="destructive" size="sm">
+          Logout
+        </Button>
+      </div>
+
+      {/* Toggle */}
+      <div className="flex gap-3 justify-center py-2">
+        <Button
+          onClick={() => setViewMode("dueToday")}
+          className={cn(
+            "rounded-full px-6 py-3 text-base font-semibold",
+            viewMode === "dueToday"
+              ? "bg-blue-900 hover:bg-blue-950 text-white"
+              : "bg-gray-400 hover:bg-gray-500 text-white"
+          )}
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Due Today
+        </Button>
+        <Button
+          onClick={() => setViewMode("overdue")}
+          className={cn(
+            "rounded-full px-6 py-3 text-base font-semibold",
+            viewMode === "overdue"
+              ? "bg-blue-900 hover:bg-blue-950 text-white"
+              : "bg-gray-400 hover:bg-gray-500 text-white"
+          )}
+        >
+          <AlertCircle className="mr-2 h-4 w-4" />
+          Overdue
+        </Button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden px-6 pb-4">
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center text-2xl">Loading...</div>
+        ) : (
+          <div className="h-full flex flex-col justify-center gap-3">
+            {Object.entries(groupedServices).map(([category, departments]) => (
+              <div key={category} className="bg-white rounded-xl p-4 shadow-lg">
+                <h2 className="text-3xl font-black text-center mb-3">{category}</h2>
+                <div className="flex justify-center gap-3 flex-wrap">
+                  {Object.entries(departments).map(([department, serviceList]) => (
+                    <div
+                      key={department}
+                      className="border-3 border-gray-300 rounded-lg p-3 min-w-[280px]"
+                    >
+                      <h3 className="text-base font-bold mb-2 text-center pb-2 border-b-2 border-gray-400">
+                        {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
+                      </h3>
+                      {serviceList.length === 0 ? (
+                        <div className="text-center text-muted-foreground text-sm py-3">No services</div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {serviceList.map((service, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-blue-50 rounded-lg p-3 flex flex-col items-center justify-center"
+                            >
+                              <div className="font-mono text-xl font-black text-blue-600 text-center leading-tight break-all">
+                                &lt;{service.serviceId}&gt;
+                              </div>
+                              <div className="mt-1 text-[10px] text-muted-foreground text-center truncate w-full">
+                                {service.technician || "Unassigned"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center text-xs text-muted-foreground py-1">
+        Powered by Stack&Scale
+      </footer>
     </div>
   );
 };
