@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { parseISO, isSameDay, isBefore, startOfDay } from "date-fns";
+import { parse, isSameDay, isBefore, startOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -77,12 +77,23 @@ const OpenDashboard = () => {
     return services.filter((service) => {
       if (!service.targetDate) return false;
       
-      const targetDate = parseISO(service.targetDate);
-      
-      if (viewMode === "dueToday") {
-        return isSameDay(targetDate, today);
-      } else {
-        return isBefore(targetDate, today);
+      try {
+        // Parse MM-dd-yyyy format (e.g., "11-23-2025")
+        const targetDate = parse(service.targetDate, "MM-dd-yyyy", new Date());
+        
+        if (isNaN(targetDate.getTime())) {
+          console.warn(`Invalid date format for service ${service.serviceId}: ${service.targetDate}`);
+          return false;
+        }
+        
+        if (viewMode === "dueToday") {
+          return isSameDay(targetDate, today);
+        } else {
+          return isBefore(targetDate, today);
+        }
+      } catch (error) {
+        console.error(`Error parsing date for service ${service.serviceId}:`, error);
+        return false;
       }
     });
   };
