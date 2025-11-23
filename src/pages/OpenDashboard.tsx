@@ -207,14 +207,12 @@ const OpenDashboard = () => {
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col">
       {/* Header */}
-      <div className="text-center py-4 px-4 border-b">
-        <img 
-          src={acTechLogo} 
-          alt="AC Tech Repair" 
-          className="mx-auto h-24 mb-4 object-contain"
-        />
-        <h1 className="text-4xl font-bold text-blue-600 mb-2">AC Tech Repair</h1>
-        <p className="text-xl text-muted-foreground">Open Dashboard</p>
+      <div className="flex items-center justify-center py-4 px-4 border-b">
+        <img src={acTechLogo} alt="AC Tech Repair" className="h-16 mr-4" />
+        <div>
+          <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
+          <p className="text-muted-foreground">Open Dashboard</p>
+        </div>
       </div>
 
       {/* Buttons */}
@@ -268,7 +266,7 @@ const OpenDashboard = () => {
                   {Object.entries(departments).map(([department, serviceList]) => (
                     <div
                       key={department}
-                      className="border-3 border-gray-300 rounded-lg p-2 min-w-[280px]"
+                      className="border-2 border-gray-300 rounded-lg p-2 min-w-[280px]"
                     >
                       <h3 className="text-sm font-bold mb-2 text-center pb-1.5 border-b-2 border-gray-400">
                         {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
