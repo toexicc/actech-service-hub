@@ -43,7 +43,7 @@ const OpenDashboard = () => {
   useEffect(() => {
     fetchServices();
     fetchTechnicians();
-    const interval = setInterval(fetchServices, 30000);
+    const interval = setInterval(fetchServices, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -207,21 +207,18 @@ const OpenDashboard = () => {
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-center py-4 px-4 border-b">
-        <img src={acTechLogo} alt="AC Tech Repair" className="h-16 mr-4" />
-        <div>
+      <div className="flex flex-col items-center justify-center py-4 px-4 border-b">
+        <div className="flex items-center gap-3">
+          <img src={acTechLogo} alt="AC Tech Repair" className="h-16" />
           <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-          <p className="text-muted-foreground">Open Dashboard</p>
         </div>
+        <p className="text-muted-foreground mt-1">Service Tracker Dashboard</p>
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-center gap-2 py-3 px-4">
+      <div className="flex justify-start gap-2 py-3 px-4">
         <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline">
           Back to {userRole === "management" ? "Menu" : "Portal"}
-        </Button>
-        <Button onClick={handleLogout} variant="destructive">
-          Logout
         </Button>
       </div>
 
@@ -244,7 +241,7 @@ const OpenDashboard = () => {
           className={cn(
             "rounded-full px-6 py-2 text-sm font-semibold",
             viewMode === "overdue"
-              ? "bg-blue-900 hover:bg-blue-950 text-white"
+              ? "bg-red-600 hover:bg-red-700 text-white"
               : "bg-gray-400 hover:bg-gray-500 text-white"
           )}
         >
