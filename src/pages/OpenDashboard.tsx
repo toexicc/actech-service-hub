@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { parse, isSameDay, isBefore, startOfDay } from "date-fns";
+import { isSameDay, isBefore, startOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ const OpenDashboard = () => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("dueToday");
+  const [techniciansWithDept, setTechniciansWithDept] = useState<Array<{ name: string; department: string }>>([]);
   const userRole = sessionStorage.getItem("userRole");
 
   useEffect(() => {
@@ -41,19 +42,24 @@ const OpenDashboard = () => {
 
   useEffect(() => {
     fetchServices();
+    fetchTechnicians();
     const interval = setInterval(fetchServices, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getOngoingServices`);
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`
+      );
       const data = await response.json();
       
-      if (data.status === "success" && data.data) {
-        console.log("Total services fetched:", data.data.length);
-        console.log("Sample services:", data.data.slice(0, 3));
-        setServices(data.data);
+      if (data.status === "success" && data.services) {
+        console.log("Total services fetched (dashboard):", data.services.length);
+        console.log("Sample services (dashboard):", data.services.slice(0, 3));
+        setServices(data.services);
+      } else {
+        console.error("Unexpected response for getAllOngoingServices", data);
       }
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -67,12 +73,29 @@ const OpenDashboard = () => {
     }
   };
 
+  const fetchTechnicians = async () => {
+    try {
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
+      const data = await response.json();
+      if (data.status === "success" && data.data) {
+        const techList = data.data
+          .filter((staff: any) => staff.role === "Technician" && staff.status === "Active")
+          .map((staff: any) => ({
+            name: staff.name,
+            department: staff.department || "",
+          }));
+        console.log("Technicians with departments (dashboard):", techList);
+        setTechniciansWithDept(techList);
+      }
+    } catch (error) {
+      console.error("Error fetching technicians for dashboard:", error);
+    }
+  };
   const handleLogout = () => {
     sessionStorage.removeItem("authenticated");
     sessionStorage.removeItem("userRole");
     navigate("/");
   };
-
   const filterServicesByDate = (services: ServiceRecord[]) => {
     const today = startOfDay(new Date());
     console.log("Today's date:", today);
@@ -85,21 +108,32 @@ const OpenDashboard = () => {
       }
       
       try {
-        // Parse MM-dd-yyyy format (e.g., "11-23-2025")
-        const targetDate = parse(service.targetDate, "MM-dd-yyyy", new Date());
+        // Parse target date format: "MM-DD-YYYY" or "MM/DD/YYYY"
+        const parts = service.targetDate.split(/[-/]/);
+        if (parts.length !== 3) {
+          console.warn(`Unexpected targetDate format for service ${service.serviceId}: ${service.targetDate}`);
+          return false;
+        }
+        const [month, day, year] = parts;
+        const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        targetDate.setHours(0, 0, 0, 0);
         
         if (isNaN(targetDate.getTime())) {
-          console.warn(`Invalid date format for service ${service.serviceId}: ${service.targetDate}`);
+          console.warn(`Invalid date for service ${service.serviceId}: ${service.targetDate}`);
           return false;
         }
         
-        const targetDateStart = startOfDay(targetDate);
-        console.log(`Service ${service.serviceId}: target=${service.targetDate}, parsed=${targetDateStart}, isSameDay=${isSameDay(targetDateStart, today)}, isBefore=${isBefore(targetDateStart, today)}`);
+        console.log(
+          `Service ${service.serviceId}: target=${service.targetDate}, parsed=${targetDate}, isSameDay=${isSameDay(
+            targetDate,
+            today
+          )}, isBefore=${isBefore(targetDate, today)}`
+        );
         
         if (viewMode === "dueToday") {
-          return isSameDay(targetDateStart, today);
+          return isSameDay(targetDate, today);
         } else {
-          return isBefore(targetDateStart, today);
+          return isBefore(targetDate, today);
         }
       } catch (error) {
         console.error(`Error parsing date for service ${service.serviceId}:`, error);
@@ -114,40 +148,49 @@ const OpenDashboard = () => {
   const groupServicesByCategory = (services: ServiceRecord[]): GroupedServices => {
     const grouped: GroupedServices = {
       LAPTOP: {},
-      MOBILE: {}
+      MOBILE: {},
     };
-    
-    // Initialize all departments
-    DEPARTMENTS.forEach(dept => {
+
+    // Initialize all known departments so they always show
+    DEPARTMENTS.forEach((dept) => {
       if (dept.startsWith("Laptop")) {
         grouped.LAPTOP[dept] = [];
       } else if (dept.startsWith("Mobile")) {
         grouped.MOBILE[dept] = [];
       }
     });
-    
+
     services.forEach((service) => {
-      const department = service.service || "Others";
-      
-      if (service.deviceType?.toLowerCase().includes("laptop") || 
-          service.deviceType?.toLowerCase().includes("mac") ||
-          service.deviceType?.toLowerCase().includes("computer") ||
-          service.deviceType?.toLowerCase().includes("imac")) {
-        if (!grouped.LAPTOP[department]) {
-          grouped.LAPTOP[department] = [];
-        }
-        grouped.LAPTOP[department].push(service);
-      } else if (service.deviceType?.toLowerCase().includes("mobile") || 
+      const techDept = techniciansWithDept.find((t) => t.name === service.technician)?.department || "";
+      const department = techDept || "Others";
+
+      let category: keyof GroupedServices | null = null;
+      if (department.startsWith("Laptop")) {
+        category = "LAPTOP";
+      } else if (department.startsWith("Mobile")) {
+        category = "MOBILE";
+      } else if (service.deviceType?.toLowerCase().includes("laptop") ||
+                 service.deviceType?.toLowerCase().includes("mac") ||
+                 service.deviceType?.toLowerCase().includes("computer") ||
+                 service.deviceType?.toLowerCase().includes("imac")) {
+        category = "LAPTOP";
+      } else if (service.deviceType?.toLowerCase().includes("mobile") ||
                  service.deviceType?.toLowerCase().includes("iphone") ||
                  service.deviceType?.toLowerCase().includes("android") ||
                  service.deviceType?.toLowerCase().includes("ipad")) {
-        if (!grouped.MOBILE[department]) {
-          grouped.MOBILE[department] = [];
-        }
-        grouped.MOBILE[department].push(service);
+        category = "MOBILE";
       }
+
+      if (!category) return;
+
+      if (!grouped[category][department]) {
+        grouped[category][department] = [];
+      }
+
+      grouped[category][department].push(service);
     });
-    
+
+    console.log("Grouped services (dashboard):", grouped);
     return grouped;
   };
 
@@ -205,13 +248,10 @@ const OpenDashboard = () => {
 
         {isLoading ? (
           <div className="text-center py-8 text-xl">Loading...</div>
-        ) : filteredServices.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-xl">
-            No {viewMode === "dueToday" ? "services due today" : "overdue services"}
-          </div>
         ) : (
           <div className="space-y-12">
             {Object.entries(groupedServices).map(([category, departments]) => (
+
               <div key={category} className="bg-white rounded-lg p-8 shadow-lg">
                 <h2 className="text-5xl font-black text-center mb-8">{category}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
