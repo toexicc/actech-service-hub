@@ -16,6 +16,7 @@ import InventoryManagement from "./pages/InventoryManagement";
 import CustomerManagement from "./pages/CustomerManagement";
 import StaffManagement from "./pages/StaffManagement";
 import TransactionTracker from "./pages/TransactionTracker";
+import OpenDashboard from "./pages/OpenDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/customer-management" element={<CustomerManagement />} />
           <Route path="/staff-management" element={<StaffManagement />} />
           <Route path="/transaction-tracker" element={<TransactionTracker />} />
+          <Route path="/open-dashboard" element={<OpenDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
