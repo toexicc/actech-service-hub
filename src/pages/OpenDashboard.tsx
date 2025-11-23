@@ -251,15 +251,15 @@ const OpenDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden px-4 pb-2">
+      <div className="flex-1 overflow-auto px-4 pb-2">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-2xl">Loading...</div>
         ) : (
-          <div className="h-full flex flex-col justify-center gap-2">
+          <div className="h-full flex flex-col justify-start gap-2 py-2">
             {Object.entries(groupedServices).map(([category, departments]) => (
               <div key={category} className="bg-white rounded-xl p-3 shadow-lg">
                 <div className="flex justify-center mb-3">
-                  <span className="inline-flex items-center px-6 py-2 rounded-full bg-blue-900 text-white text-lg font-black">
+                  <span className="inline-flex items-center px-12 py-2 rounded-full bg-blue-900 text-white text-lg font-black">
                     {category}
                   </span>
                 </div>
