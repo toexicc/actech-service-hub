@@ -253,36 +253,36 @@ const OpenDashboard = () => {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-hidden w-full flex justify-center">
+        <div className="flex-1 overflow-hidden w-full flex justify-center items-center">
           {isLoading ? (
             <div className="text-center py-8 text-xl">Loading...</div>
           ) : (
-            <div className="h-full space-y-4 w-full max-w-7xl px-4 flex flex-col items-center justify-center">
+            <div className="space-y-3 w-full max-w-[95vw] px-4">
               {Object.entries(groupedServices).map(([category, departments]) => (
-                <div key={category} className="bg-white rounded-lg p-4 shadow-lg w-full">
-                  <h2 className="text-3xl font-black text-center mb-4">{category}</h2>
-                  <div className="flex flex-wrap gap-3 justify-center">
+                <div key={category} className="bg-white rounded-lg p-3 shadow-lg w-full">
+                  <h2 className="text-2xl font-black text-center mb-3">{category}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {Object.entries(departments).map(([department, serviceList]) => (
                       <div
                         key={department}
-                        className="border-2 border-gray-200 rounded-lg p-4 flex-1 min-w-[260px] max-w-md"
+                        className="border-2 border-gray-200 rounded-lg p-3"
                       >
-                        <h3 className="text-sm font-bold mb-2 text-center pb-2 border-b-2 border-gray-300 truncate">
+                        <h3 className="text-xs font-bold mb-3 text-center pb-2 border-b-2 border-gray-300">
                           {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                         </h3>
                         {serviceList.length === 0 ? (
-                          <div className="text-center text-muted-foreground text-xs py-2">No services</div>
+                          <div className="text-center text-muted-foreground text-xs py-4">No services</div>
                         ) : (
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-3 gap-2">
                             {serviceList.map((service, idx) => (
                               <div
                                 key={idx}
-                                className="bg-blue-50 rounded p-3 flex flex-col items-center justify-center"
+                                className="bg-blue-50 rounded p-2 flex flex-col items-center justify-center min-h-[60px]"
                               >
-                                <div className="font-mono text-3xl font-black text-blue-600 break-all w-full text-center">
+                                <div className="font-mono text-sm font-black text-blue-600 whitespace-nowrap text-center leading-tight">
                                   &lt;{service.serviceId}&gt;
                                 </div>
-                                <div className="mt-1 text-[10px] text-muted-foreground truncate w-full text-center">
+                                <div className="mt-1 text-[9px] text-muted-foreground truncate w-full text-center">
                                   {service.technician || "Unassigned"}
                                 </div>
                               </div>
