@@ -216,7 +216,7 @@ const OpenDashboard = () => {
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-start gap-2 py-3 px-4">
+      <div className="flex justify-center gap-2 py-3 px-4">
         <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline">
           Back to {userRole === "management" ? "Menu" : "Portal"}
         </Button>
@@ -258,7 +258,11 @@ const OpenDashboard = () => {
           <div className="h-full flex flex-col justify-center gap-2">
             {Object.entries(groupedServices).map(([category, departments]) => (
               <div key={category} className="bg-white rounded-xl p-3 shadow-lg">
-                <h2 className="text-2xl font-black text-center mb-2">{category}</h2>
+                <div className="flex justify-center mb-3">
+                  <span className="inline-flex items-center px-6 py-2 rounded-full bg-blue-900 text-white text-lg font-black">
+                    {category}
+                  </span>
+                </div>
                 <div className="flex justify-center gap-2 flex-wrap">
                   {Object.entries(departments).map(([department, serviceList]) => (
                     <div
@@ -280,7 +284,7 @@ const OpenDashboard = () => {
                               <div className="font-mono text-xl font-black text-blue-600 text-center leading-tight break-all">
                                 &lt;{service.serviceId}&gt;
                               </div>
-                              <div className="mt-0.5 text-[9px] text-muted-foreground text-center truncate w-full">
+                              <div className="mt-1 text-xs text-muted-foreground text-center truncate w-full font-medium">
                                 {service.technician || "Unassigned"}
                               </div>
                             </div>
