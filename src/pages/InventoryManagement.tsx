@@ -455,7 +455,6 @@ const InventoryManagement = () => {
     } finally {
       setIsSubmitting(false);
     }
-    }
   };
 
   const handleReceiveOrder = async (item: InventoryItem) => {
