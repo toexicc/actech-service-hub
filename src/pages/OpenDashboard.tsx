@@ -207,18 +207,18 @@ const OpenDashboard = () => {
   return (
     <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col">
       {/* Header */}
-      <div className="text-center py-2">
+      <div className="text-center py-1">
         <img 
           src={acTechLogo} 
           alt="AC Tech Repair" 
-          className="mx-auto h-12 mb-1 object-contain"
+          className="mx-auto h-10 mb-0.5 object-contain"
         />
-        <h1 className="text-2xl font-bold text-blue-600">AC Tech Repair</h1>
-        <p className="text-sm text-muted-foreground">Open Dashboard</p>
+        <h1 className="text-xl font-bold text-blue-600">AC Tech Repair</h1>
+        <p className="text-xs text-muted-foreground">Open Dashboard</p>
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-center gap-2 py-2">
+      <div className="flex justify-center gap-2 py-1">
         <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline" size="sm">
           Back to {userRole === "management" ? "Menu" : "Portal"}
         </Button>
@@ -228,11 +228,11 @@ const OpenDashboard = () => {
       </div>
 
       {/* Toggle */}
-      <div className="flex gap-3 justify-center py-2">
+      <div className="flex gap-3 justify-center py-1">
         <Button
           onClick={() => setViewMode("dueToday")}
           className={cn(
-            "rounded-full px-6 py-3 text-base font-semibold",
+            "rounded-full px-6 py-2 text-sm font-semibold",
             viewMode === "dueToday"
               ? "bg-blue-900 hover:bg-blue-950 text-white"
               : "bg-gray-400 hover:bg-gray-500 text-white"
@@ -244,7 +244,7 @@ const OpenDashboard = () => {
         <Button
           onClick={() => setViewMode("overdue")}
           className={cn(
-            "rounded-full px-6 py-3 text-base font-semibold",
+            "rounded-full px-6 py-2 text-sm font-semibold",
             viewMode === "overdue"
               ? "bg-blue-900 hover:bg-blue-950 text-white"
               : "bg-gray-400 hover:bg-gray-500 text-white"
@@ -256,36 +256,36 @@ const OpenDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden px-6 pb-4">
+      <div className="flex-1 overflow-hidden px-4 pb-2">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-2xl">Loading...</div>
         ) : (
-          <div className="h-full flex flex-col justify-center gap-3">
+          <div className="h-full flex flex-col justify-center gap-2">
             {Object.entries(groupedServices).map(([category, departments]) => (
-              <div key={category} className="bg-white rounded-xl p-4 shadow-lg">
-                <h2 className="text-3xl font-black text-center mb-3">{category}</h2>
-                <div className="flex justify-center gap-3 flex-wrap">
+              <div key={category} className="bg-white rounded-xl p-3 shadow-lg">
+                <h2 className="text-2xl font-black text-center mb-2">{category}</h2>
+                <div className="flex justify-center gap-2 flex-wrap">
                   {Object.entries(departments).map(([department, serviceList]) => (
                     <div
                       key={department}
-                      className="border-3 border-gray-300 rounded-lg p-3 min-w-[280px]"
+                      className="border-3 border-gray-300 rounded-lg p-2 min-w-[280px]"
                     >
-                      <h3 className="text-base font-bold mb-2 text-center pb-2 border-b-2 border-gray-400">
+                      <h3 className="text-sm font-bold mb-2 text-center pb-1.5 border-b-2 border-gray-400">
                         {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                       </h3>
                       {serviceList.length === 0 ? (
-                        <div className="text-center text-muted-foreground text-sm py-3">No services</div>
+                        <div className="text-center text-muted-foreground text-xs py-2">No services</div>
                       ) : (
-                        <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div className="grid grid-cols-3 gap-2 mt-1.5">
                           {serviceList.map((service, idx) => (
                             <div
                               key={idx}
-                              className="bg-blue-50 rounded-lg p-3 flex flex-col items-center justify-center"
+                              className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center"
                             >
                               <div className="font-mono text-xl font-black text-blue-600 text-center leading-tight break-all">
                                 &lt;{service.serviceId}&gt;
                               </div>
-                              <div className="mt-1 text-[10px] text-muted-foreground text-center truncate w-full">
+                              <div className="mt-0.5 text-[9px] text-muted-foreground text-center truncate w-full">
                                 {service.technician || "Unassigned"}
                               </div>
                             </div>
