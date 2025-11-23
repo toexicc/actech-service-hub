@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2 } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import QRCode from "qrcode";
 
@@ -76,6 +76,9 @@ const InventoryManagement = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingPart, setEditingPart] = useState<InventoryItem | null>(null);
   const [selectedPartForLogs, setSelectedPartForLogs] = useState<string | null>(null);
   const [selectedPart, setSelectedPart] = useState<InventoryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -345,6 +348,113 @@ const InventoryManagement = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditPart = async () => {
+    if (!editingPart) return;
+
+    if (!editingPart.partName || !editingPart.deviceType) {
+      toast({
+        title: "Validation Error",
+        description: "Part name and device type are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("action", "updateInventoryItem");
+      formData.append("partId", editingPart.partId);
+      formData.append("partName", editingPart.partName);
+      formData.append("deviceType", editingPart.deviceType);
+      formData.append("brand", editingPart.brand || "");
+      formData.append("model", editingPart.model || "");
+      formData.append("supplier", editingPart.supplier || "");
+      formData.append("costPerUnit", editingPart.costPerUnit || "");
+      formData.append("remarks", editingPart.remarks || "");
+      formData.append("updatedBy", sessionStorage.getItem("username") || "Admin");
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        toast({
+          title: "Success",
+          description: "Part updated successfully",
+        });
+        setIsEditDialogOpen(false);
+        setEditingPart(null);
+        fetchInventory();
+        fetchInventoryLogs();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update part",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating part:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update part",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeletePart = async () => {
+    if (!selectedPart) return;
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("action", "deleteInventoryItem");
+      formData.append("partId", selectedPart.partId);
+      formData.append("deletedBy", sessionStorage.getItem("username") || "Admin");
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        toast({
+          title: "Success",
+          description: "Part deleted successfully",
+        });
+        setIsDeleteDialogOpen(false);
+        setSelectedPart(null);
+        fetchInventory();
+        fetchInventoryLogs();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete part",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting part:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete part",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
     }
   };
 
@@ -950,6 +1060,27 @@ const InventoryManagement = () => {
                                 </TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                   <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingPart(item);
+                                        setIsEditDialogOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-destructive hover:bg-destructive/10"
+                                      onClick={() => {
+                                        setSelectedPart(item);
+                                        setIsDeleteDialogOpen(true);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                     {item.status === "On Order" ? (
                                       <Button
                                         size="sm"
@@ -958,7 +1089,7 @@ const InventoryManagement = () => {
                                         onClick={() => handleReceiveOrder(item)}
                                         disabled={isSubmitting}
                                       >
-                                        {isSubmitting ? "Processing..." : "Receive Order"}
+                                        {isSubmitting ? "Processing..." : "Receive"}
                                       </Button>
                                     ) : (
                                       <Button
@@ -969,7 +1100,7 @@ const InventoryManagement = () => {
                                           setIsStockDialogOpen(true);
                                         }}
                                       >
-                                        Adjust Stock
+                                        Adjust
                                       </Button>
                                     )}
                                   </div>
@@ -1451,6 +1582,163 @@ const InventoryManagement = () => {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Part Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Part</DialogTitle>
+              <DialogDescription>Update part information</DialogDescription>
+            </DialogHeader>
+            {editingPart && (
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-partName">Part Name *</Label>
+                    <Input
+                      id="edit-partName"
+                      value={editingPart.partName}
+                      onChange={(e) => setEditingPart({...editingPart, partName: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-deviceType">Device Type *</Label>
+                    <Select
+                      value={editingPart.deviceType}
+                      onValueChange={(value) => setEditingPart({...editingPart, deviceType: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEVICE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-brand">Brand</Label>
+                    <Input
+                      id="edit-brand"
+                      value={editingPart.brand}
+                      onChange={(e) => setEditingPart({...editingPart, brand: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-model">Model</Label>
+                    <Input
+                      id="edit-model"
+                      value={editingPart.model}
+                      onChange={(e) => setEditingPart({...editingPart, model: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-supplier">Supplier</Label>
+                    <Input
+                      id="edit-supplier"
+                      value={editingPart.supplier}
+                      onChange={(e) => setEditingPart({...editingPart, supplier: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-costPerUnit">Cost/Unit</Label>
+                    <Input
+                      id="edit-costPerUnit"
+                      type="number"
+                      value={editingPart.costPerUnit}
+                      onChange={(e) => setEditingPart({...editingPart, costPerUnit: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-remarks">Remarks</Label>
+                  <Textarea
+                    id="edit-remarks"
+                    value={editingPart.remarks}
+                    onChange={(e) => setEditingPart({...editingPart, remarks: e.target.value})}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setEditingPart(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleEditPart} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Part Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Part</DialogTitle>
+              <DialogDescription>
+                {selectedPart && (
+                  <>
+                    Are you sure you want to delete <strong>{selectedPart.partName}</strong> (ID: {selectedPart.partId})?
+                    <br />
+                    <br />
+                    <span className="text-destructive font-semibold">This action cannot be undone.</span>
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDeleteDialogOpen(false);
+                  setSelectedPart(null);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeletePart}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Part"
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

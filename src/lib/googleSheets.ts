@@ -33,6 +33,12 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *
  * INVENTORY:
  * - getInventory: Returns available inventory items
+ * - addInventoryItem: Adds a new inventory item with QR code
+ * - updateInventoryItem: Updates inventory item details (partName, deviceType, brand, model, supplier, costPerUnit, remarks)
+ * - deleteInventoryItem: Deletes an inventory item and logs the deletion
+ * - adjustStock: Adjusts stock quantity (add/remove/adjust/order)
+ * - placeOrder: Places an order for a part (sets status to "On Order")
+ * - receiveOrder: Receives an order (adds quantity and updates status)
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
@@ -864,6 +870,95 @@ function doPost(e) {
   }
   
   // getDeviceReportPhotos logic is handled in doGet (see above)
+
+  // Handle update inventory item requests
+  if (params.action === 'updateInventoryItem' && params.partId) {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var data = inventorySheet.getDataRange().getValues();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var logId = "LOG" + Date.now();
+    
+    // Search for the part ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.partId) {
+        // Update the part details (not quantity, that's handled by adjustStock)
+        if (params.partName) inventorySheet.getRange(i + 1, 2).setValue(params.partName); // Column B
+        if (params.deviceType) inventorySheet.getRange(i + 1, 3).setValue(params.deviceType); // Column C
+        if (params.brand) inventorySheet.getRange(i + 1, 4).setValue(params.brand); // Column D
+        if (params.model) inventorySheet.getRange(i + 1, 5).setValue(params.model); // Column E
+        if (params.supplier) inventorySheet.getRange(i + 1, 8).setValue(params.supplier); // Column H
+        if (params.costPerUnit) inventorySheet.getRange(i + 1, 9).setValue(params.costPerUnit); // Column I
+        if (params.remarks !== undefined) inventorySheet.getRange(i + 1, 12).setValue(params.remarks); // Column L
+        inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K - Last Updated
+        
+        // Log the update
+        logSheet.appendRow([
+          logId,
+          params.partId,
+          params.partName || data[i][1],
+          params.deviceType || data[i][2],
+          "Part Details Updated",
+          0,
+          data[i][5], // Previous Quantity (unchanged)
+          data[i][5], // New Quantity (unchanged)
+          timestamp,
+          "Updated by " + (params.updatedBy || "Admin"),
+          params.updatedBy || "Admin",
+          "Management"
+        ]);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle delete inventory item requests
+  if (params.action === 'deleteInventoryItem' && params.partId) {
+    var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
+    var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
+    var data = inventorySheet.getDataRange().getValues();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var logId = "LOG" + Date.now();
+    
+    // Search for the part ID in column A (index 0)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.partId) {
+        // Log the deletion before deleting
+        logSheet.appendRow([
+          logId,
+          data[i][0], // Part ID
+          data[i][1], // Part Name
+          data[i][2], // Device Type
+          "Part Deleted",
+          data[i][5], // Quantity at deletion
+          data[i][5], // Previous Quantity
+          0, // New Quantity (0 after deletion)
+          timestamp,
+          "Deleted by " + (params.deletedBy || "Admin"),
+          params.deletedBy || "Admin",
+          "Management"
+        ]);
+        
+        // Delete the row
+        inventorySheet.deleteRow(i + 1);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 
   // Handle add inventory item requests
   if (params.action === 'addInventoryItem') {
