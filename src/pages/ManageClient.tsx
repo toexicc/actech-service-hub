@@ -75,6 +75,7 @@ const ManageClient = () => {
     "✅ Suggested Solution:\n\n\n" +
     "💡 Recommendations:\n"
   );
+  const [openAiApiKey, setOpenAiApiKey] = useState("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");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
   const { toast } = useToast();
@@ -224,13 +225,7 @@ const ManageClient = () => {
       return;
     }
 
-    // WARNING: Hardcoding API keys in frontend code is a security risk!
-    // Anyone can view the source code and steal this key.
-    // Consider using environment variables or backend secrets instead.
-    const DEFAULT_OPENAI_KEY = "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";
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY || DEFAULT_OPENAI_KEY;
-
-    // If no key is configured, fall back to basic formatter
+    const apiKey = openAiApiKey.trim();
     if (!apiKey || apiKey === "YOUR_OPENAI_API_KEY_HERE") {
       const fallback = buildFallbackDiagnosis(rawDiagnosis);
       setUpdateAIDiagnosis(fallback);
@@ -830,6 +825,28 @@ const ManageClient = () => {
                     onChange={(e) => setUpdateChiefComplaint(e.target.value)}
                     rows={3}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="openAiApiKey">OpenAI API Key:</Label>
+                  <div className="relative">
+                    <Input
+                      id="openAiApiKey"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter OpenAI API key"
+                      value={openAiApiKey}
+                      onChange={(e) => setOpenAiApiKey(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
