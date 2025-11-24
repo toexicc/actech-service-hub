@@ -147,7 +147,7 @@ const ManageClient = () => {
         setUpdateChiefComplaint(data.data.chiefComplaint || "");
         setUpdateAIDiagnosis(data.data.aiDiagnosis || "");
         setUpdateServices(data.data.service || "");
-        setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
+        setUpdateServiceCost(data.data.serviceCost || "");
         setUpdateTimeFrame(data.data.timeFrame || "");
         setUpdateTargetDate(parseDateMMDDYYYY(data.data.targetDate));
         setUpdateAdminNotes(data.data.adminNotes || "");
@@ -249,7 +249,7 @@ const ManageClient = () => {
       formData.append("priority", updatePriority);
       formData.append("aiDiagnosis", updateAIDiagnosis);
       formData.append("services", updateServices);
-      formData.append("finalCost", updateServiceCost);
+      formData.append("serviceCost", updateServiceCost); // Column AD
       formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
@@ -288,7 +288,7 @@ const ManageClient = () => {
         if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
         if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
         if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
-        const prevCost = String(serviceData.finalCost || serviceData.serviceCost || "");
+        const prevCost = String(serviceData.serviceCost || "");
         if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
         const prevTarget = serviceData.targetDate || "";
         const newTarget = updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "";

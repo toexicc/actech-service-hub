@@ -598,7 +598,7 @@ function doPost(e) {
         if (params.services) sheet.getRange(i + 1, 27).setValue(params.services);
         if (params.timeFrame) sheet.getRange(i + 1, 28).setValue(params.timeFrame);
         if (params.targetDate) sheet.getRange(i + 1, 29).setValue(params.targetDate);
-        if (params.finalCost) sheet.getRange(i + 1, 30).setValue(params.finalCost); // Column AD - Service Cost
+        if (params.serviceCost) sheet.getRange(i + 1, 30).setValue(params.serviceCost); // Column AD - Service Cost
         if (params.adminNotes) sheet.getRange(i + 1, 38).setValue(params.adminNotes);
         if (params.adminNotesInternal) sheet.getRange(i + 1, 39).setValue(params.adminNotesInternal);
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal);
