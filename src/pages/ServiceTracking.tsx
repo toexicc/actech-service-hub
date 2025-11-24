@@ -443,7 +443,7 @@ const ServiceTracking = () => {
               {/* Service Details */}
               <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
-                <p className="text-lg">{serviceData.service}</p>
+                <p className="text-lg whitespace-pre-wrap">{serviceData.service}</p>
               </div>
 
               <div>

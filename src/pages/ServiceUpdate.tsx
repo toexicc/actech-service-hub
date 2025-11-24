@@ -70,7 +70,6 @@ const ServiceUpdate = () => {
   const [updateStatus, setUpdateStatus] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
-  const [updateSuggestedRepair, setUpdateSuggestedRepair] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
 
   useEffect(() => {
@@ -285,7 +284,6 @@ const ServiceUpdate = () => {
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
-        setUpdateSuggestedRepair(data.data.suggestedRepair || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
         
         // Load existing photos from Google Drive folder
@@ -396,7 +394,7 @@ const ServiceUpdate = () => {
       formData.append("department", techDept);
       formData.append("Technician Department", techDept);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
-      formData.append("suggestedRepair", updateSuggestedRepair);
+      formData.append("suggestedRepair", "");
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
       formData.append("actualCost", actualCost.toString());
       formData.append("partsUsed", partsUsedForSheet); // Single space if no parts so Apps Script clears cell
@@ -436,7 +434,6 @@ const ServiceUpdate = () => {
         if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status} → ${updateStatus}`);
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
-        if (updateSuggestedRepair !== serviceData.suggestedRepair) changes.push("Updated suggested repair");
         
         // Log parts changes with more detail
         const prevParts = (serviceData.partsUsed || "").trim();
@@ -774,17 +771,6 @@ const ServiceUpdate = () => {
                     placeholder="Enter technician diagnosis"
                     value={updateTechnicianDiagnosis}
                     onChange={(e) => setUpdateTechnicianDiagnosis(e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="suggestedRepair">Suggested Repair:</Label>
-                  <Textarea
-                    id="suggestedRepair"
-                    placeholder="Enter suggested repair"
-                    value={updateSuggestedRepair}
-                    onChange={(e) => setUpdateSuggestedRepair(e.target.value)}
                     rows={4}
                   />
                 </div>
