@@ -64,7 +64,17 @@ const ManageClient = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
-  const [rawDiagnosis, setRawDiagnosis] = useState("");
+  const [rawDiagnosis, setRawDiagnosis] = useState(
+    "📋 SERVICE REPORT\n\n" +
+    "👤 Customer: \n" +
+    "📱 Device Type: \n" +
+    "🔧 Model: \n\n" +
+    "❓ Customer Concern Reported:\n\n\n" +
+    "🔍 Findings:\n\n\n" +
+    "⚠️ Cause of Issue:\n\n\n" +
+    "✅ Suggested Solution:\n\n\n" +
+    "💡 Recommendations:\n"
+  );
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
   const { toast } = useToast();
@@ -819,6 +829,17 @@ const ManageClient = () => {
                     value={updateChiefComplaint}
                     onChange={(e) => setUpdateChiefComplaint(e.target.value)}
                     rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rawDiagnosis">Raw Diagnosis (for AI formatting):</Label>
+                  <Textarea
+                    id="rawDiagnosis"
+                    placeholder="Paste technician's raw diagnosis here"
+                    value={rawDiagnosis}
+                    onChange={(e) => setRawDiagnosis(e.target.value)}
+                    rows={6}
                   />
                 </div>
 
