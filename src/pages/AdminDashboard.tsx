@@ -203,9 +203,17 @@ const AdminDashboard = () => {
                         {groupedServices[status].map((service, idx) => (
                           <div
                             key={idx}
-                            className="bg-blue-50 rounded-lg p-3 flex flex-col"
+                            className={cn(
+                              "rounded-lg p-3 flex flex-col",
+                              viewMode === "overdue" 
+                                ? "bg-red-100 border-2 border-red-400" 
+                                : "bg-blue-50"
+                            )}
                           >
-                            <div className="font-mono text-lg font-black text-blue-600 text-center leading-tight break-all mb-1">
+                            <div className={cn(
+                              "font-mono text-lg font-black text-center leading-tight break-all mb-1",
+                              viewMode === "overdue" ? "text-red-700" : "text-blue-600"
+                            )}>
                               &lt;{service.serviceId}&gt;
                             </div>
                             <div className="text-sm text-muted-foreground text-center font-medium">

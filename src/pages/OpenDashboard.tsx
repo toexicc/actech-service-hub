@@ -296,9 +296,17 @@ const OpenDashboard = () => {
                           {serviceList.map((service, idx) => (
                             <div
                               key={idx}
-                              className="bg-blue-50 rounded-lg p-2 flex flex-col items-center justify-center"
+                              className={cn(
+                                "rounded-lg p-2 flex flex-col items-center justify-center",
+                                viewMode === "overdue" 
+                                  ? "bg-red-100 border-2 border-red-400" 
+                                  : "bg-blue-50"
+                              )}
                             >
-                              <div className="font-mono text-xl font-black text-blue-600 text-center leading-tight break-all">
+                              <div className={cn(
+                                "font-mono text-xl font-black text-center leading-tight break-all",
+                                viewMode === "overdue" ? "text-red-700" : "text-blue-600"
+                              )}>
                                 &lt;{service.serviceId}&gt;
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground text-center truncate w-full font-medium">
