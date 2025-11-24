@@ -187,19 +187,48 @@ const ManageClient = () => {
       return;
     }
 
+    const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!openAIKey) {
+      toast({
+        title: "API Key Missing",
+        description: "OpenAI API key not configured. Please refresh the page after adding the key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsFormattingAI(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/format-diagnosis`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ rawDiagnosis }),
-        }
-      );
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-5-mini-2025-08-07',
+          messages: [
+            { 
+              role: 'system', 
+              content: `You are a technical diagnosis formatter for AC Tech Repair PH.
+Format the following raw diagnosis from a technician into a clear, professional service report.
+
+Structure your response with these sections:
+1. **Issue Diagnosis**: Brief explanation of what's wrong with the device
+2. **Recommended Service**: List of specific services/repairs needed
+3. **Service Report**: Detailed technical notes and findings
+
+Keep language professional but customer-friendly. Be concise and actionable.
+Use bullet points where appropriate for clarity.` 
+            },
+            { 
+              role: 'user', 
+              content: `Raw diagnosis from technician:\n\n${rawDiagnosis}` 
+            }
+          ],
+          max_completion_tokens: 1000,
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -207,49 +236,52 @@ const ManageClient = () => {
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          // Non-JSON error (HTML, empty body, etc.)
+          // Non-JSON error response
         }
 
         if (response.status === 429) {
           toast({
             title: "Rate Limit Reached",
-            description: "OpenAI rate limit reached. Please wait a moment and try again.",
+            description: "OpenAI rate limit reached. Please wait and try again.",
             variant: "destructive",
           });
           return;
         }
 
-        if (response.status === 402) {
+        if (response.status === 401) {
           toast({
-            title: "Payment Required",
+            title: "Invalid API Key",
+            description: "OpenAI API key is invalid. Please check your key.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (response.status === 402 || response.status === 429) {
+          toast({
+            title: "API Quota Exceeded",
             description: "OpenAI API quota exceeded. Please check your OpenAI account.",
             variant: "destructive",
           });
           return;
         }
 
-        const message = errorData?.error || errorData?.message || `Failed to format diagnosis (status ${response.status})`;
+        const message = errorData?.error?.message || `OpenAI API error (status ${response.status})`;
         throw new Error(message);
       }
 
-      let data: any = null;
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error('Unexpected response from AI formatter');
-      }
-
-      const formattedDiagnosis = data?.formattedDiagnosis;
+      const data = await response.json();
+      const formattedDiagnosis = data.choices?.[0]?.message?.content;
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
-        setIsEditingAIDiagnosis(false); // Keep it read-only after formatting
+        setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
           description: "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
         });
       } else {
-        throw new Error('No formatted diagnosis received from AI formatter');
+        throw new Error('No formatted diagnosis received from OpenAI');
       }
     } catch (error: any) {
       console.error('Error formatting diagnosis:', error);
