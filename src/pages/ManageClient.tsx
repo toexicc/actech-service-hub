@@ -187,32 +187,19 @@ const ManageClient = () => {
       return;
     }
 
-    const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
-
     setIsFormattingAI(true);
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openAIKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini-2025-08-07",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a technical diagnosis formatter for AC Tech Repair PH.\nFormat the following raw diagnosis from a technician into a clear, professional service report.\n\nStructure your response with these sections:\n1. **Issue Diagnosis**: Brief explanation of what's wrong with the device\n2. **Recommended Service**: List of specific services/repairs needed\n3. **Service Report**: Detailed technical notes and findings\n\nKeep language professional but customer-friendly. Be concise and actionable.\nUse bullet points where appropriate for clarity.",
-            },
-            {
-              role: "user",
-              content: `Raw diagnosis from technician:\n\n${rawDiagnosis}`,
-            },
-          ],
-          max_completion_tokens: 1000,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/format-diagnosis`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ rawDiagnosis }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -220,7 +207,7 @@ const ManageClient = () => {
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          // Non-JSON error response
+          // Non-JSON error
         }
 
         if (response.status === 429) {
@@ -232,45 +219,34 @@ const ManageClient = () => {
           return;
         }
 
-        if (response.status === 401) {
-          toast({
-            title: "Invalid API Key",
-            description: "OpenAI API key is invalid. Please check your key.",
-            variant: "destructive",
-          });
-          return;
-        }
-
         if (response.status === 402) {
           toast({
-            title: "API Quota Exceeded",
+            title: "Payment Required",
             description: "OpenAI API quota exceeded. Please check your OpenAI account.",
             variant: "destructive",
           });
           return;
         }
 
-        const message =
-          errorData?.error?.message || `OpenAI API error (status ${response.status})`;
+        const message = errorData?.error || errorData?.message || `Failed to format diagnosis (status ${response.status})`;
         throw new Error(message);
       }
 
       const data = await response.json();
-      const formattedDiagnosis = data.choices?.[0]?.message?.content;
+      const formattedDiagnosis = data?.formattedDiagnosis;
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
-          description:
-            "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
+          description: "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
         });
       } else {
-        throw new Error("No formatted diagnosis received from OpenAI");
+        throw new Error('No formatted diagnosis received from AI formatter');
       }
     } catch (error: any) {
-      console.error("Error formatting diagnosis:", error);
+      console.error('Error formatting diagnosis:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to format diagnosis. Please try again.",
