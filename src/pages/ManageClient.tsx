@@ -67,7 +67,7 @@ const ManageClient = () => {
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
-  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || "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");
+  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || "");
   const { toast } = useToast();
 
   // Update form fields
@@ -738,6 +738,7 @@ const ManageClient = () => {
                       placeholder="sk-..."
                       value={openAIKey}
                       onChange={(e) => setOpenAIKey(e.target.value)}
+                      defaultValue="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"
                       className="font-mono text-sm"
                     />
                     <Button 
