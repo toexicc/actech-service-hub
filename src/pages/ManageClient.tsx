@@ -260,7 +260,7 @@ const ManageClient = () => {
               content: `Raw diagnosis from technician:\n\n${rawDiagnosis}`,
             },
           ],
-          max_completion_tokens: 1000,
+          max_completion_tokens: 2500,
         }),
       });
 
