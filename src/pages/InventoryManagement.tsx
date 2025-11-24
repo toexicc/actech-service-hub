@@ -9,10 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2 } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/ac-tech-logo.jpg";
 import QRCode from "qrcode";
 
@@ -769,12 +773,28 @@ const InventoryManagement = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dateOrdered">Date Ordered</Label>
-                    <Input
-                      id="dateOrdered"
-                      type="date"
-                      value={newPart.dateOrdered}
-                      onChange={(e) => setNewPart({...newPart, dateOrdered: e.target.value})}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !newPart.dateOrdered && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {newPart.dateOrdered ? format(new Date(newPart.dateOrdered), "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={newPart.dateOrdered ? new Date(newPart.dateOrdered) : undefined}
+                          onSelect={(date) => setNewPart({...newPart, dateOrdered: date ? format(date, "yyyy-MM-dd") : ""})}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -1290,30 +1310,62 @@ const InventoryManagement = () => {
                         <Calendar className="h-4 w-4 inline mr-2" />
                         Date From
                       </Label>
-                      <Input
-                        id="logDateFrom"
-                        type="date"
-                        value={logDateFrom}
-                        onChange={(e) => {
-                          setLogDateFrom(e.target.value);
-                          setLogsCurrentPage(1);
-                        }}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !logDateFrom && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {logDateFrom ? format(new Date(logDateFrom), "PPP") : "From date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={logDateFrom ? new Date(logDateFrom) : undefined}
+                            onSelect={(date) => {
+                              setLogDateFrom(date ? format(date, "yyyy-MM-dd") : "");
+                              setLogsCurrentPage(1);
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="logDateTo">
                         <Calendar className="h-4 w-4 inline mr-2" />
                         Date To
                       </Label>
-                      <Input
-                        id="logDateTo"
-                        type="date"
-                        value={logDateTo}
-                        onChange={(e) => {
-                          setLogDateTo(e.target.value);
-                          setLogsCurrentPage(1);
-                        }}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !logDateTo && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {logDateTo ? format(new Date(logDateTo), "PPP") : "To date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={logDateTo ? new Date(logDateTo) : undefined}
+                            onSelect={(date) => {
+                              setLogDateTo(date ? format(date, "yyyy-MM-dd") : "");
+                              setLogsCurrentPage(1);
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
