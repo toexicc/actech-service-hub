@@ -86,16 +86,6 @@ const ManageClient = () => {
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSaveAPIKey = () => {
-    if (openAIKey.trim()) {
-      localStorage.setItem('actech_openai_key', openAIKey.trim());
-      toast({
-        title: "API Key Saved",
-        description: "OpenAI API key saved to browser storage.",
-      });
-    }
-  };
-
   const fetchAPIKeyFromSheet = async () => {
     try {
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`);
@@ -852,35 +842,6 @@ const ManageClient = () => {
                     onChange={(e) => setUpdateChiefComplaint(e.target.value)}
                     rows={3}
                   />
-                </div>
-
-                {/* OpenAI API Key Input - moved before AI Diagnosis */}
-                <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
-                  <Label htmlFor="openai-key" className="text-sm font-semibold">
-                    OpenAI API Key (Optional - for AI Diagnosis Formatting):
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="openai-key"
-                      type="password"
-                      placeholder="sk-..."
-                      value={openAIKey}
-                      onChange={(e) => setOpenAIKey(e.target.value)}
-                      className="font-mono text-sm"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={handleSaveAPIKey}
-                      disabled={!openAIKey.trim()}
-                    >
-                      Save Key
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Paste your OpenAI API key here to enable AI-powered diagnosis formatting. 
-                    The key is saved securely in your browser's local storage.
-                  </p>
                 </div>
 
                 <div className="space-y-2">
