@@ -188,15 +188,6 @@ const ManageClient = () => {
     }
 
     const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!openAIKey) {
-      toast({
-        title: "API Key Missing",
-        description:
-          "OpenAI API key not configured. Please set VITE_OPENAI_API_KEY in your build environment and rebuild.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsFormattingAI(true);
     try {
