@@ -12,6 +12,9 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *
  * The Google Apps Script must handle these actions in doGet/doPost:
  *
+ * API KEYS (Keys Sheet):
+ * - getApiKey: Returns OpenAI API key from cell B2 of Keys sheet
+ *
  * STAFF MANAGEMENT (Users Sheet):
  * Users sheet columns: Staff ID | Username | Password | Name | Role | Department | Status
  * - getStaffList: Returns all users from Users sheet with staffId field
