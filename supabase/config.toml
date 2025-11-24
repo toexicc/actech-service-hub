@@ -1,0 +1,2 @@
+[functions.format-diagnosis]
+verify_jwt = false

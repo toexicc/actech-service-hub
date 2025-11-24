@@ -37,6 +37,9 @@ const ManageClient = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
+  const [rawDiagnosis, setRawDiagnosis] = useState("");
+  const [isFormattingAI, setIsFormattingAI] = useState(false);
+  const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
   const { toast } = useToast();
 
   // Update form fields
@@ -153,6 +156,8 @@ const ManageClient = () => {
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
+        setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
+        setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
       } else {
         toast({
           title: "Not Found",
@@ -169,6 +174,74 @@ const ManageClient = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleFormatWithAI = async () => {
+    if (!rawDiagnosis) {
+      toast({
+        title: "No Raw Diagnosis",
+        description: "No raw diagnosis data found from the technician (Column AE)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFormattingAI(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/format-diagnosis`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ rawDiagnosis }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 429) {
+          toast({
+            title: "Rate Limit Reached",
+            description: "OpenAI rate limit reached. Please wait a moment and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (response.status === 402) {
+          toast({
+            title: "Payment Required",
+            description: "OpenAI API quota exceeded. Please check your OpenAI account.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        throw new Error(errorData.error || 'Failed to format diagnosis');
+      }
+
+      const data = await response.json();
+      setUpdateAIDiagnosis(data.formattedDiagnosis);
+      setIsEditingAIDiagnosis(false); // Keep it read-only after formatting
+      
+      toast({
+        title: "Success",
+        description: "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
+      });
+    } catch (error: any) {
+      console.error('Error formatting diagnosis:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to format diagnosis. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFormattingAI(false);
     }
   };
 
@@ -679,6 +752,30 @@ const ManageClient = () => {
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={handleFormatWithAI}
+                        disabled={!rawDiagnosis || isFormattingAI}
+                      >
+                        {isFormattingAI ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Formatting...
+                          </>
+                        ) : (
+                          "Format with AI"
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
+                      >
+                        {isEditingAIDiagnosis ? "Lock" : "Edit"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => {
                           setUpdateServices(updateAIDiagnosis);
                           toast({ title: "AI Diagnosis approved and copied to Service/s" });
@@ -693,7 +790,11 @@ const ManageClient = () => {
                     placeholder="AI Diagnosis from Column AF"
                     value={updateAIDiagnosis}
                     onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                    className="min-h-[100px] resize-none"
+                    disabled={!isEditingAIDiagnosis}
+                    className={cn(
+                      "min-h-[100px] resize-none",
+                      !isEditingAIDiagnosis && "bg-muted cursor-not-allowed opacity-75"
+                    )}
                     style={{ 
                       minHeight: '100px',
                       height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
