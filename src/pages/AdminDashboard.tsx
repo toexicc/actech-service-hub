@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { isSameDay, isBefore, startOfDay } from "date-fns";
+import { isSameDay, isBefore, startOfDay, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ const AdminDashboard = () => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("dueToday");
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -44,6 +45,13 @@ const AdminDashboard = () => {
     fetchServices();
     const interval = setInterval(fetchServices, 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const fetchServices = async () => {
@@ -141,6 +149,9 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
         </div>
         <p className="text-muted-foreground mt-1">Admin Service Dashboard</p>
+        <div className="mt-2 text-lg font-semibold text-primary">
+          {format(currentTime, "EEEE, MMMM d, yyyy")} • {format(currentTime, "h:mm:ss a")}
+        </div>
       </div>
 
       {/* Buttons */}
@@ -214,7 +225,7 @@ const AdminDashboard = () => {
                               "font-mono text-lg font-black text-center leading-tight break-all mb-1",
                               viewMode === "overdue" ? "text-red-700" : "text-blue-600"
                             )}>
-                              &lt;{service.serviceId}&gt;
+                              {service.serviceId}
                             </div>
                             <div className="text-sm text-muted-foreground text-center font-medium">
                               {service.technician || "Unassigned"}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { isSameDay, isBefore, startOfDay } from "date-fns";
+import { isSameDay, isBefore, startOfDay, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ const OpenDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("dueToday");
   const [techniciansWithDept, setTechniciansWithDept] = useState<Array<{ name: string; department: string }>>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const userRole = sessionStorage.getItem("userRole");
 
   useEffect(() => {
@@ -46,6 +47,13 @@ const OpenDashboard = () => {
     fetchTechnicians();
     const interval = setInterval(fetchServices, 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const fetchServices = async () => {
@@ -230,6 +238,9 @@ const OpenDashboard = () => {
           <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
         </div>
         <p className="text-muted-foreground mt-1">Service Tracker Dashboard</p>
+        <div className="mt-2 text-lg font-semibold text-primary">
+          {format(currentTime, "EEEE, MMMM d, yyyy")} • {format(currentTime, "h:mm:ss a")}
+        </div>
       </div>
 
       {/* Buttons */}
@@ -307,7 +318,7 @@ const OpenDashboard = () => {
                                 "font-mono text-xl font-black text-center leading-tight break-all",
                                 viewMode === "overdue" ? "text-red-700" : "text-blue-600"
                               )}>
-                                &lt;{service.serviceId}&gt;
+                                {service.serviceId}
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground text-center truncate w-full font-medium">
                                 {service.technician || "Unassigned"}
