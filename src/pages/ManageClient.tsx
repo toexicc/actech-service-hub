@@ -18,7 +18,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS } from "@/lib/constants";
+import { STATUS_OPTIONS, DEFAULT_OPENAI_API_KEY } from "@/lib/constants";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -67,7 +67,7 @@ const ManageClient = () => {
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
-  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || "");
+  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || DEFAULT_OPENAI_API_KEY);
   const { toast } = useToast();
 
   // Update form fields
@@ -726,38 +726,6 @@ const ManageClient = () => {
                 <CardTitle className="text-2xl">Update Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* OpenAI API Key Input */}
-                <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
-                  <Label htmlFor="openai-key" className="text-sm font-semibold">
-                    OpenAI API Key (Optional - for AI Diagnosis Formatting):
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="openai-key"
-                      type="password"
-                      placeholder="sk-..."
-                      value={openAIKey}
-                      onChange={(e) => setOpenAIKey(e.target.value)}
-                      defaultValue="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"
-                      className="font-mono text-sm"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={handleSaveAPIKey}
-                      disabled={!openAIKey.trim()}
-                    >
-                      Save Key
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Paste your OpenAI API key here to enable AI-powered diagnosis formatting. 
-                    The key is saved securely in your browser's local storage.
-                  </p>
-                </div>
-
-                <Separator />
-
                 <div className="space-y-2">
                   <Label htmlFor="status">Status:</Label>
                   <Select value={updateStatus} onValueChange={setUpdateStatus}>
@@ -859,6 +827,35 @@ const ManageClient = () => {
                     onChange={(e) => setUpdateChiefComplaint(e.target.value)}
                     rows={3}
                   />
+                </div>
+
+                {/* OpenAI API Key Input - moved before AI Diagnosis */}
+                <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
+                  <Label htmlFor="openai-key" className="text-sm font-semibold">
+                    OpenAI API Key (Optional - for AI Diagnosis Formatting):
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="openai-key"
+                      type="password"
+                      placeholder="sk-..."
+                      value={openAIKey}
+                      onChange={(e) => setOpenAIKey(e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleSaveAPIKey}
+                      disabled={!openAIKey.trim()}
+                    >
+                      Save Key
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Paste your OpenAI API key here to enable AI-powered diagnosis formatting. 
+                    The key is saved securely in your browser's local storage.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
