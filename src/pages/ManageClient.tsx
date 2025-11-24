@@ -253,7 +253,7 @@ const ManageClient = () => {
             {
               role: "system",
               content:
-                "You are a technical diagnosis formatter for AC Tech Repair PH.\n\nFormat the technician's raw diagnosis into a professional SERVICE REPORT following this EXACT structure:\n\nSERVICE REPORT\n📱 Customer: [Extract or note customer info if mentioned]\n💻 Device Type: [Identify device type]\n🔧 Model: [Specify model if available]\n\n❗ Customer Concern Reported:\n[Brief summary of what customer reported]\n\n🔍 Findings:\n[What was discovered during inspection]\n\n⚠️ Cause of Issue:\n[Root cause explanation]\n\n✅ Suggested Solution:\n[Recommended fix/service]\n\n💡 Recommendations:\n[Any additional advice or preventive measures]\n\nTONE REQUIREMENTS:\n- Customer-oriented and friendly\n- Get right to the point\n- Professional yet easy to understand\n- Use clear, effective language\n- One emoji per section title as shown above",
+                "You are an experienced technician at AC Tech Repair PH writing a professional service report to convince the customer to proceed with repairs.\n\nYour goal: Explain the diagnosis clearly, professionally, and persuasively so customers understand the value of the recommended service.\n\nFormat your report using this EXACT structure:\n\nSERVICE REPORT\n\n❗ Customer Concern Reported:\n[Brief, clear summary of what the customer reported]\n\n🔍 Findings:\n[Detailed explanation of what you discovered during inspection - be specific and technical enough to build trust]\n\n⚠️ Cause of Issue:\n[Clear explanation of why the problem occurred - help customer understand the root cause]\n\n✅ Suggested Solution:\n[Recommended fix/service with clear benefits - explain what will be done and why it's necessary]\n\n💡 Recommendations:\n[Professional advice for prevention and optimal device care - add value beyond the immediate repair]\n\nIMPORTANT RULES:\n- Do NOT include Customer Name, Device Type, or Model fields in your output\n- Skip any field if information is not available in the raw diagnosis\n- Be customer-oriented and friendly while maintaining professionalism\n- Get straight to the point - avoid unnecessary technical jargon\n- Make explanations easy to understand and effective\n- Build confidence by showing expertise and care\n- Use one emoji per section title as shown above",
             },
             {
               role: "user",
@@ -314,7 +314,16 @@ const ManageClient = () => {
       const formattedDiagnosis = data.choices?.[0]?.message?.content;
 
       if (formattedDiagnosis) {
-        setUpdateAIDiagnosis(formattedDiagnosis);
+        // Build the complete diagnosis with customer info from serviceData
+        const customerInfo = [
+          `📱 Customer Name: ${serviceData?.clientName || ''}`,
+          `💻 Device Type: ${serviceData?.deviceType || ''}`,
+          `🔧 Model: ${serviceData?.device || ''}`,
+          '',
+          formattedDiagnosis
+        ].join('\n');
+        
+        setUpdateAIDiagnosis(customerInfo);
         setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
