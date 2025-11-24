@@ -49,6 +49,3 @@ export const STATUS_OPTIONS = [
 ] as const;
 
 export type Status = typeof STATUS_OPTIONS[number];
-
-// OpenAI API Configuration
-export const DEFAULT_OPENAI_API_KEY = "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";
