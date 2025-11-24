@@ -18,7 +18,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, Printer } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS, DEFAULT_OPENAI_API_KEY } from "@/lib/constants";
+import { STATUS_OPTIONS } from "@/lib/constants";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -67,7 +67,7 @@ const ManageClient = () => {
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
-  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || DEFAULT_OPENAI_API_KEY);
+  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || '');
   const { toast } = useToast();
 
   // Update form fields
