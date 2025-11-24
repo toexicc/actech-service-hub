@@ -217,7 +217,7 @@ const ManageClient = () => {
     // WARNING: Hardcoding API keys in frontend code is a security risk!
     // Anyone can view the source code and steal this key.
     // Consider using environment variables or backend secrets instead.
-    const DEFAULT_OPENAI_KEY = "YOUR_OPENAI_API_KEY_HERE";
+    const DEFAULT_OPENAI_KEY = "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";
     const apiKey = import.meta.env.VITE_OPENAI_API_KEY || DEFAULT_OPENAI_KEY;
 
     // If no key is configured, fall back to basic formatter
