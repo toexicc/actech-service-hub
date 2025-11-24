@@ -96,6 +96,19 @@ const ManageClient = () => {
     }
   };
 
+  const fetchAPIKeyFromSheet = async () => {
+    try {
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`);
+      const data = await response.json();
+      if (data.status === "success" && data.apiKey) {
+        setOpenAIKey(data.apiKey);
+        localStorage.setItem('actech_openai_key', data.apiKey);
+      }
+    } catch (error) {
+      console.error("Error fetching API key from sheet:", error);
+    }
+  };
+
   const fetchTechnicianList = async () => {
     try {
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -158,6 +171,7 @@ const ManageClient = () => {
   };
   
   useEffect(() => {
+    fetchAPIKeyFromSheet();
     fetchTechnicianList();
   }, []);
   
