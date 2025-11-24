@@ -67,6 +67,7 @@ const ManageClient = () => {
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
+  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || "");
   const { toast } = useToast();
 
   // Update form fields
@@ -84,6 +85,16 @@ const ManageClient = () => {
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleSaveAPIKey = () => {
+    if (openAIKey.trim()) {
+      localStorage.setItem('actech_openai_key', openAIKey.trim());
+      toast({
+        title: "API Key Saved",
+        description: "OpenAI API key saved to browser storage.",
+      });
+    }
+  };
 
   const fetchTechnicianList = async () => {
     try {
@@ -214,17 +225,16 @@ const ManageClient = () => {
       return;
     }
 
-    const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const apiKey = openAIKey.trim() || import.meta.env.VITE_OPENAI_API_KEY;
 
-    // If no key is configured (e.g., local preview or static hosting without env),
-    // fall back to a simple non-AI formatter so the feature still works.
-    if (!openAIKey) {
+    // If no key is configured, fall back to basic formatter
+    if (!apiKey) {
       const fallback = buildFallbackDiagnosis(rawDiagnosis);
       setUpdateAIDiagnosis(fallback);
       setIsEditingAIDiagnosis(false);
       toast({
         title: "Formatted Without AI",
-        description: "Using a basic formatter because no OpenAI key is configured.",
+        description: "Using a basic formatter because no OpenAI key is configured. Paste your key above to use AI.",
       });
       return;
     }
@@ -234,7 +244,7 @@ const ManageClient = () => {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${openAIKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -716,6 +726,37 @@ const ManageClient = () => {
                 <CardTitle className="text-2xl">Update Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* OpenAI API Key Input */}
+                <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
+                  <Label htmlFor="openai-key" className="text-sm font-semibold">
+                    OpenAI API Key (Optional - for AI Diagnosis Formatting):
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="openai-key"
+                      type="password"
+                      placeholder="sk-..."
+                      value={openAIKey}
+                      onChange={(e) => setOpenAIKey(e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleSaveAPIKey}
+                      disabled={!openAIKey.trim()}
+                    >
+                      Save Key
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Paste your OpenAI API key here to enable AI-powered diagnosis formatting. 
+                    The key is saved securely in your browser's local storage.
+                  </p>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-2">
                   <Label htmlFor="status">Status:</Label>
                   <Select value={updateStatus} onValueChange={setUpdateStatus}>
