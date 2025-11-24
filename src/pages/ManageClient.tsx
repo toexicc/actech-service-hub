@@ -30,6 +30,33 @@ const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined =
   }
 };
 
+const buildFallbackDiagnosis = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return [
+      "Issue Diagnosis:",
+      "- Technician did not provide detailed notes.",
+      "",
+      "Recommended Service:",
+      "- Please review device in person for an accurate estimate.",
+      "",
+      "Service Report:",
+      "- No additional technical notes available.",
+    ].join("\n");
+  }
+
+  return [
+    "Issue Diagnosis:",
+    `- ${trimmed}`,
+    "",
+    "Recommended Service:",
+    "- See detailed service report below for specific parts and labor.",
+    "",
+    "Service Report:",
+    `- Technician notes: ${trimmed}`,
+  ].join("\n");
+};
+
 const ManageClient = () => {
   const navigate = useNavigate();
   const [serviceId, setServiceId] = useState("");
@@ -187,19 +214,45 @@ const ManageClient = () => {
       return;
     }
 
+    const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+    // If no key is configured (e.g., local preview or static hosting without env),
+    // fall back to a simple non-AI formatter so the feature still works.
+    if (!openAIKey) {
+      const fallback = buildFallbackDiagnosis(rawDiagnosis);
+      setUpdateAIDiagnosis(fallback);
+      setIsEditingAIDiagnosis(false);
+      toast({
+        title: "Formatted Without AI",
+        description: "Using a basic formatter because no OpenAI key is configured.",
+      });
+      return;
+    }
+
     setIsFormattingAI(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/format-diagnosis`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ rawDiagnosis }),
-        }
-      );
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openAIKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-5-mini-2025-08-07",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a technical diagnosis formatter for AC Tech Repair PH.\nFormat the following raw diagnosis from a technician into a clear, professional service report.\n\nStructure your response with these sections:\n1. **Issue Diagnosis**: Brief explanation of what's wrong with the device\n2. **Recommended Service**: List of specific services/repairs needed\n3. **Service Report**: Detailed technical notes and findings\n\nKeep language professional but customer-friendly. Be concise and actionable.\nUse bullet points where appropriate for clarity.",
+            },
+            {
+              role: "user",
+              content: `Raw diagnosis from technician:\n\n${rawDiagnosis}`,
+            },
+          ],
+          max_completion_tokens: 1000,
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -207,7 +260,7 @@ const ManageClient = () => {
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          // Non-JSON error
+          // Non-JSON error response
         }
 
         if (response.status === 429) {
@@ -219,37 +272,58 @@ const ManageClient = () => {
           return;
         }
 
+        if (response.status === 401) {
+          // Invalid or missing key in a deployed environment
+          const fallback = buildFallbackDiagnosis(rawDiagnosis);
+          setUpdateAIDiagnosis(fallback);
+          setIsEditingAIDiagnosis(false);
+          toast({
+            title: "Invalid API Key",
+            description:
+              "OpenAI API key is invalid; using a basic non-AI formatter instead.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         if (response.status === 402) {
           toast({
-            title: "Payment Required",
+            title: "API Quota Exceeded",
             description: "OpenAI API quota exceeded. Please check your OpenAI account.",
             variant: "destructive",
           });
           return;
         }
 
-        const message = errorData?.error || errorData?.message || `Failed to format diagnosis (status ${response.status})`;
+        const message =
+          errorData?.error?.message || `OpenAI API error (status ${response.status})`;
         throw new Error(message);
       }
 
       const data = await response.json();
-      const formattedDiagnosis = data?.formattedDiagnosis;
+      const formattedDiagnosis = data.choices?.[0]?.message?.content;
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
-          description: "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
+          description:
+            "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
         });
       } else {
-        throw new Error('No formatted diagnosis received from AI formatter');
+        throw new Error("No formatted diagnosis received from OpenAI");
       }
     } catch (error: any) {
-      console.error('Error formatting diagnosis:', error);
+      console.error("Error formatting diagnosis:", error);
+      const fallback = buildFallbackDiagnosis(rawDiagnosis);
+      setUpdateAIDiagnosis(fallback);
+      setIsEditingAIDiagnosis(false);
       toast({
         title: "Error",
-        description: error.message || "Failed to format diagnosis. Please try again.",
+        description:
+          error.message ||
+          "AI formatting failed; using a basic non-AI formatter instead.",
         variant: "destructive",
       });
     } finally {
