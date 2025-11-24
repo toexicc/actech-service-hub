@@ -108,17 +108,6 @@ const AdminPortal = () => {
                   </Button>
                 </div>
               </Card>
-              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/transaction-tracker")}>
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Transaction Tracker</h2>
-                  <p className="text-muted-foreground mb-6">
-                    View Financial Reports
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                    Open Transactions
-                  </Button>
-                </div>
-              </Card>
 
               <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/inventory-management")}>
                 <div className="text-center">
