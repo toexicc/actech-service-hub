@@ -234,8 +234,8 @@ const OpenDashboard = () => {
 
       {/* Buttons */}
       <div className="flex justify-center gap-2 py-3 px-4">
-        <Button onClick={() => navigate(userRole === "management" ? "/menu" : "/technician-portal")} variant="outline">
-          Back to {userRole === "management" ? "Menu" : "Portal"}
+        <Button onClick={() => navigate("/technician-portal")} variant="outline">
+          Back to Technician Portal
         </Button>
       </div>
 
