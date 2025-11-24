@@ -45,6 +45,7 @@ const ManageClient = () => {
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
   const [updateChiefComplaint, setUpdateChiefComplaint] = useState("");
+  const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
@@ -52,7 +53,6 @@ const ManageClient = () => {
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
-  const [updateTechServiceBreakdown, setUpdateTechServiceBreakdown] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const fetchTechnicianList = async () => {
@@ -145,6 +145,7 @@ const ManageClient = () => {
         setUpdateClientType(data.data.clientType || "");
         setUpdatePriority(data.data.priority || "");
         setUpdateChiefComplaint(data.data.chiefComplaint || "");
+        setUpdateAIDiagnosis(data.data.aiDiagnosis || "");
         setUpdateServices(data.data.service || "");
         setUpdateServiceCost(data.data.finalCost || data.data.serviceCost || "");
         setUpdateTimeFrame(data.data.timeFrame || "");
@@ -152,7 +153,6 @@ const ManageClient = () => {
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
-        setUpdateTechServiceBreakdown(data.data.suggestedRepair || "");
       } else {
         toast({
           title: "Not Found",
@@ -247,6 +247,7 @@ const ManageClient = () => {
       formData.append("Technician Department", techDept);
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
+      formData.append("aiDiagnosis", updateAIDiagnosis);
       formData.append("services", updateServices);
       formData.append("finalCost", updateServiceCost);
       formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
@@ -285,6 +286,7 @@ const ManageClient = () => {
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
         if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
+        if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
         if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
         const prevCost = String(serviceData.finalCost || serviceData.serviceCost || "");
         if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
@@ -654,6 +656,43 @@ const ManageClient = () => {
                     placeholder="Enter chief complaint"
                     value={updateChiefComplaint}
                     onChange={(e) => setUpdateChiefComplaint(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="aiDiagnosis">AI Diagnosis:</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(updateAIDiagnosis);
+                          toast({ title: "Copied to clipboard" });
+                        }}
+                      >
+                        Copy
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUpdateServices(updateAIDiagnosis);
+                          toast({ title: "AI Diagnosis approved and copied to Service/s" });
+                        }}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                  <Textarea
+                    id="aiDiagnosis"
+                    placeholder="AI Diagnosis from Column AF"
+                    value={updateAIDiagnosis}
+                    onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
                     rows={3}
                   />
                 </div>
