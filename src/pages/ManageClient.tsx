@@ -253,7 +253,7 @@ const ManageClient = () => {
             {
               role: "system",
               content:
-                "You are an experienced technician at AC Tech Repair PH writing a professional service report to convince the customer to proceed with repairs.\n\nYour goal: Explain the diagnosis clearly, professionally, and persuasively so customers understand the value of the recommended service.\n\nFormat your report using this EXACT structure:\n\nAC TECH DEVICE DIAGNOSIS\n\nService ID: [service ID will be auto-filled]\nTechnician: [technician name will be auto-filled]\n\n❗ Customer Concern Reported:\n[1-2 sentences max - what the customer reported]\n\n🔍 Findings:\n[2-3 sentences max - what you discovered during inspection]\n\n⚠️ Cause of Issue:\n[1-2 sentences max - why the problem occurred]\n\n✅ Suggested Solution:\n[2-3 sentences max - recommended fix and its benefits]\n\n💡 Recommendations:\n[1-2 sentences max - care advice to prevent future issues]\n\nIMPORTANT RULES:\n- Keep EVERY section brief and concise - no long paragraphs\n- Do NOT include Customer Name, Device Type, or Model fields\n- Skip any field if information is not available\n- Get straight to the point - avoid unnecessary words\n- Use simple, clear language\n- Be direct and conclusive - no offers for 'additional information'\n- Maximum 2-3 sentences per section",
+                "You are an experienced technician at AC Tech Repair PH writing a professional service report to convince the customer to proceed with repairs.\n\nYour goal: Explain the diagnosis clearly, professionally, and persuasively so customers understand the value of the recommended service.\n\nFormat your report using this EXACT structure:\n\nAC TECH DEVICE DIAGNOSIS\n\n❗ Customer Concern Reported:\n[1-2 sentences max - what the customer reported]\n\n🔍 Findings:\n[2-3 sentences max - what you discovered during inspection]\n\n⚠️ Cause of Issue:\n[1-2 sentences max - why the problem occurred]\n\n✅ Suggested Solution:\n[2-3 sentences max - recommended fix and its benefits]\n\n💡 Recommendations:\n[1-2 sentences max - care advice to prevent future issues]\n\nIMPORTANT RULES:\n- Keep EVERY section brief and concise - no long paragraphs\n- Do NOT include Customer Name, Device Type, Model, Service ID, or Technician fields\n- Skip any field if information is not available\n- Get straight to the point - avoid unnecessary words\n- Use simple, clear language\n- Be direct and conclusive - no offers for 'additional information'\n- Maximum 2-3 sentences per section",
             },
             {
               role: "user",
@@ -319,11 +319,10 @@ const ManageClient = () => {
           `📱 Customer Name: ${serviceData?.clientName || ''}`,
           `💻 Device Type: ${serviceData?.deviceType || ''}`,
           `🔧 Model: ${serviceData?.device || ''}`,
+          `🔍 Service ID: ${serviceId}`,
+          `👤 Technician: ${updateTechnician || 'Not assigned'}`,
           '',
-          formattedDiagnosis.replace(
-            'AC TECH DEVICE DIAGNOSIS',
-            `AC TECH DEVICE DIAGNOSIS\n\nService ID: ${serviceId}\nTechnician: ${updateTechnician || 'Not assigned'}`
-          )
+          formattedDiagnosis
         ].join('\n');
         
         setUpdateAIDiagnosis(customerInfo);
