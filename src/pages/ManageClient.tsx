@@ -253,7 +253,7 @@ const ManageClient = () => {
             {
               role: "system",
               content:
-                "You are a technical diagnosis formatter for AC Tech Repair PH.\nFormat the following raw diagnosis from a technician into a clear, professional service report.\n\nStructure your response with these sections:\n1. **Issue Diagnosis**: Brief explanation of what's wrong with the device\n2. **Recommended Service**: List of specific services/repairs needed\n3. **Service Report**: Detailed technical notes and findings\n\nKeep language professional but customer-friendly. Be concise and actionable.\nUse bullet points where appropriate for clarity.",
+                "You are a technical diagnosis formatter for AC Tech Repair PH.\n\nFormat the technician's raw diagnosis into a professional SERVICE REPORT following this EXACT structure:\n\nSERVICE REPORT\n📱 Customer: [Extract or note customer info if mentioned]\n💻 Device Type: [Identify device type]\n🔧 Model: [Specify model if available]\n\n❗ Customer Concern Reported:\n[Brief summary of what customer reported]\n\n🔍 Findings:\n[What was discovered during inspection]\n\n⚠️ Cause of Issue:\n[Root cause explanation]\n\n✅ Suggested Solution:\n[Recommended fix/service]\n\n💡 Recommendations:\n[Any additional advice or preventive measures]\n\nTONE REQUIREMENTS:\n- Customer-oriented and friendly\n- Get right to the point\n- Professional yet easy to understand\n- Use clear, effective language\n- One emoji per section title as shown above",
             },
             {
               role: "user",
@@ -738,6 +738,7 @@ const ManageClient = () => {
                       placeholder="sk-..."
                       value={openAIKey}
                       onChange={(e) => setOpenAIKey(e.target.value)}
+                      defaultValue="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"
                       className="font-mono text-sm"
                     />
                     <Button 
