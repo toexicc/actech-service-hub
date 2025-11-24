@@ -228,9 +228,6 @@ const AdminDashboard = () => {
                               {service.serviceId}
                             </div>
                             <div className="text-sm text-muted-foreground text-center font-medium">
-                              {service.technician || "Unassigned"}
-                            </div>
-                            <div className="text-xs text-muted-foreground text-center mt-1">
                               {service.clientName}
                             </div>
                           </div>
