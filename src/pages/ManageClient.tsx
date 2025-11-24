@@ -64,20 +64,10 @@ const ManageClient = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
-  const [rawDiagnosis, setRawDiagnosis] = useState(
-    "📋 SERVICE REPORT\n\n" +
-    "👤 Customer: \n" +
-    "📱 Device Type: \n" +
-    "🔧 Model: \n\n" +
-    "❓ Customer Concern Reported:\n\n\n" +
-    "🔍 Findings:\n\n\n" +
-    "⚠️ Cause of Issue:\n\n\n" +
-    "✅ Suggested Solution:\n\n\n" +
-    "💡 Recommendations:\n"
-  );
-  const [openAiApiKey, setOpenAiApiKey] = useState("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");
+  const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
+  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || "");
   const { toast } = useToast();
 
   // Update form fields
@@ -95,6 +85,16 @@ const ManageClient = () => {
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleSaveAPIKey = () => {
+    if (openAIKey.trim()) {
+      localStorage.setItem('actech_openai_key', openAIKey.trim());
+      toast({
+        title: "API Key Saved",
+        description: "OpenAI API key saved to browser storage.",
+      });
+    }
+  };
 
   const fetchTechnicianList = async () => {
     try {
@@ -225,14 +225,16 @@ const ManageClient = () => {
       return;
     }
 
-    const apiKey = openAiApiKey.trim();
-    if (!apiKey || apiKey === "YOUR_OPENAI_API_KEY_HERE") {
+    const apiKey = openAIKey.trim() || import.meta.env.VITE_OPENAI_API_KEY;
+
+    // If no key is configured, fall back to basic formatter
+    if (!apiKey) {
       const fallback = buildFallbackDiagnosis(rawDiagnosis);
       setUpdateAIDiagnosis(fallback);
       setIsEditingAIDiagnosis(false);
       toast({
         title: "Formatted Without AI",
-        description: "Using a basic formatter because no OpenAI key is configured.",
+        description: "Using a basic formatter because no OpenAI key is configured. Paste your key above to use AI.",
       });
       return;
     }
@@ -251,7 +253,7 @@ const ManageClient = () => {
             {
               role: "system",
               content:
-                "You are a technical diagnosis formatter for AC Tech Repair PH.\n\nFormat the technician's raw diagnosis into a clear, professional service report following this EXACT structure:\n\n📋 SERVICE REPORT\n\n👤 Customer: [Extract customer name if mentioned, otherwise leave blank]\n📱 Device Type: [Extract device type from diagnosis]\n🔧 Model: [Extract model if mentioned, otherwise leave blank]\n\n❓ Customer Concern Reported:\n[Brief, clear description of what the customer reported - 1-2 sentences]\n\n🔍 Findings:\n[What the technician discovered during inspection - be specific and technical but clear]\n\n⚠️ Cause of Issue:\n[Root cause explanation in simple terms the customer can understand]\n\n✅ Suggested Solution:\n[Specific repair/service recommended with parts needed]\n\n💡 Recommendations:\n[Any additional advice, preventive measures, or follow-up suggestions]\n\n---\n\nStyle Guidelines:\n- Customer-oriented: Write for the customer, not for technicians\n- Get right to the point: No fluff, just facts\n- Professional: Maintain expertise and credibility\n- Friendly: Warm tone, avoid overly technical jargon\n- Easy to understand: Break down complex issues into simple terms\n- Use bullet points where helpful\n- Keep each section concise (2-3 sentences max per section)",
+                "You are a technical diagnosis formatter for AC Tech Repair PH.\nFormat the following raw diagnosis from a technician into a clear, professional service report.\n\nStructure your response with these sections:\n1. **Issue Diagnosis**: Brief explanation of what's wrong with the device\n2. **Recommended Service**: List of specific services/repairs needed\n3. **Service Report**: Detailed technical notes and findings\n\nKeep language professional but customer-friendly. Be concise and actionable.\nUse bullet points where appropriate for clarity.",
             },
             {
               role: "user",
@@ -724,6 +726,37 @@ const ManageClient = () => {
                 <CardTitle className="text-2xl">Update Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* OpenAI API Key Input */}
+                <div className="space-y-2 p-4 bg-muted/30 rounded-lg border">
+                  <Label htmlFor="openai-key" className="text-sm font-semibold">
+                    OpenAI API Key (Optional - for AI Diagnosis Formatting):
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="openai-key"
+                      type="password"
+                      placeholder="sk-..."
+                      value={openAIKey}
+                      onChange={(e) => setOpenAIKey(e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleSaveAPIKey}
+                      disabled={!openAIKey.trim()}
+                    >
+                      Save Key
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Paste your OpenAI API key here to enable AI-powered diagnosis formatting. 
+                    The key is saved securely in your browser's local storage.
+                  </p>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-2">
                   <Label htmlFor="status">Status:</Label>
                   <Select value={updateStatus} onValueChange={setUpdateStatus}>
@@ -824,39 +857,6 @@ const ManageClient = () => {
                     value={updateChiefComplaint}
                     onChange={(e) => setUpdateChiefComplaint(e.target.value)}
                     rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="openAiApiKey">OpenAI API Key:</Label>
-                  <div className="relative">
-                    <Input
-                      id="openAiApiKey"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter OpenAI API key"
-                      value={openAiApiKey}
-                      onChange={(e) => setOpenAiApiKey(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rawDiagnosis">Raw Diagnosis (for AI formatting):</Label>
-                  <Textarea
-                    id="rawDiagnosis"
-                    placeholder="Paste technician's raw diagnosis here"
-                    value={rawDiagnosis}
-                    onChange={(e) => setRawDiagnosis(e.target.value)}
-                    rows={6}
                   />
                 </div>
 
