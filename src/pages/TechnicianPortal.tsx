@@ -75,7 +75,7 @@ const TechnicianPortal = () => {
 
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/tech-dashboard")}>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Open Dashboard</h2>
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Tech Dashboard</h2>
               <p className="text-muted-foreground mb-6">
                 View due today and overdue services
               </p>
