@@ -121,6 +121,10 @@ const ServiceTracking = () => {
       return;
     }
 
+    // Clear previous results first
+    setServiceData(null);
+    setDevicePhotos([]);
+    
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -158,6 +162,10 @@ const ServiceTracking = () => {
       });
       return;
     }
+
+    // Clear previous results first
+    setCustomerData(null);
+    setServiceRecords([]);
 
     setIsLoadingClient(true);
     try {
@@ -252,13 +260,13 @@ const ServiceTracking = () => {
           value={searchMode} 
           onValueChange={(value) => {
             setSearchMode(value as "service" | "client");
-            // Clear results when switching modes
-            if (value === "service") {
-              setCustomerData(null);
-              setServiceRecords([]);
-            } else {
-              setServiceData(null);
-            }
+            // Clear ALL results and inputs when switching modes
+            setServiceId("");
+            setClientId("");
+            setServiceData(null);
+            setCustomerData(null);
+            setServiceRecords([]);
+            setDevicePhotos([]);
           }} 
           className="mb-8"
         >
