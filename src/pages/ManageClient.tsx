@@ -693,7 +693,11 @@ const ManageClient = () => {
                     placeholder="AI Diagnosis from Column AF"
                     value={updateAIDiagnosis}
                     onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                    rows={3}
+                    className="min-h-[100px] resize-none"
+                    style={{ 
+                      minHeight: '100px',
+                      height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
+                    }}
                   />
                 </div>
 
@@ -704,7 +708,11 @@ const ManageClient = () => {
                     placeholder="Enter service(s)"
                     value={updateServices}
                     onChange={(e) => setUpdateServices(e.target.value)}
-                    rows={3}
+                    className="min-h-[100px] resize-none"
+                    style={{ 
+                      minHeight: '100px',
+                      height: `${Math.max(100, (updateServices.split('\n').length + 1) * 24)}px`
+                    }}
                   />
                 </div>
 
