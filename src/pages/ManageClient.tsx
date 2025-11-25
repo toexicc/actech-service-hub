@@ -18,7 +18,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS } from "@/lib/constants";
+import { STATUS_OPTIONS, TIME_FRAME_OPTIONS } from "@/lib/constants";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -1070,7 +1070,7 @@ const ManageClient = () => {
                   
                   <div className="flex gap-2 items-center">
                     <Input
-                      placeholder={discountType === "percentage" ? "Enter %" : "Enter amount"}
+                      placeholder={discountType === "percentage" ? "Enter %" : "Enter Amount"}
                       value={discountValue}
                       type="number"
                       min="0"
@@ -1112,12 +1112,16 @@ const ManageClient = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="timeFrame">Time Frame:</Label>
-                  <Input
-                    id="timeFrame"
-                    placeholder="Enter time frame (e.g., 3-5 days)"
-                    value={updateTimeFrame}
-                    onChange={(e) => setUpdateTimeFrame(e.target.value)}
-                  />
+                  <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time frame" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_FRAME_OPTIONS.map(timeFrame => (
+                        <SelectItem key={timeFrame} value={timeFrame}>{timeFrame}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

@@ -49,3 +49,14 @@ export const STATUS_OPTIONS = [
 ] as const;
 
 export type Status = typeof STATUS_OPTIONS[number];
+
+export const TIME_FRAME_OPTIONS = [
+  "Same-Day",
+  "Next Business Day",
+  "1-2 Days",
+  "3-5 Days",
+  "1-2 Weeks",
+  "2-4 Weeks"
+] as const;
+
+export type TimeFrame = typeof TIME_FRAME_OPTIONS[number];
