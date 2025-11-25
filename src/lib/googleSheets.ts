@@ -131,6 +131,165 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle AI Diagnosis Formatting
+  if (params.action === 'formatDiagnosis') {
+    try {
+      // Get OpenAI API key from Keys sheet (cell B1)
+      var keysSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Keys');
+      var apiKey = keysSheet.getRange(1, 2).getValue();
+      
+      if (!apiKey) {
+        return ContentService.createTextOutput(JSON.stringify({
+          error: 'OpenAI API key not configured in Keys sheet (B1)'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var rawDiagnosis = params.rawDiagnosis || '';
+      var customerName = params.customerName || '';
+      var deviceType = params.deviceType || '';
+      var model = params.model || '';
+      var serviceId = params.serviceId || '';
+      var technician = params.technician || '';
+
+      var prompt = 'You are a professional technical diagnostician for AC Tech Repair PH.\n\n' +
+        'Customer: ' + customerName + '\n' +
+        'Device: ' + deviceType + ' - ' + model + '\n' +
+        'Service ID: ' + serviceId + '\n' +
+        'Technician: ' + technician + '\n\n' +
+        'Raw Technician Notes:\n' + rawDiagnosis + '\n\n' +
+        'Format this into a professional diagnosis report with these sections:\n' +
+        '1. Issue Diagnosis - Clear description of the problem\n' +
+        '2. Recommended Service - Specific services/repairs needed\n' +
+        '3. Service Report - Technical details and findings\n\n' +
+        'Use clear, professional language. Be specific and technical where appropriate.';
+
+      var payload = {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a professional technical diagnostician.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      };
+
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'Authorization': 'Bearer ' + apiKey },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      var response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
+      var responseCode = response.getResponseCode();
+      var responseText = response.getContentText();
+
+      if (responseCode !== 200) {
+        var errorMsg = 'AI service error';
+        if (responseCode === 429) errorMsg = 'OpenAI rate limit exceeded';
+        if (responseCode === 401) errorMsg = 'Invalid OpenAI API key';
+        if (responseCode === 402) errorMsg = 'OpenAI quota exceeded';
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          error: errorMsg
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var result = JSON.parse(responseText);
+      var formattedDiagnosis = result.choices[0].message.content;
+
+      return ContentService.createTextOutput(JSON.stringify({
+        formattedDiagnosis: formattedDiagnosis
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (error) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: 'Failed to format diagnosis: ' + error.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  // Handle AI Report Formatting
+  if (params.action === 'formatReport') {
+    try {
+      // Get OpenAI API key from Keys sheet (cell B1)
+      var keysSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Keys');
+      var apiKey = keysSheet.getRange(1, 2).getValue();
+      
+      if (!apiKey) {
+        return ContentService.createTextOutput(JSON.stringify({
+          error: 'OpenAI API key not configured in Keys sheet (B1)'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var technicianReport = params.technicianReport || '';
+      var customerName = params.customerName || '';
+      var deviceType = params.deviceType || '';
+      var model = params.model || '';
+      var serviceId = params.serviceId || '';
+      var technician = params.technician || '';
+
+      var prompt = 'You are formatting a service report for AC Tech Repair PH.\n\n' +
+        'Customer: ' + customerName + '\n' +
+        'Device: ' + deviceType + ' - ' + model + '\n' +
+        'Service ID: ' + serviceId + '\n' +
+        'Technician: ' + technician + '\n\n' +
+        'Raw Service Report:\n' + technicianReport + '\n\n' +
+        'Format this into a professional service report with:\n' +
+        '- Clear sections for work performed\n' +
+        '- Parts replaced or repaired\n' +
+        '- Technical findings\n' +
+        '- Final status and recommendations\n\n' +
+        'Use professional technical language.';
+
+      var payload = {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a technical report formatter.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      };
+
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'Authorization': 'Bearer ' + apiKey },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      var response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', options);
+      var responseCode = response.getResponseCode();
+      var responseText = response.getContentText();
+
+      if (responseCode !== 200) {
+        var errorMsg = 'AI service error';
+        if (responseCode === 429) errorMsg = 'OpenAI rate limit exceeded';
+        if (responseCode === 401) errorMsg = 'Invalid OpenAI API key';
+        if (responseCode === 402) errorMsg = 'OpenAI quota exceeded';
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          error: errorMsg
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var result = JSON.parse(responseText);
+      var formattedReport = result.choices[0].message.content;
+
+      return ContentService.createTextOutput(JSON.stringify({
+        formattedReport: formattedReport
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (error) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: 'Failed to format report: ' + error.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
   // Handle search requests for Service Database (tracking page)
   if (params.action === 'searchService' && params.serviceId) {
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
