@@ -94,9 +94,13 @@ const cleanDiagnosisText = (text: string): string => {
   // STEP 4: Remove ALL # symbols
   cleaned = cleaned.replace(/#/g, '');
   
-  // STEP 5: Fix character spacing issues - AGGRESSIVE removal of single spaces between characters
-  // This fixes issues like "r e p a i r" -> "repair" or "C o m p o n e n t" -> "Component"
-  cleaned = cleaned.replace(/(\w)\s(\w)/g, '$1$2');
+  // STEP 5: Fix character spacing issues like "C o m p o n e n t" -> "Component"
+  // Only remove spaces in sequences where there are 3+ single characters with spaces between them
+  // This preserves normal word spacing while fixing letter-by-letter spacing
+  cleaned = cleaned.replace(/\b(\w)\s+(\w)\s+(\w)/g, (match) => {
+    // Remove all spaces in this sequence
+    return match.replace(/\s+/g, '');
+  });
   
   // STEP 6: Clean up whitespace
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
