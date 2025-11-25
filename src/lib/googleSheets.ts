@@ -668,7 +668,7 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Handle quotation PDF upload - Column AG
+  // Handle quotation PDF upload - uploads to Column AQ folder, stores link in Column AG
   if (params.action === 'updateQuotationPDF' && params.serviceId) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
     var data = sheet.getDataRange().getValues();
@@ -691,20 +691,50 @@ function doPost(e) {
             var desiredName = params["QuotationPDF_FileName"] || "ServiceQuotation.pdf";
             quotationPdfBlob.setName(desiredName);
 
-            var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+            // IMPORTANT: Use Column AQ folder (same as updateServicePDF)
+            var clientFolderUrl = params.ClientFolderUrl || data[i][42]; // Column AQ
+            var folderId = null;
+            
+            // Extract folder ID from URL if it exists
+            if (clientFolderUrl && clientFolderUrl.indexOf("/folders/") > -1) {
+              folderId = clientFolderUrl.split("/folders/")[1].split("?")[0];
+            }
+            
+            // If no folder exists, create one in Column AQ
+            if (!folderId) {
+              var parentFolder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+              var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
+              var folderName = sanitize(params.serviceId) + "_" + sanitize(params["Client Name"]) + "_" + sanitize(params["Device Type"]);
+              var newFolder = parentFolder.createFolder(folderName);
+              folderId = newFolder.getId();
+              clientFolderUrl = "https://drive.google.com/drive/folders/" + folderId;
+              
+              // Save the folder URL to Column AQ
+              sheet.getRange(i + 1, 43).setValue(clientFolderUrl);
+            }
+            
+            // Upload to the client folder (Column AQ)
+            var folder = DriveApp.getFolderById(folderId);
             var file = folder.createFile(quotationPdfBlob);
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
             var quotationPdfUrl = file.getUrl();
-            sheet.getRange(i + 1, 33).setValue(quotationPdfUrl); // Column AG - Quotation PDF URL
+            
+            // Save the PDF URL to Column AG - Quotation PDF URL
+            sheet.getRange(i + 1, 33).setValue(quotationPdfUrl);
+            
+            return ContentService.createTextOutput(JSON.stringify({
+              "result": "success",
+              "pdfUrl": quotationPdfUrl
+            })).setMimeType(ContentService.MimeType.JSON);
           }
         } catch (err) {
           Logger.log("Error uploading quotation PDF: " + err);
+          return ContentService.createTextOutput(JSON.stringify({
+            "result": "error",
+            "message": err.toString()
+          })).setMimeType(ContentService.MimeType.JSON);
         }
-        
-        return ContentService.createTextOutput(JSON.stringify({
-          "result": "success"
-        })).setMimeType(ContentService.MimeType.JSON);
       }
     }
     
