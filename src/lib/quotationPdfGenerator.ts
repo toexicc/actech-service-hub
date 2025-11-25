@@ -32,46 +32,45 @@ const cleanDiagnosisText = (text: string): string => {
   
   let cleaned = text;
   
-  // Cut off everything after "To proceed with the service"
-  const cutoffIndex = cleaned.indexOf("To proceed with the service");
-  if (cutoffIndex > -1) {
-    cleaned = cleaned.substring(0, cutoffIndex).trim();
+  // FIRST: Cut off everything after "To proceed with the service"
+  const cutoffPhrases = [
+    "To proceed with the service",
+    "Professional Recommendations:",
+    "SUMMARY:",
+    "---"
+  ];
+  
+  for (const phrase of cutoffPhrases) {
+    const idx = cleaned.indexOf(phrase);
+    if (idx > -1) {
+      cleaned = cleaned.substring(0, idx);
+      break;
+    }
   }
   
-  // Remove emoji characters and their placeholders
-  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
-  cleaned = cleaned.replace(/[❗🔍⚠️✅💡📋]/g, '');
-  
-  // Remove special character artifacts that appear as single letters or symbols
-  // These are emoji encoding issues: 'W ', '& b ', etc.
-  cleaned = cleaned.replace(/^['W]\s+/gm, '');
-  cleaned = cleaned.replace(/^&\s*[pb]\s+/gm, '');
-  cleaned = cleaned.replace(/^[ØÛñ@]\s*/gm, '');
-  
-  // Remove all markdown symbols
-  cleaned = cleaned.replace(/^#+\s*/gm, '');
-  cleaned = cleaned.replace(/\*\*/g, '');
-  
-  // Remove metadata lines
-  const lines = cleaned.split('\n');
-  const filteredLines = lines.filter(line => {
+  // Remove ALL lines that start with special characters or metadata
+  let lines = cleaned.split('\n');
+  lines = lines.filter(line => {
     const trimmed = line.trim();
-    if (!trimmed) return true;
-    // Skip customer metadata
-    if (/^(Customer Name|Device Type|Model|Service ID|Technician):/i.test(trimmed)) return false;
+    if (!trimmed) return true; // Keep empty lines for paragraph breaks
+    
+    // Remove lines with emoji placeholders
+    if (trimmed.startsWith('Ø') || trimmed.startsWith('ñ') || trimmed.startsWith('@')) return false;
+    if (trimmed.match(/^[W&]\s/)) return false; // "W " or "& b " patterns
+    
+    // Remove customer metadata
+    if (trimmed.match(/^(Customer Name|Device Type|Model|Service ID|Technician):/i)) return false;
     if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
-    // Skip lines that are just special characters or single letters
-    if (/^[=ØW&@#]+$/.test(trimmed)) return false;
-    if (/^[A-Z]\s*$/.test(trimmed)) return false;
+    
     return true;
   });
   
-  cleaned = filteredLines.join('\n');
+  // Join back and remove ALL # symbols (markdown headings)
+  cleaned = lines.join('\n');
+  cleaned = cleaned.replace(/#/g, ''); // Remove ALL # symbols everywhere
   
-  // Clean up excessive whitespace and spacing issues
-  cleaned = cleaned.replace(/\s+/g, ' '); // Normalize spaces
-  cleaned = cleaned.replace(/\n\s+/g, '\n'); // Remove leading spaces on lines
-  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n'); // Remove excessive line breaks
+  // Remove excessive whitespace
+  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
   cleaned = cleaned.trim();
   
   return cleaned;
