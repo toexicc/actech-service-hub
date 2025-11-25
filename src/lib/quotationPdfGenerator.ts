@@ -303,13 +303,15 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   yPos += 8;
   
-  // Diagnosis content (left column) with better spacing
+  // Diagnosis content (left column) with clear section breaks
   let diagnosisY = yPos;
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   
   const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);
   const diagnosisParagraphs = cleanedDiagnosis.split('\n\n');
+  
+  let isFirstSection = true;
   
   for (let i = 0; i < diagnosisParagraphs.length; i++) {
     const trimmed = diagnosisParagraphs[i].trim();
@@ -319,19 +321,21 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
     
     if (isHeader) {
-      // Add extra space before new section headers (except first one)
-      if (i > 0 && diagnosisParagraphs[i - 1].trim()) {
-        diagnosisY += 3;
+      // Add clear spacing before new section headers (except first one)
+      if (!isFirstSection) {
+        diagnosisY += 4;
       }
+      isFirstSection = false;
+      
       doc.setFont("helvetica", "bold");
       const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
       doc.text(lines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += lines.length * 3.5 + 3; // Add spacing after header
+      diagnosisY += lines.length * 3.5 + 2; // Spacing after header
     } else {
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
       doc.text(lines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += lines.length * 3.5 + 2;
+      diagnosisY += lines.length * 3.5 + 1;
     }
   }
   
