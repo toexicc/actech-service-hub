@@ -26,29 +26,32 @@ interface QuotationPDFData {
   isUpdated?: boolean;
 }
 
-// Helper function to completely clean diagnosis text
+// Helper function to completely clean diagnosis text to basic plain text
 const cleanDiagnosisText = (text: string): string => {
   if (!text || text === "N/A") return "N/A";
   
   let cleaned = text;
   
-  // STEP 1: Remove everything before the actual diagnosis content
-  const startMarkers = [
-    "Customer Concern Reported:",
-    "❗ Customer Concern Reported:",
-    "W Customer Concern Reported:"
+  // STEP 1: Remove all emojis and special unicode characters
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
+  cleaned = cleaned.replace(/[📱💻🔧🔍👤❗⚠️✅💡📋]/g, '');
+  
+  // STEP 2: Remove metadata headers
+  const headersToRemove = [
+    /Customer Name:.*$/gm,
+    /Device Type:.*$/gm,
+    /Model:.*$/gm,
+    /Service ID:.*$/gm,
+    /Technician:.*$/gm,
+    /AC TECH DEVICE DIAGNOSIS/g
   ];
   
-  for (const marker of startMarkers) {
-    const idx = cleaned.indexOf(marker);
-    if (idx > -1) {
-      cleaned = marker + cleaned.substring(idx + marker.length);
-      break;
-    }
+  for (const pattern of headersToRemove) {
+    cleaned = cleaned.replace(pattern, '');
   }
   
-  // STEP 2: Remove everything after the recommendation section
-  const endMarkers = [
+  // STEP 3: Remove footer sections
+  const footerMarkers = [
     "To proceed with the service",
     "Professional Recommendations:",
     "📋 SUMMARY:",
@@ -56,63 +59,33 @@ const cleanDiagnosisText = (text: string): string => {
     "---"
   ];
   
-  for (const marker of endMarkers) {
+  for (const marker of footerMarkers) {
     const idx = cleaned.indexOf(marker);
     if (idx > -1) {
       cleaned = cleaned.substring(0, idx);
-      break;
     }
   }
   
-  // STEP 3: Remove lines that contain customer metadata
-  const linesToRemove = [
-    "Customer Name:",
-    "Device Type:",
-    "Model:",
-    "Service ID:",
-    "Technician:",
-    "AC TECH DEVICE DIAGNOSIS",
-    "📱", "💻", "🔧", "🔍", "👤", "❗", "⚠️", "✅", "💡", "📋"
-  ];
-  
-  let lines = cleaned.split('\n');
-  lines = lines.filter(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return true;
-    
-    for (const pattern of linesToRemove) {
-      if (trimmed.includes(pattern)) return false;
-    }
-    
-    if (/^[ØÛñ@W&][\s=]/.test(trimmed)) return false;
-    
-    return true;
-  });
-  
-  cleaned = lines.join('\n');
-  
-  // STEP 4: Remove ALL # symbols
+  // STEP 4: Remove all # symbols (markdown headers)
   cleaned = cleaned.replace(/#/g, '');
   
-  // STEP 5: Fix character spacing issues like "C o m p o n e n t" -> "Component"
-  // Remove single spaces between individual characters while preserving word boundaries
-  // Run this multiple times to catch all instances
-  for (let i = 0; i < 10; i++) {
-    const before = cleaned;
-    // Replace single space between two word characters (letters/numbers)
-    cleaned = cleaned.replace(/(\w)\s(\w)(?!\s)/g, '$1$2');
-    cleaned = cleaned.replace(/(\w)\s(\w)$/gm, '$1$2');
-    if (cleaned === before) break; // Stop if no more changes
-  }
+  // STEP 5: Remove weird character artifacts at start of lines
+  cleaned = cleaned.replace(/^[ØÛñ@W&][\s=]/gm, '');
   
-  // Fix any remaining isolated single characters with spaces
-  cleaned = cleaned.replace(/\b(\w)\s+(\w)\b/g, '$1$2');
+  // STEP 6: Normalize whitespace ONLY (DO NOT mess with character spacing)
+  // Replace multiple spaces with single space
+  cleaned = cleaned.replace(/  +/g, ' ');
   
-  // STEP 6: Clean up whitespace
+  // Replace multiple newlines with double newline (paragraph breaks)
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
-  cleaned = cleaned.trim();
   
-  return cleaned;
+  // Trim each line
+  cleaned = cleaned.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n');
+  
+  return cleaned.trim();
 };
 
 export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob> => {
