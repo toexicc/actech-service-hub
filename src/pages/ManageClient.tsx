@@ -574,41 +574,6 @@ const ManageClient = () => {
     try {
       const [color, memory] = (serviceData.colorMemory || "").split("|").map((s) => s.trim());
       
-      // Extract and clean the diagnosis text - remove all headers, emojis, and markdown formatting
-      let cleanDiagnosis = updateAIDiagnosis || serviceData.aiDiagnosis || "N/A";
-      if (cleanDiagnosis !== "N/A") {
-        // Split into lines
-        let lines = cleanDiagnosis.split('\n');
-        
-        // Remove lines with customer info headers (emojis, metadata)
-        lines = lines.filter(line => {
-          const trimmed = line.trim();
-          // Skip empty lines at the start
-          if (!trimmed) return false;
-          // Skip lines with emoji characters
-          if (/[\u{1F300}-\u{1F9FF}]/u.test(trimmed)) return false;
-          // Skip metadata lines (Ø=Ûñ format)
-          if (/^[ØÛñ@#]/.test(trimmed)) return false;
-          // Skip "Customer Name:", "Device Type:", etc.
-          if (/^(Customer Name|Device Type|Model|Service ID|Technician):/.test(trimmed)) return false;
-          // Skip specific header text
-          if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
-          return true;
-        });
-        
-        // Remove markdown heading symbols (# symbols)
-        lines = lines.map(line => {
-          // Remove leading # symbols (markdown headings)
-          return line.replace(/^#+\s*/, '');
-        });
-        
-        // Rejoin and clean up
-        cleanDiagnosis = lines.join('\n').trim();
-        
-        // Remove extra blank lines (more than one consecutive blank line)
-        cleanDiagnosis = cleanDiagnosis.replace(/\n\n\n+/g, '\n\n');
-      }
-
       const quotationData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
@@ -626,7 +591,7 @@ const ManageClient = () => {
         color: color?.trim() || "",
         model: serviceData.device || "",
         memory: memory?.trim() || "",
-        technicianDiagnosis: cleanDiagnosis,
+        technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
         discount: discountAmount.toFixed(2),
