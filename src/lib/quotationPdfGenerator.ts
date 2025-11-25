@@ -305,7 +305,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   // Diagnosis content (left column) with better spacing
   let diagnosisY = yPos;
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   
   const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);
@@ -319,15 +319,17 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
     
     if (isHeader) {
-      diagnosisY += 4;
+      diagnosisY += 2;
       doc.setFont("helvetica", "bold");
+      const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
+      doc.text(lines, diagnosisColStart + 2, diagnosisY);
+      diagnosisY += lines.length * 3.5 + 3; // Add spacing after header
     } else {
       doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
+      doc.text(lines, diagnosisColStart + 2, diagnosisY);
+      diagnosisY += lines.length * 3.5 + 2;
     }
-    
-    const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
-    doc.text(lines, diagnosisColStart + 2, diagnosisY);
-    diagnosisY += lines.length * 4.5 + 3; // Increased spacing significantly
   }
   
   const diagnosisHeight = diagnosisY - yPos + 5;
@@ -335,19 +337,19 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   // Service Summary content (right column) - NO duplicate label
   let summaryY = yPos;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   
   // Column AA - Service Summary (NO label, just content)
   const serviceSummaryLines = doc.splitTextToSize(data.serviceSummary || "N/A", summaryColWidth - 4);
   doc.text(serviceSummaryLines, summaryColStart + 2, summaryY);
-  summaryY += serviceSummaryLines.length * 4 + 4;
+  summaryY += serviceSummaryLines.length * 3.5 + 3;
   
   // Service Cost
   doc.setFont("helvetica", "bold");
   doc.text("Service Cost:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
   doc.text(`Php ${data.serviceCost}`, summaryColStart + 38, summaryY);
-  summaryY += 5;
+  summaryY += 4;
   
   // Parts Used
   doc.setFont("helvetica", "bold");
@@ -355,23 +357,23 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   const partsLines = doc.splitTextToSize(data.partsUsed, summaryColWidth - 40);
   doc.text(partsLines, summaryColStart + 38, summaryY);
-  summaryY += Math.max(5, partsLines.length * 4 + 3);
+  summaryY += Math.max(4, partsLines.length * 3.5 + 2);
   
   // Discount
   doc.setFont("helvetica", "bold");
   doc.text("Discount:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
   doc.text(`Php ${data.discount}`, summaryColStart + 38, summaryY);
-  summaryY += 5;
+  summaryY += 4;
   
   // Total Cost - Highlighted with green background
   doc.setFillColor(144, 238, 144); // Light green
   doc.rect(summaryColStart + 1, summaryY - 3.5, summaryColWidth - 2, 6, 'F');
   doc.setFont("helvetica", "bold");
   doc.text("Total Cost:", summaryColStart + 2, summaryY);
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.text(`Php ${data.totalCost}`, summaryColStart + 38, summaryY);
-  summaryY += 6;
+  summaryY += 5;
   
   const summaryHeight = summaryY - yPos + 5;
   const maxHeight = Math.max(diagnosisHeight, summaryHeight);
@@ -380,17 +382,9 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.rect(diagnosisColStart, diagnosisStartY, diagnosisColWidth, maxHeight);
   doc.rect(summaryColStart, diagnosisStartY, summaryColWidth, maxHeight);
   
-  yPos = diagnosisStartY + maxHeight + 5;
+  yPos = diagnosisStartY + maxHeight + 3;
 
-  // Footer - keep on same page with minimal spacing
-  yPos += 3;
-  
-  // Only add new page if absolutely necessary (less than 20mm left)
-  if (yPos > 260) {
-    doc.addPage();
-    yPos = 20;
-  }
-  
+  // Footer - compact to ensure it fits on one page
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   const footerText =
