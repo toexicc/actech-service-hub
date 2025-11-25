@@ -20,7 +20,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS, TIME_FRAME_OPTIONS } from "@/lib/constants";
+import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS } from "@/lib/constants";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 
@@ -1120,9 +1120,11 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
-                      <SelectItem value="Loyalty">Loyalty</SelectItem>
-                      <SelectItem value="Walk-In">Walk-In</SelectItem>
+                      {PRIORITY_OPTIONS.map((priority) => (
+                        <SelectItem key={priority} value={priority}>
+                          {priority}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
