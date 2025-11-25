@@ -85,6 +85,10 @@ const ManageClient = () => {
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [finalCost, setFinalCost] = useState(0);
 
   const fetchAPIKeyFromSheet = async () => {
     try {
@@ -175,6 +179,9 @@ const ManageClient = () => {
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
         setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
+        setDiscountValue("");
+        setDiscountAmount(0);
+        setFinalCost(parseFloat(data.data.serviceCost || "0"));
       } else {
         toast({
           title: "Not Found",
@@ -354,6 +361,8 @@ const ManageClient = () => {
       formData.append("aiDiagnosis", updateAIDiagnosis);
       formData.append("services", updateServices);
       formData.append("serviceCost", updateServiceCost);
+      formData.append("discount", discountAmount.toString());
+      formData.append("finalCost", finalCost.toString());
       formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
       formData.append("adminNotes", updateAdminNotes);
       formData.append("adminNotesInternal", updateAdminNotesInternal);
@@ -997,8 +1006,98 @@ const ManageClient = () => {
                     id="serviceCost"
                     placeholder="Enter service cost"
                     value={updateServiceCost}
-                    onChange={(e) => setUpdateServiceCost(e.target.value)}
+                    onChange={(e) => {
+                      const cost = e.target.value;
+                      setUpdateServiceCost(cost);
+                      const costNum = parseFloat(cost) || 0;
+                      
+                      // Recalculate discount and final cost
+                      let discount = 0;
+                      if (discountType === "percentage") {
+                        const percent = parseFloat(discountValue) || 0;
+                        discount = (costNum * percent) / 100;
+                      } else {
+                        discount = parseFloat(discountValue) || 0;
+                      }
+                      setDiscountAmount(discount);
+                      setFinalCost(costNum - discount);
+                    }}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Discount (Optional):</Label>
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      variant={discountType === "percentage" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setDiscountType("percentage");
+                        setDiscountValue("");
+                        setDiscountAmount(0);
+                        setFinalCost(parseFloat(updateServiceCost) || 0);
+                      }}
+                      className="flex-1"
+                    >
+                      Percentage
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={discountType === "amount" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setDiscountType("amount");
+                        setDiscountValue("");
+                        setDiscountAmount(0);
+                        setFinalCost(parseFloat(updateServiceCost) || 0);
+                      }}
+                      className="flex-1"
+                    >
+                      Amount
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      placeholder={discountType === "percentage" ? "Enter %" : "Enter amount"}
+                      value={discountValue}
+                      type="number"
+                      min="0"
+                      step={discountType === "percentage" ? "0.01" : "1"}
+                      max={discountType === "percentage" ? "100" : undefined}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setDiscountValue(value);
+                        
+                        const costNum = parseFloat(updateServiceCost) || 0;
+                        let discount = 0;
+                        
+                        if (discountType === "percentage") {
+                          const percent = parseFloat(value) || 0;
+                          discount = (costNum * percent) / 100;
+                        } else {
+                          discount = parseFloat(value) || 0;
+                        }
+                        
+                        setDiscountAmount(discount);
+                        setFinalCost(costNum - discount);
+                      }}
+                      className="flex-1"
+                    />
+                    {discountType === "percentage" && discountValue && (
+                      <div className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        = Php {discountAmount.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Final Cost:</Label>
+                  <div className="text-2xl font-bold text-primary">
+                    Php {finalCost.toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
