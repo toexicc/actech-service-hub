@@ -25,6 +25,7 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * SERVICE MANAGEMENT:
  * - searchService: Finds service by ID and device type
  * - updateService: Updates service details
+ * - updateServicePDF: Updates ONLY the PDF URL for an existing service (does NOT create new row)
  * - updateTechnicianService: Updates service from technician portal
  * - getAllServices: Returns ALL services (for Service Tracker with filtering)
  * - getAllOngoingServices: Returns only non-completed services
@@ -870,9 +871,81 @@ function doPost(e) {
       }
     }
     
+    }))
+.setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle updateServicePDF requests - UPDATE PDF URL for existing service (DO NOT create new row)
+  if (params.action === 'updateServicePDF' && params.serviceId) {
+    var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = serviceSheet.getDataRange().getValues();
+    var serviceId = params.serviceId;
+    
+    // Find the existing service row by serviceId
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == serviceId) { // Column A is serviceId
+        
+        // Get existing folder or create new one
+        var folderUrl = data[i][42]; // Column AQ
+        var folderId = null;
+        
+        if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
+          folderId = folderUrl.split("/folders/")[1].split("?")[0];
+        }
+        
+        // If no folder exists, create one
+        if (!folderId) {
+          try {
+            var parentFolderForService = DriveApp.getFolderById("1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J");
+            var newServiceFolderName = serviceId + " - " + (data[i][8] || "Unknown Client");
+            var newServiceFolder = parentFolderForService.createFolder(newServiceFolderName);
+            folderId = newServiceFolder.getId();
+            folderUrl = "https://drive.google.com/drive/folders/" + folderId;
+            serviceSheet.getRange(i + 1, 43).setValue(folderUrl);
+          } catch (folderErr) {
+            Logger.log("Folder creation error: " + folderErr);
+          }
+        }
+        
+        // Upload the updated PDF to the service folder
+        var pdfUrl = "";
+        try {
+          var pdfBlob = null;
+          if (params["PDF_Base64"]) {
+            var bytes = Utilities.base64Decode(params["PDF_Base64"]);
+            var mimeType = params["PDF_MimeType"] || "application/pdf";
+            var fileName = params["PDF_FileName"] || "updated_form.pdf";
+            pdfBlob = Utilities.newBlob(bytes, mimeType, fileName);
+          }
+          
+          if (pdfBlob && folderId) {
+            var targetFolder = DriveApp.getFolderById(folderId);
+            var file = targetFolder.createFile(pdfBlob);
+            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            pdfUrl = file.getUrl();
+            
+            // Update ONLY the PDF URL column (Column AP = 42 in 1-indexed)
+            serviceSheet.getRange(i + 1, 42).setValue(pdfUrl);
+            
+            return ContentService.createTextOutput(JSON.stringify({
+              "result": "success",
+              "pdfUrl": pdfUrl
+            })).setMimeType(ContentService.MimeType.JSON);
+          }
+        } catch (uploadErr) {
+          Logger.log("PDF upload error: " + uploadErr);
+          return ContentService.createTextOutput(JSON.stringify({
+            "result": "error",
+            "message": "Failed to upload PDF: " + uploadErr
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+    
+    // Service not found
     return ContentService.createTextOutput(JSON.stringify({
-      "result": "not_found",
-      "message": "Service ID not found or device type mismatch"
+      "result": "error",
+      "message": "Service not found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
