@@ -373,47 +373,36 @@ const ManageClient = () => {
       return;
     }
 
-    const apiKey = openAIKey.trim() || import.meta.env.VITE_OPENAI_API_KEY;
-
-    if (!apiKey) {
-      toast({
-        title: "No API Key",
-        description: "OpenAI API key is required for AI formatting",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsFormattingReport(true);
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini-2025-08-07",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a professional technician at AC Tech Repair PH. Write a clear, concise service report for device release.\n\nFormat your report using this EXACT structure (do not include customer info, device, model, service ID, or technician - those will be added separately):\n\nAC TECH DEVICE REPORT | READY FOR RELEASE\n\nService Performed:\n[1-2 sentences - what was done to fix the device]\n\nRecommendation:\n[1 sentence - professional advice for the customer]\n\nIMPORTANT RULES:\n- Be concise, professional, and customer-friendly\n- Maximum 1-2 sentences per section\n- Use technical terms but keep it understandable\n- NO emojis or special symbols\n- Focus on clarity and professionalism",
-            },
-            {
-              role: "user",
-              content: `Raw technician report:\n\n${technicianReport}`,
-            },
-          ],
-          max_completion_tokens: 1500,
-        }),
-      });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error("Supabase URL not configured");
+      }
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/format-report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            technicianReport,
+            customerName: serviceData.clientName,
+            deviceType: serviceData.deviceType,
+            model: serviceData.device,
+            serviceId: serviceId,
+            technician: serviceData.technician,
+          }),
+        }
+      );
 
       if (!response.ok) {
         if (response.status === 429) {
           toast({
             title: "Rate Limit Reached",
-            description: "OpenAI rate limit reached. Please wait and try again.",
+            description: "AI service rate limit reached. Please wait and try again.",
             variant: "destructive",
           });
           return;
@@ -429,36 +418,26 @@ const ManageClient = () => {
         if (response.status === 402) {
           toast({
             title: "API Quota Exceeded",
-            description: "OpenAI API quota exceeded. Please check your OpenAI account.",
+            description: "AI service quota exceeded. Please check your account.",
             variant: "destructive",
           });
           return;
         }
-        throw new Error(`OpenAI API error (status ${response.status})`);
+        throw new Error(`AI service error (status ${response.status})`);
       }
 
       const data = await response.json();
-      const formattedReport = data.choices?.[0]?.message?.content;
+      const formattedReport = data.formattedReport;
 
       if (formattedReport) {
-        const reportWithHeader = [
-          `Customer Name: ${serviceData?.clientName || ''}`,
-          `Device Type: ${serviceData?.deviceType || ''}`,
-          `Model: ${serviceData?.device || ''}`,
-          `Service ID: ${serviceId}`,
-          `Technician: ${updateTechnician || 'Not assigned'}`,
-          '',
-          formattedReport
-        ].join('\n');
-        
-        setUpdateServiceReport(reportWithHeader);
+        setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
         toast({
           title: "Success",
           description: "Service report formatted successfully!",
         });
       } else {
-        throw new Error("No formatted report received from OpenAI");
+        throw new Error("No formatted report received from AI service");
       }
     } catch (error: any) {
       console.error("Error formatting service report:", error);
