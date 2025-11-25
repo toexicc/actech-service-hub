@@ -18,6 +18,7 @@ interface QuotationPDFData {
   model: string;
   memory: string;
   technicianDiagnosis: string;
+  serviceSummary: string;
   serviceCost: string;
   partsUsed: string;
   discount: string;
@@ -31,12 +32,21 @@ const cleanDiagnosisText = (text: string): string => {
   
   let cleaned = text;
   
+  // Cut off everything after "To proceed with the service"
+  const cutoffIndex = cleaned.indexOf("To proceed with the service");
+  if (cutoffIndex > -1) {
+    cleaned = cleaned.substring(0, cutoffIndex).trim();
+  }
+  
   // Remove emoji characters and their placeholders
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
-  cleaned = cleaned.replace(/[❗🔍⚠️✅💡📋ØÛñ@]/g, '');
+  cleaned = cleaned.replace(/[❗🔍⚠️✅💡📋]/g, '');
   
-  // Remove special character artifacts (W, &b, etc. from emoji encoding)
-  cleaned = cleaned.replace(/^[W&@Ø#]\s*/gm, '');
+  // Remove special character artifacts that appear as single letters or symbols
+  // These are emoji encoding issues: 'W ', '& b ', etc.
+  cleaned = cleaned.replace(/^['W]\s+/gm, '');
+  cleaned = cleaned.replace(/^&\s*[pb]\s+/gm, '');
+  cleaned = cleaned.replace(/^[ØÛñ@]\s*/gm, '');
   
   // Remove all markdown symbols
   cleaned = cleaned.replace(/^#+\s*/gm, '');
@@ -50,15 +60,18 @@ const cleanDiagnosisText = (text: string): string => {
     // Skip customer metadata
     if (/^(Customer Name|Device Type|Model|Service ID|Technician):/i.test(trimmed)) return false;
     if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
-    // Skip lines that are just special characters
-    if (/^[=Ø]+$/.test(trimmed)) return false;
+    // Skip lines that are just special characters or single letters
+    if (/^[=ØW&@#]+$/.test(trimmed)) return false;
+    if (/^[A-Z]\s*$/.test(trimmed)) return false;
     return true;
   });
   
   cleaned = filteredLines.join('\n');
   
-  // Clean up excessive whitespace
-  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
+  // Clean up excessive whitespace and spacing issues
+  cleaned = cleaned.replace(/\s+/g, ' '); // Normalize spaces
+  cleaned = cleaned.replace(/\n\s+/g, '\n'); // Remove leading spaces on lines
+  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n'); // Remove excessive line breaks
   cleaned = cleaned.trim();
   
   return cleaned;
@@ -299,12 +312,21 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   
+  // Column AA - Service Summary
+  doc.setFont("helvetica", "bold");
+  doc.text("Service Summary:", summaryColStart + 2, summaryY);
+  summaryY += 4;
+  doc.setFont("helvetica", "normal");
+  const serviceSummaryLines = doc.splitTextToSize(data.serviceSummary || "N/A", summaryColWidth - 4);
+  doc.text(serviceSummaryLines, summaryColStart + 2, summaryY);
+  summaryY += serviceSummaryLines.length * 4 + 4;
+  
   // Service Cost
   doc.setFont("helvetica", "bold");
   doc.text("Service Cost:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
   doc.text(`Php ${data.serviceCost}`, summaryColStart + 45, summaryY);
-  summaryY += 6;
+  summaryY += 5;
   
   // Parts Used
   doc.setFont("helvetica", "bold");
@@ -312,21 +334,21 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   const partsLines = doc.splitTextToSize(data.partsUsed, summaryColWidth - 47);
   doc.text(partsLines, summaryColStart + 45, summaryY);
-  summaryY += Math.max(6, partsLines.length * 4 + 2);
+  summaryY += Math.max(5, partsLines.length * 4 + 2);
   
   // Discount
   doc.setFont("helvetica", "bold");
   doc.text("Discount:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
   doc.text(`Php ${data.discount}`, summaryColStart + 45, summaryY);
-  summaryY += 6;
+  summaryY += 5;
   
   // Total Cost
   doc.setFont("helvetica", "bold");
   doc.text("Total Cost:", summaryColStart + 2, summaryY);
   doc.setFontSize(10);
   doc.text(`Php ${data.totalCost}`, summaryColStart + 45, summaryY);
-  summaryY += 6;
+  summaryY += 5;
   
   const summaryHeight = summaryY - yPos + 5;
   const maxHeight = Math.max(diagnosisHeight, summaryHeight);

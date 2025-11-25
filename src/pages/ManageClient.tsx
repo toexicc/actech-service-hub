@@ -592,6 +592,7 @@ const ManageClient = () => {
         model: serviceData.device || "",
         memory: memory?.trim() || "",
         technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
+        serviceSummary: updateServices || serviceData.service || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
         discount: serviceData.discount || "0.00",
