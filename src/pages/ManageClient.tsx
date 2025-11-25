@@ -1117,9 +1117,9 @@ const ManageClient = () => {
                         type="button"
                         size="sm"
                         onClick={() => {
-                          // Extract only the SUMMARY section (one-liner)
+                          // Extract the SUMMARY line (without emoji)
                           const summaryMatch = updateAIDiagnosis.match(
-                            /📋 SUMMARY:\s*(.+?)(?=\n|$)/
+                            /SUMMARY:\s*(.+?)(?=\n|$)/i
                           );
                           
                           if (summaryMatch && summaryMatch[1]) {
