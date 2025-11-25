@@ -594,8 +594,8 @@ const ManageClient = () => {
         technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
-        discount: (discountAmount > 0 ? discountAmount : (parseFloat(serviceData.discount || "0"))).toFixed(2),
-        totalCost: (finalCost > 0 ? finalCost : (parseFloat(serviceData.finalCost || serviceData.serviceCost || "0"))).toFixed(2),
+        discount: serviceData.discount || "0.00",
+        totalCost: serviceData.finalCost || serviceData.serviceCost || "0.00",
         isUpdated: !!serviceData.quotationPdfUrl,
       };
       
@@ -916,11 +916,6 @@ const ManageClient = () => {
                     </p>
                   </div>
 
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Tech Service Breakdown:</h3>
-                    <p className="text-lg whitespace-pre-line">{serviceData.suggestedRepair || "N/A"}</p>
-                  </div>
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
