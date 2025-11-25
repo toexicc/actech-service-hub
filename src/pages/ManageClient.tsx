@@ -937,13 +937,21 @@ const ManageClient = () => {
                         type="button"
                         size="sm"
                         onClick={() => {
-                          // Extract only the diagnosis section (from "AC TECH DEVICE DIAGNOSIS" onwards)
-                          const diagnosisStartIndex = updateAIDiagnosis.indexOf('AC TECH DEVICE DIAGNOSIS');
-                          const diagnosisOnly = diagnosisStartIndex >= 0 
-                            ? updateAIDiagnosis.substring(diagnosisStartIndex)
-                            : updateAIDiagnosis;
-                          setUpdateServices(diagnosisOnly);
-                          toast({ title: "AI Diagnosis approved and copied to Service/s" });
+                          // Extract only the "Recommended Solution" section
+                          const solutionMatch = updateAIDiagnosis.match(
+                            /✅ Recommended Solution:\s*([\s\S]*?)(?=💡 Professional Recommendations:|---|\n\n---|$)/
+                          );
+                          
+                          if (solutionMatch && solutionMatch[1]) {
+                            setUpdateServices(solutionMatch[1].trim());
+                            toast({ title: "Recommended Solution copied to Service/s" });
+                          } else {
+                            toast({ 
+                              title: "Error", 
+                              description: "Could not find 'Recommended Solution' section",
+                              variant: "destructive"
+                            });
+                          }
                         }}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
