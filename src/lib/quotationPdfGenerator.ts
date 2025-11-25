@@ -325,9 +325,9 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
                       line.includes('Recommendations') || line.includes('Issue'));
     
     if (isHeader) {
-      // Add blank line spacing before new section headers (except at start)
+      // Add moderate spacing before new section headers (except at start)
       if (diagnosisY > yPos) {
-        diagnosisY += 5; // Add visible gap
+        diagnosisY += 3; // Moderate gap between sections
       }
       
       doc.setFont("helvetica", "bold");
