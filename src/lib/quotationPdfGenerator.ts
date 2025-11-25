@@ -25,6 +25,45 @@ interface QuotationPDFData {
   isUpdated?: boolean;
 }
 
+// Helper function to completely clean diagnosis text
+const cleanDiagnosisText = (text: string): string => {
+  if (!text || text === "N/A") return "N/A";
+  
+  let cleaned = text;
+  
+  // Remove emoji characters and their placeholders
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
+  cleaned = cleaned.replace(/[❗🔍⚠️✅💡📋ØÛñ@]/g, '');
+  
+  // Remove special character artifacts (W, &b, etc. from emoji encoding)
+  cleaned = cleaned.replace(/^[W&@Ø#]\s*/gm, '');
+  
+  // Remove all markdown symbols
+  cleaned = cleaned.replace(/^#+\s*/gm, '');
+  cleaned = cleaned.replace(/\*\*/g, '');
+  
+  // Remove metadata lines
+  const lines = cleaned.split('\n');
+  const filteredLines = lines.filter(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return true;
+    // Skip customer metadata
+    if (/^(Customer Name|Device Type|Model|Service ID|Technician):/i.test(trimmed)) return false;
+    if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
+    // Skip lines that are just special characters
+    if (/^[=Ø]+$/.test(trimmed)) return false;
+    return true;
+  });
+  
+  cleaned = filteredLines.join('\n');
+  
+  // Clean up excessive whitespace
+  cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+};
+
 export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob> => {
   const doc = new jsPDF({
     format: "letter",
@@ -203,137 +242,102 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.memory, valueCol, yPos);
 
-  // Technician Diagnosis Section
+  // Two-column layout: Diagnosis on left, Service Summary on right
   yPos += 10;
+  
+  const diagnosisColStart = leftCol;
+  const diagnosisColWidth = 85;
+  const summaryColStart = diagnosisColStart + diagnosisColWidth + 10;
+  const summaryColWidth = 85;
+  
+  // Draw borders for the two-column layout
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.5);
+  
+  // Left column (Technician Diagnosis)
+  const diagnosisStartY = yPos;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Technician Diagnosis", leftCol, yPos);
-
-  yPos += 6;
-  doc.setFontSize(10);
+  doc.setFontSize(11);
+  doc.text("Technician Diagnosis", diagnosisColStart + 2, yPos + 5);
+  
+  // Right column (Service Summary)
+  doc.text("Service Summary", summaryColStart + 2, yPos + 5);
+  
+  yPos += 10;
+  
+  // Diagnosis content (left column)
+  let diagnosisY = yPos;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   
-  // Completely clean the diagnosis - strip ALL formatting and show only plain text
-  let diagnosisText = data.technicianDiagnosis || "N/A";
+  const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);
+  const diagnosisParagraphs = cleanedDiagnosis.split('\n\n');
   
-  if (diagnosisText !== "N/A") {
-    // Remove all markdown symbols (# and *)
-    diagnosisText = diagnosisText.replace(/#+\s*/g, '');
-    diagnosisText = diagnosisText.replace(/\*\*/g, '');
-    
-    // Remove emoji characters
-    diagnosisText = diagnosisText.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
-    
-    // Split into lines and filter out metadata
-    let lines = diagnosisText.split('\n');
-    lines = lines.filter(line => {
-      const trimmed = line.trim();
-      // Remove special character prefixed lines (Ø=Ûñ format from encoding issues)
-      if (/^[ØÛñ@=]/.test(trimmed)) return false;
-      // Remove customer metadata lines
-      if (/^(Customer Name|Device Type|Model|Service ID|Technician):/i.test(trimmed)) return false;
-      if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
-      return true;
-    });
-    
-    diagnosisText = lines.join('\n');
-    
-    // Clean up excessive whitespace
-    diagnosisText = diagnosisText.replace(/\n\n\n+/g, '\n\n').trim();
-  }
-  
-  // Split into paragraphs for proper rendering
-  const paragraphs = diagnosisText.split('\n\n');
-  
-  for (const paragraph of paragraphs) {
+  for (const paragraph of diagnosisParagraphs) {
     const trimmed = paragraph.trim();
     if (!trimmed) continue;
     
-    // Check if line ends with colon (section header)
-    const lines = trimmed.split('\n');
+    // Check if it's a section header (ends with colon)
+    const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      const isHeader = line.endsWith(':') && line.length < 80 && !line.includes('—') && !line.includes('.');
-      
-      if (isHeader) {
-        // Section header
-        yPos += 3;
-        doc.setFont("helvetica", "bold");
-        const headerLines = doc.splitTextToSize(line, 180);
-        
-        if (yPos + (headerLines.length * 5) > 260) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        doc.text(headerLines, leftCol, yPos);
-        yPos += headerLines.length * 5;
-        doc.setFont("helvetica", "normal");
-      } else {
-        // Regular content
-        const contentLines = doc.splitTextToSize(line, 180);
-        
-        if (yPos + (contentLines.length * 5) > 260) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        doc.text(contentLines, leftCol, yPos);
-        yPos += contentLines.length * 5 + 2;
-      }
+    if (isHeader) {
+      diagnosisY += 2;
+      doc.setFont("helvetica", "bold");
+    } else {
+      doc.setFont("helvetica", "normal");
     }
-  }
-
-  // Cost Summary Section
-  yPos += 10;
-  
-  // Check if we need a new page for cost summary
-  if (yPos > 230) {
-    doc.addPage();
-    yPos = 20;
+    
+    const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
+    doc.text(lines, diagnosisColStart + 2, diagnosisY);
+    diagnosisY += lines.length * 4 + 2;
   }
   
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Cost Summary", leftCol, yPos);
-
-  yPos += 8;
-  doc.setFontSize(10);
-
+  const diagnosisHeight = diagnosisY - yPos + 5;
+  
+  // Service Summary content (right column)
+  let summaryY = yPos;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  
   // Service Cost
   doc.setFont("helvetica", "bold");
-  doc.text("Service Cost:", leftCol, yPos);
+  doc.text("Service Cost:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
-  doc.text(`Php ${data.serviceCost}`, midCol, yPos);
-
-  yPos += 6;
-
+  doc.text(`Php ${data.serviceCost}`, summaryColStart + 45, summaryY);
+  summaryY += 6;
+  
   // Parts Used
   doc.setFont("helvetica", "bold");
-  doc.text("Parts Used:", leftCol, yPos);
+  doc.text("Parts Used:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
-  const partsText = data.partsUsed || "N/A";
-  const partsLines = doc.splitTextToSize(partsText, 120);
-  doc.text(partsLines, midCol, yPos);
-  yPos += Math.max(6, partsLines.length * 5);
-
+  const partsLines = doc.splitTextToSize(data.partsUsed, summaryColWidth - 47);
+  doc.text(partsLines, summaryColStart + 45, summaryY);
+  summaryY += Math.max(6, partsLines.length * 4 + 2);
+  
   // Discount
   doc.setFont("helvetica", "bold");
-  doc.text("Discount:", leftCol, yPos);
+  doc.text("Discount:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
-  doc.text(`Php ${data.discount}`, midCol, yPos);
-
-  yPos += 6;
-
+  doc.text(`Php ${data.discount}`, summaryColStart + 45, summaryY);
+  summaryY += 6;
+  
   // Total Cost
   doc.setFont("helvetica", "bold");
-  doc.text("Total Cost:", leftCol, yPos);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(`Php ${data.totalCost}`, midCol, yPos);
+  doc.text("Total Cost:", summaryColStart + 2, summaryY);
+  doc.setFontSize(10);
+  doc.text(`Php ${data.totalCost}`, summaryColStart + 45, summaryY);
+  summaryY += 6;
+  
+  const summaryHeight = summaryY - yPos + 5;
+  const maxHeight = Math.max(diagnosisHeight, summaryHeight);
+  
+  // Draw borders
+  // Left column border
+  doc.rect(diagnosisColStart, diagnosisStartY, diagnosisColWidth, maxHeight);
+  // Right column border
+  doc.rect(summaryColStart, diagnosisStartY, summaryColWidth, maxHeight);
+  
+  yPos = diagnosisStartY + maxHeight + 10;
 
   // Footer - ensure it doesn't overflow
   yPos += 15;
