@@ -937,18 +937,18 @@ const ManageClient = () => {
                         type="button"
                         size="sm"
                         onClick={() => {
-                          // Extract only the "Recommended Solution" section
-                          const solutionMatch = updateAIDiagnosis.match(
-                            /✅ Recommended Solution:\s*([\s\S]*?)(?=💡 Professional Recommendations:|---|\n\n---|$)/
+                          // Extract only the SUMMARY section (one-liner)
+                          const summaryMatch = updateAIDiagnosis.match(
+                            /📋 SUMMARY:\s*(.+?)(?=\n|$)/
                           );
                           
-                          if (solutionMatch && solutionMatch[1]) {
-                            setUpdateServices(solutionMatch[1].trim());
-                            toast({ title: "Recommended Solution copied to Service/s" });
+                          if (summaryMatch && summaryMatch[1]) {
+                            setUpdateServices(summaryMatch[1].trim());
+                            toast({ title: "Summary copied to Service/s" });
                           } else {
                             toast({ 
                               title: "Error", 
-                              description: "Could not find 'Recommended Solution' section",
+                              description: "Could not find 'SUMMARY' section in AI diagnosis",
                               variant: "destructive"
                             });
                           }
