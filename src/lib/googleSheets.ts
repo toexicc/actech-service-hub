@@ -159,7 +159,8 @@ function doGet(e) {
             "hasPassword": data[i][43],
             "devicePassword": data[i][44],
             "technicianDepartment": data[i][39],
-            "deviceReportFolderUrl": data[i][47],
+            "clientFolderUrl": data[i][42], // Column AQ - Client folder for service PDFs
+            "deviceReportFolderUrl": data[i][47], // Column AV - Device report photos folder
             "annotationImageUrl": data[i][48],
             "annotationNotes": data[i][49]
           }
