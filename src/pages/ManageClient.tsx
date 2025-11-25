@@ -892,6 +892,18 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="techDiagnosis">Technician Diagnosis (Column AE):</Label>
+                  <Textarea
+                    id="techDiagnosis"
+                    placeholder="Raw diagnosis from technician"
+                    value={rawDiagnosis}
+                    readOnly
+                    className="min-h-[80px] resize-none bg-muted cursor-not-allowed opacity-75"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="aiDiagnosis">AI Diagnosis:</Label>
                     <div className="flex gap-2">
@@ -910,8 +922,16 @@ const ManageClient = () => {
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
+                      >
+                        {isEditingAIDiagnosis ? "Lock" : "Edit"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
                         onClick={handleFormatWithAI}
                         disabled={!rawDiagnosis || isFormattingAI}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         {isFormattingAI ? (
                           <>
@@ -924,15 +944,6 @@ const ManageClient = () => {
                       </Button>
                       <Button
                         type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
-                      >
-                        {isEditingAIDiagnosis ? "Lock" : "Edit"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
                         size="sm"
                         onClick={() => {
                           // Extract only the diagnosis section (from "AC TECH DEVICE DIAGNOSIS" onwards)
@@ -943,6 +954,7 @@ const ManageClient = () => {
                           setUpdateServices(diagnosisOnly);
                           toast({ title: "AI Diagnosis approved and copied to Service/s" });
                         }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
                       >
                         Approve
                       </Button>
