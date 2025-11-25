@@ -311,15 +311,18 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);
   const diagnosisParagraphs = cleanedDiagnosis.split('\n\n');
   
-  for (const paragraph of diagnosisParagraphs) {
-    const trimmed = paragraph.trim();
+  for (let i = 0; i < diagnosisParagraphs.length; i++) {
+    const trimmed = diagnosisParagraphs[i].trim();
     if (!trimmed) continue;
     
     // Check if it's a section header (ends with colon)
     const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
     
     if (isHeader) {
-      diagnosisY += 2;
+      // Add extra space before new section headers (except first one)
+      if (i > 0 && diagnosisParagraphs[i - 1].trim()) {
+        diagnosisY += 3;
+      }
       doc.setFont("helvetica", "bold");
       const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
       doc.text(lines, diagnosisColStart + 2, diagnosisY);
