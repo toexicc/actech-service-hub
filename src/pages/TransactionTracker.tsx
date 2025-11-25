@@ -20,11 +20,11 @@ interface DoneService {
   timestamp: string;
   technician: string;
   department: string;
-  deviceType: string;
   clientName: string;
   service: string;
   quotedPrice: number;
-  actualCost: number;
+  discount: number;
+  partsCost: number;
 }
 
 const TransactionTracker = () => {
@@ -43,7 +43,6 @@ const TransactionTracker = () => {
 
   const [services, setServices] = useState<DoneService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -112,11 +111,6 @@ const TransactionTracker = () => {
 
   const filteredServices = useMemo(() => {
     return services.filter((service) => {
-      // Device type filter
-      if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) {
-        return false;
-      }
-
       // Technician filter
       if (technicianFilter !== "all" && service.technician !== technicianFilter) {
         return false;
@@ -143,11 +137,15 @@ const TransactionTracker = () => {
 
       return true;
     });
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate]);
+  }, [services, technicianFilter, departmentFilter, startDate, endDate]);
 
   const financialSummary = useMemo(() => {
     let totalCommission = 0;
     let adjustedTotalCosts = 0;
+    const totalDiscounts = filteredServices.reduce(
+      (sum, s) => sum + (s.discount || 0),
+      0
+    );
     const grossSales = filteredServices.reduce(
       (sum, s) => sum + (s.quotedPrice || 0),
       0
@@ -158,26 +156,26 @@ const TransactionTracker = () => {
 
     // Calculate costs and commissions based on department
     filteredServices.forEach((service) => {
-      let adjustedCost = service.actualCost || 0;
+      let adjustedCost = service.partsCost || 0;
       let serviceCommission = 0;
 
       if (service.department === "Laptop (Daily Repairs)") {
         // Add 10% to part cost
         adjustedCost = adjustedCost * 1.1;
         // Commission is 30% on net sales for this service
-        const netSales = (service.quotedPrice || 0) - adjustedCost;
+        const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
         serviceCommission = netSales * 0.3;
       } else if (service.department === "Laptop (Screens)") {
         // Commission is editable per row
         serviceCommission = screenCommissions[service.serviceId] || 0;
       } else if (service.department === "Mobile (Logic Board)") {
-        // For Mobile (Logic Board), net profit is gross sales - actual cost
-        const departmentNetProfit = (service.quotedPrice || 0) - adjustedCost;
+        // For Mobile (Logic Board), net profit is gross sales - discount - parts cost
+        const departmentNetProfit = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
         // Commission is 50% of that net profit
         serviceCommission = departmentNetProfit * 0.5;
       } else {
         // Default: use the global commission rate on net sales
-        const netSales = (service.quotedPrice || 0) - adjustedCost;
+        const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
         serviceCommission = (netSales * commissionRate) / 100;
       }
 
@@ -185,14 +183,14 @@ const TransactionTracker = () => {
       totalCommission += serviceCommission;
     });
 
-    let netProfit = grossSales - adjustedTotalCosts;
+    let netProfit = grossSales - totalDiscounts - adjustedTotalCosts;
     let commissionTotal = totalCommission;
     let profitAfterCommission = netProfit - commissionTotal;
 
     if (isMobileLogicBoardOnly) {
       // For Mobile (Logic Board), apply special sharing logic:
       // 1) Compute overall net profit after costs
-      const netAfterCosts = grossSales - adjustedTotalCosts;
+      const netAfterCosts = grossSales - totalDiscounts - adjustedTotalCosts;
       // 2) Displayed net profit is 50% of that amount
       netProfit = netAfterCosts * 0.5;
       // 3) Commission is 50% of displayed net profit
@@ -203,6 +201,7 @@ const TransactionTracker = () => {
 
     return {
       grossSales,
+      totalDiscounts,
       totalCosts: adjustedTotalCosts,
       netProfit,
       commission: commissionTotal,
@@ -216,10 +215,6 @@ const TransactionTracker = () => {
 
   const uniqueDepartments = useMemo(() => {
     return Array.from(new Set(services.map((s) => s.department))).filter(Boolean);
-  }, [services]);
-
-  const uniqueDeviceTypes = useMemo(() => {
-    return Array.from(new Set(services.map((s) => s.deviceType))).filter(Boolean);
   }, [services]);
 
   return (
@@ -240,7 +235,7 @@ const TransactionTracker = () => {
         </div>
 
         {/* Financial Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Gross Sales</CardTitle>
@@ -248,6 +243,17 @@ const TransactionTracker = () => {
             <CardContent>
           <div className="text-2xl font-bold text-green-600">
             ₱{financialSummary.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Discounts</CardTitle>
+            </CardHeader>
+            <CardContent>
+          <div className="text-2xl font-bold text-amber-600">
+            ₱{financialSummary.totalDiscounts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
           </Card>
@@ -305,7 +311,7 @@ const TransactionTracker = () => {
             <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
                 <Label>Commission Rate (%)</Label>
                 <Input
@@ -316,23 +322,6 @@ const TransactionTracker = () => {
                   max="100"
                   step="0.5"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Device Type</Label>
-                <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {uniqueDeviceTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-2">
@@ -403,7 +392,6 @@ const TransactionTracker = () => {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setDeviceTypeFilter("all");
                   setTechnicianFilter("all");
                   setDepartmentFilter("all");
                   setStartDate(undefined);
@@ -439,30 +427,31 @@ const TransactionTracker = () => {
                       <TableHead>Service ID</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Client</TableHead>
-                      <TableHead>Device Type</TableHead>
                       <TableHead>Technician</TableHead>
                       <TableHead>Department</TableHead>
                       <TableHead className="text-right">Quoted Price</TableHead>
-                      <TableHead className="text-right">Actual Cost</TableHead>
+                      <TableHead className="text-right">Discount</TableHead>
+                      <TableHead className="text-right">Parts Cost</TableHead>
                       <TableHead className="text-right">Profit</TableHead>
                       <TableHead className="text-right">Commission</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredServices.map((service) => {
-                      let adjustedCost = service.actualCost || 0;
-                      let profit = (service.quotedPrice || 0) - adjustedCost;
+                      let adjustedCost = service.partsCost || 0;
+                      const discount = service.discount || 0;
+                      let profit = (service.quotedPrice || 0) - discount - adjustedCost;
                       let commission = 0;
                       
                       if (service.department === "Laptop (Daily Repairs)") {
                         adjustedCost = adjustedCost * 1.1;
-                        profit = (service.quotedPrice || 0) - adjustedCost;
+                        profit = (service.quotedPrice || 0) - discount - adjustedCost;
                         commission = profit * 0.3;
                       } else if (service.department === "Laptop (Screens)") {
                         commission = screenCommissions[service.serviceId] || 0;
                       } else if (service.department === "Mobile (Logic Board)") {
-                        // Net profit is gross sales - actual cost for this department
-                        profit = (service.quotedPrice || 0) - adjustedCost;
+                        // Net profit is gross sales - discount - parts cost for this department
+                        profit = (service.quotedPrice || 0) - discount - adjustedCost;
                         // Commission is 50% of net profit
                         commission = profit * 0.5;
                       } else {
@@ -474,10 +463,10 @@ const TransactionTracker = () => {
                           <TableCell className="font-medium">{service.serviceId}</TableCell>
                           <TableCell>{service.timestamp}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
-                          <TableCell>{service.deviceType}</TableCell>
                           <TableCell>{service.technician}</TableCell>
                           <TableCell>{service.department}</TableCell>
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{adjustedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
