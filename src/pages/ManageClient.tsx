@@ -1212,7 +1212,7 @@ const ManageClient = () => {
                 </div>
 
                 {/* Diagnosis Toggle - Only visible when status is "Confirmed Diagnosis" */}
-                {updateStatus === "Confirmed Diagnosis" && (
+                {serviceData.status === "Confirmed Diagnosis" && (
                   <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                     <CollapsibleTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
@@ -1318,7 +1318,7 @@ const ManageClient = () => {
                 )}
 
                 {/* Report Toggle - Only visible when status is "Ongoing Service" */}
-                {updateStatus === "Ongoing Service" && (
+                {serviceData.status === "Ongoing Service" && (
                   <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                     <CollapsibleTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
