@@ -781,7 +781,12 @@ const ManageClient = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
                   <div className="flex gap-2">
-                    <Button onClick={handleUpdateForm} variant="outline" className="flex-1" disabled={isUpdating}>
+                    <Button 
+                      onClick={handleUpdateForm} 
+                      variant="outline" 
+                      className="flex-1" 
+                      disabled={isUpdating || updateStatus !== "Pending Diagnosis"}
+                    >
                       {isUpdating ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -806,7 +811,12 @@ const ManageClient = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
                   <div className="flex gap-2">
-                    <Button onClick={handleGenerateQuotation} variant="outline" className="flex-1" disabled={isUpdatingQuotation}>
+                    <Button 
+                      onClick={handleGenerateQuotation} 
+                      variant="outline" 
+                      className="flex-1" 
+                      disabled={isUpdatingQuotation || updateStatus !== "Confirmed Diagnosis"}
+                    >
                       {isUpdatingQuotation ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1063,7 +1073,7 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="techDiagnosis">Technician Diagnosis (Column AE):</Label>
+                  <Label htmlFor="techDiagnosis">Technician Diagnosis:</Label>
                   <Textarea
                     id="techDiagnosis"
                     placeholder="Raw diagnosis from technician"
