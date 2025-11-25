@@ -17,6 +17,9 @@ import { DEVICE_TYPES } from "@/lib/constants";
 import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { handleError, withErrorHandling } from "@/lib/errorHandling";
+import { useDebounce } from "@/hooks/useDebounce";
+import { sanitizeInput, sanitizeNumber, textFieldSchema } from "@/lib/validation";
 import logo from "@/assets/ac-tech-logo.jpg";
 import QRCode from "qrcode";
 
@@ -76,6 +79,7 @@ const InventoryManagement = () => {
   const [brandFilter, setBrandFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [sortField, setSortField] = useState<SortField>("lastUpdated");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -573,8 +577,8 @@ const InventoryManagement = () => {
       if (brandFilter !== "all" && item.brand !== brandFilter) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
       
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+      if (debouncedSearch) {
+        const query = debouncedSearch.toLowerCase();
         return (
           item.partId.toLowerCase().includes(query) ||
           item.partName.toLowerCase().includes(query) ||
@@ -607,7 +611,7 @@ const InventoryManagement = () => {
     });
 
     return filtered;
-  }, [inventory, deviceTypeFilter, brandFilter, statusFilter, searchQuery, sortField, sortOrder]);
+  }, [inventory, deviceTypeFilter, brandFilter, statusFilter, debouncedSearch, sortField, sortOrder]);
 
   // Paginated inventory items
   const paginatedInventory = useMemo(() => {

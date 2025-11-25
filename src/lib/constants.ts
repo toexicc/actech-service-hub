@@ -60,3 +60,83 @@ export const TIME_FRAME_OPTIONS = [
 ] as const;
 
 export type TimeFrame = typeof TIME_FRAME_OPTIONS[number];
+
+// User Roles
+export const USER_ROLES = {
+  ADMIN: "admin",
+  TECHNICIAN: "technician",
+  MANAGEMENT: "management",
+} as const;
+
+// Inventory Status
+export const INVENTORY_STATUS = [
+  "In Stock",
+  "Low Stock",
+  "Out of Stock",
+  "On Order"
+] as const;
+
+// Transaction Types
+export const TRANSACTION_TYPES = [
+  "Add",
+  "Remove",
+  "Adjust",
+  "Order",
+  "Receive"
+] as const;
+
+// Form Validation Messages
+export const VALIDATION_MESSAGES = {
+  REQUIRED: (field: string) => `${field} is required`,
+  MIN_LENGTH: (field: string, length: number) => 
+    `${field} must be at least ${length} characters`,
+  MAX_LENGTH: (field: string, length: number) => 
+    `${field} must not exceed ${length} characters`,
+  INVALID_FORMAT: (field: string) => `Invalid ${field} format`,
+  INVALID_EMAIL: "Invalid email address",
+  INVALID_PHONE: "Invalid phone number",
+  INVALID_SERVICE_ID: "Service ID must match format AC + 11 digits",
+  POSITIVE_NUMBER: (field: string) => `${field} must be a positive number`,
+} as const;
+
+// API Response Messages
+export const API_MESSAGES = {
+  SUCCESS: {
+    CREATE: (item: string) => `${item} created successfully`,
+    UPDATE: (item: string) => `${item} updated successfully`,
+    DELETE: (item: string) => `${item} deleted successfully`,
+    FETCH: (item: string) => `${item} loaded successfully`,
+  },
+  ERROR: {
+    CREATE: (item: string) => `Failed to create ${item}`,
+    UPDATE: (item: string) => `Failed to update ${item}`,
+    DELETE: (item: string) => `Failed to delete ${item}`,
+    FETCH: (item: string) => `Failed to load ${item}`,
+    NETWORK: "Network error. Please check your connection and try again",
+    SERVER: "Server error. Please try again later",
+    UNAUTHORIZED: "You don't have permission to perform this action",
+    VALIDATION: "Please check your input and try again",
+  },
+} as const;
+
+// Debounce Delays (in milliseconds)
+export const DEBOUNCE_DELAYS = {
+  SEARCH: 300,
+  INPUT: 500,
+  AUTOSAVE: 2000,
+} as const;
+
+// Pagination
+export const PAGINATION = {
+  ITEMS_PER_PAGE: 15,
+  MAX_PAGE_BUTTONS: 5,
+} as const;
+
+// Local Storage Keys
+export const STORAGE_KEYS = {
+  OPENAI_KEY: 'actech_openai_key',
+  SERVICE_TRACKER_FILTERS: 'actech_service_tracker_filters',
+  INVENTORY_FILTERS: 'actech_inventory_filters',
+  TRANSACTION_FILTERS: 'actech_transaction_filters',
+  USER_PREFERENCES: 'actech_user_preferences',
+} as const;

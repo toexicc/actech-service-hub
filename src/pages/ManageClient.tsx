@@ -21,6 +21,8 @@ import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { STATUS_OPTIONS, TIME_FRAME_OPTIONS } from "@/lib/constants";
+import { handleError, withErrorHandling } from "@/lib/errorHandling";
+import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;

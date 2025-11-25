@@ -17,6 +17,8 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { DEVICE_TYPES } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
+import { handleError, withErrorHandling } from "@/lib/errorHandling";
+import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
