@@ -636,8 +636,9 @@ const ManageClient = () => {
         });
       const pdfBase64 = await blobToBase64(pdfBlob);
 
-      // Log the folder URL to verify it's correct
-      console.log("Quotation PDF Upload - Client Folder URL (AQ):", serviceData.clientFolderUrl);
+      // Use Column AQ (clientFolderUrl) for quotation PDFs, NOT Column AV (deviceReportFolderUrl)
+      console.log("Quotation PDF Upload - Client Folder URL (Column AQ):", serviceData.clientFolderUrl);
+      console.log("Quotation PDF Upload - Device Report Folder (Column AV):", serviceData.deviceReportFolderUrl);
       console.log("Quotation PDF Upload - Service ID:", serviceId);
       console.log("Quotation PDF Upload - File Name:", fileName);
 
