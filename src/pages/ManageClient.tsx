@@ -574,6 +574,28 @@ const ManageClient = () => {
     try {
       const [color, memory] = (serviceData.colorMemory || "").split("|").map((s) => s.trim());
       
+      // Extract clean diagnosis without the header info (remove lines with emojis and customer details)
+      let cleanDiagnosis = updateAIDiagnosis || serviceData.aiDiagnosis || "N/A";
+      if (cleanDiagnosis !== "N/A") {
+        // Remove the customer info header (lines starting with emoji characters and basic info)
+        const lines = cleanDiagnosis.split('\n');
+        const diagnosisStartIndex = lines.findIndex(line => 
+          line.includes('AC TECH DEVICE DIAGNOSIS') || 
+          line.includes('Customer Concern Reported') ||
+          line.includes('❗')
+        );
+        
+        if (diagnosisStartIndex > 0) {
+          // Start from the diagnosis content, skip the header
+          cleanDiagnosis = lines.slice(diagnosisStartIndex + 1).join('\n').trim();
+        }
+        
+        // If it still starts with "AC TECH DEVICE DIAGNOSIS", remove that line too
+        if (cleanDiagnosis.startsWith('AC TECH DEVICE DIAGNOSIS')) {
+          cleanDiagnosis = cleanDiagnosis.replace('AC TECH DEVICE DIAGNOSIS', '').trim();
+        }
+      }
+
       const quotationData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
@@ -591,7 +613,7 @@ const ManageClient = () => {
         color: color?.trim() || "",
         model: serviceData.device || "",
         memory: memory?.trim() || "",
-        technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
+        technicianDiagnosis: cleanDiagnosis,
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
         discount: discountAmount.toFixed(2),
