@@ -133,6 +133,7 @@ function doGet(e) {
             "serviceCost": data[i][29], // Column AD
             "discount": data[i][50], // Column AY - Discount
             "finalCost": data[i][51], // Column AZ - Final Cost
+            "quotationPdfUrl": data[i][32], // Column AG - Service Quotation PDF URL
             "status": data[i][1] || "PENDING - APPROVAL",
             "technician": data[i][3],
             "techNotes": data[i][39],
@@ -652,6 +653,51 @@ function doPost(e) {
           }
         } catch (err) {
           Logger.log("Error uploading updated PDF: " + err);
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          "result": "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle quotation PDF upload - Column AG
+  if (params.action === 'updateQuotationPDF' && params.serviceId) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = sheet.getDataRange().getValues();
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
+        try {
+          var quotationPdfBlob = null;
+          if (e && e.files && e.files.QuotationPDF) {
+            quotationPdfBlob = e.files.QuotationPDF;
+          } else if (params["QuotationPDF_Base64"]) {
+            var bytes = Utilities.base64Decode(params["QuotationPDF_Base64"]);
+            var mimeType = params["QuotationPDF_MimeType"] || "application/pdf";
+            var fallbackName = "ServiceQuotation.pdf";
+            var base64FileName = params["QuotationPDF_FileName"] || fallbackName;
+            quotationPdfBlob = Utilities.newBlob(bytes, mimeType, base64FileName);
+          }
+
+          if (quotationPdfBlob) {
+            var desiredName = params["QuotationPDF_FileName"] || "ServiceQuotation.pdf";
+            quotationPdfBlob.setName(desiredName);
+
+            var folder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
+            var file = folder.createFile(quotationPdfBlob);
+            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+            var quotationPdfUrl = file.getUrl();
+            sheet.getRange(i + 1, 33).setValue(quotationPdfUrl); // Column AG - Quotation PDF URL
+          }
+        } catch (err) {
+          Logger.log("Error uploading quotation PDF: " + err);
         }
         
         return ContentService.createTextOutput(JSON.stringify({

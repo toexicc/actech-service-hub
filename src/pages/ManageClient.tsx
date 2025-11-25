@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
+import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { logActivity } from "@/lib/activityLogger";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
@@ -63,6 +64,7 @@ const ManageClient = () => {
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingQuotation, setIsUpdatingQuotation] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
@@ -565,6 +567,145 @@ const ManageClient = () => {
     }
   };
 
+  const handleGenerateQuotation = async () => {
+    if (!serviceData) return;
+
+    setIsUpdatingQuotation(true);
+    try {
+      const [color, memory] = (serviceData.colorMemory || "").split("|").map((s) => s.trim());
+      
+      const quotationData = {
+        serviceId: serviceId,
+        timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
+        adminRep: serviceData.adminRep || "Admin",
+        technician: updateTechnician,
+        clientType: updateClientType,
+        priority: updatePriority,
+        clientName: serviceData.clientName || "",
+        username: serviceData.username || serviceData.clientName || "",
+        phone: String(serviceData.phone || ""),
+        email: serviceData.email || "",
+        deviceType: serviceData.deviceType || "",
+        serial: serviceData.serialNumber || "",
+        brand: serviceData.brand || "",
+        color: color?.trim() || "",
+        model: serviceData.device || "",
+        memory: memory?.trim() || "",
+        technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
+        serviceSummary: updateServices || serviceData.service || "N/A",
+        serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
+        partsUsed: serviceData.partsUsed || "N/A",
+        discount: discountAmount.toFixed(2),
+        totalCost: finalCost.toFixed(2),
+        isUpdated: !!serviceData.quotationPdfUrl,
+      };
+      
+      const pdfBlob = await generateQuotationPDF(quotationData);
+
+      // Build filename with timestamp if updated
+      const now = new Date();
+      const tsForName = format(now, "MM-dd HH.mm");
+      const safe = (s: string) => (s || "").replace(/[\\\/:*?"<>|]+/g, "_");
+      const safeServiceId = safe(serviceId || "");
+      const safeClient = safe(serviceData.clientName || "");
+      const safeDevice = safe(serviceData.device || "");
+      const fileName = serviceData.quotationPdfUrl 
+        ? `${safeServiceId}_${safeClient}_${safeDevice} - QUOTATION UPDATED (${tsForName}).pdf`
+        : `${safeServiceId}_${safeClient}_${safeDevice} - QUOTATION.pdf`;
+
+      // Convert to base64
+      const blobToBase64 = (blob: Blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result).split(",")[1] || "");
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      const pdfBase64 = await blobToBase64(pdfBlob);
+
+      const formData = new FormData();
+      formData.append("action", "updateQuotationPDF");
+      formData.append("serviceId", serviceId);
+      formData.append("deviceType", serviceData.deviceType);
+      formData.append("Serial", serviceData.serialNumber || "");
+      formData.append("Client Name", serviceData.clientName || "");
+      formData.append("Device Type", serviceData.deviceType || "");
+
+      // Attach PDF
+      formData.append("QuotationPDF", pdfBlob, fileName);
+      formData.append("QuotationPDF_Base64", pdfBase64);
+      formData.append("QuotationPDF_FileName", fileName);
+      formData.append("QuotationPDF_MimeType", "application/pdf");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const result = await response.json();
+
+      if (result.result === "success") {
+        const username = sessionStorage.getItem("username") || "Admin";
+        const role = sessionStorage.getItem("userRole") || "admin";
+
+        await logActivity({
+          serviceId: serviceId,
+          username: username,
+          role: role,
+          activity: serviceData.quotationPdfUrl 
+            ? "Service quotation form updated" 
+            : "Service quotation form generated",
+        });
+
+        toast({
+          title: "Success",
+          description: serviceData.quotationPdfUrl 
+            ? "Service quotation form updated successfully" 
+            : "Service quotation form generated successfully",
+        });
+        // Refresh the data
+        handleSearch();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to generate quotation form",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Quotation generation error:", error);
+      const errorMessage = error instanceof Error && error.name === 'AbortError' 
+        ? "Request timed out - PDF generation may be taking too long"
+        : "Failed to generate quotation form";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingQuotation(false);
+    }
+  };
+
+  const handleViewQuotationPDF = () => {
+    if (!serviceData?.quotationPdfUrl) {
+      toast({
+        title: "No Quotation PDF Available",
+        description: "Quotation PDF has not been generated yet",
+        variant: "destructive",
+      });
+      return;
+    }
+    const url = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview");
+    window.open(url, "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 sm:p-6 max-w-6xl w-full">
@@ -654,6 +795,31 @@ const ManageClient = () => {
                       )}
                     </Button>
                     <Button onClick={handleViewPDF} variant="outline" className="flex-1">
+                      <FileText className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
+                  <div className="flex gap-2">
+                    <Button onClick={handleGenerateQuotation} variant="outline" className="flex-1" disabled={isUpdatingQuotation}>
+                      {isUpdatingQuotation ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {serviceData.quotationPdfUrl ? "Updating..." : "Generating..."}
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          {serviceData.quotationPdfUrl ? "Update Form" : "Generate PDF"}
+                        </>
+                      )}
+                    </Button>
+                    <Button onClick={handleViewQuotationPDF} variant="outline" className="flex-1">
                       <FileText className="mr-2 h-4 w-4" />
                       View PDF
                     </Button>
