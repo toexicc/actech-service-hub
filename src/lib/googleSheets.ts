@@ -339,6 +339,8 @@ function doGet(e) {
         inventory.push({
           "id": data[i][0],
           "name": data[i][1],
+          "deviceType": data[i][2], // Column C - Device Type
+          "model": data[i][4], // Column E - Model
           "cost": parseFloat(data[i][8]) || 0,
           "quantity": quantity,
           "qrCode": data[i][12] // Column M - QR Code data URL
