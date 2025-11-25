@@ -871,8 +871,10 @@ function doPost(e) {
       }
     }
     
-    }))
-.setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "not_found",
+      "message": "Service ID not found or device type mismatch"
+    })).setMimeType(ContentService.MimeType.JSON);
   }
   
   // Handle updateServicePDF requests - UPDATE PDF URL for existing service (DO NOT create new row)
