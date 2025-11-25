@@ -305,7 +305,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   // Diagnosis content (left column) with clear section breaks
   let diagnosisY = yPos;
-  doc.setFontSize(8);
+  doc.setFontSize(7.5); // Slightly smaller font
   doc.setFont("helvetica", "normal");
   
   const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);

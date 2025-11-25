@@ -63,7 +63,8 @@ const ManageClient = () => {
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingClientInfo, setIsUpdatingClientInfo] = useState(false); // Separate state for client info update
+  const [isUpdatingForm, setIsUpdatingForm] = useState(false); // Separate state for form update
   const [isUpdatingQuotation, setIsUpdatingQuotation] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
@@ -87,7 +88,7 @@ const ManageClient = () => {
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
+  const [discountType, setDiscountType] = useState<"percentage" | "amount">("amount"); // Default to amount
   const [discountValue, setDiscountValue] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
@@ -181,9 +182,21 @@ const ManageClient = () => {
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
         setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
-        setDiscountValue("");
-        setDiscountAmount(0);
-        setFinalCost(parseFloat(data.data.serviceCost || "0"));
+        
+        // Load discount data from Column AY
+        const savedDiscount = parseFloat(data.data.discount || "0");
+        if (savedDiscount > 0) {
+          setDiscountAmount(savedDiscount);
+          setDiscountValue(savedDiscount.toString());
+          // Keep default as amount
+          setDiscountType("amount");
+        } else {
+          setDiscountValue("");
+          setDiscountAmount(0);
+          setDiscountType("amount");
+        }
+        
+        setFinalCost(parseFloat(data.data.finalCost || data.data.serviceCost || "0"));
       } else {
         toast({
           title: "Not Found",
@@ -343,7 +356,7 @@ const ManageClient = () => {
   const handleUpdate = async () => {
     if (!serviceData) return;
 
-    setIsUpdating(true);
+    setIsUpdatingClientInfo(true);
     try {
       const formData = new FormData();
       formData.append("action", "updateService");
@@ -438,14 +451,14 @@ const ManageClient = () => {
         variant: "destructive",
       });
     } finally {
-      setIsUpdating(false);
+      setIsUpdatingClientInfo(false);
     }
   };
 
   const handleUpdateForm = async () => {
     if (!serviceData) return;
 
-    setIsUpdating(true);
+    setIsUpdatingForm(true);
     try {
       // Map service data to PDF format with updated fields
       const [color, memory] = (serviceData.colorMemory || " | ").split(" | ");
@@ -563,7 +576,7 @@ const ManageClient = () => {
         variant: "destructive",
       });
     } finally {
-      setIsUpdating(false);
+      setIsUpdatingForm(false);
     }
   };
 
@@ -786,9 +799,9 @@ const ManageClient = () => {
                       onClick={handleUpdateForm} 
                       variant="outline" 
                       className="flex-1" 
-                      disabled={isUpdating || serviceData.status !== "Pending Diagnosis"}
+                      disabled={isUpdatingForm || serviceData.status !== "Pending Diagnosis"}
                     >
-                      {isUpdating ? (
+                      {isUpdatingForm ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Updating...
@@ -1212,20 +1225,6 @@ const ManageClient = () => {
                   <div className="flex gap-2 mb-2">
                     <Button
                       type="button"
-                      variant={discountType === "percentage" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setDiscountType("percentage");
-                        setDiscountValue("");
-                        setDiscountAmount(0);
-                        setFinalCost(parseFloat(updateServiceCost) || 0);
-                      }}
-                      className="flex-1"
-                    >
-                      Percentage
-                    </Button>
-                    <Button
-                      type="button"
                       variant={discountType === "amount" ? "default" : "outline"}
                       size="sm"
                       onClick={() => {
@@ -1237,6 +1236,20 @@ const ManageClient = () => {
                       className="flex-1"
                     >
                       Amount
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={discountType === "percentage" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setDiscountType("percentage");
+                        setDiscountValue("");
+                        setDiscountAmount(0);
+                        setFinalCost(parseFloat(updateServiceCost) || 0);
+                      }}
+                      className="flex-1"
+                    >
+                      Percentage
                     </Button>
                   </div>
                   
@@ -1345,8 +1358,8 @@ const ManageClient = () => {
                   />
                 </div>
 
-                <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
-                  {isUpdating ? (
+                <Button onClick={handleUpdate} disabled={isUpdatingClientInfo} className="w-full">
+                  {isUpdatingClientInfo ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Updating...
