@@ -321,21 +321,21 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
     
     if (isHeader) {
-      // Add clear spacing before new section headers (except first one)
+      // Add significant spacing before new section headers (except first one)
       if (!isFirstSection) {
-        diagnosisY += 4;
+        diagnosisY += 6; // Larger gap between sections
       }
       isFirstSection = false;
       
       doc.setFont("helvetica", "bold");
       const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
       doc.text(lines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += lines.length * 3.5 + 2; // Spacing after header
+      diagnosisY += lines.length * 3.5 + 1; // Small spacing after header
     } else {
       doc.setFont("helvetica", "normal");
       const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
       doc.text(lines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += lines.length * 3.5 + 1;
+      diagnosisY += lines.length * 3.5 + 0.5; // Tight spacing within content
     }
   }
   
