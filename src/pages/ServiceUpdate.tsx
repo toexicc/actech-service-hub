@@ -793,7 +793,7 @@ const ServiceUpdate = () => {
                   <Label htmlFor="technicianReport">Technician Report:</Label>
                   <Textarea
                     id="technicianReport"
-                    placeholder="Enter technician report (only editable when status is Ongoing Service)"
+                    placeholder="Enter technician report"
                     value={updateTechnicianReport}
                     onChange={(e) => setUpdateTechnicianReport(e.target.value)}
                     rows={4}
