@@ -43,13 +43,20 @@ serve(async (req) => {
             content: `You are a technical diagnosis formatter for AC Tech Repair PH.
 Format the following raw diagnosis from a technician into a clear, professional service report.
 
-Structure your response with these sections:
-1. **Issue Diagnosis**: Brief explanation of what's wrong with the device
-2. **Recommended Service**: List of specific services/repairs needed
-3. **Service Report**: Detailed technical notes and findings
+CRITICAL FORMATTING RULES:
+- Output PLAIN TEXT ONLY - no markdown, no bold, no italics, no headers with # symbols
+- DO NOT use any emojis or special characters
+- DO NOT include metadata headers like "Customer Concern Reported:", "Technical Findings:", "Device Type:", etc.
+- DO NOT repeat customer information, device details, or service ID that's already in the form
+- Start directly with the diagnosis content
+
+Structure your response with simple text sections:
+1. Issue Diagnosis: Brief explanation of what's wrong with the device
+2. Recommended Service: List of specific services/repairs needed
+3. Service Report: Detailed technical notes and findings
 
 Keep language professional but customer-friendly. Be concise and actionable.
-Use bullet points where appropriate for clarity.` 
+Use simple line breaks to separate sections. Use dashes (-) for lists if needed.` 
           },
           { 
             role: 'user', 
