@@ -105,6 +105,26 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 function doGet(e) {
   var params = e.parameter;
   
+  // Handle API Key request (MUST BE FIRST)
+  // Make sure you have a sheet named "Keys" with the OpenAI API key in cell B1
+  if (params.action === 'getApiKey') {
+    var keysSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Keys');
+    
+    if (!keysSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        error: 'Keys sheet not found'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Read from B1 (row 1, column 2)
+    var apiKey = keysSheet.getRange(1, 2).getValue();
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      apiKey: apiKey
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   // Handle search requests for Service Database (tracking page)
   if (params.action === 'searchService' && params.serviceId) {
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
