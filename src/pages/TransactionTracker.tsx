@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { CalendarIcon, Loader2, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { handleError } from "@/lib/errorHandling";
+import { sanitizeNumber } from "@/lib/validation";
 import logo from "@/assets/ac-tech-logo.jpg";
 
 interface DoneService {
