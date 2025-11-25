@@ -15,6 +15,8 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { handleError, withErrorHandling } from "@/lib/errorHandling";
+import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/ac-tech-logo.jpg";
 import ActivityLogRow from "@/components/ActivityLogRow";
 
@@ -50,7 +52,7 @@ const ServiceTracker = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const itemsPerPage = 15;
 
@@ -269,8 +271,8 @@ const ServiceTracker = () => {
       // Do NOT filter out any services by status - show ALL services
 
       // Search filter - search by Service ID or Client Name
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+      if (debouncedSearch.trim()) {
+        const query = debouncedSearch.toLowerCase();
         const matchesServiceId = service.serviceId?.toLowerCase().includes(query);
         const matchesClientName = service.clientName?.toLowerCase().includes(query);
         
@@ -389,7 +391,7 @@ const ServiceTracker = () => {
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter, techniciansWithDept]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept]);
 
   const departments = useMemo(() => {
     const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
@@ -407,7 +409,7 @@ const ServiceTracker = () => {
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, searchQuery, dueDateFilter]);
+  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -446,11 +448,6 @@ const ServiceTracker = () => {
                   placeholder="Search by Service ID or Client Name..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setSearchQuery(searchInput);
-                    }
-                  }}
                   onFocus={(e) => {
                     if (!e.target.value) {
                       setSearchInput("AC");
@@ -460,15 +457,9 @@ const ServiceTracker = () => {
                   className="pl-10"
                 />
               </div>
-              <Button onClick={() => setSearchQuery(searchInput)}>
-                Search
-              </Button>
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  setSearchInput("");
-                  setSearchQuery("");
-                }}
+                onClick={() => setSearchInput("")}
               >
                 Clear
               </Button>
