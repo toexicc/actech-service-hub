@@ -280,13 +280,13 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.memory, valueCol, yPos);
 
-  // Two-column layout: Diagnosis on left, Service Summary on right - more compact
+  // Two-column layout: Diagnosis on left, Service Summary on right
   yPos += 8;
   
   const diagnosisColStart = leftCol;
-  const diagnosisColWidth = 75; // Smaller columns
-  const summaryColStart = diagnosisColStart + diagnosisColWidth + 8;
-  const summaryColWidth = 75; // Smaller columns
+  const diagnosisColWidth = 87; // Wider to fit within margins
+  const summaryColStart = diagnosisColStart + diagnosisColWidth + 3;
+  const summaryColWidth = 87; // Equal width columns
   
   // Draw borders for the two-column layout
   doc.setDrawColor(0);
