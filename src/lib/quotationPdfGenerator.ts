@@ -33,7 +33,6 @@ const cleanDiagnosisText = (text: string): string => {
   let cleaned = text;
   
   // STEP 1: Remove everything before the actual diagnosis content
-  // Remove the customer info header section (everything before "Customer Concern Reported:")
   const startMarkers = [
     "Customer Concern Reported:",
     "❗ Customer Concern Reported:",
@@ -73,30 +72,18 @@ const cleanDiagnosisText = (text: string): string => {
     "Service ID:",
     "Technician:",
     "AC TECH DEVICE DIAGNOSIS",
-    "📱",
-    "💻",
-    "🔧",
-    "🔍",
-    "👤",
-    "❗",
-    "🔍",
-    "⚠️",
-    "✅",
-    "💡",
-    "📋"
+    "📱", "💻", "🔧", "🔍", "👤", "❗", "⚠️", "✅", "💡", "📋"
   ];
   
   let lines = cleaned.split('\n');
   lines = lines.filter(line => {
     const trimmed = line.trim();
-    if (!trimmed) return true; // Keep blank lines
+    if (!trimmed) return true;
     
-    // Check if line contains any of the patterns to remove
     for (const pattern of linesToRemove) {
       if (trimmed.includes(pattern)) return false;
     }
     
-    // Remove lines that start with special encoding characters
     if (/^[ØÛñ@W&][\s=]/.test(trimmed)) return false;
     
     return true;
@@ -104,10 +91,21 @@ const cleanDiagnosisText = (text: string): string => {
   
   cleaned = lines.join('\n');
   
-  // STEP 4: Remove ALL # symbols (markdown headings)
+  // STEP 4: Remove ALL # symbols
   cleaned = cleaned.replace(/#/g, '');
   
-  // STEP 5: Clean up whitespace
+  // STEP 5: Fix character spacing issues (like "r e p a i r" -> "repair")
+  // This removes excessive spaces between individual characters
+  cleaned = cleaned.replace(/(\w)\s+(\w)/g, (match, char1, char2) => {
+    // If there's a space between two letters that are both lowercase or both uppercase, remove it
+    if ((char1 === char1.toLowerCase() && char2 === char2.toLowerCase()) ||
+        (char1 === char1.toUpperCase() && char2 === char2.toUpperCase() && char1 !== char1.toLowerCase())) {
+      return char1 + char2;
+    }
+    return match;
+  });
+  
+  // STEP 6: Clean up whitespace
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
   cleaned = cleaned.trim();
   
@@ -292,13 +290,13 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.memory, valueCol, yPos);
 
-  // Two-column layout: Diagnosis on left, Service Summary on right
-  yPos += 10;
+  // Two-column layout: Diagnosis on left, Service Summary on right - more compact
+  yPos += 8;
   
   const diagnosisColStart = leftCol;
-  const diagnosisColWidth = 85;
-  const summaryColStart = diagnosisColStart + diagnosisColWidth + 10;
-  const summaryColWidth = 85;
+  const diagnosisColWidth = 75; // Smaller columns
+  const summaryColStart = diagnosisColStart + diagnosisColWidth + 8;
+  const summaryColWidth = 75; // Smaller columns
   
   // Draw borders for the two-column layout
   doc.setDrawColor(0);
@@ -307,17 +305,17 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   // Left column (Technician Diagnosis)
   const diagnosisStartY = yPos;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("Technician Diagnosis", diagnosisColStart + 2, yPos + 5);
+  doc.setFontSize(10);
+  doc.text("Technician Diagnosis", diagnosisColStart + 2, yPos + 4);
   
   // Right column (Service Summary)
-  doc.text("Service Summary", summaryColStart + 2, yPos + 5);
+  doc.text("Service Summary", summaryColStart + 2, yPos + 4);
   
-  yPos += 10;
+  yPos += 8;
   
   // Diagnosis content (left column)
   let diagnosisY = yPos;
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   
   const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);
@@ -339,75 +337,69 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     
     const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
     doc.text(lines, diagnosisColStart + 2, diagnosisY);
-    diagnosisY += lines.length * 4 + 2;
+    diagnosisY += lines.length * 3.5 + 1.5;
   }
   
   const diagnosisHeight = diagnosisY - yPos + 5;
   
-  // Service Summary content (right column)
+  // Service Summary content (right column) - NO duplicate label
   let summaryY = yPos;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   
-  // Column AA - Service Summary
-  doc.setFont("helvetica", "bold");
-  doc.text("Service Summary:", summaryColStart + 2, summaryY);
-  summaryY += 4;
-  doc.setFont("helvetica", "normal");
+  // Column AA - Service Summary (NO label, just content)
   const serviceSummaryLines = doc.splitTextToSize(data.serviceSummary || "N/A", summaryColWidth - 4);
   doc.text(serviceSummaryLines, summaryColStart + 2, summaryY);
-  summaryY += serviceSummaryLines.length * 4 + 4;
+  summaryY += serviceSummaryLines.length * 3.5 + 3;
   
   // Service Cost
   doc.setFont("helvetica", "bold");
   doc.text("Service Cost:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
-  doc.text(`Php ${data.serviceCost}`, summaryColStart + 45, summaryY);
-  summaryY += 5;
+  doc.text(`Php ${data.serviceCost}`, summaryColStart + 38, summaryY);
+  summaryY += 4;
   
   // Parts Used
   doc.setFont("helvetica", "bold");
   doc.text("Parts Used:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
-  const partsLines = doc.splitTextToSize(data.partsUsed, summaryColWidth - 47);
-  doc.text(partsLines, summaryColStart + 45, summaryY);
-  summaryY += Math.max(5, partsLines.length * 4 + 2);
+  const partsLines = doc.splitTextToSize(data.partsUsed, summaryColWidth - 40);
+  doc.text(partsLines, summaryColStart + 38, summaryY);
+  summaryY += Math.max(4, partsLines.length * 3.5 + 2);
   
   // Discount
   doc.setFont("helvetica", "bold");
   doc.text("Discount:", summaryColStart + 2, summaryY);
   doc.setFont("helvetica", "normal");
-  doc.text(`Php ${data.discount}`, summaryColStart + 45, summaryY);
-  summaryY += 5;
+  doc.text(`Php ${data.discount}`, summaryColStart + 38, summaryY);
+  summaryY += 4;
   
   // Total Cost
   doc.setFont("helvetica", "bold");
   doc.text("Total Cost:", summaryColStart + 2, summaryY);
-  doc.setFontSize(10);
-  doc.text(`Php ${data.totalCost}`, summaryColStart + 45, summaryY);
+  doc.setFontSize(9);
+  doc.text(`Php ${data.totalCost}`, summaryColStart + 38, summaryY);
   summaryY += 5;
   
   const summaryHeight = summaryY - yPos + 5;
   const maxHeight = Math.max(diagnosisHeight, summaryHeight);
   
   // Draw borders
-  // Left column border
   doc.rect(diagnosisColStart, diagnosisStartY, diagnosisColWidth, maxHeight);
-  // Right column border
   doc.rect(summaryColStart, diagnosisStartY, summaryColWidth, maxHeight);
   
-  yPos = diagnosisStartY + maxHeight + 10;
+  yPos = diagnosisStartY + maxHeight + 5;
 
-  // Footer - ensure it doesn't overflow
-  yPos += 15;
+  // Footer - keep on same page if possible, make smaller spacing
+  yPos += 5;
   
-  // Check if footer will fit, if not add new page
-  if (yPos > 240) {
+  // Only add new page if absolutely necessary (less than 30mm left)
+  if (yPos > 250) {
     doc.addPage();
     yPos = 20;
   }
   
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   const footerText =
     "This document is automatically generated after the technician completes the final diagnosis and quotation. Once received, please review our Terms and Conditions and send your approval. By submitting the form, you acknowledge that all information provided is accurate and consent to the servicing of your device. Any changes or additional findings will be communicated through your preferred channel of communication.";
