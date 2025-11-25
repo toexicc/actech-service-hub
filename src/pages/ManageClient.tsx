@@ -1070,7 +1070,7 @@ const ManageClient = () => {
                   
                   <div className="flex gap-2 items-center">
                     <Input
-                      placeholder={discountType === "percentage" ? "Enter %" : "Enter amount"}
+                      placeholder={discountType === "percentage" ? "Enter %" : "Enter Amount"}
                       value={discountValue}
                       type="number"
                       min="0"
@@ -1179,6 +1179,12 @@ const ManageClient = () => {
                     "Update"
                   )}
                 </Button>
+                
+                {serviceData.lastUpdated && (
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Last updated: {new Date(serviceData.lastUpdated).toLocaleString()}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
