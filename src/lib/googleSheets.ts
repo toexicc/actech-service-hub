@@ -152,16 +152,36 @@ function doGet(e) {
       var technician = params.technician || '';
 
       var prompt = 'You are a professional technical diagnostician for AC Tech Repair PH.\n\n' +
+        'Format the following information into a customer-friendly diagnosis report:\n\n' +
         'Customer: ' + customerName + '\n' +
-        'Device: ' + deviceType + ' - ' + model + '\n' +
+        'Device: ' + deviceType + ' (' + model + ')\n' +
         'Service ID: ' + serviceId + '\n' +
-        'Technician: ' + technician + '\n\n' +
-        'Raw Technician Notes:\n' + rawDiagnosis + '\n\n' +
-        'Format this into a professional diagnosis report with these sections:\n' +
-        '1. Issue Diagnosis - Clear description of the problem\n' +
-        '2. Recommended Service - Specific services/repairs needed\n' +
-        '3. Service Report - Technical details and findings\n\n' +
-        'Use clear, professional language. Be specific and technical where appropriate.';
+        'Technician: ' + technician + '\n' +
+        'Raw Notes: ' + rawDiagnosis + '\n\n' +
+        'EXACT FORMAT TO FOLLOW:\n' +
+        'Customer Name: [name]\n' +
+        'Device Type: [type]\n' +
+        'Model: [model]\n' +
+        'Service ID: [id]\n' +
+        'Technician: [name]\n\n' +
+        'AC TECH DEVICE DIAGNOSIS\n\n' +
+        'Findings:\n[Clear description of what was found during inspection]\n\n' +
+        'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
+        'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
+        'Recommendations:\n[Professional advice for the customer]\n\n' +
+        '---\n\n' +
+        'To proceed with the service, please reply YES to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
+        '---\n\n' +
+        'SUMMARY: [One-line summary of the repair needed]\n\n' +
+        'WRITING STYLE REQUIREMENTS:\n' +
+        '- Customer-oriented and friendly but professional\n' +
+        '- Get straight to the point, no fluff\n' +
+        '- Use simple, clear language that anyone can understand\n' +
+        '- Formal quotation style\n' +
+        '- NO markdown formatting (no **, no ##, no bullet points)\n' +
+        '- NO em dashes (—), use regular hyphens or commas instead\n' +
+        '- NO quotation marks around YES or any other words\n' +
+        '- Use plain text only with clear section labels';
 
       var payload = {
         model: 'gpt-4o-mini',
@@ -231,17 +251,35 @@ function doGet(e) {
       var technician = params.technician || '';
 
       var prompt = 'You are formatting a service report for AC Tech Repair PH.\n\n' +
+        'Format the following information into a customer-friendly service report:\n\n' +
         'Customer: ' + customerName + '\n' +
-        'Device: ' + deviceType + ' - ' + model + '\n' +
+        'Device: ' + deviceType + ' (' + model + ')\n' +
         'Service ID: ' + serviceId + '\n' +
-        'Technician: ' + technician + '\n\n' +
-        'Raw Service Report:\n' + technicianReport + '\n\n' +
-        'Format this into a professional service report with:\n' +
-        '- Clear sections for work performed\n' +
-        '- Parts replaced or repaired\n' +
-        '- Technical findings\n' +
-        '- Final status and recommendations\n\n' +
-        'Use professional technical language.';
+        'Technician: ' + technician + '\n' +
+        'Raw Service Report: ' + technicianReport + '\n\n' +
+        'EXACT FORMAT TO FOLLOW:\n' +
+        'Customer Name: [name]\n' +
+        'Device Type: [type]\n' +
+        'Model: [model]\n' +
+        'Service ID: [id]\n' +
+        'Technician: [name]\n\n' +
+        'AC TECH SERVICE REPORT\n\n' +
+        'Work Performed:\n[Clear description of repairs and services completed]\n\n' +
+        'Parts Replaced/Repaired:\n[List of parts and components worked on]\n\n' +
+        'Technical Findings:\n[Detailed technical observations and results]\n\n' +
+        'Final Status:\n[Current condition of the device]\n\n' +
+        'Recommendations:\n[Professional advice for device maintenance and care]\n\n' +
+        '---\n\n' +
+        'SUMMARY: [One-line summary of service completed]\n\n' +
+        'WRITING STYLE REQUIREMENTS:\n' +
+        '- Customer-oriented and friendly but professional\n' +
+        '- Get straight to the point, no fluff\n' +
+        '- Use simple, clear language that anyone can understand\n' +
+        '- Formal service report style\n' +
+        '- NO markdown formatting (no **, no ##, no bullet points)\n' +
+        '- NO em dashes (—), use regular hyphens or commas instead\n' +
+        '- NO quotation marks around any words\n' +
+        '- Use plain text only with clear section labels';
 
       var payload = {
         model: 'gpt-4o-mini',
