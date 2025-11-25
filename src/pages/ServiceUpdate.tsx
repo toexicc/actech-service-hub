@@ -44,6 +44,8 @@ const parseServiceTimestamp = (ts: string | undefined | null): Date | null => {
 interface InventoryItem {
   id: string;
   name: string;
+  deviceType?: string;
+  model?: string;
   cost: number;
   quantity: number;
 }
@@ -897,6 +899,7 @@ const ServiceUpdate = () => {
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">{item.name}</p>
                                 <p className="text-xs text-muted-foreground truncate">
+                                  {item.deviceType && item.model ? `${item.deviceType} - ${item.model} • ` : ''}
                                   ID: {item.id} • ₱{item.cost} • Stock: {item.quantity}
                                 </p>
                               </div>
@@ -974,7 +977,7 @@ const ServiceUpdate = () => {
                                     <SelectContent className="bg-background z-50">
                                       {inventory.map((item) => (
                                         <SelectItem key={item.id} value={item.id}>
-                                          {item.name} (Stock: {item.quantity})
+                                          {item.deviceType && item.model ? `[${item.deviceType} - ${item.model}] ` : ''}{item.name} (Stock: {item.quantity})
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1014,7 +1017,7 @@ const ServiceUpdate = () => {
                               <SelectContent className="bg-background z-50">
                                 {inventory.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
+                                    {item.deviceType && item.model ? `[${item.deviceType} - ${item.model}] ` : ''}{item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
                                   </SelectItem>
                                 ))}
                               </SelectContent>
