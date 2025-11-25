@@ -767,6 +767,16 @@ const ManageClient = () => {
                     <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
                   </div>
 
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
+                    <p className="text-lg font-semibold">Php {serviceData.discount || "0.00"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost:</h3>
+                    <p className="text-lg font-semibold text-primary">Php {serviceData.finalCost || serviceData.serviceCost || "0.00"}</p>
+                  </div>
+
                   {serviceData.technician && (
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician:</h3>
