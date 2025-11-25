@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
@@ -71,6 +72,12 @@ const ManageClient = () => {
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
   const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || '');
+  const [technicianReport, setTechnicianReport] = useState("");
+  const [updateServiceReport, setUpdateServiceReport] = useState("");
+  const [isFormattingReport, setIsFormattingReport] = useState(false);
+  const [isEditingServiceReport, setIsEditingServiceReport] = useState(false);
+  const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const { toast } = useToast();
 
   // Update form fields
@@ -181,7 +188,10 @@ const ManageClient = () => {
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
+        setTechnicianReport(data.data.technicianReport || ""); // Column BA - technician report
+        setUpdateServiceReport(data.data.serviceReport || ""); // Column BB - AI formatted service report
         setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
+        setIsEditingServiceReport(false);
         
         // Load discount data from Column AY
         const savedDiscount = parseFloat(data.data.discount || "0");
@@ -350,6 +360,115 @@ const ManageClient = () => {
       });
     } finally {
       setIsFormattingAI(false);
+    }
+  };
+
+  const handleFormatReportWithAI = async () => {
+    if (!technicianReport?.trim()) {
+      toast({
+        title: "No Technician Report",
+        description: "No technician report data found (Column BA)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const apiKey = openAIKey.trim() || import.meta.env.VITE_OPENAI_API_KEY;
+
+    if (!apiKey) {
+      toast({
+        title: "No API Key",
+        description: "OpenAI API key is required for AI formatting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFormattingReport(true);
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-5-mini-2025-08-07",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a professional technician at AC Tech Repair PH. Write a clear, concise service report for device release.\n\nFormat your report using this EXACT structure (do not include customer info, device, model, service ID, or technician - those will be added separately):\n\nAC TECH DEVICE REPORT | READY FOR RELEASE\n\nService Performed:\n[1-2 sentences - what was done to fix the device]\n\nRecommendation:\n[1 sentence - professional advice for the customer]\n\nIMPORTANT RULES:\n- Be concise, professional, and customer-friendly\n- Maximum 1-2 sentences per section\n- Use technical terms but keep it understandable\n- NO emojis or special symbols\n- Focus on clarity and professionalism",
+            },
+            {
+              role: "user",
+              content: `Raw technician report:\n\n${technicianReport}`,
+            },
+          ],
+          max_completion_tokens: 1500,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: "Rate Limit Reached",
+            description: "OpenAI rate limit reached. Please wait and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (response.status === 401) {
+          toast({
+            title: "Invalid API Key",
+            description: "OpenAI API key is invalid.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (response.status === 402) {
+          toast({
+            title: "API Quota Exceeded",
+            description: "OpenAI API quota exceeded. Please check your OpenAI account.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(`OpenAI API error (status ${response.status})`);
+      }
+
+      const data = await response.json();
+      const formattedReport = data.choices?.[0]?.message?.content;
+
+      if (formattedReport) {
+        const reportWithHeader = [
+          `Customer Name: ${serviceData?.clientName || ''}`,
+          `Device Type: ${serviceData?.deviceType || ''}`,
+          `Model: ${serviceData?.device || ''}`,
+          `Service ID: ${serviceId}`,
+          `Technician: ${updateTechnician || 'Not assigned'}`,
+          '',
+          formattedReport
+        ].join('\n');
+        
+        setUpdateServiceReport(reportWithHeader);
+        setIsEditingServiceReport(false);
+        toast({
+          title: "Success",
+          description: "Service report formatted successfully!",
+        });
+      } else {
+        throw new Error("No formatted report received from OpenAI");
+      }
+    } catch (error: any) {
+      console.error("Error formatting service report:", error);
+      toast({
+        title: "Error",
+        description: error.message || "AI formatting failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFormattingReport(false);
     }
   };
 
@@ -1092,99 +1211,194 @@ const ManageClient = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="techDiagnosis">Technician Diagnosis:</Label>
-                  <Textarea
-                    id="techDiagnosis"
-                    placeholder="Raw diagnosis from technician"
-                    value={rawDiagnosis}
-                    readOnly
-                    className="min-h-[80px] resize-none bg-muted cursor-not-allowed opacity-75"
-                    rows={3}
-                  />
-                </div>
+                {/* Diagnosis Toggle - Only visible when status is "Confirmed Diagnosis" */}
+                {updateStatus === "Confirmed Diagnosis" && (
+                  <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        <span className="font-semibold">Diagnosis</span>
+                        <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="techDiagnosis">Technician Diagnosis:</Label>
+                        <Textarea
+                          id="techDiagnosis"
+                          placeholder="Raw diagnosis from technician"
+                          value={rawDiagnosis}
+                          readOnly
+                          className="min-h-[80px] resize-none bg-muted cursor-not-allowed opacity-75"
+                          rows={3}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="aiDiagnosis">AI Diagnosis:</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(updateAIDiagnosis);
-                          toast({ title: "Copied to clipboard" });
-                        }}
-                      >
-                        Copy
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="aiDiagnosis">AI Diagnosis:</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(updateAIDiagnosis);
+                                toast({ title: "Copied to clipboard" });
+                              }}
+                            >
+                              Copy
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
+                            >
+                              {isEditingAIDiagnosis ? "Lock" : "Edit"}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleFormatWithAI}
+                              disabled={!rawDiagnosis || isFormattingAI}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {isFormattingAI ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                const summaryMatch = updateAIDiagnosis.match(
+                                  /SUMMARY:\s*(.+?)(?=\n|$)/i
+                                );
+                                
+                                if (summaryMatch && summaryMatch[1]) {
+                                  setUpdateServices(summaryMatch[1].trim());
+                                  toast({ title: "Summary copied to Service/s" });
+                                } else {
+                                  toast({ 
+                                    title: "Error", 
+                                    description: "Could not find 'SUMMARY' section in AI diagnosis",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                        <Textarea
+                          id="aiDiagnosis"
+                          placeholder="AI Diagnosis from Column AF"
+                          value={updateAIDiagnosis}
+                          onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
+                          disabled={!isEditingAIDiagnosis}
+                          className={cn(
+                            "min-h-[100px] resize-none",
+                            !isEditingAIDiagnosis && "bg-muted cursor-not-allowed opacity-75"
+                          )}
+                          style={{ 
+                            minHeight: '100px',
+                            height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
+                          }}
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {/* Report Toggle - Only visible when status is "Ongoing Service" */}
+                {updateStatus === "Ongoing Service" && (
+                  <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        <span className="font-semibold">Report</span>
+                        <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
                       </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
-                      >
-                        {isEditingAIDiagnosis ? "Lock" : "Edit"}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleFormatWithAI}
-                        disabled={!rawDiagnosis || isFormattingAI}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        {isFormattingAI ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Formatting...
-                          </>
-                        ) : (
-                          "Format with AI"
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          // Extract the SUMMARY line (without emoji)
-                          const summaryMatch = updateAIDiagnosis.match(
-                            /SUMMARY:\s*(.+?)(?=\n|$)/i
-                          );
-                          
-                          if (summaryMatch && summaryMatch[1]) {
-                            setUpdateServices(summaryMatch[1].trim());
-                            toast({ title: "Summary copied to Service/s" });
-                          } else {
-                            toast({ 
-                              title: "Error", 
-                              description: "Could not find 'SUMMARY' section in AI diagnosis",
-                              variant: "destructive"
-                            });
-                          }
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                  <Textarea
-                    id="aiDiagnosis"
-                    placeholder="AI Diagnosis from Column AF"
-                    value={updateAIDiagnosis}
-                    onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                    disabled={!isEditingAIDiagnosis}
-                    className={cn(
-                      "min-h-[100px] resize-none",
-                      !isEditingAIDiagnosis && "bg-muted cursor-not-allowed opacity-75"
-                    )}
-                    style={{ 
-                      minHeight: '100px',
-                      height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
-                    }}
-                  />
-                </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="techReport">Technician Report:</Label>
+                        <Textarea
+                          id="techReport"
+                          placeholder="Technician report from Column BA"
+                          value={technicianReport}
+                          readOnly
+                          className="min-h-[80px] resize-none bg-muted cursor-not-allowed opacity-75"
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="serviceReport">Service Report:</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(updateServiceReport);
+                                toast({ title: "Copied to clipboard" });
+                              }}
+                            >
+                              Copy
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsEditingServiceReport(!isEditingServiceReport)}
+                            >
+                              {isEditingServiceReport ? "Lock" : "Edit"}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleFormatReportWithAI}
+                              disabled={!technicianReport || isFormattingReport}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {isFormattingReport ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                        <Textarea
+                          id="serviceReport"
+                          placeholder="AI formatted service report"
+                          value={updateServiceReport}
+                          onChange={(e) => setUpdateServiceReport(e.target.value)}
+                          disabled={!isEditingServiceReport}
+                          className={cn(
+                            "min-h-[100px] resize-none",
+                            !isEditingServiceReport && "bg-muted cursor-not-allowed opacity-75"
+                          )}
+                          style={{ 
+                            minHeight: '100px',
+                            height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
+                          }}
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="services">Service/s:</Label>
