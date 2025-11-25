@@ -100,25 +100,28 @@ const ManageClient = () => {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
 
-  const fetchAPIKeyFromSheet = async () => {
+  const fetchInitialData = async () => {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`);
-      const data = await response.json();
-      if (data.status === "success" && data.apiKey) {
-        setOpenAIKey(data.apiKey);
-        localStorage.setItem('actech_openai_key', data.apiKey);
-      }
-    } catch (error) {
-      console.error("Error fetching API key from sheet:", error);
-    }
-  };
+      // Fetch both API key and technicians in parallel
+      const [apiKeyResponse, staffResponse] = await Promise.all([
+        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`),
+        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`)
+      ]);
 
-  const fetchTechnicianList = async () => {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-      const data = await response.json();
-      if (data.status === "success" && data.data) {
-        const techList = data.data
+      const [apiKeyData, staffData] = await Promise.all([
+        apiKeyResponse.json(),
+        staffResponse.json()
+      ]);
+
+      // Handle API key
+      if (apiKeyData.status === "success" && apiKeyData.apiKey) {
+        setOpenAIKey(apiKeyData.apiKey);
+        localStorage.setItem('actech_openai_key', apiKeyData.apiKey);
+      }
+
+      // Handle technicians
+      if (staffData.status === "success" && staffData.data) {
+        const techList = staffData.data
           .filter((staff: any) => {
             const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
             const status = (staff.status ?? staff["Status"] ?? "").toString().trim();
@@ -132,7 +135,7 @@ const ManageClient = () => {
         setTechnicians(techList);
       }
     } catch (error) {
-      console.error("Error fetching technician list:", error);
+      console.error("Error fetching initial data:", error);
     }
   };
 
@@ -150,8 +153,7 @@ const ManageClient = () => {
   };
   
   useEffect(() => {
-    fetchAPIKeyFromSheet();
-    fetchTechnicianList();
+    fetchInitialData();
   }, []);
   
   const handleSearch = async () => {
@@ -392,6 +394,9 @@ const ManageClient = () => {
 
   const handleUpdate = async () => {
     if (!serviceData) return;
+
+    // Prevent multiple simultaneous updates
+    if (isUpdatingClientInfo) return;
 
     setIsUpdatingClientInfo(true);
     try {

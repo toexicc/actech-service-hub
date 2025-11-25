@@ -125,8 +125,55 @@ const InventoryManagement = () => {
   });
 
   useEffect(() => {
-    fetchInventory();
-    fetchInventoryLogs();
+    // Fetch both inventory and logs in parallel
+    const fetchAllData = async () => {
+      setIsLoading(true);
+      setIsLogsLoading(true);
+      
+      try {
+        const [inventoryResponse, logsResponse] = await Promise.all([
+          fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`),
+          fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryLogs`)
+        ]);
+
+        const [inventoryData, logsData] = await Promise.all([
+          inventoryResponse.json(),
+          logsResponse.json()
+        ]);
+
+        if (inventoryData.status === "success" && inventoryData.inventory) {
+          setInventory(inventoryData.inventory);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load inventory",
+            variant: "destructive",
+          });
+        }
+
+        if (logsData.status === "success" && logsData.logs) {
+          setLogs(logsData.logs);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load inventory logs",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+        setIsLogsLoading(false);
+      }
+    };
+
+    fetchAllData();
   }, []);
 
   const fetchInventory = async () => {
@@ -196,6 +243,9 @@ const InventoryManagement = () => {
       });
       return;
     }
+
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     try {
@@ -290,6 +340,9 @@ const InventoryManagement = () => {
       });
       return;
     }
+
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     try {
