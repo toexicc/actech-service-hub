@@ -32,44 +32,82 @@ const cleanDiagnosisText = (text: string): string => {
   
   let cleaned = text;
   
-  // FIRST: Cut off everything after "To proceed with the service"
-  const cutoffPhrases = [
+  // STEP 1: Remove everything before the actual diagnosis content
+  // Remove the customer info header section (everything before "Customer Concern Reported:")
+  const startMarkers = [
+    "Customer Concern Reported:",
+    "❗ Customer Concern Reported:",
+    "W Customer Concern Reported:"
+  ];
+  
+  for (const marker of startMarkers) {
+    const idx = cleaned.indexOf(marker);
+    if (idx > -1) {
+      cleaned = marker + cleaned.substring(idx + marker.length);
+      break;
+    }
+  }
+  
+  // STEP 2: Remove everything after the recommendation section
+  const endMarkers = [
     "To proceed with the service",
     "Professional Recommendations:",
+    "📋 SUMMARY:",
     "SUMMARY:",
     "---"
   ];
   
-  for (const phrase of cutoffPhrases) {
-    const idx = cleaned.indexOf(phrase);
+  for (const marker of endMarkers) {
+    const idx = cleaned.indexOf(marker);
     if (idx > -1) {
       cleaned = cleaned.substring(0, idx);
       break;
     }
   }
   
-  // Remove ALL lines that start with special characters or metadata
+  // STEP 3: Remove lines that contain customer metadata
+  const linesToRemove = [
+    "Customer Name:",
+    "Device Type:",
+    "Model:",
+    "Service ID:",
+    "Technician:",
+    "AC TECH DEVICE DIAGNOSIS",
+    "📱",
+    "💻",
+    "🔧",
+    "🔍",
+    "👤",
+    "❗",
+    "🔍",
+    "⚠️",
+    "✅",
+    "💡",
+    "📋"
+  ];
+  
   let lines = cleaned.split('\n');
   lines = lines.filter(line => {
     const trimmed = line.trim();
-    if (!trimmed) return true; // Keep empty lines for paragraph breaks
+    if (!trimmed) return true; // Keep blank lines
     
-    // Remove lines with emoji placeholders
-    if (trimmed.startsWith('Ø') || trimmed.startsWith('ñ') || trimmed.startsWith('@')) return false;
-    if (trimmed.match(/^[W&]\s/)) return false; // "W " or "& b " patterns
+    // Check if line contains any of the patterns to remove
+    for (const pattern of linesToRemove) {
+      if (trimmed.includes(pattern)) return false;
+    }
     
-    // Remove customer metadata
-    if (trimmed.match(/^(Customer Name|Device Type|Model|Service ID|Technician):/i)) return false;
-    if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
+    // Remove lines that start with special encoding characters
+    if (/^[ØÛñ@W&][\s=]/.test(trimmed)) return false;
     
     return true;
   });
   
-  // Join back and remove ALL # symbols (markdown headings)
   cleaned = lines.join('\n');
-  cleaned = cleaned.replace(/#/g, ''); // Remove ALL # symbols everywhere
   
-  // Remove excessive whitespace
+  // STEP 4: Remove ALL # symbols (markdown headings)
+  cleaned = cleaned.replace(/#/g, '');
+  
+  // STEP 5: Clean up whitespace
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
   cleaned = cleaned.trim();
   
