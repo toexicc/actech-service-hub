@@ -309,33 +309,38 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   
   const cleanedDiagnosis = cleanDiagnosisText(data.technicianDiagnosis);
-  const diagnosisParagraphs = cleanedDiagnosis.split('\n\n');
   
-  let isFirstSection = true;
+  // Split into lines first to detect section headers more reliably
+  const lines = cleanedDiagnosis.split('\n').filter(line => line.trim());
   
-  for (let i = 0; i < diagnosisParagraphs.length; i++) {
-    const trimmed = diagnosisParagraphs[i].trim();
-    if (!trimmed) continue;
+  let previousWasHeader = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
     
-    // Check if it's a section header (ends with colon)
-    const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
+    // Check if it's a section header (ends with colon and is short)
+    const isHeader = line.endsWith(':') && line.length < 80 && !line.includes('.') && 
+                     (line.includes('Findings') || line.includes('Cause') || line.includes('Solution') || 
+                      line.includes('Recommendations') || line.includes('Issue'));
     
     if (isHeader) {
-      // Add significant spacing before new section headers (except first one)
-      if (!isFirstSection) {
-        diagnosisY += 6; // Larger gap between sections
+      // Add blank line spacing before new section headers (except at start)
+      if (diagnosisY > yPos) {
+        diagnosisY += 5; // Add visible gap
       }
-      isFirstSection = false;
       
       doc.setFont("helvetica", "bold");
-      const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
-      doc.text(lines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += lines.length * 3.5 + 1; // Small spacing after header
+      const wrappedLines = doc.splitTextToSize(line, diagnosisColWidth - 4);
+      doc.text(wrappedLines, diagnosisColStart + 2, diagnosisY);
+      diagnosisY += wrappedLines.length * 3.5 + 1;
+      previousWasHeader = true;
     } else {
       doc.setFont("helvetica", "normal");
-      const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
-      doc.text(lines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += lines.length * 3.5 + 0.5; // Tight spacing within content
+      const wrappedLines = doc.splitTextToSize(line, diagnosisColWidth - 4);
+      doc.text(wrappedLines, diagnosisColStart + 2, diagnosisY);
+      diagnosisY += wrappedLines.length * 3.5;
+      previousWasHeader = false;
     }
   }
   
