@@ -131,6 +131,7 @@ function doGet(e) {
             "timeFrame": data[i][27],
             "service": data[i][26],
             "serviceCost": data[i][29], // Column AD
+            "partsUsed": data[i][46], // Column AU - Parts Used
             "discount": data[i][50], // Column AY - Discount
             "finalCost": data[i][51], // Column AZ - Final Cost
             "quotationPdfUrl": data[i][32], // Column AG - Service Quotation PDF URL
