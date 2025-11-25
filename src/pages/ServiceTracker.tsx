@@ -113,20 +113,15 @@ const ServiceTracker = () => {
 
     initializeTechnicianFilters();
     
-    // Set up polling for real-time updates every 30 seconds
+    // Optimized polling: only refresh every 60 seconds to reduce server load
     const intervalId = setInterval(() => {
       fetchAllServices();
-    }, 30000);
+    }, 60000);
     
     return () => clearInterval(intervalId);
   }, [isTechnician, username]);
 
-  // Refresh data when filters change to ensure accurate filtering
-  useEffect(() => {
-    if (technicianFilter !== "all" || departmentFilter !== "all") {
-      fetchAllServices();
-    }
-  }, [technicianFilter, departmentFilter]);
+  // Remove unnecessary data fetching on filter changes - filtering happens client-side
 
   const fetchTechnicians = async () => {
     try {

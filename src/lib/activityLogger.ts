@@ -22,6 +22,9 @@ export const logActivity = async (log: Omit<ActivityLog, "logId" | "timestamp">)
       hour12: true
     });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
       headers: {
@@ -35,8 +38,10 @@ export const logActivity = async (log: Omit<ActivityLog, "logId" | "timestamp">)
         timestamp: timestamp,
         activity: log.activity,
       }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
     const data = await response.json();
     return data.status === "success";
   } catch (error) {
@@ -47,9 +52,15 @@ export const logActivity = async (log: Omit<ActivityLog, "logId" | "timestamp">)
 
 export const getServiceLogs = async (serviceId: string, limit: number = 10): Promise<ActivityLog[]> => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getServiceLogs&serviceId=${encodeURIComponent(serviceId)}&limit=${limit}`
+      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getServiceLogs&serviceId=${encodeURIComponent(serviceId)}&limit=${limit}`,
+      { signal: controller.signal }
     );
+    
+    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (data.status === "success") {
