@@ -125,48 +125,48 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
         }),
     );
 
-  // Smaller logo for compact header
-  doc.addImage(logoImg, "PNG", 85, 8, 40, 40);
+  // Center logo at top with proper aspect ratio (matching client intake form)
+  doc.addImage(logoImg, "PNG", 80, 10, 50, 50);
 
-  let yPos = 50;
+  let yPos = 65;
 
-  // Compact header text
-  doc.setFontSize(8);
+  // Header text (matching client intake form size)
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("AC TECH REPAIR INC. | UNIT 103, 1ST FLOOR, FBR ARCADE, KATIPUNAN AVE, QUEZON CITY", 105, yPos, {
     align: "center",
   });
-  yPos += 3;
+  yPos += 4;
   doc.text("MONDAY TO SATURDAY (10:00 PM - 7:00 PM)", 105, yPos, { align: "center" });
-  yPos += 3;
-  doc.setFontSize(7);
-  doc.text("ac tech repair powered by techbros", 105, yPos, { align: "center" });
+  yPos += 4;
+  doc.setFontSize(8);
+  doc.text("powered by techbros", 105, yPos, { align: "center" });
 
   // Title
-  yPos += 7;
-  doc.setFontSize(12);
+  yPos += 10;
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.text("SERVICE QUOTATION FORM", 105, yPos, { align: "center" });
 
   // Add UPDATED watermark/badge if this is an updated PDF
   if (data.isUpdated) {
-    yPos += 5;
-    doc.setFontSize(9);
+    yPos += 8;
+    doc.setFontSize(10);
     doc.setTextColor(220, 53, 69); // Red color for visibility
     doc.setFont("helvetica", "bold");
     doc.text("*** UPDATED VERSION ***", 105, yPos, { align: "center" });
     doc.setTextColor(0, 0, 0); // Reset to black
   }
 
-  // Compact info section with smaller spacing
-  yPos += 7;
+  // Table layout matching client intake form with proper margins
+  yPos += 10;
   const leftCol = 15;
-  const midCol = 55;
+  const midCol = 60;
   const rightCol = 115;
-  const valueCol = 145;
+  const valueCol = 150;
 
   // Row 1: Date/Time and Service ID
-  doc.setFontSize(8);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("Date and Time:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
@@ -177,7 +177,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.serviceId, valueCol, yPos);
 
-  yPos += 4;
+  yPos += 6;
 
   // Row 2: Admin Rep and Technician
   doc.setFont("helvetica", "bold");
@@ -190,14 +190,14 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.technician, valueCol, yPos);
 
-  // Client Information Section - more compact
-  yPos += 7;
+  // Client Information Section
+  yPos += 12;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.text("Client Information", leftCol, yPos);
 
-  yPos += 5;
-  doc.setFontSize(8);
+  yPos += 8;
+  doc.setFontSize(10);
 
   // Client Type and Priority
   doc.text("Client Type:", leftCol, yPos);
@@ -209,7 +209,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.priority, valueCol, yPos);
 
-  yPos += 4;
+  yPos += 6;
 
   // Name and Username
   doc.setFont("helvetica", "bold");
@@ -222,7 +222,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.username, valueCol, yPos);
 
-  yPos += 4;
+  yPos += 6;
 
   // Phone and Email
   doc.setFont("helvetica", "bold");
@@ -235,14 +235,14 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.email, valueCol, yPos);
 
-  // Device Information Section - more compact
-  yPos += 7;
+  // Device Information Section
+  yPos += 12;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.text("Device Information", leftCol, yPos);
 
-  yPos += 5;
-  doc.setFontSize(8);
+  yPos += 8;
+  doc.setFontSize(10);
 
   // Device Type and Serial
   doc.text("Device Type:", leftCol, yPos);
@@ -254,7 +254,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.serial, valueCol, yPos);
 
-  yPos += 4;
+  yPos += 6;
 
   // Brand and Color
   doc.setFont("helvetica", "bold");
@@ -267,7 +267,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.color, valueCol, yPos);
 
-  yPos += 4;
+  yPos += 6;
 
   // Model and Memory
   doc.setFont("helvetica", "bold");
