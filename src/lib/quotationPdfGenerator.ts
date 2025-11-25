@@ -94,16 +94,9 @@ const cleanDiagnosisText = (text: string): string => {
   // STEP 4: Remove ALL # symbols
   cleaned = cleaned.replace(/#/g, '');
   
-  // STEP 5: Fix character spacing issues (like "r e p a i r" -> "repair")
-  // This removes excessive spaces between individual characters
-  cleaned = cleaned.replace(/(\w)\s+(\w)/g, (match, char1, char2) => {
-    // If there's a space between two letters that are both lowercase or both uppercase, remove it
-    if ((char1 === char1.toLowerCase() && char2 === char2.toLowerCase()) ||
-        (char1 === char1.toUpperCase() && char2 === char2.toUpperCase() && char1 !== char1.toLowerCase())) {
-      return char1 + char2;
-    }
-    return match;
-  });
+  // STEP 5: Fix character spacing issues - AGGRESSIVE removal of single spaces between characters
+  // This fixes issues like "r e p a i r" -> "repair" or "C o m p o n e n t" -> "Component"
+  cleaned = cleaned.replace(/(\w)\s(\w)/g, '$1$2');
   
   // STEP 6: Clean up whitespace
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
@@ -337,7 +330,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     
     const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
     doc.text(lines, diagnosisColStart + 2, diagnosisY);
-    diagnosisY += lines.length * 3.5 + 1.5;
+    diagnosisY += lines.length * 3 + 1;
   }
   
   const diagnosisHeight = diagnosisY - yPos + 5;
@@ -390,11 +383,11 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   yPos = diagnosisStartY + maxHeight + 5;
 
-  // Footer - keep on same page if possible, make smaller spacing
-  yPos += 5;
+  // Footer - keep on same page with minimal spacing
+  yPos += 3;
   
-  // Only add new page if absolutely necessary (less than 30mm left)
-  if (yPos > 250) {
+  // Only add new page if absolutely necessary (less than 20mm left)
+  if (yPos > 260) {
     doc.addPage();
     yPos = 20;
   }
