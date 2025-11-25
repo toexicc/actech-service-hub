@@ -302,8 +302,18 @@ const ManageClient = () => {
       const formattedDiagnosis = data.choices?.[0]?.message?.content;
 
       if (formattedDiagnosis) {
-        // Use plain text diagnosis without emojis or formatting
-        setUpdateAIDiagnosis(formattedDiagnosis);
+        // Build the complete diagnosis with customer info from serviceData (no emojis)
+        const customerInfo = [
+          `Customer Name: ${serviceData?.clientName || ''}`,
+          `Device Type: ${serviceData?.deviceType || ''}`,
+          `Model: ${serviceData?.device || ''}`,
+          `Service ID: ${serviceId}`,
+          `Technician: ${updateTechnician || 'Not assigned'}`,
+          '',
+          formattedDiagnosis
+        ].join('\n');
+        
+        setUpdateAIDiagnosis(customerInfo);
         setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
