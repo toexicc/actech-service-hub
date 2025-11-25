@@ -636,6 +636,11 @@ const ManageClient = () => {
         });
       const pdfBase64 = await blobToBase64(pdfBlob);
 
+      // Log the folder URL to verify it's correct
+      console.log("Quotation PDF Upload - Client Folder URL (AQ):", serviceData.clientFolderUrl);
+      console.log("Quotation PDF Upload - Service ID:", serviceId);
+      console.log("Quotation PDF Upload - File Name:", fileName);
+
       const formData = new FormData();
       formData.append("action", "updateQuotationPDF");
       formData.append("serviceId", serviceId);
