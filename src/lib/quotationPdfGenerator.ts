@@ -95,12 +95,18 @@ const cleanDiagnosisText = (text: string): string => {
   cleaned = cleaned.replace(/#/g, '');
   
   // STEP 5: Fix character spacing issues like "C o m p o n e n t" -> "Component"
-  // Only remove spaces in sequences where there are 3+ single characters with spaces between them
-  // This preserves normal word spacing while fixing letter-by-letter spacing
-  cleaned = cleaned.replace(/\b(\w)\s+(\w)\s+(\w)/g, (match) => {
-    // Remove all spaces in this sequence
-    return match.replace(/\s+/g, '');
-  });
+  // Remove single spaces between individual characters while preserving word boundaries
+  // Run this multiple times to catch all instances
+  for (let i = 0; i < 10; i++) {
+    const before = cleaned;
+    // Replace single space between two word characters (letters/numbers)
+    cleaned = cleaned.replace(/(\w)\s(\w)(?!\s)/g, '$1$2');
+    cleaned = cleaned.replace(/(\w)\s(\w)$/gm, '$1$2');
+    if (cleaned === before) break; // Stop if no more changes
+  }
+  
+  // Fix any remaining isolated single characters with spaces
+  cleaned = cleaned.replace(/\b(\w)\s+(\w)\b/g, '$1$2');
   
   // STEP 6: Clean up whitespace
   cleaned = cleaned.replace(/\n\n\n+/g, '\n\n');
