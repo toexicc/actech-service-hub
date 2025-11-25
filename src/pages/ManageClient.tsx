@@ -1180,9 +1180,9 @@ const ManageClient = () => {
                   )}
                 </Button>
                 
-                {serviceData.lastUpdated && (
+                {serviceData.timestamp && (
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    Last updated: {new Date(serviceData.lastUpdated).toLocaleString()}
+                    Last updated: {new Date(serviceData.timestamp).toLocaleString()}
                   </p>
                 )}
               </CardContent>
