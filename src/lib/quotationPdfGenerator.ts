@@ -166,7 +166,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   const valueCol = 150;
 
   // Row 1: Date/Time and Service ID
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.text("Date and Time:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
@@ -177,7 +177,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.serviceId, valueCol, yPos);
 
-  yPos += 6;
+  yPos += 5;
 
   // Row 2: Admin Rep and Technician
   doc.setFont("helvetica", "bold");
@@ -191,13 +191,13 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.text(data.technician, valueCol, yPos);
 
   // Client Information Section
-  yPos += 12;
+  yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.text("Client Information", leftCol, yPos);
 
-  yPos += 8;
-  doc.setFontSize(10);
+  yPos += 6;
+  doc.setFontSize(9);
 
   // Client Type and Priority
   doc.text("Client Type:", leftCol, yPos);
@@ -209,7 +209,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.priority, valueCol, yPos);
 
-  yPos += 6;
+  yPos += 5;
 
   // Name and Username
   doc.setFont("helvetica", "bold");
@@ -222,7 +222,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.username, valueCol, yPos);
 
-  yPos += 6;
+  yPos += 5;
 
   // Phone and Email
   doc.setFont("helvetica", "bold");
@@ -236,13 +236,13 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.text(data.email, valueCol, yPos);
 
   // Device Information Section
-  yPos += 12;
+  yPos += 10;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.text("Device Information", leftCol, yPos);
 
-  yPos += 8;
-  doc.setFontSize(10);
+  yPos += 6;
+  doc.setFontSize(9);
 
   // Device Type and Serial
   doc.text("Device Type:", leftCol, yPos);
@@ -254,7 +254,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.serial, valueCol, yPos);
 
-  yPos += 6;
+  yPos += 5;
 
   // Brand and Color
   doc.setFont("helvetica", "bold");
@@ -267,7 +267,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "normal");
   doc.text(data.color, valueCol, yPos);
 
-  yPos += 6;
+  yPos += 5;
 
   // Model and Memory
   doc.setFont("helvetica", "bold");
@@ -303,7 +303,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   yPos += 8;
   
-  // Diagnosis content (left column)
+  // Diagnosis content (left column) with better spacing
   let diagnosisY = yPos;
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
@@ -319,7 +319,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     const isHeader = trimmed.endsWith(':') && trimmed.length < 80 && !trimmed.includes('.');
     
     if (isHeader) {
-      diagnosisY += 2;
+      diagnosisY += 3;
       doc.setFont("helvetica", "bold");
     } else {
       doc.setFont("helvetica", "normal");
@@ -327,7 +327,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     
     const lines = doc.splitTextToSize(trimmed, diagnosisColWidth - 4);
     doc.text(lines, diagnosisColStart + 2, diagnosisY);
-    diagnosisY += lines.length * 3 + 1;
+    diagnosisY += lines.length * 4 + 2; // Increased spacing from 3 to 4
   }
   
   const diagnosisHeight = diagnosisY - yPos + 5;
