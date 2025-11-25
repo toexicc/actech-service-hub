@@ -69,10 +69,19 @@ const cleanDiagnosisText = (text: string): string => {
   // STEP 4: Remove all # symbols (markdown headers)
   cleaned = cleaned.replace(/#/g, '');
   
-  // STEP 5: Remove weird character artifacts at start of lines
-  cleaned = cleaned.replace(/^[ØÛñ@W&][\s=]/gm, '');
+  // STEP 5: Fix letter-spacing issues (e.g., "c o m p o n e n t" -> "component")
+  // This detects words where each letter is separated by spaces
+  cleaned = cleaned.replace(/\b(\w)(\s+\w)+\b/g, (match) => {
+    // Only fix if ALL characters are single letters with spaces
+    const chars = match.split(/\s+/);
+    if (chars.every(c => c.length === 1)) {
+      // Join without spaces
+      return chars.join('');
+    }
+    return match; // Return unchanged if not letter-spaced
+  });
   
-  // STEP 6: Normalize whitespace ONLY (DO NOT mess with character spacing)
+  // STEP 6: Normalize whitespace
   // Replace multiple spaces with single space
   cleaned = cleaned.replace(/  +/g, ' ');
   
