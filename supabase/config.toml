@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.format-report]
 verify_jwt = false
+
+[functions.format-diagnosis]
+verify_jwt = false

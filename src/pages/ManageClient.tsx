@@ -236,126 +236,77 @@ const ManageClient = () => {
       return;
     }
 
-    const apiKey = openAIKey.trim() || import.meta.env.VITE_OPENAI_API_KEY;
-
-    // If no key is configured, fall back to basic formatter
-    if (!apiKey) {
-      const fallback = buildFallbackDiagnosis(rawDiagnosis);
-      setUpdateAIDiagnosis(fallback);
-      setIsEditingAIDiagnosis(false);
-      toast({
-        title: "Formatted Without AI",
-        description: "Using a basic formatter because no OpenAI key is configured. Paste your key above to use AI.",
-      });
-      return;
-    }
-
     setIsFormattingAI(true);
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini-2025-08-07",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a professional technician at AC Tech Repair PH. Write a clear, concise diagnostic report in a formal quotation style.\n\nFormat your report using this EXACT structure:\n\nAC TECH DEVICE DIAGNOSIS\n\nFindings:\n[1-2 sentences - specific technical issues found]\n\nCause of Issue:\n[1 sentence - why it failed]\n\nSuggested Solution:\n[1-2 sentences - repair needed and outcome]\n\nRecommendations:\n[1 sentence - professional advice]\n\n---\n\nTo proceed with the service, please reply \"YES\" to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n---\n\nSUMMARY: [One clear sentence that condenses the Suggested Solution - state exactly what repair/service will be done]\n\nIMPORTANT RULES:\n- Be concise, professional, and customer-friendly\n- Maximum 1-2 sentences per section\n- Use technical terms but keep it understandable\n- NO emojis or special symbols\n- Do NOT include customer name, device, model, service ID, or technician\n- Do NOT include \"Customer Concern Reported\" section\n- Focus on clarity and professionalism\n- The SUMMARY must be a condensed version of the Suggested Solution\n- ALWAYS include the terms/conditions footer and summary exactly as shown above",
-            },
-            {
-              role: "user",
-              content: `Raw diagnosis from technician:\n\n${rawDiagnosis}`,
-            },
-          ],
-          max_completion_tokens: 2500,
-        }),
-      });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error("Supabase URL not configured");
+      }
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/format-diagnosis`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rawDiagnosis,
+            customerName: serviceData?.clientName,
+            deviceType: serviceData?.deviceType,
+            model: serviceData?.device,
+            serviceId: serviceId,
+            technician: updateTechnician || serviceData?.technician,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        let errorData: any = {};
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          // Non-JSON error response
-        }
-
         if (response.status === 429) {
           toast({
             title: "Rate Limit Reached",
-            description: "OpenAI rate limit reached. Please wait and try again.",
+            description: "AI service rate limit reached. Please wait and try again.",
             variant: "destructive",
           });
           return;
         }
-
         if (response.status === 401) {
-          // Invalid or missing key in a deployed environment
-          const fallback = buildFallbackDiagnosis(rawDiagnosis);
-          setUpdateAIDiagnosis(fallback);
-          setIsEditingAIDiagnosis(false);
           toast({
             title: "Invalid API Key",
-            description:
-              "OpenAI API key is invalid; using a basic non-AI formatter instead.",
+            description: "OpenAI API key is invalid. Please contact admin.",
             variant: "destructive",
           });
           return;
         }
-
         if (response.status === 402) {
           toast({
             title: "API Quota Exceeded",
-            description: "OpenAI API quota exceeded. Please check your OpenAI account.",
+            description: "AI service quota exceeded. Please contact admin.",
             variant: "destructive",
           });
           return;
         }
-
-        const message =
-          errorData?.error?.message || `OpenAI API error (status ${response.status})`;
-        throw new Error(message);
+        throw new Error(`AI service error (status ${response.status})`);
       }
 
       const data = await response.json();
-      const formattedDiagnosis = data.choices?.[0]?.message?.content;
+      const formattedDiagnosis = data.formattedDiagnosis;
 
       if (formattedDiagnosis) {
-        // Build the complete diagnosis with customer info from serviceData (no emojis)
-        const customerInfo = [
-          `Customer Name: ${serviceData?.clientName || ''}`,
-          `Device Type: ${serviceData?.deviceType || ''}`,
-          `Model: ${serviceData?.device || ''}`,
-          `Service ID: ${serviceId}`,
-          `Technician: ${updateTechnician || 'Not assigned'}`,
-          '',
-          formattedDiagnosis
-        ].join('\n');
-        
-        setUpdateAIDiagnosis(customerInfo);
+        setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
-          description:
-            "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
+          description: "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
         });
       } else {
-        throw new Error("No formatted diagnosis received from OpenAI");
+        throw new Error("No formatted diagnosis received from AI service");
       }
     } catch (error: any) {
       console.error("Error formatting diagnosis:", error);
-      const fallback = buildFallbackDiagnosis(rawDiagnosis);
-      setUpdateAIDiagnosis(fallback);
-      setIsEditingAIDiagnosis(false);
       toast({
         title: "Error",
-        description:
-          error.message ||
-          "AI formatting failed; using a basic non-AI formatter instead.",
+        description: error.message || "Failed to format diagnosis with AI.",
         variant: "destructive",
       });
     } finally {
@@ -373,106 +324,71 @@ const ManageClient = () => {
       return;
     }
 
-    const apiKey = openAIKey.trim() || import.meta.env.VITE_OPENAI_API_KEY;
-
-    if (!apiKey) {
-      toast({
-        title: "No API Key",
-        description: "OpenAI API key not configured. Please paste your key above to use AI formatting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsFormattingReport(true);
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini-2025-08-07",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a professional technician at AC Tech Repair PH. Write a clear, concise service report for a completed repair.\n\nFormat your report using this EXACT structure:\n\nAC TECH DEVICE REPORT | READY FOR RELEASE\n\nService Performed:\n[2-3 sentences - describe what services/repairs were completed]\n\nRecommendation:\n[1-2 sentences - professional advice for device care or future maintenance]\n\nIMPORTANT RULES:\n- Be concise, professional, and customer-friendly\n- Use technical terms but keep it understandable\n- NO emojis or special symbols\n- Do NOT include customer name, device, model, service ID, or technician - these will be added separately\n- Focus on clarity and professionalism\n- This is for a COMPLETED service, so use past tense",
-            },
-            {
-              role: "user",
-              content: `Raw service notes from technician:\n\n${technicianReport}`,
-            },
-          ],
-          max_completion_tokens: 2500,
-        }),
-      });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error("Supabase URL not configured");
+      }
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/format-report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            technicianReport,
+            customerName: serviceData?.clientName,
+            deviceType: serviceData?.deviceType,
+            model: serviceData?.device,
+            serviceId: serviceId,
+            technician: serviceData?.technician || updateTechnician,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        let errorData: any = {};
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          // Non-JSON error response
-        }
-
         if (response.status === 429) {
           toast({
             title: "Rate Limit Reached",
-            description: "OpenAI rate limit reached. Please wait and try again.",
+            description: "AI service rate limit reached. Please wait and try again.",
             variant: "destructive",
           });
           return;
         }
-
         if (response.status === 401) {
           toast({
             title: "Invalid API Key",
-            description: "OpenAI API key is invalid.",
+            description: "OpenAI API key is invalid. Please contact admin.",
             variant: "destructive",
           });
           return;
         }
-
         if (response.status === 402) {
           toast({
             title: "API Quota Exceeded",
-            description: "OpenAI API quota exceeded. Please check your OpenAI account.",
+            description: "AI service quota exceeded. Please contact admin.",
             variant: "destructive",
           });
           return;
         }
-
-        const message =
-          errorData?.error?.message || `OpenAI API error (status ${response.status})`;
-        throw new Error(message);
+        throw new Error(`AI service error (status ${response.status})`);
       }
 
       const data = await response.json();
-      const formattedReport = data.choices?.[0]?.message?.content;
+      const formattedReport = data.formattedReport;
 
       if (formattedReport) {
-        // Build the complete report with customer info from serviceData
-        const reportWithInfo = [
-          `Customer Name: ${serviceData?.clientName || ''}`,
-          `Device Type: ${serviceData?.deviceType || ''}`,
-          `Model: ${serviceData?.device || ''}`,
-          `Service ID: ${serviceId}`,
-          `Technician: ${serviceData?.technician || updateTechnician || 'Not assigned'}`,
-          '',
-          formattedReport
-        ].join('\n');
-        
-        setUpdateServiceReport(reportWithInfo);
+        setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
         toast({
           title: "Success",
           description: "Service report formatted successfully!",
         });
       } else {
-        throw new Error("No formatted report received from OpenAI");
+        throw new Error("No formatted report received from AI service");
       }
     } catch (error: any) {
       console.error("Error formatting service report:", error);
