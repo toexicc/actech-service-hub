@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { logActivity } from "@/lib/activityLogger";
-import { FileText, Printer } from "lucide-react";
+import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { STATUS_OPTIONS } from "@/lib/constants";
@@ -133,31 +133,6 @@ const ManageClient = () => {
     }
     const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
     window.open(url, "_blank");
-  };
-  const handlePrintPDF = () => {
-    if (!serviceData?.pdfUrl) {
-      toast({
-        title: "No PDF Available",
-        description: "PDF link not found in database",
-        variant: "destructive",
-      });
-      return;
-    }
-    const rawUrl = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "download");
-    const win = window.open("", "_blank");
-    if (win) {
-      const html = `<!doctype html><html><head><title>Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-    } else {
-      window.open(rawUrl, '_blank');
-      toast({
-        title: "Popup Blocked",
-        description: "Allow popups to auto-print, PDF opened in a new tab.",
-        variant: "destructive",
-      });
-    }
   };
   
   useEffect(() => {
@@ -361,6 +336,106 @@ const ManageClient = () => {
 
     setIsUpdating(true);
     try {
+      const formData = new FormData();
+      formData.append("action", "updateService");
+      formData.append("serviceId", serviceId);
+      formData.append("deviceType", serviceData.deviceType);
+      formData.append("status", updateStatus);
+      formData.append("technician", updateTechnician);
+      
+      // Get technician department from the selected technician
+      const selectedTech = technicians.find(t => t.name === updateTechnician);
+      const techDept = selectedTech?.department || "";
+      formData.append("technicianDepartment", techDept);
+      formData.append("department", techDept);
+      formData.append("Technician Department", techDept);
+      formData.append("clientType", updateClientType);
+      formData.append("priority", updatePriority);
+      formData.append("aiDiagnosis", updateAIDiagnosis);
+      formData.append("services", updateServices);
+      formData.append("serviceCost", updateServiceCost);
+      formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
+      formData.append("adminNotes", updateAdminNotes);
+      formData.append("adminNotesInternal", updateAdminNotesInternal);
+      formData.append("Serial", serviceData.serialNumber || "");
+      formData.append("Client Name", serviceData.clientName || "");
+      formData.append("Device Type", serviceData.deviceType || "");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const result = await response.json();
+
+      if (result.result === "success") {
+        // Log only the fields that actually changed
+        const username = sessionStorage.getItem("username") || "Admin";
+        const role = sessionStorage.getItem("userRole") || "admin";
+        const changes: string[] = [];
+
+        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status || "N/A"} → ${updateStatus}`);
+        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
+        if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
+        if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
+        if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
+        if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
+        const prevCost = String(serviceData.serviceCost || "");
+        if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
+        const prevTarget = serviceData.targetDate || "";
+        const newTarget = updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "";
+        if (newTarget !== prevTarget) changes.push(`Target date: ${prevTarget || "N/A"} → ${newTarget || "N/A"}`);
+        if (updateAdminNotes !== serviceData.adminNotes) changes.push("Admin notes updated");
+        if (updateAdminNotesInternal !== serviceData.adminNotesInternal) changes.push("Internal notes updated");
+
+        if (changes.length > 0) {
+          await logActivity({
+            serviceId: serviceId,
+            username: username,
+            role: role,
+            activity: `Service updated: ${changes.join(", ")}`,
+          });
+        }
+
+        toast({
+          title: "Success",
+          description: "Client information updated successfully",
+        });
+        // Refresh the data
+        handleSearch();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update client information",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+      const errorMessage = error instanceof Error && error.name === 'AbortError' 
+        ? "Request timed out - your Google Script may be taking too long to process the update"
+        : "Failed to update client information";
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateForm = async () => {
+    if (!serviceData) return;
+
+    setIsUpdating(true);
+    try {
       // Map service data to PDF format with updated fields
       const [color, memory] = (serviceData.colorMemory || " | ").split(" | ");
       
@@ -416,28 +491,9 @@ const ManageClient = () => {
       const pdfBase64 = await blobToBase64(pdfBlob);
 
       const formData = new FormData();
-      formData.append("action", "updateService");
+      formData.append("action", "updateServicePDF");
       formData.append("serviceId", serviceId);
-      formData.append("deviceType", serviceData.deviceType); // Use actual device type from serviceData
-      formData.append("status", updateStatus);
-      formData.append("technician", updateTechnician);
-      
-      // Get technician department from the selected technician
-      const selectedTech = technicians.find(t => t.name === updateTechnician);
-      const techDept = selectedTech?.department || "";
-      formData.append("technicianDepartment", techDept);
-      // Also send as "department" for compatibility with some GAS scripts and alternative header
-      formData.append("department", techDept);
-      formData.append("Technician Department", techDept);
-      formData.append("clientType", updateClientType);
-      formData.append("priority", updatePriority);
-      formData.append("aiDiagnosis", updateAIDiagnosis);
-      formData.append("services", updateServices);
-      formData.append("serviceCost", updateServiceCost); // Column AD
-      formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
-      formData.append("adminNotes", updateAdminNotes);
-      formData.append("adminNotesInternal", updateAdminNotesInternal);
-      // Provide extra fields some GAS scripts expect for naming
+      formData.append("deviceType", serviceData.deviceType);
       formData.append("Serial", serviceData.serialNumber || "");
       formData.append("Client Name", serviceData.clientName || "");
       formData.append("Device Type", serviceData.deviceType || "");
@@ -461,52 +517,34 @@ const ManageClient = () => {
       const result = await response.json();
 
       if (result.result === "success") {
-        // Log only the fields that actually changed
         const username = sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
-        const changes: string[] = [];
 
-        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status || "N/A"} → ${updateStatus}`);
-        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
-        if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
-        if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
-        if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
-        if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
-        const prevCost = String(serviceData.serviceCost || "");
-        if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
-        const prevTarget = serviceData.targetDate || "";
-        const newTarget = updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "";
-        if (newTarget !== prevTarget) changes.push(`Target date: ${prevTarget || "N/A"} → ${newTarget || "N/A"}`);
-        if (updateAdminNotes !== serviceData.adminNotes) changes.push("Admin notes updated");
-        if (updateAdminNotesInternal !== serviceData.adminNotesInternal) changes.push("Internal notes updated");
-
-        if (changes.length > 0) {
-          await logActivity({
-            serviceId: serviceId,
-            username: username,
-            role: role,
-            activity: `Service updated: ${changes.join(", ")}`,
-          });
-        }
+        await logActivity({
+          serviceId: serviceId,
+          username: username,
+          role: role,
+          activity: "Client intake form regenerated with updated information",
+        });
 
         toast({
           title: "Success",
-          description: "Client information and PDF updated successfully",
+          description: "Client intake form updated successfully",
         });
         // Refresh the data
         handleSearch();
       } else {
         toast({
           title: "Error",
-          description: "Failed to update client information",
+          description: "Failed to update PDF form",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Update error:", error);
+      console.error("Update form error:", error);
       const errorMessage = error instanceof Error && error.name === 'AbortError' 
-        ? "Request timed out - your Google Script may be taking too long to process the update"
-        : "Failed to update client information";
+        ? "Request timed out - PDF generation may be taking too long"
+        : "Failed to update PDF form";
       
       toast({
         title: "Error",
@@ -593,13 +631,22 @@ const ManageClient = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
                   <div className="flex gap-2">
+                    <Button onClick={handleUpdateForm} variant="outline" className="flex-1" disabled={isUpdating}>
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Update Form
+                        </>
+                      )}
+                    </Button>
                     <Button onClick={handleViewPDF} variant="outline" className="flex-1">
                       <FileText className="mr-2 h-4 w-4" />
                       View PDF
-                    </Button>
-                    <Button onClick={handlePrintPDF} variant="outline" className="flex-1">
-                      <Printer className="mr-2 h-4 w-4" />
-                      Print PDF
                     </Button>
                   </div>
                 </div>
