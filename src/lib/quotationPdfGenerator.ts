@@ -213,12 +213,27 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   yPos += 8;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const diagnosisLines = doc.splitTextToSize(data.technicianDiagnosis || "N/A", 180);
+  const diagnosisText = data.technicianDiagnosis || "N/A";
+  const diagnosisLines = doc.splitTextToSize(diagnosisText, 180);
+  
+  // Check if we need a new page
+  if (yPos + (diagnosisLines.length * 5) > 260) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   doc.text(diagnosisLines, leftCol, yPos);
   yPos += diagnosisLines.length * 5;
 
   // Service Summary Section
   yPos += 10;
+  
+  // Check if we need a new page
+  if (yPos > 250) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text("Service Summary", leftCol, yPos);
@@ -226,12 +241,27 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   yPos += 8;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const summaryLines = doc.splitTextToSize(data.serviceSummary || "N/A", 180);
+  const summaryText = data.serviceSummary || "N/A";
+  const summaryLines = doc.splitTextToSize(summaryText, 180);
+  
+  // Check if we need a new page
+  if (yPos + (summaryLines.length * 5) > 260) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   doc.text(summaryLines, leftCol, yPos);
   yPos += summaryLines.length * 5;
 
   // Cost Summary Section
   yPos += 10;
+  
+  // Check if we need a new page for cost summary
+  if (yPos > 230) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text("Cost Summary", leftCol, yPos);
@@ -251,9 +281,10 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "bold");
   doc.text("Parts Used:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.partsUsed || "N/A", midCol, yPos);
-
-  yPos += 6;
+  const partsText = data.partsUsed || "N/A";
+  const partsLines = doc.splitTextToSize(partsText, 120);
+  doc.text(partsLines, midCol, yPos);
+  yPos += Math.max(6, partsLines.length * 5);
 
   // Discount
   doc.setFont("helvetica", "bold");
@@ -270,8 +301,15 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFontSize(12);
   doc.text(`Php ${data.totalCost}`, midCol, yPos);
 
-  // Footer
+  // Footer - ensure it doesn't overflow
   yPos += 15;
+  
+  // Check if footer will fit, if not add new page
+  if (yPos > 240) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   const footerText =
