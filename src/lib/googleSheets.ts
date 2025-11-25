@@ -265,12 +265,9 @@ function doGet(e) {
         'Technician: [name]\n\n' +
         'AC TECH SERVICE REPORT\n\n' +
         'Work Performed:\n[Clear description of repairs and services completed]\n\n' +
-        'Parts Replaced/Repaired:\n[List of parts and components worked on]\n\n' +
         'Technical Findings:\n[Detailed technical observations and results]\n\n' +
         'Final Status:\n[Current condition of the device]\n\n' +
         'Recommendations:\n[Professional advice for device maintenance and care]\n\n' +
-        '---\n\n' +
-        'SUMMARY: [One-line summary of service completed]\n\n' +
         'WRITING STYLE REQUIREMENTS:\n' +
         '- Customer-oriented and friendly but professional\n' +
         '- Get straight to the point, no fluff\n' +
