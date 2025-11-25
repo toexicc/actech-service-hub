@@ -33,6 +33,14 @@ export const DEPARTMENTS = [
 
 export type Department = typeof DEPARTMENTS[number];
 
+export const PRIORITY_OPTIONS = [
+  "Rush (with 10% Rush Fee)",
+  "Loyalty",
+  "Normal"
+] as const;
+
+export type Priority = typeof PRIORITY_OPTIONS[number];
+
 export const STATUS_OPTIONS = [
   "Pending Diagnosis",
   "Confirmed Diagnosis",
