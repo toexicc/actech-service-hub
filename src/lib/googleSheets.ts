@@ -162,7 +162,8 @@ function doGet(e) {
             "clientFolderUrl": data[i][42], // Column AQ - Client folder for service PDFs
             "deviceReportFolderUrl": data[i][47], // Column AV - Device report photos folder
             "annotationImageUrl": data[i][48],
-            "annotationNotes": data[i][49]
+            "annotationNotes": data[i][49],
+            "technicianReport": data[i][52] // Column BA - Technician Report
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -762,6 +763,7 @@ function doPost(e) {
         if (params.suggestedRepair) sheet.getRange(i + 1, 33).setValue(params.suggestedRepair); // Column AG
         if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO
+        if (params.technicianReport !== undefined) sheet.getRange(i + 1, 53).setValue(params.technicianReport); // Column BA - Technician Report
         if (params.actualCost) sheet.getRange(i + 1, 46).setValue(params.actualCost); // Column AT
         if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
         

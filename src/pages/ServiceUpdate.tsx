@@ -71,6 +71,7 @@ const ServiceUpdate = () => {
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
+  const [updateTechnicianReport, setUpdateTechnicianReport] = useState("");
 
   useEffect(() => {
     fetchTechnicians();
@@ -285,6 +286,7 @@ const ServiceUpdate = () => {
         setUpdateTechnician(data.data.technician || "");
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
+        setUpdateTechnicianReport(data.data.technicianReport || "");
         
         // Load existing photos from Google Drive folder
         if (data.data.deviceReportFolderUrl) {
@@ -396,6 +398,7 @@ const ServiceUpdate = () => {
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", "");
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
+      formData.append("technicianReport", updateTechnicianReport);
       formData.append("actualCost", actualCost.toString());
       formData.append("partsUsed", partsUsedForSheet); // Single space if no parts so Apps Script clears cell
       formData.append("partsUsedData", JSON.stringify([...partsUsedArray, ...unmatchedArray])); // Empty array if no parts
@@ -784,6 +787,22 @@ const ServiceUpdate = () => {
                     onChange={(e) => setUpdateTechnicianNotesInternal(e.target.value)}
                     rows={4}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="technicianReport">Technician Report:</Label>
+                  <Textarea
+                    id="technicianReport"
+                    placeholder="Enter technician report (only editable when status is Ongoing Service)"
+                    value={updateTechnicianReport}
+                    onChange={(e) => setUpdateTechnicianReport(e.target.value)}
+                    rows={4}
+                    disabled={updateStatus !== "Ongoing Service"}
+                    className={updateStatus !== "Ongoing Service" ? "opacity-50 cursor-not-allowed" : ""}
+                  />
+                  {updateStatus !== "Ongoing Service" && (
+                    <p className="text-xs text-muted-foreground">This field is only editable when status is "Ongoing Service"</p>
+                  )}
                 </div>
 
                 <Separator />
