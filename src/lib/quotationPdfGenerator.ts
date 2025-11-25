@@ -396,6 +396,9 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   yPos = diagnosisStartY + maxHeight + 3;
 
+  // Add one line space before footer
+  yPos += 4;
+
   // Footer - compact to ensure it fits on one page
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
