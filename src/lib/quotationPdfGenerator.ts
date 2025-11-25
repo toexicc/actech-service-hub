@@ -325,21 +325,21 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
                       line.includes('Recommendations') || line.includes('Issue'));
     
     if (isHeader) {
-      // Add moderate spacing before new section headers (except at start)
+      // Add small spacing before new section headers (except at start)
       if (diagnosisY > yPos) {
-        diagnosisY += 3; // Moderate gap between sections
+        diagnosisY += 1.5; // Small gap between sections
       }
       
       doc.setFont("helvetica", "bold");
       const wrappedLines = doc.splitTextToSize(line, diagnosisColWidth - 4);
       doc.text(wrappedLines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += wrappedLines.length * 3.5 + 1;
+      diagnosisY += wrappedLines.length * 3;
       previousWasHeader = true;
     } else {
       doc.setFont("helvetica", "normal");
       const wrappedLines = doc.splitTextToSize(line, diagnosisColWidth - 4);
       doc.text(wrappedLines, diagnosisColStart + 2, diagnosisY);
-      diagnosisY += wrappedLines.length * 3.5;
+      diagnosisY += wrappedLines.length * 2.8;
       previousWasHeader = false;
     }
   }
