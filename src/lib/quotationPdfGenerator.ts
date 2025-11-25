@@ -69,17 +69,22 @@ const cleanDiagnosisText = (text: string): string => {
   // STEP 4: Remove all # symbols (markdown headers)
   cleaned = cleaned.replace(/#/g, '');
   
-  // STEP 5: Fix letter-spacing issues (e.g., "c o m p o n e n t" -> "component")
-  // This detects words where each letter is separated by spaces
-  cleaned = cleaned.replace(/\b(\w)(\s+\w)+\b/g, (match) => {
-    // Only fix if ALL characters are single letters with spaces
-    const chars = match.split(/\s+/);
-    if (chars.every(c => c.length === 1)) {
-      // Join without spaces
-      return chars.join('');
+  // STEP 5: Fix letter-spacing by detecting and joining spaced-out words
+  // Pattern: single char, space, single char, space... (e.g., "c o m p o n e n t")
+  // Strategy: Look for patterns where EVERY word character is followed by a space and another word char
+  cleaned = cleaned.split('\n').map(line => {
+    // For each line, detect if it has excessive single-character spacing
+    // Count pattern: single letter followed by space followed by single letter
+    const spacedPattern = /\b\w\s+\w/g;
+    const matches = line.match(spacedPattern);
+    
+    // If more than 50% of the line matches this pattern, it's likely letter-spaced
+    if (matches && matches.length > 3) {
+      // Remove all spaces between single characters
+      return line.replace(/(\w)\s+(?=\w)/g, '$1');
     }
-    return match; // Return unchanged if not letter-spaced
-  });
+    return line;
+  }).join('\n');
   
   // STEP 6: Normalize whitespace
   // Replace multiple spaces with single space
