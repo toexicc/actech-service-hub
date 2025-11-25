@@ -18,7 +18,6 @@ interface QuotationPDFData {
   model: string;
   memory: string;
   technicianDiagnosis: string;
-  serviceSummary: string;
   serviceCost: string;
   partsUsed: string;
   discount: string;
@@ -224,34 +223,6 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   
   doc.text(diagnosisLines, leftCol, yPos);
   yPos += diagnosisLines.length * 5;
-
-  // Service Summary Section
-  yPos += 10;
-  
-  // Check if we need a new page
-  if (yPos > 250) {
-    doc.addPage();
-    yPos = 20;
-  }
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Service Summary", leftCol, yPos);
-
-  yPos += 8;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const summaryText = data.serviceSummary || "N/A";
-  const summaryLines = doc.splitTextToSize(summaryText, 180);
-  
-  // Check if we need a new page
-  if (yPos + (summaryLines.length * 5) > 260) {
-    doc.addPage();
-    yPos = 20;
-  }
-  
-  doc.text(summaryLines, leftCol, yPos);
-  yPos += summaryLines.length * 5;
 
   // Cost Summary Section
   yPos += 10;
