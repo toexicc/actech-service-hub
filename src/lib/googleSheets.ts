@@ -385,7 +385,8 @@ function doGet(e) {
             "deviceReportFolderUrl": data[i][47], // Column AV - Device report photos folder
             "annotationImageUrl": data[i][48],
             "annotationNotes": data[i][49],
-            "technicianReport": data[i][52] // Column BA - Technician Report
+            "technicianReport": data[i][52], // Column BA - Technician Report
+            "aiReport": data[i][53] // Column BB - AI Report
           }
         })).setMimeType(ContentService.MimeType.JSON);
       }

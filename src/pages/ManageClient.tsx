@@ -189,7 +189,7 @@ const ManageClient = () => {
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
         setTechnicianReport(data.data.technicianReport || ""); // Column BA - technician report
-        setUpdateServiceReport(data.data.serviceReport || ""); // Column BB - AI formatted service report
+        setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
         setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
         setIsEditingServiceReport(false);
         
@@ -411,6 +411,7 @@ const ManageClient = () => {
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
       formData.append("aiDiagnosis", updateAIDiagnosis);
+      formData.append("aiReport", updateServiceReport);
       formData.append("services", updateServices);
       formData.append("serviceCost", updateServiceCost);
       formData.append("discount", discountAmount.toString());
@@ -445,6 +446,7 @@ const ManageClient = () => {
         if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
         if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
         if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
+        if (updateServiceReport !== serviceData.aiReport) changes.push("AI Service Report updated");
         if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
         const prevCost = String(serviceData.serviceCost || "");
         if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
