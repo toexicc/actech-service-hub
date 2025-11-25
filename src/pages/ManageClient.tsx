@@ -643,13 +643,12 @@ const ManageClient = () => {
       formData.append("Serial", serviceData.serialNumber || "");
       formData.append("Client Name", serviceData.clientName || "");
       formData.append("Device Type", serviceData.deviceType || "");
-      formData.append("ClientFolderUrl", serviceData.clientFolderUrl || ""); // Column AQ - folder location
 
-      // Attach PDF - will be uploaded to client folder (AQ) and link stored in AG
-      formData.append("QuotationPDF", pdfBlob, fileName);
-      formData.append("QuotationPDF_Base64", pdfBase64);
-      formData.append("QuotationPDF_FileName", fileName);
-      formData.append("QuotationPDF_MimeType", "application/pdf");
+      // Attach PDF using both multipart and base64 fallbacks (same as Client Intake Form)
+      formData.append("PDF", pdfBlob, fileName);
+      formData.append("PDF_Base64", pdfBase64);
+      formData.append("PDF_FileName", fileName);
+      formData.append("PDF_MimeType", "application/pdf");
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
