@@ -204,25 +204,55 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.text(data.memory, valueCol, yPos);
 
   // Technician Diagnosis Section
-  yPos += 12;
+  yPos += 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text("Technician Diagnosis", leftCol, yPos);
 
-  yPos += 8;
+  yPos += 6;
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  
+  // Split diagnosis into paragraphs and format properly
   const diagnosisText = data.technicianDiagnosis || "N/A";
-  const diagnosisLines = doc.splitTextToSize(diagnosisText, 180);
+  const paragraphs = diagnosisText.split('\n\n');
   
-  // Check if we need a new page
-  if (yPos + (diagnosisLines.length * 5) > 260) {
-    doc.addPage();
-    yPos = 20;
+  for (let i = 0; i < paragraphs.length; i++) {
+    const paragraph = paragraphs[i].trim();
+    if (!paragraph) continue;
+    
+    // Check if this is a section header (ends with colon or is short and bold-worthy)
+    const isHeader = paragraph.endsWith(':') && paragraph.length < 50;
+    
+    if (isHeader) {
+      // Add spacing before header (except first one)
+      if (i > 0) yPos += 3;
+      doc.setFont("helvetica", "bold");
+      const headerLines = doc.splitTextToSize(paragraph, 180);
+      
+      // Check if we need a new page
+      if (yPos + (headerLines.length * 5) > 260) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.text(headerLines, leftCol, yPos);
+      yPos += headerLines.length * 5;
+      doc.setFont("helvetica", "normal");
+    } else {
+      // Regular paragraph
+      const paragraphLines = doc.splitTextToSize(paragraph, 180);
+      
+      // Check if we need a new page
+      if (yPos + (paragraphLines.length * 5) > 260) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.text(paragraphLines, leftCol, yPos);
+      yPos += paragraphLines.length * 5 + 3; // Add small spacing after paragraph
+    }
   }
-  
-  doc.text(diagnosisLines, leftCol, yPos);
-  yPos += diagnosisLines.length * 5;
 
   // Cost Summary Section
   yPos += 10;
