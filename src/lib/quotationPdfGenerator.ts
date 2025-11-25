@@ -213,66 +213,77 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   
-  // Clean up the diagnosis text - remove markdown and extra formatting
+  // Completely clean the diagnosis - strip ALL formatting and show only plain text
   let diagnosisText = data.technicianDiagnosis || "N/A";
   
-  // Remove all lines that are metadata or headers
-  let lines = diagnosisText.split('\n');
-  lines = lines.filter(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return true; // Keep blank lines for spacing
-    // Remove emoji lines and metadata
-    if (/[\u{1F300}-\u{1F9FF}]/u.test(trimmed)) return false;
-    if (/^[ØÛñ@]/.test(trimmed)) return false;
-    if (/^(Customer Name|Device Type|Model|Service ID|Technician):/.test(trimmed)) return false;
-    if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
-    return true;
-  });
+  if (diagnosisText !== "N/A") {
+    // Remove all markdown symbols (# and *)
+    diagnosisText = diagnosisText.replace(/#+\s*/g, '');
+    diagnosisText = diagnosisText.replace(/\*\*/g, '');
+    
+    // Remove emoji characters
+    diagnosisText = diagnosisText.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
+    
+    // Split into lines and filter out metadata
+    let lines = diagnosisText.split('\n');
+    lines = lines.filter(line => {
+      const trimmed = line.trim();
+      // Remove special character prefixed lines (Ø=Ûñ format from encoding issues)
+      if (/^[ØÛñ@=]/.test(trimmed)) return false;
+      // Remove customer metadata lines
+      if (/^(Customer Name|Device Type|Model|Service ID|Technician):/i.test(trimmed)) return false;
+      if (trimmed === 'AC TECH DEVICE DIAGNOSIS') return false;
+      return true;
+    });
+    
+    diagnosisText = lines.join('\n');
+    
+    // Clean up excessive whitespace
+    diagnosisText = diagnosisText.replace(/\n\n\n+/g, '\n\n').trim();
+  }
   
-  // Remove markdown symbols from remaining lines
-  lines = lines.map(line => line.replace(/^#+\s*/, ''));
-  diagnosisText = lines.join('\n').trim();
-  
-  // Remove excessive blank lines
-  diagnosisText = diagnosisText.replace(/\n\n\n+/g, '\n\n');
-  
-  // Split into paragraphs and format properly
+  // Split into paragraphs for proper rendering
   const paragraphs = diagnosisText.split('\n\n');
   
-  for (let i = 0; i < paragraphs.length; i++) {
-    const paragraph = paragraphs[i].trim();
-    if (!paragraph) continue;
+  for (const paragraph of paragraphs) {
+    const trimmed = paragraph.trim();
+    if (!trimmed) continue;
     
-    // Check if this is a section header (ends with colon)
-    const isHeader = paragraph.endsWith(':') && paragraph.length < 60 && !paragraph.includes('.');
+    // Check if line ends with colon (section header)
+    const lines = trimmed.split('\n');
     
-    if (isHeader) {
-      // Add spacing before header (except first one)
-      if (i > 0) yPos += 4;
-      doc.setFont("helvetica", "bold");
-      const headerLines = doc.splitTextToSize(paragraph, 180);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
       
-      // Check if we need a new page
-      if (yPos + (headerLines.length * 5) > 260) {
-        doc.addPage();
-        yPos = 20;
+      const isHeader = line.endsWith(':') && line.length < 80 && !line.includes('—') && !line.includes('.');
+      
+      if (isHeader) {
+        // Section header
+        yPos += 3;
+        doc.setFont("helvetica", "bold");
+        const headerLines = doc.splitTextToSize(line, 180);
+        
+        if (yPos + (headerLines.length * 5) > 260) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.text(headerLines, leftCol, yPos);
+        yPos += headerLines.length * 5;
+        doc.setFont("helvetica", "normal");
+      } else {
+        // Regular content
+        const contentLines = doc.splitTextToSize(line, 180);
+        
+        if (yPos + (contentLines.length * 5) > 260) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.text(contentLines, leftCol, yPos);
+        yPos += contentLines.length * 5 + 2;
       }
-      
-      doc.text(headerLines, leftCol, yPos);
-      yPos += headerLines.length * 5;
-      doc.setFont("helvetica", "normal");
-    } else {
-      // Regular paragraph
-      const paragraphLines = doc.splitTextToSize(paragraph, 180);
-      
-      // Check if we need a new page
-      if (yPos + (paragraphLines.length * 5) > 260) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      doc.text(paragraphLines, leftCol, yPos);
-      yPos += paragraphLines.length * 5 + 2; // Add small spacing after paragraph
     }
   }
 

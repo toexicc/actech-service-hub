@@ -594,8 +594,8 @@ const ManageClient = () => {
         technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
-        discount: discountAmount.toFixed(2),
-        totalCost: finalCost.toFixed(2),
+        discount: (discountAmount > 0 ? discountAmount : (parseFloat(serviceData.discount || "0"))).toFixed(2),
+        totalCost: (finalCost > 0 ? finalCost : (parseFloat(serviceData.finalCost || serviceData.serviceCost || "0"))).toFixed(2),
         isUpdated: !!serviceData.quotationPdfUrl,
       };
       
