@@ -15,6 +15,12 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * API KEYS (Keys Sheet):
  * - getApiKey: Returns OpenAI API key from cell B1 of Keys sheet
  *
+ * AI FORMATTING:
+ * - formatDiagnosis: Formats raw technician diagnosis using OpenAI API (requires API key in Keys sheet B1)
+ *   Parameters: rawDiagnosis, customerName, deviceType, model, serviceId, technician
+ * - formatReport: Formats technician service report using OpenAI API (requires API key in Keys sheet B1)
+ *   Parameters: technicianReport, customerName, deviceType, model, serviceId, technician
+ *
  * STAFF MANAGEMENT (Users Sheet):
  * Users sheet columns: Staff ID | Username | Password | Name | Role | Department | Status
  * - getStaffList: Returns all users from Users sheet with staffId field
