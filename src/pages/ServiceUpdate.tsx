@@ -897,9 +897,10 @@ const ServiceUpdate = () => {
                           return (
                             <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{item.name}</p>
+                                <p className="font-medium truncate">
+                                  {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
+                                </p>
                                 <p className="text-xs text-muted-foreground truncate">
-                                  {item.deviceType && item.model ? `${item.deviceType} - ${item.model} • ` : ''}
                                   ID: {item.id} • ₱{item.cost} • Stock: {item.quantity}
                                 </p>
                               </div>
@@ -977,7 +978,7 @@ const ServiceUpdate = () => {
                                     <SelectContent className="bg-background z-50">
                                       {inventory.map((item) => (
                                         <SelectItem key={item.id} value={item.id}>
-                                          {item.deviceType && item.model ? `[${item.deviceType} - ${item.model}] ` : ''}{item.name} (Stock: {item.quantity})
+                                          {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1017,7 +1018,7 @@ const ServiceUpdate = () => {
                               <SelectContent className="bg-background z-50">
                                 {inventory.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.deviceType && item.model ? `[${item.deviceType} - ${item.model}] ` : ''}{item.id} - {item.name} (₱{item.cost}, Stock: {item.quantity})
+                                    {item.id} - {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (₱{item.cost}, Stock: {item.quantity})
                                   </SelectItem>
                                 ))}
                               </SelectContent>
