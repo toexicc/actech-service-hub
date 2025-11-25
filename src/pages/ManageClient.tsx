@@ -241,7 +241,7 @@ const ManageClient = () => {
             {
               role: "system",
               content:
-                "You are a senior technician at AC Tech Repair PH writing a professional diagnostic report to help customers understand their device issues and the value of proceeding with repairs.\n\nYour goal: Deliver a technically accurate, clear diagnosis that builds customer confidence and demonstrates the necessity of professional service.\n\nFormat your report using this EXACT structure:\n\nAC TECH DEVICE DIAGNOSIS\n\n❗ Customer Concern Reported:\n[1-2 sentences - describe what the customer initially reported, using their language]\n\n🔍 Technical Findings:\n[2-3 sentences - detail specific component failures, system diagnostics, or hardware issues discovered. Use technical terms but explain them briefly. Example: \"LCD digitizer shows complete failure with zero touch response\" or \"Logic board exhibits short circuit on power rail\"]\n\n⚠️ Root Cause Analysis:\n[1-2 sentences - explain the technical reason for failure. Example: \"Impact damage caused internal flex cable disconnection\" or \"Liquid intrusion corroded charging IC components\"]\n\n✅ Recommended Solution:\n[2-3 sentences - specify the repair process, replacement parts needed, and expected outcome. Emphasize restoration of full functionality and prevention of further damage. Example: \"Complete LCD assembly replacement with OEM-grade components will restore full display and touch functionality. This prevents potential damage to the logic board from continued use of compromised hardware.\"]\n\n💡 Professional Recommendations:\n[1-2 sentences - provide expert advice on device care post-repair and why timely service matters. Example: \"Install tempered glass protection after repair. Delaying this repair risks permanent logic board damage, significantly increasing repair costs.\"]\n\n---\n\nTo proceed with the service, please reply \"YES\" to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n---\n\n📋 SUMMARY: [Write a concise one-liner that captures the essential repair needed. Example: \"LCD replacement with OEM parts to restore full display/touch functionality and prevent logic board damage.\"]\n\nIMPORTANT RULES:\n- Use technical terminology appropriately but provide brief context\n- Emphasize component-level specifics (IC chips, flex cables, connectors, boards)\n- Explain WHY the repair is necessary to prevent worse damage\n- Highlight cost savings of immediate repair vs. delayed service\n- Keep each section concise - maximum 3 sentences\n- Do NOT include Customer Name, Device Type, Model, Service ID, or Technician fields\n- Be authoritative and confident in your assessment\n- Focus on the technical value and urgency of professional repair\n- ALWAYS end your report with the terms and conditions line followed by a divider and summary as shown above\n- The SUMMARY must be a single, clear sentence that encapsulates the repair solution",
+                "You are a technical diagnosis formatter for AC Tech Repair PH.\n\nCRITICAL OUTPUT RULES - YOU MUST FOLLOW EXACTLY:\n1. Output ONLY plain text paragraphs - absolutely NO emojis, NO symbols, NO special characters\n2. DO NOT add any labels or headers like \"Customer Concern Reported:\", \"Technical Findings:\", \"Issue Diagnosis:\", etc.\n3. DO NOT include customer information (name, device type, model, service ID, technician) - this is already in the form\n4. DO NOT use markdown formatting (no **, no ##, no bullets, no dashes)\n5. DO NOT add footer text like \"To proceed with the service\" or \"Professional Recommendations\" or \"SUMMARY\"\n6. Write in simple, continuous paragraphs separated by blank lines\n\nStart directly with the diagnosis content. Write 2-3 clear paragraphs explaining:\n- What is wrong with the device\n- What repairs/services are needed\n- Technical details and findings\n\nKeep it professional, concise, and customer-friendly. Just plain text paragraphs, nothing else.",
             },
             {
               role: "user",
@@ -302,18 +302,8 @@ const ManageClient = () => {
       const formattedDiagnosis = data.choices?.[0]?.message?.content;
 
       if (formattedDiagnosis) {
-        // Build the complete diagnosis with customer info from serviceData
-        const customerInfo = [
-          `📱 Customer Name: ${serviceData?.clientName || ''}`,
-          `💻 Device Type: ${serviceData?.deviceType || ''}`,
-          `🔧 Model: ${serviceData?.device || ''}`,
-          `🔍 Service ID: ${serviceId}`,
-          `👤 Technician: ${updateTechnician || 'Not assigned'}`,
-          '',
-          formattedDiagnosis
-        ].join('\n');
-        
-        setUpdateAIDiagnosis(customerInfo);
+        // Use plain text diagnosis without emojis or formatting
+        setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
         toast({
           title: "Success",
