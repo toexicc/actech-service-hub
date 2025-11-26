@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { rawDiagnosis, customerName, deviceType, model, serviceId, technician, serviceCost } = await req.json();
+    const { rawDiagnosis, customerName, deviceType, model, serviceId, technician, finalCost } = await req.json();
 
     if (!rawDiagnosis) {
       return new Response(
@@ -60,7 +60,7 @@ Suggested Solution:
 Recommendations:
 [1 sentence - professional advice]
 
-Service Cost: $${serviceCost || '0'}
+Service Cost: $${finalCost || '0'}
 
 ---
 

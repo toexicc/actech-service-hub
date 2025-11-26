@@ -17,9 +17,9 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *
  * AI FORMATTING:
  * - formatDiagnosis: Formats raw technician diagnosis using OpenAI API (requires API key in Keys sheet B1)
- *   Parameters: rawDiagnosis, customerName, deviceType, model, serviceId, technician, serviceCost
+ *   Parameters: rawDiagnosis, customerName, deviceType, model, serviceId, technician, finalCost
  * - formatReport: Formats technician service report using OpenAI API (requires API key in Keys sheet B1)
- *   Parameters: technicianReport, customerName, deviceType, model, serviceId, technician, serviceCost
+ *   Parameters: technicianReport, customerName, deviceType, model, serviceId, technician, finalCost
  *
  * STAFF MANAGEMENT (Users Sheet):
  * Users sheet columns: Staff ID | Username | Password | Name | Role | Department | Status
@@ -152,7 +152,7 @@ function doGet(e) {
       var model = params.model || '';
       var serviceId = params.serviceId || '';
       var technician = params.technician || '';
-      var serviceCost = params.serviceCost || '0';
+      var finalCost = params.finalCost || '0';
 
       var prompt = 'You are a professional technical diagnostician for AC Tech Repair PH.\n\n' +
         'Format the following information into a customer-friendly diagnosis report:\n\n' +
@@ -172,7 +172,7 @@ function doGet(e) {
         'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
         'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
         'Recommendations:\n[Professional advice for the customer]\n\n' +
-        'Service Cost: $' + serviceCost + '\n\n' +
+        'Service Cost: $' + finalCost + '\n\n' +
         '---\n\n' +
         'To proceed with the service, please reply YES to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         '---\n\n' +
@@ -253,7 +253,7 @@ function doGet(e) {
       var model = params.model || '';
       var serviceId = params.serviceId || '';
       var technician = params.technician || '';
-      var serviceCost = params.serviceCost || '0';
+      var finalCost = params.finalCost || '0';
 
       var prompt = 'You are formatting a service report for AC Tech Repair PH.\n\n' +
         'Format the following information into a customer-friendly service report:\n\n' +
@@ -273,7 +273,7 @@ function doGet(e) {
         'Technical Findings:\n[Detailed technical observations and results]\n\n' +
         'Final Status:\n[Current condition of the device]\n\n' +
         'Recommendations:\n[Professional advice for device maintenance and care]\n\n' +
-        'Service Cost: $' + serviceCost + '\n\n' +
+        'Service Cost: $' + finalCost + '\n\n' +
         'WRITING STYLE REQUIREMENTS:\n' +
         '- Customer-oriented and friendly but professional\n' +
         '- Get straight to the point, no fluff\n' +
