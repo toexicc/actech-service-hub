@@ -1242,6 +1242,13 @@ const ManageClient = () => {
                           }}
                         />
                       </div>
+
+                      <div className="space-y-2 pt-4 border-t">
+                        <Label className="font-semibold">Service Cost:</Label>
+                        <div className="text-2xl font-bold text-primary">
+                          ${updateServiceCost || serviceData.serviceCost || "0"}
+                        </div>
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 )}
@@ -1324,6 +1331,13 @@ const ManageClient = () => {
                             height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
                           }}
                         />
+                      </div>
+
+                      <div className="space-y-2 pt-4 border-t">
+                        <Label className="font-semibold">Service Cost:</Label>
+                        <div className="text-2xl font-bold text-primary">
+                          ${updateServiceCost || serviceData.serviceCost || "0"}
+                        </div>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
