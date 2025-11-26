@@ -250,6 +250,7 @@ const ManageClient = () => {
         model: serviceData?.device || '',
         serviceId: serviceId,
         technician: updateTechnician || serviceData?.technician || '',
+        serviceCost: updateServiceCost || serviceData?.serviceCost || '',
       });
 
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
@@ -332,6 +333,7 @@ const ManageClient = () => {
         model: serviceData?.device || '',
         serviceId: serviceId,
         technician: serviceData?.technician || updateTechnician || '',
+        serviceCost: updateServiceCost || serviceData?.serviceCost || '',
       });
 
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
@@ -1242,13 +1244,6 @@ const ManageClient = () => {
                           }}
                         />
                       </div>
-
-                      <div className="space-y-2 pt-4 border-t">
-                        <Label className="font-semibold">Service Cost:</Label>
-                        <div className="text-2xl font-bold text-primary">
-                          ${updateServiceCost || serviceData.serviceCost || "0"}
-                        </div>
-                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 )}
@@ -1331,13 +1326,6 @@ const ManageClient = () => {
                             height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
                           }}
                         />
-                      </div>
-
-                      <div className="space-y-2 pt-4 border-t">
-                        <Label className="font-semibold">Service Cost:</Label>
-                        <div className="text-2xl font-bold text-primary">
-                          ${updateServiceCost || serviceData.serviceCost || "0"}
-                        </div>
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
