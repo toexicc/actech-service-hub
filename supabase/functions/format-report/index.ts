@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { technicianReport, customerName, deviceType, model, serviceId, technician, serviceCost } = await req.json();
+    const { technicianReport, customerName, deviceType, model, serviceId, technician, finalCost } = await req.json();
 
     if (!technicianReport) {
       return new Response(
@@ -58,7 +58,7 @@ Service Performed:
 Recommendation:
 [1 sentence - professional advice for the customer]
 
-Service Cost: $${serviceCost || '0'}
+Service Cost: $${finalCost || '0'}
 
 IMPORTANT RULES:
 - Be concise, professional, and customer-friendly

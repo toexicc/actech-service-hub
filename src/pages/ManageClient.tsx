@@ -250,7 +250,7 @@ const ManageClient = () => {
         model: serviceData?.device || '',
         serviceId: serviceId,
         technician: updateTechnician || serviceData?.technician || '',
-        serviceCost: updateServiceCost || serviceData?.serviceCost || '',
+        finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
       });
 
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
@@ -333,7 +333,7 @@ const ManageClient = () => {
         model: serviceData?.device || '',
         serviceId: serviceId,
         technician: serviceData?.technician || updateTechnician || '',
-        serviceCost: updateServiceCost || serviceData?.serviceCost || '',
+        finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
       });
 
       const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
