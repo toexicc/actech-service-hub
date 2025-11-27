@@ -1352,7 +1352,7 @@ const ManageClient = () => {
                     onChange={(e) => {
                       const cost = e.target.value;
                       setUpdateServiceCost(cost);
-                      const costNum = parseFloat(cost) || 0;
+                      const costNum = sanitizeNumber(cost);
                       
                       // Recalculate discount and final cost
                       let discount = 0;
@@ -1379,7 +1379,7 @@ const ManageClient = () => {
                         setDiscountType("amount");
                         setDiscountValue("");
                         setDiscountAmount(0);
-                        setFinalCost(parseFloat(updateServiceCost) || 0);
+                        setFinalCost(sanitizeNumber(updateServiceCost));
                       }}
                       className="flex-1"
                     >
@@ -1393,7 +1393,7 @@ const ManageClient = () => {
                         setDiscountType("percentage");
                         setDiscountValue("");
                         setDiscountAmount(0);
-                        setFinalCost(parseFloat(updateServiceCost) || 0);
+                        setFinalCost(sanitizeNumber(updateServiceCost));
                       }}
                       className="flex-1"
                     >
@@ -1413,7 +1413,7 @@ const ManageClient = () => {
                         const value = e.target.value;
                         setDiscountValue(value);
                         
-                        const costNum = parseFloat(updateServiceCost) || 0;
+                        const costNum = sanitizeNumber(updateServiceCost);
                         let discount = 0;
                         
                         if (discountType === "percentage") {
