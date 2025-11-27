@@ -1151,12 +1151,6 @@ const ServiceUpdate = () => {
                   <>
                     <Separator />
 
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Upload the service report checklist as the first photo, and the next 5 photos should be device photos.
-                      </p>
-                    </div>
-
                     <DeviceReportUpload
                       photos={deviceReportPhotos}
                       onPhotosChange={setDeviceReportPhotos}
