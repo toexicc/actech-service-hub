@@ -1133,7 +1133,7 @@ const ServiceUpdate = () => {
                                   {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
-                                  ID: {item.id} • Stock: {item.quantity} • Cost: Php {item.cost.toFixed(2)}
+                                  ID: {item.id} • Stock: {item.quantity}
                                 </p>
                               </div>
                               <Input
