@@ -797,9 +797,33 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map(status => (
-                        <SelectItem key={status} value={status}>{status}</SelectItem>
-                      ))}
+                      {STATUS_OPTIONS.map(status => {
+                        const isTechnician = userRole === "Technician";
+                        const disabledStatuses = [
+                          "Pending Diagnosis",
+                          "Pending - Approval",
+                          "Complete - Approval",
+                          "Service Check (Completed)",
+                          "Pending Pickup (Completed)",
+                          "Completed",
+                          "Backjob",
+                          "RTO",
+                          "On Hold",
+                          "Cancelled"
+                        ];
+                        const isDisabled = isTechnician && disabledStatuses.includes(status);
+                        
+                        return (
+                          <SelectItem 
+                            key={status} 
+                            value={status}
+                            disabled={isDisabled}
+                            className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                          >
+                            {status}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
