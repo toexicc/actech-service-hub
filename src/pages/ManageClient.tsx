@@ -1181,7 +1181,7 @@ const ManageClient = () => {
                 </div>
 
                 {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
-                {updateStatus === "Confirmed Diagnosis" && (
+                {serviceData?.status === "Confirmed Diagnosis" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
@@ -1259,7 +1259,7 @@ const ManageClient = () => {
                 )}
 
                 {/* Report Display - Only visible when status is "Service Report" */}
-                {updateStatus === "Service Report" && (
+                {serviceData?.status === "Service Report" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
