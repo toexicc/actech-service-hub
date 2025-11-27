@@ -782,6 +782,21 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                  <Textarea
+                    id="technicianDiagnosis"
+                    placeholder="Enter technician diagnosis"
+                    value={updateTechnicianDiagnosis}
+                    onChange={(e) => {
+                      setUpdateTechnicianDiagnosis(e.target.value);
+                      setRawDiagnosis(e.target.value);
+                    }}
+                    rows={4}
+                    className="min-h-[80px] resize-none"
+                  />
+                </div>
+
                 {/* Diagnosis Toggle - Based on actual sheet status */}
                 {serviceData?.status === "Confirmed Diagnosis" && (
                   <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
@@ -883,6 +898,18 @@ const ServiceUpdate = () => {
                     </CollapsibleContent>
                   </Collapsible>
                 )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="technicianReport">Technician Report:</Label>
+                  <Textarea
+                    id="technicianReport"
+                    placeholder="Enter technician report"
+                    value={updateTechnicianReport}
+                    onChange={(e) => setUpdateTechnicianReport(e.target.value)}
+                    rows={4}
+                    className="min-h-[80px] resize-none"
+                  />
+                </div>
 
                 {/* Report Toggle - Only visible when actual sheet status is "Service Report" */}
                 {serviceData?.status === "Service Report" && (
