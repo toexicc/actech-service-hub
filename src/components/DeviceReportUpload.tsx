@@ -170,6 +170,10 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, 
         </span>
       </div>
 
+      <p className="text-sm text-muted-foreground">
+        Upload the service report checklist as the first photo, and the next 5 photos should be device photos.
+      </p>
+
       {photos.length < MAX_PHOTOS && (
         <div className="flex gap-2">
           <input
