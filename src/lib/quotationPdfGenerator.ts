@@ -363,14 +363,6 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.text(`Php ${data.serviceCost}`, summaryColStart + 38, summaryY);
   summaryY += 4;
   
-  // Parts Used
-  doc.setFont("helvetica", "bold");
-  doc.text("Parts Used:", summaryColStart + 2, summaryY);
-  doc.setFont("helvetica", "normal");
-  const partsLines = doc.splitTextToSize(data.partsUsed, summaryColWidth - 40);
-  doc.text(partsLines, summaryColStart + 38, summaryY);
-  summaryY += Math.max(4, partsLines.length * 3.5 + 2);
-  
   // Discount
   doc.setFont("helvetica", "bold");
   doc.text("Discount:", summaryColStart + 2, summaryY);
