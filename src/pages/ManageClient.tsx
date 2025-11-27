@@ -177,6 +177,12 @@ const ManageClient = () => {
 
       if (data.status === "found") {
         setServiceData(data.data);
+        console.log("[MANAGE-CLIENT] Loaded service from sheet", {
+          serviceId,
+          serviceCost: data.data.serviceCost,
+          discount: data.data.discount,
+          finalCost: data.data.finalCost,
+        });
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
@@ -201,6 +207,12 @@ const ManageClient = () => {
         const serviceCostNum = parseFloat(data.data.serviceCost || "0");
         const savedDiscountNum = parseFloat(data.data.discount || "0");
         const savedFinalCost = parseFloat(data.data.finalCost || "0");
+        
+        console.log("[MANAGE-CLIENT] Parsed cost values", {
+          serviceCostNum,
+          savedDiscountNum,
+          savedFinalCost,
+        });
         
         // Set discount values
         setDiscountAmount(savedDiscountNum);
