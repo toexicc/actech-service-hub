@@ -1052,6 +1052,36 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="deviceType">Device Type:</Label>
+                  <Select value={serviceData?.deviceType || ""} onValueChange={(value) => {
+                    setServiceData((prev: any) => ({ ...prev, deviceType: value }));
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select device type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mobile (iPhone)">Mobile (iPhone)</SelectItem>
+                      <SelectItem value="Mobile (Android)">Mobile (Android)</SelectItem>
+                      <SelectItem value="Laptop (Mac)">Laptop (Mac)</SelectItem>
+                      <SelectItem value="Laptop (Windows)">Laptop (Windows)</SelectItem>
+                      <SelectItem value="iPad">iPad</SelectItem>
+                      <SelectItem value="Tablet (Android)">Tablet (Android)</SelectItem>
+                      <SelectItem value="Computer (iMac)">Computer (iMac)</SelectItem>
+                      <SelectItem value="Desktop Computer (Windows)">Desktop Computer (Windows)</SelectItem>
+                      <SelectItem value="Computer (Mac Mini)">Computer (Mac Mini)</SelectItem>
+                      <SelectItem value="Apple Watch">Apple Watch</SelectItem>
+                      <SelectItem value="Drone">Drone</SelectItem>
+                      <SelectItem value="Speakers">Speakers</SelectItem>
+                      <SelectItem value="Gaming Consoles">Gaming Consoles</SelectItem>
+                      <SelectItem value="Gaming Controllers">Gaming Controllers</SelectItem>
+                      <SelectItem value="Headphones">Headphones</SelectItem>
+                      <SelectItem value="Hard Drive and Data Recovery">Hard Drive and Data Recovery</SelectItem>
+                      <SelectItem value="Others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="technician">Technician:</Label>
                   <Select value={updateTechnician} onValueChange={(value) => {
                     setUpdateTechnician(value);

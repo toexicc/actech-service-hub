@@ -47,6 +47,7 @@ export const STATUS_OPTIONS = [
   "Pending - Approval",
   "Complete - Approval",
   "Ongoing Service",
+  "Service Report",
   "Service Check (Completed)",
   "Pending Pickup (Completed)",
   "Completed",
