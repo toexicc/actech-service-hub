@@ -791,6 +791,20 @@ const ServiceUpdate = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="status">Status:</Label>
+                  <Select value={updateStatus} onValueChange={setUpdateStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician:</Label>
                   <Select value={updateTechnician} onValueChange={(value) => {
                     setUpdateTechnician(value);
@@ -831,20 +845,6 @@ const ServiceUpdate = () => {
                             </SelectItem>
                           ))}
                         </div>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status:</Label>
-                  <Select value={updateStatus} onValueChange={setUpdateStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map(status => (
-                        <SelectItem key={status} value={status}>{status}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
