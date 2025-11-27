@@ -1121,132 +1121,75 @@ const ServiceUpdate = () => {
                     </div>
                   
                   {inventory.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Loading inventory...</p>
+                    <p className="text-sm text-muted-foreground">No inventory items available</p>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowQRScanner(!showQRScanner)}
-                          className="flex items-center gap-2"
-                        >
-                          <QrCode className="h-4 w-4" />
-                          {showQRScanner ? "Close Scanner" : "Scan QR Code"}
-                        </Button>
-                      </div>
-                      
-                      {showQRScanner && (
-                        <div className="border rounded-md p-4 bg-background">
-                          <QRScanner 
-                            onScan={handleQRScan}
-                            onClose={() => setShowQRScanner(false)}
-                          />
-                        </div>
-                      )}
-
-                      {/* Available Parts to Add */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Add Parts:</Label>
-                        <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
-                          {inventory
-                            .filter(item => !selectedParts[item.id] || selectedParts[item.id] === 0)
-                            .map((item) => (
-                            <div key={item.id} className="flex items-center justify-between gap-2 p-2 hover:bg-muted rounded">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">
-                                  {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  ID: {item.id} • Stock: {item.quantity}
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  if (item.quantity > 0) {
-                                    setSelectedParts(prev => ({
-                                      ...prev,
-                                      [item.id]: 1
-                                    }));
-                                  } else {
-                                    toast({
-                                      title: "Out of Stock",
-                                      description: "This part is currently out of stock",
-                                      variant: "destructive"
+                      <Input
+                        type="text"
+                        placeholder="Search by Part ID or Name..."
+                        className="w-full"
+                        onChange={(e) => {
+                          const search = e.target.value.toLowerCase();
+                          const filtered = inventory.filter(item => 
+                            item.id.toLowerCase().includes(search) || 
+                            item.name.toLowerCase().includes(search)
+                          );
+                          // Just update display - we'll filter in the map below
+                        }}
+                      />
+                      <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
+                        {inventory.map((item) => {
+                          const qty = selectedParts[item.id] || 0;
+                          if (qty === 0) return null; // Only show selected parts
+                          return (
+                            <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
+                               <div className="flex-1 min-w-0">
+                                 <p className="font-medium truncate">
+                                   {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
+                                 </p>
+                                 <p className="text-xs text-muted-foreground truncate">
+                                   ID: {item.id} • Stock: {item.quantity}
+                                 </p>
+                               </div>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={item.quantity + qty}
+                                  value={qty}
+                                  onChange={(e) => {
+                                    const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity + qty);
+                                    if (newQty > 0) {
+                                      setSelectedParts(prev => ({
+                                        ...prev,
+                                        [item.id]: newQty
+                                      }));
+                                    }
+                                  }}
+                                  className="w-20"
+                                  placeholder="Qty"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    setSelectedParts(prev => {
+                                      const newParts = { ...prev };
+                                      delete newParts[item.id];
+                                      return newParts;
                                     });
-                                  }
-                                }}
-                                disabled={item.quantity === 0}
-                              >
-                                Add
-                              </Button>
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
-                          ))}
-                          {inventory.filter(item => !selectedParts[item.id] || selectedParts[item.id] === 0).length === 0 && (
-                            <p className="text-sm text-muted-foreground text-center py-2">All parts already selected</p>
-                          )}
-                        </div>
+                          );
+                        })}
+                        {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length === 0 && Object.keys(unmatchedParts).length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-2">No parts selected yet</p>
+                        )}
                       </div>
-
-                      {/* Selected Parts */}
-                      {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Selected Parts:</Label>
-                          <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
-                            {inventory.map((item) => {
-                              const qty = selectedParts[item.id] || 0;
-                              if (qty === 0) return null;
-                              return (
-                                <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">
-                                      {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      ID: {item.id} • Stock: {item.quantity} • Cost: Php {item.cost.toFixed(2)}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      max={item.quantity + qty}
-                                      value={qty}
-                                      onChange={(e) => {
-                                        const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity + qty);
-                                        if (newQty > 0) {
-                                          setSelectedParts(prev => ({
-                                            ...prev,
-                                            [item.id]: newQty
-                                          }));
-                                        }
-                                      }}
-                                      className="w-20"
-                                      placeholder="Qty"
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => {
-                                        setSelectedParts(prev => {
-                                          const newParts = { ...prev };
-                                          delete newParts[item.id];
-                                          return newParts;
-                                        });
-                                      }}
-                                    >
-                                      Remove
-                                    </Button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
                       
                       {Object.keys(unmatchedParts).length > 0 && (
                         <div className="space-y-2 border rounded-md p-3">
