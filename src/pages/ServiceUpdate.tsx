@@ -792,13 +792,40 @@ const ServiceUpdate = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status:</Label>
-                  <Select value={updateStatus} onValueChange={setUpdateStatus}>
+                  <Select 
+                    value={updateStatus} 
+                    onValueChange={(value) => {
+                      const restrictedStatuses = [
+                        "Pending Diagnosis",
+                        "Pending - Approval",
+                        "Complete - Approval",
+                        "Service Check (Completed)",
+                        "Pending Pickup (Completed)",
+                        "Completed",
+                        "Backjob",
+                        "RTO",
+                        "On Hold",
+                        "Cancelled"
+                      ];
+                      
+                      // Prevent selection of restricted statuses
+                      if (restrictedStatuses.includes(value)) {
+                        toast({
+                          title: "Status Restricted",
+                          description: "This status cannot be selected from Service Update",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      setUpdateStatus(value);
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.filter(status => {
-                        const isTechnician = userRole === "Technician";
+                      {STATUS_OPTIONS.map(status => {
                         const restrictedStatuses = [
                           "Pending Diagnosis",
                           "Pending - Approval",
@@ -811,16 +838,18 @@ const ServiceUpdate = () => {
                           "On Hold",
                           "Cancelled"
                         ];
-                        // If technician, exclude restricted statuses
-                        if (isTechnician && restrictedStatuses.includes(status)) {
-                          return false;
-                        }
-                        return true;
-                      }).map(status => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
+                        const isRestricted = restrictedStatuses.includes(status);
+                        
+                        return (
+                          <SelectItem 
+                            key={status} 
+                            value={status}
+                            disabled={isRestricted}
+                          >
+                            {status}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
