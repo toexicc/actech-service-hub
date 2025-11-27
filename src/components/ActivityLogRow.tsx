@@ -43,7 +43,7 @@ const ActivityLogRow = ({ service, overdueStatus, inServiceDays, children }: Act
     if (status === 'Pending - Approval') return 'bg-orange-100 dark:bg-orange-950/30 hover:bg-orange-200 dark:hover:bg-orange-950/40';
     if (status === 'Completed - Approval') return 'bg-orange-200 dark:bg-orange-900/40 hover:bg-orange-300 dark:hover:bg-orange-900/50';
     if (status === 'Ongoing Service') return 'bg-blue-100 dark:bg-blue-950/30 hover:bg-blue-200 dark:hover:bg-blue-950/40';
-    if (status === 'Pending Pickup (Completed)') return 'bg-green-100 dark:bg-green-950/30 hover:bg-green-200 dark:hover:bg-green-950/40';
+    if (status === 'Pending Pickup - Completed') return 'bg-green-100 dark:bg-green-950/30 hover:bg-green-200 dark:hover:bg-green-950/40';
     if (status === 'Completed') return 'bg-green-300 dark:bg-green-700/50 hover:bg-green-400 dark:hover:bg-green-700/60';
     if (status === 'Backjob') return 'bg-gray-200 dark:bg-gray-800/40 hover:bg-gray-300 dark:hover:bg-gray-800/50';
     if (status === 'RTO') return 'bg-purple-200 dark:bg-purple-950/40 hover:bg-purple-300 dark:hover:bg-purple-950/50';

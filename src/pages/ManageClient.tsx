@@ -1273,8 +1273,8 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                {/* Report Display - Only visible when status is "Service Report" */}
-                {serviceData?.status === "Service Report" && (
+                {/* Report Display - Only visible when status is "Service Report - Draft" */}
+                {serviceData?.status === "Service Report - Draft" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
