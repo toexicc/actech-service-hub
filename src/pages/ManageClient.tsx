@@ -1184,58 +1184,140 @@ const ManageClient = () => {
                   />
                 </div>
 
-                {/* Diagnosis Display - Only visible for viewing */}
-                <div className="space-y-2">
-                  <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis (Column AF):</Label>
-                  <div className="flex gap-2 mb-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
-                    >
-                      {isEditingAIDiagnosis ? "Lock" : "Edit"}
+                {/* Diagnosis Display - Only visible for viewing/editing/approving */}
+                <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="font-semibold">AI Diagnosis</span>
+                      <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        const summaryMatch = updateAIDiagnosis.match(
-                          /SUMMARY:\s*(.+?)(?=\n|$)/i
-                        );
-                        
-                        if (summaryMatch && summaryMatch[1]) {
-                          setUpdateServices(summaryMatch[1].trim());
-                          toast({ title: "Summary copied to Service/s" });
-                        } else {
-                          toast({ 
-                            title: "Error", 
-                            description: "Could not find 'SUMMARY' section in AI diagnosis",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      Approve
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis (Column AF):</Label>
+                      <div className="flex gap-2 mb-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(updateAIDiagnosis);
+                            toast({ title: "Copied to clipboard" });
+                          }}
+                        >
+                          Copy
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
+                        >
+                          {isEditingAIDiagnosis ? "Lock" : "Edit"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            const summaryMatch = updateAIDiagnosis.match(
+                              /SUMMARY:\s*(.+?)(?=\n|$)/i
+                            );
+                            
+                            if (summaryMatch && summaryMatch[1]) {
+                              setUpdateServices(summaryMatch[1].trim());
+                              toast({ title: "Summary copied to Service/s" });
+                            } else {
+                              toast({ 
+                                title: "Error", 
+                                description: "Could not find 'SUMMARY' section in AI diagnosis",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Approve
+                        </Button>
+                      </div>
+                      <Textarea
+                        id="aiDiagnosisDisplay"
+                        placeholder="AI Diagnosis from Column AF"
+                        value={updateAIDiagnosis}
+                        onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
+                        disabled={!isEditingAIDiagnosis}
+                        className={cn(
+                          "min-h-[100px] resize-none",
+                          !isEditingAIDiagnosis && "bg-muted cursor-not-allowed opacity-75"
+                        )}
+                        style={{ 
+                          minHeight: '100px',
+                          height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
+                        }}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Report Display - Only visible for viewing/editing/approving */}
+                <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span className="font-semibold">AI Report</span>
+                      <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
                     </Button>
-                  </div>
-                  <Textarea
-                    id="aiDiagnosisDisplay"
-                    placeholder="AI Diagnosis from Column AF"
-                    value={updateAIDiagnosis}
-                    onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                    disabled={!isEditingAIDiagnosis}
-                    className={cn(
-                      "min-h-[100px] resize-none",
-                      !isEditingAIDiagnosis && "bg-muted cursor-not-allowed opacity-75"
-                    )}
-                    style={{ 
-                      minHeight: '100px',
-                      height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
-                    }}
-                  />
-                </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="aiReportDisplay">AI Service Report (Column BB):</Label>
+                      <div className="flex gap-2 mb-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(updateServiceReport);
+                            toast({ title: "Copied to clipboard" });
+                          }}
+                        >
+                          Copy
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingServiceReport(!isEditingServiceReport)}
+                        >
+                          {isEditingServiceReport ? "Lock" : "Edit"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            toast({ title: "Service report approved" });
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          Approve
+                        </Button>
+                      </div>
+                      <Textarea
+                        id="aiReportDisplay"
+                        placeholder="AI Service Report from Column BB"
+                        value={updateServiceReport}
+                        onChange={(e) => setUpdateServiceReport(e.target.value)}
+                        disabled={!isEditingServiceReport}
+                        className={cn(
+                          "min-h-[100px] resize-none",
+                          !isEditingServiceReport && "bg-muted cursor-not-allowed opacity-75"
+                        )}
+                        style={{ 
+                          minHeight: '100px',
+                          height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
+                        }}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 <div className="space-y-2">
                   <Label htmlFor="services">Service/s:</Label>
