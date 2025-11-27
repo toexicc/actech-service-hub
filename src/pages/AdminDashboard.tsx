@@ -23,7 +23,7 @@ type ViewMode = "dueToday" | "overdue";
 const STATUS_COLUMNS = [
   "Confirmed Diagnosis",
   "Ongoing Service",
-  "Pending Pickup (Completed)",
+  "Pending Pickup - Completed",
   "RTO"
 ] as const;
 

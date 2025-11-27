@@ -69,7 +69,7 @@ const OpenDashboard = () => {
         
         // Filter out completed/cancelled statuses
         const excludedStatuses = [
-          "Pending Pickup (Completed)",
+          "Pending Pickup - Completed",
           "Completed",
           "Backjob",
           "RTO",
