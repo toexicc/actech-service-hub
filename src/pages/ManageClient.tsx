@@ -203,12 +203,15 @@ const ManageClient = () => {
         setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
         setIsEditingServiceReport(false);
         
-        // Load discount and final cost data from sheet
-        const serviceCostNum = parseFloat(data.data.serviceCost || "0");
-        const savedDiscountNum = parseFloat(data.data.discount || "0");
-        const savedFinalCost = parseFloat(data.data.finalCost || "0");
+        // Load discount and final cost data from sheet (values may be formatted like 25,000.00)
+        const serviceCostNum = sanitizeNumber(String(data.data.serviceCost ?? "0"));
+        const savedDiscountNum = sanitizeNumber(String(data.data.discount ?? "0"));
+        const savedFinalCost = sanitizeNumber(String(data.data.finalCost ?? "0"));
         
         console.log("[MANAGE-CLIENT] Parsed cost values", {
+          rawServiceCost: data.data.serviceCost,
+          rawDiscount: data.data.discount,
+          rawFinalCost: data.data.finalCost,
           serviceCostNum,
           savedDiscountNum,
           savedFinalCost,
