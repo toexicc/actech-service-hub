@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
@@ -16,7 +17,7 @@ import { FileText, Printer, Package, Camera, Loader2, QrCode } from "lucide-reac
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/ac-tech-logo.jpg";
-import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
 import { STATUS_OPTIONS } from "@/lib/constants";
 
@@ -74,6 +75,8 @@ const ServiceUpdate = () => {
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
   const [updateTechnicianReport, setUpdateTechnicianReport] = useState("");
+  const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   useEffect(() => {
     fetchTechnicians();
@@ -769,16 +772,55 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                  <Textarea
-                    id="technicianDiagnosis"
-                    placeholder="Enter technician diagnosis"
-                    value={updateTechnicianDiagnosis}
-                    onChange={(e) => setUpdateTechnicianDiagnosis(e.target.value)}
-                    rows={4}
-                  />
-                </div>
+                {/* Diagnosis Toggle */}
+                {updateStatus === "Confirmed Diagnosis" && (
+                  <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        <span className="font-semibold">Diagnosis</span>
+                        <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="technicianDiagnosis">Technician Diagnosis (Editable):</Label>
+                        <Textarea
+                          id="technicianDiagnosis"
+                          placeholder="Enter technician diagnosis"
+                          value={updateTechnicianDiagnosis}
+                          onChange={(e) => setUpdateTechnicianDiagnosis(e.target.value)}
+                          rows={4}
+                          className="min-h-[80px] resize-none"
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {/* Report Toggle - Only visible when status is "Service Report" */}
+                {updateStatus === "Service Report" && (
+                  <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        <span className="font-semibold">Report</span>
+                        <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="technicianReport">Technician Report (Editable):</Label>
+                        <Textarea
+                          id="technicianReport"
+                          placeholder="Enter technician report"
+                          value={updateTechnicianReport}
+                          onChange={(e) => setUpdateTechnicianReport(e.target.value)}
+                          rows={4}
+                          className="min-h-[80px] resize-none"
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
@@ -789,22 +831,6 @@ const ServiceUpdate = () => {
                     onChange={(e) => setUpdateTechnicianNotesInternal(e.target.value)}
                     rows={4}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="technicianReport">Technician Report:</Label>
-                  <Textarea
-                    id="technicianReport"
-                    placeholder="Enter technician report"
-                    value={updateTechnicianReport}
-                    onChange={(e) => setUpdateTechnicianReport(e.target.value)}
-                    rows={4}
-                    disabled={updateStatus !== "Ongoing Service"}
-                    className={updateStatus !== "Ongoing Service" ? "opacity-50 cursor-not-allowed" : ""}
-                  />
-                  {updateStatus !== "Ongoing Service" && (
-                    <p className="text-xs text-muted-foreground">This field is only editable when status is "Ongoing Service"</p>
-                  )}
                 </div>
 
                 <Separator />
@@ -867,11 +893,13 @@ const ServiceUpdate = () => {
 
                 <Separator />
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    <Label className="text-lg font-semibold">Parts Used from Inventory</Label>
-                  </div>
+                {/* Parts Used from Inventory - Only shown when status is "Ongoing Service" */}
+                {updateStatus === "Ongoing Service" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      <Label className="text-lg font-semibold">Parts Used from Inventory</Label>
+                    </div>
                   
                   {inventory.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No inventory items available</p>
@@ -896,14 +924,14 @@ const ServiceUpdate = () => {
                           if (qty === 0) return null; // Only show selected parts
                           return (
                             <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">
-                                  {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  ID: {item.id} • ₱{item.cost} • Stock: {item.quantity}
-                                </p>
-                              </div>
+                               <div className="flex-1 min-w-0">
+                                 <p className="font-medium truncate">
+                                   {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
+                                 </p>
+                                 <p className="text-xs text-muted-foreground truncate">
+                                   ID: {item.id} • Stock: {item.quantity}
+                                 </p>
+                               </div>
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
@@ -1018,7 +1046,7 @@ const ServiceUpdate = () => {
                               <SelectContent className="bg-background z-50">
                                 {inventory.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.id} - {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (₱{item.cost}, Stock: {item.quantity})
+                                    {item.id} - {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1049,12 +1077,8 @@ const ServiceUpdate = () => {
                       )}
                     </div>
                   )}
-                  
-                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
-                    <span className="font-semibold">Total Actual Cost:</span>
-                    <span className="text-lg font-bold">₱{calculateActualCost().toLocaleString()}</span>
-                  </div>
                 </div>
+                )}
 
                 <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
                   {isUpdating ? (
