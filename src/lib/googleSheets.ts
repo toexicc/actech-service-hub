@@ -172,7 +172,6 @@ function doGet(e) {
         'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
         'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
         'Recommendations:\n[Professional advice for the customer]\n\n' +
-        'Service Cost: $' + finalCost + '\n\n' +
         '---\n\n' +
         'To proceed with the service, please reply YES to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         '---\n\n' +
@@ -273,7 +272,6 @@ function doGet(e) {
         'Technical Findings:\n[Detailed technical observations and results]\n\n' +
         'Final Status:\n[Current condition of the device]\n\n' +
         'Recommendations:\n[Professional advice for device maintenance and care]\n\n' +
-        'Service Cost: $' + finalCost + '\n\n' +
         'WRITING STYLE REQUIREMENTS:\n' +
         '- Customer-oriented and friendly but professional\n' +
         '- Get straight to the point, no fluff\n' +
@@ -995,8 +993,8 @@ function doPost(e) {
         if (params.technicianNotesCustomer) sheet.getRange(i + 1, 40).setValue(params.technicianNotesCustomer); // Column AN
         if (params.technicianNotesInternal) sheet.getRange(i + 1, 41).setValue(params.technicianNotesInternal); // Column AO
         if (params.technicianReport !== undefined) sheet.getRange(i + 1, 53).setValue(params.technicianReport); // Column BA - Technician Report
-        if (params.partsCost) sheet.getRange(i + 1, 46).setValue(params.partsCost); // Column AT - Parts Cost
-        if (params.partsUsed) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
+        if (params.actualCost !== undefined) sheet.getRange(i + 1, 46).setValue(params.actualCost); // Column AT - Parts Cost (actualCost from frontend)
+        if (params.partsUsed !== undefined) sheet.getRange(i + 1, 47).setValue(params.partsUsed); // Column AU
         
         // Parse existing and new parts to calculate the delta
         var existingPartsUsed = data[i][46] || ""; // Column AU - parts used text
