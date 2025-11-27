@@ -804,7 +804,6 @@ const ServiceUpdate = () => {
                         "Completed",
                         "Backjob",
                         "RTO",
-                        "On Hold",
                         "Cancelled"
                       ];
                       
@@ -835,7 +834,6 @@ const ServiceUpdate = () => {
                           "Completed",
                           "Backjob",
                           "RTO",
-                          "On Hold",
                           "Cancelled"
                         ];
                         const isRestricted = restrictedStatuses.includes(status);
@@ -916,7 +914,7 @@ const ServiceUpdate = () => {
                 </div>
 
                 {/* Diagnosis Toggle - Based on actual sheet status */}
-                {serviceData?.status === "Pending Diagnosis" && (
+                {serviceData?.status === "Ongoing Service" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
