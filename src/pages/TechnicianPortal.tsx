@@ -48,7 +48,7 @@ const TechnicianPortal = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-8">
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Update Form</h2>
@@ -73,17 +73,19 @@ const TechnicianPortal = () => {
             </div>
           </Card>
 
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/tech-dashboard")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Tech Dashboard</h2>
-              <p className="text-muted-foreground mb-6">
-                View due today and overdue services
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Dashboard
-              </Button>
-            </div>
-          </Card>
+          {userRole === "management" && (
+            <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/tech-dashboard")}>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-blue-600 mb-4">Tech Dashboard</h2>
+                <p className="text-muted-foreground mb-6">
+                  View due today and overdue services
+                </p>
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                  Open Dashboard
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
       

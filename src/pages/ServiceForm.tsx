@@ -37,6 +37,7 @@ const formSchema = z.object({
   model: z.string().min(1, "Model is required"),
   memory: z.string().min(1, "Memory is required"),
   chiefComplaint: z.string().min(1, "Chief Complaint is required"),
+  devicePassword: z.string().min(1, "Device Password is required"),
   dents: z.boolean().default(false),
   scratches: z.boolean().default(false),
   missingParts: z.boolean().default(false),
@@ -44,8 +45,6 @@ const formSchema = z.object({
   importantFiles: z.boolean().default(false),
   noPower: z.boolean().default(false),
   repairHistory: z.boolean().default(false),
-  hasPassword: z.boolean().default(false),
-  devicePassword: z.string().optional(),
   physicalSignature: z.boolean().default(false),
   estimatedCost: z.number().min(1, "Estimated Cost is required"),
   timeFrame: z.string().min(1, "Time Frame is required"),
@@ -130,6 +129,7 @@ const ServiceForm = () => {
       model: "",
       memory: "",
       chiefComplaint: "",
+      devicePassword: "",
       dents: false,
       scratches: false,
       missingParts: false,
@@ -137,8 +137,6 @@ const ServiceForm = () => {
       importantFiles: false,
       noPower: false,
       repairHistory: false,
-      hasPassword: false,
-      devicePassword: "",
       estimatedCost: 0,
       timeFrame: "",
       ack1: false,
@@ -379,8 +377,8 @@ const ServiceForm = () => {
       formData.append("Important Files", data.importantFiles ? "Yes" : "No");
       formData.append("No Power", data.noPower ? "Yes" : "No");
       formData.append("Repair History", data.repairHistory ? "Yes" : "No");
-      formData.append("Has Password", data.hasPassword ? "Yes" : "No");
-      formData.append("Device Password", data.hasPassword ? (data.devicePassword || "") : "");
+      formData.append("Has Password", "Yes");
+      formData.append("Device Password", data.devicePassword || "");
       
       // Get technician's department
       const selectedTech = technicianList.find(t => t.name === data.technician);
@@ -878,6 +876,21 @@ const ServiceForm = () => {
               )}
             />
 
+            {/* Device Password */}
+            <FormField
+              control={form.control}
+              name="devicePassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Device Password:</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="text" placeholder="Enter device password" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Device Initial Condition */}
             <div>
               <h2 className="text-xl font-semibold text-blue-600 mb-4">Device Initial Condition</h2>
@@ -975,19 +988,6 @@ const ServiceForm = () => {
 
                 <FormField
                   control={form.control}
-                  name="hasPassword"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <FormLabel className="!mt-0">Password</FormLabel>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="enablePhotoAnnotation"
                   render={({ field }) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
@@ -999,24 +999,6 @@ const ServiceForm = () => {
                   )}
                 />
               </div>
-
-              {form.watch("hasPassword") && (
-                <div className="mt-4">
-                  <FormField
-                    control={form.control}
-                    name="devicePassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Device Password:</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="text" placeholder="Enter device password" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
 
               {form.watch("enablePhotoAnnotation") && (
                 <div className="mt-4 space-y-4">
