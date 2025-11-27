@@ -797,9 +797,9 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map(status => {
+                      {STATUS_OPTIONS.filter(status => {
                         const isTechnician = userRole === "Technician";
-                        const disabledStatuses = [
+                        const restrictedStatuses = [
                           "Pending Diagnosis",
                           "Pending - Approval",
                           "Complete - Approval",
@@ -811,19 +811,16 @@ const ServiceUpdate = () => {
                           "On Hold",
                           "Cancelled"
                         ];
-                        const isDisabled = isTechnician && disabledStatuses.includes(status);
-                        
-                        return (
-                          <SelectItem 
-                            key={status} 
-                            value={status}
-                            disabled={isDisabled}
-                            className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
-                          >
-                            {status}
-                          </SelectItem>
-                        );
-                      })}
+                        // If technician, exclude restricted statuses
+                        if (isTechnician && restrictedStatuses.includes(status)) {
+                          return false;
+                        }
+                        return true;
+                      }).map(status => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
