@@ -914,7 +914,7 @@ const ServiceUpdate = () => {
                 </div>
 
                 {/* Diagnosis Toggle - Based on actual sheet status */}
-                {serviceData?.status === "Ongoing Service" && (
+                {serviceData?.status === "Pending Diagnosis" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
@@ -1029,8 +1029,8 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Report Toggle - Only visible when actual sheet status is "Service Report" */}
-                {serviceData?.status === "Service Report" && (
+                {/* Report Toggle - Only visible when actual sheet status is "Ongoing Service" */}
+                {serviceData?.status === "Ongoing Service" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
