@@ -1119,14 +1119,40 @@ const ServiceUpdate = () => {
                       <Package className="h-5 w-5" />
                       <Label className="text-lg font-semibold">Parts Used from Inventory</Label>
                     </div>
-                    
-                    {inventory.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No inventory items available</p>
-                    ) : (
-                      <div className="space-y-2 max-h-64 overflow-y-auto border rounded-md p-3">
-                        {inventory.map((item) => {
-                          const qty = selectedParts[item.id] || 0;
-                          return (
+                  
+                  {inventory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Loading inventory...</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowQRScanner(!showQRScanner)}
+                          className="flex items-center gap-2"
+                        >
+                          <QrCode className="h-4 w-4" />
+                          {showQRScanner ? "Close Scanner" : "Scan QR Code"}
+                        </Button>
+                      </div>
+                      
+                      {showQRScanner && (
+                        <div className="border rounded-md p-4 bg-background">
+                          <QRScanner 
+                            onScan={handleQRScan}
+                            onClose={() => setShowQRScanner(false)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Available Parts to Add */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Add Parts:</Label>
+                        <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
+                          {inventory
+                            .filter(item => !selectedParts[item.id] || selectedParts[item.id] === 0)
+                            .map((item) => (
                             <div key={item.id} className="flex items-center justify-between gap-2 p-2 hover:bg-muted rounded">
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium truncate">
@@ -1136,27 +1162,198 @@ const ServiceUpdate = () => {
                                   ID: {item.id} • Stock: {item.quantity}
                                 </p>
                               </div>
-                              <Input
-                                type="number"
-                                min="0"
-                                max={item.quantity + qty}
-                                value={qty}
-                                onChange={(e) => {
-                                  const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity + qty);
-                                  setSelectedParts(prev => ({
-                                    ...prev,
-                                    [item.id]: newQty
-                                  }));
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (item.quantity > 0) {
+                                    setSelectedParts(prev => ({
+                                      ...prev,
+                                      [item.id]: 1
+                                    }));
+                                  } else {
+                                    toast({
+                                      title: "Out of Stock",
+                                      description: "This part is currently out of stock",
+                                      variant: "destructive"
+                                    });
+                                  }
                                 }}
-                                className="w-20"
-                                placeholder="Qty"
-                              />
+                                disabled={item.quantity === 0}
+                              >
+                                Add
+                              </Button>
                             </div>
-                          );
-                        })}
+                          ))}
+                          {inventory.filter(item => !selectedParts[item.id] || selectedParts[item.id] === 0).length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-2">All parts already selected</p>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
+
+                      {/* Selected Parts */}
+                      {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Selected Parts:</Label>
+                          <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
+                            {inventory.map((item) => {
+                              const qty = selectedParts[item.id] || 0;
+                              if (qty === 0) return null;
+                              return (
+                                <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">
+                                      {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      ID: {item.id} • Stock: {item.quantity} • Cost: Php {item.cost.toFixed(2)}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      max={item.quantity + qty}
+                                      value={qty}
+                                      onChange={(e) => {
+                                        const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity + qty);
+                                        if (newQty > 0) {
+                                          setSelectedParts(prev => ({
+                                            ...prev,
+                                            [item.id]: newQty
+                                          }));
+                                        }
+                                      }}
+                                      className="w-20"
+                                      placeholder="Qty"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => {
+                                        setSelectedParts(prev => {
+                                          const newParts = { ...prev };
+                                          delete newParts[item.id];
+                                          return newParts;
+                                        });
+                                      }}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {Object.keys(unmatchedParts).length > 0 && (
+                        <div className="space-y-2 border rounded-md p-3">
+                          <Label className="text-sm">Unmatched parts from record:</Label>
+                          <div className="space-y-2">
+                            {Object.entries(unmatchedParts).map(([name, qty]) => (
+                              <div key={name} className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{name}</p>
+                                  <p className="text-xs text-muted-foreground">Not found in current inventory</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={qty}
+                                    onChange={(e) => {
+                                      const newQty = Math.max(1, parseInt(e.target.value) || 1);
+                                      setUnmatchedParts(prev => ({ ...prev, [name]: newQty }));
+                                    }}
+                                    className="w-20"
+                                  />
+                                  <Select
+                                    value=""
+                                    onValueChange={(partId) => {
+                                      setSelectedParts(prev => ({ ...prev, [partId]: qty }));
+                                      setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
+                                    }}
+                                  >
+                                    <SelectTrigger className="min-w-[220px]">
+                                      <SelectValue placeholder="Map to inventory item..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background z-50">
+                                      {inventory.map((item) => (
+                                        <SelectItem key={item.id} value={item.id}>
+                                          {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Label className="text-sm">Add Part:</Label>
+                            <Select
+                              value=""
+                              onValueChange={(partId) => {
+                                setSelectedParts(prev => ({
+                                  ...prev,
+                                  [partId]: 1
+                                }));
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select part to add..." />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background z-50">
+                                {inventory.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.id} - {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Scan QR:</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowQRScanner(true)}
+                              className="w-full"
+                            >
+                              <QrCode className="h-4 w-4 mr-2" />
+                              Scan Part
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {showQRScanner && (
+                        <div className="mt-4">
+                          <QRScanner
+                            onScan={handleQRScan}
+                            onClose={() => setShowQRScanner(false)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 )}
 
                 <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
