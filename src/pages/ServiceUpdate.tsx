@@ -759,71 +759,9 @@ const ServiceUpdate = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
-                    <div className="flex gap-2 mb-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={discountType === "amount" ? "default" : "outline"}
-                        onClick={() => {
-                          setDiscountType("amount");
-                          setDiscountValue("");
-                          setDiscountAmount(0);
-                          const costNum = sanitizeNumber(serviceData.serviceCost || "0");
-                          setFinalCost(costNum);
-                        }}
-                        className="flex-1"
-                      >
-                        Amount
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={discountType === "percentage" ? "default" : "outline"}
-                        onClick={() => {
-                          setDiscountType("percentage");
-                          setDiscountValue("");
-                          setDiscountAmount(0);
-                          const costNum = sanitizeNumber(serviceData.serviceCost || "0");
-                          setFinalCost(costNum);
-                        }}
-                        className="flex-1"
-                      >
-                        Percentage
-                      </Button>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <Input
-                        type="number"
-                        placeholder={discountType === "percentage" ? "Enter %" : "Enter amount"}
-                        value={discountValue}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setDiscountValue(value);
-                          
-                          const costNum = sanitizeNumber(serviceData.serviceCost || "0");
-                          let discount = 0;
-                          
-                          if (discountType === "percentage") {
-                            const percentage = parseFloat(value) || 0;
-                            discount = (costNum * percentage) / 100;
-                          } else {
-                            discount = parseFloat(value) || 0;
-                          }
-                          
-                          setDiscountAmount(discount);
-                          setFinalCost(Math.max(0, costNum - discount));
-                        }}
-                        step={discountType === "percentage" ? "1" : "0.01"}
-                        min="0"
-                        max={discountType === "percentage" ? "100" : undefined}
-                      />
-                      {discountType === "percentage" && <span className="text-sm">%</span>}
-                    </div>
-                    {discountAmount > 0 && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Discount: Php {discountAmount.toFixed(2)}
-                      </p>
-                    )}
+                    <p className="text-lg">
+                      {discountAmount > 0 ? `Php ${discountAmount.toFixed(2)}` : "Php 0.00"}
+                    </p>
                   </div>
 
                   <div>
