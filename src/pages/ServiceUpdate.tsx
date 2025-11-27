@@ -20,6 +20,7 @@ import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
 import { STATUS_OPTIONS } from "@/lib/constants";
+import { sanitizeNumber } from "@/lib/validation";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -82,6 +83,12 @@ const ServiceUpdate = () => {
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [updateServiceReport, setUpdateServiceReport] = useState("");
   const [isFormattingReport, setIsFormattingReport] = useState(false);
+  
+  // Discount and final cost states
+  const [discountType, setDiscountType] = useState<"amount" | "percentage">("amount");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [finalCost, setFinalCost] = useState(0);
 
   useEffect(() => {
     fetchTechnicians();
@@ -301,6 +308,29 @@ const ServiceUpdate = () => {
         setUpdateAIDiagnosis(data.data.aiDiagnosis || ""); // Column AF - AI formatted diagnosis
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
         
+        // Initialize discount and final cost
+        const serviceCostNum = sanitizeNumber(data.data.serviceCost || "0");
+        const savedDiscountNum = sanitizeNumber(data.data.discount || "0");
+        const savedFinalCost = sanitizeNumber(data.data.finalCost || "0");
+        
+        setDiscountAmount(savedDiscountNum);
+        setFinalCost(savedFinalCost > 0 ? savedFinalCost : serviceCostNum);
+        
+        // Determine discount type from saved data
+        if (savedDiscountNum > 0) {
+          const isPercentage = savedDiscountNum < serviceCostNum && savedDiscountNum <= 100;
+          if (isPercentage && (serviceCostNum - (serviceCostNum * savedDiscountNum / 100)).toFixed(2) === savedFinalCost.toFixed(2)) {
+            setDiscountType("percentage");
+            setDiscountValue(savedDiscountNum.toString());
+          } else {
+            setDiscountType("amount");
+            setDiscountValue(savedDiscountNum.toString());
+          }
+        } else {
+          setDiscountType("amount");
+          setDiscountValue("");
+        }
+        
         // Load existing photos from Google Drive folder
         if (data.data.deviceReportFolderUrl) {
           await loadExistingPhotos(data.data.deviceReportFolderUrl);
@@ -417,6 +447,8 @@ const ServiceUpdate = () => {
       formData.append("actualCost", actualCost.toString());
       formData.append("partsUsed", partsUsedForSheet); // Single space if no parts so Apps Script clears cell
       formData.append("partsUsedData", JSON.stringify([...partsUsedArray, ...unmatchedArray])); // Empty array if no parts
+      formData.append("discount", discountAmount.toString());
+      formData.append("finalCost", finalCost.toString());
       formData.append("username", username);
       formData.append("userRole", userRole);
 
@@ -723,6 +755,80 @@ const ServiceUpdate = () => {
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Cost:</h3>
                     <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={discountType === "amount" ? "default" : "outline"}
+                        onClick={() => {
+                          setDiscountType("amount");
+                          setDiscountValue("");
+                          setDiscountAmount(0);
+                          const costNum = sanitizeNumber(serviceData.serviceCost || "0");
+                          setFinalCost(costNum);
+                        }}
+                        className="flex-1"
+                      >
+                        Amount
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={discountType === "percentage" ? "default" : "outline"}
+                        onClick={() => {
+                          setDiscountType("percentage");
+                          setDiscountValue("");
+                          setDiscountAmount(0);
+                          const costNum = sanitizeNumber(serviceData.serviceCost || "0");
+                          setFinalCost(costNum);
+                        }}
+                        className="flex-1"
+                      >
+                        Percentage
+                      </Button>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="number"
+                        placeholder={discountType === "percentage" ? "Enter %" : "Enter amount"}
+                        value={discountValue}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setDiscountValue(value);
+                          
+                          const costNum = sanitizeNumber(serviceData.serviceCost || "0");
+                          let discount = 0;
+                          
+                          if (discountType === "percentage") {
+                            const percentage = parseFloat(value) || 0;
+                            discount = (costNum * percentage) / 100;
+                          } else {
+                            discount = parseFloat(value) || 0;
+                          }
+                          
+                          setDiscountAmount(discount);
+                          setFinalCost(Math.max(0, costNum - discount));
+                        }}
+                        step={discountType === "percentage" ? "1" : "0.01"}
+                        min="0"
+                        max={discountType === "percentage" ? "100" : undefined}
+                      />
+                      {discountType === "percentage" && <span className="text-sm">%</span>}
+                    </div>
+                    {discountAmount > 0 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Discount: Php {discountAmount.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost:</h3>
+                    <p className="text-lg font-semibold text-primary">Php {finalCost.toFixed(2)}</p>
                   </div>
 
                   {serviceData.technician && (
