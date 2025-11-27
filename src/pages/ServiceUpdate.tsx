@@ -1146,12 +1146,18 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Device Report Photo Upload - Only visible when status is "Service Report - Draft" */}
-                {serviceData?.status === "Service Report - Draft" && (
+                {/* Device Report Photo Upload - Only visible when status is "Ongoing Service" */}
+                {serviceData?.status === "Ongoing Service" && (
                   <>
                     <Separator />
 
-                    <DeviceReportUpload 
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Upload the service report checklist as the first photo, and the next 5 photos should be device photos.
+                      </p>
+                    </div>
+
+                    <DeviceReportUpload
                       photos={deviceReportPhotos}
                       onPhotosChange={setDeviceReportPhotos}
                       existingPhotoUrls={existingDeviceReportPhotoUrls}
