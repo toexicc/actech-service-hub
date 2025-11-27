@@ -77,6 +77,11 @@ const ServiceUpdate = () => {
   const [updateTechnicianReport, setUpdateTechnicianReport] = useState("");
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [rawDiagnosis, setRawDiagnosis] = useState("");
+  const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [isFormattingAI, setIsFormattingAI] = useState(false);
+  const [updateServiceReport, setUpdateServiceReport] = useState("");
+  const [isFormattingReport, setIsFormattingReport] = useState(false);
 
   useEffect(() => {
     fetchTechnicians();
@@ -292,6 +297,9 @@ const ServiceUpdate = () => {
         setUpdateTechnicianDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
         setUpdateTechnicianReport(data.data.technicianReport || "");
+        setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
+        setUpdateAIDiagnosis(data.data.aiDiagnosis || ""); // Column AF - AI formatted diagnosis
+        setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
         
         // Load existing photos from Google Drive folder
         if (data.data.deviceReportFolderUrl) {
@@ -404,6 +412,8 @@ const ServiceUpdate = () => {
       formData.append("suggestedRepair", "");
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
       formData.append("technicianReport", updateTechnicianReport);
+      formData.append("aiDiagnosis", updateAIDiagnosis);
+      formData.append("aiReport", updateServiceReport);
       formData.append("actualCost", actualCost.toString());
       formData.append("partsUsed", partsUsedForSheet); // Single space if no parts so Apps Script clears cell
       formData.append("partsUsedData", JSON.stringify([...partsUsedArray, ...unmatchedArray])); // Empty array if no parts
@@ -772,8 +782,8 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
-                {/* Diagnosis Toggle */}
-                {updateStatus === "Confirmed Diagnosis" && (
+                {/* Diagnosis Toggle - Based on actual sheet status */}
+                {serviceData?.status === "Confirmed Diagnosis" && (
                   <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                     <CollapsibleTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
@@ -783,22 +793,99 @@ const ServiceUpdate = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="space-y-4 pt-4">
                       <div className="space-y-2">
-                        <Label htmlFor="technicianDiagnosis">Technician Diagnosis (Editable):</Label>
+                        <div className="flex gap-2 mb-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (!rawDiagnosis?.trim()) {
+                                toast({
+                                  title: "No Raw Diagnosis",
+                                  description: "No raw diagnosis data found from the technician (Column AE)",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
+                              setIsFormattingAI(true);
+                              try {
+                                const params = new URLSearchParams({
+                                  action: 'formatDiagnosis',
+                                  rawDiagnosis,
+                                  customerName: serviceData?.clientName || '',
+                                  deviceType: serviceData?.deviceType || '',
+                                  model: serviceData?.device || '',
+                                  serviceId: serviceId,
+                                  technician: updateTechnician || serviceData?.technician || '',
+                                  finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
+                                });
+
+                                const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
+
+                                if (!response.ok) {
+                                  throw new Error(`Failed to format diagnosis (status ${response.status})`);
+                                }
+
+                                const data = await response.json();
+                                
+                                if (data.error) {
+                                  throw new Error(data.error);
+                                }
+
+                                const formattedDiagnosis = data.formattedDiagnosis;
+
+                                if (formattedDiagnosis) {
+                                  setUpdateAIDiagnosis(formattedDiagnosis);
+                                  toast({
+                                    title: "Success",
+                                    description: "AI formatting complete!",
+                                  });
+                                } else {
+                                  throw new Error("No formatted diagnosis received from AI service");
+                                }
+                              } catch (error: any) {
+                                console.error("Error formatting diagnosis:", error);
+                                toast({
+                                  title: "Error",
+                                  description: error.message || "Failed to format diagnosis with AI.",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setIsFormattingAI(false);
+                              }
+                            }}
+                            disabled={isFormattingAI}
+                          >
+                            {isFormattingAI ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Formatting...
+                              </>
+                            ) : (
+                              "Format with AI"
+                            )}
+                          </Button>
+                        </div>
+                        <Label htmlFor="aiDiagnosis">AI Diagnosis (Editable):</Label>
                         <Textarea
-                          id="technicianDiagnosis"
-                          placeholder="Enter technician diagnosis"
-                          value={updateTechnicianDiagnosis}
-                          onChange={(e) => setUpdateTechnicianDiagnosis(e.target.value)}
-                          rows={4}
-                          className="min-h-[80px] resize-none"
+                          id="aiDiagnosis"
+                          placeholder="AI formatted diagnosis"
+                          value={updateAIDiagnosis}
+                          onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
+                          className="min-h-[100px] resize-none"
+                          style={{ 
+                            minHeight: '100px',
+                            height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
+                          }}
                         />
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
                 )}
 
-                {/* Report Toggle - Only visible when status is "Service Report" */}
-                {updateStatus === "Service Report" && (
+                {/* Report Toggle - Only visible when actual sheet status is "Service Report" */}
+                {serviceData?.status === "Service Report" && (
                   <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                     <CollapsibleTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
@@ -808,14 +895,91 @@ const ServiceUpdate = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="space-y-4 pt-4">
                       <div className="space-y-2">
-                        <Label htmlFor="technicianReport">Technician Report (Editable):</Label>
+                        <div className="flex gap-2 mb-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (!updateTechnicianReport?.trim()) {
+                                toast({
+                                  title: "No Technician Report",
+                                  description: "No technician report data found (Column BA)",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
+                              setIsFormattingReport(true);
+                              try {
+                                const params = new URLSearchParams({
+                                  action: 'formatReport',
+                                  technicianReport: updateTechnicianReport,
+                                  customerName: serviceData?.clientName || '',
+                                  deviceType: serviceData?.deviceType || '',
+                                  model: serviceData?.device || '',
+                                  serviceId: serviceId,
+                                  technician: serviceData?.technician || updateTechnician || '',
+                                  finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
+                                });
+
+                                const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
+
+                                if (!response.ok) {
+                                  throw new Error(`Failed to format report (status ${response.status})`);
+                                }
+
+                                const data = await response.json();
+                                
+                                if (data.error) {
+                                  throw new Error(data.error);
+                                }
+
+                                const formattedReport = data.formattedReport;
+
+                                if (formattedReport) {
+                                  setUpdateServiceReport(formattedReport);
+                                  toast({
+                                    title: "Success",
+                                    description: "Service report formatted successfully!",
+                                  });
+                                } else {
+                                  throw new Error("No formatted report received from AI service");
+                                }
+                              } catch (error: any) {
+                                console.error("Error formatting service report:", error);
+                                toast({
+                                  title: "Error",
+                                  description: error.message || "Failed to format service report with AI.",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setIsFormattingReport(false);
+                              }
+                            }}
+                            disabled={isFormattingReport}
+                          >
+                            {isFormattingReport ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Formatting...
+                              </>
+                            ) : (
+                              "Format with AI"
+                            )}
+                          </Button>
+                        </div>
+                        <Label htmlFor="aiReport">AI Report (Editable):</Label>
                         <Textarea
-                          id="technicianReport"
-                          placeholder="Enter technician report"
-                          value={updateTechnicianReport}
-                          onChange={(e) => setUpdateTechnicianReport(e.target.value)}
-                          rows={4}
-                          className="min-h-[80px] resize-none"
+                          id="aiReport"
+                          placeholder="AI formatted service report"
+                          value={updateServiceReport}
+                          onChange={(e) => setUpdateServiceReport(e.target.value)}
+                          className="min-h-[100px] resize-none"
+                          style={{ 
+                            minHeight: '100px',
+                            height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
+                          }}
                         />
                       </div>
                     </CollapsibleContent>
@@ -893,8 +1057,8 @@ const ServiceUpdate = () => {
 
                 <Separator />
 
-                {/* Parts Used from Inventory - Only shown when status is "Ongoing Service" */}
-                {updateStatus === "Ongoing Service" && (
+                {/* Parts Used from Inventory - Only shown when actual sheet status is "Ongoing Service" */}
+                {serviceData?.status === "Ongoing Service" && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Package className="h-5 w-5" />
