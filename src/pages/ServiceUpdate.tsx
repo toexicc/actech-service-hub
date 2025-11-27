@@ -447,6 +447,30 @@ const ServiceUpdate = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        // After technician update, also push AI fields to AF (AI Diagnosis) and BB (AI Report)
+        try {
+          if (updateAIDiagnosis || updateServiceReport) {
+            const aiFormData = new FormData();
+            aiFormData.append("action", "updateService");
+            aiFormData.append("serviceId", serviceId);
+            aiFormData.append("deviceType", serviceData.deviceType);
+            aiFormData.append("aiDiagnosis", updateAIDiagnosis);
+            aiFormData.append("aiReport", updateServiceReport);
+
+            const aiResponse = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+              method: "POST",
+              body: aiFormData,
+            });
+
+            const aiResult = await aiResponse.json();
+            if (aiResult.result !== "success") {
+              console.warn("AI fields update failed:", aiResult);
+            }
+          }
+        } catch (aiError) {
+          console.error("Error updating AI diagnosis/report:", aiError);
+        }
+
         // Log the activity
         const changes = [];
         if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status} → ${updateStatus}`);
