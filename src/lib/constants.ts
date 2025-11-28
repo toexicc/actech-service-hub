@@ -35,6 +35,53 @@ export const DEPARTMENTS = [
 
 export type Department = typeof DEPARTMENTS[number];
 
+// Device types by department mapping
+export const DEVICE_TYPES_BY_DEPARTMENT: Record<string, string[]> = {
+  "Laptop (Daily Repairs)": [
+    "Laptop (Mac)",
+    "Laptop (Windows)",
+    "Computer (iMac)",
+    "Desktop Computer (Windows)",
+    "Computer (Mac Mini)",
+    "Others"
+  ],
+  "Laptop (Screens)": [
+    "Laptop (Mac)",
+    "Others"
+  ],
+  "Laptop (Logic Board)": [
+    "Laptop (Mac)",
+    "Laptop (Windows)",
+    "Computer (iMac)",
+    "Computer (Mac Mini)",
+    "Drone",
+    "Speakers",
+    "Gaming Consoles",
+    "Gaming Controllers",
+    "Headphones",
+    "Others"
+  ],
+  "Mobile (Daily Repairs)": [
+    "Mobile (iPhone)",
+    "iPad",
+    "Apple Watch",
+    "Mobile (Android)",
+    "Tablet (Android)",
+    "Others"
+  ],
+  "Mobile (Logic Board)": [
+    "Mobile (iPhone)",
+    "iPad",
+    "Apple Watch",
+    "Mobile (Android)",
+    "Tablet (Android)",
+    "AirPods",
+    "Go Pro",
+    "Others"
+  ],
+  "Others": DEVICE_TYPES as unknown as string[]
+};
+
 export const PRIORITY_OPTIONS = [
   "Rush (with 10% Rush Fee)",
   "Loyalty",

@@ -19,8 +19,9 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
-import { STATUS_OPTIONS } from "@/lib/constants";
+import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
 import { sanitizeNumber } from "@/lib/validation";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -432,8 +433,9 @@ const ServiceUpdate = () => {
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       
-      // Get technician department from the selected technician
-      const selectedTech = technicians.find(t => t.name === updateTechnician);
+      // Get technician department from the selected technician (use first if multiple)
+      const techNames = updateTechnician.split(", ").filter(Boolean);
+      const selectedTech = technicians.find(t => t.name === techNames[0]);
       const techDept = selectedTech?.department || "";
       formData.append("technicianDepartment", techDept);
       formData.append("department", techDept);
@@ -856,48 +858,18 @@ const ServiceUpdate = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician:</Label>
-                  <Select value={updateTechnician} onValueChange={(value) => {
-                    setUpdateTechnician(value);
-                    // Auto-update department when technician changes
-                    const selectedTech = technicians.find(t => t.name === value);
-                    if (selectedTech?.department) {
-                      // Department will be sent in the update
-                    }
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select technician">
-                        {updateTechnician && technicians.find(t => t.name === updateTechnician) && (
-                          <div className="flex flex-col items-start">
-                            <span>{updateTechnician}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {technicians.find(t => t.name === updateTechnician)?.department}
-                            </span>
-                          </div>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="bg-background z-50">
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {Object.entries(
-                        technicians.reduce((acc, tech) => {
-                          if (!acc[tech.department]) acc[tech.department] = [];
-                          acc[tech.department].push(tech);
-                          return acc;
-                        }, {} as Record<string, typeof technicians>)
-                      ).map(([dept, techs]) => (
-                        <div key={dept}>
-                          <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                            {dept}
-                          </div>
-                          {techs.map((tech) => (
-                            <SelectItem key={tech.name} value={tech.name}>
-                              {tech.name}
-                            </SelectItem>
-                          ))}
-                        </div>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSelect
+                    options={[
+                      { label: "Unassigned", value: "unassigned" },
+                      ...technicians.map(tech => ({
+                        label: `${tech.name} - ${tech.department}`,
+                        value: tech.name
+                      }))
+                    ]}
+                    selected={updateTechnician ? updateTechnician.split(", ") : []}
+                    onChange={(values) => setUpdateTechnician(values.join(", "))}
+                    placeholder="Select Technicians"
+                  />
                 </div>
 
                 <div className="space-y-2">
