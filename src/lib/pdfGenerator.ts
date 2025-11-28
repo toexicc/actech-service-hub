@@ -69,9 +69,6 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   });
   yPos += 4;
   doc.text("MONDAY TO SATURDAY (10:00 PM - 7:00 PM)", 105, yPos, { align: "center" });
-  yPos += 4;
-  doc.setFontSize(8);
-  doc.text("powered by techbros", 105, yPos, { align: "center" });
 
   // Title
   yPos += 10;

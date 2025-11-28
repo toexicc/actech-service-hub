@@ -13,6 +13,8 @@ export const DEVICE_TYPES = [
   "Computer (Mac Mini)",
   "Drone",
   "Speakers",
+  "AirPods",
+  "Go Pro",
   "Gaming Consoles",
   "Gaming Controllers",
   "Headphones",

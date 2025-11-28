@@ -1133,7 +1133,7 @@ const ServiceForm = () => {
                         <FormLabel className="!mt-0 text-sm">
                           I have read and understood the{" "}
                           <a
-                            href="https://bit.ly/actech-termsnconditions"
+                            href="https://drive.google.com/file/d/1FsuYQpjPkZgRqcTJRwaJSAP_HFI6HnK1/view?usp=sharing"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 underline hover:text-blue-800"
