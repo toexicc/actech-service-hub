@@ -860,15 +860,17 @@ const ServiceUpdate = () => {
                   <Label htmlFor="technician">Assigned Technician:</Label>
                   <MultiSelect
                     options={[
-                      { label: "Unassigned", value: "unassigned" },
+                      { label: "Unassigned", value: "unassigned", group: "Status" },
                       ...technicians.map(tech => ({
-                        label: `${tech.name} - ${tech.department}`,
-                        value: tech.name
+                        label: tech.name,
+                        value: tech.name,
+                        group: tech.department
                       }))
                     ]}
                     selected={updateTechnician ? updateTechnician.split(", ") : []}
                     onChange={(values) => setUpdateTechnician(values.join(", "))}
                     placeholder="Select Technicians"
+                    grouped
                   />
                 </div>
 
