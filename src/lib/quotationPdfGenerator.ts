@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { PDFDocument } from "pdf-lib";
 
 interface QuotationPDFData {
   serviceId: string;
@@ -138,9 +139,6 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   });
   yPos += 4;
   doc.text("MONDAY TO SATURDAY (10:00 PM - 7:00 PM)", 105, yPos, { align: "center" });
-  yPos += 4;
-  doc.setFontSize(8);
-  doc.text("powered by techbros", 105, yPos, { align: "center" });
 
   // Title
   yPos += 10;
@@ -399,6 +397,36 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   const footerLines = doc.splitTextToSize(footerText, 180);
   doc.text(footerLines, leftCol, yPos);
 
-  // Return as blob
-  return doc.output("blob");
+  // Convert jsPDF to blob first
+  const quotationBlob = doc.output("blob");
+
+  // Merge with Terms and Conditions PDF
+  try {
+    // Load the quotation PDF
+    const quotationPdfBytes = await quotationBlob.arrayBuffer();
+    const quotationPdfDoc = await PDFDocument.load(quotationPdfBytes);
+
+    // Load the Terms and Conditions PDF from public folder
+    const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
+    const termsResponse = await fetch(`${basePath}/AC_Tech_Terms_and_Condition.pdf`);
+    
+    if (termsResponse.ok) {
+      const termsPdfBytes = await termsResponse.arrayBuffer();
+      const termsPdfDoc = await PDFDocument.load(termsPdfBytes);
+      
+      // Copy all pages from Terms PDF to the quotation PDF
+      const copiedPages = await quotationPdfDoc.copyPages(termsPdfDoc, termsPdfDoc.getPageIndices());
+      copiedPages.forEach((page) => {
+        quotationPdfDoc.addPage(page);
+      });
+    }
+
+    // Save the merged PDF
+    const mergedPdfBytes = await quotationPdfDoc.save();
+    return new Blob([new Uint8Array(mergedPdfBytes)], { type: 'application/pdf' });
+  } catch (error) {
+    console.error('Error merging PDFs:', error);
+    // Return quotation PDF without terms if merging fails
+    return quotationBlob;
+  }
 };
