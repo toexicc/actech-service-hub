@@ -14,11 +14,12 @@ import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
-import { DEVICE_TYPES } from "@/lib/constants";
+import { DEVICE_TYPES, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -380,8 +381,9 @@ const ServiceForm = () => {
       formData.append("Has Password", "Yes");
       formData.append("Device Password", data.devicePassword || "");
       
-      // Get technician's department
-      const selectedTech = technicianList.find(t => t.name === data.technician);
+      // Get technician's department (use first technician if multiple)
+      const techNames = data.technician.split(", ").filter(Boolean);
+      const selectedTech = technicianList.find(t => t.name === techNames[0]);
       formData.append("Technician Department", selectedTech?.department || "");
       
       formData.append("Time Frame", data.timeFrame);
@@ -586,42 +588,17 @@ const ServiceForm = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Technician:</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Technician" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-background z-50">
-                        {technicianList.length > 0 ? (
-                          Object.entries(
-                            technicianList.reduce((acc, tech) => {
-                              if (!acc[tech.department]) acc[tech.department] = [];
-                              acc[tech.department].push(tech);
-                              return acc;
-                            }, {} as Record<string, typeof technicianList>)
-                          ).map(([dept, techs]) => (
-                            <div key={dept}>
-                              <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                                {dept}
-                              </div>
-                              {techs.map((tech) => (
-                                <SelectItem key={tech.name} value={tech.name}>
-                                  <div className="flex flex-col items-start">
-                                    <span>{tech.name}</span>
-                                    <span className="text-xs text-muted-foreground">{tech.department}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </div>
-                          ))
-                        ) : (
-                          <SelectItem value="No Technicians" disabled>
-                            No Technicians Available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <MultiSelect
+                        options={technicianList.map(tech => ({
+                          label: `${tech.name} - ${tech.department}`,
+                          value: tech.name
+                        }))}
+                        selected={field.value ? field.value.split(", ") : []}
+                        onChange={(values) => field.onChange(values.join(", "))}
+                        placeholder="Select Technicians"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -743,50 +720,67 @@ const ServiceForm = () => {
                 <FormField
                   control={form.control}
                   name="deviceType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Device Type:</FormLabel>
-                      {showOtherDeviceInput ? (
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            placeholder="Enter device type"
-                            onBlur={() => {
-                              if (!field.value) {
-                                setShowOtherDeviceInput(false);
-                              }
-                            }}
-                          />
-                        </FormControl>
-                      ) : (
-                        <Select 
-                          onValueChange={(value) => {
-                            if (value === "Others") {
-                              setShowOtherDeviceInput(true);
-                              field.onChange("");
-                            } else {
-                              field.onChange(value);
-                            }
-                          }} 
-                          value={field.value}
-                        >
+                  render={({ field }) => {
+                    // Get selected technicians' departments
+                    const selectedTechNames = form.watch("technician")?.split(", ").filter(Boolean) || [];
+                    const selectedTechDepartments = selectedTechNames
+                      .map(name => technicianList.find(t => t.name === name)?.department)
+                      .filter(Boolean) as string[];
+                    
+                    // Get available device types based on selected departments
+                    const availableDeviceTypes = selectedTechDepartments.length > 0
+                      ? Array.from(new Set(
+                          selectedTechDepartments.flatMap(dept => 
+                            DEVICE_TYPES_BY_DEPARTMENT[dept] || []
+                          )
+                        ))
+                      : DEVICE_TYPES;
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Device Type:</FormLabel>
+                        {showOtherDeviceInput ? (
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Device" />
-                            </SelectTrigger>
+                            <Input 
+                              {...field} 
+                              placeholder="Enter device type"
+                              onBlur={() => {
+                                if (!field.value) {
+                                  setShowOtherDeviceInput(false);
+                                }
+                              }}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            {DEVICE_TYPES.map((deviceType) => (
-                              <SelectItem key={deviceType} value={deviceType}>
-                                {deviceType}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                        ) : (
+                          <Select 
+                            onValueChange={(value) => {
+                              if (value === "Others") {
+                                setShowOtherDeviceInput(true);
+                                field.onChange("");
+                              } else {
+                                field.onChange(value);
+                              }
+                            }} 
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Device" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {availableDeviceTypes.map((deviceType) => (
+                                <SelectItem key={deviceType} value={deviceType}>
+                                  {deviceType}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField

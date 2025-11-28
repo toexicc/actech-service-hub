@@ -20,9 +20,10 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS } from "@/lib/constants";
+import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -429,8 +430,9 @@ const ManageClient = () => {
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       
-      // Get technician department from the selected technician
-      const selectedTech = technicians.find(t => t.name === updateTechnician);
+      // Get technician department from the selected technician (use first if multiple)
+      const techNames = updateTechnician.split(", ").filter(Boolean);
+      const selectedTech = technicians.find(t => t.name === techNames[0]);
       const techDept = selectedTech?.department || "";
       formData.append("technicianDepartment", techDept);
       formData.append("department", techDept);
@@ -1106,51 +1108,64 @@ const ManageClient = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="technician">Technician:</Label>
-                  <Select value={updateTechnician} onValueChange={(value) => {
-                    setUpdateTechnician(value);
-                    // Auto-update department when technician changes
-                    const selectedTech = technicians.find(t => t.name === value);
-                    if (selectedTech?.department) {
-                      // Department will be sent in the update
-                    }
+                  <MultiSelect
+                    options={technicians.map(tech => ({
+                      label: `${tech.name} - ${tech.department}`,
+                      value: tech.name
+                    }))}
+                    selected={updateTechnician ? updateTechnician.split(", ") : []}
+                    onChange={(values) => setUpdateTechnician(values.join(", "))}
+                    placeholder="Select Technicians"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deviceType">Device Type:</Label>
+                  <Select value={serviceData?.deviceType || ""} onValueChange={(value) => {
+                    setServiceData((prev: any) => ({ ...prev, deviceType: value }));
                   }}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select technician">
-                        {updateTechnician && technicians.find(t => t.name === updateTechnician) && (
-                          <div className="flex flex-col items-start">
-                            <span>{updateTechnician}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {technicians.find(t => t.name === updateTechnician)?.department}
-                            </span>
-                          </div>
-                        )}
-                      </SelectValue>
+                      <SelectValue placeholder="Select device type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        // Get selected technicians' departments
+                        const selectedTechNames = updateTechnician?.split(", ").filter(Boolean) || [];
+                        const selectedTechDepartments = selectedTechNames
+                          .map(name => technicians.find(t => t.name === name)?.department)
+                          .filter(Boolean) as string[];
+                        
+                        // Get available device types based on selected departments
+                        const availableDeviceTypes = selectedTechDepartments.length > 0
+                          ? Array.from(new Set(
+                              selectedTechDepartments.flatMap(dept => 
+                                DEVICE_TYPES_BY_DEPARTMENT[dept] || []
+                              )
+                            ))
+                          : Object.values(DEVICE_TYPES_BY_DEPARTMENT).flat();
+                        
+                        const uniqueDeviceTypes = Array.from(new Set(availableDeviceTypes));
+                        
+                        return uniqueDeviceTypes.map((deviceType) => (
+                          <SelectItem key={deviceType} value={deviceType}>
+                            {deviceType}
+                          </SelectItem>
+                        ));
+                      })()}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 hidden">
+                  <Label htmlFor="old-technician">Old Technician Field (Hidden):</Label>
+                  <Select value={""} onValueChange={() => {}}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select technician" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
-                      {technicians.length > 0 ? (
-                        Object.entries(
-                          technicians.reduce((acc, tech) => {
-                            if (!acc[tech.department]) acc[tech.department] = [];
-                            acc[tech.department].push(tech);
-                            return acc;
-                          }, {} as Record<string, typeof technicians>)
-                        ).map(([dept, techs]) => (
-                          <div key={dept}>
-                            <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
-                              {dept}
-                            </div>
-                            {techs.map((tech) => (
-                              <SelectItem key={tech.name} value={tech.name}>
-                                {tech.name}
-                              </SelectItem>
-                            ))}
-                          </div>
-                        ))
-                      ) : (
-                        <SelectItem value="No Technicians" disabled>
-                          No Technicians Available
-                        </SelectItem>
-                      )}
+                      <SelectItem value="No Technicians" disabled>
+                        No Technicians Available
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
