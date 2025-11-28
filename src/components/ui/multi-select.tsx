@@ -15,10 +15,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export interface MultiSelectOption {
   label: string;
   value: string;
+  group?: string;
 }
 
 interface MultiSelectProps {
@@ -27,6 +29,7 @@ interface MultiSelectProps {
   onChange: (values: string[]) => void;
   placeholder?: string;
   className?: string;
+  grouped?: boolean;
 }
 
 export function MultiSelect({
@@ -35,6 +38,7 @@ export function MultiSelect({
   onChange,
   placeholder = "Select items...",
   className,
+  grouped = false,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -49,6 +53,18 @@ export function MultiSelect({
       onChange([...selected, value]);
     }
   };
+
+  // Group options by their group property
+  const groupedOptions = React.useMemo(() => {
+    if (!grouped) return { ungrouped: options };
+    
+    return options.reduce((acc, option) => {
+      const group = option.group || "ungrouped";
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(option);
+      return acc;
+    }, {} as Record<string, MultiSelectOption[]>);
+  }, [options, grouped]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -111,24 +127,55 @@ export function MultiSelect({
         <Command>
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No item found.</CommandEmpty>
-          <CommandGroup className="max-h-64 overflow-auto">
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                onSelect={() => handleSelect(option.value)}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selected.includes(option.value)
-                      ? "opacity-100"
-                      : "opacity-0"
-                  )}
-                />
-                {option.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          <div className="max-h-64 overflow-auto">
+            {grouped ? (
+              Object.entries(groupedOptions).map(([groupName, groupOptions], index) => (
+                <React.Fragment key={groupName}>
+                  {index > 0 && <Separator className="my-1" />}
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50">
+                    {groupName}
+                  </div>
+                  <CommandGroup>
+                    {groupOptions.map((option) => (
+                      <CommandItem
+                        key={option.value}
+                        onSelect={() => handleSelect(option.value)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selected.includes(option.value)
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {option.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </React.Fragment>
+              ))
+            ) : (
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => handleSelect(option.value)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selected.includes(option.value)
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                    {option.label}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </div>
         </Command>
       </PopoverContent>
     </Popover>

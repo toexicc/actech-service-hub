@@ -591,12 +591,14 @@ const ServiceForm = () => {
                     <FormControl>
                       <MultiSelect
                         options={technicianList.map(tech => ({
-                          label: `${tech.name} - ${tech.department}`,
-                          value: tech.name
+                          label: tech.name,
+                          value: tech.name,
+                          group: tech.department
                         }))}
                         selected={field.value ? field.value.split(", ") : []}
                         onChange={(values) => field.onChange(values.join(", "))}
                         placeholder="Select Technicians"
+                        grouped
                       />
                     </FormControl>
                     <FormMessage />
