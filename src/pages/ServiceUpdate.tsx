@@ -433,13 +433,15 @@ const ServiceUpdate = () => {
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       
-      // Get technician department from the selected technician (use first if multiple)
+      // Get departments from all selected technicians
       const techNames = updateTechnician.split(", ").filter(Boolean);
-      const selectedTech = technicians.find(t => t.name === techNames[0]);
-      const techDept = selectedTech?.department || "";
-      formData.append("technicianDepartment", techDept);
-      formData.append("department", techDept);
-      formData.append("Technician Department", techDept);
+      const departments = techNames
+        .map(name => technicians.find(t => t.name === name)?.department)
+        .filter(Boolean)
+        .join(", ");
+      formData.append("technicianDepartment", departments);
+      formData.append("department", departments);
+      formData.append("Technician Department", departments);
       formData.append("technicianDiagnosis", updateTechnicianDiagnosis);
       formData.append("suggestedRepair", "");
       formData.append("technicianNotesInternal", updateTechnicianNotesInternal);
