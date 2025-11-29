@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { PDFDocument } from "pdf-lib";
 
 interface PDFData {
   serviceId: string;
@@ -311,6 +312,36 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     }
   }
 
-  // Return as blob
-  return doc.output("blob");
+  // Convert jsPDF to blob first
+  const intakeBlob = doc.output("blob");
+
+  // Merge with Terms and Conditions PDF
+  try {
+    // Load the intake PDF
+    const intakePdfBytes = await intakeBlob.arrayBuffer();
+    const intakePdfDoc = await PDFDocument.load(intakePdfBytes);
+
+    // Load the Terms and Conditions PDF from public folder
+    const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
+    const termsResponse = await fetch(`${basePath}/AC_Tech_Terms_and_Condition.pdf`);
+    
+    if (termsResponse.ok) {
+      const termsPdfBytes = await termsResponse.arrayBuffer();
+      const termsPdfDoc = await PDFDocument.load(termsPdfBytes);
+      
+      // Copy all pages from Terms PDF to the intake PDF
+      const copiedPages = await intakePdfDoc.copyPages(termsPdfDoc, termsPdfDoc.getPageIndices());
+      copiedPages.forEach((page) => {
+        intakePdfDoc.addPage(page);
+      });
+    }
+
+    // Save the merged PDF
+    const mergedPdfBytes = await intakePdfDoc.save();
+    return new Blob([new Uint8Array(mergedPdfBytes)], { type: 'application/pdf' });
+  } catch (error) {
+    console.error('Error merging PDFs:', error);
+    // Return intake PDF without terms if merging fails
+    return intakeBlob;
+  }
 };
