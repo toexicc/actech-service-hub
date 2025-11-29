@@ -60,7 +60,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   // Center logo at top with proper aspect ratio (square logo)
   doc.addImage(logoImg, "PNG", 80, 10, 50, 50);
 
-  let yPos = 61;
+  let yPos = 55;
 
   // Header text
   doc.setFontSize(9);
