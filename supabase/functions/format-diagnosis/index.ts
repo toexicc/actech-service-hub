@@ -60,11 +60,14 @@ Suggested Solution:
 Recommendations:
 [1 sentence - professional advice]
 
+Service Breakdown:
+[Edit or Remove if Needed]
+
 Service Cost: $${finalCost || '0'}
 
 ---
 
-To proceed with the service, please reply "YES" to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
+To proceed with the service, please reply "PROCEED" to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
 
 ---
 

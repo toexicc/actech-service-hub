@@ -641,6 +641,70 @@ const ServiceUpdate = () => {
 
                 <Separator />
 
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        if (!serviceData?.quotationPdfUrl) {
+                          toast({
+                            title: "No Quotation PDF Available",
+                            description: "Quotation PDF has not been generated yet",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        const url = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview");
+                        const win = window.open(url, "_blank");
+                        if (win) {
+                          win.document.title = "Service Quotation Form";
+                        }
+                      }} 
+                      variant="outline" 
+                      className="flex-1"
+                      disabled={!serviceData?.quotationPdfUrl}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        if (!serviceData?.quotationPdfUrl) {
+                          toast({
+                            title: "No Quotation PDF Available",
+                            description: "Quotation PDF has not been generated yet",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        const rawUrl = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "download");
+                        const win = window.open("", "_blank");
+                        if (win) {
+                          const html = `<!doctype html><html><head><title>Service Quotation Form - Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
+                          win.document.open();
+                          win.document.write(html);
+                          win.document.close();
+                        } else {
+                          window.open(rawUrl, '_blank');
+                          toast({
+                            title: "Popup Blocked",
+                            description: "Allow popups to auto-print, PDF opened in a new tab.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      variant="outline" 
+                      className="flex-1"
+                      disabled={!serviceData?.quotationPdfUrl}
+                    >
+                      <Printer className="mr-2 h-4 w-4" />
+                      Print PDF
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
                 <div className="grid gap-4">
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Type:</h3>

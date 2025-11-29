@@ -620,9 +620,9 @@ const InventoryManagement = () => {
     return filteredAndSortedInventory.slice(startIndex, endIndex);
   }, [filteredAndSortedInventory, currentPage, itemsPerPage]);
 
-  // Filtered logs
+  // Filtered and sorted logs (most recent first)
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
+    const filtered = logs.filter(log => {
       // Log ID search
       if (logIdSearch && !log.logId.toLowerCase().includes(logIdSearch.toLowerCase())) {
         return false;
@@ -663,6 +663,17 @@ const InventoryManagement = () => {
       }
       
       return true;
+    });
+
+    // Sort by dateTime descending (most recent first)
+    return filtered.sort((a, b) => {
+      try {
+        const dateA = new Date(a.dateTime).getTime();
+        const dateB = new Date(b.dateTime).getTime();
+        return dateB - dateA; // Descending order
+      } catch {
+        return 0;
+      }
     });
   }, [logs, logIdSearch, logPartNameFilter, logDeviceTypeFilter, logUsernameFilter, logDateFrom, logDateTo]);
 
