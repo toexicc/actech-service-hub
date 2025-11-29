@@ -172,8 +172,9 @@ function doGet(e) {
         'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
         'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
         'Recommendations:\n[Professional advice for the customer]\n\n' +
+        'Service Breakdown:\n[Edit or Remove if Needed]\n\n' +
         '---\n\n' +
-        'To proceed with the service, please reply YES to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
+        'To proceed with the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         '---\n\n' +
         'SUMMARY: [One-line summary of the repair needed]\n\n' +
         'WRITING STYLE REQUIREMENTS:\n' +
