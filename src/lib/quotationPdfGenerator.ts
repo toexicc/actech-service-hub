@@ -129,7 +129,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   // Center logo at top with proper aspect ratio (matching client intake form)
   doc.addImage(logoImg, "PNG", 80, 10, 50, 50);
 
-  let yPos = 65;
+  let yPos = 62;
 
   // Header text (matching client intake form size)
   doc.setFontSize(9);
