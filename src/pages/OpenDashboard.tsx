@@ -16,6 +16,8 @@ interface ServiceRecord {
   deviceType: string;
   targetDate: string;
   status: string;
+  timestamp: string;
+  internalTechnicianNotes: string;
 }
 
 interface GroupedServices {
@@ -175,7 +177,6 @@ const OpenDashboard = () => {
     const grouped: GroupedServices = {
       LAPTOP: {},
       MOBILE: {},
-      OTHERS: {},
     };
 
     DEPARTMENTS.forEach((dept) => {
@@ -183,22 +184,18 @@ const OpenDashboard = () => {
         grouped.LAPTOP[dept] = [];
       } else if (dept.startsWith("Mobile")) {
         grouped.MOBILE[dept] = [];
-      } else if (dept === "Others") {
-        grouped.OTHERS[dept] = [];
       }
     });
 
     services.forEach((service) => {
       const techDept = techniciansWithDept.find((t) => t.name === service.technician)?.department || "";
-      const department = techDept || "Others";
+      const department = techDept || "";
 
       let category: keyof GroupedServices | null = null;
       if (department.startsWith("Laptop")) {
         category = "LAPTOP";
       } else if (department.startsWith("Mobile")) {
         category = "MOBILE";
-      } else if (department === "Others") {
-        category = "OTHERS";
       } else if (service.deviceType?.toLowerCase().includes("laptop") ||
                  service.deviceType?.toLowerCase().includes("mac") ||
                  service.deviceType?.toLowerCase().includes("computer") ||
@@ -209,17 +206,26 @@ const OpenDashboard = () => {
                  service.deviceType?.toLowerCase().includes("android") ||
                  service.deviceType?.toLowerCase().includes("ipad")) {
         category = "MOBILE";
-      } else {
-        category = "OTHERS";
       }
 
-      if (!category) return;
+      if (!category || !department) return;
 
       if (!grouped[category][department]) {
         grouped[category][department] = [];
       }
 
       grouped[category][department].push(service);
+    });
+
+    // Sort each department group by timestamp (oldest first)
+    Object.values(grouped).forEach((categoryGroup) => {
+      Object.keys(categoryGroup).forEach((dept) => {
+        categoryGroup[dept].sort((a, b) => {
+          const timeA = new Date(a.timestamp).getTime();
+          const timeB = new Date(b.timestamp).getTime();
+          return timeA - timeB;
+        });
+      });
     });
 
     console.log("Grouped services (dashboard):", grouped);
@@ -323,6 +329,11 @@ const OpenDashboard = () => {
                               <div className="mt-1 text-xs text-muted-foreground text-center truncate w-full font-medium">
                                 {service.technician || "Unassigned"}
                               </div>
+                              {service.internalTechnicianNotes && (
+                                <div className="text-xs text-muted-foreground text-center mt-1 italic line-clamp-2">
+                                  {service.internalTechnicianNotes}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
