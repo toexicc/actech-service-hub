@@ -188,7 +188,10 @@ const OpenDashboard = () => {
     });
 
     services.forEach((service) => {
-      const techDept = techniciansWithDept.find((t) => t.name === service.technician)?.department || "";
+      // Handle multiple technicians (comma-separated) - use first technician's department
+      const technicianNames = service.technician?.split(',').map(t => t.trim()) || [];
+      const firstTechnician = technicianNames[0] || '';
+      const techDept = techniciansWithDept.find((t) => t.name === firstTechnician)?.department || "";
       const department = techDept || "";
 
       let category: keyof GroupedServices | null = null;
