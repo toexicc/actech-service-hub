@@ -524,6 +524,7 @@ function doGet(e) {
         "serviceId": data[i][0],
         "timestamp": data[i][4],
         "technician": data[i][3],
+        "technicianDepartment": data[i][39], // Column AN - Technician Department (comma-separated if multiple)
         "service": data[i][26],
         "deviceType": data[i][12],
         "brand": data[i][14],
@@ -659,7 +660,7 @@ function doGet(e) {
           "serviceId": data[i][0],
           "timestamp": data[i][4],
           "technician": data[i][3],
-          "department": data[i][44] || "N/A", // Column AS (Technician Department)
+          "department": data[i][39] || "N/A", // Column AN (Technician Department)
           "deviceType": data[i][12],
           "clientName": data[i][8],
           "service": data[i][26],
