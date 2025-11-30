@@ -57,7 +57,7 @@ Service Performed:
 Recommendation:
 [1 sentence - professional advice for the customer]
 
-Service Cost: $${finalCost || '0'}
+Service Cost: Php {Enter Amount}
 
 IMPORTANT RULES:
 - Be concise, professional, and customer-friendly

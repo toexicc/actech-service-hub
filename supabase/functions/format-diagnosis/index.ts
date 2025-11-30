@@ -61,9 +61,11 @@ Recommendations:
 [1 sentence - professional advice]
 
 Service Breakdown:
-[List each service item on a new line, e.g., "LCD Replacement - Php {Enter Amount}"]
+[List each service item on a new line. For EVERY item, ALWAYS write the price as "Php {Enter Amount}" literally (do not use real numbers). Example:
+LCD Replacement - Php {Enter Amount}
+Bezel Replacement - Php {Enter Amount}]
 
-Service Cost: $${finalCost || '0'}
+Service Cost: Php {Enter Amount}
 
 ---
 

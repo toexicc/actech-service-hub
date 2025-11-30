@@ -159,20 +159,20 @@ function doGet(e) {
         'Customer: ' + customerName + '\n' +
         'Device: ' + deviceType + ' (' + model + ')\n' +
         'Service ID: ' + serviceId + '\n' +
-        'Technician: ' + technician + '\n' +
         'Raw Notes: ' + rawDiagnosis + '\n\n' +
         'EXACT FORMAT TO FOLLOW:\n' +
         'Customer Name: [name]\n' +
         'Device Type: [type]\n' +
         'Model: [model]\n' +
-        'Service ID: [id]\n' +
-        'Technician: [name]\n\n' +
+        'Service ID: [id]\n\n' +
         'AC TECH DEVICE DIAGNOSIS\n\n' +
         'Findings:\n[Clear description of what was found during inspection]\n\n' +
         'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
         'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
         'Recommendations:\n[Professional advice for the customer]\n\n' +
-        'Service Breakdown:\n[List each service item on a new line, e.g., "LCD Replacement - Php {Enter Amount}"]\n\n' +
+        'Service Breakdown:\n[List each service item on a new line. For EVERY item, ALWAYS write the price as "Php {Enter Amount}" literally (do not use real numbers). Example:\n' +
+        'LCD Replacement - Php {Enter Amount}\n' +
+        'Bezel Replacement - Php {Enter Amount}]\n\n' +
         '---\n\n' +
         'To proceed with the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         '---\n\n' +
@@ -260,14 +260,12 @@ function doGet(e) {
         'Customer: ' + customerName + '\n' +
         'Device: ' + deviceType + ' (' + model + ')\n' +
         'Service ID: ' + serviceId + '\n' +
-        'Technician: ' + technician + '\n' +
         'Raw Service Report: ' + technicianReport + '\n\n' +
         'EXACT FORMAT TO FOLLOW:\n' +
         'Customer Name: [name]\n' +
         'Device Type: [type]\n' +
         'Model: [model]\n' +
-        'Service ID: [id]\n' +
-        'Technician: [name]\n\n' +
+        'Service ID: [id]\n\n' +
         'AC TECH SERVICE REPORT\n\n' +
         'Work Performed:\n[Clear description of repairs and services completed]\n\n' +
         'Technical Findings:\n[Detailed technical observations and results]\n\n' +
