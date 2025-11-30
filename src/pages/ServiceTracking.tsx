@@ -213,21 +213,31 @@ const ServiceTracking = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const statusLower = status.toLowerCase();
-    if (statusLower.includes("completed") || statusLower.includes("closed")) {
-      return "bg-green-100 text-green-800";
-    }
-    if (statusLower.includes("ongoing") || statusLower.includes("progress")) {
-      return "bg-blue-100 text-blue-800";
-    }
-    if (statusLower.includes("pending")) {
-      return "bg-yellow-100 text-yellow-800";
-    }
-    if (statusLower.includes("cancelled") || statusLower.includes("hold")) {
-      return "bg-red-100 text-red-800";
-    }
-    return "bg-gray-100 text-gray-800";
+  const getStatusRowColor = (status: string) => {
+    const statusUpper = status.toUpperCase();
+    
+    // Completed statuses - orange
+    if (statusUpper === "COMPLETED") return "bg-orange-50 hover:bg-orange-100";
+    
+    // Green statuses
+    if (statusUpper === "COMPLETE - APPROVAL") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "ONGOING SERVICE") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "SERVICE REPORT - DRAFT") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "SERVICE CHECK - CLIENT") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "SERVICE CHECK - COMPLETED") return "bg-green-50 hover:bg-green-100";
+    
+    // Yellow status
+    if (statusUpper === "PENDING PICKUP - COMPLETED") return "bg-yellow-50 hover:bg-yellow-100";
+    
+    // Blue status
+    if (statusUpper === "BACKJOB") return "bg-blue-50 hover:bg-blue-100";
+    
+    // Red statuses
+    if (statusUpper === "RTO") return "bg-red-50 hover:bg-red-100";
+    if (statusUpper === "CANCELLED") return "bg-red-50 hover:bg-red-100";
+    
+    // White/default statuses (Pending Diagnosis, Confirmed Diagnosis, Pending Approval, On Hold)
+    return "bg-white hover:bg-gray-50";
   };
 
   const handleViewPDF = (pdfUrl: string) => {
@@ -573,12 +583,10 @@ const ServiceTracking = () => {
                       </TableHeader>
                       <TableBody>
                         {serviceRecords.map((service, index) => (
-                          <TableRow key={service.serviceId || index}>
+                          <TableRow key={service.serviceId || index} className={getStatusRowColor(service.status)}>
                             <TableCell className="font-medium">{service.serviceId}</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(service.status)}`}>
-                                {service.status}
-                              </span>
+                            <TableCell className="font-medium">
+                              {service.status}
                             </TableCell>
                             <TableCell className="max-w-[300px]">
                               {service.service || "N/A"}
