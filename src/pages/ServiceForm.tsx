@@ -21,7 +21,11 @@ import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
-import termsImage from "@/assets/ac-tech-logo-pdf.png";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -78,6 +82,7 @@ const ServiceForm = () => {
   const [signatureUrl, setSignatureUrl] = useState("");
   const signatureRef = useRef<SignatureCanvasRef>(null);
   const [annotationImageUrl, setAnnotationImageUrl] = useState("");
+  const [numPages, setNumPages] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -1252,12 +1257,21 @@ const ServiceForm = () => {
             <DialogHeader>
               <DialogTitle>I have read and understood the Terms and Conditions of my Service to AC Tech Repair Ph.</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-auto bg-gray-100 p-4 flex justify-center">
-              <img 
-                src={termsImage} 
-                alt="Terms and Conditions" 
-                className="max-w-full h-auto"
-              />
+            <div className="flex-1 overflow-auto">
+              <Document
+                file="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf"
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                className="flex flex-col items-center"
+              >
+                {Array.from(new Array(numPages), (el, index) => (
+                  <Page
+                    key={`page_${index + 1}`}
+                    pageNumber={index + 1}
+                    className="mb-4"
+                    width={Math.min(window.innerWidth * 0.8, 600)}
+                  />
+                ))}
+              </Document>
             </div>
             <div className="flex justify-end pt-4">
               <Button
