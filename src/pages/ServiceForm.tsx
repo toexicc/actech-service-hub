@@ -1248,12 +1248,24 @@ const ServiceForm = () => {
             <DialogHeader>
               <DialogTitle>I have read and understood the Terms and Conditions of my Service to AC Tech Repair Ph.</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-auto">
-              <iframe
-                src="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf"
-                className="w-full h-[60vh] border-0"
-                title="Terms and Conditions"
-              />
+            <div className="flex-1 overflow-auto bg-gray-100">
+              <object
+                data="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf#toolbar=0"
+                type="application/pdf"
+                className="w-full h-[60vh]"
+              >
+                <p className="p-4 text-center">
+                  Unable to display PDF. 
+                  <a 
+                    href="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline ml-1"
+                  >
+                    Click here to view in a new tab
+                  </a>
+                </p>
+              </object>
             </div>
             <div className="flex justify-end pt-4">
               <Button
