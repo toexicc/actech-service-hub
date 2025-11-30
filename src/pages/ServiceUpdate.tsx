@@ -925,14 +925,37 @@ const ServiceUpdate = () => {
                 <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician:</Label>
                   <MultiSelect
-                    options={[
-                      { label: "Unassigned", value: "unassigned", group: "Status" },
-                      ...technicians.map(tech => ({
-                        label: tech.name,
-                        value: tech.name,
-                        group: tech.department
-                      }))
-                    ]}
+                    options={(() => {
+                      // Filter technicians based on device type
+                      const deviceType = serviceData?.deviceType;
+                      
+                      const unassignedOption = { label: "Unassigned", value: "unassigned", group: "Status" };
+                      
+                      if (!deviceType) {
+                        return [
+                          unassignedOption,
+                          ...technicians.map(tech => ({
+                            label: tech.name,
+                            value: tech.name,
+                            group: tech.department
+                          }))
+                        ];
+                      }
+                      
+                      const filteredTechs = technicians.filter(tech => {
+                        const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
+                        return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
+                      });
+                      
+                      return [
+                        unassignedOption,
+                        ...filteredTechs.map(tech => ({
+                          label: tech.name,
+                          value: tech.name,
+                          group: tech.department
+                        }))
+                      ];
+                    })()}
                     selected={updateTechnician ? updateTechnician.split(", ") : []}
                     onChange={(values) => setUpdateTechnician(values.join(", "))}
                     placeholder="Select Technicians"

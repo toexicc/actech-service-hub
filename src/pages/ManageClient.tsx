@@ -1081,11 +1081,28 @@ const ManageClient = () => {
                 <div className="space-y-2">
                   <Label htmlFor="technician">Technician:</Label>
                   <MultiSelect
-                    options={technicians.map(tech => ({
-                      label: tech.name,
-                      value: tech.name,
-                      group: tech.department
-                    }))}
+                    options={(() => {
+                      // Filter technicians based on device type
+                      const deviceType = serviceData?.deviceType;
+                      if (!deviceType) {
+                        return technicians.map(tech => ({
+                          label: tech.name,
+                          value: tech.name,
+                          group: tech.department
+                        }));
+                      }
+                      
+                      const filteredTechs = technicians.filter(tech => {
+                        const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
+                        return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
+                      });
+                      
+                      return filteredTechs.map(tech => ({
+                        label: tech.name,
+                        value: tech.name,
+                        group: tech.department
+                      }));
+                    })()}
                     selected={updateTechnician ? updateTechnician.split(", ") : []}
                     onChange={(values) => setUpdateTechnician(values.join(", "))}
                     placeholder="Select Technicians"
