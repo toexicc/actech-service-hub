@@ -1109,18 +1109,23 @@ const ManageClient = () => {
                           .map(name => technicians.find(t => t.name === name)?.department)
                           .filter(Boolean) as string[];
                         
+                        // Only show device types if technicians are selected
+                        if (selectedTechDepartments.length === 0) {
+                          return <SelectItem value="" disabled>Select technician first</SelectItem>;
+                        }
+                        
                         // Get available device types based on selected departments
-                        const availableDeviceTypes = selectedTechDepartments.length > 0
-                          ? Array.from(new Set(
-                              selectedTechDepartments.flatMap(dept => 
-                                DEVICE_TYPES_BY_DEPARTMENT[dept] || []
-                              )
-                            ))
-                          : Object.values(DEVICE_TYPES_BY_DEPARTMENT).flat();
+                        const availableDeviceTypes = Array.from(new Set(
+                          selectedTechDepartments.flatMap(dept => 
+                            DEVICE_TYPES_BY_DEPARTMENT[dept] || []
+                          )
+                        ));
                         
-                        const uniqueDeviceTypes = Array.from(new Set(availableDeviceTypes));
+                        if (availableDeviceTypes.length === 0) {
+                          return <SelectItem value="" disabled>No device types available for selected technicians</SelectItem>;
+                        }
                         
-                        return uniqueDeviceTypes.map((deviceType) => (
+                        return availableDeviceTypes.map((deviceType) => (
                           <SelectItem key={deviceType} value={deviceType}>
                             {deviceType}
                           </SelectItem>
