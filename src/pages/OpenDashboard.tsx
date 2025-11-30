@@ -188,36 +188,49 @@ const OpenDashboard = () => {
     });
 
     services.forEach((service) => {
-      // Handle multiple technicians (comma-separated) - use first technician's department
+      // Handle multiple technicians (comma-separated) - add to ALL departments
       const technicianNames = service.technician?.split(',').map(t => t.trim()) || [];
-      const firstTechnician = technicianNames[0] || '';
-      const techDept = techniciansWithDept.find((t) => t.name === firstTechnician)?.department || "";
-      const department = techDept || "";
+      
+      // Get unique departments from all technicians
+      const departments = technicianNames
+        .map(name => techniciansWithDept.find(t => t.name === name)?.department)
+        .filter(Boolean) as string[];
+      const uniqueDepartments = [...new Set(departments)];
 
-      let category: keyof GroupedServices | null = null;
-      if (department.startsWith("Laptop")) {
-        category = "LAPTOP";
-      } else if (department.startsWith("Mobile")) {
-        category = "MOBILE";
-      } else if (service.deviceType?.toLowerCase().includes("laptop") ||
-                 service.deviceType?.toLowerCase().includes("mac") ||
-                 service.deviceType?.toLowerCase().includes("computer") ||
-                 service.deviceType?.toLowerCase().includes("imac")) {
-        category = "LAPTOP";
-      } else if (service.deviceType?.toLowerCase().includes("mobile") ||
-                 service.deviceType?.toLowerCase().includes("iphone") ||
-                 service.deviceType?.toLowerCase().includes("android") ||
-                 service.deviceType?.toLowerCase().includes("ipad")) {
-        category = "MOBILE";
+      // Add service to EACH department
+      uniqueDepartments.forEach(department => {
+        let category: keyof GroupedServices | null = null;
+        if (department.startsWith("Laptop")) {
+          category = "LAPTOP";
+        } else if (department.startsWith("Mobile")) {
+          category = "MOBILE";
+        }
+
+        if (!category) return;
+
+        if (!grouped[category][department]) {
+          grouped[category][department] = [];
+        }
+
+        grouped[category][department].push(service);
+      });
+
+      // Fallback: If no department found, use deviceType to categorize
+      if (uniqueDepartments.length === 0) {
+        let category: keyof GroupedServices | null = null;
+        if (service.deviceType?.toLowerCase().includes("laptop") ||
+            service.deviceType?.toLowerCase().includes("mac") ||
+            service.deviceType?.toLowerCase().includes("computer") ||
+            service.deviceType?.toLowerCase().includes("imac")) {
+          category = "LAPTOP";
+        } else if (service.deviceType?.toLowerCase().includes("mobile") ||
+                   service.deviceType?.toLowerCase().includes("iphone") ||
+                   service.deviceType?.toLowerCase().includes("android") ||
+                   service.deviceType?.toLowerCase().includes("ipad")) {
+          category = "MOBILE";
+        }
+        // Skip if no category can be determined
       }
-
-      if (!category || !department) return;
-
-      if (!grouped[category][department]) {
-        grouped[category][department] = [];
-      }
-
-      grouped[category][department].push(service);
     });
 
     // Sort each department group by timestamp (oldest first)

@@ -390,10 +390,13 @@ const ServiceForm = () => {
       formData.append("Has Password", "Yes");
       formData.append("Device Password", data.devicePassword || "");
       
-      // Get technician's department (use first technician if multiple)
+      // Get ALL technicians' departments (comma-separated if multiple)
       const techNames = data.technician.split(", ").filter(Boolean);
-      const selectedTech = technicianList.find(t => t.name === techNames[0]);
-      formData.append("Technician Department", selectedTech?.department || "");
+      const allDepartments = techNames
+        .map(name => technicianList.find(t => t.name === name)?.department)
+        .filter(Boolean);
+      const uniqueDepartments = [...new Set(allDepartments)]; // Remove duplicates
+      formData.append("Technician Department", uniqueDepartments.join(", ") || "");
       
       formData.append("Time Frame", data.timeFrame);
       formData.append("Estimated Cost", data.estimatedCost.toString());
