@@ -51,8 +51,9 @@ const cleanDiagnosisText = (text: string): string => {
     cleaned = cleaned.replace(pattern, '');
   }
   
-  // STEP 3: Remove footer sections
+  // STEP 3: Remove footer sections and Service Breakdown
   const footerMarkers = [
+    "Service Breakdown:",
     "To proceed with the service",
     "Professional Recommendations:",
     "📋 SUMMARY:",

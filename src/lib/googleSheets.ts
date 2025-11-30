@@ -172,7 +172,6 @@ function doGet(e) {
         'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
         'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
         'Recommendations:\n[Professional advice for the customer]\n\n' +
-        'Service Breakdown:\n[Edit or Remove if Needed]\n\n' +
         '---\n\n' +
         'To proceed with the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         '---\n\n' +
@@ -530,7 +529,9 @@ function doGet(e) {
         "device": data[i][16],
         "targetDate": data[i][28],
         "status": data[i][1],
-        "clientName": data[i][8]
+        "clientName": data[i][8],
+        "internalAdminNotes": data[i][38], // Column AM - Internal Admin Notes
+        "internalTechnicianNotes": data[i][40] // Column AO - Internal Technician Notes
       });
     }
     
