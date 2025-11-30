@@ -61,7 +61,7 @@ Recommendations:
 [1 sentence - professional advice]
 
 Service Breakdown:
-[Service Item Name] - ₱[Amount]
+[List each service item on a new line, e.g., "LCD Replacement - Php {Enter Amount}"]
 
 Service Cost: $${finalCost || '0'}
 
@@ -140,7 +140,6 @@ IMPORTANT RULES:
       `Device Type: ${deviceType || ''}`,
       `Model: ${model || ''}`,
       `Service ID: ${serviceId || ''}`,
-      `Technician: ${technician || 'Not assigned'}`,
       '',
       formattedDiagnosis
     ].join('\n');

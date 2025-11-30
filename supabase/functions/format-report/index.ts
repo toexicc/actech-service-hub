@@ -48,7 +48,6 @@ Customer Name: [name]
 Device Type: [type]
 Model: [model]
 Service ID: [id]
-Technician: [technician]
 
 AC TECH DEVICE REPORT | READY FOR RELEASE
 
@@ -73,7 +72,6 @@ IMPORTANT RULES:
 Device Type: ${deviceType}
 Model: ${model}
 Service ID: ${serviceId}
-Technician: ${technician}
 
 Raw technician report:
 ${technicianReport}` 

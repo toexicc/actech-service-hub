@@ -172,7 +172,7 @@ function doGet(e) {
         'Cause of Issue:\n[Root cause explanation in simple terms]\n\n' +
         'Suggested Solution:\n[Specific repair steps and actions needed]\n\n' +
         'Recommendations:\n[Professional advice for the customer]\n\n' +
-        'Service Breakdown:\n[Service Item Name] - ₱[Amount]\n\n' +
+        'Service Breakdown:\n[List each service item on a new line, e.g., "LCD Replacement - Php {Enter Amount}"]\n\n' +
         '---\n\n' +
         'To proceed with the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         '---\n\n' +
