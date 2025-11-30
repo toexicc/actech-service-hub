@@ -21,6 +21,12 @@ import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -65,6 +71,7 @@ const ServiceForm = () => {
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
+  const [numPages, setNumPages] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceId, setServiceId] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -1248,24 +1255,27 @@ const ServiceForm = () => {
             <DialogHeader>
               <DialogTitle>I have read and understood the Terms and Conditions of my Service to AC Tech Repair Ph.</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-auto bg-gray-100">
-              <object
-                data="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf#toolbar=0"
-                type="application/pdf"
-                className="w-full h-[60vh]"
+            <div className="flex-1 overflow-auto bg-gray-100 p-4">
+              <Document
+                file="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf"
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                loading={
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                }
               >
-                <p className="p-4 text-center">
-                  Unable to display PDF. 
-                  <a 
-                    href="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline ml-1"
-                  >
-                    Click here to view in a new tab
-                  </a>
-                </p>
-              </object>
+                {Array.from(new Array(numPages), (el, index) => (
+                  <Page
+                    key={`page_${index + 1}`}
+                    pageNumber={index + 1}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                    className="mb-4"
+                    width={Math.min(window.innerWidth * 0.8, 800)}
+                  />
+                ))}
+              </Document>
             </div>
             <div className="flex justify-end pt-4">
               <Button
