@@ -61,7 +61,7 @@ Recommendations:
 [1 sentence - professional advice]
 
 Service Breakdown:
-[Edit or Remove if Needed]
+[Service Item Name] - ₱[Amount]
 
 Service Cost: $${finalCost || '0'}
 
