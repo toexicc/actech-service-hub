@@ -1281,6 +1281,7 @@ const ServiceForm = () => {
               <Button
                 onClick={() => {
                   setTermsRead(true);
+                  form.setValue("ack1", true);
                   setTermsModalOpen(false);
                   toast({
                     title: "Terms Accepted",
