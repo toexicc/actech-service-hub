@@ -12,6 +12,7 @@ import acTechLogo from "@/assets/ac-tech-logo.jpg";
 interface ServiceRecord {
   serviceId: string;
   technician: string;
+  technicianDepartment: string; // Comma-separated if multiple departments
   service: string;
   deviceType: string;
   targetDate: string;
@@ -188,17 +189,14 @@ const OpenDashboard = () => {
     });
 
     services.forEach((service) => {
-      // Handle multiple technicians (comma-separated) - add to ALL departments
-      const technicianNames = service.technician?.split(',').map(t => t.trim()) || [];
-      
-      // Get unique departments from all technicians
-      const departments = technicianNames
-        .map(name => techniciansWithDept.find(t => t.name === name)?.department)
-        .filter(Boolean) as string[];
-      const uniqueDepartments = [...new Set(departments)];
+      // Handle multiple departments (comma-separated from Column AN)
+      const departments = service.technicianDepartment
+        ?.split(',')
+        .map(d => d.trim())
+        .filter(Boolean) || [];
 
       // Add service to EACH department
-      uniqueDepartments.forEach(department => {
+      departments.forEach(department => {
         let category: keyof GroupedServices | null = null;
         if (department.startsWith("Laptop")) {
           category = "LAPTOP";
@@ -216,7 +214,7 @@ const OpenDashboard = () => {
       });
 
       // Fallback: If no department found, use deviceType to categorize
-      if (uniqueDepartments.length === 0) {
+      if (departments.length === 0) {
         let category: keyof GroupedServices | null = null;
         if (service.deviceType?.toLowerCase().includes("laptop") ||
             service.deviceType?.toLowerCase().includes("mac") ||
