@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
@@ -63,6 +64,7 @@ const ServiceForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceId, setServiceId] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -1128,15 +1130,13 @@ const ServiceForm = () => {
                       <div className="flex-1">
                         <FormLabel className="!mt-0 text-sm">
                           I have read and understood the{" "}
-                          <a
-                            href="https://drive.google.com/file/d/1FsuYQpjPkZgRqcTJRwaJSAP_HFI6HnK1/view?usp=sharing"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
                             className="text-blue-600 underline hover:text-blue-800"
-                            onClick={() => setTermsRead(true)}
+                            onClick={() => setTermsModalOpen(true)}
                           >
                             Terms and Conditions
-                          </a>{" "}
+                          </button>{" "}
                           of my Service to AC Tech Repair Ph.
                         </FormLabel>
                         <FormMessage />
@@ -1241,6 +1241,36 @@ const ServiceForm = () => {
             </div>
           </form>
         </Form>
+
+        {/* Terms and Conditions Modal */}
+        <Dialog open={termsModalOpen} onOpenChange={setTermsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>I have read and understood the Terms and Conditions of my Service to AC Tech Repair Ph.</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto">
+              <iframe
+                src="/AC_TECH_-_TERMS_AND_CONDITIONS.pdf"
+                className="w-full h-[60vh] border-0"
+                title="Terms and Conditions"
+              />
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button
+                onClick={() => {
+                  setTermsRead(true);
+                  setTermsModalOpen(false);
+                  toast({
+                    title: "Terms Accepted",
+                    description: "You can now proceed with the acknowledgements.",
+                  });
+                }}
+              >
+                Accept
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
