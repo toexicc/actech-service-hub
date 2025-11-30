@@ -16,6 +16,8 @@ interface ServiceRecord {
   targetDate: string;
   status: string;
   clientName: string;
+  timestamp: string;
+  internalAdminNotes: string;
 }
 
 type ViewMode = "dueToday" | "overdue";
@@ -24,6 +26,7 @@ const STATUS_COLUMNS = [
   "Confirmed Diagnosis",
   "Ongoing Service",
   "Pending Pickup - Completed",
+  "On Hold",
   "RTO"
 ] as const;
 
@@ -134,6 +137,15 @@ const AdminDashboard = () => {
       }
     });
 
+    // Sort each status group by timestamp (oldest first)
+    Object.keys(grouped).forEach((status) => {
+      grouped[status].sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime();
+        const timeB = new Date(b.timestamp).getTime();
+        return timeA - timeB;
+      });
+    });
+
     return grouped;
   };
 
@@ -196,7 +208,7 @@ const AdminDashboard = () => {
         ) : (
           <div className="h-full flex flex-col justify-start gap-2 py-2">
             <div className="bg-white rounded-xl p-3 shadow-lg">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
                 {STATUS_COLUMNS.map((status) => (
                   <div
                     key={status}
@@ -230,6 +242,11 @@ const AdminDashboard = () => {
                             <div className="text-sm text-muted-foreground text-center font-medium">
                               {service.clientName}
                             </div>
+                            {service.internalAdminNotes && (
+                              <div className="text-xs text-muted-foreground text-center mt-1 italic">
+                                {service.internalAdminNotes}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
