@@ -430,13 +430,12 @@ const ManageClient = () => {
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       
-      // Get ALL technicians' departments (comma-separated if multiple)
+      // Get ALL technicians' departments (keep duplicates so each technician's department is visible)
       const techNames = updateTechnician.split(", ").filter(Boolean);
-      const allDepartments = techNames
+      const techDept = techNames
         .map(name => technicians.find(t => t.name === name)?.department)
-        .filter(Boolean);
-      const uniqueDepartments = [...new Set(allDepartments)]; // Remove duplicates
-      const techDept = uniqueDepartments.join(", ") || "";
+        .filter(Boolean)
+        .join(", ");
       formData.append("technicianDepartment", techDept);
       formData.append("department", techDept);
       formData.append("Technician Department", techDept);
