@@ -81,6 +81,7 @@ const ManageClient = () => {
   const [isEditingServiceReport, setIsEditingServiceReport] = useState(false);
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const { toast } = useToast();
 
   // Update form fields
@@ -950,6 +951,11 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Type:</h3>
+                    <p className="text-lg">{serviceData.deviceType || "N/A"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Model:</h3>
                     <p className="text-lg">{serviceData.device}</p>
                   </div>
@@ -1119,78 +1125,111 @@ const ManageClient = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="deviceType">Device Type:</Label>
-                  <Select
-                    value={serviceData?.deviceType || ""}
-                    onValueChange={(value) => {
-                      setServiceData((prev: any) => ({ ...prev, deviceType: value }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select device type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(() => {
-                        const currentDeviceType = (serviceData?.deviceType || "").toString().trim();
+                  {showOtherDeviceInput ? (
+                    <Input
+                      value={serviceData?.deviceType || ""}
+                      onChange={(e) => {
+                        setServiceData((prev: any) => ({ ...prev, deviceType: e.target.value }));
+                      }}
+                      placeholder="Enter custom device type"
+                      onBlur={() => {
+                        if (!serviceData?.deviceType) {
+                          setShowOtherDeviceInput(false);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Select
+                      value={serviceData?.deviceType || ""}
+                      onValueChange={(value) => {
+                        if (value === "Others") {
+                          setShowOtherDeviceInput(true);
+                          setServiceData((prev: any) => ({ ...prev, deviceType: "" }));
+                        } else {
+                          setServiceData((prev: any) => ({ ...prev, deviceType: value }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select device type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const currentDeviceType = (serviceData?.deviceType || "").toString().trim();
 
-                        // Get selected technicians' departments
-                        const selectedTechNames = updateTechnician?.split(", ").filter(Boolean) || [];
-                        const selectedTechDepartments = selectedTechNames
-                          .map((name) => technicians.find((t) => t.name === name)?.department)
-                          .filter(Boolean) as string[];
+                          // Get selected technicians' departments
+                          const selectedTechNames = updateTechnician?.split(", ").filter(Boolean) || [];
+                          const selectedTechDepartments = selectedTechNames
+                            .map((name) => technicians.find((t) => t.name === name)?.department)
+                            .filter(Boolean) as string[];
 
-                        // If no technicians selected, still show the saved device type (including custom ones)
-                        if (selectedTechDepartments.length === 0) {
-                          if (currentDeviceType) {
+                          // If no technicians selected, still show the saved device type (including custom ones)
+                          if (selectedTechDepartments.length === 0) {
+                            if (currentDeviceType) {
+                              return (
+                                <>
+                                  <SelectItem value={currentDeviceType}>{currentDeviceType}</SelectItem>
+                                  <SelectItem value="Others">Others</SelectItem>
+                                  <SelectItem value="" disabled>
+                                    Select technician first to change device type
+                                  </SelectItem>
+                                </>
+                              );
+                            }
+
                             return (
                               <>
-                                <SelectItem value={currentDeviceType}>{currentDeviceType}</SelectItem>
+                                <SelectItem value="Others">Others</SelectItem>
                                 <SelectItem value="" disabled>
-                                  Select technician first to change device type
+                                  Select technician first
+                                </SelectItem>
+                              </>
+                            );
+                          }
+
+                          // Get available device types based on selected departments
+                          let availableDeviceTypes = Array.from(
+                            new Set(
+                              selectedTechDepartments.flatMap((dept) =>
+                                DEVICE_TYPES_BY_DEPARTMENT[dept] || []
+                              )
+                            )
+                          );
+
+                          // Ensure the currently saved device type is visible, even if it's custom
+                          if (
+                            currentDeviceType &&
+                            !availableDeviceTypes.includes(currentDeviceType) &&
+                            currentDeviceType !== "Others"
+                          ) {
+                            availableDeviceTypes = [currentDeviceType, ...availableDeviceTypes];
+                          }
+
+                          if (availableDeviceTypes.length === 0) {
+                            return (
+                              <>
+                                <SelectItem value="Others">Others</SelectItem>
+                                <SelectItem value="" disabled>
+                                  No device types available for selected technicians
                                 </SelectItem>
                               </>
                             );
                           }
 
                           return (
-                            <SelectItem value="" disabled>
-                              Select technician first
-                            </SelectItem>
+                            <>
+                              {availableDeviceTypes.map((deviceType) => (
+                                <SelectItem key={deviceType} value={deviceType}>
+                                  {deviceType}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="Others">Others</SelectItem>
+                            </>
                           );
-                        }
-
-                        // Get available device types based on selected departments
-                        let availableDeviceTypes = Array.from(
-                          new Set(
-                            selectedTechDepartments.flatMap((dept) =>
-                              DEVICE_TYPES_BY_DEPARTMENT[dept] || []
-                            )
-                          )
-                        );
-
-                        // Ensure the currently saved device type is visible, even if it's custom
-                        if (
-                          currentDeviceType &&
-                          !availableDeviceTypes.includes(currentDeviceType)
-                        ) {
-                          availableDeviceTypes = [currentDeviceType, ...availableDeviceTypes];
-                        }
-
-                        if (availableDeviceTypes.length === 0) {
-                          return (
-                            <SelectItem value="" disabled>
-                              No device types available for selected technicians
-                            </SelectItem>
-                          );
-                        }
-
-                        return availableDeviceTypes.map((deviceType) => (
-                          <SelectItem key={deviceType} value={deviceType}>
-                            {deviceType}
-                          </SelectItem>
-                        ));
-                      })()}
-                    </SelectContent>
-                  </Select>
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
