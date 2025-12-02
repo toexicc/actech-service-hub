@@ -271,6 +271,8 @@ function doGet(e) {
         'Technical Findings:\n[Detailed technical observations and results]\n\n' +
         'Final Status:\n[Current condition of the device]\n\n' +
         'Recommendations:\n[Professional advice for device maintenance and care]\n\n' +
+        '---\n\n' +
+        'To finalize the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         'WRITING STYLE REQUIREMENTS:\n' +
         '- Customer-oriented and friendly but professional\n' +
         '- Get straight to the point, no fluff\n' +
