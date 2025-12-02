@@ -19,7 +19,7 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
-import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
+import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 
@@ -931,7 +931,8 @@ const ServiceUpdate = () => {
                       
                       const unassignedOption = { label: "Unassigned", value: "unassigned", group: "Status" };
                       
-                      if (!deviceType) {
+                      // If no device type or custom device (not in predefined list), show all technicians
+                      if (!deviceType || !DEVICE_TYPES.includes(deviceType as any)) {
                         return [
                           unassignedOption,
                           ...technicians.map(tech => ({
@@ -942,6 +943,7 @@ const ServiceUpdate = () => {
                         ];
                       }
                       
+                      // Filter by department only for predefined device types
                       const filteredTechs = technicians.filter(tech => {
                         const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
                         return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
