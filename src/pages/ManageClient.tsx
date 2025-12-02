@@ -1085,8 +1085,12 @@ const ManageClient = () => {
                       // Filter technicians based on device type
                       const deviceType = serviceData?.deviceType;
                       
+                      // Check if device type is in the predefined list
+                      const isPreDefinedDeviceType = deviceType && 
+                        (DEVICE_TYPES as readonly string[]).includes(deviceType);
+                      
                       // If no device type or custom device (not in predefined list), show all technicians
-                      if (!deviceType || !DEVICE_TYPES.includes(deviceType as any)) {
+                      if (!deviceType || !isPreDefinedDeviceType) {
                         return technicians.map(tech => ({
                           label: tech.name,
                           value: tech.name,
