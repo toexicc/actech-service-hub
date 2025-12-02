@@ -724,6 +724,11 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Type:</h3>
+                    <p className="text-lg">{serviceData.deviceType || "N/A"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Model:</h3>
                     <p className="text-lg">{serviceData.device}</p>
                   </div>
@@ -931,8 +936,12 @@ const ServiceUpdate = () => {
                       
                       const unassignedOption = { label: "Unassigned", value: "unassigned", group: "Status" };
                       
+                      // Check if device type is in the predefined list
+                      const isPreDefinedDeviceType = deviceType && 
+                        (DEVICE_TYPES as readonly string[]).includes(deviceType);
+                      
                       // If no device type or custom device (not in predefined list), show all technicians
-                      if (!deviceType || !DEVICE_TYPES.includes(deviceType as any)) {
+                      if (!deviceType || !isPreDefinedDeviceType) {
                         return [
                           unassignedOption,
                           ...technicians.map(tech => ({
