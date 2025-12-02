@@ -98,6 +98,7 @@ const ManageClient = () => {
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
+  const [updateDeviceType, setUpdateDeviceType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("amount"); // Default to amount
   const [discountValue, setDiscountValue] = useState("");
@@ -199,6 +200,7 @@ const ManageClient = () => {
         setUpdateAdminNotes(data.data.adminNotes || "");
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
+        setUpdateDeviceType(data.data.deviceType || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
         setTechnicianReport(data.data.technicianReport || ""); // Column BA - technician report
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
@@ -426,8 +428,8 @@ const ManageClient = () => {
       const formData = new FormData();
       formData.append("action", "updateService");
       formData.append("serviceId", serviceId);
-      formData.append("deviceType", serviceData.deviceType);
-      formData.append("Device Type", serviceData.deviceType);
+      formData.append("deviceType", updateDeviceType);
+      formData.append("Device Type", updateDeviceType);
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
       
@@ -453,7 +455,7 @@ const ManageClient = () => {
       formData.append("adminNotesInternal", updateAdminNotesInternal);
       formData.append("Serial", serviceData.serialNumber || "");
       formData.append("Client Name", serviceData.clientName || "");
-      formData.append("Device Type", serviceData.deviceType || "");
+      formData.append("Device Type", updateDeviceType || "");
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
@@ -1127,26 +1129,26 @@ const ManageClient = () => {
                   <Label htmlFor="deviceType">Device Type:</Label>
                   {showOtherDeviceInput ? (
                     <Input
-                      value={serviceData?.deviceType || ""}
+                      value={updateDeviceType}
                       onChange={(e) => {
-                        setServiceData((prev: any) => ({ ...prev, deviceType: e.target.value }));
+                        setUpdateDeviceType(e.target.value);
                       }}
                       placeholder="Enter custom device type"
                       onBlur={() => {
-                        if (!serviceData?.deviceType) {
+                        if (!updateDeviceType) {
                           setShowOtherDeviceInput(false);
                         }
                       }}
                     />
                   ) : (
                     <Select
-                      value={serviceData?.deviceType || ""}
+                      value={updateDeviceType}
                       onValueChange={(value) => {
                         if (value === "Others") {
                           setShowOtherDeviceInput(true);
-                          setServiceData((prev: any) => ({ ...prev, deviceType: "" }));
+                          setUpdateDeviceType("");
                         } else {
-                          setServiceData((prev: any) => ({ ...prev, deviceType: value }));
+                          setUpdateDeviceType(value);
                         }
                       }}
                     >
@@ -1155,7 +1157,7 @@ const ManageClient = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {(() => {
-                          const currentDeviceType = (serviceData?.deviceType || "").toString().trim();
+                          const currentDeviceType = updateDeviceType.trim();
 
                           // Get selected technicians' departments
                           const selectedTechNames = updateTechnician?.split(", ").filter(Boolean) || [];
