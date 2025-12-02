@@ -1196,6 +1196,9 @@ const ManageClient = () => {
                             )
                           );
 
+                          // Remove "Others" from the list if it exists (we'll add it at the end)
+                          availableDeviceTypes = availableDeviceTypes.filter(type => type !== "Others");
+
                           // Ensure the currently saved device type is visible, even if it's custom
                           if (
                             currentDeviceType &&
