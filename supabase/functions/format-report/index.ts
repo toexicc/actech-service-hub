@@ -59,6 +59,10 @@ Recommendation:
 
 Service Cost: Php {Enter Amount}
 
+---
+
+To finalize the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
+
 IMPORTANT RULES:
 - Be concise, professional, and customer-friendly
 - Maximum 1-2 sentences per section

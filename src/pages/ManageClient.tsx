@@ -20,7 +20,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
+import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -1084,7 +1084,9 @@ const ManageClient = () => {
                     options={(() => {
                       // Filter technicians based on device type
                       const deviceType = serviceData?.deviceType;
-                      if (!deviceType) {
+                      
+                      // If no device type or custom device (not in predefined list), show all technicians
+                      if (!deviceType || !DEVICE_TYPES.includes(deviceType as any)) {
                         return technicians.map(tech => ({
                           label: tech.name,
                           value: tech.name,
@@ -1092,6 +1094,7 @@ const ManageClient = () => {
                         }));
                       }
                       
+                      // Filter by department only for predefined device types
                       const filteredTechs = technicians.filter(tech => {
                         const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
                         return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
