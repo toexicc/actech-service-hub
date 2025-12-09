@@ -82,6 +82,7 @@ const ManageClient = () => {
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
+  const [originalCustomDeviceType, setOriginalCustomDeviceType] = useState(""); // Store original custom device type
   const { toast } = useToast();
 
   // Update form fields
@@ -201,6 +202,13 @@ const ManageClient = () => {
         setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
         setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
         setUpdateDeviceType(data.data.deviceType || "");
+        // Store original custom device type if it's not in the predefined list
+        const deviceType = data.data.deviceType || "";
+        if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
+          setOriginalCustomDeviceType(deviceType);
+        } else {
+          setOriginalCustomDeviceType("");
+        }
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
         setTechnicianReport(data.data.technicianReport || ""); // Column BA - technician report
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
@@ -953,6 +961,11 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client ID:</h3>
+                    <p className="text-lg font-mono">{serviceData.clientId || "N/A"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Type:</h3>
                     <p className="text-lg">{serviceData.deviceType || "N/A"}</p>
                   </div>
@@ -1208,6 +1221,15 @@ const ManageClient = () => {
                             currentDeviceType !== "Others"
                           ) {
                             availableDeviceTypes = [currentDeviceType, ...availableDeviceTypes];
+                          }
+                          
+                          // Also ensure the original custom device type is always available
+                          if (
+                            originalCustomDeviceType &&
+                            !availableDeviceTypes.includes(originalCustomDeviceType) &&
+                            originalCustomDeviceType !== "Others"
+                          ) {
+                            availableDeviceTypes = [originalCustomDeviceType, ...availableDeviceTypes];
                           }
 
                           if (availableDeviceTypes.length === 0) {

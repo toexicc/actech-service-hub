@@ -29,7 +29,7 @@ interface ClientInquiry {
   directChatLink: string;
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 9;
 
 const ClientInquiryTable = () => {
   const [inquiries, setInquiries] = useState<ClientInquiry[]>([]);
@@ -71,35 +71,42 @@ const ClientInquiryTable = () => {
   }, []);
 
   const filteredInquiries = useMemo(() => {
-    return inquiries.filter((inquiry) => {
-      // Search filter
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = !searchQuery || 
-        inquiry.name?.toLowerCase().includes(searchLower) ||
-        inquiry.clientId?.toLowerCase().includes(searchLower) ||
-        inquiry.serviceId?.toLowerCase().includes(searchLower);
+    return inquiries
+      .filter((inquiry) => {
+        // Search filter
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery || 
+          inquiry.name?.toLowerCase().includes(searchLower) ||
+          inquiry.clientId?.toLowerCase().includes(searchLower) ||
+          inquiry.serviceId?.toLowerCase().includes(searchLower);
 
-      // Date range filter
-      let matchesDateRange = true;
-      if (startDate || endDate) {
-        try {
-          const inquiryDate = inquiry.timestamp ? new Date(inquiry.timestamp) : null;
-          if (inquiryDate && !isNaN(inquiryDate.getTime())) {
-            const start = startDate ? startOfDay(new Date(startDate)) : new Date(0);
-            const end = endDate ? endOfDay(new Date(endDate)) : new Date(8640000000000000);
-            matchesDateRange = isWithinInterval(inquiryDate, { start, end });
+        // Date range filter
+        let matchesDateRange = true;
+        if (startDate || endDate) {
+          try {
+            const inquiryDate = inquiry.timestamp ? new Date(inquiry.timestamp) : null;
+            if (inquiryDate && !isNaN(inquiryDate.getTime())) {
+              const start = startDate ? startOfDay(new Date(startDate)) : new Date(0);
+              const end = endDate ? endOfDay(new Date(endDate)) : new Date(8640000000000000);
+              matchesDateRange = isWithinInterval(inquiryDate, { start, end });
+            }
+          } catch {
+            matchesDateRange = true;
           }
-        } catch {
-          matchesDateRange = true;
         }
-      }
 
-      // Mode filter
-      const matchesMode = modeFilter === "all" || 
-        inquiry.modeOfTransfer?.toLowerCase() === modeFilter.toLowerCase();
+        // Mode filter
+        const matchesMode = modeFilter === "all" || 
+          inquiry.modeOfTransfer?.toLowerCase() === modeFilter.toLowerCase();
 
-      return matchesSearch && matchesDateRange && matchesMode;
-    });
+        return matchesSearch && matchesDateRange && matchesMode;
+      })
+      .sort((a, b) => {
+        // Sort by timestamp descending (most recent first)
+        const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return dateB - dateA;
+      });
   }, [inquiries, searchQuery, startDate, endDate, modeFilter]);
 
   // Pagination
@@ -271,8 +278,18 @@ const ClientInquiryTable = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedInquiries.map((inquiry) => (
-                  <TableRow key={inquiry.rowIndex}>
+                paginatedInquiries.map((inquiry) => {
+                  // Row color based on Mode of Transfer
+                  const getRowColor = () => {
+                    const mode = inquiry.modeOfTransfer?.toLowerCase();
+                    if (mode === "pickup") return "bg-blue-100 dark:bg-blue-900/30";
+                    if (mode === "delivery") return "bg-orange-100 dark:bg-orange-900/30";
+                    if (mode === "store visit") return "bg-yellow-100 dark:bg-yellow-900/30";
+                    return "";
+                  };
+                  
+                  return (
+                  <TableRow key={inquiry.rowIndex} className={getRowColor()}>
                     <TableCell className="whitespace-nowrap">{formatDate(inquiry.timestamp)}</TableCell>
                     <TableCell className="font-mono text-xs">{inquiry.clientId || "-"}</TableCell>
                     <TableCell>{inquiry.name || "-"}</TableCell>
@@ -312,7 +329,8 @@ const ClientInquiryTable = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
