@@ -18,6 +18,7 @@ import StaffManagement from "./pages/StaffManagement";
 import TransactionTracker from "./pages/TransactionTracker";
 import OpenDashboard from "./pages/OpenDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ClientInquiry from "./pages/ClientInquiry";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/" element={<Login />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/admin-portal" element={<AdminPortal />} />
+          <Route path="/client-inquiry" element={<ClientInquiry />} />
           <Route path="/service-form" element={<ServiceForm />} />
           <Route path="/track" element={<ServiceTracking />} />
           <Route path="/service-tracking" element={<ServiceTracker />} />
