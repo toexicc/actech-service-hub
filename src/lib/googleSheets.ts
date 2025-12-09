@@ -50,8 +50,8 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * - placeOrder: Places an order for a part (sets status to "On Order")
  * - receiveOrder: Receives an order (adds quantity and updates status)
  *
- * CLIENT INQUIRY (Client Database Sheet):
- * - getClientInquiries: Returns all inquiries from Client Database sheet
+ * CLIENT INQUIRY (Inquiry Database Sheet):
+ * - getClientInquiries: Returns all inquiries from Inquiry Database sheet
  *   Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
  *            H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
  * - updateClientInquiry: Updates a client inquiry row
