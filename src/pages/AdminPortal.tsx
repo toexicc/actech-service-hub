@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import ClientInquiryTable from "@/components/ClientInquiryTable";
 
 const AdminPortal = () => {
   const navigate = useNavigate();
@@ -44,6 +45,11 @@ const AdminPortal = () => {
               Logout
             </Button>
           </div>
+        </div>
+
+        {/* Client Inquiry Table */}
+        <div className="mb-8">
+          <ClientInquiryTable />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
