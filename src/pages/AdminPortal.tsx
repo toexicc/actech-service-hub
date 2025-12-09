@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
-import ClientInquiryTable from "@/components/ClientInquiryTable";
 
 const AdminPortal = () => {
   const navigate = useNavigate();
@@ -47,12 +46,19 @@ const AdminPortal = () => {
           </div>
         </div>
 
-        {/* Client Inquiry Table */}
-        <div className="mb-8">
-          <ClientInquiryTable />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/client-inquiry")}>
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Client Inquiry</h2>
+              <p className="text-muted-foreground mb-6">
+                View & Manage Client Inquiries
+              </p>
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                Open Inquiries
+              </Button>
+            </div>
+          </Card>
+
           <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-form")}>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-blue-600 mb-4">Client Intake Form</h2>
