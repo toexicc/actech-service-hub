@@ -49,6 +49,13 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * - adjustStock: Adjusts stock quantity (add/remove/adjust/order)
  * - placeOrder: Places an order for a part (sets status to "On Order")
  * - receiveOrder: Receives an order (adds quantity and updates status)
+ *
+ * CLIENT INQUIRY (Client Database Sheet):
+ * - getClientInquiries: Returns all inquiries from Client Database sheet
+ *   Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
+ *            H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
+ * - updateClientInquiry: Updates a client inquiry row
+ * - deleteClientInquiry: Deletes a client inquiry row
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
@@ -423,6 +430,48 @@ function doGet(e) {
     
     return ContentService.createTextOutput(JSON.stringify({
       "found": false
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Handle getting all client inquiries from Client Database
+  if (params.action === 'getClientInquiries') {
+    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
+    if (!clientSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Client Database sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = clientSheet.getDataRange().getDisplayValues();
+    var inquiries = [];
+    
+    // Skip header row (i = 1)
+    // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
+    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0]) { // If Client ID exists
+        inquiries.push({
+          "rowIndex": i + 1, // 1-indexed row number for update/delete
+          "clientId": data[i][0],
+          "serviceId": data[i][1],
+          "timestamp": data[i][2],
+          "name": data[i][4],
+          "address": data[i][5],
+          "contactNumber": data[i][6],
+          "modeOfTransfer": data[i][7],
+          "device": data[i][8],
+          "initialDiagnosis": data[i][9],
+          "quotation": data[i][10],
+          "pickUpDate": data[i][11],
+          "directChatLink": data[i][12]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "data": inquiries
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -1701,6 +1750,54 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       "status": "error",
       "message": "Staff member not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle update client inquiry
+  if (params.action === 'updateClientInquiry' && params.rowIndex) {
+    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
+    if (!clientSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Client Database sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var rowIndex = parseInt(params.rowIndex);
+    // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
+    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
+    clientSheet.getRange(rowIndex, 1).setValue(params.clientId || "");
+    clientSheet.getRange(rowIndex, 2).setValue(params.serviceId || "");
+    clientSheet.getRange(rowIndex, 5).setValue(params.name || "");
+    clientSheet.getRange(rowIndex, 6).setValue(params.address || "");
+    clientSheet.getRange(rowIndex, 7).setValue(params.contactNumber || "");
+    clientSheet.getRange(rowIndex, 8).setValue(params.modeOfTransfer || "");
+    clientSheet.getRange(rowIndex, 9).setValue(params.device || "");
+    clientSheet.getRange(rowIndex, 10).setValue(params.initialDiagnosis || "");
+    clientSheet.getRange(rowIndex, 11).setValue(params.quotation || "");
+    clientSheet.getRange(rowIndex, 12).setValue(params.pickUpDate || "");
+    clientSheet.getRange(rowIndex, 13).setValue(params.directChatLink || "");
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle delete client inquiry
+  if (params.action === 'deleteClientInquiry' && params.rowIndex) {
+    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
+    if (!clientSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Client Database sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var rowIndex = parseInt(params.rowIndex);
+    clientSheet.deleteRow(rowIndex);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
