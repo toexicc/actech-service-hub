@@ -962,7 +962,7 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client ID:</h3>
-                    <p className="text-lg font-mono">{serviceData.clientId || "N/A"}</p>
+                    <p className="text-lg">{serviceData.clientId || "N/A"}</p>
                   </div>
 
                   <div>
