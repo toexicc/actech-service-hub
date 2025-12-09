@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
@@ -44,10 +44,12 @@ const ClientInquiryTable = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingInquiry, setEditingInquiry] = useState<ClientInquiry | null>(null);
   const [editForm, setEditForm] = useState<Partial<ClientInquiry>>({});
+  const [isSaving, setIsSaving] = useState(false);
   
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingInquiry, setDeletingInquiry] = useState<ClientInquiry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchInquiries = async () => {
     setLoading(true);
@@ -127,25 +129,45 @@ const ClientInquiryTable = () => {
   };
 
   const handleSaveEdit = async () => {
-    if (!editingInquiry) return;
+    if (!editingInquiry || isSaving) return;
     
+    setIsSaving(true);
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const formData = new FormData();
+      formData.append("action", "updateClientInquiry");
+      formData.append("rowIndex", editingInquiry.rowIndex.toString());
+      formData.append("clientId", editForm.clientId || "");
+      formData.append("serviceId", editForm.serviceId || "");
+      formData.append("timestamp", editForm.timestamp || "");
+      formData.append("name", editForm.name || "");
+      formData.append("address", editForm.address || "");
+      formData.append("contactNumber", editForm.contactNumber || "");
+      formData.append("modeOfTransfer", editForm.modeOfTransfer || "");
+      formData.append("device", editForm.device || "");
+      formData.append("initialDiagnosis", editForm.initialDiagnosis || "");
+      formData.append("quotation", editForm.quotation || "");
+      formData.append("pickUpDate", editForm.pickUpDate || "");
+      formData.append("directChatLink", editForm.directChatLink || "");
+      
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "updateClientInquiry",
-          rowIndex: editingInquiry.rowIndex,
-          data: editForm
-        })
+        body: formData
       });
       
-      toast({ title: "Success", description: "Inquiry updated successfully" });
-      setEditDialogOpen(false);
-      fetchInquiries();
+      const result = await response.json();
+      
+      if (result.status === "success" || result.result === "success") {
+        toast({ title: "Success", description: "Inquiry updated successfully" });
+        setEditDialogOpen(false);
+        fetchInquiries();
+      } else {
+        throw new Error(result.message || "Update failed");
+      }
     } catch (error) {
+      console.error("Error updating inquiry:", error);
       toast({ title: "Error", description: "Failed to update inquiry", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -155,24 +177,33 @@ const ClientInquiryTable = () => {
   };
 
   const confirmDelete = async () => {
-    if (!deletingInquiry) return;
+    if (!deletingInquiry || isDeleting) return;
     
+    setIsDeleting(true);
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const formData = new FormData();
+      formData.append("action", "deleteClientInquiry");
+      formData.append("rowIndex", deletingInquiry.rowIndex.toString());
+      
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "deleteClientInquiry",
-          rowIndex: deletingInquiry.rowIndex
-        })
+        body: formData
       });
       
-      toast({ title: "Success", description: "Inquiry deleted successfully" });
-      setDeleteDialogOpen(false);
-      fetchInquiries();
+      const result = await response.json();
+      
+      if (result.status === "success" || result.result === "success") {
+        toast({ title: "Success", description: "Inquiry deleted successfully" });
+        setDeleteDialogOpen(false);
+        fetchInquiries();
+      } else {
+        throw new Error(result.message || "Delete failed");
+      }
     } catch (error) {
+      console.error("Error deleting inquiry:", error);
       toast({ title: "Error", description: "Failed to delete inquiry", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -448,8 +479,17 @@ const ClientInquiryTable = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveEdit}>Save Changes</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -464,9 +504,16 @@ const ClientInquiryTable = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground" disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
