@@ -433,17 +433,17 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  // Handle getting all client inquiries from Client Database
+  // Handle getting all client inquiries from Inquiry Database
   if (params.action === 'getClientInquiries') {
-    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
-    if (!clientSheet) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    if (!inquirySheet) {
       return ContentService.createTextOutput(JSON.stringify({
         "status": "error",
-        "message": "Client Database sheet not found"
+        "message": "Inquiry Database sheet not found"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    var data = clientSheet.getDataRange().getDisplayValues();
+    var data = inquirySheet.getDataRange().getDisplayValues();
     var inquiries = [];
     
     // Skip header row (i = 1)
@@ -1755,28 +1755,28 @@ function doPost(e) {
 
   // Handle update client inquiry
   if (params.action === 'updateClientInquiry' && params.rowIndex) {
-    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
-    if (!clientSheet) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    if (!inquirySheet) {
       return ContentService.createTextOutput(JSON.stringify({
         "status": "error",
-        "message": "Client Database sheet not found"
+        "message": "Inquiry Database sheet not found"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     var rowIndex = parseInt(params.rowIndex);
     // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
     //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
-    clientSheet.getRange(rowIndex, 1).setValue(params.clientId || "");
-    clientSheet.getRange(rowIndex, 2).setValue(params.serviceId || "");
-    clientSheet.getRange(rowIndex, 5).setValue(params.name || "");
-    clientSheet.getRange(rowIndex, 6).setValue(params.address || "");
-    clientSheet.getRange(rowIndex, 7).setValue(params.contactNumber || "");
-    clientSheet.getRange(rowIndex, 8).setValue(params.modeOfTransfer || "");
-    clientSheet.getRange(rowIndex, 9).setValue(params.device || "");
-    clientSheet.getRange(rowIndex, 10).setValue(params.initialDiagnosis || "");
-    clientSheet.getRange(rowIndex, 11).setValue(params.quotation || "");
-    clientSheet.getRange(rowIndex, 12).setValue(params.pickUpDate || "");
-    clientSheet.getRange(rowIndex, 13).setValue(params.directChatLink || "");
+    inquirySheet.getRange(rowIndex, 1).setValue(params.clientId || "");
+    inquirySheet.getRange(rowIndex, 2).setValue(params.serviceId || "");
+    inquirySheet.getRange(rowIndex, 5).setValue(params.name || "");
+    inquirySheet.getRange(rowIndex, 6).setValue(params.address || "");
+    inquirySheet.getRange(rowIndex, 7).setValue(params.contactNumber || "");
+    inquirySheet.getRange(rowIndex, 8).setValue(params.modeOfTransfer || "");
+    inquirySheet.getRange(rowIndex, 9).setValue(params.device || "");
+    inquirySheet.getRange(rowIndex, 10).setValue(params.initialDiagnosis || "");
+    inquirySheet.getRange(rowIndex, 11).setValue(params.quotation || "");
+    inquirySheet.getRange(rowIndex, 12).setValue(params.pickUpDate || "");
+    inquirySheet.getRange(rowIndex, 13).setValue(params.directChatLink || "");
     
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success"
@@ -1785,16 +1785,16 @@ function doPost(e) {
 
   // Handle delete client inquiry
   if (params.action === 'deleteClientInquiry' && params.rowIndex) {
-    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
-    if (!clientSheet) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    if (!inquirySheet) {
       return ContentService.createTextOutput(JSON.stringify({
         "status": "error",
-        "message": "Client Database sheet not found"
+        "message": "Inquiry Database sheet not found"
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
     var rowIndex = parseInt(params.rowIndex);
-    clientSheet.deleteRow(rowIndex);
+    inquirySheet.deleteRow(rowIndex);
     
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success"
