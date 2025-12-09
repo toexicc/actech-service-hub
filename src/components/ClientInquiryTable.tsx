@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,15 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -70,6 +79,8 @@ const ClientInquiryTable = () => {
   const [selectedInquiry, setSelectedInquiry] = useState<ClientInquiry | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<ClientInquiry>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
@@ -137,6 +148,7 @@ const ClientInquiryTable = () => {
     }
 
     setFilteredInquiries(filtered);
+    setCurrentPage(1); // Reset to page 1 when filters change
   }, [inquiries, searchTerm, dateFilter, modeFilter]);
 
   const handleEdit = (inquiry: ClientInquiry) => {
@@ -242,110 +254,127 @@ const ClientInquiryTable = () => {
     new Set(inquiries.map((i) => i.modeOfTransfer).filter(Boolean))
   );
 
+  // Pagination
+  const paginatedInquiries = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredInquiries.slice(startIndex, endIndex);
+  }, [filteredInquiries, currentPage]);
+
+  const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
+
   return (
-    <Card className="bg-white">
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle className="text-xl text-blue-600">Client Inquiry</CardTitle>
-          <Button
-            onClick={fetchInquiries}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {/* Filters */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
+    <>
+      {/* Search Bar */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                type="text"
                 placeholder="Search by Name, Client ID, or Service ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
+            <Button onClick={fetchInquiries} variant="outline" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[180px] justify-start">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFilter ? format(dateFilter, "MMM dd, yyyy") : "Filter by Date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dateFilter}
-                  onSelect={setDateFilter}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+        </CardContent>
+      </Card>
 
-            <Select value={modeFilter} onValueChange={setModeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Mode of Transfer" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Modes</SelectItem>
-                {uniqueModes.map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {mode}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm text-muted-foreground">Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[180px] justify-start">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFilter ? format(dateFilter, "MMM dd, yyyy") : "Select Date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dateFilter}
+                    onSelect={setDateFilter}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label className="text-sm text-muted-foreground">Mode of Transfer</Label>
+              <Select value={modeFilter} onValueChange={setModeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Modes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Modes</SelectItem>
+                  {uniqueModes.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {mode}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {(searchTerm || dateFilter || modeFilter !== "all") && (
-              <Button variant="ghost" size="icon" onClick={clearFilters}>
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-end">
+                <Button variant="ghost" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+              </div>
             )}
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Table */}
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
-        ) : (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time/Date</TableHead>
-                  <TableHead>Client ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address/Contact</TableHead>
-                  <TableHead>Service ID</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Initial Diagnosis</TableHead>
-                  <TableHead>Quotation</TableHead>
-                  <TableHead>Mode of Transfer</TableHead>
-                  <TableHead>Pick-Up Date</TableHead>
-                  <TableHead>Direct Chat</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInquiries.length === 0 ? (
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Client Inquiries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredInquiries.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No inquiries found</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
-                      No inquiries found
-                    </TableCell>
+                    <TableHead>Time/Date</TableHead>
+                    <TableHead>Client ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Address/Contact</TableHead>
+                    <TableHead>Service ID</TableHead>
+                    <TableHead>Device</TableHead>
+                    <TableHead>Initial Diagnosis</TableHead>
+                    <TableHead>Quotation</TableHead>
+                    <TableHead>Mode of Transfer</TableHead>
+                    <TableHead>Pick-Up Date</TableHead>
+                    <TableHead>Direct Chat</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filteredInquiries.map((inquiry, index) => (
+                </TableHeader>
+                <TableBody>
+                  {paginatedInquiries.map((inquiry, index) => (
                     <TableRow key={`${inquiry.clientId}-${index}`}>
                       <TableCell className="whitespace-nowrap">{inquiry.timestamp}</TableCell>
                       <TableCell>{inquiry.clientId}</TableCell>
@@ -398,171 +427,224 @@ const ClientInquiryTable = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
-        {/* Edit Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Client Inquiry</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Client ID</Label>
-                <Input
-                  value={editFormData.clientId || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, clientId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={editFormData.name || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Address</Label>
-                <Input
-                  value={editFormData.address || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, address: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Contact Number</Label>
-                <Input
-                  value={editFormData.contactNumber || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, contactNumber: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Service ID</Label>
-                <Input
-                  value={editFormData.serviceId || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, serviceId: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Device</Label>
-                <Input
-                  value={editFormData.device || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, device: e.target.value })
-                  }
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Initial Diagnosis</Label>
-                <Textarea
-                  value={editFormData.initialDiagnosis || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, initialDiagnosis: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Quotation</Label>
-                <Input
-                  value={editFormData.quotation || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, quotation: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Mode of Transfer</Label>
-                <Input
-                  value={editFormData.modeOfTransfer || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, modeOfTransfer: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Pick-Up Date</Label>
-                <Input
-                  value={editFormData.pickUpDate || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, pickUpDate: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Direct Chat Link</Label>
-                <Input
-                  value={editFormData.directChatLink || ""}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, directChatLink: e.target.value })
-                  }
-                />
+          {/* Pagination */}
+          {!loading && filteredInquiries.length > 0 && (
+            <div className="mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+              <div className="text-center mt-2 text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages} • Showing {paginatedInquiries.length} of {filteredInquiries.length} inquiries
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEditSubmit} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Delete</DialogTitle>
-            </DialogHeader>
-            <p>
-              Are you sure you want to delete the inquiry for{" "}
-              <strong>{selectedInquiry?.name}</strong>? This action cannot be undone.
-            </p>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteConfirm}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Client Inquiry</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Client ID</Label>
+              <Input
+                value={editFormData.clientId || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, clientId: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Name</Label>
+              <Input
+                value={editFormData.name || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Address</Label>
+              <Input
+                value={editFormData.address || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, address: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Contact Number</Label>
+              <Input
+                value={editFormData.contactNumber || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, contactNumber: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Service ID</Label>
+              <Input
+                value={editFormData.serviceId || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, serviceId: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Device</Label>
+              <Input
+                value={editFormData.device || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, device: e.target.value })
+                }
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Initial Diagnosis</Label>
+              <Textarea
+                value={editFormData.initialDiagnosis || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, initialDiagnosis: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Quotation</Label>
+              <Input
+                value={editFormData.quotation || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, quotation: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Mode of Transfer</Label>
+              <Input
+                value={editFormData.modeOfTransfer || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, modeOfTransfer: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Pick-Up Date</Label>
+              <Input
+                value={editFormData.pickUpDate || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, pickUpDate: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Direct Chat Link</Label>
+              <Input
+                value={editFormData.directChatLink || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, directChatLink: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            Are you sure you want to delete the inquiry for{" "}
+            <strong>{selectedInquiry?.name}</strong>? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
