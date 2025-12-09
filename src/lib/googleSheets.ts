@@ -30,6 +30,14 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *
  * SERVICE MANAGEMENT:
  * - searchService: Finds service by ID and device type
+ *   Returns: adminRep, clientName, clientId (Column F), username, email, phone, device, deviceType,
+ *            serialNumber, brand, colorMemory, timestamp, targetDate, timeFrame, service, serviceCost,
+ *            partsUsed, discount, finalCost, quotationPdfUrl, status, technician, techNotes, adminNotes,
+ *            adminNotesInternal, chiefComplaint, technicianDiagnosis, aiDiagnosis, suggestedRepair,
+ *            technicianNotesCustomer, technicianNotesInternal, clientType, priority, dents, scratches,
+ *            missingParts, physicalDamage, importantFiles, noPower, repairHistory, pdfUrl, hasPassword,
+ *            devicePassword, technicianDepartment, clientFolderUrl, deviceReportFolderUrl, annotationImageUrl,
+ *            annotationNotes, technicianReport, aiReport
  * - updateService: Updates service details
  * - updateServicePDF: Updates ONLY the PDF URL for an existing service (does NOT create new row)
  * - updateTechnicianService: Updates service from technician portal
@@ -350,6 +358,7 @@ function doGet(e) {
           "data": {
             "adminRep": data[i][2],
             "clientName": data[i][8],
+            "clientId": data[i][5], // Column F - Client ID
             "username": data[i][9],
             "email": data[i][10],
             "phone": data[i][11],
