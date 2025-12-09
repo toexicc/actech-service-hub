@@ -1185,7 +1185,7 @@ const ManageClient = () => {
                                 <>
                                   <SelectItem value={currentDeviceType}>{currentDeviceType}</SelectItem>
                                   <SelectItem value="Others">Others</SelectItem>
-                                  <SelectItem value="" disabled>
+                                  <SelectItem value="_disabled_hint" disabled>
                                     Select technician first to change device type
                                   </SelectItem>
                                 </>
@@ -1195,7 +1195,7 @@ const ManageClient = () => {
                             return (
                               <>
                                 <SelectItem value="Others">Others</SelectItem>
-                                <SelectItem value="" disabled>
+                                <SelectItem value="_disabled_hint" disabled>
                                   Select technician first
                                 </SelectItem>
                               </>
@@ -1236,7 +1236,7 @@ const ManageClient = () => {
                             return (
                               <>
                                 <SelectItem value="Others">Others</SelectItem>
-                                <SelectItem value="" disabled>
+                                <SelectItem value="_disabled_hint" disabled>
                                   No device types available for selected technicians
                                 </SelectItem>
                               </>
