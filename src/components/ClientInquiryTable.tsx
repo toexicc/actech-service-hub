@@ -182,57 +182,58 @@ const ClientInquiryTable = () => {
 
   return (
     <div className="space-y-4">
-      {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Date Range Filter */}
-        <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">From:</Label>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-36"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">To:</Label>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-36"
-          />
-        </div>
+      {/* Filters Container */}
+      <div className="bg-card border rounded-lg p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search - Left */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Name, Client ID, Service ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
 
-        {/* Mode of Transfer Filter */}
-        <Select value={modeFilter} onValueChange={setModeFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Mode of Transfer" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Modes</SelectItem>
-            <SelectItem value="pickup">Pickup</SelectItem>
-            <SelectItem value="delivery">Delivery</SelectItem>
-            <SelectItem value="store visit">Store Visit</SelectItem>
-          </SelectContent>
-        </Select>
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">From:</Label>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-36"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">To:</Label>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-36"
+            />
+          </div>
 
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search Name, Client ID, Service ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+          {/* Mode of Transfer Filter */}
+          <Select value={modeFilter} onValueChange={setModeFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Mode of Transfer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Modes</SelectItem>
+              <SelectItem value="pickup">Pickup</SelectItem>
+              <SelectItem value="delivery">Delivery</SelectItem>
+              <SelectItem value="store visit">Store Visit</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Reload Button - Icon only */}
+          <Button variant="outline" size="icon" onClick={fetchInquiries} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
         </div>
-
-        {/* Reload Button */}
-        <Button variant="outline" onClick={fetchInquiries} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Reload
-        </Button>
       </div>
 
       {/* Table */}
