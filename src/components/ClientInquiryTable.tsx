@@ -1,492 +1,352 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Search,
-  Pencil,
-  Trash2,
-  ExternalLink,
-  RefreshCw,
-  CalendarIcon,
-  X,
-  Loader2,
-} from "lucide-react";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { toast } from "@/hooks/use-toast";
+import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
 
 interface ClientInquiry {
   rowIndex: number;
-  timestamp: string;
   clientId: string;
+  serviceId: string;
+  timestamp: string;
   name: string;
   address: string;
   contactNumber: string;
-  serviceId: string;
+  modeOfTransfer: string;
   device: string;
   initialDiagnosis: string;
   quotation: string;
-  modeOfTransfer: string;
   pickUpDate: string;
   directChatLink: string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const ClientInquiryTable = () => {
   const [inquiries, setInquiries] = useState<ClientInquiry[]>([]);
-  const [filteredInquiries, setFilteredInquiries] = useState<ClientInquiry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
-  const [modeFilter, setModeFilter] = useState<string>("all");
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedInquiry, setSelectedInquiry] = useState<ClientInquiry | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<ClientInquiry>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [modeFilter, setModeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingInquiry, setEditingInquiry] = useState<ClientInquiry | null>(null);
+  const [editForm, setEditForm] = useState<Partial<ClientInquiry>>({});
+  
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingInquiry, setDeletingInquiry] = useState<ClientInquiry | null>(null);
 
-  const fetchInquiries = useCallback(async () => {
+  const fetchInquiries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`
-      );
-      const data = await response.json();
-      
-      if (data.status === "success" && data.data) {
-        // Sort by timestamp (most recent first)
-        const sortedData = data.data.sort((a: ClientInquiry, b: ClientInquiry) => {
-          const dateA = new Date(a.timestamp);
-          const dateB = new Date(b.timestamp);
-          return dateB.getTime() - dateA.getTime();
-        });
-        setInquiries(sortedData);
-        setFilteredInquiries(sortedData);
+      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getClientInquiries`);
+      const result = await response.json();
+      if (result.status === "success") {
+        setInquiries(result.data || []);
       } else {
-        console.error("Failed to fetch inquiries:", data);
-        toast.error("Failed to load client inquiries");
+        toast({ title: "Error", description: "Failed to fetch inquiries", variant: "destructive" });
       }
     } catch (error) {
-      console.error("Error fetching inquiries:", error);
-      toast.error("Error loading client inquiries");
+      toast({ title: "Error", description: "Failed to fetch inquiries", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchInquiries();
-  }, [fetchInquiries]);
+  }, []);
 
-  // Apply filters
+  const filteredInquiries = useMemo(() => {
+    return inquiries.filter((inquiry) => {
+      // Search filter
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery || 
+        inquiry.name?.toLowerCase().includes(searchLower) ||
+        inquiry.clientId?.toLowerCase().includes(searchLower) ||
+        inquiry.serviceId?.toLowerCase().includes(searchLower);
+
+      // Date range filter
+      let matchesDateRange = true;
+      if (startDate || endDate) {
+        try {
+          const inquiryDate = inquiry.timestamp ? new Date(inquiry.timestamp) : null;
+          if (inquiryDate && !isNaN(inquiryDate.getTime())) {
+            const start = startDate ? startOfDay(new Date(startDate)) : new Date(0);
+            const end = endDate ? endOfDay(new Date(endDate)) : new Date(8640000000000000);
+            matchesDateRange = isWithinInterval(inquiryDate, { start, end });
+          }
+        } catch {
+          matchesDateRange = true;
+        }
+      }
+
+      // Mode filter
+      const matchesMode = modeFilter === "all" || 
+        inquiry.modeOfTransfer?.toLowerCase() === modeFilter.toLowerCase();
+
+      return matchesSearch && matchesDateRange && matchesMode;
+    });
+  }, [inquiries, searchQuery, startDate, endDate, modeFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredInquiries.length / ITEMS_PER_PAGE);
+  const paginatedInquiries = filteredInquiries.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   useEffect(() => {
-    let filtered = [...inquiries];
-
-    // Search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (inquiry) =>
-          inquiry.name?.toLowerCase().includes(term) ||
-          inquiry.clientId?.toLowerCase().includes(term) ||
-          inquiry.serviceId?.toLowerCase().includes(term)
-      );
-    }
-
-    // Date filter
-    if (dateFilter) {
-      const filterDateStr = format(dateFilter, "MM-dd-yyyy");
-      filtered = filtered.filter((inquiry) => {
-        const inquiryDate = inquiry.timestamp?.split(",")[0];
-        return inquiryDate === filterDateStr;
-      });
-    }
-
-    // Mode of transfer filter
-    if (modeFilter && modeFilter !== "all") {
-      filtered = filtered.filter(
-        (inquiry) =>
-          inquiry.modeOfTransfer?.toLowerCase() === modeFilter.toLowerCase()
-      );
-    }
-
-    setFilteredInquiries(filtered);
-    setCurrentPage(1); // Reset to page 1 when filters change
-  }, [inquiries, searchTerm, dateFilter, modeFilter]);
+    setCurrentPage(1);
+  }, [searchQuery, startDate, endDate, modeFilter]);
 
   const handleEdit = (inquiry: ClientInquiry) => {
-    setSelectedInquiry(inquiry);
-    setEditFormData({ ...inquiry });
+    setEditingInquiry(inquiry);
+    setEditForm({ ...inquiry });
     setEditDialogOpen(true);
   };
 
+  const handleSaveEdit = async () => {
+    if (!editingInquiry) return;
+    
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateClientInquiry",
+          rowIndex: editingInquiry.rowIndex,
+          data: editForm
+        })
+      });
+      
+      toast({ title: "Success", description: "Inquiry updated successfully" });
+      setEditDialogOpen(false);
+      fetchInquiries();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update inquiry", variant: "destructive" });
+    }
+  };
+
   const handleDelete = (inquiry: ClientInquiry) => {
-    setSelectedInquiry(inquiry);
+    setDeletingInquiry(inquiry);
     setDeleteDialogOpen(true);
   };
 
-  const handleEditSubmit = async () => {
-    if (!selectedInquiry || !editFormData) return;
-
-    setIsSubmitting(true);
+  const confirmDelete = async () => {
+    if (!deletingInquiry) return;
+    
     try {
-      const formData = new FormData();
-      formData.append("action", "updateClientInquiry");
-      formData.append("rowIndex", selectedInquiry.rowIndex.toString());
-      formData.append("clientId", editFormData.clientId || "");
-      formData.append("name", editFormData.name || "");
-      formData.append("address", editFormData.address || "");
-      formData.append("contactNumber", editFormData.contactNumber || "");
-      formData.append("serviceId", editFormData.serviceId || "");
-      formData.append("device", editFormData.device || "");
-      formData.append("initialDiagnosis", editFormData.initialDiagnosis || "");
-      formData.append("quotation", editFormData.quotation || "");
-      formData.append("modeOfTransfer", editFormData.modeOfTransfer || "");
-      formData.append("pickUpDate", editFormData.pickUpDate || "");
-      formData.append("directChatLink", editFormData.directChatLink || "");
-
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        body: formData,
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "deleteClientInquiry",
+          rowIndex: deletingInquiry.rowIndex
+        })
       });
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        toast.success("Inquiry updated successfully");
-        setEditDialogOpen(false);
-        fetchInquiries();
-      } else {
-        toast.error("Failed to update inquiry");
-      }
+      
+      toast({ title: "Success", description: "Inquiry deleted successfully" });
+      setDeleteDialogOpen(false);
+      fetchInquiries();
     } catch (error) {
-      console.error("Error updating inquiry:", error);
-      toast.error("Error updating inquiry");
-    } finally {
-      setIsSubmitting(false);
+      toast({ title: "Error", description: "Failed to delete inquiry", variant: "destructive" });
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!selectedInquiry) return;
-
-    setIsSubmitting(true);
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "-";
     try {
-      const formData = new FormData();
-      formData.append("action", "deleteClientInquiry");
-      formData.append("rowIndex", selectedInquiry.rowIndex.toString());
-
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        toast.success("Inquiry deleted successfully");
-        setDeleteDialogOpen(false);
-        fetchInquiries();
-      } else {
-        toast.error("Failed to delete inquiry");
-      }
-    } catch (error) {
-      console.error("Error deleting inquiry:", error);
-      toast.error("Error deleting inquiry");
-    } finally {
-      setIsSubmitting(false);
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return format(date, "MMM dd, yyyy hh:mm a");
+    } catch {
+      return dateStr;
     }
   };
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setDateFilter(undefined);
-    setModeFilter("all");
-  };
-
-  const openDirectChat = (link: string) => {
-    if (link) {
-      window.open(link, "_blank");
-    } else {
-      toast.error("No chat link available");
-    }
-  };
-
-  // Get unique modes of transfer for filter dropdown
-  const uniqueModes = Array.from(
-    new Set(inquiries.map((i) => i.modeOfTransfer).filter(Boolean))
-  );
-
-  // Pagination
-  const paginatedInquiries = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredInquiries.slice(startIndex, endIndex);
-  }, [filteredInquiries, currentPage]);
-
-  const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
 
   return (
-    <>
-      {/* Search Bar */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search by Name, Client ID, or Service ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={fetchInquiries} variant="outline" disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Date Range Filter */}
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">From:</Label>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-36"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">To:</Label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-36"
+          />
+        </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm text-muted-foreground">Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[180px] justify-start">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFilter ? format(dateFilter, "MMM dd, yyyy") : "Select Date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateFilter}
-                    onSelect={setDateFilter}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+        {/* Mode of Transfer Filter */}
+        <Select value={modeFilter} onValueChange={setModeFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Mode of Transfer" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Modes</SelectItem>
+            <SelectItem value="pickup">Pickup</SelectItem>
+            <SelectItem value="delivery">Delivery</SelectItem>
+            <SelectItem value="store visit">Store Visit</SelectItem>
+          </SelectContent>
+        </Select>
 
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm text-muted-foreground">Mode of Transfer</Label>
-              <Select value={modeFilter} onValueChange={setModeFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Modes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Modes</SelectItem>
-                  {uniqueModes.map((mode) => (
-                    <SelectItem key={mode} value={mode}>
-                      {mode}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search Name, Client ID, Service ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
-            {(searchTerm || dateFilter || modeFilter !== "all") && (
-              <div className="flex items-end">
-                <Button variant="ghost" onClick={clearFilters}>
-                  <X className="h-4 w-4 mr-2" />
-                  Clear Filters
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Reload Button */}
+        <Button variant="outline" onClick={fetchInquiries} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Reload
+        </Button>
+      </div>
 
       {/* Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Client Inquiries</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredInquiries.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No inquiries found</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time/Date</TableHead>
-                    <TableHead>Client ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Address/Contact</TableHead>
-                    <TableHead>Service ID</TableHead>
-                    <TableHead>Device</TableHead>
-                    <TableHead>Initial Diagnosis</TableHead>
-                    <TableHead>Quotation</TableHead>
-                    <TableHead>Mode of Transfer</TableHead>
-                    <TableHead>Pick-Up Date</TableHead>
-                    <TableHead>Direct Chat</TableHead>
-                    <TableHead>Actions</TableHead>
+      <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="whitespace-nowrap">Time/Date</TableHead>
+                <TableHead className="whitespace-nowrap">Client ID</TableHead>
+                <TableHead className="whitespace-nowrap">Name</TableHead>
+                <TableHead className="whitespace-nowrap">Address/Contact</TableHead>
+                <TableHead className="whitespace-nowrap">Service ID</TableHead>
+                <TableHead className="whitespace-nowrap">Device</TableHead>
+                <TableHead className="whitespace-nowrap">Initial Diagnosis</TableHead>
+                <TableHead className="whitespace-nowrap">Quotation</TableHead>
+                <TableHead className="whitespace-nowrap">Mode of Transfer</TableHead>
+                <TableHead className="whitespace-nowrap">Pick-Up Date</TableHead>
+                <TableHead className="whitespace-nowrap">Direct Chat</TableHead>
+                <TableHead className="whitespace-nowrap">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : paginatedInquiries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                    No inquiries found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedInquiries.map((inquiry) => (
+                  <TableRow key={inquiry.rowIndex}>
+                    <TableCell className="whitespace-nowrap">{formatDate(inquiry.timestamp)}</TableCell>
+                    <TableCell className="font-mono text-xs">{inquiry.clientId || "-"}</TableCell>
+                    <TableCell>{inquiry.name || "-"}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">{inquiry.address || "-"}</div>
+                      {inquiry.contactNumber && (
+                        <div className="text-xs text-muted-foreground">{inquiry.contactNumber}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{inquiry.serviceId || "-"}</TableCell>
+                    <TableCell>{inquiry.device || "-"}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{inquiry.initialDiagnosis || "-"}</TableCell>
+                    <TableCell>{inquiry.quotation || "-"}</TableCell>
+                    <TableCell>{inquiry.modeOfTransfer || "-"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{inquiry.pickUpDate || "-"}</TableCell>
+                    <TableCell>
+                      {inquiry.directChatLink ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(inquiry.directChatLink, "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(inquiry)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(inquiry)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedInquiries.map((inquiry, index) => (
-                    <TableRow key={`${inquiry.clientId}-${index}`}>
-                      <TableCell className="whitespace-nowrap">{inquiry.timestamp}</TableCell>
-                      <TableCell>{inquiry.clientId}</TableCell>
-                      <TableCell>{inquiry.name}</TableCell>
-                      <TableCell>
-                        <div className="max-w-[150px]">
-                          <p className="truncate text-sm">{inquiry.address}</p>
-                          <p className="text-sm text-muted-foreground">{inquiry.contactNumber}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{inquiry.serviceId}</TableCell>
-                      <TableCell>{inquiry.device}</TableCell>
-                      <TableCell>
-                        <p className="max-w-[150px] truncate" title={inquiry.initialDiagnosis}>
-                          {inquiry.initialDiagnosis}
-                        </p>
-                      </TableCell>
-                      <TableCell>{inquiry.quotation}</TableCell>
-                      <TableCell>{inquiry.modeOfTransfer}</TableCell>
-                      <TableCell>{inquiry.pickUpDate}</TableCell>
-                      <TableCell>
-                        {inquiry.directChatLink ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openDirectChat(inquiry.directChatLink)}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(inquiry)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(inquiry)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
-          {/* Pagination */}
-          {!loading && filteredInquiries.length > 0 && (
-            <div className="mt-6">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                    if (
-                      page === 1 ||
-                      page === totalPages ||
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                    ) {
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(page)}
-                            isActive={currentPage === page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-                    return null;
-                  })}
-
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-              <div className="text-center mt-2 text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages} • Showing {paginatedInquiries.length} of {filteredInquiries.length} inquiries
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredInquiries.length)} of {filteredInquiries.length} entries
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -496,155 +356,103 @@ const ClientInquiryTable = () => {
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Client ID</Label>
-              <Input
-                value={editFormData.clientId || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, clientId: e.target.value })
-                }
-              />
-            </div>
-            <div>
               <Label>Name</Label>
               <Input
-                value={editFormData.name || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, name: e.target.value })
-                }
+                value={editForm.name || ""}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
               />
             </div>
             <div>
               <Label>Address</Label>
               <Input
-                value={editFormData.address || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, address: e.target.value })
-                }
+                value={editForm.address || ""}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
               />
             </div>
             <div>
               <Label>Contact Number</Label>
               <Input
-                value={editFormData.contactNumber || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, contactNumber: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label>Service ID</Label>
-              <Input
-                value={editFormData.serviceId || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, serviceId: e.target.value })
-                }
+                value={editForm.contactNumber || ""}
+                onChange={(e) => setEditForm({ ...editForm, contactNumber: e.target.value })}
               />
             </div>
             <div>
               <Label>Device</Label>
               <Input
-                value={editFormData.device || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, device: e.target.value })
-                }
+                value={editForm.device || ""}
+                onChange={(e) => setEditForm({ ...editForm, device: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Mode of Transfer</Label>
+              <Select
+                value={editForm.modeOfTransfer || ""}
+                onValueChange={(value) => setEditForm({ ...editForm, modeOfTransfer: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pickup">Pickup</SelectItem>
+                  <SelectItem value="Delivery">Delivery</SelectItem>
+                  <SelectItem value="Store Visit">Store Visit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Pick-Up Date</Label>
+              <Input
+                value={editForm.pickUpDate || ""}
+                onChange={(e) => setEditForm({ ...editForm, pickUpDate: e.target.value })}
               />
             </div>
             <div className="col-span-2">
               <Label>Initial Diagnosis</Label>
               <Textarea
-                value={editFormData.initialDiagnosis || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, initialDiagnosis: e.target.value })
-                }
+                value={editForm.initialDiagnosis || ""}
+                onChange={(e) => setEditForm({ ...editForm, initialDiagnosis: e.target.value })}
               />
             </div>
             <div>
               <Label>Quotation</Label>
               <Input
-                value={editFormData.quotation || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, quotation: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label>Mode of Transfer</Label>
-              <Input
-                value={editFormData.modeOfTransfer || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, modeOfTransfer: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label>Pick-Up Date</Label>
-              <Input
-                value={editFormData.pickUpDate || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, pickUpDate: e.target.value })
-                }
+                value={editForm.quotation || ""}
+                onChange={(e) => setEditForm({ ...editForm, quotation: e.target.value })}
               />
             </div>
             <div>
               <Label>Direct Chat Link</Label>
               <Input
-                value={editFormData.directChatLink || ""}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, directChatLink: e.target.value })
-                }
+                value={editForm.directChatLink || ""}
+                onChange={(e) => setEditForm({ ...editForm, directChatLink: e.target.value })}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <p className="text-muted-foreground">
-            Are you sure you want to delete the inquiry for{" "}
-            <strong>{selectedInquiry?.name}</strong>? This action cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Inquiry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this inquiry? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
 
