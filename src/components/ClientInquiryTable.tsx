@@ -73,6 +73,13 @@ const ClientInquiryTable = () => {
 
   useEffect(() => {
     fetchInquiries();
+    
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchInquiries();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   const filteredInquiries = useMemo(() => {
