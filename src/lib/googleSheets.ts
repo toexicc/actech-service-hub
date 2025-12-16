@@ -1285,6 +1285,186 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // ========== GROUP CHATS (GET) ==========
+  
+  // Get all group chats for a user
+  if (params.action === 'getGroupChats' && params.userId) {
+    var groupSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GroupChats");
+    if (!groupSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        groups: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = groupSheet.getDataRange().getValues();
+    var groups = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var memberIds = data[i][3] ? data[i][3].toString().split(',') : [];
+      // Check if user is a member
+      if (memberIds.includes(params.userId)) {
+        groups.push({
+          id: data[i][0],
+          name: data[i][1],
+          createdBy: data[i][2],
+          memberIds: memberIds,
+          memberNames: data[i][4] ? data[i][4].toString().split(',') : [],
+          createdAt: data[i][5]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      groups: groups
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Get messages for a specific group
+  if (params.action === 'getGroupMessages' && params.groupId) {
+    var msgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Messages");
+    if (!msgSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        messages: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = msgSheet.getDataRange().getValues();
+    var messages = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      // Column I (index 8) is Group ID
+      if (data[i][8] === params.groupId) {
+        messages.push({
+          id: data[i][0],
+          senderId: data[i][1],
+          senderName: data[i][2],
+          receiverId: data[i][3],
+          receiverName: data[i][4],
+          content: data[i][5],
+          read: data[i][6] === 'TRUE' || data[i][6] === 'true',
+          createdAt: data[i][7],
+          groupId: data[i][8]
+        });
+      }
+    }
+    
+    // Sort by oldest first for chat display
+    messages.sort(function(a, b) {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      messages: messages
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== TYPING INDICATORS (GET) ==========
+  
+  // Get typing status for a conversation
+  if (params.action === 'getTypingStatus' && params.conversationId) {
+    var typingSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("TypingStatus");
+    if (!typingSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        typingUsers: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = typingSheet.getDataRange().getValues();
+    var typingUsers = [];
+    var now = new Date().getTime();
+    
+    for (var i = 1; i < data.length; i++) {
+      var timestamp = new Date(data[i][3]).getTime();
+      // Only include if typing within last 5 seconds
+      if (data[i][1] === params.conversationId && (now - timestamp) < 5000) {
+        typingUsers.push({
+          userId: data[i][0],
+          timestamp: data[i][3]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      typingUsers: typingUsers
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== READ RECEIPTS (GET) ==========
+  
+  // Get read receipts for a specific message
+  if (params.action === 'getMessageReadReceipts' && params.messageId) {
+    var receiptsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ReadReceipts");
+    if (!receiptsSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        receipts: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = receiptsSheet.getDataRange().getValues();
+    var receipts = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === params.messageId) {
+        receipts.push({
+          id: data[i][0],
+          messageId: data[i][1],
+          userId: data[i][2],
+          userName: data[i][3],
+          readAt: data[i][4]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      receipts: receipts
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Get all read receipts for messages in a group (batch fetch)
+  if (params.action === 'getGroupReadReceipts' && params.groupId) {
+    var msgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Messages");
+    var receiptsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ReadReceipts");
+    
+    if (!msgSheet || !receiptsSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        receipts: {}
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Get all message IDs in this group
+    var messagesData = msgSheet.getDataRange().getValues();
+    var groupMessageIds = [];
+    for (var i = 1; i < messagesData.length; i++) {
+      if (messagesData[i][8] === params.groupId) {
+        groupMessageIds.push(messagesData[i][0]);
+      }
+    }
+    
+    // Get all read receipts for these messages
+    var receiptsData = receiptsSheet.getDataRange().getValues();
+    var receiptsByMessage = {};
+    
+    for (var i = 1; i < receiptsData.length; i++) {
+      var msgId = receiptsData[i][1];
+      if (groupMessageIds.indexOf(msgId) > -1) {
+        if (!receiptsByMessage[msgId]) {
+          receiptsByMessage[msgId] = [];
+        }
+        receiptsByMessage[msgId].push({
+          id: receiptsData[i][0],
+          messageId: msgId,
+          userId: receiptsData[i][2],
+          userName: receiptsData[i][3],
+          readAt: receiptsData[i][4]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      receipts: receiptsByMessage
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   return ContentService.createTextOutput(JSON.stringify({
     "error": "Invalid request"
   })).setMimeType(ContentService.MimeType.JSON);
@@ -2404,6 +2584,238 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
       message: "Message not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== GROUP CHATS (POST) ==========
+  
+  // Create a new group chat
+  if (params.action === 'createGroupChat') {
+    var groupSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GroupChats");
+    if (!groupSheet) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      groupSheet = ss.insertSheet("GroupChats");
+      groupSheet.appendRow(["ID", "Name", "Created By", "Member IDs", "Member Names", "Created At"]);
+    }
+    
+    var groupId = "GRP" + Date.now();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    groupSheet.appendRow([
+      groupId,
+      params.name,
+      params.createdBy,
+      params.memberIds,
+      params.memberNames,
+      timestamp
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      groupId: groupId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Send a message to a group
+  if (params.action === 'sendGroupMessage' && params.groupId) {
+    var msgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Messages");
+    var groupSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GroupChats");
+    
+    if (!msgSheet) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      msgSheet = ss.insertSheet("Messages");
+      msgSheet.appendRow(["ID", "Sender ID", "Sender Name", "Receiver ID", "Receiver Name", "Content", "Read", "Created At", "Group ID"]);
+    }
+    
+    // Get group name
+    var groupName = "Group";
+    if (groupSheet) {
+      var groupData = groupSheet.getDataRange().getValues();
+      for (var i = 1; i < groupData.length; i++) {
+        if (groupData[i][0] === params.groupId) {
+          groupName = groupData[i][1];
+          break;
+        }
+      }
+    }
+    
+    var msgId = "MSG" + Date.now();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    msgSheet.appendRow([
+      msgId,
+      params.senderId,
+      params.senderName,
+      params.groupId,
+      groupName,
+      params.content,
+      "FALSE",
+      timestamp,
+      params.groupId
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      messageId: msgId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Add member to group
+  if (params.action === 'addGroupMember' && params.groupId) {
+    var groupSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GroupChats");
+    if (!groupSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "GroupChats sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = groupSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.groupId) {
+        var memberIds = data[i][3] ? data[i][3].toString().split(',') : [];
+        var memberNames = data[i][4] ? data[i][4].toString().split(',') : [];
+        
+        if (memberIds.indexOf(params.memberId) === -1) {
+          memberIds.push(params.memberId);
+          memberNames.push(params.memberName);
+          groupSheet.getRange(i + 1, 4).setValue(memberIds.join(','));
+          groupSheet.getRange(i + 1, 5).setValue(memberNames.join(','));
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: "Group not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Remove member from group
+  if (params.action === 'removeGroupMember' && params.groupId) {
+    var groupSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("GroupChats");
+    if (!groupSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "GroupChats sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = groupSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.groupId) {
+        var memberIds = data[i][3] ? data[i][3].toString().split(',') : [];
+        var memberNames = data[i][4] ? data[i][4].toString().split(',') : [];
+        var idx = memberIds.indexOf(params.memberId);
+        
+        if (idx > -1) {
+          memberIds.splice(idx, 1);
+          memberNames.splice(idx, 1);
+          groupSheet.getRange(i + 1, 4).setValue(memberIds.join(','));
+          groupSheet.getRange(i + 1, 5).setValue(memberNames.join(','));
+        }
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: "Group not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== TYPING INDICATORS (POST) ==========
+  
+  // Set typing status
+  if (params.action === 'setTypingStatus' && params.userId && params.conversationId) {
+    var typingSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("TypingStatus");
+    if (!typingSheet) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      typingSheet = ss.insertSheet("TypingStatus");
+      typingSheet.appendRow(["User ID", "Conversation ID", "Is Group", "Timestamp"]);
+    }
+    
+    var data = typingSheet.getDataRange().getValues();
+    var found = false;
+    var timestamp = new Date().toISOString();
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.userId && data[i][1] === params.conversationId) {
+        typingSheet.getRange(i + 1, 4).setValue(timestamp);
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) {
+      typingSheet.appendRow([params.userId, params.conversationId, params.isGroup || "false", timestamp]);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Clear typing status
+  if (params.action === 'clearTypingStatus' && params.userId && params.conversationId) {
+    var typingSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("TypingStatus");
+    if (typingSheet) {
+      var data = typingSheet.getDataRange().getValues();
+      for (var i = data.length - 1; i >= 1; i--) {
+        if (data[i][0] === params.userId && data[i][1] === params.conversationId) {
+          typingSheet.deleteRow(i + 1);
+          break;
+        }
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== READ RECEIPTS (POST) ==========
+  
+  // Mark group message as read (create read receipt)
+  if (params.action === 'markGroupMessageRead' && params.messageId && params.userId) {
+    var receiptsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("ReadReceipts");
+    if (!receiptsSheet) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      receiptsSheet = ss.insertSheet("ReadReceipts");
+      receiptsSheet.appendRow(["ID", "Message ID", "User ID", "User Name", "Read At"]);
+    }
+    
+    // Check if receipt already exists
+    var data = receiptsSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === params.messageId && data[i][2] === params.userId) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true,
+          exists: true
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    var receiptId = "RR" + Date.now() + Math.random().toString(36).substr(2, 5);
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    receiptsSheet.appendRow([
+      receiptId,
+      params.messageId,
+      params.userId,
+      params.userName || "",
+      timestamp
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
