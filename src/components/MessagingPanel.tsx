@@ -22,6 +22,7 @@ const parseMessageDate = (value: string) => {
 
 interface Staff {
   staffId: string;
+  username?: string;
   name: string;
   department: string;
 }
@@ -53,14 +54,23 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     fetchStaff();
   }, [userId]);
 
+  // Helper to find staff by staffId OR username (for backward compatibility)
+  const findStaffById = (id: string) => 
+    staffList.find(s => s.staffId === id || s.username === id);
+
   const conversations = getConversations();
-  const currentConversation = conversations.find(c => c.partnerId === selectedConversation);
+  // Match conversation by staffId or username
+  const currentConversation = conversations.find(c => {
+    if (c.partnerId === selectedConversation) return true;
+    const staff = findStaffById(c.partnerId);
+    return staff && (staff.staffId === selectedConversation || staff.username === selectedConversation);
+  });
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedConversation || !userName) return;
     
     setSending(true);
-    const partner = staffList.find(s => s.staffId === selectedConversation) || 
+    const partner = findStaffById(selectedConversation) || 
                    conversations.find(c => c.partnerId === selectedConversation);
     const partnerName = partner ? ('name' in partner ? partner.name : partner.partnerName) : 'Unknown';
     
@@ -72,7 +82,18 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   };
 
   const startNewChat = (staff: Staff) => {
-    setSelectedConversation(staff.staffId);
+    // Check if there's already a conversation with this person (by staffId or username)
+    const existingConv = conversations.find(c => {
+      const convStaff = findStaffById(c.partnerId);
+      return convStaff && (convStaff.staffId === staff.staffId);
+    });
+    
+    if (existingConv) {
+      // Use the existing conversation's partnerId to maintain consistency
+      setSelectedConversation(existingConv.partnerId);
+    } else {
+      setSelectedConversation(staff.staffId);
+    }
     setShowNewChat(false);
   };
 
