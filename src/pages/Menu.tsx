@@ -416,18 +416,16 @@ const Menu = () => {
                     </TableHeader>
                     <TableBody>
                       {servicesDueToday.map((service) => (
-                        <TableRow key={service.serviceId}>
+                        <TableRow 
+                          key={service.serviceId}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleEditService(service.serviceId)}
+                        >
                           <TableCell className="font-medium">{service.serviceId}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-warning font-medium">{service.status}</TableCell>
                           <TableCell>
-                            <button
-                              onClick={() => handleEditService(service.serviceId)}
-                              className="p-1 rounded hover:bg-muted transition-colors"
-                              title={isTechnician ? "Update Service" : "Edit in Manage Client"}
-                            >
-                              <ExternalLink className="h-4 w-4 text-primary" />
-                            </button>
+                            <ExternalLink className="h-4 w-4 text-primary" />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -463,18 +461,16 @@ const Menu = () => {
                     </TableHeader>
                     <TableBody>
                       {servicesOverdue.map((service) => (
-                        <TableRow key={service.serviceId}>
+                        <TableRow 
+                          key={service.serviceId}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleEditService(service.serviceId)}
+                        >
                           <TableCell className="font-medium">{service.serviceId}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-destructive font-medium">{service.status}</TableCell>
                           <TableCell>
-                            <button
-                              onClick={() => handleEditService(service.serviceId)}
-                              className="p-1 rounded hover:bg-muted transition-colors"
-                              title={isTechnician ? "Update Service" : "Edit in Manage Client"}
-                            >
-                              <ExternalLink className="h-4 w-4 text-primary" />
-                            </button>
+                            <ExternalLink className="h-4 w-4 text-primary" />
                           </TableCell>
                         </TableRow>
                       ))}
