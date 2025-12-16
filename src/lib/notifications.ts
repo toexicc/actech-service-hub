@@ -109,7 +109,7 @@ export const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'r
       })
     });
     const data = await response.json();
-    return data.success;
+    return data.success || data.result === 'success';
   } catch (error) {
     console.error('Error sending message:', error);
     return false;
