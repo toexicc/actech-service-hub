@@ -38,6 +38,7 @@ const Login = () => {
         sessionStorage.setItem("userRole", user.role);
         sessionStorage.setItem("username", user.username);
         sessionStorage.setItem("userFullName", user.name);
+        sessionStorage.setItem("staffId", user.staffId);
         
         // All users go to /menu
         navigate("/menu");
