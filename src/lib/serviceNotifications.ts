@@ -38,12 +38,18 @@ const getManagementStaff = (staffList: StaffMember[]): StaffMember[] => {
   return staffList.filter(s => s.role?.toLowerCase() === 'management');
 };
 
+// Get all admin staff  
+const getAdminStaff = (staffList: StaffMember[]): StaffMember[] => {
+  return staffList.filter(s => s.role?.toLowerCase() === 'admin');
+};
+
 // Notify about service status change
 export const notifyServiceStatusChange = async (
   service: ServiceInfo,
   oldStatus: string,
   newStatus: string,
-  changedBy: string
+  changedBy: string,
+  changedByRole?: string
 ): Promise<void> => {
   try {
     const staffList = await fetchStaffList();
@@ -57,11 +63,25 @@ export const notifyServiceStatusChange = async (
       }
     });
     
+    // If changed by technician, also notify admins
+    if (changedByRole?.toLowerCase() === 'technician') {
+      const admins = getAdminStaff(staffList);
+      admins.forEach(a => {
+        if (a.staffId && a.name !== changedBy) {
+          notifyUsers.add(a.staffId);
+        }
+      });
+    }
+    
     // Notify assigned technician (if not the one making the change)
     if (service.technician && service.technician !== changedBy) {
-      const tech = findStaffByName(staffList, service.technician);
-      if (tech?.staffId) {
-        notifyUsers.add(tech.staffId);
+      // Handle multiple technicians
+      const techNames = service.technician.split(',').map(t => t.trim());
+      for (const techName of techNames) {
+        const tech = findStaffByName(staffList, techName);
+        if (tech?.staffId) {
+          notifyUsers.add(tech.staffId);
+        }
       }
     }
     

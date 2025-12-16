@@ -594,6 +594,7 @@ const ManageClient = () => {
 
         // Send notifications for status changes
         const userFullName = sessionStorage.getItem("userFullName") || username;
+        const userRole = sessionStorage.getItem("userRole");
         if (updateStatus !== serviceData.status) {
           notifyServiceStatusChange(
             {
@@ -605,7 +606,8 @@ const ManageClient = () => {
             },
             serviceData.status,
             updateStatus,
-            userFullName
+            userFullName,
+            userRole || undefined
           );
         }
 

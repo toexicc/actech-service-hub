@@ -23,6 +23,7 @@ import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
+import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -461,6 +462,23 @@ const ServiceForm = () => {
       });
 
       if (response.ok) {
+        // Notify assigned technician(s)
+        const techNames = data.technician.split(", ").filter(Boolean);
+        const adminName = sessionStorage.getItem("userFullName") || data.adminRep;
+        for (const techName of techNames) {
+          await notifyNewServiceAssignment(
+            {
+              serviceId: finalServiceId,
+              clientName: data.clientName,
+              technician: techName,
+              deviceType: data.deviceType,
+              device: data.model,
+            },
+            techName,
+            adminName
+          );
+        }
+
         toast({
           title: "Success",
           description: `Service form submitted successfully! Service ID: ${finalServiceId}`,

@@ -65,8 +65,16 @@ const showBrowserNotification = (title: string, body: string, icon?: string) => 
 
 // Clean notification message (remove image URLs)
 const cleanNotificationMessage = (message: string): string => {
+  // Handle various image formats in notifications
+  if (message.includes('data:image/')) {
+    // Replace full base64 URLs
+    return message
+      .replace(/\[Image:\s*data:image\/[^\]]+\]/gi, '📷 sent an image')
+      .replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/gi, '📷 sent an image')
+      .trim();
+  }
   if (message.includes('[Image:')) {
-    return message.replace(/\[Image: data:image\/[^;]+;base64,[^\]]+\]/g, '📷 sent an image').trim();
+    return message.replace(/\[Image:[^\]]+\]/g, '📷 sent an image').trim();
   }
   return message;
 };

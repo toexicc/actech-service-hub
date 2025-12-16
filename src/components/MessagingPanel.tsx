@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,11 +10,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useMessaging } from '@/hooks/useMessaging';
 import { format } from 'date-fns';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
 import { toast } from 'sonner';
-
+import { Checkbox } from '@/components/ui/checkbox';
 const parseMessageDate = (value: string) => {
   if (!value) return new Date(0);
   if (value.endsWith('Z')) return new Date(value.replace(/Z$/, ''));
@@ -199,6 +206,11 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
   };
 
+  const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
+  const [showGroupChatDialog, setShowGroupChatDialog] = useState(false);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
+  const [groupChatName, setGroupChatName] = useState('');
+
   const renderMessageContent = (content: string) => {
     // Check if message contains an image
     const imageMatch = content.match(/\[Image: (data:image\/[^;]+;base64,[^\]]+)\]/);
@@ -210,12 +222,37 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
           <img 
             src={imageMatch[1]} 
             alt="Attached" 
-            className="max-w-full rounded-md max-h-48 object-contain"
+            className="max-w-full rounded-md max-h-48 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setImageViewerUrl(imageMatch[1])}
           />
         </>
       );
     }
     return <p className="text-sm">{content}</p>;
+  };
+
+  const handleCreateGroupChat = () => {
+    if (selectedGroupMembers.length < 2) {
+      toast.error('Select at least 2 members for a group chat');
+      return;
+    }
+    if (!groupChatName.trim()) {
+      toast.error('Please enter a group name');
+      return;
+    }
+    // For now, just show a message - full group chat requires backend support
+    toast.info('Group chat feature coming soon! Backend support needed.');
+    setShowGroupChatDialog(false);
+    setSelectedGroupMembers([]);
+    setGroupChatName('');
+  };
+
+  const toggleGroupMember = (staffId: string) => {
+    setSelectedGroupMembers(prev => 
+      prev.includes(staffId) 
+        ? prev.filter(id => id !== staffId)
+        : [...prev, staffId]
+    );
   };
 
   // Render message status indicator
@@ -543,22 +580,82 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                 )}
               </div>
             </ScrollArea>
-            <div className="p-4 border-t">
+            <div className="p-4 border-t flex gap-2">
               <Button 
                 onClick={() => {
                   setShowNewChat(true);
                   setSearchQuery('');
                 }} 
-                className="w-full"
+                className="flex-1"
                 variant="outline"
               >
                 <Users className="h-4 w-4 mr-2" />
                 New Message
               </Button>
+              <Dialog open={showGroupChatDialog} onOpenChange={setShowGroupChatDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" title="Create Group Chat">
+                    <UsersRound className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Group Chat</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Group Name</label>
+                      <Input
+                        placeholder="Enter group name..."
+                        value={groupChatName}
+                        onChange={(e) => setGroupChatName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Select Members</label>
+                      <ScrollArea className="h-48 border rounded-md p-2 mt-1">
+                        {staffList.map((staff) => (
+                          <div
+                            key={staff.staffId}
+                            className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer"
+                            onClick={() => toggleGroupMember(staff.staffId)}
+                          >
+                            <Checkbox checked={selectedGroupMembers.includes(staff.staffId)} />
+                            <span>{staff.name}</span>
+                            <span className="text-xs text-muted-foreground">({staff.department})</span>
+                          </div>
+                        ))}
+                      </ScrollArea>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {selectedGroupMembers.length} selected
+                      </p>
+                    </div>
+                    <Button onClick={handleCreateGroupChat} className="w-full">
+                      Create Group
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         )}
       </SheetContent>
+
+      {/* Image Viewer Dialog */}
+      <Dialog open={!!imageViewerUrl} onOpenChange={() => setImageViewerUrl(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Image</DialogTitle>
+          </DialogHeader>
+          {imageViewerUrl && (
+            <img 
+              src={imageViewerUrl} 
+              alt="Full size" 
+              className="max-w-full max-h-[70vh] object-contain mx-auto"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 };

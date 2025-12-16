@@ -62,10 +62,16 @@ const ServiceTracker = () => {
   // Handle URL params for status filter (from dashboard clicks)
   useEffect(() => {
     const urlStatusFilter = searchParams.get('statusFilter');
+    const urlStatus = searchParams.get('status');
     if (urlStatusFilter) {
       setDueDateFilter(urlStatusFilter); // ongoing, overdue, completed
       // Clear the URL param after reading
       searchParams.delete('statusFilter');
+      setSearchParams(searchParams, { replace: true });
+    }
+    if (urlStatus) {
+      setStatusFilter(urlStatus); // e.g. "Ongoing Service", "Completed"
+      searchParams.delete('status');
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -867,7 +873,6 @@ const ServiceTracker = () => {
                                     handleEditService(service.serviceId);
                                   }}
                                   className="p-1 rounded hover:bg-muted transition-colors"
-                                  title="Edit in Manage Client"
                                 >
                                   <ExternalLink className="h-4 w-4 text-primary" />
                                 </button>
