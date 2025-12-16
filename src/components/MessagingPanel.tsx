@@ -745,57 +745,77 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
               </div>
             )}
             
-            <div className="p-4 border-t flex gap-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              <input
-                type="file"
-                ref={cameraInputRef}
-                accept="image/*"
-                capture="environment"
-                onChange={handleCameraCapture}
-                className="hidden"
-              />
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={sending}
-                title="Take photo"
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={sending}
-                title="Attach image"
-              >
-                <Image className="h-4 w-4" />
-              </Button>
-              
-              <Input
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  handleTyping();
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                disabled={sending}
-                className="flex-1"
-              />
-              <Button onClick={handleSend} disabled={sending || (!newMessage.trim() && !attachedImage)}>
-                <Send className="h-4 w-4" />
-              </Button>
+            <div className="border-t">
+              {/* Typing indicator (kept outside ScrollArea so it stays visible) */}
+              {typingUsers.length > 0 && (
+                <div className="px-4 py-2 bg-muted/40">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {typingUsers.length === 1
+                        ? `${typingUsers[0]} is typing...`
+                        : `${typingUsers.slice(0, 2).join(', ')}${typingUsers.length > 2 ? ` +${typingUsers.length - 2}` : ''} are typing...`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 flex gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleCameraCapture}
+                  className="hidden"
+                />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={sending}
+                  title="Take photo"
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={sending}
+                  title="Attach image"
+                >
+                  <Image className="h-4 w-4" />
+                </Button>
+
+                <Input
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                  disabled={sending}
+                  className="flex-1"
+                />
+                <Button onClick={handleSend} disabled={sending || (!newMessage.trim() && !attachedImage)}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         ) : showNewChat ? (
