@@ -26,11 +26,10 @@ import {
   MessageSquare,
   Monitor,
   Menu,
+  Bell,
 } from "lucide-react";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { useIsMobile } from "@/hooks/use-mobile";
-import NotificationDropdown from "@/components/NotificationDropdown";
-import MessagingPanel from "@/components/MessagingPanel";
 
 interface NavItem {
   title: string;
@@ -95,7 +94,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   }, [navigate]);
 
-  // Auto-open section based on current path
   useEffect(() => {
     const isAdminPath = adminSection.items.some(item => location.pathname === item.path);
     const isTechPath = techSection.items.some(item => location.pathname === item.path);
@@ -104,7 +102,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     if (isTechPath) setTechOpen(true);
   }, [location.pathname]);
 
-  // Close mobile menu on navigation
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
@@ -190,7 +187,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const SidebarContent = () => (
     <>
-      {/* Logo Section */}
       <div className="flex h-20 items-center justify-between px-4 border-b border-sidebar-border">
         <div className={cn("flex items-center gap-3", !isMobile && collapsed && "justify-center w-full")}>
           <img
@@ -207,9 +203,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
-        {/* Home */}
         <button
           onClick={() => navigate("/menu")}
           className={cn(
@@ -224,14 +218,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {(isMobile || !collapsed) && <span className="truncate">Home</span>}
         </button>
 
-        {/* Admin Portal Section */}
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
-
-        {/* Technician Portal Section */}
         {renderNavSection(techSection, techOpen, setTechOpen)}
       </nav>
 
-      {/* User Section & Logout */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
         {(isMobile || !collapsed) && (
           <div className="mb-3 px-2">
@@ -254,11 +244,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     </>
   );
 
-  // Mobile Layout
   if (isMobile) {
     return (
       <div className="flex flex-col min-h-screen w-full bg-background">
-        {/* Mobile Header */}
         <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -283,12 +271,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
 
           <div className="flex items-center gap-1">
-            <NotificationDropdown />
-            <MessagingPanel />
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon">
+              <MessageSquare className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1">
           {children}
         </main>
@@ -296,10 +287,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     );
   }
 
-  // Desktop Layout
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* Desktop Sidebar */}
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 ease-in-out border-r border-sidebar-border",
@@ -308,7 +297,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       >
         <SidebarContent />
 
-        {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
@@ -321,17 +309,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </button>
       </aside>
 
-      {/* Main Content */}
       <main
         className={cn(
           "flex-1 transition-all duration-300 ease-in-out min-h-screen",
           collapsed ? "ml-20" : "ml-64"
         )}
       >
-        {/* Desktop Header with Notifications */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <NotificationDropdown />
-          <MessagingPanel />
+          <Button variant="ghost" size="icon">
+            <Bell className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <MessageSquare className="h-5 w-5" />
+          </Button>
         </header>
         <div className="p-0">
           {children}
