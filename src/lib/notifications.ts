@@ -39,13 +39,13 @@ export const markNotificationRead = async (notificationId: string): Promise<bool
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({
+      body: new URLSearchParams({
         action: 'markNotificationRead',
-        notificationId
-      })
+        notificationId,
+      }),
     });
     const data = await response.json();
-    return data.success;
+    return data.success || data.result === 'success';
   } catch (error) {
     console.error('Error marking notification read:', error);
     return false;
@@ -56,30 +56,36 @@ export const markAllNotificationsRead = async (userId: string): Promise<boolean>
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({
+      body: new URLSearchParams({
         action: 'markAllNotificationsRead',
-        userId
-      })
+        userId,
+      }),
     });
     const data = await response.json();
-    return data.success;
+    return data.success || data.result === 'success';
   } catch (error) {
     console.error('Error marking all notifications read:', error);
     return false;
   }
 };
 
-export const createNotification = async (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<boolean> => {
+export const createNotification = async (
+  notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
+): Promise<boolean> => {
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({
+      body: new URLSearchParams({
         action: 'createNotification',
-        ...notification
-      })
+        userId: notification.userId,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        serviceId: notification.serviceId ?? '',
+      }),
     });
     const data = await response.json();
-    return data.success;
+    return data.success || data.result === 'success';
   } catch (error) {
     console.error('Error creating notification:', error);
     return false;
@@ -103,10 +109,14 @@ export const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'r
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({
+      body: new URLSearchParams({
         action: 'sendMessage',
-        ...message
-      })
+        senderId: message.senderId,
+        senderName: message.senderName,
+        receiverId: message.receiverId,
+        receiverName: message.receiverName,
+        content: message.content,
+      }),
     });
     const data = await response.json();
     return data.success || data.result === 'success';
@@ -120,10 +130,10 @@ export const markMessageRead = async (messageId: string): Promise<boolean> => {
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify({
+      body: new URLSearchParams({
         action: 'markMessageRead',
-        messageId
-      })
+        messageId,
+      }),
     });
     const data = await response.json();
     return data.success || data.result === 'success';

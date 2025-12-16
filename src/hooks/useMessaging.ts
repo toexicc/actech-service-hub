@@ -10,7 +10,14 @@ export const useMessaging = (userId: string | null) => {
     if (!userId) return;
     try {
       const data = await fetchMessages(userId);
-      setMessages(data);
+      setMessages((prev) => {
+        const local = prev.filter((m) => m.id.startsWith('local-'));
+        const byId = new Map<string, Message>();
+        [...local, ...data].forEach((m) => byId.set(m.id, m));
+        return Array.from(byId.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
       setUnreadCount(data.filter(m => !m.read && m.receiverId === userId).length);
     } catch (error) {
       console.error('Error loading messages:', error);
