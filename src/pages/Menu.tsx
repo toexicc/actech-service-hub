@@ -140,9 +140,14 @@ const Menu = () => {
           );
           const inquiryData = await inquiryResponse.json();
           if (inquiryData.status === "success" && inquiryData.data) {
+            // Count only inquiries with TBD or blank status
+            const pendingCount = inquiryData.data.filter((inquiry: any) => {
+              const status = (inquiry.status || "").trim().toUpperCase();
+              return status === "TBD" || status === "";
+            }).length;
             setStats((prev) => ({
               ...prev,
-              pendingInquiries: inquiryData.data.length,
+              pendingInquiries: pendingCount,
             }));
           }
         } catch (error) {
