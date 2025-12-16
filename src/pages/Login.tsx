@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Search, Loader2, Wrench, Shield } from "lucide-react";
 import { findUser } from "@/lib/userCredentials";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import acTechLogo from "@/assets/S_S_Marketing-2.png";
 
 const Login = () => {
   const [username, setUsername] = useState("");

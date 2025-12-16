@@ -9,7 +9,7 @@ import {
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
   MessageSquare, Monitor, Menu,
 } from "lucide-react";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { MessagingPanel } from "@/components/MessagingPanel";
@@ -89,7 +89,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     <>
       <div className="flex h-20 items-center px-4 border-b border-sidebar-border">
         <div className={cn("flex items-center gap-3", !isMobile && collapsed && "justify-center w-full")}>
-          <img src={acTechLogo} alt="AC Tech" className="h-10 w-10 rounded-lg object-cover" />
+          <div className="h-10 w-10 rounded-lg bg-card border border-border/60 shadow-sm p-1">
+            <img src={acTechLogo} alt="AC Tech Repair logo" className="h-full w-full object-contain" loading="lazy" />
+          </div>
           {(isMobile || !collapsed) && <div className="flex flex-col"><span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span><span className="text-xs text-sidebar-foreground/60">Service Portal</span></div>}
         </div>
       </div>
@@ -109,7 +111,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex flex-col min-h-screen w-full bg-background">
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}><SheetTrigger asChild><Button variant="ghost" size="icon"><Menu className="h-5 w-5" /></Button></SheetTrigger><SheetContent side="left" className="w-72 p-0 bg-sidebar"><div className="relative h-full"><SidebarContent /></div></SheetContent></Sheet>
-        <div className="flex items-center gap-2"><img src={acTechLogo} alt="AC Tech" className="h-8 w-8 rounded-lg object-cover" /><span className="text-sm font-bold">AC Tech</span></div>
+        <div className="flex items-center gap-2"><div className="h-8 w-8 rounded-lg bg-card border border-border/60 shadow-sm p-1"><img src={acTechLogo} alt="AC Tech Repair logo" className="h-full w-full object-contain" loading="lazy" /></div><span className="text-sm font-bold">AC Tech</span></div>
         <div className="flex items-center gap-1"><NotificationDropdown userId={userId} /><MessagingPanel userId={userId} userName={userFullName} /></div>
       </header>
       <main className="flex-1">{children}</main>

@@ -20,7 +20,7 @@ import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { FileText, RefreshCw } from "lucide-react";
-import logo from "@/assets/ac-tech-logo.jpg";
+import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";

@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { Search, User, FileText, Loader2 } from "lucide-react";
-import logo from "@/assets/ac-tech-logo.jpg";
+import logo from "@/assets/S_S_Marketing-2.png";
 
 interface CustomerData {
   clientId: string;

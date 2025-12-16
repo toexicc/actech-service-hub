@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEPARTMENTS } from "@/lib/constants";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import DashboardLayout from "@/components/DashboardLayout";
 
 interface ServiceRecord {
