@@ -122,7 +122,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     staffList.find(s => s.staffId === id || s.username === id);
 
   // Typing indicator logic
-  const handleTyping = useCallback(() => {
+  const handleTyping = useCallback(async () => {
     if (!userId || (!selectedConversation && !selectedGroupId)) return;
 
     const conversationId = selectedGroupId || selectedConversation;
@@ -136,7 +136,9 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     const now = Date.now();
     if (now - lastTypingSentAtRef.current > 700) {
       lastTypingSentAtRef.current = now;
-      setTypingStatus(userId, conversationId, !!selectedGroupId);
+      console.log('[Typing] setTypingStatus ->', { userId, conversationId, isGroup: !!selectedGroupId });
+      const ok = await setTypingStatus(userId, conversationId, !!selectedGroupId);
+      console.log('[Typing] setTypingStatus <-', ok);
     }
 
     // Clear previous timeout
@@ -145,9 +147,11 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
 
     // Set timeout to clear typing status after 3 seconds of no typing
-    typingTimeoutRef.current = setTimeout(() => {
+    typingTimeoutRef.current = setTimeout(async () => {
       setIsTyping(false);
-      clearTypingStatus(userId, conversationId);
+      console.log('[Typing] clearTypingStatus ->', { userId, conversationId });
+      const ok = await clearTypingStatus(userId, conversationId);
+      console.log('[Typing] clearTypingStatus <-', ok);
     }, 3000);
   }, [userId, selectedConversation, selectedGroupId, isTyping]);
 
@@ -161,12 +165,15 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
 
     const pollTyping = async () => {
       const typing = await getTypingStatus(conversationId, !!selectedGroupId);
+      console.log('[Typing] getTypingStatus <-', { conversationId, isGroup: !!selectedGroupId, typing });
+
       const otherTyping = typing
-        .filter(t => t.userId !== userId && t.userId !== username)
-        .map(t => {
-          const staff = staffList.find(s => s.staffId === t.userId);
+        .filter((t) => t.userId !== userId && t.userId !== username)
+        .map((t) => {
+          const staff = staffList.find((s) => s.staffId === t.userId);
           return staff?.name || t.userId;
         });
+
       setTypingUsers(otherTyping);
     };
 
