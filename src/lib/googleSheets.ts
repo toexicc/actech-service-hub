@@ -103,6 +103,221 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *   Parameters: groupId, memberId, memberName
  * - removeGroupMember: Removes a member from a group
  *   Parameters: groupId, memberId
+ *
+ * TYPING INDICATORS (TypingStatus Sheet):
+ * TypingStatus sheet columns: A=User ID | B=Conversation ID | C=Is Group | D=Timestamp
+ * - setTypingStatus: Sets/updates typing status
+ *   Parameters: userId, conversationId, isGroup (true/false)
+ * - getTypingStatus: Gets typing users for a conversation
+ *   Parameters: conversationId, isGroup (true/false)
+ *   Returns: { typingUsers: [{ userId, userName, timestamp }] }
+ * - clearTypingStatus: Clears typing status for a user
+ *   Parameters: userId, conversationId
+ *
+ * GOOGLE APPS SCRIPT HANDLERS FOR GROUP CHATS:
+ *
+ * Add these handlers to your doGet function:
+ *
+ * // Get Group Chats
+ * if (params.action === 'getGroupChats') {
+ *   var userId = params.userId;
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GroupChats');
+ *   if (!sheet) {
+ *     return ContentService.createTextOutput(JSON.stringify({ groups: [] })).setMimeType(ContentService.MimeType.JSON);
+ *   }
+ *   var data = sheet.getDataRange().getValues();
+ *   var groups = [];
+ *   for (var i = 1; i < data.length; i++) {
+ *     var row = data[i];
+ *     var memberIds = row[3] ? row[3].toString().split(',') : [];
+ *     if (memberIds.includes(userId)) {
+ *       groups.push({
+ *         id: row[0],
+ *         name: row[1],
+ *         createdBy: row[2],
+ *         memberIds: memberIds,
+ *         memberNames: row[4] ? row[4].toString().split(',') : [],
+ *         createdAt: row[5]
+ *       });
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ groups: groups })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Get Group Messages
+ * if (params.action === 'getGroupMessages') {
+ *   var groupId = params.groupId;
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Messages');
+ *   if (!sheet) {
+ *     return ContentService.createTextOutput(JSON.stringify({ messages: [] })).setMimeType(ContentService.MimeType.JSON);
+ *   }
+ *   var data = sheet.getDataRange().getValues();
+ *   var messages = [];
+ *   for (var i = 1; i < data.length; i++) {
+ *     var row = data[i];
+ *     if (row[8] === groupId) { // Column I is Group ID
+ *       messages.push({
+ *         id: row[0],
+ *         senderId: row[1],
+ *         senderName: row[2],
+ *         receiverId: row[3],
+ *         receiverName: row[4],
+ *         content: row[5],
+ *         read: row[6],
+ *         createdAt: row[7],
+ *         groupId: row[8]
+ *       });
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ messages: messages })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Get Typing Status
+ * if (params.action === 'getTypingStatus') {
+ *   var conversationId = params.conversationId;
+ *   var isGroup = params.isGroup === 'true';
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TypingStatus');
+ *   if (!sheet) {
+ *     return ContentService.createTextOutput(JSON.stringify({ typingUsers: [] })).setMimeType(ContentService.MimeType.JSON);
+ *   }
+ *   var data = sheet.getDataRange().getValues();
+ *   var typingUsers = [];
+ *   var now = new Date().getTime();
+ *   for (var i = 1; i < data.length; i++) {
+ *     var row = data[i];
+ *     var timestamp = new Date(row[3]).getTime();
+ *     // Only include if typing within last 5 seconds
+ *     if (row[1] === conversationId && (now - timestamp) < 5000) {
+ *       typingUsers.push({ userId: row[0], timestamp: row[3] });
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ typingUsers: typingUsers })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * Add these handlers to your doPost function:
+ *
+ * // Create Group Chat
+ * if (params.action === 'createGroupChat') {
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GroupChats');
+ *   if (!sheet) {
+ *     sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet('GroupChats');
+ *     sheet.appendRow(['ID', 'Name', 'Created By', 'Member IDs', 'Member Names', 'Created At']);
+ *   }
+ *   var groupId = 'GRP-' + new Date().getTime();
+ *   sheet.appendRow([groupId, params.name, params.createdBy, params.memberIds, params.memberNames, new Date().toISOString()]);
+ *   return ContentService.createTextOutput(JSON.stringify({ success: true, groupId: groupId })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Send Group Message
+ * if (params.action === 'sendGroupMessage') {
+ *   var groupId = params.groupId;
+ *   var messagesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Messages');
+ *   var groupsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GroupChats');
+ *   
+ *   // Get group name
+ *   var groupName = 'Group';
+ *   if (groupsSheet) {
+ *     var groupData = groupsSheet.getDataRange().getValues();
+ *     for (var i = 1; i < groupData.length; i++) {
+ *       if (groupData[i][0] === groupId) {
+ *         groupName = groupData[i][1];
+ *         break;
+ *       }
+ *     }
+ *   }
+ *   
+ *   var messageId = 'MSG-' + new Date().getTime();
+ *   messagesSheet.appendRow([
+ *     messageId,
+ *     params.senderId,
+ *     params.senderName,
+ *     groupId,
+ *     groupName,
+ *     params.content,
+ *     false,
+ *     new Date().toISOString(),
+ *     groupId
+ *   ]);
+ *   return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Add Group Member
+ * if (params.action === 'addGroupMember') {
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GroupChats');
+ *   var data = sheet.getDataRange().getValues();
+ *   for (var i = 1; i < data.length; i++) {
+ *     if (data[i][0] === params.groupId) {
+ *       var memberIds = data[i][3] ? data[i][3].toString().split(',') : [];
+ *       var memberNames = data[i][4] ? data[i][4].toString().split(',') : [];
+ *       if (!memberIds.includes(params.memberId)) {
+ *         memberIds.push(params.memberId);
+ *         memberNames.push(params.memberName);
+ *         sheet.getRange(i + 1, 4).setValue(memberIds.join(','));
+ *         sheet.getRange(i + 1, 5).setValue(memberNames.join(','));
+ *       }
+ *       return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Group not found' })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Remove Group Member
+ * if (params.action === 'removeGroupMember') {
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GroupChats');
+ *   var data = sheet.getDataRange().getValues();
+ *   for (var i = 1; i < data.length; i++) {
+ *     if (data[i][0] === params.groupId) {
+ *       var memberIds = data[i][3] ? data[i][3].toString().split(',') : [];
+ *       var memberNames = data[i][4] ? data[i][4].toString().split(',') : [];
+ *       var idx = memberIds.indexOf(params.memberId);
+ *       if (idx > -1) {
+ *         memberIds.splice(idx, 1);
+ *         memberNames.splice(idx, 1);
+ *         sheet.getRange(i + 1, 4).setValue(memberIds.join(','));
+ *         sheet.getRange(i + 1, 5).setValue(memberNames.join(','));
+ *       }
+ *       return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Group not found' })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Set Typing Status
+ * if (params.action === 'setTypingStatus') {
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TypingStatus');
+ *   if (!sheet) {
+ *     sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet('TypingStatus');
+ *     sheet.appendRow(['User ID', 'Conversation ID', 'Is Group', 'Timestamp']);
+ *   }
+ *   var data = sheet.getDataRange().getValues();
+ *   var found = false;
+ *   for (var i = 1; i < data.length; i++) {
+ *     if (data[i][0] === params.userId && data[i][1] === params.conversationId) {
+ *       sheet.getRange(i + 1, 4).setValue(new Date().toISOString());
+ *       found = true;
+ *       break;
+ *     }
+ *   }
+ *   if (!found) {
+ *     sheet.appendRow([params.userId, params.conversationId, params.isGroup, new Date().toISOString()]);
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Clear Typing Status
+ * if (params.action === 'clearTypingStatus') {
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TypingStatus');
+ *   if (sheet) {
+ *     var data = sheet.getDataRange().getValues();
+ *     for (var i = data.length - 1; i >= 1; i--) {
+ *       if (data[i][0] === params.userId && data[i][1] === params.conversationId) {
+ *         sheet.deleteRow(i + 1);
+ *         break;
+ *       }
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+ * }
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:

@@ -282,3 +282,65 @@ export const leaveGroupChat = async (
 ): Promise<boolean> => {
   return removeGroupMember(groupId, userId);
 };
+
+// ============ TYPING INDICATOR FUNCTIONS ============
+
+export const setTypingStatus = async (
+  userId: string,
+  conversationId: string,
+  isGroup: boolean
+): Promise<boolean> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'setTypingStatus',
+        userId,
+        conversationId,
+        isGroup: isGroup.toString(),
+      }),
+    });
+    const data = await response.json();
+    return data.success || data.result === 'success';
+  } catch (error) {
+    console.error('Error setting typing status:', error);
+    return false;
+  }
+};
+
+export const getTypingStatus = async (
+  conversationId: string,
+  isGroup: boolean
+): Promise<{ userId: string; timestamp: string }[]> => {
+  try {
+    const response = await fetch(
+      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTypingStatus&conversationId=${encodeURIComponent(conversationId)}&isGroup=${isGroup}`
+    );
+    const data = await response.json();
+    return data.typingUsers || [];
+  } catch (error) {
+    console.error('Error getting typing status:', error);
+    return [];
+  }
+};
+
+export const clearTypingStatus = async (
+  userId: string,
+  conversationId: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'clearTypingStatus',
+        userId,
+        conversationId,
+      }),
+    });
+    const data = await response.json();
+    return data.success || data.result === 'success';
+  } catch (error) {
+    console.error('Error clearing typing status:', error);
+    return false;
+  }
+};

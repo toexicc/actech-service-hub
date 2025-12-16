@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +18,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useMessaging } from '@/hooks/useMessaging';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
+import { setTypingStatus, clearTypingStatus, getTypingStatus } from '@/lib/notifications';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,12 @@ const parseMessageDate = (value: string) => {
   if (!value) return new Date(0);
   if (value.endsWith('Z')) return new Date(value.replace(/Z$/, ''));
   return new Date(value);
+};
+
+const formatDateSeparator = (date: Date): string => {
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'MMMM d, yyyy');
 };
 
 interface Staff {
@@ -85,6 +92,9 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -102,6 +112,69 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
 
   const findStaffById = (id: string) => 
     staffList.find(s => s.staffId === id || s.username === id);
+
+  // Typing indicator logic
+  const handleTyping = useCallback(() => {
+    if (!userId || (!selectedConversation && !selectedGroupId)) return;
+    
+    const conversationId = selectedGroupId || selectedConversation;
+    if (!conversationId) return;
+    
+    if (!isTyping) {
+      setIsTyping(true);
+      setTypingStatus(userId, conversationId, !!selectedGroupId);
+    }
+    
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set timeout to clear typing status after 3 seconds of no typing
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      if (conversationId) {
+        clearTypingStatus(userId, conversationId);
+      }
+    }, 3000);
+  }, [userId, selectedConversation, selectedGroupId, isTyping]);
+
+  // Poll for typing status
+  useEffect(() => {
+    const conversationId = selectedGroupId || selectedConversation;
+    if (!conversationId) {
+      setTypingUsers([]);
+      return;
+    }
+
+    const pollTyping = async () => {
+      const typing = await getTypingStatus(conversationId, !!selectedGroupId);
+      const otherTyping = typing
+        .filter(t => t.userId !== userId && t.userId !== username)
+        .map(t => {
+          const staff = staffList.find(s => s.staffId === t.userId);
+          return staff?.name || t.userId;
+        });
+      setTypingUsers(otherTyping);
+    };
+
+    pollTyping();
+    const interval = setInterval(pollTyping, 2000);
+    return () => clearInterval(interval);
+  }, [selectedConversation, selectedGroupId, userId, username, staffList]);
+
+  // Clear typing on unmount or conversation change
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      const conversationId = selectedGroupId || selectedConversation;
+      if (conversationId && userId) {
+        clearTypingStatus(userId, conversationId);
+      }
+    };
+  }, [selectedConversation, selectedGroupId, userId]);
 
   const conversations = getConversations();
   const groupConversations = getGroupConversations();
@@ -459,45 +532,64 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
             
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
-                {currentMessages
-                  .slice()
-                  .reverse()
-                  .map((msg) => {
+                {(() => {
+                  const sortedMessages = currentMessages.slice().reverse();
+                  let lastDate: Date | null = null;
+                  
+                  return sortedMessages.map((msg, index) => {
                     const userIds = new Set([userId, username].filter(Boolean));
                     const isOwn = userIds.has(msg.senderId);
+                    const msgDate = parseMessageDate(msg.createdAt);
+                    
+                    // Check if we need a date separator
+                    const showDateSeparator = !lastDate || !isSameDay(lastDate, msgDate);
+                    lastDate = msgDate;
+                    
                     if (!msg.read && userIds.has(msg.receiverId) && !selectedGroupId) {
                       markAsRead(msg.id);
                     }
+                    
                     return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                            isOwn
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          {/* Show sender name in group chats */}
-                          {selectedGroupId && !isOwn && (
-                            <p className="text-xs font-medium mb-1 text-primary">
-                              {msg.senderName}
-                            </p>
-                          )}
-                          {renderMessageContent(msg.content)}
-                          {isOwn ? (
-                            renderMessageStatus(msg, isOwn)
-                          ) : (
-                            <p className="text-xs mt-1 text-muted-foreground">
-                              {format(parseMessageDate(msg.createdAt), 'h:mm a')}
-                            </p>
-                          )}
+                      <div key={msg.id}>
+                        {/* Date Separator */}
+                        {showDateSeparator && (
+                          <div className="flex items-center justify-center my-4">
+                            <div className="flex-1 border-t border-border" />
+                            <span className="px-3 text-xs text-muted-foreground bg-background">
+                              {formatDateSeparator(msgDate)}
+                            </span>
+                            <div className="flex-1 border-t border-border" />
+                          </div>
+                        )}
+                        
+                        <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <div
+                            className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                              isOwn
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
+                            }`}
+                          >
+                            {/* Show sender name in group chats */}
+                            {selectedGroupId && !isOwn && (
+                              <p className="text-xs font-medium mb-1 text-primary">
+                                {msg.senderName}
+                              </p>
+                            )}
+                            {renderMessageContent(msg.content)}
+                            {isOwn ? (
+                              renderMessageStatus(msg, isOwn)
+                            ) : (
+                              <p className="text-xs mt-1 text-muted-foreground">
+                                {format(parseMessageDate(msg.createdAt), 'h:mm a')}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
-                  })}
+                  });
+                })()}
                 
                 {/* Pending messages */}
                 {conversationPendingMessages.map((pendingMsg) => (
@@ -512,6 +604,26 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                     </div>
                   </div>
                 ))}
+                
+                {/* Typing indicator */}
+                {typingUsers.length > 0 && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {typingUsers.length === 1 
+                            ? `${typingUsers[0]} is typing...` 
+                            : `${typingUsers.slice(0, 2).join(', ')}${typingUsers.length > 2 ? ` +${typingUsers.length - 2}` : ''} are typing...`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </ScrollArea>
             
@@ -576,7 +688,10 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
               <Input
                 placeholder="Type a message..."
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  handleTyping();
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                 disabled={sending}
                 className="flex-1"
