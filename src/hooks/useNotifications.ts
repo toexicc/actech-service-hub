@@ -1,16 +1,118 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Notification, fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/notifications';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Notification as AppNotification, fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/notifications';
+
+// Create a simple notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.log('Could not play notification sound:', error);
+  }
+};
+
+// Request browser notification permission
+const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    console.log('Browser does not support notifications');
+    return false;
+  }
+  
+  if (window.Notification.permission === 'granted') {
+    return true;
+  }
+  
+  if (window.Notification.permission !== 'denied') {
+    const permission = await window.Notification.requestPermission();
+    return permission === 'granted';
+  }
+  
+  return false;
+};
+
+// Show browser notification
+const showBrowserNotification = (title: string, body: string, icon?: string) => {
+  if (window.Notification && window.Notification.permission === 'granted') {
+    const notification = new window.Notification(title, {
+      body,
+      icon: icon || '/ac-tech-logo-pdf.png',
+      tag: 'ac-tech-notification',
+    });
+    
+    // Auto close after 5 seconds
+    setTimeout(() => notification.close(), 5000);
+    
+    // Focus window when clicked
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }
+};
+
+// Clean notification message (remove image URLs)
+const cleanNotificationMessage = (message: string): string => {
+  if (message.includes('[Image:')) {
+    return message.replace(/\[Image: data:image\/[^;]+;base64,[^\]]+\]/g, '📷 sent an image').trim();
+  }
+  return message;
+};
 
 export const useNotifications = (userId: string | null) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const previousNotificationIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
+
+  // Request permission on mount
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
 
   const loadNotifications = useCallback(async () => {
     if (!userId) return;
     try {
       const data = await fetchNotifications(userId);
-      setNotifications(data);
+      
+      // Check for new notifications (not on initial load)
+      if (!isInitialLoad.current && data.length > 0) {
+        const newNotifications = data.filter(
+          n => !n.read && !previousNotificationIds.current.has(n.id)
+        );
+        
+        // Show browser notification and play sound for each new notification
+        for (const notification of newNotifications) {
+          const cleanMessage = cleanNotificationMessage(notification.message);
+          showBrowserNotification(notification.title, cleanMessage);
+          playNotificationSound();
+        }
+      }
+      
+      // Update previous notification IDs
+      previousNotificationIds.current = new Set(data.map(n => n.id));
+      isInitialLoad.current = false;
+      
+      // Clean messages for display
+      const cleanedNotifications = data.map(n => ({
+        ...n,
+        message: cleanNotificationMessage(n.message)
+      }));
+      
+      setNotifications(cleanedNotifications);
       setUnreadCount(data.filter(n => !n.read).length);
     } catch (error) {
       console.error('Error loading notifications:', error);
