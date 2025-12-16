@@ -8,6 +8,7 @@ import { Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEPARTMENTS } from "@/lib/constants";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import DashboardLayout from "@/components/DashboardLayout";
 
 interface ServiceRecord {
   serviceId: string;
@@ -250,25 +251,19 @@ const OpenDashboard = () => {
   const groupedServices = groupServicesByCategory(filteredServices);
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex flex-col">
-      {/* Header */}
-      <div className="flex flex-col items-center justify-center py-4 px-4 border-b">
-        <div className="flex items-center gap-3">
-          <img src={acTechLogo} alt="AC Tech Repair" className="h-16" />
-          <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
+    <DashboardLayout>
+      <div className="h-screen overflow-hidden bg-background flex flex-col">
+        {/* Header */}
+        <div className="flex flex-col items-center justify-center py-4 px-4 border-b">
+          <div className="flex items-center gap-3">
+            <img src={acTechLogo} alt="AC Tech Repair" className="h-16" />
+            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
+          </div>
+          <p className="text-muted-foreground mt-1">Service Tracker Dashboard</p>
+          <div className="mt-2 text-lg font-semibold text-primary">
+            {format(currentTime, "EEEE, MMMM d, yyyy")} • {format(currentTime, "h:mm:ss a")}
+          </div>
         </div>
-        <p className="text-muted-foreground mt-1">Service Tracker Dashboard</p>
-        <div className="mt-2 text-lg font-semibold text-primary">
-          {format(currentTime, "EEEE, MMMM d, yyyy")} • {format(currentTime, "h:mm:ss a")}
-        </div>
-      </div>
-
-      {/* Buttons */}
-      <div className="flex justify-center gap-2 py-3 px-4">
-        <Button onClick={() => navigate("/technician-portal")} variant="outline">
-          Back to Technician Portal
-        </Button>
-      </div>
 
       {/* Toggle */}
       <div className="flex gap-3 justify-center py-3 px-4">
@@ -361,11 +356,12 @@ const OpenDashboard = () => {
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="text-center text-xs text-muted-foreground py-1">
-        Powered by Stack&Scale
-      </footer>
-    </div>
+        {/* Footer */}
+        <footer className="text-center text-xs text-muted-foreground py-1">
+          Powered by Stack&Scale
+        </footer>
+      </div>
+    </DashboardLayout>
   );
 };
 
