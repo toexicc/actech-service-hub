@@ -20,6 +20,7 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
+import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -535,6 +536,38 @@ const ServiceUpdate = () => {
             activity: `Service updated: ${changes.join(", ")}`
           });
           console.log("Activity log result:", logResult);
+        }
+
+        // Send notifications for status changes
+        const userFullName = sessionStorage.getItem("userFullName") || username;
+        if (updateStatus !== serviceData.status) {
+          notifyServiceStatusChange(
+            {
+              serviceId,
+              clientName: serviceData.clientName,
+              technician: updateTechnician,
+              deviceType: serviceData.deviceType,
+              device: serviceData.device,
+            },
+            serviceData.status,
+            updateStatus,
+            userFullName
+          );
+        }
+
+        // Notify if technician changed
+        if (updateTechnician !== serviceData.technician) {
+          notifyNewServiceAssignment(
+            {
+              serviceId,
+              clientName: serviceData.clientName,
+              technician: updateTechnician,
+              deviceType: serviceData.deviceType,
+              device: serviceData.device,
+            },
+            updateTechnician,
+            userFullName
+          );
         }
 
         toast({

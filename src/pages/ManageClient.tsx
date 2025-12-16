@@ -18,6 +18,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { logActivity } from "@/lib/activityLogger";
+import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/ac-tech-logo.jpg";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
@@ -589,6 +590,38 @@ const ManageClient = () => {
             role: role,
             activity: `Service updated: ${changes.join(", ")}`,
           });
+        }
+
+        // Send notifications for status changes
+        const userFullName = sessionStorage.getItem("userFullName") || username;
+        if (updateStatus !== serviceData.status) {
+          notifyServiceStatusChange(
+            {
+              serviceId,
+              clientName: serviceData.clientName,
+              technician: updateTechnician,
+              deviceType: updateDeviceType,
+              device: serviceData.device,
+            },
+            serviceData.status,
+            updateStatus,
+            userFullName
+          );
+        }
+
+        // Notify if technician changed
+        if (updateTechnician !== serviceData.technician) {
+          notifyNewServiceAssignment(
+            {
+              serviceId,
+              clientName: serviceData.clientName,
+              technician: updateTechnician,
+              deviceType: updateDeviceType,
+              device: serviceData.device,
+            },
+            updateTechnician,
+            userFullName
+          );
         }
 
         toast({
