@@ -10,7 +10,7 @@ const parseMessageDate = (value: string) => {
   return new Date(value);
 };
 
-export const useMessaging = (userId: string | null) => {
+export const useMessaging = (userId: string | null, username?: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -18,28 +18,45 @@ export const useMessaging = (userId: string | null) => {
   const loadMessages = useCallback(async () => {
     if (!userId) return;
     try {
-      const data = await fetchMessages(userId);
+      // Fetch messages by both userId (staffId) and username to handle mixed data
+      const fetchPromises = [fetchMessages(userId)];
+      if (username && username !== userId) {
+        fetchPromises.push(fetchMessages(username));
+      }
+      
+      const results = await Promise.all(fetchPromises);
+      const allMessages = results.flat();
+      
+      // Deduplicate by message ID
+      const uniqueMessages = Array.from(
+        new Map(allMessages.map(m => [m.id, m])).values()
+      );
+      
       setMessages((prev) => {
         // Remove local optimistic messages that now have server versions
         const serverMsgs = new Set(
-          data.map((m) => `${m.senderId}|${m.receiverId}|${m.content}`)
+          uniqueMessages.map((m) => `${m.senderId}|${m.receiverId}|${m.content}`)
         );
         const localToKeep = prev.filter(
           (m) =>
             m.id.startsWith('local-') &&
             !serverMsgs.has(`${m.senderId}|${m.receiverId}|${m.content}`)
         );
-        return [...localToKeep, ...data].sort(
+        return [...localToKeep, ...uniqueMessages].sort(
           (a, b) => parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
         );
       });
-      setUnreadCount(data.filter((m) => !m.read && m.receiverId === userId).length);
+      
+      // Count unread where receiver matches either userId or username
+      setUnreadCount(
+        uniqueMessages.filter((m) => !m.read && (m.receiverId === userId || m.receiverId === username)).length
+      );
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, username]);
 
   useEffect(() => {
     loadMessages();
@@ -95,9 +112,12 @@ export const useMessaging = (userId: string | null) => {
 
   const getConversations = () => {
     const conversationMap = new Map<string, Message[]>();
+    const userIds = new Set([userId, username].filter(Boolean));
     
     messages.forEach(msg => {
-      const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      // Determine partnerId based on whether current user sent or received
+      const isSender = userIds.has(msg.senderId);
+      const partnerId = isSender ? msg.receiverId : msg.senderId;
       const existing = conversationMap.get(partnerId) || [];
       existing.push(msg);
       conversationMap.set(partnerId, existing);
@@ -108,7 +128,9 @@ export const useMessaging = (userId: string | null) => {
         parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
       );
       const lastMessage = sortedMsgs[0];
-      const partnerName = lastMessage.senderId === userId 
+      const userIds = new Set([userId, username].filter(Boolean));
+      const isSender = userIds.has(lastMessage.senderId);
+      const partnerName = isSender 
         ? lastMessage.receiverName 
         : lastMessage.senderName;
       
@@ -117,7 +139,7 @@ export const useMessaging = (userId: string | null) => {
         partnerName,
         lastMessage,
         messages: sortedMsgs,
-        unreadCount: sortedMsgs.filter(m => !m.read && m.receiverId === userId).length
+        unreadCount: sortedMsgs.filter(m => !m.read && userIds.has(m.receiverId)).length
       };
     }).sort((a, b) => 
       parseMessageDate(b.lastMessage.createdAt).getTime() - parseMessageDate(a.lastMessage.createdAt).getTime()
@@ -134,4 +156,3 @@ export const useMessaging = (userId: string | null) => {
     refresh: loadMessages
   };
 };
-
