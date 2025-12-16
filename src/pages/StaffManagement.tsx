@@ -28,7 +28,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { Loader2, UserPlus, Trash2, Edit, Eye, EyeOff } from "lucide-react";
 import {
   getAllUsers,
@@ -38,6 +37,7 @@ import {
   UserCredential,
 } from "@/lib/userCredentials";
 import { DEPARTMENTS } from "@/lib/constants";
+import DashboardLayout from "@/components/DashboardLayout";
 
 const StaffManagement = () => {
   const navigate = useNavigate();
@@ -277,20 +277,11 @@ const StaffManagement = () => {
   }, [roleFilter, statusFilter]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="container mx-auto p-6 max-w-7xl flex-grow">
-        <div className="flex items-center justify-center mb-8">
-          <img src={acTechLogo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Staff Management</p>
-          </div>
-        </div>
-
+    <DashboardLayout>
+      <div className="p-6 lg:p-8 animate-fade-in">
         <div className="mb-6">
-          <Button onClick={() => navigate("/admin-portal")} variant="outline">
-            Back to Admin Portal
-          </Button>
+          <h1 className="text-3xl font-bold text-foreground">Staff Management</h1>
+          <p className="text-muted-foreground">Manage staff and roles</p>
         </div>
 
         <div className="grid gap-6">
@@ -727,12 +718,12 @@ const StaffManagement = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
-      <footer className="text-center text-sm text-muted-foreground mt-8 pb-6">
-        Powered by Stack&Scale
-      </footer>
-    </div>
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          Powered by Stack&Scale
+        </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

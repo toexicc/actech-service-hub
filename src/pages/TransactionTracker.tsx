@@ -15,7 +15,7 @@ import { CalendarIcon, Loader2, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { handleError } from "@/lib/errorHandling";
 import { sanitizeNumber } from "@/lib/validation";
-import logo from "@/assets/ac-tech-logo.jpg";
+import DashboardLayout from "@/components/DashboardLayout";
 
 interface DoneService {
   serviceId: string;
@@ -220,20 +220,11 @@ const TransactionTracker = () => {
   }, [services]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="container mx-auto p-6 max-w-7xl flex-grow">
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Transaction Tracker</p>
-          </div>
-        </div>
-
+    <DashboardLayout>
+      <div className="p-6 lg:p-8 animate-fade-in">
         <div className="mb-6">
-          <Button onClick={() => navigate("/admin-portal")} variant="outline">
-            Back to Admin Portal
-          </Button>
+          <h1 className="text-3xl font-bold text-foreground">Transaction Tracker</h1>
+          <p className="text-muted-foreground">View financial reports</p>
         </div>
 
         {/* Financial Summary Cards */}
@@ -503,12 +494,12 @@ const TransactionTracker = () => {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      <footer className="mt-auto py-4 text-center text-sm text-muted-foreground border-t">
-        Powered by Stack&Scale
-      </footer>
-    </div>
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          Powered by Stack&Scale
+        </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
