@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Message, fetchMessages, sendMessage as sendMessageApi, markMessageRead } from '@/lib/notifications';
 
+const parseMessageDate = (value: string) => {
+  // Apps Script sometimes returns an ISO string that represents local time but ends with "Z".
+  // If we treat it as UTC, it shifts and shows the wrong time.
+  // Heuristic: when it ends with Z, parse it as *local* by removing the timezone.
+  if (!value) return new Date(0);
+  if (value.endsWith('Z')) return new Date(value.replace(/Z$/, ''));
+  return new Date(value);
+};
+
 export const useMessaging = (userId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +30,7 @@ export const useMessaging = (userId: string | null) => {
             !serverMsgs.has(`${m.senderId}|${m.receiverId}|${m.content}`)
         );
         return [...localToKeep, ...data].sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) => parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
         );
       });
       setUnreadCount(data.filter((m) => !m.read && m.receiverId === userId).length);
@@ -96,7 +105,7 @@ export const useMessaging = (userId: string | null) => {
 
     return Array.from(conversationMap.entries()).map(([partnerId, msgs]) => {
       const sortedMsgs = msgs.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
       );
       const lastMessage = sortedMsgs[0];
       const partnerName = lastMessage.senderId === userId 
@@ -111,7 +120,7 @@ export const useMessaging = (userId: string | null) => {
         unreadCount: sortedMsgs.filter(m => !m.read && m.receiverId === userId).length
       };
     }).sort((a, b) => 
-      new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
+      parseMessageDate(b.lastMessage.createdAt).getTime() - parseMessageDate(a.lastMessage.createdAt).getTime()
     );
   };
 
@@ -125,3 +134,4 @@ export const useMessaging = (userId: string | null) => {
     refresh: loadMessages
   };
 };
+

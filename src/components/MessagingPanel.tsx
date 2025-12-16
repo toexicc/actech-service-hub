@@ -14,6 +14,12 @@ import { useMessaging } from '@/hooks/useMessaging';
 import { format } from 'date-fns';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
 
+const parseMessageDate = (value: string) => {
+  if (!value) return new Date(0);
+  if (value.endsWith('Z')) return new Date(value.replace(/Z$/, ''));
+  return new Date(value);
+};
+
 interface Staff {
   staffId: string;
   name: string;
@@ -145,7 +151,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                         >
                           <p className="text-sm">{msg.content}</p>
                           <p className={`text-xs mt-1 ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                            {format(new Date(msg.createdAt), 'h:mm a')}
+                            {format(parseMessageDate(msg.createdAt), 'h:mm a')}
                           </p>
                         </div>
                       </div>
@@ -220,7 +226,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(conv.lastMessage.createdAt), 'MMM d')}
+                        {format(parseMessageDate(conv.lastMessage.createdAt), 'MMM d')}
                       </span>
                     </button>
                   ))

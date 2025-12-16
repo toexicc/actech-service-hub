@@ -88,6 +88,11 @@ const ServiceTracker = () => {
   };
 
   const handleEditService = (serviceId: string) => {
+    // Technicians should go to Service Update (not Manage Client)
+    if (isTechnician) {
+      navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
+      return;
+    }
     navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
   };
 
