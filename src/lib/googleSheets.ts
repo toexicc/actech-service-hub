@@ -64,6 +64,27 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *            H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
  * - updateClientInquiry: Updates a client inquiry row
  * - deleteClientInquiry: Deletes a client inquiry row
+ *
+ * NOTIFICATIONS (Notifications Sheet):
+ * Notifications sheet columns: A=ID | B=User ID | C=Title | D=Message | E=Type | F=Read | G=Created At | H=Service ID
+ * - getNotifications: Returns notifications for a user (userId parameter)
+ *   Returns: { notifications: [{ id, userId, title, message, type, read, createdAt, serviceId }] }
+ * - createNotification: Creates a new notification
+ *   Parameters: userId, title, message, type (service_update|new_inquiry|message|system), serviceId (optional)
+ * - markNotificationRead: Marks a single notification as read
+ *   Parameters: notificationId
+ * - markAllNotificationsRead: Marks all notifications for a user as read
+ *   Parameters: userId
+ *
+ * MESSAGING (Messages Sheet):
+ * Messages sheet columns: A=ID | B=Sender ID | C=Sender Name | D=Receiver ID | E=Receiver Name | F=Content | G=Read | H=Created At
+ * - getMessages: Returns all messages for a user (sent and received)
+ *   Parameters: userId
+ *   Returns: { messages: [{ id, senderId, senderName, receiverId, receiverName, content, read, createdAt }] }
+ * - sendMessage: Sends a new message
+ *   Parameters: senderId, senderName, receiverId, receiverName, content
+ * - markMessageRead: Marks a message as read
+ *   Parameters: messageId
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
@@ -78,7 +99,14 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 // 3. Update "Staff Management" sheet to include:
 //    A: Staff ID | B: Name | C: Role | D: Status | E: Department (for technicians)
 //
-// 4. Add these columns to "Service Database" sheet:
+// 4. Create a new sheet named "Notifications" with these columns:
+//    A: ID | B: User ID | C: Title | D: Message | E: Type | F: Read | G: Created At | H: Service ID
+//    Types: service_update, new_inquiry, message, system
+//
+// 5. Create a new sheet named "Messages" with these columns:
+//    A: ID | B: Sender ID | C: Sender Name | D: Receiver ID | E: Receiver Name | F: Content | G: Read | H: Created At
+//
+// 6. Add these columns to "Service Database" sheet:
 //    Column AN (40): Technician Department
 //    Column AK (37): Physical Signature URL (Google Drive link to signature image) - uploaded by Apps Script
 //    Column AQ (43): Google Drive Folder URL - created by Apps Script
@@ -840,6 +868,85 @@ function doGet(e) {
         "message": err.toString()
       })).setMimeType(ContentService.MimeType.JSON);
     }
+  }
+  
+  // ========== NOTIFICATIONS ==========
+  
+  // Get notifications for a user
+  if (params.action === 'getNotifications' && params.userId) {
+    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+    if (!notifSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        notifications: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = notifSheet.getDataRange().getDisplayValues();
+    var notifications = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === params.userId) {
+        notifications.push({
+          id: data[i][0],
+          userId: data[i][1],
+          title: data[i][2],
+          message: data[i][3],
+          type: data[i][4],
+          read: data[i][5] === 'TRUE' || data[i][5] === 'true',
+          createdAt: data[i][6],
+          serviceId: data[i][7] || null
+        });
+      }
+    }
+    
+    // Sort by most recent first
+    notifications.sort(function(a, b) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      notifications: notifications
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== MESSAGING ==========
+  
+  // Get messages for a user (sent and received)
+  if (params.action === 'getMessages' && params.userId) {
+    var msgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Messages");
+    if (!msgSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        messages: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = msgSheet.getDataRange().getDisplayValues();
+    var messages = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      // Include messages where user is sender OR receiver
+      if (data[i][1] === params.userId || data[i][3] === params.userId) {
+        messages.push({
+          id: data[i][0],
+          senderId: data[i][1],
+          senderName: data[i][2],
+          receiverId: data[i][3],
+          receiverName: data[i][4],
+          content: data[i][5],
+          read: data[i][6] === 'TRUE' || data[i][6] === 'true',
+          createdAt: data[i][7]
+        });
+      }
+    }
+    
+    // Sort by most recent first
+    messages.sort(function(a, b) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      messages: messages
+    })).setMimeType(ContentService.MimeType.JSON);
   }
   
   return ContentService.createTextOutput(JSON.stringify({
@@ -1807,6 +1914,160 @@ function doPost(e) {
     
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== NOTIFICATIONS (POST) ==========
+  
+  // Create a new notification
+  if (params.action === 'createNotification') {
+    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+    if (!notifSheet) {
+      // Create the sheet if it doesn't exist
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      notifSheet = ss.insertSheet("Notifications");
+      notifSheet.appendRow(["ID", "User ID", "Title", "Message", "Type", "Read", "Created At", "Service ID"]);
+    }
+    
+    var notifId = "NOTIF" + Date.now();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    notifSheet.appendRow([
+      notifId,
+      params.userId,
+      params.title,
+      params.message,
+      params.type || "system",
+      "FALSE",
+      timestamp,
+      params.serviceId || ""
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      notificationId: notifId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Mark notification as read
+  if (params.action === 'markNotificationRead' && params.notificationId) {
+    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+    if (!notifSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "Notifications sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = notifSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.notificationId) {
+        notifSheet.getRange(i + 1, 6).setValue("TRUE"); // Column F = Read
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: "Notification not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Mark all notifications as read for a user
+  if (params.action === 'markAllNotificationsRead' && params.userId) {
+    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+    if (!notifSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "Notifications sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = notifSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === params.userId && data[i][5] !== "TRUE") {
+        notifSheet.getRange(i + 1, 6).setValue("TRUE");
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // ========== MESSAGING (POST) ==========
+  
+  // Send a new message
+  if (params.action === 'sendMessage') {
+    var msgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Messages");
+    if (!msgSheet) {
+      // Create the sheet if it doesn't exist
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      msgSheet = ss.insertSheet("Messages");
+      msgSheet.appendRow(["ID", "Sender ID", "Sender Name", "Receiver ID", "Receiver Name", "Content", "Read", "Created At"]);
+    }
+    
+    var msgId = "MSG" + Date.now();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    msgSheet.appendRow([
+      msgId,
+      params.senderId,
+      params.senderName,
+      params.receiverId,
+      params.receiverName,
+      params.content,
+      "FALSE",
+      timestamp
+    ]);
+    
+    // Also create a notification for the receiver
+    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+    if (notifSheet) {
+      var notifId = "NOTIF" + Date.now();
+      notifSheet.appendRow([
+        notifId,
+        params.receiverId,
+        "New message from " + params.senderName,
+        params.content.substring(0, 100) + (params.content.length > 100 ? "..." : ""),
+        "message",
+        "FALSE",
+        timestamp,
+        ""
+      ]);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      messageId: msgId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Mark message as read
+  if (params.action === 'markMessageRead' && params.messageId) {
+    var msgSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Messages");
+    if (!msgSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "Messages sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = msgSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === params.messageId) {
+        msgSheet.getRange(i + 1, 7).setValue("TRUE"); // Column G = Read
+        return ContentService.createTextOutput(JSON.stringify({
+          success: true
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: "Message not found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
