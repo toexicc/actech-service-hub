@@ -1375,8 +1375,8 @@ function doGet(e) {
     
     for (var i = 1; i < data.length; i++) {
       var timestamp = new Date(data[i][3]).getTime();
-      // Only include if typing within last 5 seconds
-      if (data[i][1] === params.conversationId && (now - timestamp) < 5000) {
+      // Only include if typing within last 10 seconds (increased from 5 for network latency)
+      if (data[i][1] === params.conversationId && (now - timestamp) < 10000) {
         typingUsers.push({
           userId: data[i][0],
           timestamp: data[i][3]
