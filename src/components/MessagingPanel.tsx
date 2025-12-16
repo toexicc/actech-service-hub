@@ -38,9 +38,8 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       try {
         const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
         const data = await response.json();
-        if (data.staff) {
-          setStaffList(data.staff.filter((s: Staff) => s.staffId !== userId));
-        }
+        const staffData = data.staff || data.data || [];
+        setStaffList(staffData.filter((s: Staff) => s.staffId !== userId));
       } catch (error) {
         console.error('Error fetching staff:', error);
       }
