@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +13,7 @@ import {
 import { useMessaging } from '@/hooks/useMessaging';
 import { format } from 'date-fns';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
+import { toast } from 'sonner';
 
 const parseMessageDate = (value: string) => {
   if (!value) return new Date(0);
@@ -32,11 +33,20 @@ interface MessagingPanelProps {
   userName: string | null;
 }
 
+interface PendingMessage {
+  id: string;
+  content: string;
+  receiverId: string;
+  receiverName: string;
+  status: 'sending' | 'sent' | 'failed';
+  timestamp: Date;
+}
+
 export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   // Get username from session storage for dual-ID lookup
   const username = typeof window !== 'undefined' ? sessionStorage.getItem('username') : null;
   
-  const { messages, unreadCount, sendMessage, markAsRead, getConversations } = useMessaging(userId, username);
+  const { messages, unreadCount, sendMessage, markAsRead, getConversations, refresh } = useMessaging(userId, username);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -44,7 +54,9 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -87,7 +99,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const handleSend = async () => {
     if ((!newMessage.trim() && !attachedImage) || !selectedConversation || !userName) return;
     
-    setSending(true);
     const partner = findStaffById(selectedConversation) || 
                    conversations.find(c => c.partnerId === selectedConversation);
     const partnerName = partner ? ('name' in partner ? partner.name : partner.partnerName) : 'Unknown';
@@ -98,12 +109,55 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       messageContent = messageContent ? `${messageContent}\n[Image: ${attachedImage}]` : `[Image: ${attachedImage}]`;
     }
     
+    // Create pending message for optimistic UI
+    const pendingId = `pending-${Date.now()}`;
+    const pendingMsg: PendingMessage = {
+      id: pendingId,
+      content: messageContent,
+      receiverId: selectedConversation,
+      receiverName: partnerName,
+      status: 'sending',
+      timestamp: new Date()
+    };
+    
+    setPendingMessages(prev => [...prev, pendingMsg]);
+    setNewMessage('');
+    setAttachedImage(null);
+    setSending(true);
+    
     const success = await sendMessage(selectedConversation, partnerName, userName, messageContent);
+    
     if (success) {
-      setNewMessage('');
-      setAttachedImage(null);
+      // Remove from pending and let the hook handle the actual message
+      setPendingMessages(prev => prev.filter(m => m.id !== pendingId));
+    } else {
+      // Mark as failed
+      setPendingMessages(prev => 
+        prev.map(m => m.id === pendingId ? { ...m, status: 'failed' as const } : m)
+      );
+      toast.error('Failed to send message');
     }
     setSending(false);
+  };
+
+  const retryMessage = async (pendingMsg: PendingMessage) => {
+    if (!userName) return;
+    
+    setPendingMessages(prev => 
+      prev.map(m => m.id === pendingMsg.id ? { ...m, status: 'sending' as const } : m)
+    );
+    
+    const success = await sendMessage(pendingMsg.receiverId, pendingMsg.receiverName, userName, pendingMsg.content);
+    
+    if (success) {
+      setPendingMessages(prev => prev.filter(m => m.id !== pendingMsg.id));
+      toast.success('Message sent');
+    } else {
+      setPendingMessages(prev => 
+        prev.map(m => m.id === pendingMsg.id ? { ...m, status: 'failed' as const } : m)
+      );
+      toast.error('Failed to send message');
+    }
   };
 
   const startNewChat = (staff: Staff) => {
@@ -134,6 +188,17 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
   };
 
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const renderMessageContent = (content: string) => {
     // Check if message contains an image
     const imageMatch = content.match(/\[Image: (data:image\/[^;]+;base64,[^\]]+)\]/);
@@ -152,6 +217,57 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
     return <p className="text-sm">{content}</p>;
   };
+
+  // Render message status indicator
+  const renderMessageStatus = (msg: any, isOwn: boolean) => {
+    if (!isOwn) return null;
+    
+    const userIds = new Set([userId, username].filter(Boolean));
+    const isRead = msg.read;
+    const time = format(parseMessageDate(msg.createdAt), 'h:mm a');
+    
+    return (
+      <div className="flex items-center gap-1 mt-1">
+        <span className="text-xs text-primary-foreground/70">{time}</span>
+        {isRead ? (
+          <span title="Read"><CheckCheck className="h-3.5 w-3.5 text-blue-400" /></span>
+        ) : (
+          <span title="Delivered"><Check className="h-3.5 w-3.5 text-primary-foreground/70" /></span>
+        )}
+      </div>
+    );
+  };
+
+  // Render pending message status
+  const renderPendingStatus = (status: 'sending' | 'sent' | 'failed', onRetry?: () => void) => {
+    switch (status) {
+      case 'sending':
+        return (
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs text-primary-foreground/70">Sending...</span>
+            <div className="h-3 w-3 border-2 border-primary-foreground/50 border-t-transparent rounded-full animate-spin" />
+          </div>
+        );
+      case 'failed':
+        return (
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs text-destructive">Failed</span>
+            {onRetry && (
+              <button onClick={onRetry} className="p-0.5 hover:bg-white/20 rounded">
+                <RotateCcw className="h-3 w-3 text-primary-foreground" />
+              </button>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Get pending messages for current conversation
+  const conversationPendingMessages = pendingMessages.filter(
+    m => m.receiverId === selectedConversation
+  );
 
   return (
     <Sheet>
@@ -234,13 +350,31 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                           }`}
                         >
                           {renderMessageContent(msg.content)}
-                          <p className={`text-xs mt-1 ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                            {format(parseMessageDate(msg.createdAt), 'h:mm a')}
-                          </p>
+                          {isOwn ? (
+                            renderMessageStatus(msg, isOwn)
+                          ) : (
+                            <p className="text-xs mt-1 text-muted-foreground">
+                              {format(parseMessageDate(msg.createdAt), 'h:mm a')}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
                   })}
+                
+                {/* Pending messages */}
+                {conversationPendingMessages.map((pendingMsg) => (
+                  <div key={pendingMsg.id} className="flex justify-end">
+                    <div className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                      pendingMsg.status === 'failed' 
+                        ? 'bg-destructive/80 text-destructive-foreground' 
+                        : 'bg-primary/70 text-primary-foreground'
+                    }`}>
+                      {renderMessageContent(pendingMsg.content)}
+                      {renderPendingStatus(pendingMsg.status, () => retryMessage(pendingMsg))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </ScrollArea>
             
@@ -266,6 +400,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
             )}
             
             <div className="p-4 border-t flex gap-2">
+              {/* Hidden file inputs */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -273,14 +408,37 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                 onChange={handleImageSelect}
                 className="hidden"
               />
+              <input
+                type="file"
+                ref={cameraInputRef}
+                accept="image/*"
+                capture="environment"
+                onChange={handleCameraCapture}
+                className="hidden"
+              />
+              
+              {/* Camera button */}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={sending}
+                title="Take photo"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+              
+              {/* Image attachment button */}
               <Button 
                 variant="ghost" 
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sending}
+                title="Attach image"
               >
                 <Image className="h-4 w-4" />
               </Button>
+              
               <Input
                 placeholder="Type a message..."
                 value={newMessage}

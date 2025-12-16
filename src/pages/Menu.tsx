@@ -179,7 +179,7 @@ const Menu = () => {
           icon: Wrench,
           color: "text-primary",
           bgColor: "bg-primary/10",
-          onClick: () => navigate("/service-tracker"),
+          onClick: () => navigate("/service-tracker?statusFilter=ongoing"),
         },
         {
           title: "My Overdue Services",
@@ -187,7 +187,7 @@ const Menu = () => {
           icon: AlertTriangle,
           color: "text-destructive",
           bgColor: "bg-destructive/10",
-          onClick: () => navigate("/service-tracker"),
+          onClick: () => navigate("/service-tracker?statusFilter=overdue"),
         },
         {
           title: "My Completed Services",
@@ -195,7 +195,7 @@ const Menu = () => {
           icon: CheckCircle,
           color: "text-success",
           bgColor: "bg-success/10",
-          onClick: () => navigate("/service-tracker"),
+          onClick: () => navigate("/service-tracker?statusFilter=completed"),
         },
       ];
     }
@@ -215,7 +215,7 @@ const Menu = () => {
         icon: Wrench,
         color: "text-primary",
         bgColor: "bg-primary/10",
-        onClick: () => navigate("/service-tracker"),
+        onClick: () => navigate("/service-tracker?statusFilter=ongoing"),
       },
       {
         title: "Overdue Services",
@@ -223,7 +223,7 @@ const Menu = () => {
         icon: AlertTriangle,
         color: "text-destructive",
         bgColor: "bg-destructive/10",
-        onClick: () => navigate("/service-tracker"),
+        onClick: () => navigate("/service-tracker?statusFilter=overdue"),
       },
       {
         title: "Completed Services",
@@ -231,7 +231,7 @@ const Menu = () => {
         icon: CheckCircle,
         color: "text-success",
         bgColor: "bg-success/10",
-        onClick: () => navigate("/service-tracker"),
+        onClick: () => navigate("/service-tracker?statusFilter=completed"),
       },
     ];
   };
