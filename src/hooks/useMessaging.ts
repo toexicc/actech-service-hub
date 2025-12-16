@@ -51,7 +51,7 @@ export const useMessaging = (userId: string | null) => {
       receiverName,
       content,
       read: false,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toLocaleString(),
     };
     setMessages((prev) => [optimistic, ...prev]);
 
