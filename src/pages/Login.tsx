@@ -39,12 +39,8 @@ const Login = () => {
         sessionStorage.setItem("username", user.username);
         sessionStorage.setItem("userFullName", user.name);
         
-        // Redirect based on role
-        if (user.role === "technician") {
-          navigate("/technician-portal");
-        } else {
-          navigate("/menu");
-        }
+        // All users go to /menu
+        navigate("/menu");
       } else {
         toast({
           title: "Invalid Credentials",
