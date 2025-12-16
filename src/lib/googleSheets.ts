@@ -77,14 +77,32 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *   Parameters: userId
  *
  * MESSAGING (Messages Sheet):
- * Messages sheet columns: A=ID | B=Sender ID | C=Sender Name | D=Receiver ID | E=Receiver Name | F=Content | G=Read | H=Created At
+ * Messages sheet columns: A=ID | B=Sender ID | C=Sender Name | D=Receiver ID | E=Receiver Name | F=Content | G=Read | H=Created At | I=Group ID
  * - getMessages: Returns all messages for a user (sent and received)
  *   Parameters: userId
- *   Returns: { messages: [{ id, senderId, senderName, receiverId, receiverName, content, read, createdAt }] }
+ *   Returns: { messages: [{ id, senderId, senderName, receiverId, receiverName, content, read, createdAt, groupId }] }
  * - sendMessage: Sends a new message
- *   Parameters: senderId, senderName, receiverId, receiverName, content
+ *   Parameters: senderId, senderName, receiverId, receiverName, content, groupId (optional)
  * - markMessageRead: Marks a message as read
  *   Parameters: messageId
+ *
+ * GROUP CHATS (GroupChats Sheet):
+ * GroupChats sheet columns: A=ID | B=Name | C=Created By | D=Member IDs (comma-separated) | E=Member Names (comma-separated) | F=Created At
+ * - getGroupChats: Returns all group chats where user is a member
+ *   Parameters: userId
+ *   Returns: { groups: [{ id, name, createdBy, memberIds: [], memberNames: [], createdAt }] }
+ * - createGroupChat: Creates a new group chat
+ *   Parameters: name, createdBy, memberIds (comma-separated), memberNames (comma-separated)
+ *   Returns: { success: true, groupId: "..." }
+ * - getGroupMessages: Returns all messages for a group
+ *   Parameters: groupId
+ *   Returns: { messages: [{ id, senderId, senderName, receiverId (groupId), receiverName (groupName), content, read, createdAt, groupId }] }
+ * - sendGroupMessage: Sends a message to a group (creates entry for each member)
+ *   Parameters: groupId, senderId, senderName, content
+ * - addGroupMember: Adds a member to a group
+ *   Parameters: groupId, memberId, memberName
+ * - removeGroupMember: Removes a member from a group
+ *   Parameters: groupId, memberId
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
@@ -104,7 +122,11 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 //    Types: service_update, new_inquiry, message, system
 //
 // 5. Create a new sheet named "Messages" with these columns:
-//    A: ID | B: Sender ID | C: Sender Name | D: Receiver ID | E: Receiver Name | F: Content | G: Read | H: Created At
+//    A: ID | B: Sender ID | C: Sender Name | D: Receiver ID | E: Receiver Name | F: Content | G: Read | H: Created At | I: Group ID
+//
+// 6. Create a new sheet named "GroupChats" with these columns:
+//    A: ID | B: Name | C: Created By | D: Member IDs | E: Member Names | F: Created At
+//    Note: Member IDs and Member Names are comma-separated lists
 //
 // 6. Add these columns to "Service Database" sheet:
 //    Column AN (40): Technician Department

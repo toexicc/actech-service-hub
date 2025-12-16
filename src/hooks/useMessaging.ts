@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Message, fetchMessages, sendMessage as sendMessageApi, markMessageRead } from '@/lib/notifications';
+import { 
+  Message, 
+  GroupChat,
+  fetchMessages, 
+  sendMessage as sendMessageApi, 
+  markMessageRead,
+  fetchGroupChats,
+  fetchGroupMessages,
+  sendGroupMessage as sendGroupMessageApi,
+  createGroupChat as createGroupChatApi
+} from '@/lib/notifications';
 
 const parseMessageDate = (value: string) => {
   // Apps Script sometimes returns an ISO string that represents local time but ends with "Z".
@@ -12,6 +22,8 @@ const parseMessageDate = (value: string) => {
 
 export const useMessaging = (userId: string | null, username?: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
+  const [groupMessages, setGroupMessages] = useState<Record<string, Message[]>>({});
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -58,12 +70,41 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
     }
   }, [userId, username]);
 
+  const loadGroupChats = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const groups = await fetchGroupChats(userId);
+      setGroupChats(groups);
+      
+      // Load messages for each group
+      const groupMsgsPromises = groups.map(async (group) => {
+        const msgs = await fetchGroupMessages(group.id);
+        return { groupId: group.id, messages: msgs };
+      });
+      
+      const groupMsgsResults = await Promise.all(groupMsgsPromises);
+      const newGroupMessages: Record<string, Message[]> = {};
+      groupMsgsResults.forEach(({ groupId, messages }) => {
+        newGroupMessages[groupId] = messages.sort(
+          (a, b) => parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
+        );
+      });
+      setGroupMessages(newGroupMessages);
+    } catch (error) {
+      console.error('Error loading group chats:', error);
+    }
+  }, [userId]);
+
   useEffect(() => {
     loadMessages();
+    loadGroupChats();
     // Poll every 15 seconds for messages
-    const interval = setInterval(loadMessages, 15000);
+    const interval = setInterval(() => {
+      loadMessages();
+      loadGroupChats();
+    }, 15000);
     return () => clearInterval(interval);
-  }, [loadMessages]);
+  }, [loadMessages, loadGroupChats]);
 
   const sendMessage = async (receiverId: string, receiverName: string, senderName: string, content: string) => {
     if (!userId) return false;
@@ -100,6 +141,68 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
     return false;
   };
 
+  const sendGroupMessage = async (groupId: string, senderName: string, content: string) => {
+    if (!userId) return false;
+
+    // Optimistic UI update
+    const optimistic: Message = {
+      id: `local-group-${Date.now()}`,
+      senderId: userId,
+      senderName,
+      receiverId: groupId,
+      receiverName: groupChats.find(g => g.id === groupId)?.name || 'Group',
+      content,
+      read: false,
+      createdAt: new Date().toLocaleString(),
+      groupId,
+    };
+    
+    setGroupMessages((prev) => ({
+      ...prev,
+      [groupId]: [optimistic, ...(prev[groupId] || [])],
+    }));
+
+    const success = await sendGroupMessageApi(groupId, userId, senderName, content);
+
+    if (success) {
+      // Refresh group messages
+      const msgs = await fetchGroupMessages(groupId);
+      setGroupMessages((prev) => ({
+        ...prev,
+        [groupId]: msgs.sort(
+          (a, b) => parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
+        ),
+      }));
+      return true;
+    }
+
+    // Roll back optimistic insert on failure
+    setGroupMessages((prev) => ({
+      ...prev,
+      [groupId]: (prev[groupId] || []).filter((m) => m.id !== optimistic.id),
+    }));
+    return false;
+  };
+
+  const createGroupChat = async (name: string, memberIds: string[], memberNames: string[], creatorName: string) => {
+    if (!userId) return null;
+
+    const result = await createGroupChatApi({
+      name,
+      createdBy: userId,
+      memberIds: [userId, ...memberIds],
+      memberNames: [creatorName, ...memberNames],
+    });
+
+    if (result.success && result.groupId) {
+      // Refresh group chats
+      await loadGroupChats();
+      return result.groupId;
+    }
+
+    return null;
+  };
+
   const markAsRead = async (messageId: string) => {
     const success = await markMessageRead(messageId);
     if (success) {
@@ -114,7 +217,10 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
     const conversationMap = new Map<string, Message[]>();
     const userIds = new Set([userId, username].filter(Boolean));
     
-    messages.forEach(msg => {
+    // Filter out group messages from direct messages
+    const directMessages = messages.filter(m => !m.groupId);
+    
+    directMessages.forEach(msg => {
       // Determine partnerId based on whether current user sent or received
       const isSender = userIds.has(msg.senderId);
       const partnerId = isSender ? msg.receiverId : msg.senderId;
@@ -139,20 +245,51 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
         partnerName,
         lastMessage,
         messages: sortedMsgs,
-        unreadCount: sortedMsgs.filter(m => !m.read && userIds.has(m.receiverId)).length
+        unreadCount: sortedMsgs.filter(m => !m.read && userIds.has(m.receiverId)).length,
+        isGroup: false
       };
     }).sort((a, b) => 
       parseMessageDate(b.lastMessage.createdAt).getTime() - parseMessageDate(a.lastMessage.createdAt).getTime()
     );
   };
 
+  const getGroupConversations = () => {
+    return groupChats.map(group => {
+      const msgs = groupMessages[group.id] || [];
+      const lastMessage = msgs[0];
+      
+      return {
+        groupId: group.id,
+        groupName: group.name,
+        memberIds: group.memberIds,
+        memberNames: group.memberNames,
+        lastMessage,
+        messages: msgs,
+        unreadCount: 0, // TODO: Implement group unread count
+        isGroup: true
+      };
+    }).sort((a, b) => {
+      if (!a.lastMessage) return 1;
+      if (!b.lastMessage) return -1;
+      return parseMessageDate(b.lastMessage.createdAt).getTime() - parseMessageDate(a.lastMessage.createdAt).getTime();
+    });
+  };
+
   return {
     messages,
+    groupChats,
+    groupMessages,
     loading,
     unreadCount,
     sendMessage,
+    sendGroupMessage,
+    createGroupChat,
     markAsRead,
     getConversations,
-    refresh: loadMessages
+    getGroupConversations,
+    refresh: () => {
+      loadMessages();
+      loadGroupChats();
+    }
   };
 };
