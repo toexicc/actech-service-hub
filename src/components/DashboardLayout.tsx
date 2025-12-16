@@ -4,6 +4,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Home,
   FileText,
   Users,
@@ -20,8 +25,12 @@ import {
   Wrench,
   MessageSquare,
   Monitor,
+  Menu,
 } from "lucide-react";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import { useIsMobile } from "@/hooks/use-mobile";
+import NotificationDropdown from "@/components/NotificationDropdown";
+import MessagingPanel from "@/components/MessagingPanel";
 
 interface NavItem {
   title: string;
@@ -72,7 +81,9 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(true);
   const [techOpen, setTechOpen] = useState(true);
   const userRole = sessionStorage.getItem("userRole");
@@ -91,6 +102,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     
     if (isAdminPath) setAdminOpen(true);
     if (isTechPath) setTechOpen(true);
+  }, [location.pathname]);
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -129,11 +145,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               hasActiveItem
                 ? "bg-sidebar-accent text-sidebar-foreground"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-              collapsed && "justify-center px-2"
+              !isMobile && collapsed && "justify-center px-2"
             )}
           >
             <section.icon className="h-5 w-5 shrink-0" />
-            {!collapsed && (
+            {(isMobile || !collapsed) && (
               <>
                 <span className="flex-1 text-left truncate">{section.title}</span>
                 <ChevronDown
@@ -146,7 +162,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             )}
           </button>
         </CollapsibleTrigger>
-        {!collapsed && (
+        {(isMobile || !collapsed) && (
           <CollapsibleContent className="pl-4 mt-1 space-y-1">
             {filteredItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -172,76 +188,125 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     );
   };
 
+  const SidebarContent = () => (
+    <>
+      {/* Logo Section */}
+      <div className="flex h-20 items-center justify-between px-4 border-b border-sidebar-border">
+        <div className={cn("flex items-center gap-3", !isMobile && collapsed && "justify-center w-full")}>
+          <img
+            src={acTechLogo}
+            alt="AC Tech"
+            className="h-10 w-10 rounded-lg object-cover"
+          />
+          {(isMobile || !collapsed) && (
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span>
+              <span className="text-xs text-sidebar-foreground/60">Service Portal</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
+        {/* Home */}
+        <button
+          onClick={() => navigate("/menu")}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200",
+            location.pathname === "/menu"
+              ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            !isMobile && collapsed && "justify-center px-2"
+          )}
+        >
+          <Home className="h-5 w-5 shrink-0" />
+          {(isMobile || !collapsed) && <span className="truncate">Home</span>}
+        </button>
+
+        {/* Admin Portal Section */}
+        {renderNavSection(adminSection, adminOpen, setAdminOpen)}
+
+        {/* Technician Portal Section */}
+        {renderNavSection(techSection, techOpen, setTechOpen)}
+      </nav>
+
+      {/* User Section & Logout */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
+        {(isMobile || !collapsed) && (
+          <div className="mb-3 px-2">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p>
+            <p className="text-xs text-sidebar-foreground/60 capitalize">{userRole}</p>
+          </div>
+        )}
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10",
+            !isMobile && collapsed && "justify-center px-2"
+          )}
+          onClick={handleLogout}
+        >
+          <LogOut className="h-5 w-5" />
+          {(isMobile || !collapsed) && <span className="ml-3">Logout</span>}
+        </Button>
+      </div>
+    </>
+  );
+
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div className="flex flex-col min-h-screen w-full bg-background">
+        {/* Mobile Header */}
+        <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0 bg-sidebar">
+              <div className="relative h-full">
+                <SidebarContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div className="flex items-center gap-2">
+            <img
+              src={acTechLogo}
+              alt="AC Tech"
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+            <span className="text-sm font-bold">AC Tech</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <NotificationDropdown />
+            <MessagingPanel />
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  // Desktop Layout
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 ease-in-out border-r border-sidebar-border",
           collapsed ? "w-20" : "w-64"
         )}
       >
-        {/* Logo Section */}
-        <div className="flex h-20 items-center justify-between px-4 border-b border-sidebar-border">
-          <div className={cn("flex items-center gap-3", collapsed && "justify-center w-full")}>
-            <img
-              src={acTechLogo}
-              alt="AC Tech"
-              className="h-10 w-10 rounded-lg object-cover"
-            />
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span>
-                <span className="text-xs text-sidebar-foreground/60">Service Portal</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
-          {/* Home */}
-          <button
-            onClick={() => navigate("/menu")}
-            className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200",
-              location.pathname === "/menu"
-                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-              collapsed && "justify-center px-2"
-            )}
-          >
-            <Home className="h-5 w-5 shrink-0" />
-            {!collapsed && <span className="truncate">Home</span>}
-          </button>
-
-          {/* Admin Portal Section */}
-          {renderNavSection(adminSection, adminOpen, setAdminOpen)}
-
-          {/* Technician Portal Section */}
-          {renderNavSection(techSection, techOpen, setTechOpen)}
-        </nav>
-
-        {/* User Section & Logout */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
-          {!collapsed && (
-            <div className="mb-3 px-2">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p>
-              <p className="text-xs text-sidebar-foreground/60 capitalize">{userRole}</p>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10",
-              collapsed && "justify-center px-2"
-            )}
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            {!collapsed && <span className="ml-3">Logout</span>}
-          </Button>
-        </div>
+        <SidebarContent />
 
         {/* Collapse Toggle */}
         <button
@@ -263,7 +328,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           collapsed ? "ml-20" : "ml-64"
         )}
       >
-        {children}
+        {/* Desktop Header with Notifications */}
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <NotificationDropdown />
+          <MessagingPanel />
+        </header>
+        <div className="p-0">
+          {children}
+        </div>
       </main>
     </div>
   );
