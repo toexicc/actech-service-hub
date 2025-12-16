@@ -28,17 +28,37 @@ export const useMessaging = (userId: string | null) => {
 
   const sendMessage = async (receiverId: string, receiverName: string, senderName: string, content: string) => {
     if (!userId) return false;
+
+    // Optimistic UI update (Google Apps Script can be slow)
+    const optimistic: Message = {
+      id: `local-${Date.now()}`,
+      senderId: userId,
+      senderName,
+      receiverId,
+      receiverName,
+      content,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [optimistic, ...prev]);
+
     const success = await sendMessageApi({
       senderId: userId,
       senderName,
       receiverId,
       receiverName,
-      content
+      content,
     });
+
     if (success) {
-      await loadMessages();
+      // Refresh in background to replace optimistic message with saved one
+      loadMessages();
+      return true;
     }
-    return success;
+
+    // Roll back optimistic insert on failure
+    setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+    return false;
   };
 
   const markAsRead = async (messageId: string) => {

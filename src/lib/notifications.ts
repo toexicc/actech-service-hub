@@ -28,7 +28,7 @@ export const fetchNotifications = async (userId: string): Promise<Notification[]
       `${GOOGLE_SHEETS_SCRIPT_URL}?action=getNotifications&userId=${encodeURIComponent(userId)}`
     );
     const data = await response.json();
-    return data.notifications || [];
+    return data.notifications || data.data || [];
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return [];
@@ -92,7 +92,7 @@ export const fetchMessages = async (userId: string): Promise<Message[]> => {
       `${GOOGLE_SHEETS_SCRIPT_URL}?action=getMessages&userId=${encodeURIComponent(userId)}`
     );
     const data = await response.json();
-    return data.messages || [];
+    return data.messages || data.data || [];
   } catch (error) {
     console.error('Error fetching messages:', error);
     return [];
@@ -126,7 +126,7 @@ export const markMessageRead = async (messageId: string): Promise<boolean> => {
       })
     });
     const data = await response.json();
-    return data.success;
+    return data.success || data.result === 'success';
   } catch (error) {
     console.error('Error marking message read:', error);
     return false;
