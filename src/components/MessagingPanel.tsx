@@ -168,15 +168,18 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
 
     const pollTyping = async () => {
       const typing = await getTypingStatus(typingConversationId, !!selectedGroupId);
-      console.log('[Typing] getTypingStatus <-', { conversationId: typingConversationId, isGroup: !!selectedGroupId, typing });
+      console.log('[Typing] poll result:', { typingConversationId, typing, userId, username });
 
+      // Filter out self - check against both staffId and username
+      const selfIds = new Set([userId, username].filter(Boolean).map(id => id?.toLowerCase()));
       const otherTyping = typing
-        .filter((t) => t.userId !== userId && t.userId !== username)
+        .filter((t) => !selfIds.has(t.userId?.toLowerCase()))
         .map((t) => {
-          const staff = staffList.find((s) => s.staffId === t.userId);
+          const staff = staffList.find((s) => s.staffId === t.userId || s.username === t.userId);
           return staff?.name || t.userId;
         });
 
+      console.log('[Typing] after filter:', { otherTyping, selfIds: Array.from(selfIds) });
       setTypingUsers(otherTyping);
     };
 
