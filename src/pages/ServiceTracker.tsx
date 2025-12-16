@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, differenceInDays, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,7 @@ type SortOrder = "asc" | "desc";
 
 const ServiceTracker = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,6 +58,17 @@ const ServiceTracker = () => {
   const debouncedSearch = useDebounce(searchInput, 300);
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const itemsPerPage = 15;
+
+  // Handle URL params for status filter (from dashboard clicks)
+  useEffect(() => {
+    const urlStatusFilter = searchParams.get('statusFilter');
+    if (urlStatusFilter) {
+      setDueDateFilter(urlStatusFilter); // ongoing, overdue, completed
+      // Clear the URL param after reading
+      searchParams.delete('statusFilter');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Check if user is a technician with locked filters
   const userRole = sessionStorage.getItem("userRole");
