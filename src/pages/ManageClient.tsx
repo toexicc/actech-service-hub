@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, parse } from "date-fns";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,7 @@ const buildFallbackDiagnosis = (raw: string): string => {
 
 const ManageClient = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -161,6 +162,83 @@ const ManageClient = () => {
   useEffect(() => {
     fetchInitialData();
   }, []);
+
+  // Handle serviceId from URL params (from Service Tracker redirect)
+  useEffect(() => {
+    const urlServiceId = searchParams.get("serviceId");
+    if (urlServiceId) {
+      setServiceId(urlServiceId);
+      // Auto-search after setting the service ID
+      const autoSearch = async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch(
+            `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${urlServiceId}`,
+          );
+          const data = await response.json();
+
+          if (data.status === "found") {
+            setServiceData(data.data);
+            setUpdateStatus(data.data.status || "");
+            setUpdateTechnician(data.data.technician || "");
+            setUpdateClientType(data.data.clientType || "");
+            setUpdatePriority(data.data.priority || "");
+            setUpdateChiefComplaint(data.data.chiefComplaint || "");
+            setUpdateAIDiagnosis(data.data.aiDiagnosis || "");
+            setUpdateServices(data.data.service || "");
+            setUpdateServiceCost(data.data.serviceCost || "");
+            setUpdateTimeFrame(data.data.timeFrame || "");
+            setUpdateTargetDate(parseDateMMDDYYYY(data.data.targetDate));
+            setUpdateAdminNotes(data.data.adminNotes || "");
+            setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
+            setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
+            setUpdateDeviceType(data.data.deviceType || "");
+            const deviceType = data.data.deviceType || "";
+            if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
+              setOriginalCustomDeviceType(deviceType);
+            } else {
+              setOriginalCustomDeviceType("");
+            }
+            setRawDiagnosis(data.data.technicianDiagnosis || "");
+            setTechnicianReport(data.data.technicianReport || "");
+            setUpdateServiceReport(data.data.aiReport || "");
+            setIsEditingAIDiagnosis(false);
+            setIsEditingServiceReport(false);
+            
+            const serviceCostNum = sanitizeNumber(String(data.data.serviceCost ?? "0"));
+            const savedDiscountNum = sanitizeNumber(String(data.data.discount ?? "0"));
+            const savedFinalCost = sanitizeNumber(String(data.data.finalCost ?? "0"));
+            
+            setDiscountAmount(savedDiscountNum);
+            setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
+            setDiscountType("amount");
+            
+            if (savedFinalCost > 0) {
+              setFinalCost(savedFinalCost);
+            } else {
+              setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
+            }
+            
+            toast({
+              title: "Service Loaded",
+              description: `Service ${urlServiceId} loaded successfully`,
+            });
+          } else {
+            toast({
+              title: "Not Found",
+              description: "No service found with the provided ID",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error("Error auto-searching service:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      autoSearch();
+    }
+  }, [searchParams]);
   
   const handleSearch = async () => {
     if (!serviceId) {

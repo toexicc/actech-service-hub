@@ -1,8 +1,18 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import DashboardLayout from "@/components/DashboardLayout";
+import {
+  MessageSquare,
+  FileText,
+  Users,
+  UserCog,
+  ClipboardList,
+  Package,
+  DollarSign,
+  Settings,
+  LayoutDashboard,
+} from "lucide-react";
 
 const AdminPortal = () => {
   const navigate = useNavigate();
@@ -12,159 +22,142 @@ const AdminPortal = () => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-    // Technicians cannot access admin portal
     if (userRole === "technician") {
       navigate("/technician-portal");
     }
   }, [navigate, userRole]);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("authenticated");
-    sessionStorage.removeItem("userRole");
-    sessionStorage.removeItem("username");
-    sessionStorage.removeItem("userFullName");
-    navigate("/");
-  };
+  const adminSections = [
+    {
+      title: "Client Inquiry",
+      description: "View & Manage Client Inquiries",
+      icon: MessageSquare,
+      path: "/client-inquiry",
+      color: "text-info",
+      bgColor: "bg-info/10",
+    },
+    {
+      title: "Client Intake Form",
+      description: "Frontdesk Form",
+      icon: FileText,
+      path: "/service-form",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Manage Client",
+      description: "Client Information View/Update",
+      icon: Users,
+      path: "/manage-client",
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+    {
+      title: "Customer Management",
+      description: "View Customer Service History",
+      icon: UserCog,
+      path: "/customer-management",
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+    },
+    {
+      title: "Service Tracker",
+      description: "Monitor All Ongoing Services",
+      icon: ClipboardList,
+      path: "/service-tracker",
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+  ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-8 flex flex-col">
-      <div className="max-w-6xl mx-auto flex-grow w-full">
-        <div className="text-center mb-12">
-          <img 
-            src={acTechLogo} 
-            alt="AC Tech Repair" 
-            className="mx-auto h-20 mb-4 object-contain"
-          />
-          <h1 className="text-3xl font-bold text-blue-600 mb-2">Admin Portal - Sections</h1>
-          <div className="flex gap-2 justify-center mt-4">
-            <Button onClick={() => navigate("/menu")} variant="outline">
-              Back to Menu
-            </Button>
-            <Button onClick={handleLogout} variant="destructive">
-              Logout
-            </Button>
+  const managementSections = [
+    {
+      title: "Transaction Tracker",
+      description: "View Financial Reports",
+      icon: DollarSign,
+      path: "/transaction-tracker",
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+    {
+      title: "Inventory Management",
+      description: "Track Parts & Materials",
+      icon: Package,
+      path: "/inventory-management",
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+    },
+    {
+      title: "Staff Management",
+      description: "Manage Staff & Roles",
+      icon: Settings,
+      path: "/staff-management",
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+    },
+    {
+      title: "Admin Dashboard",
+      description: "View Services by Status",
+      icon: LayoutDashboard,
+      path: "/admin-dashboard",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+  ];
+
+  const renderCard = (section: typeof adminSections[0]) => (
+    <Card
+      key={section.path}
+      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border-border/50"
+      onClick={() => navigate(section.path)}
+    >
+      <CardContent className="pt-6">
+        <div className="flex items-start gap-4">
+          <div className={`p-3 rounded-xl ${section.bgColor}`}>
+            <section.icon className={`h-6 w-6 ${section.color}`} />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-foreground mb-1">{section.title}</h3>
+            <p className="text-sm text-muted-foreground">{section.description}</p>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/client-inquiry")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Client Inquiry</h2>
-              <p className="text-muted-foreground mb-6">
-                View & Manage Client Inquiries
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Inquiries
-              </Button>
+  return (
+    <DashboardLayout portalType="admin">
+      <div className="p-6 lg:p-8 animate-fade-in">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Admin Portal</h1>
+          <p className="text-muted-foreground">Select a section to manage</p>
+        </div>
+
+        <div className="space-y-8">
+          {/* Main Admin Sections */}
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Main Sections</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {adminSections.map(renderCard)}
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-form")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Client Intake Form</h2>
-              <p className="text-muted-foreground mb-6">
-                Frontdesk Form
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Form
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/manage-client")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Manage Client</h2>
-              <p className="text-muted-foreground mb-6">
-                Client Information View/Update
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Manager
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/customer-management")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Customer Management</h2>
-              <p className="text-muted-foreground mb-6">
-                View Customer Service History
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Customer
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-tracker")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Tracker</h2>
-              <p className="text-muted-foreground mb-6">
-                Monitor All Ongoing Services
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Tracker
-              </Button>
-            </div>
-          </Card>
-
+          {/* Management Only Sections */}
           {userRole === "management" && (
-            <>
-              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/transaction-tracker")}>
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Transaction Tracker</h2>
-                  <p className="text-muted-foreground mb-6">
-                    View Financial Reports
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                    Open Transactions
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/inventory-management")}>
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Inventory Management</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Track Parts & Materials
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                    Open Inventory
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/staff-management")}>
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Staff Management</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Manage Staff & Roles
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                    Open Staff
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/admin-dashboard")}>
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-blue-600 mb-4">Admin Dashboard</h2>
-                  <p className="text-muted-foreground mb-6">
-                    View Services by Status
-                  </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                    Open Dashboard
-                  </Button>
-                </div>
-              </Card>
-            </>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Management Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {managementSections.map(renderCard)}
+              </div>
+            </div>
           )}
         </div>
+
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          Powered by Stack&Scale
+        </div>
       </div>
-      
-      <footer className="text-center text-sm text-muted-foreground mt-8">
-        Powered by Stack&Scale
-      </footer>
-    </div>
+    </DashboardLayout>
   );
 };
 

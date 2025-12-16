@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Wrench, Shield } from "lucide-react";
 import { findUser } from "@/lib/userCredentials";
+import acTechLogo from "@/assets/ac-tech-logo.jpg";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -56,70 +58,118 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8">
+    <div className="min-h-screen gradient-bg flex flex-col items-center justify-center p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
+      
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
+        {/* Logo and Title */}
         <div className="text-center mb-8">
-          <img 
-            src={`${import.meta.env.MODE === 'production' ? '/actech-service-hub' : ''}/ac-tech-logo-pdf.png`}
-            alt="AC Tech Repair" 
-            className="mx-auto h-20 mb-4 object-contain"
-          />
-          <h1 className="text-3xl font-bold text-blue-600 mb-2">AC Tech Repair</h1>
-          <p className="text-muted-foreground">Internal Team Web Portal</p>
+          <div className="flex justify-center mb-4">
+            <div className="p-4 rounded-2xl bg-card shadow-lg border border-border/50">
+              <img 
+                src={acTechLogo}
+                alt="AC Tech Repair" 
+                className="h-16 w-16 object-contain rounded-lg"
+              />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-foreground mb-1">AC Tech Repair</h1>
+          <p className="text-muted-foreground">Internal Team Portal</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-              className="mt-2"
-              autoComplete="username"
-            />
+        {/* Login Card */}
+        <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Sign In
+            </CardTitle>
+            <CardDescription>
+              Enter your credentials to access the portal
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  className="h-11"
+                  autoComplete="username"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="h-11"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full h-11 gradient-primary text-primary-foreground hover:opacity-90 transition-opacity" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-border">
+              <Button 
+                variant="outline" 
+                className="w-full h-11 group"
+                onClick={() => navigate("/track")}
+              >
+                <Search className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
+                Track Your Service
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Features */}
+        <div className="mt-8 grid grid-cols-3 gap-4">
+          <div className="text-center p-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
+              <Wrench className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-xs text-muted-foreground">Service Management</p>
           </div>
-
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              className="mt-2"
-              autoComplete="current-password"
-            />
+          <div className="text-center p-3">
+            <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center mx-auto mb-2">
+              <Search className="h-5 w-5 text-info" />
+            </div>
+            <p className="text-xs text-muted-foreground">Real-time Tracking</p>
           </div>
-
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
-          </Button>
-        </form>
-
-        <div className="mt-6 pt-6 border-t">
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => navigate("/track")}
-          >
-            <Search className="mr-2 h-4 w-4" />
-            Track Your Service
-          </Button>
+          <div className="text-center p-3">
+            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-2">
+              <Shield className="h-5 w-5 text-success" />
+            </div>
+            <p className="text-xs text-muted-foreground">Secure Access</p>
+          </div>
         </div>
       </div>
       
-      <footer className="mt-8 text-center text-sm text-muted-foreground">
+      <footer className="mt-8 text-center text-sm text-muted-foreground relative z-10">
         Powered by Stack&Scale
       </footer>
     </div>

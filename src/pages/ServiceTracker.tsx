@@ -13,7 +13,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
@@ -64,31 +64,30 @@ const ServiceTracker = () => {
   const [technicianName, setTechnicianName] = useState("");
   const [technicianDepartment, setTechnicianDepartment] = useState("");
 
-  const getStatusColor = (status: string) => {
+  const getStatusTextColor = (status: string) => {
     switch (status) {
-      case "Pending Diagnosis":
-      case "Confirmed Diagnosis":
-      case "Pending - Approval":
-      case "On Hold":
-        return "bg-white text-foreground border-border";
       case "Complete - Approval":
       case "Ongoing Service":
       case "Service Report - Draft":
       case "Service Check - Client":
       case "Service Check - Completed":
-        return "bg-green-500 text-white border-green-500";
+        return "text-green-600 font-medium";
       case "Pending Pickup - Completed":
-        return "bg-yellow-500 text-white border-yellow-500";
+        return "text-yellow-600 font-medium";
       case "Completed":
-        return "bg-orange-500 text-white border-orange-500";
+        return "text-orange-600 font-medium";
       case "Backjob":
-        return "bg-blue-500 text-white border-blue-500";
+        return "text-blue-600 font-medium";
       case "RTO":
       case "Cancelled":
-        return "bg-red-500 text-white border-red-500";
+        return "text-red-600 font-medium";
       default:
-        return "bg-white text-foreground border-border";
+        return "text-foreground";
     }
+  };
+
+  const handleEditService = (serviceId: string) => {
+    navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
   };
 
   const applyDatePreset = (preset: string) => {
@@ -849,13 +848,25 @@ const ServiceTracker = () => {
                            inServiceDays={inServiceDays}
                          >
                             <TableCell className="font-medium">
-                              {service.serviceId}
-                              {overdueStatus && <AlertCircle className="inline-block ml-2 h-4 w-4 text-destructive" />}
+                              <div className="flex items-center gap-2">
+                                <span>{service.serviceId}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditService(service.serviceId);
+                                  }}
+                                  className="p-1 rounded hover:bg-muted transition-colors"
+                                  title="Edit in Manage Client"
+                                >
+                                  <ExternalLink className="h-4 w-4 text-primary" />
+                                </button>
+                                {overdueStatus && <AlertCircle className="h-4 w-4 text-destructive" />}
+                              </div>
                             </TableCell>
                             <TableCell>
-                              <Badge className={getStatusColor(service.status || "")}>
+                              <span className={getStatusTextColor(service.status || "")}>
                                 {service.status || "N/A"}
-                              </Badge>
+                              </span>
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
                            <TableCell>{service.timestamp || "N/A"}</TableCell>
