@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -566,20 +567,13 @@ const ServiceUpdate = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6 max-w-6xl w-full">
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Service Update</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Service Update</h1>
+          <p className="text-muted-foreground">Update service status and progress</p>
         </div>
-
-        <Button onClick={() => navigate("/technician-portal")} variant="outline" className="mb-6">
-          Back to Technician Portal
-        </Button>
 
         {/* Search Form */}
         <Card className="mb-8">
@@ -1489,7 +1483,7 @@ const ServiceUpdate = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">powered by Stack&Scale</div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

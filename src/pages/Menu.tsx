@@ -179,7 +179,7 @@ const Menu = () => {
   }
 
   return (
-    <DashboardLayout portalType="admin">
+    <DashboardLayout>
       <div className="p-6 lg:p-8 animate-fade-in">
         {/* Header */}
         <div className="mb-8">

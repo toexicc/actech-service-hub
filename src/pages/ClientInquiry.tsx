@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import logo from "@/assets/ac-tech-logo.jpg";
+import DashboardLayout from "@/components/DashboardLayout";
 import ClientInquiryTable from "@/components/ClientInquiryTable";
 
 const ClientInquiry = () => {
@@ -18,20 +17,13 @@ const ClientInquiry = () => {
   }, [navigate, userRole]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6 max-w-7xl w-full">
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Client Inquiry Dashboard</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Client Inquiry</h1>
+          <p className="text-muted-foreground">View and manage client inquiries</p>
         </div>
-
-        <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
-          Back to Admin Portal
-        </Button>
 
         <ClientInquiryTable />
 
@@ -40,7 +32,7 @@ const ClientInquiry = () => {
           powered by Stack&Scale
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

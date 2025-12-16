@@ -126,7 +126,7 @@ const AdminPortal = () => {
   );
 
   return (
-    <DashboardLayout portalType="admin">
+    <DashboardLayout>
       <div className="p-6 lg:p-8 animate-fade-in">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Admin Portal</h1>
