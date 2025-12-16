@@ -15,6 +15,8 @@ import {
   DollarSign,
   ExternalLink,
   Calendar,
+  ClipboardList,
+  Monitor,
 } from "lucide-react";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
@@ -49,6 +51,8 @@ const Menu = () => {
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
 
+  const isTechnician = userRole === "technician";
+
   // Dynamic clock
   useEffect(() => {
     const timer = setInterval(() => {
@@ -73,8 +77,13 @@ const Menu = () => {
       const servicesData = await servicesResponse.json();
 
       if (servicesData.status === "success" && servicesData.services) {
-        const services = servicesData.services;
+        let services = servicesData.services;
         const today = startOfDay(new Date());
+
+        // For technicians, filter to only show their assigned services
+        if (isTechnician) {
+          services = services.filter((s: any) => s.technician === userFullName);
+        }
 
         const ongoing = services.filter((s: any) => {
           const status = s.status?.toLowerCase() || "";
@@ -119,24 +128,26 @@ const Menu = () => {
           completedServices: completed,
         }));
 
-        setServicesDueToday(dueToday.slice(0, 5)); // Show max 5
-        setServicesOverdue(overdue.slice(0, 5)); // Show max 5
+        setServicesDueToday(dueToday.slice(0, 5));
+        setServicesOverdue(overdue.slice(0, 5));
       }
 
-      // Fetch inquiries count
-      try {
-        const inquiryResponse = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=getInquiries`
-        );
-        const inquiryData = await inquiryResponse.json();
-        if (inquiryData.status === "success" && inquiryData.data) {
-          setStats((prev) => ({
-            ...prev,
-            pendingInquiries: inquiryData.data.length,
-          }));
+      // Fetch inquiries count (only for non-technicians)
+      if (!isTechnician) {
+        try {
+          const inquiryResponse = await fetch(
+            `${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`
+          );
+          const inquiryData = await inquiryResponse.json();
+          if (inquiryData.status === "success" && inquiryData.data) {
+            setStats((prev) => ({
+              ...prev,
+              pendingInquiries: inquiryData.data.length,
+            }));
+          }
+        } catch (error) {
+          console.error("Error fetching inquiries:", error);
         }
-      } catch (error) {
-        console.error("Error fetching inquiries:", error);
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -146,46 +157,105 @@ const Menu = () => {
   };
 
   const handleEditService = (serviceId: string) => {
-    navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
+    if (isTechnician) {
+      navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
+    } else {
+      navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
+    }
   };
 
-  const statCards = [
-    {
-      title: "Pending Inquiries",
-      value: stats.pendingInquiries,
-      icon: MessageSquare,
-      color: "text-info",
-      bgColor: "bg-info/10",
-      onClick: () => navigate("/client-inquiry"),
-    },
-    {
-      title: "Ongoing Services",
-      value: stats.ongoingServices,
-      icon: Wrench,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      onClick: () => navigate("/service-tracker"),
-    },
-    {
-      title: "Overdue Services",
-      value: stats.overdueServices,
-      icon: AlertTriangle,
-      color: "text-destructive",
-      bgColor: "bg-destructive/10",
-      onClick: () => navigate("/service-tracker"),
-    },
-    {
-      title: "Completed Services",
-      value: stats.completedServices,
-      icon: CheckCircle,
-      color: "text-success",
-      bgColor: "bg-success/10",
-      onClick: () => navigate("/service-tracker"),
-    },
-  ];
+  // Role-based stat cards
+  const getStatCards = () => {
+    if (isTechnician) {
+      return [
+        {
+          title: "My Ongoing Services",
+          value: stats.ongoingServices,
+          icon: Wrench,
+          color: "text-primary",
+          bgColor: "bg-primary/10",
+          onClick: () => navigate("/service-tracker"),
+        },
+        {
+          title: "My Overdue Services",
+          value: stats.overdueServices,
+          icon: AlertTriangle,
+          color: "text-destructive",
+          bgColor: "bg-destructive/10",
+          onClick: () => navigate("/service-tracker"),
+        },
+        {
+          title: "My Completed Services",
+          value: stats.completedServices,
+          icon: CheckCircle,
+          color: "text-success",
+          bgColor: "bg-success/10",
+          onClick: () => navigate("/service-tracker"),
+        },
+      ];
+    }
+
+    return [
+      {
+        title: "Pending Inquiries",
+        value: stats.pendingInquiries,
+        icon: MessageSquare,
+        color: "text-info",
+        bgColor: "bg-info/10",
+        onClick: () => navigate("/client-inquiry"),
+      },
+      {
+        title: "Ongoing Services",
+        value: stats.ongoingServices,
+        icon: Wrench,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        onClick: () => navigate("/service-tracker"),
+      },
+      {
+        title: "Overdue Services",
+        value: stats.overdueServices,
+        icon: AlertTriangle,
+        color: "text-destructive",
+        bgColor: "bg-destructive/10",
+        onClick: () => navigate("/service-tracker"),
+      },
+      {
+        title: "Completed Services",
+        value: stats.completedServices,
+        icon: CheckCircle,
+        color: "text-success",
+        bgColor: "bg-success/10",
+        onClick: () => navigate("/service-tracker"),
+      },
+    ];
+  };
 
   // Role-based quick actions
   const getQuickActions = () => {
+    if (isTechnician) {
+      return [
+        {
+          title: "Service Update",
+          description: "Update assigned services",
+          icon: Wrench,
+          path: "/service-update",
+        },
+        {
+          title: "Service Tracker",
+          description: "View all services",
+          icon: ClipboardList,
+          path: "/service-tracker",
+        },
+        {
+          title: "Tech Dashboard",
+          description: "Department overview",
+          icon: Monitor,
+          path: "/tech-dashboard",
+        },
+      ];
+    }
+
     const baseActions = [
       {
         title: "New Client Intake",
@@ -228,31 +298,35 @@ const Menu = () => {
     return baseActions;
   };
 
+  const statCards = getStatCards();
   const quickActions = getQuickActions();
 
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 animate-fade-in">
         {/* Header with Clock */}
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+          {/* User Greeting - Enlarged */}
+          <div className="flex-1">
+            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2">
               Hello, {userFullName}!
             </h1>
-            <p className="text-muted-foreground capitalize">Role: {userRole}</p>
+            <p className="text-xl text-muted-foreground capitalize">
+              Role: {userRole}
+            </p>
           </div>
           
           {/* Dynamic Clock - Right Side */}
-          <div className="flex flex-col items-end bg-card border border-border rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Calendar className="h-4 w-4" />
-              <span className="text-sm font-medium">
+          <div className="flex flex-col items-end bg-card border border-border rounded-xl p-5 shadow-sm min-w-[280px]">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Calendar className="h-5 w-5" />
+              <span className="text-base font-medium">
                 {format(currentTime, "EEEE, MMMM d, yyyy")}
               </span>
             </div>
-            <div className="text-4xl font-bold text-primary font-mono tracking-wider">
+            <div className="text-5xl font-bold text-primary font-mono tracking-wider">
               {format(currentTime, "hh:mm:ss")}
-              <span className="text-lg ml-1 text-muted-foreground">
+              <span className="text-2xl ml-2 text-muted-foreground">
                 {format(currentTime, "a")}
               </span>
             </div>
@@ -260,7 +334,7 @@ const Menu = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${isTechnician ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 mb-8`}>
           {statCards.map((stat, index) => (
             <Card
               key={index}
@@ -290,7 +364,7 @@ const Menu = () => {
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${!isTechnician && userRole === 'management' ? 'xl:grid-cols-5' : ''} gap-4`}>
               {quickActions.map((action, index) => (
                 <button
                   key={index}
@@ -316,7 +390,7 @@ const Menu = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5 text-warning" />
-                Services Due Today ({servicesDueToday.length})
+                {isTechnician ? "My Services Due Today" : "Services Due Today"} ({servicesDueToday.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -345,7 +419,7 @@ const Menu = () => {
                             <button
                               onClick={() => handleEditService(service.serviceId)}
                               className="p-1 rounded hover:bg-muted transition-colors"
-                              title="Edit in Manage Client"
+                              title={isTechnician ? "Update Service" : "Edit in Manage Client"}
                             >
                               <ExternalLink className="h-4 w-4 text-primary" />
                             </button>
@@ -363,7 +437,7 @@ const Menu = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
-                Overdue Services ({servicesOverdue.length})
+                {isTechnician ? "My Overdue Services" : "Overdue Services"} ({servicesOverdue.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -392,7 +466,7 @@ const Menu = () => {
                             <button
                               onClick={() => handleEditService(service.serviceId)}
                               className="p-1 rounded hover:bg-muted transition-colors"
-                              title="Edit in Manage Client"
+                              title={isTechnician ? "Update Service" : "Edit in Manage Client"}
                             >
                               <ExternalLink className="h-4 w-4 text-primary" />
                             </button>
