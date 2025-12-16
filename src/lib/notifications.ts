@@ -20,6 +20,16 @@ export interface Message {
   content: string;
   read: boolean;
   createdAt: string;
+  groupId?: string; // For group messages
+}
+
+export interface GroupChat {
+  id: string;
+  name: string;
+  createdBy: string;
+  memberIds: string[];
+  memberNames: string[];
+  createdAt: string;
 }
 
 export const fetchNotifications = async (userId: string): Promise<Notification[]> => {
@@ -116,6 +126,7 @@ export const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'r
         receiverId: message.receiverId,
         receiverName: message.receiverName,
         content: message.content,
+        groupId: message.groupId || '',
       }),
     });
     const data = await response.json();
@@ -141,4 +152,133 @@ export const markMessageRead = async (messageId: string): Promise<boolean> => {
     console.error('Error marking message read:', error);
     return false;
   }
+};
+
+// ============ GROUP CHAT FUNCTIONS ============
+
+export const fetchGroupChats = async (userId: string): Promise<GroupChat[]> => {
+  try {
+    const response = await fetch(
+      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getGroupChats&userId=${encodeURIComponent(userId)}`
+    );
+    const data = await response.json();
+    return data.groups || data.data || [];
+  } catch (error) {
+    console.error('Error fetching group chats:', error);
+    return [];
+  }
+};
+
+export const createGroupChat = async (
+  group: Omit<GroupChat, 'id' | 'createdAt'>
+): Promise<{ success: boolean; groupId?: string }> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'createGroupChat',
+        name: group.name,
+        createdBy: group.createdBy,
+        memberIds: group.memberIds.join(','),
+        memberNames: group.memberNames.join(','),
+      }),
+    });
+    const data = await response.json();
+    return {
+      success: data.success || data.result === 'success',
+      groupId: data.groupId,
+    };
+  } catch (error) {
+    console.error('Error creating group chat:', error);
+    return { success: false };
+  }
+};
+
+export const fetchGroupMessages = async (groupId: string): Promise<Message[]> => {
+  try {
+    const response = await fetch(
+      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getGroupMessages&groupId=${encodeURIComponent(groupId)}`
+    );
+    const data = await response.json();
+    return data.messages || data.data || [];
+  } catch (error) {
+    console.error('Error fetching group messages:', error);
+    return [];
+  }
+};
+
+export const sendGroupMessage = async (
+  groupId: string,
+  senderId: string,
+  senderName: string,
+  content: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'sendGroupMessage',
+        groupId,
+        senderId,
+        senderName,
+        content,
+      }),
+    });
+    const data = await response.json();
+    return data.success || data.result === 'success';
+  } catch (error) {
+    console.error('Error sending group message:', error);
+    return false;
+  }
+};
+
+export const addGroupMember = async (
+  groupId: string,
+  memberId: string,
+  memberName: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'addGroupMember',
+        groupId,
+        memberId,
+        memberName,
+      }),
+    });
+    const data = await response.json();
+    return data.success || data.result === 'success';
+  } catch (error) {
+    console.error('Error adding group member:', error);
+    return false;
+  }
+};
+
+export const removeGroupMember = async (
+  groupId: string,
+  memberId: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'removeGroupMember',
+        groupId,
+        memberId,
+      }),
+    });
+    const data = await response.json();
+    return data.success || data.result === 'success';
+  } catch (error) {
+    console.error('Error removing group member:', error);
+    return false;
+  }
+};
+
+export const leaveGroupChat = async (
+  groupId: string,
+  userId: string
+): Promise<boolean> => {
+  return removeGroupMember(groupId, userId);
 };

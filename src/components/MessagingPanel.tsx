@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,8 @@ import { format } from 'date-fns';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+
 const parseMessageDate = (value: string) => {
   if (!value) return new Date(0);
   if (value.endsWith('Z')) return new Date(value.replace(/Z$/, ''));
@@ -47,14 +49,28 @@ interface PendingMessage {
   receiverName: string;
   status: 'sending' | 'sent' | 'failed';
   timestamp: Date;
+  isGroup?: boolean;
 }
 
 export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
-  // Get username from session storage for dual-ID lookup
   const username = typeof window !== 'undefined' ? sessionStorage.getItem('username') : null;
   
-  const { messages, unreadCount, sendMessage, markAsRead, getConversations, refresh } = useMessaging(userId, username);
+  const { 
+    messages, 
+    groupChats,
+    groupMessages,
+    unreadCount, 
+    sendMessage, 
+    sendGroupMessage,
+    createGroupChat,
+    markAsRead, 
+    getConversations, 
+    getGroupConversations,
+    refresh 
+  } = useMessaging(userId, username);
+  
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [showNewChat, setShowNewChat] = useState(false);
@@ -62,6 +78,11 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
+  const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
+  const [showGroupChatDialog, setShowGroupChatDialog] = useState(false);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
+  const [groupChatName, setGroupChatName] = useState('');
+  const [creatingGroup, setCreatingGroup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,72 +100,103 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     fetchStaff();
   }, [userId, username]);
 
-  // Helper to find staff by staffId OR username (for backward compatibility)
   const findStaffById = (id: string) => 
     staffList.find(s => s.staffId === id || s.username === id);
 
   const conversations = getConversations();
+  const groupConversations = getGroupConversations();
   
-  // Filter conversations by search query
   const filteredConversations = conversations.filter(conv => 
     conv.partnerName.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Filter staff list by search query
+  const filteredGroupConversations = groupConversations.filter(group =>
+    group.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
   const filteredStaff = staffList.filter(staff =>
     staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     staff.department?.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Match conversation by staffId or username
   const currentConversation = conversations.find(c => {
     if (c.partnerId === selectedConversation) return true;
     const staff = findStaffById(c.partnerId);
     return staff && (staff.staffId === selectedConversation || staff.username === selectedConversation);
   });
 
+  const currentGroup = selectedGroupId ? groupConversations.find(g => g.groupId === selectedGroupId) : null;
+
   const handleSend = async () => {
-    if ((!newMessage.trim() && !attachedImage) || !selectedConversation || !userName) return;
+    if ((!newMessage.trim() && !attachedImage) || !userName) return;
     
-    const partner = findStaffById(selectedConversation) || 
-                   conversations.find(c => c.partnerId === selectedConversation);
-    const partnerName = partner ? ('name' in partner ? partner.name : partner.partnerName) : 'Unknown';
-    
-    // Combine text and image
     let messageContent = newMessage.trim();
     if (attachedImage) {
       messageContent = messageContent ? `${messageContent}\n[Image: ${attachedImage}]` : `[Image: ${attachedImage}]`;
     }
     
-    // Create pending message for optimistic UI
     const pendingId = `pending-${Date.now()}`;
-    const pendingMsg: PendingMessage = {
-      id: pendingId,
-      content: messageContent,
-      receiverId: selectedConversation,
-      receiverName: partnerName,
-      status: 'sending',
-      timestamp: new Date()
-    };
     
-    setPendingMessages(prev => [...prev, pendingMsg]);
-    setNewMessage('');
-    setAttachedImage(null);
-    setSending(true);
-    
-    const success = await sendMessage(selectedConversation, partnerName, userName, messageContent);
-    
-    if (success) {
-      // Remove from pending and let the hook handle the actual message
-      setPendingMessages(prev => prev.filter(m => m.id !== pendingId));
-    } else {
-      // Mark as failed
-      setPendingMessages(prev => 
-        prev.map(m => m.id === pendingId ? { ...m, status: 'failed' as const } : m)
-      );
-      toast.error('Failed to send message');
+    if (selectedGroupId && currentGroup) {
+      // Send to group
+      const pendingMsg: PendingMessage = {
+        id: pendingId,
+        content: messageContent,
+        receiverId: selectedGroupId,
+        receiverName: currentGroup.groupName,
+        status: 'sending',
+        timestamp: new Date(),
+        isGroup: true
+      };
+      
+      setPendingMessages(prev => [...prev, pendingMsg]);
+      setNewMessage('');
+      setAttachedImage(null);
+      setSending(true);
+      
+      const success = await sendGroupMessage(selectedGroupId, userName, messageContent);
+      
+      if (success) {
+        setPendingMessages(prev => prev.filter(m => m.id !== pendingId));
+      } else {
+        setPendingMessages(prev => 
+          prev.map(m => m.id === pendingId ? { ...m, status: 'failed' as const } : m)
+        );
+        toast.error('Failed to send message');
+      }
+      setSending(false);
+    } else if (selectedConversation) {
+      // Send direct message
+      const partner = findStaffById(selectedConversation) || 
+                     conversations.find(c => c.partnerId === selectedConversation);
+      const partnerName = partner ? ('name' in partner ? partner.name : partner.partnerName) : 'Unknown';
+      
+      const pendingMsg: PendingMessage = {
+        id: pendingId,
+        content: messageContent,
+        receiverId: selectedConversation,
+        receiverName: partnerName,
+        status: 'sending',
+        timestamp: new Date()
+      };
+      
+      setPendingMessages(prev => [...prev, pendingMsg]);
+      setNewMessage('');
+      setAttachedImage(null);
+      setSending(true);
+      
+      const success = await sendMessage(selectedConversation, partnerName, userName, messageContent);
+      
+      if (success) {
+        setPendingMessages(prev => prev.filter(m => m.id !== pendingId));
+      } else {
+        setPendingMessages(prev => 
+          prev.map(m => m.id === pendingId ? { ...m, status: 'failed' as const } : m)
+        );
+        toast.error('Failed to send message');
+      }
+      setSending(false);
     }
-    setSending(false);
   };
 
   const retryMessage = async (pendingMsg: PendingMessage) => {
@@ -154,7 +206,12 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       prev.map(m => m.id === pendingMsg.id ? { ...m, status: 'sending' as const } : m)
     );
     
-    const success = await sendMessage(pendingMsg.receiverId, pendingMsg.receiverName, userName, pendingMsg.content);
+    let success = false;
+    if (pendingMsg.isGroup) {
+      success = await sendGroupMessage(pendingMsg.receiverId, userName, pendingMsg.content);
+    } else {
+      success = await sendMessage(pendingMsg.receiverId, pendingMsg.receiverName, userName, pendingMsg.content);
+    }
     
     if (success) {
       setPendingMessages(prev => prev.filter(m => m.id !== pendingMsg.id));
@@ -168,18 +225,17 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   };
 
   const startNewChat = (staff: Staff) => {
-    // Check if there's already a conversation with this person (by staffId or username)
     const existingConv = conversations.find(c => {
       const convStaff = findStaffById(c.partnerId);
       return convStaff && (convStaff.staffId === staff.staffId);
     });
     
     if (existingConv) {
-      // Use the existing conversation's partnerId to maintain consistency
       setSelectedConversation(existingConv.partnerId);
     } else {
       setSelectedConversation(staff.staffId);
     }
+    setSelectedGroupId(null);
     setShowNewChat(false);
     setSearchQuery('');
   };
@@ -206,13 +262,52 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
   };
 
-  const [imageViewerUrl, setImageViewerUrl] = useState<string | null>(null);
-  const [showGroupChatDialog, setShowGroupChatDialog] = useState(false);
-  const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
-  const [groupChatName, setGroupChatName] = useState('');
+  const handleCreateGroupChat = async () => {
+    if (selectedGroupMembers.length < 1) {
+      toast.error('Select at least 1 member for a group chat');
+      return;
+    }
+    if (!groupChatName.trim()) {
+      toast.error('Please enter a group name');
+      return;
+    }
+    if (!userName) {
+      toast.error('User not logged in');
+      return;
+    }
+
+    setCreatingGroup(true);
+    
+    const memberNames = selectedGroupMembers.map(id => {
+      const staff = staffList.find(s => s.staffId === id);
+      return staff?.name || 'Unknown';
+    });
+
+    const groupId = await createGroupChat(groupChatName.trim(), selectedGroupMembers, memberNames, userName);
+    
+    if (groupId) {
+      toast.success('Group chat created!');
+      setShowGroupChatDialog(false);
+      setSelectedGroupMembers([]);
+      setGroupChatName('');
+      setSelectedGroupId(groupId);
+      setSelectedConversation(null);
+    } else {
+      toast.error('Failed to create group chat');
+    }
+    
+    setCreatingGroup(false);
+  };
+
+  const toggleGroupMember = (staffId: string) => {
+    setSelectedGroupMembers(prev => 
+      prev.includes(staffId) 
+        ? prev.filter(id => id !== staffId)
+        : [...prev, staffId]
+    );
+  };
 
   const renderMessageContent = (content: string) => {
-    // Check if message contains an image
     const imageMatch = content.match(/\[Image: (data:image\/[^;]+;base64,[^\]]+)\]/);
     if (imageMatch) {
       const textContent = content.replace(/\[Image: data:image\/[^;]+;base64,[^\]]+\]/, '').trim();
@@ -231,35 +326,9 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     return <p className="text-sm">{content}</p>;
   };
 
-  const handleCreateGroupChat = () => {
-    if (selectedGroupMembers.length < 2) {
-      toast.error('Select at least 2 members for a group chat');
-      return;
-    }
-    if (!groupChatName.trim()) {
-      toast.error('Please enter a group name');
-      return;
-    }
-    // For now, just show a message - full group chat requires backend support
-    toast.info('Group chat feature coming soon! Backend support needed.');
-    setShowGroupChatDialog(false);
-    setSelectedGroupMembers([]);
-    setGroupChatName('');
-  };
-
-  const toggleGroupMember = (staffId: string) => {
-    setSelectedGroupMembers(prev => 
-      prev.includes(staffId) 
-        ? prev.filter(id => id !== staffId)
-        : [...prev, staffId]
-    );
-  };
-
-  // Render message status indicator
   const renderMessageStatus = (msg: any, isOwn: boolean) => {
     if (!isOwn) return null;
     
-    const userIds = new Set([userId, username].filter(Boolean));
     const isRead = msg.read;
     const time = format(parseMessageDate(msg.createdAt), 'h:mm a');
     
@@ -275,7 +344,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     );
   };
 
-  // Render pending message status
   const renderPendingStatus = (status: 'sending' | 'sent' | 'failed', onRetry?: () => void) => {
     switch (status) {
       case 'sending':
@@ -301,10 +369,18 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
   };
 
-  // Get pending messages for current conversation
-  const conversationPendingMessages = pendingMessages.filter(
-    m => m.receiverId === selectedConversation
+  const conversationPendingMessages = pendingMessages.filter(m => 
+    (selectedGroupId && m.receiverId === selectedGroupId) ||
+    (!selectedGroupId && m.receiverId === selectedConversation)
   );
+
+  const currentMessages = selectedGroupId 
+    ? (groupMessages[selectedGroupId] || [])
+    : (currentConversation?.messages || []);
+
+  const chatTitle = selectedGroupId 
+    ? currentGroup?.groupName 
+    : currentConversation?.partnerName || 'Chat';
 
   return (
     <Sheet>
@@ -321,20 +397,24 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2">
-            {selectedConversation ? (
+            {(selectedConversation || selectedGroupId) ? (
               <>
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={() => {
                     setSelectedConversation(null);
+                    setSelectedGroupId(null);
                     setAttachedImage(null);
                   }}
                   className="h-8 w-8"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <span>{currentConversation?.partnerName || 'Chat'}</span>
+                <div className="flex items-center gap-2">
+                  {selectedGroupId && <UsersRound className="h-4 w-4 text-muted-foreground" />}
+                  <span>{chatTitle}</span>
+                </div>
               </>
             ) : showNewChat ? (
               <>
@@ -360,18 +440,32 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
           </SheetTitle>
         </SheetHeader>
 
-        {selectedConversation ? (
+        {(selectedConversation || selectedGroupId) ? (
           // Chat view
           <div className="flex-1 flex flex-col">
+            {/* Group members badge */}
+            {selectedGroupId && currentGroup && (
+              <div className="px-4 py-2 border-b bg-muted/30">
+                <p className="text-xs text-muted-foreground mb-1">Members:</p>
+                <div className="flex flex-wrap gap-1">
+                  {currentGroup.memberNames.map((name, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-3">
-                {currentConversation?.messages
+                {currentMessages
                   .slice()
                   .reverse()
                   .map((msg) => {
                     const userIds = new Set([userId, username].filter(Boolean));
                     const isOwn = userIds.has(msg.senderId);
-                    if (!msg.read && userIds.has(msg.receiverId)) {
+                    if (!msg.read && userIds.has(msg.receiverId) && !selectedGroupId) {
                       markAsRead(msg.id);
                     }
                     return (
@@ -386,6 +480,12 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                               : 'bg-muted'
                           }`}
                         >
+                          {/* Show sender name in group chats */}
+                          {selectedGroupId && !isOwn && (
+                            <p className="text-xs font-medium mb-1 text-primary">
+                              {msg.senderName}
+                            </p>
+                          )}
                           {renderMessageContent(msg.content)}
                           {isOwn ? (
                             renderMessageStatus(msg, isOwn)
@@ -437,7 +537,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
             )}
             
             <div className="p-4 border-t flex gap-2">
-              {/* Hidden file inputs */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -454,7 +553,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                 className="hidden"
               />
               
-              {/* Camera button */}
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -465,7 +563,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                 <Camera className="h-4 w-4" />
               </Button>
               
-              {/* Image attachment button */}
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -545,7 +642,48 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
             </div>
             <ScrollArea className="flex-1">
               <div className="p-2">
-                {filteredConversations.length === 0 ? (
+                {/* Group Chats Section */}
+                {filteredGroupConversations.length > 0 && (
+                  <>
+                    <p className="text-xs font-medium text-muted-foreground px-3 py-2">Group Chats</p>
+                    {filteredGroupConversations.map((group) => (
+                      <button
+                        key={group.groupId}
+                        onClick={() => {
+                          setSelectedGroupId(group.groupId);
+                          setSelectedConversation(null);
+                        }}
+                        className="w-full p-3 rounded-lg hover:bg-accent text-left flex items-center gap-3"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center relative">
+                          <UsersRound className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{group.groupName}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {group.lastMessage 
+                              ? (group.lastMessage.content.includes('[Image:') 
+                                  ? '📷 Image' 
+                                  : `${group.lastMessage.senderName}: ${group.lastMessage.content}`)
+                              : `${group.memberNames.length} members`}
+                          </p>
+                        </div>
+                        {group.lastMessage && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseMessageDate(group.lastMessage.createdAt), 'MMM d')}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Direct Messages Section */}
+                {(filteredConversations.length > 0 || filteredGroupConversations.length > 0) && filteredConversations.length > 0 && (
+                  <p className="text-xs font-medium text-muted-foreground px-3 py-2 mt-2">Direct Messages</p>
+                )}
+                
+                {filteredConversations.length === 0 && filteredGroupConversations.length === 0 ? (
                   <p className="text-center text-muted-foreground p-4">
                     {searchQuery ? 'No conversations found' : 'No conversations yet'}
                   </p>
@@ -553,7 +691,10 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                   filteredConversations.map((conv) => (
                     <button
                       key={conv.partnerId}
-                      onClick={() => setSelectedConversation(conv.partnerId)}
+                      onClick={() => {
+                        setSelectedConversation(conv.partnerId);
+                        setSelectedGroupId(null);
+                      }}
                       className="w-full p-3 rounded-lg hover:bg-accent text-left flex items-center gap-3"
                     >
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center relative">
@@ -630,8 +771,12 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                         {selectedGroupMembers.length} selected
                       </p>
                     </div>
-                    <Button onClick={handleCreateGroupChat} className="w-full">
-                      Create Group
+                    <Button 
+                      onClick={handleCreateGroupChat} 
+                      className="w-full"
+                      disabled={creatingGroup}
+                    >
+                      {creatingGroup ? 'Creating...' : 'Create Group'}
                     </Button>
                   </div>
                 </DialogContent>
