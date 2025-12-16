@@ -39,7 +39,6 @@ export const markNotificationRead = async (notificationId: string): Promise<bool
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'markNotificationRead',
         notificationId
@@ -57,7 +56,6 @@ export const markAllNotificationsRead = async (userId: string): Promise<boolean>
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'markAllNotificationsRead',
         userId
@@ -75,7 +73,6 @@ export const createNotification = async (notification: Omit<Notification, 'id' |
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'createNotification',
         ...notification
@@ -106,7 +103,6 @@ export const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'r
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'sendMessage',
         ...message
@@ -124,7 +120,6 @@ export const markMessageRead = async (messageId: string): Promise<boolean> => {
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'markMessageRead',
         messageId
