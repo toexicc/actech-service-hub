@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { MessageCircle, Send, ArrowLeft, Users } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -33,12 +33,18 @@ interface MessagingPanelProps {
 }
 
 export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
-  const { messages, unreadCount, sendMessage, markAsRead, getConversations } = useMessaging(userId);
+  // Get username from session storage for dual-ID lookup
+  const username = typeof window !== 'undefined' ? sessionStorage.getItem('username') : null;
+  
+  const { messages, unreadCount, sendMessage, markAsRead, getConversations } = useMessaging(userId, username);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [showNewChat, setShowNewChat] = useState(false);
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -46,19 +52,31 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
         const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
         const data = await response.json();
         const staffData = data.staff || data.data || [];
-        setStaffList(staffData.filter((s: Staff) => s.staffId !== userId));
+        setStaffList(staffData.filter((s: Staff) => s.staffId !== userId && s.username !== username));
       } catch (error) {
         console.error('Error fetching staff:', error);
       }
     };
     fetchStaff();
-  }, [userId]);
+  }, [userId, username]);
 
   // Helper to find staff by staffId OR username (for backward compatibility)
   const findStaffById = (id: string) => 
     staffList.find(s => s.staffId === id || s.username === id);
 
   const conversations = getConversations();
+  
+  // Filter conversations by search query
+  const filteredConversations = conversations.filter(conv => 
+    conv.partnerName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  // Filter staff list by search query
+  const filteredStaff = staffList.filter(staff =>
+    staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    staff.department?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
   // Match conversation by staffId or username
   const currentConversation = conversations.find(c => {
     if (c.partnerId === selectedConversation) return true;
@@ -67,16 +85,23 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   });
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !selectedConversation || !userName) return;
+    if ((!newMessage.trim() && !attachedImage) || !selectedConversation || !userName) return;
     
     setSending(true);
     const partner = findStaffById(selectedConversation) || 
                    conversations.find(c => c.partnerId === selectedConversation);
     const partnerName = partner ? ('name' in partner ? partner.name : partner.partnerName) : 'Unknown';
     
-    const success = await sendMessage(selectedConversation, partnerName, userName, newMessage.trim());
+    // Combine text and image
+    let messageContent = newMessage.trim();
+    if (attachedImage) {
+      messageContent = messageContent ? `${messageContent}\n[Image: ${attachedImage}]` : `[Image: ${attachedImage}]`;
+    }
+    
+    const success = await sendMessage(selectedConversation, partnerName, userName, messageContent);
     if (success) {
       setNewMessage('');
+      setAttachedImage(null);
     }
     setSending(false);
   };
@@ -95,6 +120,37 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       setSelectedConversation(staff.staffId);
     }
     setShowNewChat(false);
+    setSearchQuery('');
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const renderMessageContent = (content: string) => {
+    // Check if message contains an image
+    const imageMatch = content.match(/\[Image: (data:image\/[^;]+;base64,[^\]]+)\]/);
+    if (imageMatch) {
+      const textContent = content.replace(/\[Image: data:image\/[^;]+;base64,[^\]]+\]/, '').trim();
+      return (
+        <>
+          {textContent && <p className="text-sm mb-2">{textContent}</p>}
+          <img 
+            src={imageMatch[1]} 
+            alt="Attached" 
+            className="max-w-full rounded-md max-h-48 object-contain"
+          />
+        </>
+      );
+    }
+    return <p className="text-sm">{content}</p>;
   };
 
   return (
@@ -117,7 +173,10 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={() => {
+                    setSelectedConversation(null);
+                    setAttachedImage(null);
+                  }}
                   className="h-8 w-8"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -129,7 +188,10 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={() => setShowNewChat(false)}
+                  onClick={() => {
+                    setShowNewChat(false);
+                    setSearchQuery('');
+                  }}
                   className="h-8 w-8"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -154,8 +216,9 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                   .slice()
                   .reverse()
                   .map((msg) => {
-                    const isOwn = msg.senderId === userId;
-                    if (!msg.read && msg.receiverId === userId) {
+                    const userIds = new Set([userId, username].filter(Boolean));
+                    const isOwn = userIds.has(msg.senderId);
+                    if (!msg.read && userIds.has(msg.receiverId)) {
                       markAsRead(msg.id);
                     }
                     return (
@@ -170,7 +233,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                               : 'bg-muted'
                           }`}
                         >
-                          <p className="text-sm">{msg.content}</p>
+                          {renderMessageContent(msg.content)}
                           <p className={`text-xs mt-1 ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                             {format(parseMessageDate(msg.createdAt), 'h:mm a')}
                           </p>
@@ -180,53 +243,119 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                   })}
               </div>
             </ScrollArea>
+            
+            {/* Attached image preview */}
+            {attachedImage && (
+              <div className="px-4 py-2 border-t bg-muted/50">
+                <div className="relative inline-block">
+                  <img 
+                    src={attachedImage} 
+                    alt="Attached" 
+                    className="h-20 rounded-md object-cover"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={() => setAttachedImage(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             <div className="p-4 border-t flex gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending}
+              >
+                <Image className="h-4 w-4" />
+              </Button>
               <Input
                 placeholder="Type a message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                 disabled={sending}
+                className="flex-1"
               />
-              <Button onClick={handleSend} disabled={sending || !newMessage.trim()}>
+              <Button onClick={handleSend} disabled={sending || (!newMessage.trim() && !attachedImage)}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
         ) : showNewChat ? (
           // Staff list for new chat
-          <ScrollArea className="flex-1">
+          <div className="flex-1 flex flex-col">
             <div className="p-2">
-              {staffList.length === 0 ? (
-                <p className="text-center text-muted-foreground p-4">No staff available</p>
-              ) : (
-                staffList.map((staff) => (
-                  <button
-                    key={staff.staffId}
-                    onClick={() => startNewChat(staff)}
-                    className="w-full p-3 rounded-lg hover:bg-accent text-left flex items-center gap-3"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-medium">{staff.name.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">{staff.name}</p>
-                      <p className="text-xs text-muted-foreground">{staff.department}</p>
-                    </div>
-                  </button>
-                ))
-              )}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search staff..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
-          </ScrollArea>
+            <ScrollArea className="flex-1">
+              <div className="p-2">
+                {filteredStaff.length === 0 ? (
+                  <p className="text-center text-muted-foreground p-4">
+                    {searchQuery ? 'No staff found' : 'No staff available'}
+                  </p>
+                ) : (
+                  filteredStaff.map((staff) => (
+                    <button
+                      key={staff.staffId}
+                      onClick={() => startNewChat(staff)}
+                      className="w-full p-3 rounded-lg hover:bg-accent text-left flex items-center gap-3"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-medium">{staff.name.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{staff.name}</p>
+                        <p className="text-xs text-muted-foreground">{staff.department}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
         ) : (
           // Conversations list
           <div className="flex-1 flex flex-col">
+            <div className="p-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
             <ScrollArea className="flex-1">
               <div className="p-2">
-                {conversations.length === 0 ? (
-                  <p className="text-center text-muted-foreground p-4">No conversations yet</p>
+                {filteredConversations.length === 0 ? (
+                  <p className="text-center text-muted-foreground p-4">
+                    {searchQuery ? 'No conversations found' : 'No conversations yet'}
+                  </p>
                 ) : (
-                  conversations.map((conv) => (
+                  filteredConversations.map((conv) => (
                     <button
                       key={conv.partnerId}
                       onClick={() => setSelectedConversation(conv.partnerId)}
@@ -243,7 +372,9 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{conv.partnerName}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {conv.lastMessage.content}
+                          {conv.lastMessage.content.includes('[Image:') 
+                            ? '📷 Image' 
+                            : conv.lastMessage.content}
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground">
@@ -256,7 +387,10 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
             </ScrollArea>
             <div className="p-4 border-t">
               <Button 
-                onClick={() => setShowNewChat(true)} 
+                onClick={() => {
+                  setShowNewChat(true);
+                  setSearchQuery('');
+                }} 
                 className="w-full"
                 variant="outline"
               >
