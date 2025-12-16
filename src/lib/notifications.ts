@@ -344,3 +344,67 @@ export const clearTypingStatus = async (
     return false;
   }
 };
+
+// ============ READ RECEIPTS FUNCTIONS ============
+
+export interface ReadReceipt {
+  id: string;
+  messageId: string;
+  userId: string;
+  userName: string;
+  readAt: string;
+}
+
+export const markGroupMessageRead = async (
+  messageId: string,
+  userId: string,
+  userName: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      method: 'POST',
+      body: new URLSearchParams({
+        action: 'markGroupMessageRead',
+        messageId,
+        userId,
+        userName,
+      }),
+    });
+    const data = await response.json();
+    return data.success || data.result === 'success';
+  } catch (error) {
+    console.error('Error marking group message read:', error);
+    return false;
+  }
+};
+
+export const getMessageReadReceipts = async (
+  messageId: string
+): Promise<ReadReceipt[]> => {
+  try {
+    const response = await fetch(
+      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getMessageReadReceipts&messageId=${encodeURIComponent(messageId)}`
+    );
+    const data = await response.json();
+    return data.receipts || data.data || [];
+  } catch (error) {
+    console.error('Error fetching read receipts:', error);
+    return [];
+  }
+};
+
+export const getGroupMessageReadReceipts = async (
+  groupId: string
+): Promise<Record<string, ReadReceipt[]>> => {
+  try {
+    const response = await fetch(
+      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getGroupReadReceipts&groupId=${encodeURIComponent(groupId)}`
+    );
+    const data = await response.json();
+    // Returns { messageId: [receipts] } format
+    return data.receipts || {};
+  } catch (error) {
+    console.error('Error fetching group read receipts:', error);
+    return {};
+  }
+};
