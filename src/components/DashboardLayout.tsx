@@ -60,7 +60,7 @@ const techSection: NavSection = {
   items: [
     { title: "Service Update", icon: Wrench, path: "/service-update" },
     { title: "Service Tracking", icon: ClipboardList, path: "/service-tracking" },
-    { title: "Tech Dashboard", icon: Monitor, path: "/tech-dashboard" },
+    { title: "Tech Dashboard", icon: Monitor, path: "/tech-dashboard", roles: ["management"] },
   ],
   roles: ["technician", "management"],
 };
