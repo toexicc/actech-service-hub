@@ -11,14 +11,20 @@ export const useMessaging = (userId: string | null) => {
     try {
       const data = await fetchMessages(userId);
       setMessages((prev) => {
-        const local = prev.filter((m) => m.id.startsWith('local-'));
-        const byId = new Map<string, Message>();
-        [...local, ...data].forEach((m) => byId.set(m.id, m));
-        return Array.from(byId.values()).sort(
+        // Remove local optimistic messages that now have server versions
+        const serverMsgs = new Set(
+          data.map((m) => `${m.senderId}|${m.receiverId}|${m.content}`)
+        );
+        const localToKeep = prev.filter(
+          (m) =>
+            m.id.startsWith('local-') &&
+            !serverMsgs.has(`${m.senderId}|${m.receiverId}|${m.content}`)
+        );
+        return [...localToKeep, ...data].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       });
-      setUnreadCount(data.filter(m => !m.read && m.receiverId === userId).length);
+      setUnreadCount(data.filter((m) => !m.read && m.receiverId === userId).length);
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
