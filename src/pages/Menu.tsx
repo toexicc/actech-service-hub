@@ -140,10 +140,10 @@ const Menu = () => {
           );
           const inquiryData = await inquiryResponse.json();
           if (inquiryData.status === "success" && inquiryData.data) {
-            // Count only inquiries with TBD or blank status
+            // Count only inquiries with TBD or blank mode of transfer
             const pendingCount = inquiryData.data.filter((inquiry: any) => {
-              const status = (inquiry.status || "").trim().toUpperCase();
-              return status === "TBD" || status === "";
+              const modeOfTransfer = (inquiry.modeOfTransfer || "").trim().toUpperCase();
+              return modeOfTransfer === "TBD" || modeOfTransfer === "";
             }).length;
             setStats((prev) => ({
               ...prev,
