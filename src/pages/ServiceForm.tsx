@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout from "@/components/DashboardLayout";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -489,11 +490,9 @@ const ServiceForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-6 md:p-8">
-        <Button onClick={() => navigate("/admin-portal")} variant="outline" className="mb-6">
-          Back to Admin Portal
-        </Button>
+    <DashboardLayout>
+      <div className="p-4 md:p-8 animate-fade-in">
+        <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50">
         
         <div className="text-center mb-8">
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
@@ -1276,8 +1275,9 @@ const ServiceForm = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

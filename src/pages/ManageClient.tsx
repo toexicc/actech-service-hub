@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -891,24 +892,18 @@ const ManageClient = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6 max-w-6xl w-full">
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Manage Client</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Manage Client</h1>
+          <p className="text-muted-foreground">View and update client information</p>
         </div>
 
         <div className="flex gap-3 mb-6">
-          <Button onClick={() => navigate("/admin-portal")} variant="outline">
-            Back to Admin Portal
-          </Button>
           <Button 
             onClick={() => window.open("https://docs.google.com/spreadsheets/d/1gpCaFtFu3IrpUfYFTRGHwQQqfghWRki6WHzDU-0ikAg/edit?usp=sharing", "_blank")} 
-            className="bg-green-600 hover:bg-green-700 text-white"
+            variant="outline"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             View Sheet
@@ -1706,7 +1701,7 @@ const ManageClient = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">powered by Stack&Scale</div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

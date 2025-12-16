@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -449,20 +450,13 @@ const ServiceTracker = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6 max-w-7xl w-full">
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Service Tracker Dashboard</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Service Tracker</h1>
+          <p className="text-muted-foreground">Monitor all ongoing services</p>
         </div>
-
-        <Button onClick={() => navigate(isTechnician ? "/technician-portal" : "/admin-portal")} variant="outline" className="mb-6">
-          Back to {isTechnician ? "Technician" : "Admin"} Portal
-        </Button>
 
         {/* Search Bar */}
         <Card className="mb-6">
@@ -963,7 +957,7 @@ const ServiceTracker = () => {
           powered by Stack&Scale
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

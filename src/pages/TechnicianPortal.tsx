@@ -1,8 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import { Card, CardContent } from "@/components/ui/card";
+import DashboardLayout from "@/components/DashboardLayout";
+import {
+  Wrench,
+  ClipboardList,
+  Monitor,
+} from "lucide-react";
 
 const TechnicianPortal = () => {
   const navigate = useNavigate();
@@ -12,87 +16,76 @@ const TechnicianPortal = () => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-    // Admin cannot access technician portal
     if (userRole === "admin") {
       navigate("/admin-portal");
     }
   }, [navigate, userRole]);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("authenticated");
-    sessionStorage.removeItem("userRole");
-    navigate("/");
-  };
+  const techSections = [
+    {
+      title: "Service Update Form",
+      description: "Update service status and progress",
+      icon: Wrench,
+      path: "/service-update",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Service Tracking",
+      description: "View and track assigned services",
+      icon: ClipboardList,
+      path: "/service-tracking",
+      color: "text-info",
+      bgColor: "bg-info/10",
+    },
+  ];
+
+  if (userRole === "management") {
+    techSections.push({
+      title: "Tech Dashboard",
+      description: "View due today and overdue services",
+      icon: Monitor,
+      path: "/tech-dashboard",
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+    });
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-8 flex flex-col">
-      <div className="max-w-6xl mx-auto flex-grow w-full">
-        <div className="text-center mb-12">
-          <img 
-            src={acTechLogo} 
-            alt="AC Tech Repair" 
-            className="mx-auto h-24 mb-4 object-contain"
-          />
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">AC Tech Repair</h1>
-          <p className="text-xl text-muted-foreground">Technician Portal</p>
+    <DashboardLayout>
+      <div className="p-6 lg:p-8 animate-fade-in">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Technician Portal</h1>
+          <p className="text-muted-foreground">Select a section to manage</p>
         </div>
 
-        <div className="flex justify-center gap-2 mb-8">
-          {userRole === "management" && (
-            <Button onClick={() => navigate("/menu")} variant="outline">
-              Back to Menu
-            </Button>
-          )}
-          <Button onClick={handleLogout} variant="destructive">
-            Logout
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-8">
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-update")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Update Form</h2>
-              <p className="text-muted-foreground mb-6">
-                Update service status and progress
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Form
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/service-tracking")}>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">Service Tracking</h2>
-              <p className="text-muted-foreground mb-6">
-                View and track assigned services
-              </p>
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Open Tracker
-              </Button>
-            </div>
-          </Card>
-
-          {userRole === "management" && (
-            <Card className="p-8 hover:shadow-xl transition-shadow cursor-pointer bg-white" onClick={() => navigate("/tech-dashboard")}>
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-blue-600 mb-4">Tech Dashboard</h2>
-                <p className="text-muted-foreground mb-6">
-                  View due today and overdue services
-                </p>
-                <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                  Open Dashboard
-                </Button>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {techSections.map((section) => (
+            <Card
+              key={section.path}
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border-border/50"
+              onClick={() => navigate(section.path)}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-xl ${section.bgColor}`}>
+                    <section.icon className={`h-6 w-6 ${section.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground mb-1">{section.title}</h3>
+                    <p className="text-sm text-muted-foreground">{section.description}</p>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
-          )}
+          ))}
+        </div>
+
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          Powered by Stack&Scale
         </div>
       </div>
-      
-      <footer className="text-center text-sm text-muted-foreground mt-8">
-        Powered by Stack&Scale
-      </footer>
-    </div>
+    </DashboardLayout>
   );
 };
 
