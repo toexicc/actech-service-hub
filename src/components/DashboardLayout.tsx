@@ -3,51 +3,20 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Home,
-  FileText,
-  Users,
-  Settings,
-  ClipboardList,
-  Package,
-  DollarSign,
-  UserCog,
-  LayoutDashboard,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Wrench,
-  MessageSquare,
-  Monitor,
-  Menu,
-  Bell,
+  Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
+  LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
+  MessageSquare, Monitor, Menu, Bell,
 } from "lucide-react";
 import acTechLogo from "@/assets/ac-tech-logo.jpg";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface NavItem {
-  title: string;
-  icon: React.ElementType;
-  path: string;
-  roles?: string[];
-}
-
-interface NavSection {
-  title: string;
-  icon: React.ElementType;
-  items: NavItem[];
-  roles?: string[];
-}
+interface NavItem { title: string; icon: React.ElementType; path: string; roles?: string[]; }
+interface NavSection { title: string; icon: React.ElementType; items: NavItem[]; roles?: string[]; }
 
 const adminSection: NavSection = {
-  title: "Admin Portal",
-  icon: LayoutDashboard,
+  title: "Admin Portal", icon: LayoutDashboard,
   items: [
     { title: "Client Inquiry", icon: MessageSquare, path: "/client-inquiry" },
     { title: "Client Intake Form", icon: FileText, path: "/service-form" },
@@ -63,8 +32,7 @@ const adminSection: NavSection = {
 };
 
 const techSection: NavSection = {
-  title: "Technician Portal",
-  icon: Wrench,
+  title: "Technician Portal", icon: Wrench,
   items: [
     { title: "Service Update", icon: Wrench, path: "/service-update" },
     { title: "Service Tracking", icon: ClipboardList, path: "/service-tracking" },
@@ -73,11 +41,7 @@ const techSection: NavSection = {
   roles: ["technician", "management"],
 };
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -88,244 +52,74 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const userRole = sessionStorage.getItem("userRole");
   const userFullName = sessionStorage.getItem("userFullName") || "User";
 
+  useEffect(() => { if (!sessionStorage.getItem("authenticated")) navigate("/"); }, [navigate]);
   useEffect(() => {
-    if (!sessionStorage.getItem("authenticated")) {
-      navigate("/");
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    const isAdminPath = adminSection.items.some(item => location.pathname === item.path);
-    const isTechPath = techSection.items.some(item => location.pathname === item.path);
-    
-    if (isAdminPath) setAdminOpen(true);
-    if (isTechPath) setTechOpen(true);
+    if (adminSection.items.some((i) => location.pathname === i.path)) setAdminOpen(true);
+    if (techSection.items.some((i) => location.pathname === i.path)) setTechOpen(true);
   }, [location.pathname]);
+  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
+  const handleLogout = () => { sessionStorage.clear(); navigate("/"); };
+  const canViewSection = (s: NavSection) => !s.roles || s.roles.includes(userRole || "");
+  const canViewItem = (i: NavItem) => !i.roles || i.roles.includes(userRole || "");
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    navigate("/");
-  };
-
-  const canViewSection = (section: NavSection) => {
-    if (!section.roles) return true;
-    return section.roles.includes(userRole || "");
-  };
-
-  const canViewItem = (item: NavItem) => {
-    if (!item.roles) return true;
-    return item.roles.includes(userRole || "");
-  };
-
-  const renderNavSection = (
-    section: NavSection,
-    isOpen: boolean,
-    setIsOpen: (open: boolean) => void
-  ) => {
+  const renderNavSection = (section: NavSection, isOpen: boolean, setIsOpen: (o: boolean) => void) => {
     if (!canViewSection(section)) return null;
-
-    const filteredItems = section.items.filter(canViewItem);
-    if (filteredItems.length === 0) return null;
-
-    const hasActiveItem = filteredItems.some(item => location.pathname === item.path);
-
+    const items = section.items.filter(canViewItem);
+    if (!items.length) return null;
+    const hasActive = items.some((i) => location.pathname === i.path);
     return (
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
-          <button
-            className={cn(
-              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-              hasActiveItem
-                ? "bg-sidebar-accent text-sidebar-foreground"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-              !isMobile && collapsed && "justify-center px-2"
-            )}
-          >
+          <button className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all", hasActive ? "bg-sidebar-accent text-sidebar-foreground" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50", !isMobile && collapsed && "justify-center px-2")}>
             <section.icon className="h-5 w-5 shrink-0" />
-            {(isMobile || !collapsed) && (
-              <>
-                <span className="flex-1 text-left truncate">{section.title}</span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-transform duration-200",
-                    isOpen && "rotate-180"
-                  )}
-                />
-              </>
-            )}
+            {(isMobile || !collapsed) && <><span className="flex-1 text-left truncate">{section.title}</span><ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} /></>}
           </button>
         </CollapsibleTrigger>
-        {(isMobile || !collapsed) && (
-          <CollapsibleContent className="pl-4 mt-1 space-y-1">
-            {filteredItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200",
-                    isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon className={cn("h-4 w-4 shrink-0")} />
-                  <span className="truncate">{item.title}</span>
-                </button>
-              );
-            })}
-          </CollapsibleContent>
-        )}
+        {(isMobile || !collapsed) && <CollapsibleContent className="pl-4 mt-1 space-y-1">
+          {items.map((i) => <button key={i.path} onClick={() => navigate(i.path)} className={cn("w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all", location.pathname === i.path ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" : "text-sidebar-foreground/60 hover:bg-sidebar-accent")}><i.icon className="h-4 w-4 shrink-0" /><span className="truncate">{i.title}</span></button>)}
+        </CollapsibleContent>}
       </Collapsible>
     );
   };
 
   const SidebarContent = () => (
     <>
-      <div className="flex h-20 items-center justify-between px-4 border-b border-sidebar-border">
+      <div className="flex h-20 items-center px-4 border-b border-sidebar-border">
         <div className={cn("flex items-center gap-3", !isMobile && collapsed && "justify-center w-full")}>
-          <img
-            src={acTechLogo}
-            alt="AC Tech"
-            className="h-10 w-10 rounded-lg object-cover"
-          />
-          {(isMobile || !collapsed) && (
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span>
-              <span className="text-xs text-sidebar-foreground/60">Service Portal</span>
-            </div>
-          )}
+          <img src={acTechLogo} alt="AC Tech" className="h-10 w-10 rounded-lg object-cover" />
+          {(isMobile || !collapsed) && <div className="flex flex-col"><span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span><span className="text-xs text-sidebar-foreground/60">Service Portal</span></div>}
         </div>
       </div>
-
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
-        <button
-          onClick={() => navigate("/menu")}
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200",
-            location.pathname === "/menu"
-              ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
-              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-            !isMobile && collapsed && "justify-center px-2"
-          )}
-        >
-          <Home className="h-5 w-5 shrink-0" />
-          {(isMobile || !collapsed) && <span className="truncate">Home</span>}
-        </button>
-
+        <button onClick={() => navigate("/menu")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/menu" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><Home className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Home</span>}</button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
       </nav>
-
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
-        {(isMobile || !collapsed) && (
-          <div className="mb-3 px-2">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p>
-            <p className="text-xs text-sidebar-foreground/60 capitalize">{userRole}</p>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10",
-            !isMobile && collapsed && "justify-center px-2"
-          )}
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5" />
-          {(isMobile || !collapsed) && <span className="ml-3">Logout</span>}
-        </Button>
+        {(isMobile || !collapsed) && <div className="mb-3 px-2"><p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p><p className="text-xs text-sidebar-foreground/60 capitalize">{userRole}</p></div>}
+        <Button variant="ghost" className={cn("w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10", !isMobile && collapsed && "justify-center px-2")} onClick={handleLogout}><LogOut className="h-5 w-5" />{(isMobile || !collapsed) && <span className="ml-3">Logout</span>}</Button>
       </div>
     </>
   );
 
-  if (isMobile) {
-    return (
-      <div className="flex flex-col min-h-screen w-full bg-background">
-        <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0 bg-sidebar">
-              <div className="relative h-full">
-                <SidebarContent />
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <div className="flex items-center gap-2">
-            <img
-              src={acTechLogo}
-              alt="AC Tech"
-              className="h-8 w-8 rounded-lg object-cover"
-            />
-            <span className="text-sm font-bold">AC Tech</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <MessageSquare className="h-5 w-5" />
-            </Button>
-          </div>
-        </header>
-
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
-    );
-  }
+  if (isMobile) return (
+    <div className="flex flex-col min-h-screen w-full bg-background">
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}><SheetTrigger asChild><Button variant="ghost" size="icon"><Menu className="h-5 w-5" /></Button></SheetTrigger><SheetContent side="left" className="w-72 p-0 bg-sidebar"><div className="relative h-full"><SidebarContent /></div></SheetContent></Sheet>
+        <div className="flex items-center gap-2"><img src={acTechLogo} alt="AC Tech" className="h-8 w-8 rounded-lg object-cover" /><span className="text-sm font-bold">AC Tech</span></div>
+        <div className="flex items-center gap-1"><Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button><Button variant="ghost" size="icon"><MessageSquare className="h-5 w-5" /></Button></div>
+      </header>
+      <main className="flex-1">{children}</main>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <aside
-        className={cn(
-          "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 ease-in-out border-r border-sidebar-border",
-          collapsed ? "w-20" : "w-64"
-        )}
-      >
-        <SidebarContent />
-
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
-      </aside>
-
-      <main
-        className={cn(
-          "flex-1 transition-all duration-300 ease-in-out min-h-screen",
-          collapsed ? "ml-20" : "ml-64"
-        )}
-      >
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <MessageSquare className="h-5 w-5" />
-          </Button>
-        </header>
-        <div className="p-0">
-          {children}
-        </div>
+      <aside className={cn("fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all border-r border-sidebar-border", collapsed ? "w-20" : "w-64")}><SidebarContent /><button onClick={() => setCollapsed(!collapsed)} className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></aside>
+      <main className={cn("flex-1 transition-all min-h-screen", collapsed ? "ml-20" : "ml-64")}>
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur"><Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button><Button variant="ghost" size="icon"><MessageSquare className="h-5 w-5" /></Button></header>
+        <div className="p-0">{children}</div>
       </main>
     </div>
   );
