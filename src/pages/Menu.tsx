@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
@@ -12,14 +13,24 @@ import {
   TrendingUp,
   Package,
   DollarSign,
+  ExternalLink,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
   pendingInquiries: number;
   ongoingServices: number;
   overdueServices: number;
   completedServices: number;
+}
+
+interface ServiceRecord {
+  serviceId: string;
+  clientName: string;
+  status: string;
+  targetDate: string;
+  technician: string;
+  deviceType: string;
 }
 
 const Menu = () => {
@@ -30,6 +41,8 @@ const Menu = () => {
     overdueServices: 0,
     completedServices: 0,
   });
+  const [servicesDueToday, setServicesDueToday] = useState<ServiceRecord[]>([]);
+  const [servicesOverdue, setServicesOverdue] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
@@ -51,14 +64,27 @@ const Menu = () => {
 
       if (servicesData.status === "success" && servicesData.services) {
         const services = servicesData.services;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = startOfDay(new Date());
 
         const ongoing = services.filter((s: any) => {
           const status = s.status?.toLowerCase() || "";
           return !status.includes("completed") && !status.includes("cancelled");
         }).length;
 
+        // Filter services due today
+        const dueToday = services.filter((s: any) => {
+          const status = s.status?.toLowerCase() || "";
+          if (status.includes("completed") || status.includes("cancelled")) return false;
+          if (!s.targetDate) return false;
+          const parts = s.targetDate.split(/[-/]/);
+          if (parts.length !== 3) return false;
+          const [month, day, year] = parts;
+          const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          target.setHours(0, 0, 0, 0);
+          return isSameDay(target, today);
+        });
+
+        // Filter overdue services
         const overdue = services.filter((s: any) => {
           const status = s.status?.toLowerCase() || "";
           if (status.includes("completed") || status.includes("cancelled")) return false;
@@ -67,8 +93,9 @@ const Menu = () => {
           if (parts.length !== 3) return false;
           const [month, day, year] = parts;
           const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-          return today > target;
-        }).length;
+          target.setHours(0, 0, 0, 0);
+          return isBefore(target, today);
+        });
 
         const completed = services.filter((s: any) => {
           const status = s.status?.toLowerCase() || "";
@@ -78,9 +105,12 @@ const Menu = () => {
         setStats((prev) => ({
           ...prev,
           ongoingServices: ongoing,
-          overdueServices: overdue,
+          overdueServices: overdue.length,
           completedServices: completed,
         }));
+
+        setServicesDueToday(dueToday.slice(0, 5)); // Show max 5
+        setServicesOverdue(overdue.slice(0, 5)); // Show max 5
       }
 
       // Fetch inquiries count
@@ -103,6 +133,10 @@ const Menu = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditService = (serviceId: string) => {
+    navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
   };
 
   const statCards = [
@@ -140,43 +174,51 @@ const Menu = () => {
     },
   ];
 
-  const quickActions = [
-    {
-      title: "New Client Intake",
-      description: "Create a new service request",
-      icon: MessageSquare,
-      path: "/service-form",
-    },
-    {
-      title: "Service Tracker",
-      description: "Monitor all ongoing services",
-      icon: Clock,
-      path: "/service-tracker",
-    },
-    {
-      title: "Manage Clients",
-      description: "View and update client info",
-      icon: TrendingUp,
-      path: "/manage-client",
-    },
-  ];
-
-  if (userRole === "management") {
-    quickActions.push(
+  // Role-based quick actions
+  const getQuickActions = () => {
+    const baseActions = [
       {
-        title: "Inventory",
-        description: "Track parts & materials",
-        icon: Package,
-        path: "/inventory-management",
+        title: "New Client Intake",
+        description: "Create a new service request",
+        icon: MessageSquare,
+        path: "/service-form",
       },
       {
-        title: "Transactions",
-        description: "View financial reports",
-        icon: DollarSign,
-        path: "/transaction-tracker",
-      }
-    );
-  }
+        title: "Service Tracker",
+        description: "Monitor all ongoing services",
+        icon: Clock,
+        path: "/service-tracker",
+      },
+      {
+        title: "Manage Clients",
+        description: "View and update client info",
+        icon: TrendingUp,
+        path: "/manage-client",
+      },
+    ];
+
+    if (userRole === "management") {
+      return [
+        ...baseActions,
+        {
+          title: "Inventory",
+          description: "Track parts & materials",
+          icon: Package,
+          path: "/inventory-management",
+        },
+        {
+          title: "Transactions",
+          description: "View financial reports",
+          icon: DollarSign,
+          path: "/transaction-tracker",
+        },
+      ];
+    }
+
+    return baseActions;
+  };
+
+  const quickActions = getQuickActions();
 
   return (
     <DashboardLayout>
@@ -243,19 +285,52 @@ const Menu = () => {
           </CardContent>
         </Card>
 
-        {/* Summary Sections */}
+        {/* Summary Sections with Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5 text-warning" />
-                Summary of Services (Due Today)
+                Services Due Today ({servicesDueToday.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-sm">
-                Click on Service Tracker to view detailed service information.
-              </p>
+              {isLoading ? (
+                <p className="text-muted-foreground text-sm">Loading...</p>
+              ) : servicesDueToday.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No services due today.</p>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Service ID</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {servicesDueToday.map((service) => (
+                        <TableRow key={service.serviceId}>
+                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell>{service.clientName}</TableCell>
+                          <TableCell className="text-warning font-medium">{service.status}</TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => handleEditService(service.serviceId)}
+                              className="p-1 rounded hover:bg-muted transition-colors"
+                              title="Edit in Manage Client"
+                            >
+                              <ExternalLink className="h-4 w-4 text-primary" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -263,13 +338,46 @@ const Menu = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
-                Summary of Services (Overdue)
+                Overdue Services ({servicesOverdue.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-sm">
-                {stats.overdueServices} services are currently overdue.
-              </p>
+              {isLoading ? (
+                <p className="text-muted-foreground text-sm">Loading...</p>
+              ) : servicesOverdue.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No overdue services.</p>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Service ID</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {servicesOverdue.map((service) => (
+                        <TableRow key={service.serviceId}>
+                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell>{service.clientName}</TableCell>
+                          <TableCell className="text-destructive font-medium">{service.status}</TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => handleEditService(service.serviceId)}
+                              className="p-1 rounded hover:bg-muted transition-colors"
+                              title="Edit in Manage Client"
+                            >
+                              <ExternalLink className="h-4 w-4 text-primary" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

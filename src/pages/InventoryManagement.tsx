@@ -20,8 +20,8 @@ import { cn } from "@/lib/utils";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { useDebounce } from "@/hooks/useDebounce";
 import { sanitizeInput, sanitizeNumber, textFieldSchema } from "@/lib/validation";
-import logo from "@/assets/ac-tech-logo.jpg";
 import QRCode from "qrcode";
+import DashboardLayout from "@/components/DashboardLayout";
 
 interface InventoryItem {
   partId: string;
@@ -722,21 +722,14 @@ const InventoryManagement = () => {
   const outOfStockCount = inventory.filter(i => i.quantity === 0 || i.status === "Out of Stock").length;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="container mx-auto p-6 max-w-7xl flex-grow">
-        {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Inventory Management</p>
-          </div>
+    <DashboardLayout>
+      <div className="p-6 lg:p-8 animate-fade-in">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
+          <p className="text-muted-foreground">Track parts and materials</p>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <Button onClick={() => navigate("/admin-portal")} variant="outline">
-            Back to Admin Portal
-          </Button>
+        <div className="flex justify-end mb-6">
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -1861,12 +1854,11 @@ const InventoryManagement = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
           Powered by Stack&Scale
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
