@@ -98,6 +98,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTypingSentAtRef = useRef<number>(0);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [readReceipts, setReadReceipts] = useState<Record<string, ReadReceipt[]>>({});
@@ -123,26 +124,30 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   // Typing indicator logic
   const handleTyping = useCallback(() => {
     if (!userId || (!selectedConversation && !selectedGroupId)) return;
-    
+
     const conversationId = selectedGroupId || selectedConversation;
     if (!conversationId) return;
-    
-    if (!isTyping) {
-      setIsTyping(true);
+
+    // Mark local state as typing immediately
+    if (!isTyping) setIsTyping(true);
+
+    // Update remote typing status frequently while the user is typing.
+    // Throttle to avoid spamming the Apps Script endpoint.
+    const now = Date.now();
+    if (now - lastTypingSentAtRef.current > 700) {
+      lastTypingSentAtRef.current = now;
       setTypingStatus(userId, conversationId, !!selectedGroupId);
     }
-    
+
     // Clear previous timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     // Set timeout to clear typing status after 3 seconds of no typing
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      if (conversationId) {
-        clearTypingStatus(userId, conversationId);
-      }
+      clearTypingStatus(userId, conversationId);
     }, 3000);
   }, [userId, selectedConversation, selectedGroupId, isTyping]);
 
