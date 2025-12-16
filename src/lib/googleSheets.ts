@@ -114,6 +114,17 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * - clearTypingStatus: Clears typing status for a user
  *   Parameters: userId, conversationId
  *
+ * READ RECEIPTS (ReadReceipts Sheet):
+ * ReadReceipts sheet columns: A=ID | B=Message ID | C=User ID | D=User Name | E=Read At
+ * - markGroupMessageRead: Records when a user reads a group message
+ *   Parameters: messageId, userId, userName
+ * - getMessageReadReceipts: Gets all read receipts for a specific message
+ *   Parameters: messageId
+ *   Returns: { receipts: [{ id, messageId, userId, userName, readAt }] }
+ * - getGroupReadReceipts: Gets all read receipts for messages in a group
+ *   Parameters: groupId
+ *   Returns: { receipts: { messageId: [{ id, messageId, userId, userName, readAt }] } }
+ *
  * GOOGLE APPS SCRIPT HANDLERS FOR GROUP CHATS:
  *
  * Add these handlers to your doGet function:
@@ -318,6 +329,90 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  *   }
  *   return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
  * }
+ *
+ * // Mark Group Message Read (creates read receipt)
+ * if (params.action === 'markGroupMessageRead') {
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ReadReceipts');
+ *   if (!sheet) {
+ *     sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet('ReadReceipts');
+ *     sheet.appendRow(['ID', 'Message ID', 'User ID', 'User Name', 'Read At']);
+ *   }
+ *   // Check if receipt already exists
+ *   var data = sheet.getDataRange().getValues();
+ *   for (var i = 1; i < data.length; i++) {
+ *     if (data[i][1] === params.messageId && data[i][2] === params.userId) {
+ *       return ContentService.createTextOutput(JSON.stringify({ success: true, exists: true })).setMimeType(ContentService.MimeType.JSON);
+ *     }
+ *   }
+ *   var receiptId = 'RR-' + new Date().getTime() + '-' + Math.random().toString(36).substr(2, 9);
+ *   sheet.appendRow([receiptId, params.messageId, params.userId, params.userName, new Date().toISOString()]);
+ *   return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * Add these handlers to your doGet function for read receipts:
+ *
+ * // Get Read Receipts for a specific message
+ * if (params.action === 'getMessageReadReceipts') {
+ *   var messageId = params.messageId;
+ *   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ReadReceipts');
+ *   if (!sheet) {
+ *     return ContentService.createTextOutput(JSON.stringify({ receipts: [] })).setMimeType(ContentService.MimeType.JSON);
+ *   }
+ *   var data = sheet.getDataRange().getValues();
+ *   var receipts = [];
+ *   for (var i = 1; i < data.length; i++) {
+ *     if (data[i][1] === messageId) {
+ *       receipts.push({
+ *         id: data[i][0],
+ *         messageId: data[i][1],
+ *         userId: data[i][2],
+ *         userName: data[i][3],
+ *         readAt: data[i][4]
+ *       });
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ receipts: receipts })).setMimeType(ContentService.MimeType.JSON);
+ * }
+ *
+ * // Get all read receipts for messages in a group (batch fetch)
+ * if (params.action === 'getGroupReadReceipts') {
+ *   var groupId = params.groupId;
+ *   var messagesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Messages');
+ *   var receiptsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('ReadReceipts');
+ *   
+ *   if (!messagesSheet || !receiptsSheet) {
+ *     return ContentService.createTextOutput(JSON.stringify({ receipts: {} })).setMimeType(ContentService.MimeType.JSON);
+ *   }
+ *   
+ *   // Get all message IDs in this group
+ *   var messagesData = messagesSheet.getDataRange().getValues();
+ *   var groupMessageIds = [];
+ *   for (var i = 1; i < messagesData.length; i++) {
+ *     if (messagesData[i][8] === groupId) { // Column I is Group ID
+ *       groupMessageIds.push(messagesData[i][0]); // Column A is Message ID
+ *     }
+ *   }
+ *   
+ *   // Get all read receipts for these messages
+ *   var receiptsData = receiptsSheet.getDataRange().getValues();
+ *   var receiptsByMessage = {};
+ *   for (var i = 1; i < receiptsData.length; i++) {
+ *     var msgId = receiptsData[i][1];
+ *     if (groupMessageIds.includes(msgId)) {
+ *       if (!receiptsByMessage[msgId]) {
+ *         receiptsByMessage[msgId] = [];
+ *       }
+ *       receiptsByMessage[msgId].push({
+ *         id: receiptsData[i][0],
+ *         messageId: msgId,
+ *         userId: receiptsData[i][2],
+ *         userName: receiptsData[i][3],
+ *         readAt: receiptsData[i][4]
+ *       });
+ *     }
+ *   }
+ *   return ContentService.createTextOutput(JSON.stringify({ receipts: receiptsByMessage })).setMimeType(ContentService.MimeType.JSON);
+ * }
  */
 
 // IMPORTANT GOOGLE SHEETS SETUP:
@@ -342,6 +437,10 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 // 6. Create a new sheet named "GroupChats" with these columns:
 //    A: ID | B: Name | C: Created By | D: Member IDs | E: Member Names | F: Created At
 //    Note: Member IDs and Member Names are comma-separated lists
+//
+// 7. Create a new sheet named "ReadReceipts" with these columns:
+//    A: ID | B: Message ID | C: User ID | D: User Name | E: Read At
+//    Used to track who has read group messages
 //
 // 6. Add these columns to "Service Database" sheet:
 //    Column AN (40): Technician Department

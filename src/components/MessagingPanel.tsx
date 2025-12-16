@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,10 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useMessaging } from '@/hooks/useMessaging';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
-import { setTypingStatus, clearTypingStatus, getTypingStatus } from '@/lib/notifications';
+import { setTypingStatus, clearTypingStatus, getTypingStatus, markGroupMessageRead, getGroupMessageReadReceipts, ReadReceipt } from '@/lib/notifications';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -95,6 +100,8 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [readReceipts, setReadReceipts] = useState<Record<string, ReadReceipt[]>>({});
+  const [loadingReceipts, setLoadingReceipts] = useState(false);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -175,6 +182,40 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       }
     };
   }, [selectedConversation, selectedGroupId, userId]);
+
+  // Fetch read receipts for group messages and mark messages as read
+  useEffect(() => {
+    if (!selectedGroupId || !userId || !userName) return;
+
+    const fetchReceipts = async () => {
+      setLoadingReceipts(true);
+      try {
+        const receipts = await getGroupMessageReadReceipts(selectedGroupId);
+        setReadReceipts(receipts);
+      } catch (error) {
+        console.error('Error fetching read receipts:', error);
+      }
+      setLoadingReceipts(false);
+    };
+
+    // Mark unread messages as read
+    const markMessagesRead = async () => {
+      const groupMsgs = groupMessages[selectedGroupId] || [];
+      for (const msg of groupMsgs) {
+        // Only mark messages from others as read
+        if (msg.senderId !== userId && msg.senderName !== userName) {
+          await markGroupMessageRead(msg.id, userId, userName);
+        }
+      }
+    };
+
+    fetchReceipts();
+    markMessagesRead();
+
+    // Poll for new read receipts every 10 seconds
+    const interval = setInterval(fetchReceipts, 10000);
+    return () => clearInterval(interval);
+  }, [selectedGroupId, userId, userName, groupMessages]);
 
   const conversations = getConversations();
   const groupConversations = getGroupConversations();
@@ -402,9 +443,51 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const renderMessageStatus = (msg: any, isOwn: boolean) => {
     if (!isOwn) return null;
     
-    const isRead = msg.read;
     const time = format(parseMessageDate(msg.createdAt), 'h:mm a');
+    const messageReceipts = selectedGroupId ? readReceipts[msg.id] || [] : [];
+    const isGroupMessage = !!selectedGroupId;
+    const currentGroup = selectedGroupId ? groupConversations.find(g => g.groupId === selectedGroupId) : null;
     
+    // For group messages, show read by count
+    if (isGroupMessage && currentGroup) {
+      const otherMemberCount = currentGroup.memberNames.length - 1; // Exclude sender
+      const readByCount = messageReceipts.length;
+      const allRead = readByCount >= otherMemberCount && otherMemberCount > 0;
+      
+      return (
+        <div className="flex items-center gap-1 mt-1">
+          <span className="text-xs text-primary-foreground/70">{time}</span>
+          {readByCount > 0 ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-0.5 hover:opacity-80">
+                  <CheckCheck className={`h-3.5 w-3.5 ${allRead ? 'text-blue-400' : 'text-primary-foreground/70'}`} />
+                  <span className="text-xs text-primary-foreground/70">{readByCount}</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" side="top" align="end">
+                <div className="text-xs font-medium mb-2">Read by</div>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {messageReceipts.map((receipt) => (
+                    <div key={receipt.id} className="flex items-center justify-between text-xs">
+                      <span className="truncate">{receipt.userName}</span>
+                      <span className="text-muted-foreground">
+                        {format(new Date(receipt.readAt), 'h:mm a')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <span title="Delivered"><Check className="h-3.5 w-3.5 text-primary-foreground/70" /></span>
+          )}
+        </div>
+      );
+    }
+    
+    // For direct messages
+    const isRead = msg.read;
     return (
       <div className="flex items-center gap-1 mt-1">
         <span className="text-xs text-primary-foreground/70">{time}</span>
