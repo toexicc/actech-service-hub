@@ -140,9 +140,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     const now = Date.now();
     if (now - lastTypingSentAtRef.current > 700) {
       lastTypingSentAtRef.current = now;
-      console.log('[Typing] setTypingStatus ->', { userId, conversationId: typingConversationId, isGroup: !!selectedGroupId });
-      const ok = await setTypingStatus(userId, typingConversationId, !!selectedGroupId);
-      console.log('[Typing] setTypingStatus <-', ok);
+      await setTypingStatus(userId, typingConversationId, !!selectedGroupId);
     }
 
     // Clear previous timeout
@@ -153,9 +151,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     // Set timeout to clear typing status after 3 seconds of no typing
     typingTimeoutRef.current = setTimeout(async () => {
       setIsTyping(false);
-      console.log('[Typing] clearTypingStatus ->', { userId, conversationId: typingConversationId });
-      const ok = await clearTypingStatus(userId, typingConversationId);
-      console.log('[Typing] clearTypingStatus <-', ok);
+      await clearTypingStatus(userId, typingConversationId);
     }, 3000);
   }, [userId, typingConversationId, selectedGroupId, isTyping]);
 
@@ -168,9 +164,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
 
     const pollTyping = async () => {
       const typing = await getTypingStatus(typingConversationId, !!selectedGroupId);
-      console.log('[Typing] poll result:', { typingConversationId, typing, userId, username });
-
-      // Filter out self - check against both staffId and username
       const selfIds = new Set([userId, username].filter(Boolean).map(id => id?.toLowerCase()));
       const otherTyping = typing
         .filter((t) => !selfIds.has(t.userId?.toLowerCase()))
@@ -178,8 +171,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
           const staff = staffList.find((s) => s.staffId === t.userId || s.username === t.userId);
           return staff?.name || t.userId;
         });
-
-      console.log('[Typing] after filter:', { otherTyping, selfIds: Array.from(selfIds) });
       setTypingUsers(otherTyping);
     };
 
@@ -748,26 +739,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
               </div>
             )}
             
-            <div className="border-t">
-              {/* Typing indicator (kept outside ScrollArea so it stays visible) */}
-              {typingUsers.length > 0 && (
-                <div className="px-4 py-2 bg-muted/40">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {typingUsers.length === 1
-                        ? `${typingUsers[0]} is typing...`
-                        : `${typingUsers.slice(0, 2).join(', ')}${typingUsers.length > 2 ? ` +${typingUsers.length - 2}` : ''} are typing...`}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 flex gap-2">
+            <div className="border-t p-4 flex gap-2">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -819,7 +791,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
           </div>
         ) : showNewChat ? (
           // Staff list for new chat
