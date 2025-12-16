@@ -14,6 +14,7 @@ import {
   Package,
   DollarSign,
   ExternalLink,
+  Calendar,
 } from "lucide-react";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
@@ -44,8 +45,17 @@ const Menu = () => {
   const [servicesDueToday, setServicesDueToday] = useState<ServiceRecord[]>([]);
   const [servicesOverdue, setServicesOverdue] = useState<ServiceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
+
+  // Dynamic clock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -223,15 +233,30 @@ const Menu = () => {
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 animate-fade-in">
-        {/* Header */}
-        <div className="mb-8">
-          <p className="text-sm text-muted-foreground mb-1">
-            Today is {format(new Date(), "MMMM d, yyyy")} | {format(new Date(), "hh:mm:ss a")}
-          </p>
-          <h1 className="text-3xl font-bold text-foreground">
-            Hello, {userFullName}!
-          </h1>
-          <p className="text-muted-foreground capitalize">Role: {userRole}</p>
+        {/* Header with Clock */}
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Hello, {userFullName}!
+            </h1>
+            <p className="text-muted-foreground capitalize">Role: {userRole}</p>
+          </div>
+          
+          {/* Dynamic Clock - Right Side */}
+          <div className="flex flex-col items-end bg-card border border-border rounded-xl p-4 shadow-sm">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                {format(currentTime, "EEEE, MMMM d, yyyy")}
+              </span>
+            </div>
+            <div className="text-4xl font-bold text-primary font-mono tracking-wider">
+              {format(currentTime, "hh:mm:ss")}
+              <span className="text-lg ml-1 text-muted-foreground">
+                {format(currentTime, "a")}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}

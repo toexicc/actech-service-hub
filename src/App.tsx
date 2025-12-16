@@ -5,12 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Menu from "./pages/Menu";
-import AdminPortal from "./pages/AdminPortal";
 import ServiceForm from "./pages/ServiceForm";
 import ServiceTracking from "./pages/ServiceTracking";
 import ManageClient from "./pages/ManageClient";
 import ServiceUpdate from "./pages/ServiceUpdate";
-import TechnicianPortal from "./pages/TechnicianPortal";
 import ServiceTracker from "./pages/ServiceTracker";
 import InventoryManagement from "./pages/InventoryManagement";
 import CustomerManagement from "./pages/CustomerManagement";
@@ -32,13 +30,11 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/menu" element={<Menu />} />
-          <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/client-inquiry" element={<ClientInquiry />} />
           <Route path="/service-form" element={<ServiceForm />} />
           <Route path="/track" element={<ServiceTracking />} />
           <Route path="/service-tracking" element={<ServiceTracker />} />
           <Route path="/manage-client" element={<ManageClient />} />
-          <Route path="/technician-portal" element={<TechnicianPortal />} />
           <Route path="/service-update" element={<ServiceUpdate />} />
           <Route path="/service-tracker" element={<ServiceTracker />} />
           <Route path="/inventory-management" element={<InventoryManagement />} />
