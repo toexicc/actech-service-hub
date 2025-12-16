@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { useDebounce } from "@/hooks/useDebounce";
-import logo from "@/assets/ac-tech-logo.jpg";
+import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
 
 interface ServiceRecord {

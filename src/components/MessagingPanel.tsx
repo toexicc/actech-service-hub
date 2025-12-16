@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,12 +121,16 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const findStaffById = (id: string) => 
     staffList.find(s => s.staffId === id || s.username === id);
 
+  const typingConversationId = useMemo(() => {
+    if (selectedGroupId) return selectedGroupId;
+    if (!userId || !selectedConversation) return null;
+    // Use a stable key so both users query the same conversation ID
+    return [userId, selectedConversation].sort().join('__');
+  }, [selectedGroupId, userId, selectedConversation]);
+
   // Typing indicator logic
   const handleTyping = useCallback(async () => {
-    if (!userId || (!selectedConversation && !selectedGroupId)) return;
-
-    const conversationId = selectedGroupId || selectedConversation;
-    if (!conversationId) return;
+    if (!userId || !typingConversationId) return;
 
     // Mark local state as typing immediately
     if (!isTyping) setIsTyping(true);
@@ -136,8 +140,8 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     const now = Date.now();
     if (now - lastTypingSentAtRef.current > 700) {
       lastTypingSentAtRef.current = now;
-      console.log('[Typing] setTypingStatus ->', { userId, conversationId, isGroup: !!selectedGroupId });
-      const ok = await setTypingStatus(userId, conversationId, !!selectedGroupId);
+      console.log('[Typing] setTypingStatus ->', { userId, conversationId: typingConversationId, isGroup: !!selectedGroupId });
+      const ok = await setTypingStatus(userId, typingConversationId, !!selectedGroupId);
       console.log('[Typing] setTypingStatus <-', ok);
     }
 
@@ -149,23 +153,22 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     // Set timeout to clear typing status after 3 seconds of no typing
     typingTimeoutRef.current = setTimeout(async () => {
       setIsTyping(false);
-      console.log('[Typing] clearTypingStatus ->', { userId, conversationId });
-      const ok = await clearTypingStatus(userId, conversationId);
+      console.log('[Typing] clearTypingStatus ->', { userId, conversationId: typingConversationId });
+      const ok = await clearTypingStatus(userId, typingConversationId);
       console.log('[Typing] clearTypingStatus <-', ok);
     }, 3000);
-  }, [userId, selectedConversation, selectedGroupId, isTyping]);
+  }, [userId, typingConversationId, selectedGroupId, isTyping]);
 
   // Poll for typing status
   useEffect(() => {
-    const conversationId = selectedGroupId || selectedConversation;
-    if (!conversationId) {
+    if (!typingConversationId) {
       setTypingUsers([]);
       return;
     }
 
     const pollTyping = async () => {
-      const typing = await getTypingStatus(conversationId, !!selectedGroupId);
-      console.log('[Typing] getTypingStatus <-', { conversationId, isGroup: !!selectedGroupId, typing });
+      const typing = await getTypingStatus(typingConversationId, !!selectedGroupId);
+      console.log('[Typing] getTypingStatus <-', { conversationId: typingConversationId, isGroup: !!selectedGroupId, typing });
 
       const otherTyping = typing
         .filter((t) => t.userId !== userId && t.userId !== username)
@@ -180,7 +183,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     pollTyping();
     const interval = setInterval(pollTyping, 2000);
     return () => clearInterval(interval);
-  }, [selectedConversation, selectedGroupId, userId, username, staffList]);
+  }, [typingConversationId, selectedGroupId, userId, username, staffList]);
 
   // Clear typing on unmount or conversation change
   useEffect(() => {
@@ -188,12 +191,11 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      const conversationId = selectedGroupId || selectedConversation;
-      if (conversationId && userId) {
-        clearTypingStatus(userId, conversationId);
+      if (typingConversationId && userId) {
+        clearTypingStatus(userId, typingConversationId);
       }
     };
-  }, [selectedConversation, selectedGroupId, userId]);
+  }, [typingConversationId, userId]);
 
   // Fetch read receipts for group messages and mark messages as read
   useEffect(() => {

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import acTechLogo from "@/assets/ac-tech-logo.jpg";
+import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";

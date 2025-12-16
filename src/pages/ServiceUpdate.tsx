@@ -17,7 +17,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { FileText, Printer, Package, Camera, Loader2, QrCode } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import { QRScanner } from "@/components/QRScanner";
-import logo from "@/assets/ac-tech-logo.jpg";
+import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
