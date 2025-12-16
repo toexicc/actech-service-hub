@@ -551,7 +551,8 @@ const ServiceUpdate = () => {
             },
             serviceData.status,
             updateStatus,
-            userFullName
+            userFullName,
+            userRole || undefined
           );
         }
 
