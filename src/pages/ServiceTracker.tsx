@@ -85,13 +85,13 @@ const ServiceTracker = () => {
 
   const getStatusTextColor = (status: string) => {
     switch (status) {
-      case "Complete - Approval":
+      case "Proceed Repair":
       case "Ongoing Service":
-      case "Service Report - Draft":
-      case "Service Check - Client":
-      case "Service Check - Completed":
+      case "Done Repair - Observation":
+      case "Done Repair - Advise Client":
+      case "For Payment":
         return "text-green-600 font-medium";
-      case "Pending Pickup - Completed":
+      case "For Pickup":
         return "text-yellow-600 font-medium";
       case "Completed":
         return "text-orange-600 font-medium";

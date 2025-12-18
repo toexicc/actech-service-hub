@@ -986,7 +986,7 @@ const ManageClient = () => {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                  <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
+                  <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
                 </div>
 
 
@@ -1485,8 +1485,8 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                {/* Report Display - Only visible when status is "Service Report - Draft" */}
-                {serviceData?.status === "Service Report - Draft" && (
+                {/* Report Display - Only visible when status is "Done Repair - Observation" */}
+                {serviceData?.status === "Done Repair - Observation" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>

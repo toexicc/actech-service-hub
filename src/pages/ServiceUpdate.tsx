@@ -650,7 +650,7 @@ const ServiceUpdate = () => {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                  <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
+                  <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
                 </div>
 
                 <Separator />
@@ -898,11 +898,11 @@ const ServiceUpdate = () => {
                     onValueChange={(value) => {
                       const restrictedStatuses = [
                         "Pending Diagnosis",
-                        "Pending - Approval",
-                        "Complete - Approval",
-                        "Service Check - Client",
-                        "Service Check - Completed",
-                        "Pending Pickup - Completed",
+                        "Waiting to Proceed",
+                        "Proceed Repair",
+                        "Done Repair - Advise Client",
+                        "For Payment",
+                        "For Pickup",
                         "Completed",
                         "Backjob",
                         "RTO",
@@ -929,11 +929,11 @@ const ServiceUpdate = () => {
                       {STATUS_OPTIONS.map(status => {
                         const restrictedStatuses = [
                           "Pending Diagnosis",
-                          "Pending - Approval",
-                          "Complete - Approval",
-                          "Service Check - Client",
-                          "Service Check - Completed",
-                          "Pending Pickup - Completed",
+                          "Waiting to Proceed",
+                          "Proceed Repair",
+                          "Done Repair - Advise Client",
+                          "For Payment",
+                          "For Pickup",
                           "Completed",
                           "Backjob",
                           "RTO",
