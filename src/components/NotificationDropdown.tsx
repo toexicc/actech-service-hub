@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,25 +11,44 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications } from '@/hooks/useNotifications';
-import { format } from 'date-fns';
 
 interface NotificationDropdownProps {
   userId: string | null;
+  userRole?: string;
+  onOpenMessaging?: (conversationId?: string) => void;
 }
 
-export const NotificationDropdown = ({ userId }: NotificationDropdownProps) => {
+// Format date to local time
+const formatLocalTime = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return dateString;
+  }
+};
+
+export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: NotificationDropdownProps) => {
+  const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications(userId);
   const [showPreview, setShowPreview] = useState(false);
   const [previewNotification, setPreviewNotification] = useState<typeof notifications[0] | null>(null);
   const previousUnreadCountRef = useRef(unreadCount);
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Show preview when a new notification arrives
+  // Show preview immediately when a new notification arrives
   useEffect(() => {
     if (unreadCount > previousUnreadCountRef.current && notifications.length > 0) {
       // Find the newest unread notification
       const newestUnread = notifications.find(n => !n.read);
       if (newestUnread) {
+        // Show immediately without delay
         setPreviewNotification(newestUnread);
         setShowPreview(true);
         
@@ -60,9 +80,35 @@ export const NotificationDropdown = ({ userId }: NotificationDropdownProps) => {
     }
   };
 
+  const handleNotificationClick = (notification: typeof notifications[0]) => {
+    // Mark as read
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+
+    // Navigate based on notification type and user role
+    if (notification.type === 'service_update' || notification.type === 'new_inquiry') {
+      const serviceId = notification.serviceId;
+      if (serviceId) {
+        const isAdmin = userRole === 'admin' || userRole === 'management';
+        if (isAdmin) {
+          navigate(`/manage-client?search=${encodeURIComponent(serviceId)}`);
+        } else {
+          navigate(`/service-update?search=${encodeURIComponent(serviceId)}`);
+        }
+      }
+    } else if (notification.type === 'message') {
+      // For message notifications, open messaging panel
+      if (onOpenMessaging) {
+        // Extract sender info from notification message if possible
+        onOpenMessaging();
+      }
+    }
+  };
+
   const handlePreviewClick = () => {
     if (previewNotification) {
-      markAsRead(previewNotification.id);
+      handleNotificationClick(previewNotification);
     }
     setShowPreview(false);
   };
@@ -85,14 +131,14 @@ export const NotificationDropdown = ({ userId }: NotificationDropdownProps) => {
       {/* Notification Preview Popup */}
       {showPreview && previewNotification && (
         <div 
-          className="absolute right-0 top-12 w-80 bg-card border border-border rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+          className="absolute right-0 top-12 w-96 bg-card border border-border rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-100"
           onClick={handlePreviewClick}
         >
           <div className="flex items-start gap-2 p-3 cursor-pointer hover:bg-accent/50 rounded-lg">
             <span className="text-lg">{getNotificationIcon(previewNotification.type)}</span>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{previewNotification.title}</p>
-              <p className="text-xs text-muted-foreground line-clamp-2">{previewNotification.message}</p>
+              <p className="font-medium text-sm">{previewNotification.title}</p>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{previewNotification.message}</p>
             </div>
             <Button
               variant="ghost"
@@ -120,7 +166,7 @@ export const NotificationDropdown = ({ userId }: NotificationDropdownProps) => {
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80">
+        <DropdownMenuContent align="end" className="w-96">
           <div className="flex items-center justify-between px-3 py-2">
             <h4 className="font-semibold">Notifications</h4>
             {unreadCount > 0 && (
@@ -136,7 +182,7 @@ export const NotificationDropdown = ({ userId }: NotificationDropdownProps) => {
             )}
           </div>
           <DropdownMenuSeparator />
-          <ScrollArea className="h-[300px]">
+          <ScrollArea className="h-[400px]">
             {loading ? (
               <div className="p-4 text-center text-muted-foreground">Loading...</div>
             ) : notifications.length === 0 ? (
@@ -148,15 +194,15 @@ export const NotificationDropdown = ({ userId }: NotificationDropdownProps) => {
                   className={`flex flex-col items-start p-3 cursor-pointer ${
                     !notification.read ? 'bg-accent/50' : ''
                   }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-2 w-full">
                     <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{notification.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                      <p className="font-medium text-sm">{notification.title}</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(notification.createdAt), 'MMM d, h:mm a')}
+                        {formatLocalTime(notification.createdAt)}
                       </p>
                     </div>
                     {!notification.read && (
