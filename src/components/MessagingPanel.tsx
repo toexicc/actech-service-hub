@@ -113,6 +113,8 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
   useImperativeHandle(ref, () => ({
     openPanel: () => setIsSheetOpen(true),
   }), []);
+
+  useEffect(() => {
     const fetchStaff = async () => {
       try {
         const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -1026,4 +1028,4 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
   );
 });
 
-MessagingPanel.displayName = 'MessagingPanel';
+MessagingPanel.displayName = "MessagingPanel";
