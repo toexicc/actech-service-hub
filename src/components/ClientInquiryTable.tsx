@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
@@ -30,6 +31,7 @@ interface ClientInquiry {
   quotation: string;
   pickUpDate: string;
   directChatLink: string;
+  aiStatus?: string; // Column N: "ON-AI" or "OFF-AI"
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -42,6 +44,7 @@ const ClientInquiryTable = () => {
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [modeFilter, setModeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [togglingAI, setTogglingAI] = useState<number | null>(null);
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -217,6 +220,42 @@ const ClientInquiryTable = () => {
     }
   };
 
+  const handleToggleAI = async (inquiry: ClientInquiry) => {
+    if (togglingAI === inquiry.rowIndex) return;
+    
+    setTogglingAI(inquiry.rowIndex);
+    const newStatus = inquiry.aiStatus === "ON-AI" ? "OFF-AI" : "ON-AI";
+    
+    try {
+      const formData = new FormData();
+      formData.append("action", "updateClientInquiryAI");
+      formData.append("rowIndex", inquiry.rowIndex.toString());
+      formData.append("aiStatus", newStatus);
+      
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (result.status === "success" || result.result === "success") {
+        // Update local state
+        setInquiries(prev => prev.map(inq => 
+          inq.rowIndex === inquiry.rowIndex ? { ...inq, aiStatus: newStatus } : inq
+        ));
+        toast({ title: "Success", description: `AI ${newStatus === "ON-AI" ? "enabled" : "disabled"}` });
+      } else {
+        throw new Error(result.message || "Update failed");
+      }
+    } catch (error) {
+      console.error("Error toggling AI status:", error);
+      toast({ title: "Error", description: "Failed to update AI status", variant: "destructive" });
+    } finally {
+      setTogglingAI(null);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "-";
     try {
@@ -324,6 +363,7 @@ const ClientInquiryTable = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
+                <TableHead className="whitespace-nowrap w-16">AI</TableHead>
                 <TableHead className="whitespace-nowrap">Time/Date</TableHead>
                 <TableHead className="whitespace-nowrap">Client ID</TableHead>
                 <TableHead className="whitespace-nowrap">Name</TableHead>
@@ -341,14 +381,14 @@ const ClientInquiryTable = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-8">
+                  <TableCell colSpan={13} className="text-center py-8">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : paginatedInquiries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                     No inquiries found
                   </TableCell>
                 </TableRow>
@@ -365,6 +405,14 @@ const ClientInquiryTable = () => {
                   
                   return (
                   <TableRow key={inquiry.rowIndex} className={getRowColor()}>
+                    <TableCell>
+                      <Switch
+                        checked={inquiry.aiStatus === "ON-AI"}
+                        onCheckedChange={() => handleToggleAI(inquiry)}
+                        disabled={togglingAI === inquiry.rowIndex}
+                        className="data-[state=checked]:bg-green-500"
+                      />
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">{formatDate(inquiry.timestamp)}</TableCell>
                     <TableCell className="font-mono text-xs">{inquiry.clientId || "-"}</TableCell>
                     <TableCell>{inquiry.name || "-"}</TableCell>

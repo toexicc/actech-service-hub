@@ -61,9 +61,12 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
  * CLIENT INQUIRY (Inquiry Database Sheet):
  * - getClientInquiries: Returns all inquiries from Inquiry Database sheet
  *   Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
- *            H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
+ *            H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status
+ *   Returns: { status: "success", data: [{ rowIndex, clientId, serviceId, timestamp, name, address, contactNumber, modeOfTransfer, device, initialDiagnosis, quotation, pickUpDate, directChatLink, aiStatus }] }
  * - updateClientInquiry: Updates a client inquiry row
  * - deleteClientInquiry: Deletes a client inquiry row
+ * - updateClientInquiryAI: Updates only the AI status (column N) for a client inquiry
+ *   Parameters: rowIndex, aiStatus ("ON-AI" or "OFF-AI")
  *
  * NOTIFICATIONS (Notifications Sheet):
  * Notifications sheet columns: A=ID | B=User ID | C=Title | D=Message | E=Type | F=Read | G=Created At | H=Service ID

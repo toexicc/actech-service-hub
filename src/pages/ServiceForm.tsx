@@ -471,6 +471,7 @@ const ServiceForm = () => {
               serviceId: finalServiceId,
               clientName: data.clientName,
               technician: techName,
+              adminRep: data.adminRep,
               deviceType: data.deviceType,
               device: data.model,
             },
