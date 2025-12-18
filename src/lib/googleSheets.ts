@@ -822,9 +822,8 @@ function doGet(e) {
     var data = inquirySheet.getDataRange().getDisplayValues();
     var inquiries = [];
     
-    // Skip header row (i = 1)
     // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
-    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
+    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Client ID exists
         inquiries.push({
@@ -840,7 +839,8 @@ function doGet(e) {
           "initialDiagnosis": data[i][9],
           "quotation": data[i][10],
           "pickUpDate": data[i][11],
-          "directChatLink": data[i][12]
+          "directChatLink": data[i][12],
+          "aiStatus": data[i][13] || "OFF-AI" // Column N - AI Status, default to OFF-AI
         });
       }
     }
@@ -2400,7 +2400,7 @@ function doPost(e) {
     
     var rowIndex = parseInt(params.rowIndex);
     // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
-    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link
+    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status
     inquirySheet.getRange(rowIndex, 1).setValue(params.clientId || "");
     inquirySheet.getRange(rowIndex, 2).setValue(params.serviceId || "");
     inquirySheet.getRange(rowIndex, 5).setValue(params.name || "");
@@ -2430,6 +2430,25 @@ function doPost(e) {
     
     var rowIndex = parseInt(params.rowIndex);
     inquirySheet.deleteRow(rowIndex);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle update client inquiry AI status only (Column N)
+  if (params.action === 'updateClientInquiryAI' && params.rowIndex) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    if (!inquirySheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Inquiry Database sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var rowIndex = parseInt(params.rowIndex);
+    // Column N = 14 (AI Status: "ON-AI" or "OFF-AI")
+    inquirySheet.getRange(rowIndex, 14).setValue(params.aiStatus || "OFF-AI");
     
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success"
