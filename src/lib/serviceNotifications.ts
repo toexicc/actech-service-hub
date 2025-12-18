@@ -5,6 +5,7 @@ interface ServiceInfo {
   serviceId: string;
   clientName: string;
   technician: string;
+  adminRep?: string; // Assigned admin from column C
   deviceType?: string;
   device?: string;
 }
@@ -42,11 +43,6 @@ const findStaffByName = (staffList: StaffMember[], name: string): StaffMember | 
 // Get all management staff
 const getManagementStaff = (staffList: StaffMember[]): StaffMember[] => {
   return staffList.filter(s => s.role?.toLowerCase() === 'management');
-};
-
-// Get all admin staff  
-const getAdminStaff = (staffList: StaffMember[]): StaffMember[] => {
-  return staffList.filter(s => s.role?.toLowerCase() === 'admin');
 };
 
 // Get notification message based on new status
@@ -164,22 +160,17 @@ export const notifyServiceStatusChange = async (
     const staffList = await fetchStaffList();
     const messages = getStatusNotificationMessages(newStatus, service, changedBy);
     
-    // Notify admins
-    if (messages.adminMessage) {
-      const admins = getAdminStaff(staffList);
-      const management = getManagementStaff(staffList);
-      const adminUsers = [...admins, ...management];
-      
-      for (const admin of adminUsers) {
-        if (admin.staffId && admin.name !== changedBy) {
-          await createNotification({
-            userId: admin.staffId,
-            title: `Service ${service.serviceId}: ${newStatus}`,
-            message: messages.adminMessage,
-            type: 'service_update',
-            serviceId: service.serviceId,
-          });
-        }
+    // Notify the ASSIGNED admin (from column C - adminRep) - not all admins
+    if (messages.adminMessage && service.adminRep) {
+      const assignedAdmin = findStaffByName(staffList, service.adminRep);
+      if (assignedAdmin?.staffId && normalizeStaffName(assignedAdmin.name) !== normalizeStaffName(changedBy)) {
+        await createNotification({
+          userId: assignedAdmin.staffId,
+          title: `Service ${service.serviceId}: ${newStatus}`,
+          message: messages.adminMessage,
+          type: 'service_update',
+          serviceId: service.serviceId,
+        });
       }
     }
     
@@ -188,7 +179,7 @@ export const notifyServiceStatusChange = async (
       const techNames = service.technician.split(',').map(t => t.trim()).filter(Boolean);
       for (const techName of techNames) {
         const tech = findStaffByName(staffList, techName);
-        if (tech?.staffId && tech.name !== changedBy) {
+        if (tech?.staffId && normalizeStaffName(tech.name) !== normalizeStaffName(changedBy)) {
           await createNotification({
             userId: tech.staffId,
             title: `Service ${service.serviceId}: ${newStatus}`,
@@ -215,7 +206,7 @@ export const notifyNewServiceAssignment = async (
     
     // Find the assigned technician
     const tech = findStaffByName(staffList, assignedTo);
-    if (!tech?.staffId || assignedTo === assignedBy) return;
+    if (!tech?.staffId || normalizeStaffName(assignedTo) === normalizeStaffName(assignedBy)) return;
     
     await createNotification({
       userId: tech.staffId,
@@ -241,18 +232,21 @@ export const notifyServiceNotesUpdate = async (
     
     if (noteType === 'admin') {
       // Admin notes updated - notify technician
-      const tech = findStaffByName(staffList, service.technician);
-      if (tech?.staffId && tech.name !== updatedBy) {
-        notifyUsers.add(tech.staffId);
+      const techNames = service.technician.split(',').map(t => t.trim()).filter(Boolean);
+      for (const techName of techNames) {
+        const tech = findStaffByName(staffList, techName);
+        if (tech?.staffId && normalizeStaffName(tech.name) !== normalizeStaffName(updatedBy)) {
+          notifyUsers.add(tech.staffId);
+        }
       }
     } else {
-      // Technician notes updated - notify management
-      const management = getManagementStaff(staffList);
-      management.forEach(m => {
-        if (m.staffId && m.name !== updatedBy) {
-          notifyUsers.add(m.staffId);
+      // Technician notes updated - notify assigned admin
+      if (service.adminRep) {
+        const assignedAdmin = findStaffByName(staffList, service.adminRep);
+        if (assignedAdmin?.staffId && normalizeStaffName(assignedAdmin.name) !== normalizeStaffName(updatedBy)) {
+          notifyUsers.add(assignedAdmin.staffId);
         }
-      });
+      }
     }
     
     const title = `Notes updated for ${service.serviceId}`;
