@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,10 @@ interface MessagingPanelProps {
   userName: string | null;
 }
 
+export interface MessagingPanelRef {
+  openPanel: () => void;
+}
+
 interface PendingMessage {
   id: string;
   content: string;
@@ -64,8 +68,9 @@ interface PendingMessage {
   isGroup?: boolean;
 }
 
-export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
+export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>(({ userId, userName }, ref) => {
   const username = typeof window !== 'undefined' ? sessionStorage.getItem('username') : null;
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const { 
     messages, 
@@ -104,7 +109,10 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
   const [readReceipts, setReadReceipts] = useState<Record<string, ReadReceipt[]>>({});
   const [loadingReceipts, setLoadingReceipts] = useState(false);
 
-  useEffect(() => {
+  // Expose openPanel method via ref
+  useImperativeHandle(ref, () => ({
+    openPanel: () => setIsSheetOpen(true),
+  }), []);
     const fetchStaff = async () => {
       try {
         const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -554,7 +562,7 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     : currentConversation?.partnerName || 'Chat';
 
   return (
-    <Sheet>
+    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <MessageCircle className="h-5 w-5" />
@@ -1016,4 +1024,6 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
       </Dialog>
     </Sheet>
   );
-};
+});
+
+MessagingPanel.displayName = 'MessagingPanel';
