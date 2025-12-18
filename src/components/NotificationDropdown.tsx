@@ -22,13 +22,18 @@ interface NotificationDropdownProps {
 const formatLocalTime = (dateString: string) => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return new Intl.DateTimeFormat(undefined, {
       month: 'short',
       day: 'numeric',
+      year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    });
+      timeZone,
+      timeZoneName: 'short',
+    }).format(date);
   } catch {
     return dateString;
   }
@@ -92,17 +97,16 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
       if (serviceId) {
         const isAdmin = userRole === 'admin' || userRole === 'management';
         if (isAdmin) {
-          navigate(`/manage-client?search=${encodeURIComponent(serviceId)}`);
+          // ManageClient auto-loads using ?serviceId=
+          navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
         } else {
-          navigate(`/service-update?search=${encodeURIComponent(serviceId)}`);
+          // ServiceUpdate will auto-load using ?serviceId=
+          navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
         }
       }
     } else if (notification.type === 'message') {
       // For message notifications, open messaging panel
-      if (onOpenMessaging) {
-        // Extract sender info from notification message if possible
-        onOpenMessaging();
-      }
+      onOpenMessaging?.();
     }
   };
 

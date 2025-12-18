@@ -28,9 +28,15 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
   }
 };
 
+// Normalize staff names like "Kenn Perez - Laptop (Daily Repairs)" -> "Kenn Perez"
+const normalizeStaffName = (name: string): string => {
+  return name.split(' - ')[0].trim();
+};
+
 // Get staff member by name
 const findStaffByName = (staffList: StaffMember[], name: string): StaffMember | undefined => {
-  return staffList.find(s => s.name.toLowerCase() === name.toLowerCase());
+  const needle = normalizeStaffName(name).toLowerCase();
+  return staffList.find(s => normalizeStaffName(s.name).toLowerCase() === needle);
 };
 
 // Get all management staff
@@ -87,8 +93,10 @@ const getStatusNotificationMessages = (
         adminMessage: `Technician is done with the repair for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Kindly review the report and update status to Done Repair - Advise Client.`,
         technicianMessage: ''
       };
-    
+
+    // Some sheets use "Advice" instead of "Advise" — treat as the same status.
     case 'Done Repair - Advise Client':
+    case 'Done Repair - Advice Client':
       return {
         adminMessage: `Report sent to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to For Payment once okay.`,
         technicianMessage: ''
@@ -177,7 +185,7 @@ export const notifyServiceStatusChange = async (
     
     // Notify assigned technicians
     if (messages.technicianMessage && service.technician) {
-      const techNames = service.technician.split(',').map(t => t.trim());
+      const techNames = service.technician.split(',').map(t => t.trim()).filter(Boolean);
       for (const techName of techNames) {
         const tech = findStaffByName(staffList, techName);
         if (tech?.staffId && tech.name !== changedBy) {

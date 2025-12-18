@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ interface InventoryItem {
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,6 +98,16 @@ const ServiceUpdate = () => {
     fetchTechnicians();
     fetchInventory();
   }, []);
+
+  // Auto-load when arriving from notifications (/service-update?serviceId=...)
+  useEffect(() => {
+    const urlServiceId = searchParams.get("serviceId");
+    if (urlServiceId) {
+      setServiceId(urlServiceId);
+      searchService(urlServiceId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Parse existing parts when both service data and inventory are available
   useEffect(() => {
@@ -282,8 +293,8 @@ const ServiceUpdate = () => {
       });
     }
   };
-  const handleSearch = async () => {
-    if (!serviceId) {
+  async function searchService(id: string) {
+    if (!id) {
       toast({
         title: "Service ID Required",
         description: "Please enter a service ID",
@@ -295,7 +306,7 @@ const ServiceUpdate = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${id}`,
       );
       const data = await response.json();
 
@@ -310,15 +321,15 @@ const ServiceUpdate = () => {
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
         setUpdateAIDiagnosis(data.data.aiDiagnosis || ""); // Column AF - AI formatted diagnosis
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
-        
+
         // Initialize discount and final cost
         const serviceCostNum = sanitizeNumber(data.data.serviceCost || "0");
         const savedDiscountNum = sanitizeNumber(data.data.discount || "0");
         const savedFinalCost = sanitizeNumber(data.data.finalCost || "0");
-        
+
         setDiscountAmount(savedDiscountNum);
         setFinalCost(savedFinalCost > 0 ? savedFinalCost : serviceCostNum);
-        
+
         // Determine discount type from saved data
         if (savedDiscountNum > 0) {
           const isPercentage = savedDiscountNum < serviceCostNum && savedDiscountNum <= 100;
@@ -333,7 +344,7 @@ const ServiceUpdate = () => {
           setDiscountType("amount");
           setDiscountValue("");
         }
-        
+
         // Load existing photos from Google Drive folder
         if (data.data.deviceReportFolderUrl) {
           await loadExistingPhotos(data.data.deviceReportFolderUrl);
@@ -358,6 +369,10 @@ const ServiceUpdate = () => {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  const handleSearch = async () => {
+    await searchService(serviceId);
   };
 
   const loadExistingPhotos = async (folderUrl: string) => {
