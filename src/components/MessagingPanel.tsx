@@ -533,10 +533,17 @@ export const MessagingPanel = ({ userId, userName }: MessagingPanelProps) => {
     }
   };
 
-  const conversationPendingMessages = pendingMessages.filter(m => 
-    (selectedGroupId && m.receiverId === selectedGroupId) ||
-    (!selectedGroupId && m.receiverId === selectedConversation)
-  );
+  // Filter out pending messages that already appear in the actual messages
+  const conversationPendingMessages = pendingMessages.filter(m => {
+    const isForCurrentConversation = (selectedGroupId && m.receiverId === selectedGroupId) ||
+      (!selectedGroupId && m.receiverId === selectedConversation);
+    if (!isForCurrentConversation) return false;
+    
+    // Don't show pending message if it's already in the real messages (only show failed ones)
+    if (m.status === 'sending') return false;
+    
+    return true;
+  });
 
   const currentMessages = selectedGroupId 
     ? (groupMessages[selectedGroupId] || [])

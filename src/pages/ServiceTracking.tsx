@@ -220,14 +220,14 @@ const ServiceTracking = () => {
     if (statusUpper === "COMPLETED") return "bg-orange-50 hover:bg-orange-100";
     
     // Green statuses
-    if (statusUpper === "COMPLETE - APPROVAL") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "PROCEED REPAIR") return "bg-green-50 hover:bg-green-100";
     if (statusUpper === "ONGOING SERVICE") return "bg-green-50 hover:bg-green-100";
-    if (statusUpper === "SERVICE REPORT - DRAFT") return "bg-green-50 hover:bg-green-100";
-    if (statusUpper === "SERVICE CHECK - CLIENT") return "bg-green-50 hover:bg-green-100";
-    if (statusUpper === "SERVICE CHECK - COMPLETED") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "DONE REPAIR - OBSERVATION") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "DONE REPAIR - ADVISE CLIENT") return "bg-green-50 hover:bg-green-100";
+    if (statusUpper === "FOR PAYMENT") return "bg-green-50 hover:bg-green-100";
     
     // Yellow status
-    if (statusUpper === "PENDING PICKUP - COMPLETED") return "bg-yellow-50 hover:bg-yellow-100";
+    if (statusUpper === "FOR PICKUP") return "bg-yellow-50 hover:bg-yellow-100";
     
     // Blue status
     if (statusUpper === "BACKJOB") return "bg-blue-50 hover:bg-blue-100";
@@ -236,7 +236,7 @@ const ServiceTracking = () => {
     if (statusUpper === "RTO") return "bg-red-50 hover:bg-red-100";
     if (statusUpper === "CANCELLED") return "bg-red-50 hover:bg-red-100";
     
-    // White/default statuses (Pending Diagnosis, Confirmed Diagnosis, Pending Approval, On Hold)
+    // White/default statuses (Pending Diagnosis, Confirmed Diagnosis, Waiting to Proceed, On Hold)
     return "bg-white hover:bg-gray-50";
   };
 
@@ -368,7 +368,7 @@ const ServiceTracking = () => {
               {/* Status */}
               <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                <p className="text-lg font-bold text-primary">{serviceData.status || "PENDING - APPROVAL"}</p>
+                <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
               </div>
 
               <Separator />
