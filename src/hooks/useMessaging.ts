@@ -77,19 +77,26 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
       setGroupChats(groups);
       
       // Load messages for each group
-      const groupMsgsPromises = groups.map(async (group) => {
-        const msgs = await fetchGroupMessages(group.id);
-        return { groupId: group.id, messages: msgs };
-      });
-      
-      const groupMsgsResults = await Promise.all(groupMsgsPromises);
-      const newGroupMessages: Record<string, Message[]> = {};
-      groupMsgsResults.forEach(({ groupId, messages }) => {
-        newGroupMessages[groupId] = messages.sort(
-          (a, b) => parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
-        );
-      });
-      setGroupMessages(newGroupMessages);
+      if (groups.length > 0) {
+        const groupMsgsPromises = groups.map(async (group) => {
+          try {
+            const msgs = await fetchGroupMessages(group.id);
+            return { groupId: group.id, messages: msgs };
+          } catch (error) {
+            console.error(`Error loading messages for group ${group.id}:`, error);
+            return { groupId: group.id, messages: [] };
+          }
+        });
+        
+        const groupMsgsResults = await Promise.all(groupMsgsPromises);
+        const newGroupMessages: Record<string, Message[]> = {};
+        groupMsgsResults.forEach(({ groupId, messages }) => {
+          newGroupMessages[groupId] = messages.sort(
+            (a, b) => parseMessageDate(b.createdAt).getTime() - parseMessageDate(a.createdAt).getTime()
+          );
+        });
+        setGroupMessages(newGroupMessages);
+      }
     } catch (error) {
       console.error('Error loading group chats:', error);
     }

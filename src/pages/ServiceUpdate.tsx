@@ -1150,8 +1150,8 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Report Toggle - Only visible when actual sheet status is "Ongoing Service" */}
-                {serviceData?.status === "Ongoing Service" && (
+                {/* Report Toggle - Only visible when actual sheet status is "Done Repair - For Release" */}
+                {serviceData?.status === "Done Repair - For Release" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
@@ -1265,8 +1265,8 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Device Report Photo Upload - Only visible when status is "Ongoing Service" */}
-                {serviceData?.status === "Ongoing Service" && (
+                {/* Device Report Photo Upload - Only visible when status is "Done Repair - Under Observation" */}
+                {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
                   <>
                     <Separator />
 

@@ -3,6 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DeviceReportUploadProps {
   photos: File[];
@@ -29,6 +35,7 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const compressImage = async (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -218,14 +225,15 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, 
           {existingPhotoUrls?.map((url, index) => (
             <div
               key={`existing-${index}`}
-              className="relative group aspect-square rounded-lg overflow-hidden border"
+              className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer"
+              onClick={() => setPreviewUrl(getDisplayPhotoUrl(url))}
             >
               <img
                 src={getDisplayPhotoUrl(url)}
                 alt={`Existing device report ${index + 1}`}
                 loading="lazy"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover hover:opacity-80 transition-opacity"
               />
               {onRemoveExistingPhoto && (
                 <Button
@@ -233,7 +241,10 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, 
                   size="sm"
                   variant="destructive"
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => onRemoveExistingPhoto(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveExistingPhoto(index);
+                  }}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -244,19 +255,23 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, 
           {previews.map((preview, index) => (
             <div
               key={`new-${index}`}
-              className="relative group aspect-square rounded-lg overflow-hidden border"
+              className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer"
+              onClick={() => setPreviewUrl(preview)}
             >
               <img
                 src={preview}
                 alt={`Device report ${(existingPhotoUrls?.length ?? 0) + index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover hover:opacity-80 transition-opacity"
               />
               <Button
                 type="button"
                 size="sm"
                 variant="destructive"
                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => removePhoto(index)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removePhoto(index);
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -266,8 +281,24 @@ export const DeviceReportUpload = ({ photos, onPhotosChange, existingPhotoUrls, 
       )}
 
       <p className="text-xs text-muted-foreground">
-        Upload up to {MAX_PHOTOS} photos (max 5MB each). Photos will be compressed to save storage space.
+        Upload up to {MAX_PHOTOS} photos (max 5MB each). Photos will be compressed to save storage space. Click on a photo to preview.
       </p>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Photo Preview</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <img 
+              src={previewUrl} 
+              alt="Preview" 
+              className="max-w-full max-h-[70vh] object-contain mx-auto rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
