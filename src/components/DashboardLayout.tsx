@@ -113,22 +113,60 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   );
 
   if (isMobile) return (
-    <div className="flex flex-col min-h-screen w-full bg-background">
+    <div className="flex flex-col h-screen w-full bg-background">
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}><SheetTrigger asChild><Button variant="ghost" size="icon"><Menu className="h-5 w-5" /></Button></SheetTrigger><SheetContent side="left" className="w-72 p-0 bg-sidebar"><div className="relative h-full"><SidebarContent /></div></SheetContent></Sheet>
-        <div className="flex items-center gap-2"><div className="h-8 w-8 rounded-lg bg-card border border-border/60 shadow-sm p-1"><img src={acTechLogo} alt="AC Tech Repair logo" className="h-full w-full object-contain" loading="lazy" /></div><span className="text-sm font-bold">AC Tech</span></div>
-        <div className="flex items-center gap-1"><NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} /><MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} /></div>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0 bg-sidebar">
+            <div className="relative h-full">
+              <SidebarContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-card border border-border/60 shadow-sm p-1">
+            <img src={acTechLogo} alt="AC Tech Repair logo" className="h-full w-full object-contain" loading="lazy" />
+          </div>
+          <span className="text-sm font-bold">AC Tech</span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
+          <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
+        </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <aside className={cn("fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all border-r border-sidebar-border", collapsed ? "w-20" : "w-64")}><SidebarContent /><button onClick={() => setCollapsed(!collapsed)} className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></aside>
-      <main className={cn("flex-1 transition-all min-h-screen", collapsed ? "ml-20" : "ml-64")}>
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur"><NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} /><MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} /></header>
-        <div className="p-0">{children}</div>
+    <div className="flex h-screen w-full bg-background overflow-hidden">
+      <aside
+        className={cn(
+          "fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all border-r border-sidebar-border",
+          collapsed ? "w-20" : "w-64",
+        )}
+      >
+        <SidebarContent />
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+      </aside>
+
+      <main className={cn("flex flex-col flex-1 h-screen", collapsed ? "ml-20" : "ml-64")}>
+        <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur">
+          <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
+          <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
+        </header>
+        <div className="flex-1 overflow-y-auto p-0">{children}</div>
       </main>
     </div>
   );
