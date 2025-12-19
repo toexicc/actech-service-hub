@@ -152,7 +152,6 @@ const RequestForParts = () => {
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formDataToSend,
-        redirect: "follow",
       });
 
       const result = await response.json();
