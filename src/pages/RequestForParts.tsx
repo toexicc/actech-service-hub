@@ -168,7 +168,7 @@ const RequestForParts = () => {
       }
 
       // Notify management about the new part request
-      notifyPartRequest(userFullName, formData.serviceId, formData.partName);
+      await notifyPartRequest(userFullName, formData.serviceId, formData.partName);
 
       toast({
         title: "Submitted",
@@ -305,40 +305,44 @@ const RequestForParts = () => {
               <>
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Part ID</TableHead>
-                        <TableHead>Requested By</TableHead>
-                        <TableHead>Service ID</TableHead>
-                        <TableHead>Part Name</TableHead>
-                        <TableHead>Device Type</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Date Needed</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Remarks</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedRequests.map((req) => (
-                        <TableRow key={req.partId}>
-                          <TableCell className="font-medium">{req.partId}</TableCell>
-                          <TableCell>{req.requestedBy}</TableCell>
-                          <TableCell>{req.serviceId}</TableCell>
-                          <TableCell>{req.partName}</TableCell>
-                          <TableCell>{req.deviceType || "N/A"}</TableCell>
-                          <TableCell>{req.quantity}</TableCell>
-                          <TableCell>{req.dateNeeded || "N/A"}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(req.status)}`}>
-                              {req.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="max-w-[150px] truncate" title={req.remarks}>
-                            {req.remarks || "N/A"}
-                          </TableCell>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Part ID</TableHead>
+                          <TableHead>Requested By</TableHead>
+                          <TableHead>Service ID</TableHead>
+                          <TableHead>Part Name</TableHead>
+                          <TableHead>Device Type</TableHead>
+                          <TableHead>Qty</TableHead>
+                          <TableHead>Date Needed</TableHead>
+                          <TableHead>Date Ordered</TableHead>
+                          <TableHead>Date Received</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Remarks</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedRequests.map((req) => (
+                          <TableRow key={req.partId}>
+                            <TableCell className="font-medium">{req.partId}</TableCell>
+                            <TableCell>{req.requestedBy}</TableCell>
+                            <TableCell>{req.serviceId}</TableCell>
+                            <TableCell>{req.partName}</TableCell>
+                            <TableCell>{req.deviceType || "N/A"}</TableCell>
+                            <TableCell>{req.quantity}</TableCell>
+                            <TableCell>{req.dateNeeded || "N/A"}</TableCell>
+                            <TableCell>{req.dateOrdered || "N/A"}</TableCell>
+                            <TableCell>{req.dateReceived || "N/A"}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(req.status)}`}>
+                                {req.status}
+                              </span>
+                            </TableCell>
+                            <TableCell className="max-w-[150px] truncate" title={req.remarks}>
+                              {req.remarks || "N/A"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
                   </Table>
                 </div>
 

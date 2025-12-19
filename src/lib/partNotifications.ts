@@ -1,34 +1,62 @@
 import { GOOGLE_SHEETS_SCRIPT_URL } from './googleSheets';
 import { createNotification } from './notifications';
 
+type StaffRole = string;
+
 interface StaffMember {
   id: string;
   name: string;
-  role: string;
+  role: StaffRole;
   username?: string;
 }
+
+type RawStaffMember = {
+  staffId?: string;
+  id?: string;
+  name?: string;
+  role?: string;
+  username?: string;
+};
+
+const normalizeRole = (role?: string) => (role ?? '').toLowerCase().trim();
+
+const normalizeStaff = (raw: RawStaffMember): StaffMember | null => {
+  const id = raw.staffId ?? raw.id;
+  const name = raw.name;
+  if (!id || !name) return null;
+  return {
+    id,
+    name,
+    role: raw.role ?? '',
+    username: raw.username,
+  };
+};
 
 // Fetch staff list from Google Sheets
 const fetchStaffList = async (): Promise<StaffMember[]> => {
   try {
     const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
     const data = await response.json();
-    return data.staffList || [];
+
+    // Script currently returns: { status: 'success', data: [...] }
+    const rawList: RawStaffMember[] = data?.data || data?.staffList || [];
+
+    return rawList.map(normalizeStaff).filter(Boolean) as StaffMember[];
   } catch (error) {
     console.error('Error fetching staff list:', error);
     return [];
   }
 };
 
-// Get management staff
+// Get management staff (case-insensitive)
 const getManagementStaff = (staffList: StaffMember[]): StaffMember[] => {
-  return staffList.filter(staff => staff.role === 'management');
+  return staffList.filter((staff) => normalizeRole(staff.role) === 'management');
 };
 
-// Find staff by name
+// Find staff by name (case-insensitive)
 const findStaffByName = (staffList: StaffMember[], name: string): StaffMember | undefined => {
   const normalizedName = name.toLowerCase().trim();
-  return staffList.find(staff => staff.name.toLowerCase().trim() === normalizedName);
+  return staffList.find((staff) => staff.name.toLowerCase().trim() === normalizedName);
 };
 
 // Fetch service info to get assigned technician/admin
