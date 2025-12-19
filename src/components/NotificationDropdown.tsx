@@ -194,29 +194,112 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
             ) : notifications.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">No notifications</div>
             ) : (
-              notifications.slice(0, 20).map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className={`flex flex-col items-start p-3 cursor-pointer ${
-                    !notification.read ? 'bg-accent/50' : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start gap-2 w-full">
-                    <span className="text-lg">{getNotificationIcon(notification.type)}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{notification.title}</p>
-                      <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatLocalTime(notification.createdAt)}
-                      </p>
+              <>
+                {/* Service Notifications */}
+                {notifications.filter(n => n.type === 'service_update' || n.type === 'new_inquiry').length > 0 && (
+                  <>
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">
+                      🔧 Services
                     </div>
-                    {!notification.read && (
-                      <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                    )}
-                  </div>
-                </DropdownMenuItem>
-              ))
+                    {notifications
+                      .filter(n => n.type === 'service_update' || n.type === 'new_inquiry')
+                      .slice(0, 15)
+                      .map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={`flex flex-col items-start p-3 cursor-pointer ${
+                            !notification.read ? 'bg-accent/50' : ''
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatLocalTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                  </>
+                )}
+
+                {/* Messages */}
+                {notifications.filter(n => n.type === 'message').length > 0 && (
+                  <>
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">
+                      💬 Messages
+                    </div>
+                    {notifications
+                      .filter(n => n.type === 'message')
+                      .slice(0, 10)
+                      .map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={`flex flex-col items-start p-3 cursor-pointer ${
+                            !notification.read ? 'bg-accent/50' : ''
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatLocalTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                  </>
+                )}
+
+                {/* Other Notifications */}
+                {notifications.filter(n => n.type !== 'service_update' && n.type !== 'new_inquiry' && n.type !== 'message').length > 0 && (
+                  <>
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">
+                      🔔 Other
+                    </div>
+                    {notifications
+                      .filter(n => n.type !== 'service_update' && n.type !== 'new_inquiry' && n.type !== 'message')
+                      .slice(0, 5)
+                      .map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={`flex flex-col items-start p-3 cursor-pointer ${
+                            !notification.read ? 'bg-accent/50' : ''
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatLocalTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                  </>
+                )}
+              </>
             )}
           </ScrollArea>
         </DropdownMenuContent>
