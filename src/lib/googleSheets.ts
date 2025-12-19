@@ -2395,56 +2395,72 @@ function doPost(e) {
   
   // ADD Fast Moving Part Request
   if (action === 'addFastMovingPart') {
-    var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
-    var partId = "FM" + Date.now();
-    var timestamp = new Date().toISOString();
-    
-    fmSheet.appendRow([
-      partId,
-      e.parameter.requestedBy || "",
-      e.parameter.serviceId || "",
-      e.parameter.partName || "",
-      e.parameter.deviceType || "",
-      e.parameter.brand || "",
-      e.parameter.model || "",
-      e.parameter.quantity || "",
-      e.parameter.dateNeeded || "",
-      "", // Date Ordered
-      "", // Date Received
-      "", // Supplier
-      "", // Cost
-      e.parameter.status || "For Ordering",
-      timestamp,
-      e.parameter.remarks || ""
-    ]);
-    
-    // Notify management about new request
-    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
-    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
-    
-    if (notifSheet && staffSheet) {
-      var staffData = staffSheet.getDataRange().getValues();
-      for (var i = 1; i < staffData.length; i++) {
-        if (staffData[i][2] && staffData[i][2].toLowerCase() === "management" && staffData[i][3] === "Active") {
-          var notifId = "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5);
-          notifSheet.appendRow([
-            notifId,
-            staffData[i][0], // Management staff ID
-            "service_update",
-            "New Part Request",
-            e.parameter.requestedBy + " requested " + e.parameter.partName + " for Service ID: " + e.parameter.serviceId,
-            "", // serviceId
-            timestamp,
-            "false"
-          ]);
+    try {
+      var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+      if (!fmSheet) {
+        return ContentService.createTextOutput(JSON.stringify({
+          result: "error",
+          message: "Sheet not found: Fast Moving Inventory"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      var partId = "FM" + Date.now();
+      var timestamp = new Date().toISOString();
+
+      // Use params (e.parameter) consistently
+      fmSheet.appendRow([
+        partId,
+        params.requestedBy || "",
+        params.serviceId || "",
+        params.partName || "",
+        params.deviceType || "",
+        params.brand || "",
+        params.model || "",
+        params.quantity || "",
+        params.dateNeeded || "",
+        "", // Date Ordered
+        "", // Date Received
+        "", // Supplier
+        "", // Cost
+        params.status || "For Ordering",
+        timestamp,
+        params.remarks || ""
+      ]);
+
+      // Notify management about new request (optional)
+      var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+      var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+
+      if (notifSheet && staffSheet) {
+        var staffData = staffSheet.getDataRange().getValues();
+        for (var i = 1; i < staffData.length; i++) {
+          if (staffData[i][2] && String(staffData[i][2]).toLowerCase() === "management" && staffData[i][3] === "Active") {
+            var notifId = "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5);
+            notifSheet.appendRow([
+              notifId,
+              staffData[i][0],
+              "service_update",
+              "New Part Request",
+              (params.requestedBy || "") + " requested " + (params.partName || "") + " for Service ID: " + (params.serviceId || ""),
+              "",
+              timestamp,
+              "false"
+            ]);
+          }
         }
       }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        result: "success",
+        partId: partId
+      })).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({
+        result: "error",
+        message: "addFastMovingPart failed: " + err.toString()
+      })).setMimeType(ContentService.MimeType.JSON);
     }
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      "result": "success",
-      "partId": partId
-    })).setMimeType(ContentService.MimeType.JSON);
   }
 
   // UPDATE Fast Moving Part Order (when placing order)
