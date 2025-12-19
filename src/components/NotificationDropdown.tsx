@@ -170,6 +170,16 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
     } else if (notification.type === 'message') {
       // For message notifications, open messaging panel
       onOpenMessaging?.();
+    } else if (notification.type === 'part_request' || notification.type === 'others') {
+      // For part request notifications
+      const isManagement = userRole === 'management';
+      if (isManagement) {
+        // Management goes to fast moving parts in inventory management
+        navigate('/inventory-management?tab=fast-moving');
+      } else {
+        // Admin/Technician goes to request for parts page
+        navigate('/request-for-parts');
+      }
     }
   };
 

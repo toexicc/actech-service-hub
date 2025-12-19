@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,8 +60,13 @@ type SortOrder = "asc" | "desc";
 
 const InventoryManagement = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const userRole = sessionStorage.getItem("userRole");
+  
+  // Get initial tab from URL params
+  const initialTab = searchParams.get("tab") || "items";
+  const [activeTab, setActiveTab] = useState(initialTab);
   
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -72,6 +77,14 @@ const InventoryManagement = () => {
       navigate("/admin-portal");
     }
   }, [navigate, userRole]);
+  
+  // Update tab when URL params change
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && ["items", "logs", "fast-moving"].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [logs, setLogs] = useState<InventoryLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1020,7 +1033,7 @@ const InventoryManagement = () => {
         </Card>
 
         {/* Tabs for Inventory Items and Logs */}
-        <Tabs defaultValue="items" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="items">
               <Package className="h-4 w-4 mr-2" />
