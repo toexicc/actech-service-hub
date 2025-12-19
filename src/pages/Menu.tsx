@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -15,6 +16,8 @@ import {
   DollarSign,
   ExternalLink,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Monitor,
 } from "lucide-react";
@@ -66,6 +69,11 @@ const Menu = () => {
   const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Pagination for dashboards
+  const [partsPage, setPartsPage] = useState(1);
+  const [lowStockPage, setLowStockPage] = useState(1);
+  const dashboardItemsPerPage = 5;
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
 
@@ -165,32 +173,32 @@ const Menu = () => {
           ]);
 
           if (partsData?.status === "success" && Array.isArray(partsData.parts)) {
-            const forOrdering = (partsData.parts as any[])
-              .filter((p) => (p.status || "") === "For Ordering")
-              .map((p) => ({
-                partId: p.partId,
-                requestedBy: p.requestedBy,
-                serviceId: p.serviceId,
-                partName: p.partName,
-                dateNeeded: p.dateNeeded,
-                status: p.status,
-              }));
-            setPartsForOrdering(forOrdering.slice(0, 5));
+              const forOrdering = (partsData.parts as any[])
+                .filter((p) => (p.status || "") === "For Ordering")
+                .map((p) => ({
+                  partId: p.partId,
+                  requestedBy: p.requestedBy,
+                  serviceId: p.serviceId,
+                  partName: p.partName,
+                  dateNeeded: p.dateNeeded,
+                  status: p.status,
+                }));
+              setPartsForOrdering(forOrdering);
           } else {
             setPartsForOrdering([]);
           }
 
-          if (inventoryData?.status === "success" && Array.isArray(inventoryData.inventory)) {
-            const lowStock = (inventoryData.inventory as any[])
-              .map((it) => ({
-                partId: it.partId,
-                partName: it.partName,
-                model: it.model,
-                quantity: Number(it.quantity ?? 0),
-              }))
-              .filter((it) => Number.isFinite(it.quantity) && it.quantity <= 2)
-              .sort((a, b) => a.quantity - b.quantity);
-            setLowStockItems(lowStock.slice(0, 5));
+            if (inventoryData?.status === "success" && Array.isArray(inventoryData.inventory)) {
+              const lowStock = (inventoryData.inventory as any[])
+                .map((it) => ({
+                  partId: it.partId,
+                  partName: it.partName,
+                  model: it.model,
+                  quantity: Number(it.quantity ?? 0),
+                }))
+                .filter((it) => Number.isFinite(it.quantity) && it.quantity <= 2)
+                .sort((a, b) => a.quantity - b.quantity);
+              setLowStockItems(lowStock);
           } else {
             setLowStockItems([]);
           }
@@ -556,82 +564,164 @@ const Menu = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Package className="h-5 w-5 text-primary" />
-                  Parts For Ordering ({partsForOrdering.length})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Package className="h-5 w-5 text-primary" />
+                    Parts For Ordering ({partsForOrdering.length})
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/inventory-management?tab=fast-moving")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    View All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {partsForOrdering.length === 0 ? (
                   <p className="text-muted-foreground text-sm">No parts currently for ordering.</p>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Service ID</TableHead>
-                          <TableHead>Part Name</TableHead>
-                          <TableHead>Requested By</TableHead>
-                          <TableHead>Date Needed</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {partsForOrdering.map((p) => (
-                          <TableRow
-                            key={p.partId}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate("/inventory-management?tab=fast-moving")}
-                          >
-                            <TableCell className="font-medium">{p.serviceId}</TableCell>
-                            <TableCell>{p.partName}</TableCell>
-                            <TableCell>{p.requestedBy}</TableCell>
-                            <TableCell>{p.dateNeeded || "N/A"}</TableCell>
+                  <>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Service ID</TableHead>
+                            <TableHead>Part Name</TableHead>
+                            <TableHead>Requested By</TableHead>
+                            <TableHead>Date Needed</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {partsForOrdering
+                            .slice((partsPage - 1) * dashboardItemsPerPage, partsPage * dashboardItemsPerPage)
+                            .map((p) => (
+                              <TableRow
+                                key={p.partId}
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => navigate("/inventory-management?tab=fast-moving")}
+                              >
+                                <TableCell className="font-medium">{p.serviceId}</TableCell>
+                                <TableCell>{p.partName}</TableCell>
+                                <TableCell>{p.requestedBy}</TableCell>
+                                <TableCell>{p.dateNeeded || "N/A"}</TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {partsForOrdering.length > dashboardItemsPerPage && (
+                      <div className="flex items-center justify-between mt-3">
+                        <p className="text-xs text-muted-foreground">
+                          Page {partsPage} of {Math.ceil(partsForOrdering.length / dashboardItemsPerPage)}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setPartsPage((p) => Math.max(1, p - 1))}
+                            disabled={partsPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setPartsPage((p) => Math.min(Math.ceil(partsForOrdering.length / dashboardItemsPerPage), p + 1))}
+                            disabled={partsPage >= Math.ceil(partsForOrdering.length / dashboardItemsPerPage)}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Low Stock Items (≤ 2)
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Low Stock Items (≤ 2)
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/inventory-management?tab=items")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    View All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {lowStockItems.length === 0 ? (
                   <p className="text-muted-foreground text-sm">No low stock items.</p>
                 ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Part ID</TableHead>
-                          <TableHead>Part Name</TableHead>
-                          <TableHead>Model</TableHead>
-                          <TableHead className="text-right">Qty</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {lowStockItems.map((it) => (
-                          <TableRow
-                            key={it.partId}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate("/inventory-management?tab=items")}
-                          >
-                            <TableCell className="font-medium">{it.partId}</TableCell>
-                            <TableCell>{it.partName}</TableCell>
-                            <TableCell>{it.model || "N/A"}</TableCell>
-                            <TableCell className="text-right font-medium text-destructive">{it.quantity}</TableCell>
+                  <>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Part ID</TableHead>
+                            <TableHead>Part Name</TableHead>
+                            <TableHead>Model</TableHead>
+                            <TableHead className="text-right">Qty</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {lowStockItems
+                            .slice((lowStockPage - 1) * dashboardItemsPerPage, lowStockPage * dashboardItemsPerPage)
+                            .map((it) => (
+                              <TableRow
+                                key={it.partId}
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => navigate("/inventory-management?tab=items")}
+                              >
+                                <TableCell className="font-medium">{it.partId}</TableCell>
+                                <TableCell>{it.partName}</TableCell>
+                                <TableCell>{it.model || "N/A"}</TableCell>
+                                <TableCell className="text-right font-medium text-destructive">{it.quantity}</TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {lowStockItems.length > dashboardItemsPerPage && (
+                      <div className="flex items-center justify-between mt-3">
+                        <p className="text-xs text-muted-foreground">
+                          Page {lowStockPage} of {Math.ceil(lowStockItems.length / dashboardItemsPerPage)}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setLowStockPage((p) => Math.max(1, p - 1))}
+                            disabled={lowStockPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setLowStockPage((p) => Math.min(Math.ceil(lowStockItems.length / dashboardItemsPerPage), p + 1))}
+                            disabled={lowStockPage >= Math.ceil(lowStockItems.length / dashboardItemsPerPage)}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

@@ -118,7 +118,7 @@ const InventoryManagement = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [logsCurrentPage, setLogsCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
 
   // Form states for new part
   const [newPart, setNewPart] = useState({

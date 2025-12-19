@@ -40,7 +40,7 @@ export const FastMovingPartsTab = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
 
   // Dialog states
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);

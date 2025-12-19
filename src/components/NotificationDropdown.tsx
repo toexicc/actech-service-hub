@@ -171,14 +171,25 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
       // For message notifications, open messaging panel
       onOpenMessaging?.();
     } else if (notification.type === 'part_request' || notification.type === 'others') {
-      // For part request notifications
-      const isManagement = userRole === 'management';
-      if (isManagement) {
-        // Management goes to fast moving parts in inventory management
-        navigate('/inventory-management?tab=fast-moving');
+      // Check if it's a "Part Received" notification - navigate to service page
+      const isPartReceived = notification.title === 'Part Received';
+      const serviceId = notification.serviceId;
+      
+      if (isPartReceived && serviceId) {
+        const isAdmin = userRole === 'admin' || userRole === 'management';
+        if (isAdmin) {
+          navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
+        } else {
+          navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
+        }
       } else {
-        // Admin/Technician goes to request for parts page
-        navigate('/request-for-parts');
+        // For other part request notifications
+        const isManagement = userRole === 'management';
+        if (isManagement) {
+          navigate('/inventory-management?tab=fast-moving');
+        } else {
+          navigate('/request-for-parts');
+        }
       }
     }
   };
