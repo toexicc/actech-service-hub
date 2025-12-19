@@ -72,36 +72,31 @@ const RequestForParts = () => {
       formDataToSend.append("status", "For Ordering");
       formDataToSend.append("remarks", formData.remarks);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      // NOTE: Google Apps Script web apps often don't send CORS headers.
+      // Using `mode: "no-cors"` avoids browser CORS blocking, but returns an opaque response.
+      // If the request reaches Apps Script, we treat it as submitted.
+      await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formDataToSend,
+        mode: "no-cors",
+        redirect: "follow",
       });
 
-      const result = await response.json();
-
-      if (result.result === "success") {
-        toast({
-          title: "Success",
-          description: "Part request submitted successfully",
-        });
-        setIsDialogOpen(false);
-        setFormData({
-          serviceId: "",
-          partName: "",
-          deviceType: "",
-          brand: "",
-          model: "",
-          quantity: "",
-          remarks: ""
-        });
-        setDateNeeded(undefined);
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to submit request",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Submitted",
+        description: "Part request submitted. If it doesn't appear in the sheet, re-deploy the Apps Script Web App.",
+      });
+      setIsDialogOpen(false);
+      setFormData({
+        serviceId: "",
+        partName: "",
+        deviceType: "",
+        brand: "",
+        model: "",
+        quantity: "",
+        remarks: "",
+      });
+      setDateNeeded(undefined);
     } catch (error) {
       console.error("Error submitting request:", error);
       toast({
