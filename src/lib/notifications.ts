@@ -5,7 +5,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: 'service_update' | 'new_inquiry' | 'message' | 'system';
+  type: 'service_update' | 'new_inquiry' | 'message' | 'system' | 'part_request';
   read: boolean;
   createdAt: string;
   serviceId?: string;

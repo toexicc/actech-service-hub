@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, CheckCheck, X, Wrench, MessageCircle } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, Wrench, MessageCircle, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -104,7 +104,7 @@ const groupNotificationsByDate = (notifications: any[]) => {
 export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: NotificationDropdownProps) => {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications(userId);
-  const [activeTab, setActiveTab] = useState<'services' | 'messages'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'messages' | 'others'>('services');
   const [showPreview, setShowPreview] = useState(false);
   const [previewNotification, setPreviewNotification] = useState<typeof notifications[0] | null>(null);
   const previousUnreadCountRef = useRef(unreadCount);
@@ -188,6 +188,8 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
         return '📋';
       case 'message':
         return '💬';
+      case 'part_request':
+        return '📦';
       default:
         return '🔔';
     }
@@ -248,8 +250,8 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               </Button>
             )}
           </div>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'services' | 'messages')} className="w-full">
-            <TabsList className="w-full grid grid-cols-2 h-9">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'services' | 'messages' | 'others')} className="w-full">
+            <TabsList className="w-full grid grid-cols-3 h-9">
               <TabsTrigger value="services" className="text-xs flex items-center gap-1.5">
                 <Wrench className="h-3.5 w-3.5" />
                 Services
@@ -265,6 +267,15 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                 {notifications.filter(n => n.type === 'message' && !n.read).length > 0 && (
                   <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
                     {notifications.filter(n => n.type === 'message' && !n.read).length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="others" className="text-xs flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5" />
+                Others
+                {notifications.filter(n => n.type === 'part_request' && !n.read).length > 0 && (
+                  <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                    {notifications.filter(n => n.type === 'part_request' && !n.read).length}
                   </span>
                 )}
               </TabsTrigger>
@@ -325,6 +336,51 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                   groupNotificationsByDate(
                     notifications
                       .filter(n => n.type === 'message')
+                      .slice(0, 20)
+                  ).map((group) => (
+                    <div key={group.date}>
+                      <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">
+                        <p className="text-xs font-semibold text-muted-foreground">{group.label}</p>
+                      </div>
+                      {group.notifications.map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={`flex flex-col items-start p-3 cursor-pointer ${
+                            !notification.read ? 'bg-accent/50' : ''
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatLocalTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="others" className="mt-0">
+              <ScrollArea className="h-[350px]">
+                {loading ? (
+                  <div className="p-4 text-center text-muted-foreground">Loading...</div>
+                ) : notifications.filter(n => n.type === 'part_request').length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground">No other notifications</div>
+                ) : (
+                  groupNotificationsByDate(
+                    notifications
+                      .filter(n => n.type === 'part_request')
                       .slice(0, 20)
                   ).map((group) => (
                     <div key={group.date}>

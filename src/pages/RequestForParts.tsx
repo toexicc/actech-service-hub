@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
+import { notifyPartRequest } from "@/lib/partNotifications";
 import { Package, Plus, CalendarIcon, Loader2, Search, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ const RequestForParts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 10;
   
   const [formData, setFormData] = useState({
     serviceId: "",
@@ -166,6 +167,9 @@ const RequestForParts = () => {
         throw new Error(result?.message || "Request not accepted by Apps Script");
       }
 
+      // Notify management about the new part request
+      notifyPartRequest(userFullName, formData.serviceId, formData.partName);
+
       toast({
         title: "Submitted",
         description: "Request submitted successfully.",
@@ -222,8 +226,44 @@ const RequestForParts = () => {
           </Button>
         </div>
 
-        {/* Requests Table */}
+        {/* Info Card - How to Request Parts */}
         <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>How to Request Parts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Use this page to submit part requests for services you're working on. 
+              Management will be notified and process your order.
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-2">1</div>
+                <h3 className="font-semibold mb-1">Submit Request</h3>
+                <p className="text-sm text-muted-foreground">
+                  Click "New Request" and fill in the part details along with the Service ID.
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-2">2</div>
+                <h3 className="font-semibold mb-1">Management Orders</h3>
+                <p className="text-sm text-muted-foreground">
+                  Management will review and place the order with the supplier.
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-2">3</div>
+                <h3 className="font-semibold mb-1">Get Notified</h3>
+                <p className="text-sm text-muted-foreground">
+                  You'll be notified when the part is received and ready for use.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Requests Table */}
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>My Requests</CardTitle>
@@ -336,45 +376,9 @@ const RequestForParts = () => {
           </CardContent>
         </Card>
 
-        {/* Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>How to Request Parts</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              Use this page to submit part requests for services you're working on. 
-              Management will be notified and process your order.
-            </p>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary mb-2">1</div>
-                <h3 className="font-semibold mb-1">Submit Request</h3>
-                <p className="text-sm text-muted-foreground">
-                  Click "New Request" and fill in the part details along with the Service ID.
-                </p>
-              </div>
-              <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary mb-2">2</div>
-                <h3 className="font-semibold mb-1">Management Orders</h3>
-                <p className="text-sm text-muted-foreground">
-                  Management will review and place the order with the supplier.
-                </p>
-              </div>
-              <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary mb-2">3</div>
-                <h3 className="font-semibold mb-1">Get Notified</h3>
-                <p className="text-sm text-muted-foreground">
-                  You'll be notified when the part is received and ready for use.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Request Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>New Part Request</DialogTitle>
             </DialogHeader>
