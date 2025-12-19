@@ -227,14 +227,19 @@ const ClientInquiryTable = () => {
     const newStatus = inquiry.aiStatus === "ON-AI" ? "OFF-AI" : "ON-AI";
     
     try {
-      const formData = new FormData();
-      formData.append("action", "updateClientInquiryAI");
-      formData.append("rowIndex", inquiry.rowIndex.toString());
-      formData.append("aiStatus", newStatus);
-      
+      // Use URL-encoded form body (Apps Script reliably reads this via e.parameter)
+      const body = new URLSearchParams({
+        action: "updateClientInquiryAI",
+        rowIndex: inquiry.rowIndex.toString(),
+        aiStatus: newStatus,
+      });
+
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        body: formData
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body,
       });
       
       const result = await response.json();
