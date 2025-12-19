@@ -100,6 +100,9 @@ const RequestForParts = () => {
 
   const filteredRequests = useMemo(() => {
     return requests.filter(req => {
+      // Only show requests from the logged-in user
+      if (req.requestedBy?.toLowerCase() !== userFullName.toLowerCase()) return false;
+      
       // Status filter
       if (statusFilter !== "all" && req.status !== statusFilter) return false;
       
@@ -115,7 +118,7 @@ const RequestForParts = () => {
       }
       return true;
     });
-  }, [requests, searchQuery, statusFilter]);
+  }, [requests, searchQuery, statusFilter, userFullName]);
 
   const paginatedRequests = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
