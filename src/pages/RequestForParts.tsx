@@ -148,17 +148,32 @@ const RequestForParts = () => {
       payload.set("status", "For Ordering");
       payload.set("remarks", formData.remarks);
 
-      // Google Apps Script web apps commonly don't include CORS headers for POST responses.
-      // Using `no-cors` ensures the request is sent; the response will be opaque.
-      await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        redirect: "follow",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: payload.toString(),
+      // Workaround: HTML form POST is not blocked by CORS like fetch/XHR.
+      const iframeName = "gas_submit_iframe";
+      let iframe = document.querySelector<HTMLIFrameElement>(`iframe[name="${iframeName}"]`);
+      if (!iframe) {
+        iframe = document.createElement("iframe");
+        iframe.name = iframeName;
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+      }
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = GOOGLE_SHEETS_SCRIPT_URL;
+      form.target = iframeName;
+
+      payload.forEach((value, key) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
       });
+
+      document.body.appendChild(form);
+      form.submit();
+      form.remove();
 
       toast({
         title: "Submitted",
