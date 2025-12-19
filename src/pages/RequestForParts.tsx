@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +9,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, CalendarIcon, Loader2 } from "lucide-react";
+import { Package, Plus, CalendarIcon, Loader2, Search, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
+
+interface PartRequest {
+  partId: string;
+  requestedBy: string;
+  serviceId: string;
+  partName: string;
+  deviceType: string;
+  brand: string;
+  model: string;
+  quantity: string;
+  dateNeeded: string;
+  dateOrdered: string;
+  dateReceived: string;
+  supplier: string;
+  cost: string;
+  status: string;
+  lastUpdated: string;
+  remarks: string;
+}
 
 const RequestForParts = () => {
   const navigate = useNavigate();
@@ -26,6 +46,14 @@ const RequestForParts = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dateNeeded, setDateNeeded] = useState<Date | undefined>(undefined);
+  
+  // Requests table state
+  const [requests, setRequests] = useState<PartRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   
   const [formData, setFormData] = useState({
     serviceId: "",
@@ -46,6 +74,54 @@ const RequestForParts = () => {
       navigate("/menu");
     }
   }, [navigate, userRole]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`);
+      const data = await response.json();
+
+      if (data.status === "success" && data.parts) {
+        setRequests(data.parts);
+      } else {
+        console.error("Failed to load requests:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredRequests = useMemo(() => {
+    return requests.filter(req => {
+      // Status filter
+      if (statusFilter !== "all" && req.status !== statusFilter) return false;
+      
+      // Search filter
+      if (searchQuery) {
+        const search = searchQuery.toLowerCase();
+        return (
+          req.partId?.toLowerCase().includes(search) ||
+          req.partName?.toLowerCase().includes(search) ||
+          req.serviceId?.toLowerCase().includes(search) ||
+          req.requestedBy?.toLowerCase().includes(search)
+        );
+      }
+      return true;
+    });
+  }, [requests, searchQuery, statusFilter]);
+
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRequests.slice(start, start + itemsPerPage);
+  }, [filteredRequests, currentPage]);
+
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
 
   const handleSubmit = async () => {
     if (!formData.serviceId || !formData.partName || !formData.quantity || !dateNeeded) {
@@ -68,45 +144,60 @@ const RequestForParts = () => {
       formDataToSend.append("brand", formData.brand);
       formDataToSend.append("model", formData.model);
       formDataToSend.append("quantity", formData.quantity);
-      formDataToSend.append("dateNeeded", format(dateNeeded, "yyyy-MM-dd"));
+      formDataToSend.append("dateNeeded", format(dateNeeded, "MM/dd/yyyy"));
       formDataToSend.append("status", "For Ordering");
       formDataToSend.append("remarks", formData.remarks);
 
-      // NOTE: Google Apps Script web apps often don't send CORS headers.
-      // Using `mode: "no-cors"` avoids browser CORS blocking, but returns an opaque response.
-      // If the request reaches Apps Script, we treat it as submitted.
-      await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formDataToSend,
-        mode: "no-cors",
-        redirect: "follow",
       });
 
-      toast({
-        title: "Submitted",
-        description: "Part request submitted. If it doesn't appear in the sheet, re-deploy the Apps Script Web App.",
-      });
-      setIsDialogOpen(false);
-      setFormData({
-        serviceId: "",
-        partName: "",
-        deviceType: "",
-        brand: "",
-        model: "",
-        quantity: "",
-        remarks: "",
-      });
-      setDateNeeded(undefined);
+      const result = await response.json();
+
+      if (result.result === "success") {
+        toast({
+          title: "Success",
+          description: "Part request submitted successfully",
+        });
+        setIsDialogOpen(false);
+        setFormData({
+          serviceId: "",
+          partName: "",
+          deviceType: "",
+          brand: "",
+          model: "",
+          quantity: "",
+          remarks: "",
+        });
+        setDateNeeded(undefined);
+        fetchRequests(); // Refresh the list
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to submit request",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error submitting request:", error);
       toast({
         title: "Error",
-        description: "Failed to submit request",
+        description: "Failed to submit request. Make sure the Apps Script is deployed correctly.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusClasses = {
+      "For Ordering": "bg-orange-100 text-orange-800",
+      "Ordered": "bg-blue-100 text-blue-800",
+      "Received": "bg-green-100 text-green-800"
+    };
+    return statusClasses[status as keyof typeof statusClasses] || "bg-gray-100 text-gray-800";
   };
 
   return (
@@ -126,6 +217,121 @@ const RequestForParts = () => {
           </Button>
         </div>
 
+        {/* Requests Table */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>My Requests</CardTitle>
+              <div className="flex items-center gap-4">
+                <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="For Ordering">For Ordering</SelectItem>
+                    <SelectItem value="Ordered">Ordered</SelectItem>
+                    <SelectItem value="Received">Received</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="pl-8"
+                  />
+                </div>
+                <Button variant="outline" size="icon" onClick={fetchRequests} disabled={isLoading}>
+                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">Loading requests...</div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {requests.length === 0 ? "No requests submitted yet" : "No requests match your search"}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Part ID</TableHead>
+                        <TableHead>Requested By</TableHead>
+                        <TableHead>Service ID</TableHead>
+                        <TableHead>Part Name</TableHead>
+                        <TableHead>Device Type</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Date Needed</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Remarks</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedRequests.map((req) => (
+                        <TableRow key={req.partId}>
+                          <TableCell className="font-medium">{req.partId}</TableCell>
+                          <TableCell>{req.requestedBy}</TableCell>
+                          <TableCell>{req.serviceId}</TableCell>
+                          <TableCell>{req.partName}</TableCell>
+                          <TableCell>{req.deviceType || "N/A"}</TableCell>
+                          <TableCell>{req.quantity}</TableCell>
+                          <TableCell>{req.dateNeeded || "N/A"}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(req.status)}`}>
+                              {req.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="max-w-[150px] truncate" title={req.remarks}>
+                            {req.remarks || "N/A"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRequests.length)} of {filteredRequests.length}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="flex items-center px-2 text-sm">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Info Card */}
         <Card>
           <CardHeader>
             <CardTitle>How to Request Parts</CardTitle>
