@@ -18,8 +18,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'AC Tech Repair - Service Hub',
-        short_name: 'AC Tech Service',
+        name: 'ACTech Service Hub',
+        short_name: 'ACTech Service Hub',
         description: 'AC Tech Repair internal service management portal for tracking client device repairs and service requests',
         theme_color: '#1a1f4e',
         background_color: '#1a1f4e',
