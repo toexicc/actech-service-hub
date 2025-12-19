@@ -160,10 +160,10 @@ export const notifyServiceStatusChange = async (
     const staffList = await fetchStaffList();
     const messages = getStatusNotificationMessages(newStatus, service, changedBy);
     
-    // Notify the ASSIGNED admin (from column C - adminRep) - not all admins
+    // Notify the ASSIGNED admin (from column C - adminRep)
     if (messages.adminMessage && service.adminRep) {
       const assignedAdmin = findStaffByName(staffList, service.adminRep);
-      if (assignedAdmin?.staffId && normalizeStaffName(assignedAdmin.name) !== normalizeStaffName(changedBy)) {
+      if (assignedAdmin?.staffId) {
         await createNotification({
           userId: assignedAdmin.staffId,
           title: `Service ${service.serviceId}: ${newStatus}`,
@@ -179,7 +179,7 @@ export const notifyServiceStatusChange = async (
       const techNames = service.technician.split(',').map(t => t.trim()).filter(Boolean);
       for (const techName of techNames) {
         const tech = findStaffByName(staffList, techName);
-        if (tech?.staffId && normalizeStaffName(tech.name) !== normalizeStaffName(changedBy)) {
+        if (tech?.staffId) {
           await createNotification({
             userId: tech.staffId,
             title: `Service ${service.serviceId}: ${newStatus}`,
