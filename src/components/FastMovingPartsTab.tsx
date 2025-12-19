@@ -361,6 +361,7 @@ export const FastMovingPartsTab = () => {
                     <TableHead>Qty</TableHead>
                     <TableHead>Date Needed</TableHead>
                     <TableHead>Date Ordered</TableHead>
+                    <TableHead>Date Received</TableHead>
                     <TableHead>Supplier</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead>Status</TableHead>
@@ -378,6 +379,7 @@ export const FastMovingPartsTab = () => {
                       <TableCell>{part.quantity}</TableCell>
                       <TableCell>{part.dateNeeded || "N/A"}</TableCell>
                       <TableCell>{part.dateOrdered || "N/A"}</TableCell>
+                      <TableCell>{part.dateReceived || "N/A"}</TableCell>
                       <TableCell>{part.supplier || "N/A"}</TableCell>
                       <TableCell>{part.cost ? `₱${part.cost}` : "N/A"}</TableCell>
                       <TableCell>
