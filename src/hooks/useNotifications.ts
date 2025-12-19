@@ -52,8 +52,8 @@ const showBrowserNotification = (title: string, body: string, icon?: string) => 
       tag: 'ac-tech-notification',
     });
     
-    // Auto close after 5 seconds
-    setTimeout(() => notification.close(), 5000);
+    // Auto close after 15 seconds for better visibility in PWA
+    setTimeout(() => notification.close(), 15000);
     
     // Focus window when clicked
     notification.onclick = () => {
