@@ -98,14 +98,23 @@ const RequestForParts = () => {
     }
   };
 
+  const normalizePersonName = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+
   const filteredRequests = useMemo(() => {
-    return requests.filter(req => {
+    const me = normalizePersonName(userFullName);
+
+    return requests.filter((req) => {
       // Only show requests from the logged-in user
-      if (req.requestedBy?.toLowerCase() !== userFullName.toLowerCase()) return false;
-      
+      const requestedBy = normalizePersonName(req.requestedBy || "");
+      if (!requestedBy || requestedBy !== me) return false;
+
       // Status filter
       if (statusFilter !== "all" && req.status !== statusFilter) return false;
-      
+
       // Search filter
       if (searchQuery) {
         const search = searchQuery.toLowerCase();
