@@ -177,14 +177,17 @@ export const FastMovingPartsTab = () => {
   const handleReceive = async (part: FastMovingPart) => {
     setIsSubmitting(true);
     try {
+      const normalizedCost = String(part.cost ?? '').replace(/[^0-9.]/g, '');
+      const normalizedQty = String(part.quantity ?? '').replace(/[^0-9]/g, '');
+
       const formData = new FormData();
       formData.append("action", "receiveFastMovingPart");
       formData.append("partId", part.partId);
       formData.append("serviceId", part.serviceId);
       formData.append("requestedBy", part.requestedBy);
       formData.append("partName", part.partName);
-      formData.append("cost", part.cost);
-      formData.append("quantity", part.quantity);
+      formData.append("cost", normalizedCost);
+      formData.append("quantity", normalizedQty);
       formData.append("dateReceived", format(new Date(), "yyyy-MM-dd"));
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -194,9 +197,9 @@ export const FastMovingPartsTab = () => {
 
       const result = await response.json();
 
-       if (result.result === "success") {
-         // Notify assigned admin and technician that the part is received
-         await notifyPartReceived(part.serviceId, part.partName);
+      if (result.result === "success") {
+        // Notify assigned admin and technician that the part is received
+        await notifyPartReceived(part.serviceId, part.partName);
 
         toast({
           title: "Success",

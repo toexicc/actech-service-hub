@@ -1039,13 +1039,13 @@ const InventoryManagement = () => {
               <Package className="h-4 w-4 mr-2" />
               Inventory Items
             </TabsTrigger>
-            <TabsTrigger value="logs">
-              <FileText className="h-4 w-4 mr-2" />
-              Inventory Logs
-            </TabsTrigger>
             <TabsTrigger value="fast-moving">
               <ShoppingCart className="h-4 w-4 mr-2" />
               Fast Moving Parts
+            </TabsTrigger>
+            <TabsTrigger value="logs">
+              <FileText className="h-4 w-4 mr-2" />
+              Inventory Logs
             </TabsTrigger>
           </TabsList>
 

@@ -292,6 +292,36 @@ function doGet(e) {
       "status": "not_found"
     })).setMimeType(ContentService.MimeType.JSON);
   }
+
+  // Get service info by Service ID (for part received notifications)
+  if (params.action === 'getServiceById' && params.serviceId) {
+    var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    if (!serviceSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'Service Database sheet not found'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var serviceData = serviceSheet.getDataRange().getDisplayValues();
+    for (var si = 1; si < serviceData.length; si++) {
+      if (serviceData[si][0] == params.serviceId) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          service: {
+            serviceId: serviceData[si][0],
+            adminRep: serviceData[si][2] || '',
+            technician: serviceData[si][3] || ''
+          }
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'Service not found'
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
   
   // Handle search requests for Inquiry Database (service form)
   if (params.action === 'search' && params.serviceId) {

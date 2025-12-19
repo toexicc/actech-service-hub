@@ -36,6 +36,22 @@ interface ServiceRecord {
   deviceType: string;
 }
 
+interface PartForOrdering {
+  partId: string;
+  requestedBy: string;
+  serviceId: string;
+  partName: string;
+  dateNeeded: string;
+  status: string;
+}
+
+interface LowStockItem {
+  partId: string;
+  partName: string;
+  model: string;
+  quantity: number;
+}
+
 const Menu = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
@@ -46,12 +62,15 @@ const Menu = () => {
   });
   const [servicesDueToday, setServicesDueToday] = useState<ServiceRecord[]>([]);
   const [servicesOverdue, setServicesOverdue] = useState<ServiceRecord[]>([]);
+  const [partsForOrdering, setPartsForOrdering] = useState<PartForOrdering[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
 
   const isTechnician = userRole === "technician";
+  const isManagement = userRole === "management";
 
   // Dynamic clock
   useEffect(() => {
@@ -130,6 +149,56 @@ const Menu = () => {
 
         setServicesDueToday(dueToday.slice(0, 5));
         setServicesOverdue(overdue.slice(0, 5));
+      }
+
+      // Management-only dashboards
+      if (isManagement) {
+        try {
+          const [partsRes, inventoryRes] = await Promise.all([
+            fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`),
+            fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`),
+          ]);
+
+          const [partsData, inventoryData] = await Promise.all([
+            partsRes.json(),
+            inventoryRes.json(),
+          ]);
+
+          if (partsData?.status === "success" && Array.isArray(partsData.parts)) {
+            const forOrdering = (partsData.parts as any[])
+              .filter((p) => (p.status || "") === "For Ordering")
+              .map((p) => ({
+                partId: p.partId,
+                requestedBy: p.requestedBy,
+                serviceId: p.serviceId,
+                partName: p.partName,
+                dateNeeded: p.dateNeeded,
+                status: p.status,
+              }));
+            setPartsForOrdering(forOrdering.slice(0, 5));
+          } else {
+            setPartsForOrdering([]);
+          }
+
+          if (inventoryData?.status === "success" && Array.isArray(inventoryData.inventory)) {
+            const lowStock = (inventoryData.inventory as any[])
+              .map((it) => ({
+                partId: it.partId,
+                partName: it.partName,
+                model: it.model,
+                quantity: Number(it.quantity ?? 0),
+              }))
+              .filter((it) => Number.isFinite(it.quantity) && it.quantity <= 2)
+              .sort((a, b) => a.quantity - b.quantity);
+            setLowStockItems(lowStock.slice(0, 5));
+          } else {
+            setLowStockItems([]);
+          }
+        } catch (error) {
+          console.error("Error fetching inventory dashboards:", error);
+          setPartsForOrdering([]);
+          setLowStockItems([]);
+        }
       }
 
       // Fetch inquiries count (only for non-technicians)
@@ -481,6 +550,93 @@ const Menu = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Management Dashboards */}
+        {isManagement && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  Parts For Ordering ({partsForOrdering.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {partsForOrdering.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No parts currently for ordering.</p>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Service ID</TableHead>
+                          <TableHead>Part Name</TableHead>
+                          <TableHead>Requested By</TableHead>
+                          <TableHead>Date Needed</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {partsForOrdering.map((p) => (
+                          <TableRow
+                            key={p.partId}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => navigate("/inventory-management?tab=fast-moving")}
+                          >
+                            <TableCell className="font-medium">{p.serviceId}</TableCell>
+                            <TableCell>{p.partName}</TableCell>
+                            <TableCell>{p.requestedBy}</TableCell>
+                            <TableCell>{p.dateNeeded || "N/A"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  Low Stock Items (≤ 2)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {lowStockItems.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No low stock items.</p>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Part ID</TableHead>
+                          <TableHead>Part Name</TableHead>
+                          <TableHead>Model</TableHead>
+                          <TableHead className="text-right">Qty</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lowStockItems.map((it) => (
+                          <TableRow
+                            key={it.partId}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => navigate("/inventory-management?tab=items")}
+                          >
+                            <TableCell className="font-medium">{it.partId}</TableCell>
+                            <TableCell>{it.partName}</TableCell>
+                            <TableCell>{it.model || "N/A"}</TableCell>
+                            <TableCell className="text-right font-medium text-destructive">{it.quantity}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
