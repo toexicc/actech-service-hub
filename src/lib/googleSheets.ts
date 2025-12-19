@@ -1978,8 +1978,8 @@ function doPost(e) {
     }
     
     var notifId = "NOTIF" + Date.now();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    
+    // IMPORTANT: store real UTC ISO timestamp ("Z" means UTC). Don't format in local timezone with a "Z" suffix.
+    var timestamp = new Date().toISOString();
     notifSheet.appendRow([
       notifId,
       params.userId,
