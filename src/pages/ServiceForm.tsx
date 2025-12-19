@@ -921,7 +921,15 @@ const ServiceForm = () => {
                   render={({ field }) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (checked) {
+                              form.setValue("enablePhotoAnnotation", true);
+                            }
+                          }} 
+                        />
                       </FormControl>
                       <FormLabel className="!mt-0">Dents</FormLabel>
                     </FormItem>
@@ -934,7 +942,15 @@ const ServiceForm = () => {
                   render={({ field }) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (checked) {
+                              form.setValue("enablePhotoAnnotation", true);
+                            }
+                          }} 
+                        />
                       </FormControl>
                       <FormLabel className="!mt-0">Scratches</FormLabel>
                     </FormItem>

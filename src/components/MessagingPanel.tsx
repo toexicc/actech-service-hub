@@ -575,7 +575,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
+      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full max-h-screen overflow-hidden">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center gap-2">
             {(selectedConversation || selectedGroupId) ? (
@@ -623,10 +623,10 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
 
         {(selectedConversation || selectedGroupId) ? (
           // Chat view
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Group members badge */}
             {selectedGroupId && currentGroup && (
-              <div className="px-4 py-2 border-b bg-muted/30">
+              <div className="px-4 py-2 border-b bg-muted/30 flex-shrink-0">
                 <p className="text-xs text-muted-foreground mb-1">Members:</p>
                 <div className="flex flex-wrap gap-1">
                   {currentGroup.memberNames.map((name, idx) => (
@@ -638,7 +638,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
               </div>
             )}
             
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 min-h-0 p-4">
               <div className="space-y-3">
                 {(() => {
                   const sortedMessages = currentMessages.slice().reverse();
@@ -737,7 +737,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
             
             {/* Attached image preview */}
             {attachedImage && (
-              <div className="px-4 py-2 border-t bg-muted/50">
+              <div className="px-4 py-2 border-t bg-muted/50 flex-shrink-0">
                 <div className="relative inline-block">
                   <img 
                     src={attachedImage} 
@@ -756,7 +756,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
               </div>
             )}
             
-            <div className="border-t p-4 flex gap-2">
+            <div className="border-t p-4 flex gap-2 flex-shrink-0">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -779,6 +779,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={sending}
                   title="Take photo"
+                  className="flex-shrink-0"
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
@@ -789,6 +790,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
                   onClick={() => fileInputRef.current?.click()}
                   disabled={sending}
                   title="Attach image"
+                  className="flex-shrink-0"
                 >
                   <Image className="h-4 w-4" />
                 </Button>
@@ -802,9 +804,9 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                   disabled={sending}
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                 />
-                <Button onClick={handleSend} disabled={sending || (!newMessage.trim() && !attachedImage)}>
+                <Button onClick={handleSend} disabled={sending || (!newMessage.trim() && !attachedImage)} className="flex-shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

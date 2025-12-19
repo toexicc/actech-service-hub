@@ -81,10 +81,17 @@ const getStatusNotificationMessages = (
     case 'Ongoing Service':
       return {
         adminMessage: `Technician is starting the repair for ${service.serviceId} (${service.clientName}'s ${deviceInfo}).`,
-        technicianMessage: `After the repair of ${service.serviceId} (${service.clientName}'s ${deviceInfo}), make sure to draft a report, upload checklist and photos, and update status to Done Repair - Observation.`
+        technicianMessage: ''
       };
     
+    case 'Done Repair - Under Observation':
     case 'Done Repair - Observation':
+      return {
+        adminMessage: '',
+        technicianMessage: `After the repair of ${service.serviceId} (${service.clientName}'s ${deviceInfo}), make sure to draft a report, upload checklist and photos, and update status to Done Repair - Under Observation.`
+      };
+    
+    case 'Done Repair - For Release':
       return {
         adminMessage: `Technician is done with the repair for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Kindly review the report and update status to Done Repair - Advise Client.`,
         technicianMessage: ''
