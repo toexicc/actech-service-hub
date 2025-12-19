@@ -1487,8 +1487,8 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                {/* Report Display - Only visible when status is "Done Repair - Observation" */}
-                {serviceData?.status === "Done Repair - Observation" && (
+                {/* Report Display - Only visible when status is "Done Repair - For Release" */}
+                {serviceData?.status === "Done Repair - For Release" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
@@ -1539,6 +1539,26 @@ const ManageClient = () => {
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
+                  </div>
+                )}
+
+                {/* Device Report - Proof (Google Drive Folder) */}
+                {serviceData?.status === "Done Repair - For Release" && serviceData?.deviceReportFolderUrl && (
+                  <div className="bg-muted/30 p-4 rounded-lg border border-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">Device Report - Proof</p>
+                        <p className="text-sm text-muted-foreground">Open the uploaded device report photos in Google Drive.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => window.open(serviceData.deviceReportFolderUrl, "_blank")}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Folder
+                      </Button>
+                    </div>
                   </div>
                 )}
 

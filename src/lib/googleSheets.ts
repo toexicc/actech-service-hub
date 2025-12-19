@@ -2017,7 +2017,7 @@ function doPost(e) {
       // Create the sheet if it doesn't exist
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       notifSheet = ss.insertSheet("Notifications");
-      notifSheet.appendRow(["ID", "User ID", "Title", "Message", "Type", "Read", "Created At", "Service ID"]);
+      notifSheet.appendRow(["ID", "User ID", "Title", "Message", "Type", "sRead", "Timestamp", "Service ID"]);
     }
     
     var notifId = "NOTIF" + Date.now();

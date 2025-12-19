@@ -89,15 +89,15 @@ export const notifyPartRequest = async (
     const staffList = await fetchStaffList();
     const managementStaff = getManagementStaff(staffList);
 
-    for (const staff of managementStaff) {
-      await createNotification({
-        userId: staff.id,
-        title: 'New Part Request',
-        message: `${requesterName} requested a part for Service ID ${serviceId}. Please check as soon as possible.\n\nPart: ${partName}`,
-        type: 'part_request',
-        serviceId: serviceId,
-      });
-    }
+      for (const staff of managementStaff) {
+        await createNotification({
+          userId: staff.id,
+          title: 'New Part Request',
+          message: `${requesterName} requested a part for Service ID ${serviceId}. Please check as soon as possible.\n\nPart: ${partName}`,
+          type: 'others',
+          serviceId: serviceId,
+        });
+      }
   } catch (error) {
     console.error('Error notifying part request:', error);
   }
@@ -121,7 +121,7 @@ export const notifyPartOrdered = async (
         userId: requester.id,
         title: 'Part Ordered',
         message: `Your requested part "${partName}" for Service ID ${serviceId} has been ordered from ${supplier}. Waiting to be received.`,
-        type: 'part_request',
+        type: 'others',
         serviceId: serviceId,
       });
     }
@@ -159,7 +159,7 @@ export const notifyPartReceived = async (
           userId: technician.id,
           title: 'Part Received',
           message: `The part "${partName}" for Service ID ${serviceId} has been received and is ready for use.`,
-          type: 'part_request',
+          type: 'others',
           serviceId: serviceId,
         });
       }
@@ -174,7 +174,7 @@ export const notifyPartReceived = async (
           userId: admin.id,
           title: 'Part Received',
           message: `The part "${partName}" for Service ID ${serviceId} has been received and is ready for use.`,
-          type: 'part_request',
+          type: 'others',
           serviceId: serviceId,
         });
       }

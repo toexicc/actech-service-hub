@@ -5,7 +5,7 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  type: 'service_update' | 'new_inquiry' | 'message' | 'system' | 'part_request';
+  type: 'service_update' | 'new_inquiry' | 'message' | 'system' | 'part_request' | 'others';
   read: boolean;
   createdAt: string;
   serviceId?: string;
@@ -94,8 +94,20 @@ export const createNotification = async (
         serviceId: notification.serviceId ?? '',
       }),
     });
-    const data = await response.json();
-    return data.success || data.result === 'success';
+
+    const rawText = await response.text();
+    let data: any = null;
+    try {
+      data = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      console.error('Error creating notification: non-JSON response', {
+        status: response.status,
+        rawText: rawText?.slice(0, 500),
+      });
+      return false;
+    }
+
+    return data?.success || data?.result === 'success';
   } catch (error) {
     console.error('Error creating notification:', error);
     return false;
