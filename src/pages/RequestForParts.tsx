@@ -135,55 +135,57 @@ const RequestForParts = () => {
 
     setIsSubmitting(true);
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("action", "addFastMovingPart");
-      formDataToSend.append("requestedBy", userFullName);
-      formDataToSend.append("serviceId", formData.serviceId);
-      formDataToSend.append("partName", formData.partName);
-      formDataToSend.append("deviceType", formData.deviceType);
-      formDataToSend.append("brand", formData.brand);
-      formDataToSend.append("model", formData.model);
-      formDataToSend.append("quantity", formData.quantity);
-      formDataToSend.append("dateNeeded", format(dateNeeded, "MM/dd/yyyy"));
-      formDataToSend.append("status", "For Ordering");
-      formDataToSend.append("remarks", formData.remarks);
+      const payload = new URLSearchParams();
+      payload.set("action", "addFastMovingPart");
+      payload.set("requestedBy", userFullName);
+      payload.set("serviceId", formData.serviceId);
+      payload.set("partName", formData.partName);
+      payload.set("deviceType", formData.deviceType);
+      payload.set("brand", formData.brand);
+      payload.set("model", formData.model);
+      payload.set("quantity", formData.quantity);
+      payload.set("dateNeeded", format(dateNeeded, "MM/dd/yyyy"));
+      payload.set("status", "For Ordering");
+      payload.set("remarks", formData.remarks);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      // Google Apps Script web apps commonly don't include CORS headers for POST responses.
+      // Using `no-cors` ensures the request is sent; the response will be opaque.
+      await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
-        body: formDataToSend,
+        mode: "no-cors",
+        redirect: "follow",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body: payload.toString(),
       });
 
-      const result = await response.json();
+      toast({
+        title: "Submitted",
+        description: "Request sent. It should appear in Fast Moving Inventory shortly.",
+      });
 
-      if (result.result === "success") {
-        toast({
-          title: "Success",
-          description: "Part request submitted successfully",
-        });
-        setIsDialogOpen(false);
-        setFormData({
-          serviceId: "",
-          partName: "",
-          deviceType: "",
-          brand: "",
-          model: "",
-          quantity: "",
-          remarks: "",
-        });
-        setDateNeeded(undefined);
-        fetchRequests(); // Refresh the list
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to submit request",
-          variant: "destructive",
-        });
-      }
+      // Optimistically refresh list (if the sheet write succeeds)
+      setTimeout(() => {
+        fetchRequests();
+      }, 800);
+
+      setIsDialogOpen(false);
+      setFormData({
+        serviceId: "",
+        partName: "",
+        deviceType: "",
+        brand: "",
+        model: "",
+        quantity: "",
+        remarks: "",
+      });
+      setDateNeeded(undefined);
     } catch (error) {
       console.error("Error submitting request:", error);
       toast({
         title: "Error",
-        description: "Failed to submit request. Make sure the Apps Script is deployed correctly.",
+        description: "Failed to submit request (network/CORS).",
         variant: "destructive",
       });
     } finally {
