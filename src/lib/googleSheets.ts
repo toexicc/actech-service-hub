@@ -494,26 +494,18 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 /*
 function doGet(e) {
   var params = e.parameter;
+
+  // NOTE: Client Inquiry AI Toggle uses POST action: updateClientInquiryAI
+  // Add this handler inside your doPost(e) as well:
+  //
+  // if (params.action === 'updateClientInquiryAI' && params.rowIndex) {
+  //   var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+  //   var rowIndex = parseInt(params.rowIndex);
+  //   inquirySheet.getRange(rowIndex, 14).setValue(params.aiStatus || "OFF-AI"); // Column N
+  //   return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+  //     .setMimeType(ContentService.MimeType.JSON);
+  // }
   
-  // Handle API Key request (MUST BE FIRST)
-  // Make sure you have a sheet named "Keys" with the OpenAI API key in cell B1
-  if (params.action === 'getApiKey') {
-    var keysSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Keys');
-    
-    if (!keysSheet) {
-      return ContentService.createTextOutput(JSON.stringify({
-        error: 'Keys sheet not found'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Read from B1 (row 1, column 2)
-    var apiKey = keysSheet.getRange(1, 2).getValue();
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      apiKey: apiKey
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
   
   // Handle AI Diagnosis Formatting
   if (params.action === 'formatDiagnosis') {
