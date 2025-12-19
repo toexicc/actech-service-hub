@@ -165,30 +165,7 @@ const RequestForParts = () => {
         description: "Request submitted successfully.",
       });
 
-      // Refresh list
       fetchRequests();
-
-      setIsDialogOpen(false);
-      setFormData({
-        serviceId: "",
-        partName: "",
-        deviceType: "",
-        brand: "",
-        model: "",
-        quantity: "",
-        remarks: "",
-      });
-      setDateNeeded(undefined);
-
-      toast({
-        title: "Submitted",
-        description: "Request sent. It should appear in Fast Moving Inventory shortly.",
-      });
-
-      // Optimistically refresh list (if the sheet write succeeds)
-      setTimeout(() => {
-        fetchRequests();
-      }, 800);
 
       setIsDialogOpen(false);
       setFormData({
