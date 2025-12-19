@@ -1027,6 +1027,7 @@ function doGet(e) {
 
 function doPost(e) {
   var params = e.parameter;
+  var action = params.action;
   
   // Handle device report photo deletion (Service Update page)
   if (params.action === 'deleteDeviceReportPhoto') {

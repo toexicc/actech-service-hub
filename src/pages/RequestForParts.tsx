@@ -154,7 +154,13 @@ const RequestForParts = () => {
         body: formDataToSend,
       });
 
-      const result = await response.json();
+      const rawText = await response.text();
+      let result: any;
+      try {
+        result = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        throw new Error(`Non-JSON response from Apps Script (status ${response.status}): ${rawText?.slice(0, 200)}`);
+      }
 
       if (result?.result !== "success") {
         throw new Error(result?.message || "Request not accepted by Apps Script");
@@ -182,7 +188,7 @@ const RequestForParts = () => {
       console.error("Error submitting request:", error);
       toast({
         title: "Error",
-        description: "Failed to submit request (network/CORS).",
+        description: error instanceof Error ? error.message : "Failed to submit request.",
         variant: "destructive",
       });
     } finally {
