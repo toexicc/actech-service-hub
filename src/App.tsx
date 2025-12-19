@@ -18,6 +18,7 @@ import OpenDashboard from "./pages/OpenDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClientInquiry from "./pages/ClientInquiry";
 import RequestForParts from "./pages/RequestForParts";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/tech-dashboard" element={<OpenDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/request-for-parts" element={<RequestForParts />} />
+          <Route path="/install" element={<Install />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
