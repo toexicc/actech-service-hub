@@ -18,11 +18,15 @@ interface NotificationDropdownProps {
   onOpenMessaging?: (conversationId?: string) => void;
 }
 
-// Format date to local time
+// Format date to local time - simple display without timezone suffix
 const formatLocalTime = (dateString: string) => {
   try {
     const date = new Date(dateString);
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
 
     return new Intl.DateTimeFormat(undefined, {
       month: 'short',
@@ -31,8 +35,6 @@ const formatLocalTime = (dateString: string) => {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-      timeZone,
-      timeZoneName: 'short',
     }).format(date);
   } catch {
     return dateString;
