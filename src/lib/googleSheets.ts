@@ -2601,4 +2601,51 @@ function doPost(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
+// =============================================================================
+// ONE-TIME FIXER: Run this function ONCE to correct existing notification timestamps
+// Go to Apps Script Editor → Select "fixNotificationTimestamps" → Click Run
+// =============================================================================
+function fixNotificationTimestamps() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+  if (!sheet) {
+    Logger.log("Notifications sheet not found");
+    return;
+  }
+  
+  var data = sheet.getDataRange().getValues();
+  var fixedCount = 0;
+  
+  // Skip header row (i=0), start from row 1
+  for (var i = 1; i < data.length; i++) {
+    var createdAt = data[i][6]; // Column G = Created At (index 6)
+    
+    if (!createdAt) continue;
+    
+    var dateStr = String(createdAt);
+    
+    // Only fix if it looks like an ISO string with Z suffix
+    if (dateStr.indexOf('T') > -1 && dateStr.indexOf('Z') > -1) {
+      try {
+        // Parse the incorrectly saved timestamp
+        var wrongDate = new Date(dateStr);
+        
+        // Subtract 8 hours (the offset that was incorrectly added)
+        var correctedDate = new Date(wrongDate.getTime() - (8 * 60 * 60 * 1000));
+        
+        // Save the corrected ISO string
+        var correctedIso = correctedDate.toISOString();
+        sheet.getRange(i + 1, 7).setValue(correctedIso); // Column G = index 7 (1-based)
+        
+        fixedCount++;
+        Logger.log("Row " + (i + 1) + ": " + dateStr + " → " + correctedIso);
+      } catch (e) {
+        Logger.log("Error fixing row " + (i + 1) + ": " + e.toString());
+      }
+    }
+  }
+  
+  Logger.log("Fixed " + fixedCount + " notification timestamps");
+  SpreadsheetApp.getUi().alert("Fixed " + fixedCount + " notification timestamps. Check the logs for details.");
+}
+
 */
