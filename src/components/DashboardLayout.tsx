@@ -101,15 +101,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
-        {/* Request for Parts - visible to admin and technician */}
-        {(userRole === "admin" || userRole === "technician" || userRole === "management") && (
-          <button onClick={() => navigate("/request-for-parts")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/request-for-parts" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><ShoppingCart className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Request for Parts</span>}</button>
-        )}
         <button onClick={() => navigate("/menu")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/menu" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><Home className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Home</span>}</button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
       </nav>
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
+        {/* Request for Parts - visible to admin and technician only */}
+        {(userRole === "admin" || userRole === "technician") && (
+          <button onClick={() => navigate("/request-for-parts")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all mb-2", location.pathname === "/request-for-parts" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><ShoppingCart className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Request for Parts</span>}</button>
+        )}
         {(isMobile || !collapsed) && <div className="mb-3 px-2"><p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p><p className="text-xs text-sidebar-foreground/60 capitalize">{userRole}</p></div>}
         <Button variant="ghost" className={cn("w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10", !isMobile && collapsed && "justify-center px-2")} onClick={handleLogout}><LogOut className="h-5 w-5" />{(isMobile || !collapsed) && <span className="ml-3">Logout</span>}</Button>
       </div>
