@@ -11,11 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
+import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { cn } from "@/lib/utils";
 import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
-
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3fTTcFoMpwyqF90CBgdu-5xjSZwSjscd-kKD2qPVorh5Pqrxle28vBha59qt9g9c0pA/exec";
 
 interface ClientInquiry {
   rowIndex: number;
@@ -60,7 +59,7 @@ const ClientInquiryTable = () => {
   const fetchInquiries = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getClientInquiries`);
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`);
       const result = await response.json();
       if (result.status === "success") {
         setInquiries(result.data || []);
@@ -162,7 +161,7 @@ const ClientInquiryTable = () => {
       formData.append("pickUpDate", editForm.pickUpDate || "");
       formData.append("directChatLink", editForm.directChatLink || "");
       
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData
       });
@@ -198,7 +197,7 @@ const ClientInquiryTable = () => {
       formData.append("action", "deleteClientInquiry");
       formData.append("rowIndex", deletingInquiry.rowIndex.toString());
       
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData
       });
@@ -234,7 +233,7 @@ const ClientInquiryTable = () => {
         aiStatus: newStatus,
       });
 
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
