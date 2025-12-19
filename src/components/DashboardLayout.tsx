@@ -113,8 +113,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   );
 
   if (isMobile) return (
-    <div className="flex flex-col h-screen w-full bg-background">
-      <header className="sticky top-0 z-50 flex h-14 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
+    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -140,7 +140,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">{children}</main>
     </div>
   );
 
@@ -161,12 +161,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </button>
       </aside>
 
-      <main className={cn("flex flex-col flex-1 h-screen", collapsed ? "ml-20" : "ml-64")}>
-        <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur">
+      <main className={cn("flex flex-col flex-1 h-screen min-w-0", collapsed ? "ml-20" : "ml-64")}>
+        <header className="sticky top-0 z-50 flex h-14 w-full shrink-0 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur">
           <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </header>
-        <div className="flex-1 overflow-y-auto p-0">{children}</div>
+        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-0">{children}</div>
       </main>
     </div>
   );
