@@ -510,8 +510,8 @@ const ServiceForm = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-4 md:p-8 animate-fade-in">
-        <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50">
+      <div className="p-4 md:p-8 animate-fade-in pb-8">
+        <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50 mb-0">
         
         <div className="text-center mb-8">
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
