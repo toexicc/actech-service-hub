@@ -13,6 +13,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Edit, Trash2, Package, CalendarIcon, Loader2, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { notifyPartOrdered, notifyPartReceived } from "@/lib/partNotifications";
 
 interface FastMovingPart {
   partId: string;
@@ -138,6 +139,14 @@ export const FastMovingPartsTab = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        // Notify the requester that their part has been ordered
+        notifyPartOrdered(
+          selectedPart.requestedBy,
+          selectedPart.serviceId,
+          selectedPart.partName,
+          orderForm.supplier
+        );
+
         toast({
           title: "Success",
           description: "Order placed successfully",
@@ -186,6 +195,9 @@ export const FastMovingPartsTab = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        // Notify assigned admin and technician that the part is received
+        notifyPartReceived(part.serviceId, part.partName);
+
         toast({
           title: "Success",
           description: "Part received and added to service",
