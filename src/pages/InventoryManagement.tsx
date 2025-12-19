@@ -14,7 +14,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
@@ -22,6 +22,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { sanitizeInput, sanitizeNumber, textFieldSchema } from "@/lib/validation";
 import QRCode from "qrcode";
 import DashboardLayout from "@/components/DashboardLayout";
+import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
 
 interface InventoryItem {
   partId: string;
@@ -1020,7 +1021,7 @@ const InventoryManagement = () => {
 
         {/* Tabs for Inventory Items and Logs */}
         <Tabs defaultValue="items" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="items">
               <Package className="h-4 w-4 mr-2" />
               Inventory Items
@@ -1028,6 +1029,10 @@ const InventoryManagement = () => {
             <TabsTrigger value="logs">
               <FileText className="h-4 w-4 mr-2" />
               Inventory Logs
+            </TabsTrigger>
+            <TabsTrigger value="fast-moving">
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Fast Moving Parts
             </TabsTrigger>
           </TabsList>
 
@@ -1527,6 +1532,11 @@ const InventoryManagement = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Fast Moving Parts Tab */}
+          <TabsContent value="fast-moving">
+            <FastMovingPartsTab />
           </TabsContent>
         </Tabs>
 

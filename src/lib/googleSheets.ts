@@ -2602,6 +2602,253 @@ function doPost(e) {
 }
 
 // =============================================================================
+// FAST MOVING INVENTORY HANDLERS
+// Sheet: "Fast Moving Inventory"
+// Columns: A=Part ID, B=Requested By, C=Service ID, D=Part Name, E=Device Type,
+//          F=Brand, G=Model, H=Quantity, I=Date Needed, J=Date Ordered, K=Date Received,
+//          L=Supplier, M=Cost, N=Status, O=Last Updated, P=Remarks
+// =============================================================================
+
+// GET all Fast Moving Parts
+if (params.action === 'getFastMovingParts') {
+  var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+  if (!fmSheet) {
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "error",
+      "message": "Fast Moving Inventory sheet not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  var data = fmSheet.getDataRange().getDisplayValues();
+  var parts = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0]) {
+      parts.push({
+        "partId": data[i][0],
+        "requestedBy": data[i][1],
+        "serviceId": data[i][2],
+        "partName": data[i][3],
+        "deviceType": data[i][4],
+        "brand": data[i][5],
+        "model": data[i][6],
+        "quantity": data[i][7],
+        "dateNeeded": data[i][8],
+        "dateOrdered": data[i][9],
+        "dateReceived": data[i][10],
+        "supplier": data[i][11],
+        "cost": data[i][12],
+        "status": data[i][13],
+        "lastUpdated": data[i][14],
+        "remarks": data[i][15]
+      });
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "status": "success",
+    "parts": parts
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// =============================================================================
+// doPost handlers for Fast Moving Inventory
+// =============================================================================
+
+// In doPost function, add these handlers:
+
+// ADD Fast Moving Part Request
+if (action === 'addFastMovingPart') {
+  var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+  var partId = "FM" + Date.now();
+  var timestamp = new Date().toISOString();
+  
+  fmSheet.appendRow([
+    partId,
+    e.parameter.requestedBy || "",
+    e.parameter.serviceId || "",
+    e.parameter.partName || "",
+    e.parameter.deviceType || "",
+    e.parameter.brand || "",
+    e.parameter.model || "",
+    e.parameter.quantity || "",
+    e.parameter.dateNeeded || "",
+    "", // Date Ordered
+    "", // Date Received
+    "", // Supplier
+    "", // Cost
+    e.parameter.status || "For Ordering",
+    timestamp,
+    e.parameter.remarks || ""
+  ]);
+  
+  // Notify management about new request
+  var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+  
+  if (notifSheet && staffSheet) {
+    var staffData = staffSheet.getDataRange().getValues();
+    for (var i = 1; i < staffData.length; i++) {
+      if (staffData[i][2] && staffData[i][2].toLowerCase() === "management" && staffData[i][3] === "Active") {
+        var notifId = "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5);
+        notifSheet.appendRow([
+          notifId,
+          staffData[i][0], // Management staff ID
+          "service_update",
+          "New Part Request",
+          e.parameter.requestedBy + " requested " + e.parameter.partName + " for Service ID: " + e.parameter.serviceId,
+          "", // serviceId
+          timestamp,
+          "false"
+        ]);
+      }
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success",
+    "partId": partId
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// UPDATE Fast Moving Part Order (when placing order)
+if (action === 'updateFastMovingPartOrder') {
+  var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+  var data = fmSheet.getDataRange().getValues();
+  var timestamp = new Date().toISOString();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === e.parameter.partId) {
+      fmSheet.getRange(i + 1, 10).setValue(e.parameter.dateOrdered || ""); // Column J
+      fmSheet.getRange(i + 1, 12).setValue(e.parameter.supplier || ""); // Column L
+      fmSheet.getRange(i + 1, 13).setValue(e.parameter.cost || ""); // Column M
+      fmSheet.getRange(i + 1, 14).setValue(e.parameter.status || "Ordered"); // Column N
+      fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O
+      if (e.parameter.remarks) {
+        fmSheet.getRange(i + 1, 16).setValue(e.parameter.remarks); // Column P
+      }
+      break;
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// RECEIVE Fast Moving Part
+if (action === 'receiveFastMovingPart') {
+  var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+  var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+  var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+  var data = fmSheet.getDataRange().getValues();
+  var timestamp = new Date().toISOString();
+  
+  var requestedBy = e.parameter.requestedBy;
+  var partName = e.parameter.partName;
+  var serviceId = e.parameter.serviceId;
+  var cost = e.parameter.cost || "0";
+  var quantity = e.parameter.quantity || "1";
+  
+  // Update Fast Moving sheet
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === e.parameter.partId) {
+      fmSheet.getRange(i + 1, 11).setValue(e.parameter.dateReceived || timestamp.split('T')[0]); // Column K
+      fmSheet.getRange(i + 1, 14).setValue("Received"); // Column N
+      fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O
+      break;
+    }
+  }
+  
+  // Update Service Database - Add to Parts Cost (AT) and Parts Used (AU)
+  if (serviceSheet && serviceId) {
+    var serviceData = serviceSheet.getDataRange().getValues();
+    for (var j = 1; j < serviceData.length; j++) {
+      if (serviceData[j][0] === serviceId) {
+        // Column AT (46) - Parts Cost
+        var existingPartsCost = parseFloat(serviceData[j][45]) || 0;
+        var newPartsCost = existingPartsCost + (parseFloat(cost) * parseInt(quantity));
+        serviceSheet.getRange(j + 1, 46).setValue(newPartsCost);
+        
+        // Column AU (47) - Parts Used
+        var existingPartsUsed = serviceData[j][46] || "";
+        var newPart = partName + " (x" + quantity + ")";
+        var updatedPartsUsed = existingPartsUsed ? existingPartsUsed + ", " + newPart : newPart;
+        serviceSheet.getRange(j + 1, 47).setValue(updatedPartsUsed);
+        break;
+      }
+    }
+  }
+  
+  // Notify the requester
+  if (notifSheet && staffSheet && requestedBy) {
+    var staffData = staffSheet.getDataRange().getValues();
+    for (var k = 1; k < staffData.length; k++) {
+      if (staffData[k][1] === requestedBy || staffData[k][3] === requestedBy) {
+        var notifId = "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5);
+        notifSheet.appendRow([
+          notifId,
+          staffData[k][0], // Staff ID
+          "service_update",
+          "Part Received",
+          "The part '" + partName + "' you requested for Service ID: " + serviceId + " has been received and is now available.",
+          serviceId,
+          timestamp,
+          "false"
+        ]);
+        break;
+      }
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// UPDATE Fast Moving Part (edit)
+if (action === 'updateFastMovingPart') {
+  var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+  var data = fmSheet.getDataRange().getValues();
+  var timestamp = new Date().toISOString();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === e.parameter.partId) {
+      fmSheet.getRange(i + 1, 4).setValue(e.parameter.partName || data[i][3]); // Column D
+      fmSheet.getRange(i + 1, 5).setValue(e.parameter.deviceType || data[i][4]); // Column E
+      fmSheet.getRange(i + 1, 6).setValue(e.parameter.brand || data[i][5]); // Column F
+      fmSheet.getRange(i + 1, 7).setValue(e.parameter.model || data[i][6]); // Column G
+      fmSheet.getRange(i + 1, 8).setValue(e.parameter.quantity || data[i][7]); // Column H
+      fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O
+      fmSheet.getRange(i + 1, 16).setValue(e.parameter.remarks || data[i][15]); // Column P
+      break;
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// DELETE Fast Moving Part
+if (action === 'deleteFastMovingPart') {
+  var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+  var data = fmSheet.getDataRange().getValues();
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === e.parameter.partId) {
+      fmSheet.deleteRow(i + 1);
+      break;
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success"
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// =============================================================================
 // ONE-TIME FIXER: Run this function ONCE to correct existing notification timestamps
 // Go to Apps Script Editor → Select "fixNotificationTimestamps" → Click Run
 // =============================================================================
