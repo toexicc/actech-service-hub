@@ -189,6 +189,7 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
       case 'message':
         return '💬';
       case 'part_request':
+      case 'others':
         return '📦';
       default:
         return '🔔';
@@ -273,11 +274,11 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <TabsTrigger value="others" className="text-xs flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5" />
                 Others
-                {notifications.filter(n => n.type === 'part_request' && !n.read).length > 0 && (
-                  <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                    {notifications.filter(n => n.type === 'part_request' && !n.read).length}
-                  </span>
-                )}
+                 {notifications.filter(n => (n.type === 'others' || n.type === 'part_request') && !n.read).length > 0 && (
+                   <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
+                     {notifications.filter(n => (n.type === 'others' || n.type === 'part_request') && !n.read).length}
+                   </span>
+                 )}
               </TabsTrigger>
             </TabsList>
 
@@ -375,14 +376,14 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <ScrollArea className="h-[350px]">
                 {loading ? (
                   <div className="p-4 text-center text-muted-foreground">Loading...</div>
-                ) : notifications.filter(n => n.type === 'part_request').length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">No other notifications</div>
-                ) : (
-                  groupNotificationsByDate(
-                    notifications
-                      .filter(n => n.type === 'part_request')
-                      .slice(0, 20)
-                  ).map((group) => (
+                 ) : notifications.filter(n => n.type === 'others' || n.type === 'part_request').length === 0 ? (
+                   <div className="p-4 text-center text-muted-foreground">No other notifications</div>
+                 ) : (
+                   groupNotificationsByDate(
+                     notifications
+                       .filter(n => n.type === 'others' || n.type === 'part_request')
+                       .slice(0, 20)
+                   ).map((group) => (
                     <div key={group.date}>
                       <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">
                         <p className="text-xs font-semibold text-muted-foreground">{group.label}</p>

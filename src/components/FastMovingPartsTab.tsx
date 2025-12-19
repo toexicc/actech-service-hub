@@ -138,14 +138,14 @@ export const FastMovingPartsTab = () => {
 
       const result = await response.json();
 
-      if (result.result === "success") {
-        // Notify the requester that their part has been ordered
-        notifyPartOrdered(
-          selectedPart.requestedBy,
-          selectedPart.serviceId,
-          selectedPart.partName,
-          orderForm.supplier
-        );
+       if (result.result === "success") {
+         // Notify the requester that their part has been ordered
+         await notifyPartOrdered(
+           selectedPart.requestedBy,
+           selectedPart.serviceId,
+           selectedPart.partName,
+           orderForm.supplier
+         );
 
         toast({
           title: "Success",
@@ -194,9 +194,9 @@ export const FastMovingPartsTab = () => {
 
       const result = await response.json();
 
-      if (result.result === "success") {
-        // Notify assigned admin and technician that the part is received
-        notifyPartReceived(part.serviceId, part.partName);
+       if (result.result === "success") {
+         // Notify assigned admin and technician that the part is received
+         await notifyPartReceived(part.serviceId, part.partName);
 
         toast({
           title: "Success",
