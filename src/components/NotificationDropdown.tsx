@@ -41,6 +41,66 @@ const formatLocalTime = (dateString: string) => {
   }
 };
 
+// Get date key for grouping (YYYY-MM-DD)
+const getDateKey = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Unknown";
+    return date.toISOString().split('T')[0];
+  } catch {
+    return "Unknown";
+  }
+};
+
+// Format date for divider display
+const formatDateDivider = (dateKey: string) => {
+  if (dateKey === "Unknown") return "Unknown Date";
+  
+  const date = new Date(dateKey + "T00:00:00");
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (date.toDateString() === today.toDateString()) {
+    return "Today";
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  } else {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+    }).format(date);
+  }
+};
+
+// Group notifications by date
+const groupNotificationsByDate = (notifications: any[]) => {
+  const groups: { [key: string]: any[] } = {};
+  
+  notifications.forEach(notification => {
+    const dateKey = getDateKey(notification.createdAt);
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].push(notification);
+  });
+  
+  // Sort date keys in descending order (most recent first)
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    if (a === "Unknown") return 1;
+    if (b === "Unknown") return -1;
+    return b.localeCompare(a);
+  });
+  
+  return sortedKeys.map(key => ({
+    date: key,
+    label: formatDateDivider(key),
+    notifications: groups[key]
+  }));
+};
+
 export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: NotificationDropdownProps) => {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications(userId);
@@ -217,32 +277,40 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                 ) : notifications.filter(n => n.type === 'service_update' || n.type === 'new_inquiry').length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">No service notifications</div>
                 ) : (
-                  notifications
-                    .filter(n => n.type === 'service_update' || n.type === 'new_inquiry')
-                    .slice(0, 20)
-                    .map((notification) => (
-                      <DropdownMenuItem
-                        key={notification.id}
-                        className={`flex flex-col items-start p-3 cursor-pointer ${
-                          !notification.read ? 'bg-accent/50' : ''
-                        }`}
-                        onClick={() => handleNotificationClick(notification)}
-                      >
-                        <div className="flex items-start gap-2 w-full">
-                          <span className="text-lg">{getNotificationIcon(notification.type)}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">{notification.title}</p>
-                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatLocalTime(notification.createdAt)}
-                            </p>
+                  groupNotificationsByDate(
+                    notifications
+                      .filter(n => n.type === 'service_update' || n.type === 'new_inquiry')
+                      .slice(0, 20)
+                  ).map((group) => (
+                    <div key={group.date}>
+                      <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">
+                        <p className="text-xs font-semibold text-muted-foreground">{group.label}</p>
+                      </div>
+                      {group.notifications.map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={`flex flex-col items-start p-3 cursor-pointer ${
+                            !notification.read ? 'bg-accent/50' : ''
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatLocalTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
                           </div>
-                          {!notification.read && (
-                            <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          )}
-                        </div>
-                      </DropdownMenuItem>
-                    ))
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  ))
                 )}
               </ScrollArea>
             </TabsContent>
@@ -254,32 +322,40 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                 ) : notifications.filter(n => n.type === 'message').length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">No message notifications</div>
                 ) : (
-                  notifications
-                    .filter(n => n.type === 'message')
-                    .slice(0, 20)
-                    .map((notification) => (
-                      <DropdownMenuItem
-                        key={notification.id}
-                        className={`flex flex-col items-start p-3 cursor-pointer ${
-                          !notification.read ? 'bg-accent/50' : ''
-                        }`}
-                        onClick={() => handleNotificationClick(notification)}
-                      >
-                        <div className="flex items-start gap-2 w-full">
-                          <span className="text-lg">{getNotificationIcon(notification.type)}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm">{notification.title}</p>
-                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatLocalTime(notification.createdAt)}
-                            </p>
+                  groupNotificationsByDate(
+                    notifications
+                      .filter(n => n.type === 'message')
+                      .slice(0, 20)
+                  ).map((group) => (
+                    <div key={group.date}>
+                      <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">
+                        <p className="text-xs font-semibold text-muted-foreground">{group.label}</p>
+                      </div>
+                      {group.notifications.map((notification) => (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={`flex flex-col items-start p-3 cursor-pointer ${
+                            !notification.read ? 'bg-accent/50' : ''
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-2 w-full">
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatLocalTime(notification.createdAt)}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                            )}
                           </div>
-                          {!notification.read && (
-                            <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          )}
-                        </div>
-                      </DropdownMenuItem>
-                    ))
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  ))
                 )}
               </ScrollArea>
             </TabsContent>

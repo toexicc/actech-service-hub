@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  MessageSquare, Monitor, Menu,
+  MessageSquare, Monitor, Menu, ShoppingCart,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -101,6 +101,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
+        {/* Request for Parts - visible to admin and technician */}
+        {(userRole === "admin" || userRole === "technician" || userRole === "management") && (
+          <button onClick={() => navigate("/request-for-parts")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/request-for-parts" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><ShoppingCart className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Request for Parts</span>}</button>
+        )}
         <button onClick={() => navigate("/menu")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/menu" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><Home className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Home</span>}</button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
