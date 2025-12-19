@@ -135,45 +135,51 @@ const RequestForParts = () => {
 
     setIsSubmitting(true);
     try {
-      const payload = new URLSearchParams();
-      payload.set("action", "addFastMovingPart");
-      payload.set("requestedBy", userFullName);
-      payload.set("serviceId", formData.serviceId);
-      payload.set("partName", formData.partName);
-      payload.set("deviceType", formData.deviceType);
-      payload.set("brand", formData.brand);
-      payload.set("model", formData.model);
-      payload.set("quantity", formData.quantity);
-      payload.set("dateNeeded", format(dateNeeded, "MM/dd/yyyy"));
-      payload.set("status", "For Ordering");
-      payload.set("remarks", formData.remarks);
+      // Match InventoryManagement submission style (FormData + fetch + JSON response)
+      const formDataToSend = new FormData();
+      formDataToSend.append("action", "addFastMovingPart");
+      formDataToSend.append("requestedBy", userFullName);
+      formDataToSend.append("serviceId", formData.serviceId);
+      formDataToSend.append("partName", formData.partName);
+      formDataToSend.append("deviceType", formData.deviceType);
+      formDataToSend.append("brand", formData.brand);
+      formDataToSend.append("model", formData.model);
+      formDataToSend.append("quantity", formData.quantity);
+      formDataToSend.append("dateNeeded", format(dateNeeded, "MM/dd/yyyy"));
+      formDataToSend.append("status", "For Ordering");
+      formDataToSend.append("remarks", formData.remarks);
 
-      // Workaround: HTML form POST is not blocked by CORS like fetch/XHR.
-      const iframeName = "gas_submit_iframe";
-      let iframe = document.querySelector<HTMLIFrameElement>(`iframe[name="${iframeName}"]`);
-      if (!iframe) {
-        iframe = document.createElement("iframe");
-        iframe.name = iframeName;
-        iframe.style.display = "none";
-        document.body.appendChild(iframe);
-      }
-
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = GOOGLE_SHEETS_SCRIPT_URL;
-      form.target = iframeName;
-
-      payload.forEach((value, key) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formDataToSend,
+        redirect: "follow",
       });
 
-      document.body.appendChild(form);
-      form.submit();
-      form.remove();
+      const result = await response.json();
+
+      if (result?.result !== "success") {
+        throw new Error(result?.message || "Request not accepted by Apps Script");
+      }
+
+      toast({
+        title: "Submitted",
+        description: "Request submitted successfully.",
+      });
+
+      // Refresh list
+      fetchRequests();
+
+      setIsDialogOpen(false);
+      setFormData({
+        serviceId: "",
+        partName: "",
+        deviceType: "",
+        brand: "",
+        model: "",
+        quantity: "",
+        remarks: "",
+      });
+      setDateNeeded(undefined);
 
       toast({
         title: "Submitted",
