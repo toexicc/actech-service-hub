@@ -250,7 +250,7 @@ const RequestForParts = () => {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateNeeded ? format(dateNeeded, "PPP") : "Select date"}
+                        {dateNeeded ? format(dateNeeded, "MM/dd/yyyy") : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
