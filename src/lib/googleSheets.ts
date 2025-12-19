@@ -16,18 +16,15 @@ export const GOOGLE_SHEETS_SCRIPT_URL =
 function doGet(e) {
   var params = e.parameter;
 
-  // NOTE: Client Inquiry AI Toggle uses POST action: updateClientInquiryAI
-  // Add this handler inside your doPost(e) as well:
-  //
-  // if (params.action === 'updateClientInquiryAI' && params.rowIndex) {
-  //   var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
-  //   var rowIndex = parseInt(params.rowIndex);
-  //   inquirySheet.getRange(rowIndex, 14).setValue(params.aiStatus || "OFF-AI"); // Column N
-  //   return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
-  //     .setMimeType(ContentService.MimeType.JSON);
-  // }
-  
-  
+  // Handle Client Inquiry AI Toggle (Column N)
+  if (params.action === 'updateClientInquiryAI' && params.rowIndex) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    var rowIndex = parseInt(params.rowIndex);
+    inquirySheet.getRange(rowIndex, 14).setValue(params.aiStatus || "OFF-AI");
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Handle AI Diagnosis Formatting
   if (params.action === 'formatDiagnosis') {
     try {
