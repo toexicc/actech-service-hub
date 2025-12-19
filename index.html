@@ -2,10 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>AC Tech Repair - Service Hub</title>
-        <script type="text/javascript">
-
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a1f4e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AC Tech Service" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    
+    <!-- Standard Meta Tags -->
+    <meta name="description" content="AC Tech Repair internal service management portal for tracking client device repairs and service requests">
+    <meta name="author" content="Stack&Scale" />
+    <meta property="og:title" content="AC Tech Repair - Service Hub">
+    <meta property="og:description" content="Internal service management portal for tracking client device repairs">
+    <meta property="og:type" content="website">
+    
+    <!-- GitHub Pages SPA Redirect Script -->
+    <script type="text/javascript">
       (function(l) {
         if (l.search[1] === '/' ) {
           var decoded = l.search.slice(1).split('&').map(function(s) { 
@@ -17,11 +32,7 @@
         }
       }(window.location))
     </script>
-    <!-- End Single Page Apps for GitHub Pages -->
-    <meta name="description" content="AC Tech Repair internal service management portal for tracking client device repairs and service requests">
-    <meta name="author" content="Stack&Scale" />
-    <meta property="og:title" content="AC Tech Repair - Service Hub">
-</head>
+  </head>
 
   <body>
     <div id="root"></div>
