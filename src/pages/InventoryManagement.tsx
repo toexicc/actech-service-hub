@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { useDebounce } from "@/hooks/useDebounce";
 import { sanitizeInput, sanitizeNumber, textFieldSchema } from "@/lib/validation";
+import { useInventory, useInventoryLogs, useInvalidateInventory } from "@/hooks/useInventory";
 import QRCode from "qrcode";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
@@ -88,10 +89,10 @@ const InventoryManagement = () => {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [logs, setLogs] = useState<InventoryLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLogsLoading, setIsLogsLoading] = useState(true);
+  // Use React Query hooks for cached data fetching
+  const { data: inventory = [], isLoading, refetch: refetchInventory } = useInventory();
+  const { data: logs = [], isLoading: isLogsLoading, refetch: refetchLogs } = useInventoryLogs();
+  const { invalidateAll } = useInvalidateInventory();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -145,115 +146,9 @@ const InventoryManagement = () => {
     remarks: ""
   });
 
-  useEffect(() => {
-    // Fetch both inventory and logs in parallel
-    const fetchAllData = async () => {
-      setIsLoading(true);
-      setIsLogsLoading(true);
-      
-      try {
-        const [inventoryResponse, logsResponse] = await Promise.all([
-          fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`),
-          fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryLogs`)
-        ]);
-
-        const [inventoryData, logsData] = await Promise.all([
-          inventoryResponse.json(),
-          logsResponse.json()
-        ]);
-
-        if (inventoryData.status === "success" && inventoryData.inventory) {
-          setInventory(inventoryData.inventory);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to load inventory",
-            variant: "destructive",
-          });
-        }
-
-        if (logsData.status === "success" && logsData.logs) {
-          setLogs(logsData.logs);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to load inventory logs",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-        setIsLogsLoading(false);
-      }
-    };
-
-    fetchAllData();
-  }, []);
-
-  const fetchInventory = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`
-      );
-      const data = await response.json();
-
-      if (data.status === "success" && data.inventory) {
-        setInventory(data.inventory);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load inventory",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load inventory",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchInventoryLogs = async () => {
-    setIsLogsLoading(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryLogs`
-      );
-      const data = await response.json();
-
-      if (data.status === "success" && data.logs) {
-        setLogs(data.logs);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load inventory logs",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching inventory logs:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load inventory logs",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLogsLoading(false);
-    }
-  };
+  // Helper functions to refresh data after mutations
+  const fetchInventory = () => refetchInventory();
+  const fetchInventoryLogs = () => refetchLogs();
 
   const handleAddPart = async () => {
     if (!newPart.partName || !newPart.deviceType || !newPart.quantity) {
