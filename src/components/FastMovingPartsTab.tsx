@@ -36,7 +36,11 @@ interface FastMovingPart {
   remarks: string;
 }
 
-export const FastMovingPartsTab = () => {
+interface FastMovingPartsTabProps {
+  isViewOnly?: boolean;
+}
+
+export const FastMovingPartsTab = ({ isViewOnly = false }: FastMovingPartsTabProps) => {
   const { toast } = useToast();
   const [parts, setParts] = useState<FastMovingPart[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -504,10 +508,10 @@ export const FastMovingPartsTab = () => {
                     <TableHead>Date Ordered</TableHead>
                     <TableHead>Date Received</TableHead>
                     <TableHead>Supplier</TableHead>
-                    <TableHead>Cost</TableHead>
+                    {!isViewOnly && <TableHead>Cost</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead>Remarks</TableHead>
-                    <TableHead>Actions</TableHead>
+                    {!isViewOnly && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -523,7 +527,7 @@ export const FastMovingPartsTab = () => {
                       <TableCell>{part.dateOrdered || "N/A"}</TableCell>
                       <TableCell>{part.dateReceived || "N/A"}</TableCell>
                       <TableCell>{part.supplier || "N/A"}</TableCell>
-                      <TableCell>{part.cost ? `₱${part.cost}` : "N/A"}</TableCell>
+                      {!isViewOnly && <TableCell>{part.cost ? `₱${part.cost}` : "N/A"}</TableCell>}
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(part.status)}`}>
                           {part.status}
@@ -532,64 +536,66 @@ export const FastMovingPartsTab = () => {
                       <TableCell className="max-w-[150px] truncate" title={part.remarks || ""}>
                         {part.remarks || "N/A"}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditForm(part);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => {
-                              setSelectedPart(part);
-                              setIsCancelDialogOpen(true);
-                            }}
-                            disabled={part.status === "Cancelled" || part.status === "Received"}
-                            title="Cancel request"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDuplicateOpen(part)}
-                            title="Duplicate request"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          {part.status === "For Ordering" && (
+                      {!isViewOnly && (
+                        <TableCell>
+                          <div className="flex gap-2">
                             <Button
                               size="sm"
-                              variant="default"
+                              variant="outline"
                               onClick={() => {
-                                setSelectedPart(part);
-                                setIsOrderDialogOpen(true);
+                                setEditForm(part);
+                                setIsEditDialogOpen(true);
                               }}
                             >
-                              Order
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          )}
-                          {part.status === "Ordered" && (
                             <Button
                               size="sm"
-                              variant="default"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={() => handleReceive(part)}
-                              disabled={isSubmitting}
+                              variant="outline"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                setSelectedPart(part);
+                                setIsCancelDialogOpen(true);
+                              }}
+                              disabled={part.status === "Cancelled" || part.status === "Received"}
+                              title="Cancel request"
                             >
-                              Receive
+                              <X className="h-4 w-4" />
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDuplicateOpen(part)}
+                              title="Duplicate request"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            {part.status === "For Ordering" && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => {
+                                  setSelectedPart(part);
+                                  setIsOrderDialogOpen(true);
+                                }}
+                              >
+                                Order
+                              </Button>
+                            )}
+                            {part.status === "Ordered" && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => handleReceive(part)}
+                                disabled={isSubmitting}
+                              >
+                                Receive
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
