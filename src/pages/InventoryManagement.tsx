@@ -1098,6 +1098,7 @@ const InventoryManagement = () => {
                               Quantity <ArrowUpDown className="h-4 w-4" />
                             </div>
                           </TableHead>
+                          <TableHead>Cost</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
                             <div className="flex items-center gap-1">
@@ -1139,6 +1140,7 @@ const InventoryManagement = () => {
                                 <TableCell className={getStatusColor(item)}>
                                   {item.quantity}
                                 </TableCell>
+                                <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>
                                 <TableCell>
                                   <span className={`px-2 py-1 rounded text-xs ${
                                     item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :

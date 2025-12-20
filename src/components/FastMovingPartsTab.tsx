@@ -506,6 +506,7 @@ export const FastMovingPartsTab = () => {
                     <TableHead>Supplier</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Remarks</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -527,6 +528,9 @@ export const FastMovingPartsTab = () => {
                         <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(part.status)}`}>
                           {part.status}
                         </span>
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate" title={part.remarks || ""}>
+                        {part.remarks || "N/A"}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
