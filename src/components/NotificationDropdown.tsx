@@ -202,9 +202,9 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
   };
 
   const getNotificationIcon = (type: string, title?: string) => {
-    // Check for cancelled notifications first
-    if (title?.toLowerCase().includes('cancelled')) {
-      return '❌';
+    // Check for cancelled notifications first - must be before type switch
+    if (title && title.toLowerCase().includes('cancelled')) {
+      return '🚫';
     }
     
     switch (type) {
