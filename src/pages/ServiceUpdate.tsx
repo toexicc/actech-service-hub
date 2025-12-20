@@ -200,11 +200,38 @@ const ServiceUpdate = () => {
 
   const fetchInventory = async () => {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventory`);
-      const data = await response.json();
-      if (data.status === "success") {
-        setInventory(data.inventory || []);
+      // Fetch from both regular inventory and fast moving inventory
+      const [inventoryRes, fastMovingRes] = await Promise.all([
+        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventory`),
+        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`)
+      ]);
+      
+      const inventoryData = await inventoryRes.json();
+      const fastMovingData = await fastMovingRes.json();
+      
+      let allInventory: InventoryItem[] = [];
+      
+      // Add regular inventory
+      if (inventoryData.status === "success" && inventoryData.inventory) {
+        allInventory = [...inventoryData.inventory];
       }
+      
+      // Add fast moving parts that are "Received" status
+      if (fastMovingData.status === "success" && fastMovingData.parts) {
+        const receivedParts = fastMovingData.parts
+          .filter((part: any) => part.status === "Received")
+          .map((part: any) => ({
+            id: part.partId,
+            name: part.partName,
+            deviceType: part.deviceType || "",
+            model: part.model || "",
+            cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
+            quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0
+          }));
+        allInventory = [...allInventory, ...receivedParts];
+      }
+      
+      setInventory(allInventory);
     } catch (error) {
       console.error("Error fetching inventory:", error);
     }
@@ -424,8 +451,9 @@ const ServiceUpdate = () => {
         .filter(([_, qty]) => qty > 0)
         .map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
       
+      // Store Part ID instead of Part Name in Column AU (Parts Used)
       const partsUsedString = [...partsUsedArray, ...unmatchedArray]
-        .map(part => `${part.name} (${part.quantity})`)
+        .map(part => part.id ? `${part.id} (${part.quantity})` : `${part.name} (${part.quantity})`)
         .join(", ");
       
       const noParts = partsUsedString.trim() === "";
