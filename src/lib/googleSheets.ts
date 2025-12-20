@@ -2529,14 +2529,15 @@ function doPost(e) {
     var timestamp = new Date().toISOString();
     
     var requestedBy = e.parameter.requestedBy;
-    var partName = e.parameter.partName;
+    var partName = e.parameter.partName; // kept for backwards compatibility (older clients send part name)
     var serviceId = e.parameter.serviceId;
     var cost = e.parameter.cost || "0";
     var quantity = e.parameter.quantity || "1";
+    var partId = e.parameter.partId;
     
     // Update Fast Moving sheet
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === e.parameter.partId) {
+      if (data[i][0] === partId) {
         fmSheet.getRange(i + 1, 11).setValue(e.parameter.dateReceived || timestamp.split('T')[0]); // Column K
         fmSheet.getRange(i + 1, 14).setValue("Received"); // Column N
         fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O
@@ -2555,8 +2556,9 @@ function doPost(e) {
           serviceSheet.getRange(j + 1, 46).setValue(newPartsCost);
           
           // Column AU (47) - Parts Used
+          // IMPORTANT: store Part ID (not part name)
           var existingPartsUsed = serviceData[j][46] || "";
-          var newPart = partName + " (x" + quantity + ")";
+          var newPart = partId + " (x" + quantity + ")";
           var updatedPartsUsed = existingPartsUsed ? existingPartsUsed + ", " + newPart : newPart;
           serviceSheet.getRange(j + 1, 47).setValue(updatedPartsUsed);
           break;
