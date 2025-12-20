@@ -15,7 +15,7 @@ import { DEVICE_TYPES } from "@/lib/constants";
 import { Edit, X, Package, CalendarIcon, Loader2, ChevronLeft, ChevronRight, Search, Copy, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { notifyPartOrdered, notifyPartReceived, notifyPartRequest } from "@/lib/partNotifications";
+import { notifyPartOrdered, notifyPartReceived, notifyPartCancelled } from "@/lib/partNotifications";
 
 interface FastMovingPart {
   partId: string;
@@ -52,6 +52,7 @@ export const FastMovingPartsTab = () => {
   const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<FastMovingPart | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cancelRemark, setCancelRemark] = useState("");
 
   // Order form state
   const [orderForm, setOrderForm] = useState({
@@ -124,8 +125,12 @@ export const FastMovingPartsTab = () => {
       }
       return true;
     });
-    // Sort by most recent (partId descending - newer entries have higher IDs)
+    // Sort: Cancelled items last, then by most recent (partId descending)
     return filtered.sort((a, b) => {
+      // Cancelled items go to the end
+      if (a.status === "Cancelled" && b.status !== "Cancelled") return 1;
+      if (a.status !== "Cancelled" && b.status === "Cancelled") return -1;
+      
       // Extract numeric part from partId for proper sorting (e.g., FMP-001 -> 1)
       const numA = parseInt(a.partId?.replace(/\D/g, '') || '0');
       const numB = parseInt(b.partId?.replace(/\D/g, '') || '0');
@@ -312,9 +317,13 @@ export const FastMovingPartsTab = () => {
 
     setIsSubmitting(true);
     try {
+      const userFullName = sessionStorage.getItem("userFullName") || "Management";
+      
       const formData = new FormData();
       formData.append("action", "cancelFastMovingPart");
       formData.append("partId", selectedPart.partId);
+      formData.append("cancelRemark", cancelRemark);
+      formData.append("status", "Cancelled");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -324,8 +333,14 @@ export const FastMovingPartsTab = () => {
       const result = await response.json();
 
       if (result.result === "success") {
-        // Notify the requester about the cancellation
-        await notifyPartRequest(selectedPart.requestedBy, selectedPart.serviceId, `${selectedPart.partName} (CANCELLED by management)`);
+        // Notify the requester about the cancellation with proper tag
+        await notifyPartCancelled(
+          selectedPart.requestedBy,
+          selectedPart.serviceId,
+          selectedPart.partName,
+          userFullName,
+          cancelRemark
+        );
 
         toast({
           title: "Cancelled",
@@ -333,6 +348,7 @@ export const FastMovingPartsTab = () => {
         });
         setIsCancelDialogOpen(false);
         setSelectedPart(null);
+        setCancelRemark("");
         fetchParts();
       } else {
         toast({
@@ -741,7 +757,10 @@ export const FastMovingPartsTab = () => {
         </Dialog>
 
         {/* Cancel Confirmation Dialog */}
-        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <Dialog open={isCancelDialogOpen} onOpenChange={(open) => {
+          setIsCancelDialogOpen(open);
+          if (!open) setCancelRemark("");
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Cancel Part Request</DialogTitle>
@@ -750,6 +769,17 @@ export const FastMovingPartsTab = () => {
                 The requester will be notified.
               </DialogDescription>
             </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Remark (optional)</Label>
+                <Textarea
+                  value={cancelRemark}
+                  onChange={(e) => setCancelRemark(e.target.value)}
+                  placeholder="Reason for cancellation..."
+                  rows={3}
+                />
+              </div>
+            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
                 No, Keep It

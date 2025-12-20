@@ -2616,6 +2616,31 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
+  // CANCEL Fast Moving Part (set status to Cancelled, notify requester)
+  if (action === 'cancelFastMovingPart') {
+    var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
+    var data = fmSheet.getDataRange().getValues();
+    var timestamp = new Date().toISOString();
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === e.parameter.partId) {
+        fmSheet.getRange(i + 1, 14).setValue("Cancelled"); // Column N - Status
+        fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O - Last Updated
+        if (e.parameter.cancelRemark) {
+          var existingRemarks = data[i][15] || "";
+          var cancelNote = "[CANCELLED] " + e.parameter.cancelRemark;
+          var updatedRemarks = existingRemarks ? existingRemarks + " | " + cancelNote : cancelNote;
+          fmSheet.getRange(i + 1, 16).setValue(updatedRemarks); // Column P - Remarks
+        }
+        break;
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // DELETE Fast Moving Part
   if (action === 'deleteFastMovingPart') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
