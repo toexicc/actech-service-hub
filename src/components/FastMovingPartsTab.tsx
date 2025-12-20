@@ -320,10 +320,10 @@ export const FastMovingPartsTab = () => {
       const userFullName = sessionStorage.getItem("userFullName") || "Management";
       
       const formData = new FormData();
-      formData.append("action", "cancelFastMovingPart");
+      formData.append("action", "updateFastMovingPart");
       formData.append("partId", selectedPart.partId);
-      formData.append("cancelRemark", cancelRemark);
       formData.append("status", "Cancelled");
+      formData.append("remarks", cancelRemark ? `[CANCELLED] ${cancelRemark}` : "[CANCELLED]");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
