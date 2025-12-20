@@ -2594,26 +2594,41 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // CANCEL Fast Moving Part (set status to Cancelled, notify requester)
+  // CANCEL Fast Moving Part (set status to Cancelled, update remarks)
   if (action === 'cancelFastMovingPart') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var data = fmSheet.getDataRange().getValues();
     var timestamp = new Date().toISOString();
-    
+
+    // Find columns by header labels (more robust if the sheet layout changes)
+    var headers = fmSheet.getRange(1, 1, 1, fmSheet.getLastColumn()).getDisplayValues()[0];
+    var statusCol = headers.indexOf('Status') + 1;
+    var lastUpdatedCol = headers.indexOf('Last Updated') + 1;
+    var remarksCol = headers.indexOf('Remarks') + 1;
+
+    // Fallback to legacy positions if headers not found
+    if (statusCol <= 0) statusCol = 14;      // Column N
+    if (lastUpdatedCol <= 0) lastUpdatedCol = 15; // Column O
+    if (remarksCol <= 0) remarksCol = 16;    // Column P
+
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === e.parameter.partId) {
-        fmSheet.getRange(i + 1, 14).setValue("Cancelled"); // Column N - Status
-        fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O - Last Updated
-        if (e.parameter.cancelRemark) {
-          var existingRemarks = data[i][15] || "";
-          var cancelNote = "[CANCELLED] " + e.parameter.cancelRemark;
-          var updatedRemarks = existingRemarks ? existingRemarks + " | " + cancelNote : cancelNote;
-          fmSheet.getRange(i + 1, 16).setValue(updatedRemarks); // Column P - Remarks
+      if (String(data[i][0]) === String(params.partId)) {
+        fmSheet.getRange(i + 1, statusCol).setValue("Cancelled");
+        fmSheet.getRange(i + 1, lastUpdatedCol).setValue(timestamp);
+
+        var existingRemarks = (data[i][remarksCol - 1] || "");
+        if (params.cancelRemark) {
+          var cancelNote = "[CANCELLED] " + params.cancelRemark;
+          var updatedRemarks = existingRemarks ? (existingRemarks + " | " + cancelNote) : cancelNote;
+          fmSheet.getRange(i + 1, remarksCol).setValue(updatedRemarks);
+        } else if (!existingRemarks) {
+          fmSheet.getRange(i + 1, remarksCol).setValue("[CANCELLED]");
         }
+
         break;
       }
     }
-    
+
     return ContentService.createTextOutput(JSON.stringify({
       "result": "success"
     })).setMimeType(ContentService.MimeType.JSON);
