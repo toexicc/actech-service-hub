@@ -121,13 +121,14 @@ const ServiceUpdate = () => {
         const match = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
         if (!match) return;
         const tokenRaw = match[1].trim();
-        const token = tokenRaw.replace(/\s+/g, ' ').toLowerCase();
+        const token = tokenRaw.toLowerCase();
         const qty = parseInt(match[2]);
 
-        // Prefer ID match (new behavior: Column AU stores Part ID), fallback to name match for legacy rows.
+        // Match by Part ID (exact match, case-insensitive) - handles FM prefix parts from Fast Moving Inventory
+        // Fallback to name match for legacy rows that stored part names instead of IDs
         const found =
-          inventory.find(i => i.id?.toString().trim().toLowerCase() === token) ||
-          inventory.find(i => i.name.trim().toLowerCase() === token);
+          inventory.find(i => i.id?.toLowerCase() === token) ||
+          inventory.find(i => i.name?.toLowerCase() === token);
 
         if (found) {
           partsMapById[found.id] = qty;
@@ -163,12 +164,13 @@ const ServiceUpdate = () => {
               const m = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
               if (!m) return;
               const tokenRaw = m[1].trim();
+              const token = tokenRaw.toLowerCase();
               const qty = parseInt(m[2]);
 
-              // Prefer ID match (new behavior: Column AU stores Part ID), fallback to name match for legacy rows.
+              // Match by Part ID (exact match, case-insensitive) - handles FM prefix parts
               const item =
-                inventory.find(i => i.id?.toString().trim().toLowerCase() === tokenRaw.toLowerCase()) ||
-                inventory.find(i => i.name.trim().toLowerCase() === tokenRaw.toLowerCase());
+                inventory.find(i => i.id?.toLowerCase() === token) ||
+                inventory.find(i => i.name?.toLowerCase() === token);
 
               if (item) byId[item.id] = qty;
               else unmatched[tokenRaw] = qty;
