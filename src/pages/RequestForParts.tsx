@@ -107,7 +107,7 @@ const RequestForParts = () => {
   const filteredRequests = useMemo(() => {
     const me = normalizePersonName(userFullName);
 
-    return requests.filter((req) => {
+    const filtered = requests.filter((req) => {
       // Only show requests from the logged-in user
       const requestedBy = normalizePersonName(req.requestedBy || "");
       if (!requestedBy || requestedBy !== me) return false;
@@ -126,6 +126,13 @@ const RequestForParts = () => {
         );
       }
       return true;
+    });
+    
+    // Sort by most recent (partId descending - newer entries have higher IDs)
+    return filtered.sort((a, b) => {
+      const numA = parseInt(a.partId?.replace(/\D/g, '') || '0');
+      const numB = parseInt(b.partId?.replace(/\D/g, '') || '0');
+      return numB - numA; // Descending order (most recent first)
     });
   }, [requests, searchQuery, statusFilter, userFullName]);
 

@@ -92,7 +92,7 @@ export const FastMovingPartsTab = () => {
   };
 
   const filteredParts = useMemo(() => {
-    return parts.filter(part => {
+    const filtered = parts.filter(part => {
       const search = searchQuery.toLowerCase();
       return (
         part.partId?.toLowerCase().includes(search) ||
@@ -100,6 +100,13 @@ export const FastMovingPartsTab = () => {
         part.serviceId?.toLowerCase().includes(search) ||
         part.requestedBy?.toLowerCase().includes(search)
       );
+    });
+    // Sort by most recent (partId descending - newer entries have higher IDs)
+    return filtered.sort((a, b) => {
+      // Extract numeric part from partId for proper sorting (e.g., FMP-001 -> 1)
+      const numA = parseInt(a.partId?.replace(/\D/g, '') || '0');
+      const numB = parseInt(b.partId?.replace(/\D/g, '') || '0');
+      return numB - numA; // Descending order (most recent first)
     });
   }, [parts, searchQuery]);
 
