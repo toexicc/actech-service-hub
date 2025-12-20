@@ -9,12 +9,12 @@ import { getServiceLogs } from "@/lib/activityLogger";
 interface ActivityLogRowProps {
   service: {
     serviceId: string;
-    timestamp: string;
+    timestamp?: string;
     technician: string;
-    service: string;
+    service?: string;
     deviceType: string;
-    brand: string;
-    device: string;
+    brand?: string;
+    device?: string;
     targetDate: string;
     status: string;
     clientName: string;

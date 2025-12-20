@@ -17,19 +17,20 @@ import { STATUS_OPTIONS } from "@/lib/constants";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
+import { useServices, useInvalidateServices } from "@/hooks/useServices";
+import { useStaff } from "@/hooks/useStaff";
 
 interface ServiceRecord {
   serviceId: string;
-  timestamp: string;
+  timestamp?: string;
   technician: string;
-  service: string;
+  service?: string;
   deviceType: string;
-  brand: string;
-  device: string;
+  brand?: string;
+  device?: string;
   targetDate: string;
   status: string;
   clientName: string;
@@ -42,15 +43,15 @@ const ServiceTracker = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const [services, setServices] = useState<ServiceRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: services = [], isLoading } = useServices();
+  const invalidateServices = useInvalidateServices();
+  const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [techniciansWithDept, setTechniciansWithDept] = useState<Array<{name: string, department: string}>>([]);
   const [sortField, setSortField] = useState<SortField>("targetDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,18 +60,27 @@ const ServiceTracker = () => {
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const itemsPerPage = 15;
 
+  // Derive technicians with departments from staff data
+  const techniciansWithDept = useMemo(() => {
+    return staffList
+      .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() === "active")
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || ""
+      }));
+  }, [staffList]);
+
   // Handle URL params for status filter (from dashboard clicks)
   useEffect(() => {
     const urlStatusFilter = searchParams.get('statusFilter');
     const urlStatus = searchParams.get('status');
     if (urlStatusFilter) {
-      setDueDateFilter(urlStatusFilter); // ongoing, overdue, completed
-      // Clear the URL param after reading
+      setDueDateFilter(urlStatusFilter);
       searchParams.delete('statusFilter');
       setSearchParams(searchParams, { replace: true });
     }
     if (urlStatus) {
-      setStatusFilter(urlStatus); // e.g. "Ongoing Service", "Completed"
+      setStatusFilter(urlStatus);
       searchParams.delete('status');
       setSearchParams(searchParams, { replace: true });
     }
@@ -106,7 +116,6 @@ const ServiceTracker = () => {
   };
 
   const handleEditService = (serviceId: string) => {
-    // Technicians should go to Service Update (not Manage Client)
     if (isTechnician) {
       navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
       return;
@@ -138,142 +147,70 @@ const ServiceTracker = () => {
   };
 
   useEffect(() => {
-    fetchTechnicians();
-  }, []);
-
-  useEffect(() => {
-    // Fetch technician info and set filters if user is a technician
-    const initializeTechnicianFilters = async () => {
-      if (isTechnician && username) {
-        try {
-          const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-          const data = await response.json();
-          if (data.status === "success" && data.data) {
-            const techInfo = data.data.find((staff: any) => staff.username === username);
-            if (techInfo) {
-              setTechnicianName(techInfo.name);
-              setTechnicianDepartment(techInfo.department || "");
-              setTechnicianFilter(techInfo.name);
-              setDepartmentFilter(techInfo.department || "all");
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching technician info:", error);
-        }
+    // Set technician filters if user is a technician
+    if (isTechnician && username && staffList.length > 0) {
+      const techInfo = staffList.find((staff) => staff.username === username);
+      if (techInfo) {
+        setTechnicianName(techInfo.name);
+        setTechnicianDepartment(techInfo.department || "");
+        setTechnicianFilter(techInfo.name);
+        setDepartmentFilter(techInfo.department || "all");
       }
-      fetchAllServices();
-    };
+    }
+  }, [isTechnician, username, staffList]);
 
-    initializeTechnicianFilters();
-    
-    // Optimized polling: only refresh every 60 seconds to reduce server load
+  // Optimized polling: refresh every 60 seconds
+  useEffect(() => {
     const intervalId = setInterval(() => {
-      fetchAllServices();
+      invalidateServices();
     }, 60000);
     
     return () => clearInterval(intervalId);
-  }, [isTechnician, username]);
-
-  // Remove unnecessary data fetching on filter changes - filtering happens client-side
-
-  const fetchTechnicians = async () => {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-      const data = await response.json();
-      if (data.status === "success" && data.data) {
-        const techList = data.data
-          .filter((staff: any) => staff.role === "Technician" && staff.status === "Active")
-          .map((staff: any) => ({
-            name: staff.name,
-            department: staff.department || ""
-          }));
-        setTechniciansWithDept(techList);
-      }
-    } catch (error) {
-      console.error("Error fetching technicians:", error);
-    }
-  };
-
-  const fetchAllServices = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`
-      );
-      const data = await response.json();
-
-      if (data.status === "success" && data.services) {
-        setServices(data.services);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load services",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load services",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [invalidateServices]);
 
   const calculateInServiceDays = (timestamp: string, status?: string): number => {
-    // Completed services should not accumulate in-service days
     if (status && status.toLowerCase().includes("completed")) {
       return 0;
     }
     if (!timestamp) return 0;
     try {
-      // Parse the timestamp format: "MM/DD/YYYY" or "MM-DD-YYYY, HH:mm"
       const [datePart] = timestamp.split(", ");
-      const parts = datePart.split(/[-/]/); // Handle both - and / separators
+      const parts = datePart.split(/[-/]/);
       if (parts.length !== 3) return 0;
       
       const [month, day, year] = parts;
       const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      serviceDate.setHours(0, 0, 0, 0); // Set to start of day
+      serviceDate.setHours(0, 0, 0, 0);
       
       if (isNaN(serviceDate.getTime())) {
-        console.error("Invalid service date:", timestamp, serviceDate);
         return 0;
       }
       
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set to start of day for fair comparison
+      today.setHours(0, 0, 0, 0);
       
       const days = differenceInDays(today, serviceDate);
-      console.log("Calculating days for:", timestamp, "Service Date:", serviceDate, "Today:", today, "Days:", days);
-      
       return Math.max(0, days);
     } catch (error) {
-      console.error("Error calculating in service days:", error);
       return 0;
     }
   };
 
   const isOverdue = (targetDate: string, status: string): boolean => {
     if (!targetDate) return false;
-    // Completed services should never be marked as overdue
     if (status === "Completed") return false;
     try {
-      // Parse target date format: "MM-DD-YYYY" or "MM/DD/YYYY"
-      const parts = targetDate.split(/[-/]/); // Handle both - and / separators
+      const parts = targetDate.split(/[-/]/);
       if (parts.length !== 3) return false;
       
       const [month, day, year] = parts;
       const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      target.setHours(23, 59, 59, 999); // Set to end of day
+      target.setHours(23, 59, 59, 999);
       
       if (isNaN(target.getTime())) return false;
       
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set to start of day
+      today.setHours(0, 0, 0, 0);
       
       return today > target;
     } catch (error) {

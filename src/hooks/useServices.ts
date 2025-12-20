@@ -30,6 +30,8 @@ interface ServiceRecord {
   internalAdminNotes?: string;
   internalTechnicianNotes?: string;
   technicianDepartment?: string;
+  brand?: string;
+  device?: string;
 }
 
 const fetchAllServices = async (): Promise<ServiceRecord[]> => {
