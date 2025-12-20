@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
@@ -24,6 +24,9 @@ import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/ser
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useTechnicians } from "@/hooks/useStaff";
+import { useInventory } from "@/hooks/useInventory";
+import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -62,14 +65,51 @@ const ServiceUpdate = () => {
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
   const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const { toast } = useToast();
+
+  // Use React Query for staff and inventory
+  const { data: technicianData = [] } = useTechnicians();
+  const { data: inventoryData = [] } = useInventory();
+  const { data: fastMovingData = [] } = useFastMovingParts();
+
+  // Derive technicians list with display names
+  const technicians = useMemo(() => {
+    return technicianData.map((staff) => ({
+      name: staff.name,
+      department: staff.department || "",
+      displayName: `${staff.name} - ${staff.department || ""}`,
+    }));
+  }, [technicianData]);
+
+  // Combine regular inventory with received fast moving parts
+  const inventory = useMemo(() => {
+    const allInventory: InventoryItem[] = inventoryData.map((item) => ({
+      id: item.partId,
+      name: item.partName,
+      deviceType: item.deviceType || "",
+      model: item.model || "",
+      cost: typeof item.costPerUnit === 'string' ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
+      quantity: item.quantity || 0
+    }));
+
+    const receivedParts = fastMovingData
+      .filter((part) => part.status === "Received")
+      .map((part) => ({
+        id: part.partId,
+        name: part.partName,
+        deviceType: part.deviceType || "",
+        model: part.model || "",
+        cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
+        quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0
+      }));
+
+    return [...allInventory, ...receivedParts];
+  }, [inventoryData, fastMovingData]);
 
   const username = sessionStorage.getItem("username") || "Unknown";
   const userRole = sessionStorage.getItem("userRole") || "Unknown";
@@ -93,11 +133,6 @@ const ServiceUpdate = () => {
   const [discountValue, setDiscountValue] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
-
-  useEffect(() => {
-    fetchTechnicians();
-    fetchInventory();
-  }, []);
 
   // Auto-load when arriving from notifications (/service-update?serviceId=...)
   useEffect(() => {
@@ -186,67 +221,6 @@ const ServiceUpdate = () => {
     run();
   }, [serviceData, serviceId, inventory]);
 
-  const fetchTechnicians = async () => {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-      const data = await response.json();
-      if (data.status === "success" && data.data) {
-        const techList = data.data
-          .filter((staff: any) => {
-            const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
-            const status = (staff.status ?? staff["Status"] ?? "").toString().trim();
-            return role === "Technician" && status === "Active";
-          })
-          .map((staff: any) => ({
-            name: staff.name ?? staff["Name"] ?? "",
-            department: staff.department ?? staff["Department"] ?? "",
-            displayName: `${staff.name ?? staff["Name"] ?? ""} - ${staff.department ?? staff["Department"] ?? ""}`,
-          }));
-        setTechnicians(techList);
-      }
-    } catch (error) {
-      console.error("Error fetching technicians:", error);
-    }
-  };
-
-  const fetchInventory = async () => {
-    try {
-      // Fetch from both regular inventory and fast moving inventory
-      const [inventoryRes, fastMovingRes] = await Promise.all([
-        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventory`),
-        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`)
-      ]);
-      
-      const inventoryData = await inventoryRes.json();
-      const fastMovingData = await fastMovingRes.json();
-      
-      let allInventory: InventoryItem[] = [];
-      
-      // Add regular inventory
-      if (inventoryData.status === "success" && inventoryData.inventory) {
-        allInventory = [...inventoryData.inventory];
-      }
-      
-      // Add fast moving parts that are "Received" status
-      if (fastMovingData.status === "success" && fastMovingData.parts) {
-        const receivedParts = fastMovingData.parts
-          .filter((part: any) => part.status === "Received")
-          .map((part: any) => ({
-            id: part.partId,
-            name: part.partName,
-            deviceType: part.deviceType || "",
-            model: part.model || "",
-            cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
-            quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0
-          }));
-        allInventory = [...allInventory, ...receivedParts];
-      }
-      
-      setInventory(allInventory);
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-    }
-  };
 
   const calculateActualCost = () => {
     return Object.entries(selectedParts).reduce((total, [itemId, qty]) => {
@@ -636,7 +610,6 @@ const ServiceUpdate = () => {
         setDeviceReportPhotos([]);
         // Refresh the data to show updated photos
         handleSearch();
-        fetchInventory();
       } else {
         toast({
           title: "Error",
