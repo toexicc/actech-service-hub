@@ -2523,12 +2523,9 @@ function doPost(e) {
   if (action === 'receiveFastMovingPart') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
-    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
-    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     var data = fmSheet.getDataRange().getValues();
     var timestamp = new Date().toISOString();
     
-    var requestedBy = e.parameter.requestedBy;
     var partName = e.parameter.partName; // kept for backwards compatibility (older clients send part name)
     var serviceId = e.parameter.serviceId;
     var cost = e.parameter.cost || "0";
@@ -2566,26 +2563,7 @@ function doPost(e) {
       }
     }
     
-    // Notify the requester
-    if (notifSheet && staffSheet && requestedBy) {
-      var staffData = staffSheet.getDataRange().getValues();
-      for (var k = 1; k < staffData.length; k++) {
-        if (staffData[k][1] === requestedBy || staffData[k][3] === requestedBy) {
-          var notifId = "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5);
-          notifSheet.appendRow([
-            notifId,
-            staffData[k][0], // Staff ID
-            "service_update",
-            "Part Received",
-            "The part '" + partName + "' you requested for Service ID: " + serviceId + " has been received and is now available.",
-            serviceId,
-            timestamp,
-            "false"
-          ]);
-          break;
-        }
-      }
-    }
+    // NOTE: Notification is handled by frontend via notifyPartReceived() - no duplicate notification here
     
     return ContentService.createTextOutput(JSON.stringify({
       "result": "success"
