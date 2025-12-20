@@ -24,7 +24,7 @@ const adminSection: NavSection = {
     { title: "Manage Client", icon: Users, path: "/manage-client" },
     { title: "Customer Management", icon: UserCog, path: "/customer-management" },
     { title: "Service Tracker", icon: ClipboardList, path: "/service-tracker" },
-    { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management"] },
+    { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"] },
     { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management"] },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"] },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"] },

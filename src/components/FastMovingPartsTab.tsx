@@ -38,14 +38,22 @@ interface FastMovingPart {
 
 interface FastMovingPartsTabProps {
   isViewOnly?: boolean;
+  searchQuery?: string;
+  deviceTypeFilter?: string;
+  modelFilter?: string;
+  statusFilter?: string;
 }
 
-export const FastMovingPartsTab = ({ isViewOnly = false }: FastMovingPartsTabProps) => {
+export const FastMovingPartsTab = ({ 
+  isViewOnly = false,
+  searchQuery: externalSearchQuery = "",
+  deviceTypeFilter: externalDeviceTypeFilter = "all",
+  modelFilter: externalModelFilter = "all",
+  statusFilter: externalStatusFilter = "all"
+}: FastMovingPartsTabProps) => {
   const { toast } = useToast();
   const [parts, setParts] = useState<FastMovingPart[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -114,17 +122,24 @@ export const FastMovingPartsTab = ({ isViewOnly = false }: FastMovingPartsTabPro
 
   const filteredParts = useMemo(() => {
     const filtered = parts.filter(part => {
-      // Status filter
-      if (statusFilter !== "all" && part.status !== statusFilter) return false;
+      // Status filter from parent
+      if (externalStatusFilter !== "all" && part.status !== externalStatusFilter) return false;
       
-      // Search filter
-      const search = searchQuery.toLowerCase();
+      // Device type filter
+      if (externalDeviceTypeFilter !== "all" && part.deviceType !== externalDeviceTypeFilter) return false;
+      
+      // Model filter
+      if (externalModelFilter !== "all" && part.model !== externalModelFilter) return false;
+      
+      // Search filter from parent
+      const search = externalSearchQuery.toLowerCase();
       if (search) {
         return (
           part.partId?.toLowerCase().includes(search) ||
           part.partName?.toLowerCase().includes(search) ||
           part.serviceId?.toLowerCase().includes(search) ||
-          part.requestedBy?.toLowerCase().includes(search)
+          part.requestedBy?.toLowerCase().includes(search) ||
+          part.model?.toLowerCase().includes(search)
         );
       }
       return true;
@@ -140,7 +155,7 @@ export const FastMovingPartsTab = ({ isViewOnly = false }: FastMovingPartsTabPro
       const numB = parseInt(b.partId?.replace(/\D/g, '') || '0');
       return numB - numA; // Descending order (most recent first)
     });
-  }, [parts, searchQuery, statusFilter]);
+  }, [parts, externalSearchQuery, externalStatusFilter, externalDeviceTypeFilter, externalModelFilter]);
 
   const paginatedParts = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -460,31 +475,8 @@ export const FastMovingPartsTab = ({ isViewOnly = false }: FastMovingPartsTabPro
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Fast Moving Parts
+            Fast Moving Parts ({filteredParts.length})
           </CardTitle>
-          <div className="flex items-center gap-4">
-            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="For Ordering">For Ordering</SelectItem>
-                <SelectItem value="Ordered">Ordered</SelectItem>
-                <SelectItem value="Received">Received</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-          </div>
         </div>
       </CardHeader>
       <CardContent>
