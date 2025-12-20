@@ -583,15 +583,15 @@ const InventoryManagement = () => {
     return Array.from(types).sort();
   }, [inventory]);
 
-  const brands = useMemo(() => {
-    const brandSet = new Set(inventory.map(i => i.brand).filter(Boolean));
-    return Array.from(brandSet).sort();
+  const models = useMemo(() => {
+    const modelSet = new Set(inventory.map(i => i.model).filter(Boolean));
+    return Array.from(modelSet).sort();
   }, [inventory]);
 
   const filteredAndSortedInventory = useMemo(() => {
     let filtered = inventory.filter(item => {
       if (deviceTypeFilter !== "all" && item.deviceType !== deviceTypeFilter) return false;
-      if (brandFilter !== "all" && item.brand !== brandFilter) return false;
+      if (brandFilter !== "all" && item.model !== brandFilter) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
       
       if (debouncedSearch) {
@@ -1011,8 +1011,8 @@ const InventoryManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Models</SelectItem>
-                    {brands.map(brand => (
-                      <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                    {models.map(model => (
+                      <SelectItem key={model} value={model}>{model}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1064,21 +1064,7 @@ const InventoryManagement = () => {
           <TabsContent value="items">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Inventory Items</CardTitle>
-                  <div className="relative w-64">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search parts..."
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="pl-8"
-                    />
-                  </div>
-                </div>
+                <CardTitle>Inventory Items</CardTitle>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
