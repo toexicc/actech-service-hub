@@ -118,18 +118,21 @@ const ServiceUpdate = () => {
       const raw = String(serviceData.partsUsed);
       const items = raw.split(',').map((p: string) => p.trim()).filter(Boolean);
       items.forEach((partStr: string) => {
-        const match = partStr.match(/^(.+?)\s*\((\d+)\)$/);
+        const match = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
         if (!match) return;
-        const partNameRaw = match[1].trim();
-        const partName = partNameRaw.replace(/\s+/g, ' ').toLowerCase();
+        const tokenRaw = match[1].trim();
+        const token = tokenRaw.replace(/\s+/g, ' ').toLowerCase();
         const qty = parseInt(match[2]);
-        
-        // Try to find in inventory by case-insensitive name match
-        const found = inventory.find(i => i.name.trim().toLowerCase() === partName);
+
+        // Prefer ID match (new behavior: Column AU stores Part ID), fallback to name match for legacy rows.
+        const found =
+          inventory.find(i => i.id?.toString().trim().toLowerCase() === token) ||
+          inventory.find(i => i.name.trim().toLowerCase() === token);
+
         if (found) {
           partsMapById[found.id] = qty;
         } else {
-          unmatched[partNameRaw] = qty;
+          unmatched[tokenRaw] = qty;
         }
       });
       setSelectedParts(partsMapById);
@@ -157,12 +160,18 @@ const ServiceUpdate = () => {
             const byId: {[k:string]:number} = {};
             const unmatched: {[k:string]:number} = {};
             items.forEach((partStr: string) => {
-              const m = partStr.match(/^(.+?)\s*\((\d+)\)$/);
+              const m = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
               if (!m) return;
-              const nameRaw = m[1].trim();
+              const tokenRaw = m[1].trim();
               const qty = parseInt(m[2]);
-              const item = inventory.find(i => i.name.trim().toLowerCase() === nameRaw.toLowerCase());
-              if (item) byId[item.id] = qty; else unmatched[nameRaw] = qty;
+
+              // Prefer ID match (new behavior: Column AU stores Part ID), fallback to name match for legacy rows.
+              const item =
+                inventory.find(i => i.id?.toString().trim().toLowerCase() === tokenRaw.toLowerCase()) ||
+                inventory.find(i => i.name.trim().toLowerCase() === tokenRaw.toLowerCase());
+
+              if (item) byId[item.id] = qty;
+              else unmatched[tokenRaw] = qty;
             });
             setSelectedParts(byId);
             setUnmatchedParts(unmatched);

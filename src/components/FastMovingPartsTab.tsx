@@ -192,7 +192,10 @@ export const FastMovingPartsTab = () => {
       formData.append("partId", part.partId);
       formData.append("serviceId", part.serviceId);
       formData.append("requestedBy", part.requestedBy);
-      formData.append("partName", part.partName);
+      // IMPORTANT: Service Database (Column AU - Parts Used) must store Part ID, not Part Name
+      // The deployed Apps Script currently reads `partName` when building Column AU, so we send the Part ID here.
+      // (Part name is still available in the Fast Moving sheet itself and in client-side notifications.)
+      formData.append("partName", part.partId);
       formData.append("cost", normalizedCost);
       formData.append("quantity", normalizedQty);
       formData.append("dateReceived", format(new Date(), "yyyy-MM-dd"));
