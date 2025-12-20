@@ -68,12 +68,15 @@ const InventoryManagement = () => {
   const initialTab = searchParams.get("tab") || "items";
   const [activeTab, setActiveTab] = useState(initialTab);
   
+  // Check if user is admin (view-only mode)
+  const isViewOnly = userRole === "admin";
+  
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-    // Only management can access inventory
-    if (userRole !== "management") {
+    // Management has full access, admin has view-only access
+    if (userRole !== "management" && userRole !== "admin") {
       navigate("/admin-portal");
     }
   }, [navigate, userRole]);
@@ -745,13 +748,14 @@ const InventoryManagement = () => {
 
         <div className="flex justify-end mb-6">
 
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Part
-              </Button>
-            </DialogTrigger>
+          {!isViewOnly && (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Part
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Part</DialogTitle>
@@ -908,6 +912,7 @@ const InventoryManagement = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          )}
         </div>
 
         {/* Stats */}
@@ -1034,7 +1039,7 @@ const InventoryManagement = () => {
 
         {/* Tabs for Inventory Items and Logs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className={`grid w-full max-w-lg ${isViewOnly ? 'grid-cols-2' : 'grid-cols-3'}`}>
             <TabsTrigger value="items">
               <Package className="h-4 w-4 mr-2" />
               Inventory Items
@@ -1043,10 +1048,12 @@ const InventoryManagement = () => {
               <ShoppingCart className="h-4 w-4 mr-2" />
               Fast Moving Parts
             </TabsTrigger>
-            <TabsTrigger value="logs">
-              <FileText className="h-4 w-4 mr-2" />
-              Inventory Logs
-            </TabsTrigger>
+            {!isViewOnly && (
+              <TabsTrigger value="logs">
+                <FileText className="h-4 w-4 mr-2" />
+                Inventory Logs
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Inventory Items Tab */}
@@ -1098,7 +1105,7 @@ const InventoryManagement = () => {
                               Quantity <ArrowUpDown className="h-4 w-4" />
                             </div>
                           </TableHead>
-                          <TableHead>Cost</TableHead>
+                          {!isViewOnly && <TableHead>Cost</TableHead>}
                           <TableHead>Status</TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
                             <div className="flex items-center gap-1">
@@ -1107,7 +1114,7 @@ const InventoryManagement = () => {
                           </TableHead>
                           <TableHead>Remarks</TableHead>
                           <TableHead>QR Code</TableHead>
-                          <TableHead>Actions</TableHead>
+                          {!isViewOnly && <TableHead>Actions</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1140,7 +1147,7 @@ const InventoryManagement = () => {
                                 <TableCell className={getStatusColor(item)}>
                                   {item.quantity}
                                 </TableCell>
-                                <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>
+                                {!isViewOnly && <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>}
                                 <TableCell>
                                   <span className={`px-2 py-1 rounded text-xs ${
                                     item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :
@@ -1172,53 +1179,55 @@ const InventoryManagement = () => {
                                     <span className="text-xs text-muted-foreground">No QR</span>
                                   )}
                                 </TableCell>
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingPart(item);
-                                        setIsEditDialogOpen(true);
-                                      }}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-destructive hover:bg-destructive/10"
-                                      onClick={() => {
-                                        setSelectedPart(item);
-                                        setIsDeleteDialogOpen(true);
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                    {item.status === "On Order" ? (
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        className="bg-green-600 hover:bg-green-700"
-                                        onClick={() => handleReceiveOrder(item)}
-                                        disabled={isSubmitting}
-                                      >
-                                        {isSubmitting ? "Processing..." : "Receive"}
-                                      </Button>
-                                    ) : (
+                                {!isViewOnly && (
+                                  <TableCell onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex gap-2">
                                       <Button
                                         size="sm"
                                         variant="outline"
                                         onClick={() => {
-                                          setSelectedPart(item);
-                                          setIsStockDialogOpen(true);
+                                          setEditingPart(item);
+                                          setIsEditDialogOpen(true);
                                         }}
                                       >
-                                        Adjust
+                                        <Edit className="h-4 w-4" />
                                       </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-destructive hover:bg-destructive/10"
+                                        onClick={() => {
+                                          setSelectedPart(item);
+                                          setIsDeleteDialogOpen(true);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                      {item.status === "On Order" ? (
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          className="bg-green-600 hover:bg-green-700"
+                                          onClick={() => handleReceiveOrder(item)}
+                                          disabled={isSubmitting}
+                                        >
+                                          {isSubmitting ? "Processing..." : "Receive"}
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setSelectedPart(item);
+                                            setIsStockDialogOpen(true);
+                                          }}
+                                        >
+                                          Adjust
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                )}
                               </TableRow>
                               {selectedPartForLogs === item.partId && itemLogs.length > 0 && (
                                 <TableRow key={`${item.partId}-logs`}>
@@ -1565,7 +1574,7 @@ const InventoryManagement = () => {
 
           {/* Fast Moving Parts Tab */}
           <TabsContent value="fast-moving">
-            <FastMovingPartsTab />
+            <FastMovingPartsTab isViewOnly={isViewOnly} />
           </TabsContent>
         </Tabs>
 
