@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
@@ -26,6 +26,7 @@ import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_D
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useTechnicians } from "@/hooks/useStaff";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -70,10 +71,9 @@ const ManageClient = () => {
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUpdatingClientInfo, setIsUpdatingClientInfo] = useState(false); // Separate state for client info update
-  const [isUpdatingForm, setIsUpdatingForm] = useState(false); // Separate state for form update
+  const [isUpdatingClientInfo, setIsUpdatingClientInfo] = useState(false);
+  const [isUpdatingForm, setIsUpdatingForm] = useState(false);
   const [isUpdatingQuotation, setIsUpdatingQuotation] = useState(false);
-  const [technicians, setTechnicians] = useState<Array<{name: string, department: string, displayName: string}>>([]);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
@@ -85,8 +85,20 @@ const ManageClient = () => {
   const [isDiagnosisOpen, setIsDiagnosisOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
-  const [originalCustomDeviceType, setOriginalCustomDeviceType] = useState(""); // Store original custom device type
+  const [originalCustomDeviceType, setOriginalCustomDeviceType] = useState("");
   const { toast } = useToast();
+
+  // Use React Query for technicians
+  const { data: technicianData = [] } = useTechnicians();
+  
+  // Derive technicians list with display names
+  const technicians = useMemo(() => {
+    return technicianData.map((staff) => ({
+      name: staff.name,
+      department: staff.department || "",
+      displayName: `${staff.name} - ${staff.department || ""}`,
+    }));
+  }, [technicianData]);
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
@@ -109,42 +121,16 @@ const ManageClient = () => {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
 
-  const fetchInitialData = async () => {
+  const fetchApiKey = async () => {
     try {
-      // Fetch both API key and technicians in parallel
-      const [apiKeyResponse, staffResponse] = await Promise.all([
-        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`),
-        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`)
-      ]);
-
-      const [apiKeyData, staffData] = await Promise.all([
-        apiKeyResponse.json(),
-        staffResponse.json()
-      ]);
-
-      // Handle API key
-      if (apiKeyData.status === "success" && apiKeyData.apiKey) {
-        setOpenAIKey(apiKeyData.apiKey);
-        localStorage.setItem('actech_openai_key', apiKeyData.apiKey);
-      }
-
-      // Handle technicians
-      if (staffData.status === "success" && staffData.data) {
-        const techList = staffData.data
-          .filter((staff: any) => {
-            const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
-            const status = (staff.status ?? staff["Status"] ?? "").toString().trim();
-            return role === "Technician" && status === "Active";
-          })
-          .map((staff: any) => ({
-            name: staff.name ?? staff["Name"] ?? "",
-            department: staff.department ?? staff["Department"] ?? "",
-            displayName: `${staff.name ?? staff["Name"] ?? ""} - ${staff.department ?? staff["Department"] ?? ""}`,
-          }));
-        setTechnicians(techList);
+      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`);
+      const data = await response.json();
+      if (data.status === "success" && data.apiKey) {
+        setOpenAIKey(data.apiKey);
+        localStorage.setItem('actech_openai_key', data.apiKey);
       }
     } catch (error) {
-      console.error("Error fetching initial data:", error);
+      console.error("Error fetching API key:", error);
     }
   };
 
@@ -162,7 +148,7 @@ const ManageClient = () => {
   };
   
   useEffect(() => {
-    fetchInitialData();
+    fetchApiKey();
   }, []);
 
   // Handle serviceId from URL params (from Service Tracker redirect)
