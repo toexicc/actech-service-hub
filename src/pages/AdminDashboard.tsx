@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { isSameDay, isBefore, startOfDay, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle, Package, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useServices } from "@/hooks/useServices";
+import { useFastMovingParts } from "@/hooks/useFastMovingParts";
+import { useInventory } from "@/hooks/useInventory";
 
 interface ServiceRecord {
   serviceId: string;
@@ -51,16 +53,35 @@ const STATUS_COLUMNS = [
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [services, setServices] = useState<ServiceRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("dueToday");
   const [currentTime, setCurrentTime] = useState(new Date());
-  
-  // Fast moving parts and inventory states
-  const [fastMovingParts, setFastMovingParts] = useState<PartRequest[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [isLoadingParts, setIsLoadingParts] = useState(true);
-  const [isLoadingInventory, setIsLoadingInventory] = useState(true);
+
+  // Use React Query hooks for cached data
+  const { data: allServices = [], isLoading: isServicesLoading, refetch: refetchServices } = useServices();
+  const { data: allParts = [], isLoading: isLoadingParts, refetch: refetchParts } = useFastMovingParts();
+  const { data: allInventory = [], isLoading: isLoadingInventory, refetch: refetchInventory } = useInventory();
+
+  // Filter services for specific statuses
+  const services = useMemo(() => {
+    return allServices.filter(
+      (service: any) => STATUS_COLUMNS.includes(service.status as any)
+    );
+  }, [allServices]);
+
+  // Filter for "For Ordering" parts only
+  const fastMovingParts = useMemo(() => {
+    return allParts.filter((part: any) => part.status === "For Ordering");
+  }, [allParts]);
+
+  // Filter for low stock items (quantity <= 2)
+  const inventoryItems = useMemo(() => {
+    return allInventory.filter((item: any) => {
+      const qty = parseInt(item.quantity) || 0;
+      return qty <= 2;
+    });
+  }, [allInventory]);
+
+  const isLoading = isServicesLoading;
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -68,17 +89,15 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
+  // Auto-refresh every 60 seconds
   useEffect(() => {
-    fetchServices();
-    fetchFastMovingParts();
-    fetchInventory();
     const interval = setInterval(() => {
-      fetchServices();
-      fetchFastMovingParts();
-      fetchInventory();
+      refetchServices();
+      refetchParts();
+      refetchInventory();
     }, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refetchServices, refetchParts, refetchInventory]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -87,82 +106,7 @@ const AdminDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchServices = async () => {
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`
-      );
-      const data = await response.json();
-      
-      if (data.status === "success" && data.services) {
-        console.log("Total services fetched (admin dashboard):", data.services.length);
-        
-        // Filter for specific statuses only
-        const filteredServices = data.services.filter(
-          (service: ServiceRecord) => STATUS_COLUMNS.includes(service.status as any)
-        );
-        
-        console.log("Filtered services count:", filteredServices.length);
-        setServices(filteredServices);
-      } else {
-        console.error("Unexpected response for getAllOngoingServices", data);
-      }
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch services",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchFastMovingParts = async () => {
-    setIsLoadingParts(true);
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`);
-      const data = await response.json();
-
-      if (data.status === "success" && data.parts) {
-        // Filter for "For Ordering" status only
-        const forOrderingParts = data.parts.filter(
-          (part: PartRequest) => part.status === "For Ordering"
-        );
-        setFastMovingParts(forOrderingParts);
-      }
-    } catch (error) {
-      console.error("Error fetching fast moving parts:", error);
-    } finally {
-      setIsLoadingParts(false);
-    }
-  };
-
-  const fetchInventory = async () => {
-    setIsLoadingInventory(true);
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventory`);
-      const data = await response.json();
-
-      if (data.status === "success" && data.inventory) {
-        // Filter for low stock items (quantity <= 2)
-        const lowStockItems = data.inventory.filter(
-          (item: InventoryItem) => {
-            const qty = parseInt(item.quantity) || 0;
-            return qty <= 2;
-          }
-        );
-        setInventoryItems(lowStockItems);
-      }
-    } catch (error) {
-      console.error("Error fetching inventory:", error);
-    } finally {
-      setIsLoadingInventory(false);
-    }
-  };
-
-  const filterServicesByDate = (services: ServiceRecord[]) => {
+  const filterServicesByDate = (services: any[]) => {
     const today = startOfDay(new Date());
     
     const filtered = services.filter((service) => {

@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { useServices } from "@/hooks/useServices";
+import { useFastMovingParts } from "@/hooks/useFastMovingParts";
+import { useInventory } from "@/hooks/useInventory";
+import { useClientInquiries } from "@/hooks/useClients";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
   MessageSquare,
@@ -57,17 +60,6 @@ interface LowStockItem {
 
 const Menu = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({
-    pendingInquiries: 0,
-    ongoingServices: 0,
-    overdueServices: 0,
-    completedServices: 0,
-  });
-  const [servicesDueToday, setServicesDueToday] = useState<ServiceRecord[]>([]);
-  const [servicesOverdue, setServicesOverdue] = useState<ServiceRecord[]>([]);
-  const [partsForOrdering, setPartsForOrdering] = useState<PartForOrdering[]>([]);
-  const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Pagination for dashboards
@@ -79,6 +71,14 @@ const Menu = () => {
 
   const isTechnician = userRole === "technician";
   const isManagement = userRole === "management";
+
+  // Use React Query hooks for cached data
+  const { data: allServices = [], isLoading: isServicesLoading } = useServices();
+  const { data: fastMovingParts = [], isLoading: isPartsLoading } = useFastMovingParts();
+  const { data: inventoryItems = [], isLoading: isInventoryLoading } = useInventory();
+  const { data: inquiriesData = [], isLoading: isInquiriesLoading } = useClientInquiries();
+
+  const isLoading = isServicesLoading || (isManagement && (isPartsLoading || isInventoryLoading)) || (!isTechnician && isInquiriesLoading);
 
   // Dynamic clock
   useEffect(() => {
@@ -92,151 +92,101 @@ const Menu = () => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-    fetchDashboardStats();
   }, [navigate]);
 
-  const fetchDashboardStats = async () => {
-    try {
-      // Fetch services data
-      const servicesResponse = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`
-      );
-      const servicesData = await servicesResponse.json();
+  // Compute stats from cached data
+  const { stats, servicesDueToday, servicesOverdue } = useMemo(() => {
+    const today = startOfDay(new Date());
+    
+    // Filter services based on role
+    let services = isTechnician 
+      ? allServices.filter((s: any) => s.technician === userFullName)
+      : allServices;
 
-      if (servicesData.status === "success" && servicesData.services) {
-        let services = servicesData.services;
-        const today = startOfDay(new Date());
+    const ongoing = services.filter((s: any) => {
+      const status = s.status?.toLowerCase() || "";
+      return !status.includes("completed") && !status.includes("cancelled");
+    }).length;
 
-        // For technicians, filter to only show their assigned services
-        if (isTechnician) {
-          services = services.filter((s: any) => s.technician === userFullName);
-        }
+    // Services due today
+    const dueToday = services.filter((s: any) => {
+      const status = s.status?.toLowerCase() || "";
+      if (status.includes("completed") || status.includes("cancelled")) return false;
+      if (!s.targetDate) return false;
+      const parts = s.targetDate.split(/[-/]/);
+      if (parts.length !== 3) return false;
+      const [month, day, year] = parts;
+      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      target.setHours(0, 0, 0, 0);
+      return isSameDay(target, today);
+    });
 
-        const ongoing = services.filter((s: any) => {
-          const status = s.status?.toLowerCase() || "";
-          return !status.includes("completed") && !status.includes("cancelled");
-        }).length;
+    // Overdue services
+    const overdue = services.filter((s: any) => {
+      const status = s.status?.toLowerCase() || "";
+      if (status.includes("completed") || status.includes("cancelled")) return false;
+      if (!s.targetDate) return false;
+      const parts = s.targetDate.split(/[-/]/);
+      if (parts.length !== 3) return false;
+      const [month, day, year] = parts;
+      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      target.setHours(0, 0, 0, 0);
+      return isBefore(target, today);
+    });
 
-        // Filter services due today
-        const dueToday = services.filter((s: any) => {
-          const status = s.status?.toLowerCase() || "";
-          if (status.includes("completed") || status.includes("cancelled")) return false;
-          if (!s.targetDate) return false;
-          const parts = s.targetDate.split(/[-/]/);
-          if (parts.length !== 3) return false;
-          const [month, day, year] = parts;
-          const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-          target.setHours(0, 0, 0, 0);
-          return isSameDay(target, today);
-        });
+    const completed = services.filter((s: any) => {
+      const status = s.status?.toLowerCase() || "";
+      return status.includes("completed");
+    }).length;
 
-        // Filter overdue services
-        const overdue = services.filter((s: any) => {
-          const status = s.status?.toLowerCase() || "";
-          if (status.includes("completed") || status.includes("cancelled")) return false;
-          if (!s.targetDate) return false;
-          const parts = s.targetDate.split(/[-/]/);
-          if (parts.length !== 3) return false;
-          const [month, day, year] = parts;
-          const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-          target.setHours(0, 0, 0, 0);
-          return isBefore(target, today);
-        });
+    // Pending inquiries
+    const pendingInquiries = !isTechnician && Array.isArray(inquiriesData)
+      ? (inquiriesData as any[]).filter((inquiry: any) => {
+          const modeOfTransfer = (inquiry.modeOfTransfer || "").trim().toUpperCase();
+          return modeOfTransfer === "TBD" || modeOfTransfer === "";
+        }).length
+      : 0;
 
-        const completed = services.filter((s: any) => {
-          const status = s.status?.toLowerCase() || "";
-          return status.includes("completed");
-        }).length;
+    return {
+      stats: {
+        pendingInquiries,
+        ongoingServices: ongoing,
+        overdueServices: overdue.length,
+        completedServices: completed,
+      },
+      servicesDueToday: dueToday.slice(0, 5),
+      servicesOverdue: overdue.slice(0, 5),
+    };
+  }, [allServices, inquiriesData, isTechnician, userFullName]);
 
-        setStats((prev) => ({
-          ...prev,
-          ongoingServices: ongoing,
-          overdueServices: overdue.length,
-          completedServices: completed,
-        }));
+  // Parts for ordering (management only)
+  const partsForOrdering = useMemo(() => {
+    if (!isManagement) return [];
+    return fastMovingParts
+      .filter((p: any) => p.status === "For Ordering")
+      .map((p: any) => ({
+        partId: p.partId,
+        requestedBy: p.requestedBy,
+        serviceId: p.serviceId,
+        partName: p.partName,
+        dateNeeded: p.dateNeeded,
+        status: p.status,
+      }));
+  }, [fastMovingParts, isManagement]);
 
-        setServicesDueToday(dueToday.slice(0, 5));
-        setServicesOverdue(overdue.slice(0, 5));
-      }
-
-      // Management-only dashboards
-      if (isManagement) {
-        try {
-          const [partsRes, inventoryRes] = await Promise.all([
-            fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`),
-            fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`),
-          ]);
-
-          const [partsData, inventoryData] = await Promise.all([
-            partsRes.json(),
-            inventoryRes.json(),
-          ]);
-
-          if (partsData?.status === "success" && Array.isArray(partsData.parts)) {
-              const forOrdering = (partsData.parts as any[])
-                .filter((p) => (p.status || "") === "For Ordering")
-                .map((p) => ({
-                  partId: p.partId,
-                  requestedBy: p.requestedBy,
-                  serviceId: p.serviceId,
-                  partName: p.partName,
-                  dateNeeded: p.dateNeeded,
-                  status: p.status,
-                }));
-              setPartsForOrdering(forOrdering);
-          } else {
-            setPartsForOrdering([]);
-          }
-
-            if (inventoryData?.status === "success" && Array.isArray(inventoryData.inventory)) {
-              const lowStock = (inventoryData.inventory as any[])
-                .map((it) => ({
-                  partId: it.partId,
-                  partName: it.partName,
-                  model: it.model,
-                  quantity: Number(it.quantity ?? 0),
-                }))
-                .filter((it) => Number.isFinite(it.quantity) && it.quantity <= 2)
-                .sort((a, b) => a.quantity - b.quantity);
-              setLowStockItems(lowStock);
-          } else {
-            setLowStockItems([]);
-          }
-        } catch (error) {
-          console.error("Error fetching inventory dashboards:", error);
-          setPartsForOrdering([]);
-          setLowStockItems([]);
-        }
-      }
-
-      // Fetch inquiries count (only for non-technicians)
-      if (!isTechnician) {
-        try {
-          const inquiryResponse = await fetch(
-            `${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`
-          );
-          const inquiryData = await inquiryResponse.json();
-          if (inquiryData.status === "success" && inquiryData.data) {
-            // Count only inquiries with TBD or blank mode of transfer
-            const pendingCount = inquiryData.data.filter((inquiry: any) => {
-              const modeOfTransfer = (inquiry.modeOfTransfer || "").trim().toUpperCase();
-              return modeOfTransfer === "TBD" || modeOfTransfer === "";
-            }).length;
-            setStats((prev) => ({
-              ...prev,
-              pendingInquiries: pendingCount,
-            }));
-          }
-        } catch (error) {
-          console.error("Error fetching inquiries:", error);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Low stock items (management only)
+  const lowStockItems = useMemo(() => {
+    if (!isManagement) return [];
+    return inventoryItems
+      .map((it: any) => ({
+        partId: it.partId,
+        partName: it.partName,
+        model: it.model,
+        quantity: Number(it.quantity ?? 0),
+      }))
+      .filter((it) => Number.isFinite(it.quantity) && it.quantity <= 2)
+      .sort((a, b) => a.quantity - b.quantity);
+  }, [inventoryItems, isManagement]);
 
   const handleEditService = (serviceId: string) => {
     if (isTechnician) {
