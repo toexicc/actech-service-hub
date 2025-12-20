@@ -318,12 +318,11 @@ export const FastMovingPartsTab = () => {
     setIsSubmitting(true);
     try {
       const userFullName = sessionStorage.getItem("userFullName") || "Management";
-      
+
       const formData = new FormData();
-      formData.append("action", "updateFastMovingPart");
+      formData.append("action", "cancelFastMovingPart");
       formData.append("partId", selectedPart.partId);
-      formData.append("status", "Cancelled");
-      formData.append("remarks", cancelRemark ? `[CANCELLED] ${cancelRemark}` : "[CANCELLED]");
+      formData.append("cancelRemark", cancelRemark);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -333,7 +332,6 @@ export const FastMovingPartsTab = () => {
       const result = await response.json();
 
       if (result.result === "success") {
-        // Notify the requester about the cancellation with proper tag
         await notifyPartCancelled(
           selectedPart.requestedBy,
           selectedPart.serviceId,
@@ -352,16 +350,19 @@ export const FastMovingPartsTab = () => {
         fetchParts();
       } else {
         toast({
-          title: "Error",
-          description: "Failed to cancel part request",
+          title: "Cancel failed",
+          description:
+            result?.message ||
+            result?.error ||
+            "Your Apps Script may not be updated yet (missing cancelFastMovingPart).",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error cancelling part:", error);
       toast({
-        title: "Error",
-        description: "Failed to cancel part request",
+        title: "Cancel failed",
+        description: "Your Apps Script may not be updated yet (missing cancelFastMovingPart).",
         variant: "destructive",
       });
     } finally {
