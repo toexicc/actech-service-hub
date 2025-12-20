@@ -183,3 +183,32 @@ export const notifyPartReceived = async (
     console.error('Error notifying part received:', error);
   }
 };
+
+/**
+ * Notify the requester when their part request is cancelled
+ */
+export const notifyPartCancelled = async (
+  requesterName: string,
+  serviceId: string,
+  partName: string,
+  cancelledBy: string,
+  remark?: string
+): Promise<void> => {
+  try {
+    const staffList = await fetchStaffList();
+    const requester = findStaffByName(staffList, requesterName);
+
+    if (requester) {
+      const remarkText = remark ? `\n\nRemark: ${remark}` : '';
+      await createNotification({
+        userId: requester.id,
+        title: 'Cancelled Request',
+        message: `Your part request "${partName}" for Service ID ${serviceId} has been cancelled by ${cancelledBy}.${remarkText}`,
+        type: 'others',
+        serviceId: serviceId,
+      });
+    }
+  } catch (error) {
+    console.error('Error notifying part cancelled:', error);
+  }
+};
