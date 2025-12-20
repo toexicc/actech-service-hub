@@ -201,7 +201,12 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
     setShowPreview(false);
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, title?: string) => {
+    // Check for cancelled notifications first
+    if (title?.toLowerCase().includes('cancelled')) {
+      return '❌';
+    }
+    
     switch (type) {
       case 'service_update':
         return '🔧';
@@ -226,7 +231,7 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
           onClick={handlePreviewClick}
         >
           <div className="flex items-start gap-2 p-3 cursor-pointer hover:bg-accent/50 rounded-lg">
-            <span className="text-lg">{getNotificationIcon(previewNotification.type)}</span>
+            <span className="text-lg">{getNotificationIcon(previewNotification.type, previewNotification.title)}</span>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm">{previewNotification.title}</p>
               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{previewNotification.message}</p>
@@ -328,7 +333,7 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                           onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start gap-2 w-full">
-                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <span className="text-lg">{getNotificationIcon(notification.type, notification.title)}</span>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm">{notification.title}</p>
                               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
@@ -373,7 +378,7 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                           onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start gap-2 w-full">
-                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <span className="text-lg">{getNotificationIcon(notification.type, notification.title)}</span>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm">{notification.title}</p>
                               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
@@ -418,7 +423,7 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
                           onClick={() => handleNotificationClick(notification)}
                         >
                           <div className="flex items-start gap-2 w-full">
-                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                            <span className="text-lg">{getNotificationIcon(notification.type, notification.title)}</span>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm">{notification.title}</p>
                               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{notification.message}</p>
