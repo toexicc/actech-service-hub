@@ -1004,13 +1004,13 @@ const InventoryManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Brand</Label>
+                <Label>Model</Label>
                 <Select value={brandFilter} onValueChange={setBrandFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Brands" />
+                    <SelectValue placeholder="All Models" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Brands</SelectItem>
+                    <SelectItem value="all">All Models</SelectItem>
                     {brands.map(brand => (
                       <SelectItem key={brand} value={brand}>{brand}</SelectItem>
                     ))}
@@ -1030,6 +1030,10 @@ const InventoryManagement = () => {
                     <SelectItem value="Low Stock">Low Stock</SelectItem>
                     <SelectItem value="Out of Stock">Out of Stock</SelectItem>
                     <SelectItem value="On Order">On Order</SelectItem>
+                    <SelectItem value="For Ordering">For Ordering</SelectItem>
+                    <SelectItem value="Ordered">Ordered</SelectItem>
+                    <SelectItem value="Received">Received</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1574,7 +1578,13 @@ const InventoryManagement = () => {
 
           {/* Fast Moving Parts Tab */}
           <TabsContent value="fast-moving">
-            <FastMovingPartsTab isViewOnly={isViewOnly} />
+            <FastMovingPartsTab 
+              isViewOnly={isViewOnly} 
+              searchQuery={debouncedSearch}
+              deviceTypeFilter={deviceTypeFilter}
+              modelFilter={brandFilter}
+              statusFilter={statusFilter}
+            />
           </TabsContent>
         </Tabs>
 
