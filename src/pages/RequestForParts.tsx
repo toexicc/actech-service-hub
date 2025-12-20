@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
 import { notifyPartRequest } from "@/lib/partNotifications";
-import { Package, Plus, CalendarIcon, Loader2, Search, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Package, Plus, CalendarIcon, Loader2, Search, ChevronLeft, ChevronRight, RefreshCw, Edit, X, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -55,6 +55,22 @@ const RequestForParts = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Edit dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<PartRequest | null>(null);
+  const [editForm, setEditForm] = useState({
+    partName: "",
+    deviceType: "",
+    brand: "",
+    model: "",
+    quantity: "",
+    remarks: ""
+  });
+  
+  // Cancel dialog state
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancellingRequest, setCancellingRequest] = useState<PartRequest | null>(null);
   
   const [formData, setFormData] = useState({
     serviceId: "",
@@ -220,12 +236,136 @@ const RequestForParts = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusClasses = {
+    const statusClasses: Record<string, string> = {
       "For Ordering": "bg-orange-100 text-orange-800",
       "Ordered": "bg-blue-100 text-blue-800",
-      "Received": "bg-green-100 text-green-800"
+      "Received": "bg-green-100 text-green-800",
+      "Cancelled": "bg-gray-100 text-gray-500"
     };
-    return statusClasses[status as keyof typeof statusClasses] || "bg-gray-100 text-gray-800";
+    return statusClasses[status] || "bg-gray-100 text-gray-800";
+  };
+
+  const handleEditClick = (request: PartRequest) => {
+    setEditingRequest(request);
+    setEditForm({
+      partName: request.partName,
+      deviceType: request.deviceType,
+      brand: request.brand,
+      model: request.model,
+      quantity: request.quantity,
+      remarks: request.remarks
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingRequest) return;
+
+    setIsSubmitting(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("action", "updateFastMovingPart");
+      formDataToSend.append("partId", editingRequest.partId);
+      formDataToSend.append("partName", editForm.partName);
+      formDataToSend.append("deviceType", editForm.deviceType);
+      formDataToSend.append("brand", editForm.brand);
+      formDataToSend.append("model", editForm.model);
+      formDataToSend.append("quantity", editForm.quantity);
+      formDataToSend.append("remarks", editForm.remarks);
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        // Notify management about the edit
+        await notifyPartRequest(userFullName, editingRequest.serviceId, `${editForm.partName} (edited)`);
+
+        toast({
+          title: "Updated",
+          description: "Request updated and management notified.",
+        });
+        setIsEditDialogOpen(false);
+        setEditingRequest(null);
+        fetchRequests();
+      } else {
+        throw new Error(result.message || "Failed to update");
+      }
+    } catch (error) {
+      console.error("Error updating request:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update request.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelClick = (request: PartRequest) => {
+    setCancellingRequest(request);
+    setIsCancelDialogOpen(true);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancellingRequest) return;
+
+    setIsSubmitting(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("action", "cancelFastMovingPart");
+      formDataToSend.append("partId", cancellingRequest.partId);
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        // Notify management about cancellation
+        await notifyPartRequest(userFullName, cancellingRequest.serviceId, `${cancellingRequest.partName} (CANCELLED)`);
+
+        toast({
+          title: "Cancelled",
+          description: "Request cancelled and management notified.",
+        });
+        setIsCancelDialogOpen(false);
+        setCancellingRequest(null);
+        fetchRequests();
+      } else {
+        throw new Error(result.message || "Failed to cancel");
+      }
+    } catch (error) {
+      console.error("Error cancelling request:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to cancel request.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDuplicate = (request: PartRequest) => {
+    // Pre-fill the form with existing data
+    setFormData({
+      serviceId: request.serviceId,
+      partName: request.partName,
+      deviceType: request.deviceType,
+      brand: request.brand,
+      model: request.model,
+      quantity: request.quantity,
+      remarks: request.remarks
+    });
+    setDateNeeded(undefined);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -296,6 +436,7 @@ const RequestForParts = () => {
                     <SelectItem value="For Ordering">For Ordering</SelectItem>
                     <SelectItem value="Ordered">Ordered</SelectItem>
                     <SelectItem value="Received">Received</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="relative w-64">
@@ -327,37 +468,64 @@ const RequestForParts = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Part ID</TableHead>
-                          <TableHead>Requested By</TableHead>
                           <TableHead>Service ID</TableHead>
                           <TableHead>Part Name</TableHead>
+                          <TableHead>Model</TableHead>
                           <TableHead>Device Type</TableHead>
                           <TableHead>Qty</TableHead>
                           <TableHead>Date Needed</TableHead>
-                          <TableHead>Date Ordered</TableHead>
-                          <TableHead>Date Received</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Remarks</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paginatedRequests.map((req) => (
-                          <TableRow key={req.partId}>
+                          <TableRow 
+                            key={req.partId}
+                            className={req.status === "Cancelled" ? "opacity-50 bg-muted/30" : ""}
+                          >
                             <TableCell className="font-medium">{req.partId}</TableCell>
-                            <TableCell>{req.requestedBy}</TableCell>
                             <TableCell>{req.serviceId}</TableCell>
                             <TableCell>{req.partName}</TableCell>
+                            <TableCell>{req.model || "N/A"}</TableCell>
                             <TableCell>{req.deviceType || "N/A"}</TableCell>
                             <TableCell>{req.quantity}</TableCell>
                             <TableCell>{req.dateNeeded || "N/A"}</TableCell>
-                            <TableCell>{req.dateOrdered || "N/A"}</TableCell>
-                            <TableCell>{req.dateReceived || "N/A"}</TableCell>
                             <TableCell>
                               <span className={`px-2 py-1 rounded text-xs ${getStatusBadge(req.status)}`}>
                                 {req.status}
                               </span>
                             </TableCell>
-                            <TableCell className="max-w-[150px] truncate" title={req.remarks}>
-                              {req.remarks || "N/A"}
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditClick(req)}
+                                  disabled={req.status !== "For Ordering"}
+                                  title={req.status !== "For Ordering" ? "Can only edit when status is For Ordering" : "Edit request"}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleCancelClick(req)}
+                                  disabled={req.status === "Cancelled" || req.status === "Received"}
+                                  title="Cancel request"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDuplicate(req)}
+                                  title="Duplicate request"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -521,6 +689,117 @@ const RequestForParts = () => {
                 ) : (
                   "Submit Request"
                 )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Request</DialogTitle>
+              <DialogDescription>
+                Edit Part ID: {editingRequest?.partId}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Part Name *</Label>
+                <Input
+                  value={editForm.partName}
+                  onChange={(e) => setEditForm({ ...editForm, partName: e.target.value })}
+                  placeholder="Enter Part Name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Device Type</Label>
+                <Select
+                  value={editForm.deviceType}
+                  onValueChange={(value) => setEditForm({ ...editForm, deviceType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Device Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEVICE_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Brand</Label>
+                  <Input
+                    value={editForm.brand}
+                    onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                    placeholder="Enter Brand"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Model</Label>
+                  <Input
+                    value={editForm.model}
+                    onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                    placeholder="Enter Model"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Quantity *</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={editForm.quantity}
+                  onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                  placeholder="Enter Quantity"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Remarks</Label>
+                <Textarea
+                  value={editForm.remarks}
+                  onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })}
+                  placeholder="Any additional notes..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEditSubmit} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Confirmation Dialog */}
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Request</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to cancel the request for "{cancellingRequest?.partName}"? 
+                Management will be notified.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                No, Keep It
+              </Button>
+              <Button variant="destructive" onClick={handleCancelConfirm} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Yes, Cancel Request"}
               </Button>
             </DialogFooter>
           </DialogContent>

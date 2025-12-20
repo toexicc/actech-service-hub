@@ -5,15 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { Edit, Trash2, Package, CalendarIcon, Loader2, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { DEVICE_TYPES } from "@/lib/constants";
+import { Edit, X, Package, CalendarIcon, Loader2, ChevronLeft, ChevronRight, Search, Copy, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { notifyPartOrdered, notifyPartReceived } from "@/lib/partNotifications";
+import { notifyPartOrdered, notifyPartReceived, notifyPartRequest } from "@/lib/partNotifications";
 
 interface FastMovingPart {
   partId: string;
@@ -39,13 +41,15 @@ export const FastMovingPartsTab = () => {
   const [parts, setParts] = useState<FastMovingPart[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   // Dialog states
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<FastMovingPart | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,6 +63,18 @@ export const FastMovingPartsTab = () => {
 
   // Edit form state
   const [editForm, setEditForm] = useState<FastMovingPart | null>(null);
+
+  // Duplicate form state
+  const [duplicateForm, setDuplicateForm] = useState({
+    serviceId: "",
+    partName: "",
+    deviceType: "",
+    brand: "",
+    model: "",
+    quantity: "",
+    dateNeeded: undefined as Date | undefined,
+    remarks: ""
+  });
 
   useEffect(() => {
     fetchParts();
@@ -93,13 +109,20 @@ export const FastMovingPartsTab = () => {
 
   const filteredParts = useMemo(() => {
     const filtered = parts.filter(part => {
+      // Status filter
+      if (statusFilter !== "all" && part.status !== statusFilter) return false;
+      
+      // Search filter
       const search = searchQuery.toLowerCase();
-      return (
-        part.partId?.toLowerCase().includes(search) ||
-        part.partName?.toLowerCase().includes(search) ||
-        part.serviceId?.toLowerCase().includes(search) ||
-        part.requestedBy?.toLowerCase().includes(search)
-      );
+      if (search) {
+        return (
+          part.partId?.toLowerCase().includes(search) ||
+          part.partName?.toLowerCase().includes(search) ||
+          part.serviceId?.toLowerCase().includes(search) ||
+          part.requestedBy?.toLowerCase().includes(search)
+        );
+      }
+      return true;
     });
     // Sort by most recent (partId descending - newer entries have higher IDs)
     return filtered.sort((a, b) => {
@@ -108,7 +131,7 @@ export const FastMovingPartsTab = () => {
       const numB = parseInt(b.partId?.replace(/\D/g, '') || '0');
       return numB - numA; // Descending order (most recent first)
     });
-  }, [parts, searchQuery]);
+  }, [parts, searchQuery, statusFilter]);
 
   const paginatedParts = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -284,13 +307,13 @@ export const FastMovingPartsTab = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleCancel = async () => {
     if (!selectedPart) return;
 
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("action", "deleteFastMovingPart");
+      formData.append("action", "cancelFastMovingPart");
       formData.append("partId", selectedPart.partId);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -301,25 +324,98 @@ export const FastMovingPartsTab = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        // Notify the requester about the cancellation
+        await notifyPartRequest(selectedPart.requestedBy, selectedPart.serviceId, `${selectedPart.partName} (CANCELLED by management)`);
+
         toast({
-          title: "Success",
-          description: "Part request deleted",
+          title: "Cancelled",
+          description: "Part request cancelled and requester notified",
         });
-        setIsDeleteDialogOpen(false);
+        setIsCancelDialogOpen(false);
         setSelectedPart(null);
         fetchParts();
       } else {
         toast({
           title: "Error",
-          description: "Failed to delete part",
+          description: "Failed to cancel part request",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error deleting part:", error);
+      console.error("Error cancelling part:", error);
       toast({
         title: "Error",
-        description: "Failed to delete part",
+        description: "Failed to cancel part request",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDuplicateOpen = (part: FastMovingPart) => {
+    setDuplicateForm({
+      serviceId: part.serviceId,
+      partName: part.partName,
+      deviceType: part.deviceType,
+      brand: part.brand,
+      model: part.model,
+      quantity: part.quantity,
+      dateNeeded: undefined,
+      remarks: part.remarks
+    });
+    setIsDuplicateDialogOpen(true);
+  };
+
+  const handleDuplicateSubmit = async () => {
+    if (!duplicateForm.serviceId || !duplicateForm.partName || !duplicateForm.quantity || !duplicateForm.dateNeeded) {
+      toast({
+        title: "Validation Error",
+        description: "Service ID, Part Name, Quantity, and Date Needed are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const userFullName = sessionStorage.getItem("userFullName") || "Management";
+      
+      const formData = new FormData();
+      formData.append("action", "addFastMovingPart");
+      formData.append("requestedBy", userFullName);
+      formData.append("serviceId", duplicateForm.serviceId);
+      formData.append("partName", duplicateForm.partName);
+      formData.append("deviceType", duplicateForm.deviceType);
+      formData.append("brand", duplicateForm.brand);
+      formData.append("model", duplicateForm.model);
+      formData.append("quantity", duplicateForm.quantity);
+      formData.append("dateNeeded", format(duplicateForm.dateNeeded, "MM/dd/yyyy"));
+      formData.append("status", "For Ordering");
+      formData.append("remarks", duplicateForm.remarks);
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.result === "success") {
+        toast({
+          title: "Duplicated",
+          description: "New part request created",
+        });
+        setIsDuplicateDialogOpen(false);
+        fetchParts();
+      } else {
+        throw new Error(result.message || "Failed to create duplicate");
+      }
+    } catch (error) {
+      console.error("Error duplicating part:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to duplicate request",
         variant: "destructive",
       });
     } finally {
@@ -328,12 +424,13 @@ export const FastMovingPartsTab = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusClasses = {
+    const statusClasses: Record<string, string> = {
       "For Ordering": "bg-orange-100 text-orange-800",
       "Ordered": "bg-blue-100 text-blue-800",
-      "Received": "bg-green-100 text-green-800"
+      "Received": "bg-green-100 text-green-800",
+      "Cancelled": "bg-gray-100 text-gray-500"
     };
-    return statusClasses[status as keyof typeof statusClasses] || "bg-gray-100 text-gray-800";
+    return statusClasses[status] || "bg-gray-100 text-gray-800";
   };
 
   return (
@@ -344,14 +441,28 @@ export const FastMovingPartsTab = () => {
             <Package className="h-5 w-5" />
             Fast Moving Parts
           </CardTitle>
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
+          <div className="flex items-center gap-4">
+            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="For Ordering">For Ordering</SelectItem>
+                <SelectItem value="Ordered">Ordered</SelectItem>
+                <SelectItem value="Received">Received</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -383,7 +494,7 @@ export const FastMovingPartsTab = () => {
                 </TableHeader>
                 <TableBody>
                   {paginatedParts.map((part) => (
-                    <TableRow key={part.partId}>
+                    <TableRow key={part.partId} className={part.status === "Cancelled" ? "opacity-50 bg-muted/30" : ""}>
                       <TableCell className="font-medium">{part.partId}</TableCell>
                       <TableCell>{part.requestedBy}</TableCell>
                       <TableCell>{part.serviceId}</TableCell>
@@ -418,10 +529,20 @@ export const FastMovingPartsTab = () => {
                             className="text-destructive hover:bg-destructive/10"
                             onClick={() => {
                               setSelectedPart(part);
-                              setIsDeleteDialogOpen(true);
+                              setIsCancelDialogOpen(true);
                             }}
+                            disabled={part.status === "Cancelled" || part.status === "Received"}
+                            title="Cancel request"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDuplicateOpen(part)}
+                            title="Duplicate request"
+                          >
+                            <Copy className="h-4 w-4" />
                           </Button>
                           {part.status === "For Ordering" && (
                             <Button
@@ -619,21 +740,92 @@ export const FastMovingPartsTab = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        {/* Cancel Confirmation Dialog */}
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Part Request</DialogTitle>
+              <DialogTitle>Cancel Part Request</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete the request for "{selectedPart?.partName}"? This action cannot be undone.
+                Are you sure you want to cancel the request for "{selectedPart?.partName}"? 
+                The requester will be notified.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>
+                No, Keep It
+              </Button>
+              <Button variant="destructive" onClick={handleCancel} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Yes, Cancel Request"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Duplicate Dialog */}
+        <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Duplicate Part Request</DialogTitle>
+              <DialogDescription>Create a new request with the same details</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Service ID *</Label>
+                <Input
+                  value={duplicateForm.serviceId}
+                  onChange={(e) => setDuplicateForm({ ...duplicateForm, serviceId: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Part Name *</Label>
+                <Input
+                  value={duplicateForm.partName}
+                  onChange={(e) => setDuplicateForm({ ...duplicateForm, partName: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Quantity *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={duplicateForm.quantity}
+                    onChange={(e) => setDuplicateForm({ ...duplicateForm, quantity: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Date Needed *</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !duplicateForm.dateNeeded && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {duplicateForm.dateNeeded ? format(duplicateForm.dateNeeded, "MM/dd/yyyy") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={duplicateForm.dateNeeded}
+                        onSelect={(date) => setDuplicateForm({ ...duplicateForm, dateNeeded: date })}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDuplicateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+              <Button onClick={handleDuplicateSubmit} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Request"}
               </Button>
             </DialogFooter>
           </DialogContent>
