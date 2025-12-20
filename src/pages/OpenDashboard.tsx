@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { isSameDay, isBefore, startOfDay, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, AlertCircle } from "lucide-react";
@@ -9,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { DEPARTMENTS } from "@/lib/constants";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useServices } from "@/hooks/useServices";
+import { useStaff } from "@/hooks/useStaff";
 
 interface ServiceRecord {
   serviceId: string;
@@ -33,12 +34,40 @@ type ViewMode = "dueToday" | "overdue";
 const OpenDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [services, setServices] = useState<ServiceRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("dueToday");
-  const [techniciansWithDept, setTechniciansWithDept] = useState<Array<{ name: string; department: string }>>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const userRole = sessionStorage.getItem("userRole");
+
+  // Use React Query hooks for cached data
+  const { data: allServices = [], isLoading: isServicesLoading, refetch: refetchServices } = useServices();
+  const { data: staffList = [] } = useStaff();
+
+  // Filter services for this dashboard
+  const services = useMemo(() => {
+    const excludedStatuses = [
+      "For Pickup",
+      "Completed",
+      "Backjob",
+      "RTO",
+      "On Hold",
+      "Cancelled"
+    ];
+    return allServices.filter(
+      (service: any) => !excludedStatuses.includes(service.status)
+    );
+  }, [allServices]);
+
+  // Get technicians with departments
+  const techniciansWithDept = useMemo(() => {
+    return staffList
+      .filter((staff: any) => staff.role === "Technician" && staff.status === "Active")
+      .map((staff: any) => ({
+        name: staff.name,
+        department: staff.department || "",
+      }));
+  }, [staffList]);
+
+  const isLoading = isServicesLoading;
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -46,12 +75,11 @@ const OpenDashboard = () => {
     }
   }, [navigate]);
 
+  // Auto-refresh every 60 seconds
   useEffect(() => {
-    fetchServices();
-    fetchTechnicians();
-    const interval = setInterval(fetchServices, 60000);
+    const interval = setInterval(() => refetchServices(), 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refetchServices]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -60,74 +88,13 @@ const OpenDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchServices = async () => {
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`
-      );
-      const data = await response.json();
-      
-      if (data.status === "success" && data.services) {
-        console.log("Total services fetched (dashboard):", data.services.length);
-        console.log("Sample services (dashboard):", data.services.slice(0, 3));
-        
-        // Filter out completed/cancelled statuses
-        const excludedStatuses = [
-          "For Pickup",
-          "Completed",
-          "Backjob",
-          "RTO",
-          "On Hold",
-          "Cancelled"
-        ];
-        
-        const filteredServices = data.services.filter(
-          (service: ServiceRecord) => !excludedStatuses.includes(service.status)
-        );
-        
-        console.log("Filtered services count:", filteredServices.length);
-        setServices(filteredServices);
-      } else {
-        console.error("Unexpected response for getAllOngoingServices", data);
-      }
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch services",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchTechnicians = async () => {
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-      const data = await response.json();
-      if (data.status === "success" && data.data) {
-        const techList = data.data
-          .filter((staff: any) => staff.role === "Technician" && staff.status === "Active")
-          .map((staff: any) => ({
-            name: staff.name,
-            department: staff.department || "",
-          }));
-        console.log("Technicians with departments (dashboard):", techList);
-        setTechniciansWithDept(techList);
-      }
-    } catch (error) {
-      console.error("Error fetching technicians for dashboard:", error);
-    }
-  };
-
   const handleLogout = () => {
     sessionStorage.removeItem("authenticated");
     sessionStorage.removeItem("userRole");
     navigate("/");
   };
 
-  const filterServicesByDate = (services: ServiceRecord[]) => {
+  const filterServicesByDate = (services: any[]) => {
     const today = startOfDay(new Date());
     console.log("Today's date:", today);
     console.log("View mode:", viewMode);
