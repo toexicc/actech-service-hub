@@ -2523,13 +2523,10 @@ function doPost(e) {
   if (action === 'receiveFastMovingPart') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
-    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
-    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     var data = fmSheet.getDataRange().getValues();
     var timestamp = new Date().toISOString();
     
-    var requestedBy = e.parameter.requestedBy;
-    var partName = e.parameter.partName;
+    var partName = e.parameter.partName; // kept for backwards compatibility (older clients send part name)
     var serviceId = e.parameter.serviceId;
     var cost = e.parameter.cost || "0";
     var quantity = e.parameter.quantity || "1";
@@ -2556,6 +2553,7 @@ function doPost(e) {
           serviceSheet.getRange(j + 1, 46).setValue(newPartsCost);
           
           // Column AU (47) - Parts Used
+          // IMPORTANT: store Part ID (not part name)
           var existingPartsUsed = serviceData[j][46] || "";
           var newPart = partId + " (x" + quantity + ")";
           var updatedPartsUsed = existingPartsUsed ? existingPartsUsed + ", " + newPart : newPart;
@@ -2565,27 +2563,7 @@ function doPost(e) {
       }
     }
     
-    // Notify the requester
-    // Column order for Notifications sheet: id, userId, title, message, type, read, createdAt, serviceId
-    if (notifSheet && staffSheet && requestedBy) {
-      var staffData = staffSheet.getDataRange().getValues();
-      for (var k = 1; k < staffData.length; k++) {
-        if (staffData[k][1] === requestedBy || staffData[k][3] === requestedBy) {
-          var notifId = "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5);
-          notifSheet.appendRow([
-            notifId,                    // Column A: id
-            staffData[k][0],            // Column B: userId (Staff ID)
-            "Part Received",            // Column C: title
-            "The part '" + partName + "' you requested for Service ID: " + serviceId + " has been received and is now available.", // Column D: message
-            "others",                   // Column E: type
-            "false",                    // Column F: read
-            timestamp,                  // Column G: createdAt
-            serviceId                   // Column H: serviceId
-          ]);
-          break;
-        }
-      }
-    }
+    // NOTE: Notification is handled by frontend via notifyPartReceived() - no duplicate notification here
     
     return ContentService.createTextOutput(JSON.stringify({
       "result": "success"
