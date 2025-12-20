@@ -2600,29 +2600,52 @@ function doPost(e) {
     var data = fmSheet.getDataRange().getValues();
     var timestamp = new Date().toISOString();
 
-    // Find columns by header labels (more robust if the sheet layout changes)
-    var headers = fmSheet.getRange(1, 1, 1, fmSheet.getLastColumn()).getDisplayValues()[0];
-    var statusCol = headers.indexOf('Status') + 1;
-    var lastUpdatedCol = headers.indexOf('Last Updated') + 1;
-    var remarksCol = headers.indexOf('Remarks') + 1;
+    // Robust header matching (handles extra spaces/typos like "Requsted By")
+    var headers = fmSheet.getRange(1, 1, 1, fmSheet.getLastColumn()).getDisplayValues()[0] || [];
+    var norm = function (s) {
+      return String(s || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+    };
 
-    // Fallback to legacy positions if headers not found
-    if (statusCol <= 0) statusCol = 14;      // Column N
-    if (lastUpdatedCol <= 0) lastUpdatedCol = 15; // Column O
-    if (remarksCol <= 0) remarksCol = 16;    // Column P
+    var findCol = function (keyNorm) {
+      for (var hi = 0; hi < headers.length; hi++) {
+        var h = norm(headers[hi]);
+        if (h === keyNorm) return hi + 1;
+      }
+      return -1;
+    };
+
+    // Prefer header-based columns but ALWAYS also update the known correct columns
+    var statusCol = findCol('status');
+    var lastUpdatedCol = findCol('lastupdated');
+    var remarksCol = findCol('remarks');
+
+    // Your sheet order (confirmed): Status=N(14), Last Updated=O(15), Remarks=P(16)
+    if (statusCol <= 0) statusCol = 14;
+    if (lastUpdatedCol <= 0) lastUpdatedCol = 15;
+    if (remarksCol <= 0) remarksCol = 16;
 
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(params.partId)) {
+        // Set status (both resolved col and fixed col 14, in case headers are off)
         fmSheet.getRange(i + 1, statusCol).setValue("Cancelled");
-        fmSheet.getRange(i + 1, lastUpdatedCol).setValue(timestamp);
+        if (statusCol !== 14) {
+          fmSheet.getRange(i + 1, 14).setValue("Cancelled");
+        }
 
-        var existingRemarks = (data[i][remarksCol - 1] || "");
-        if (params.cancelRemark) {
-          var cancelNote = "[CANCELLED] " + params.cancelRemark;
-          var updatedRemarks = existingRemarks ? (existingRemarks + " | " + cancelNote) : cancelNote;
-          fmSheet.getRange(i + 1, remarksCol).setValue(updatedRemarks);
-        } else if (!existingRemarks) {
-          fmSheet.getRange(i + 1, remarksCol).setValue("[CANCELLED]");
+        fmSheet.getRange(i + 1, lastUpdatedCol).setValue(timestamp);
+        if (lastUpdatedCol !== 15) {
+          fmSheet.getRange(i + 1, 15).setValue(timestamp);
+        }
+
+        var existingRemarks = data[i][remarksCol - 1] || "";
+        var cancelNote = params.cancelRemark ? ("[CANCELLED] " + params.cancelRemark) : "[CANCELLED]";
+        var updatedRemarks = existingRemarks ? (existingRemarks + " | " + cancelNote) : cancelNote;
+        fmSheet.getRange(i + 1, remarksCol).setValue(updatedRemarks);
+        if (remarksCol !== 16) {
+          fmSheet.getRange(i + 1, 16).setValue(updatedRemarks);
         }
 
         break;
