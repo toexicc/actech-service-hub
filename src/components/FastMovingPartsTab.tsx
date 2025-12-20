@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,6 +16,7 @@ import { Edit, X, Package, CalendarIcon, Loader2, ChevronLeft, ChevronRight, Sea
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { notifyPartOrdered, notifyPartReceived, notifyPartCancelled } from "@/lib/partNotifications";
+import { useFastMovingParts, useInvalidateFastMovingParts } from "@/hooks/useFastMovingParts";
 
 interface FastMovingPart {
   partId: string;
@@ -52,8 +53,11 @@ export const FastMovingPartsTab = ({
   statusFilter: externalStatusFilter = "all"
 }: FastMovingPartsTabProps) => {
   const { toast } = useToast();
-  const [parts, setParts] = useState<FastMovingPart[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use React Query for cached data fetching
+  const { data: parts = [], isLoading, refetch: fetchParts } = useFastMovingParts();
+  const invalidateParts = useInvalidateFastMovingParts();
+  
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -89,35 +93,10 @@ export const FastMovingPartsTab = ({
     remarks: ""
   });
 
-  useEffect(() => {
+  // Helper to refresh data after mutations
+  const refreshParts = () => {
+    invalidateParts();
     fetchParts();
-  }, []);
-
-  const fetchParts = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`);
-      const data = await response.json();
-
-      if (data.status === "success" && data.parts) {
-        setParts(data.parts);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load fast moving parts",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching parts:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load fast moving parts",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const filteredParts = useMemo(() => {
@@ -208,7 +187,7 @@ export const FastMovingPartsTab = ({
         setIsOrderDialogOpen(false);
         setSelectedPart(null);
         setOrderForm({ supplier: "", cost: "", dateOrdered: undefined, remarks: "" });
-        fetchParts();
+        refreshParts();
       } else {
         toast({
           title: "Error",
@@ -262,7 +241,7 @@ export const FastMovingPartsTab = ({
           title: "Success",
           description: "Part received and added to service",
         });
-        fetchParts();
+        refreshParts();
       } else {
         toast({
           title: "Error",
@@ -311,7 +290,7 @@ export const FastMovingPartsTab = ({
         });
         setIsEditDialogOpen(false);
         setEditForm(null);
-        fetchParts();
+        refreshParts();
       } else {
         toast({
           title: "Error",
@@ -366,7 +345,7 @@ export const FastMovingPartsTab = ({
         setIsCancelDialogOpen(false);
         setSelectedPart(null);
         setCancelRemark("");
-        fetchParts();
+        refreshParts();
       } else {
         toast({
           title: "Cancel failed",
@@ -443,7 +422,7 @@ export const FastMovingPartsTab = ({
           description: "New part request created",
         });
         setIsDuplicateDialogOpen(false);
-        fetchParts();
+        refreshParts();
       } else {
         throw new Error(result.message || "Failed to create duplicate");
       }
