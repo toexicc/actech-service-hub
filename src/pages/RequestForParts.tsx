@@ -18,6 +18,7 @@ import { Package, Plus, CalendarIcon, Loader2, Search, ChevronLeft, ChevronRight
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useFastMovingParts, useInvalidateFastMovingParts } from "@/hooks/useFastMovingParts";
 
 interface PartRequest {
   partId: string;
@@ -48,9 +49,9 @@ const RequestForParts = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dateNeeded, setDateNeeded] = useState<Date | undefined>(undefined);
   
-  // Requests table state
-  const [requests, setRequests] = useState<PartRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use React Query for requests
+  const { data: requests = [], isLoading } = useFastMovingParts();
+  const invalidateParts = useInvalidateFastMovingParts();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,32 +87,13 @@ const RequestForParts = () => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
-    // Only admin and technician can access
     if (userRole !== "admin" && userRole !== "technician" && userRole !== "management") {
       navigate("/menu");
     }
   }, [navigate, userRole]);
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const fetchRequests = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getFastMovingParts`);
-      const data = await response.json();
-
-      if (data.status === "success" && data.parts) {
-        setRequests(data.parts);
-      } else {
-        console.error("Failed to load requests:", data);
-      }
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchRequests = () => {
+    invalidateParts();
   };
 
   const normalizePersonName = (value: string) =>

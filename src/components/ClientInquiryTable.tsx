@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { cn } from "@/lib/utils";
 import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { useClientInquiriesData, useInvalidateClientInquiriesData } from "@/hooks/useClientInquiriesData";
 
 interface ClientInquiry {
   rowIndex: number;
@@ -30,14 +31,14 @@ interface ClientInquiry {
   quotation: string;
   pickUpDate: string;
   directChatLink: string;
-  aiStatus?: string; // Column N: "ON-AI" or "OFF-AI"
+  aiStatus?: string;
 }
 
 const ITEMS_PER_PAGE = 9;
 
 const ClientInquiryTable = () => {
-  const [inquiries, setInquiries] = useState<ClientInquiry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: inquiries = [], isLoading: loading, refetch } = useClientInquiriesData();
+  const invalidateInquiries = useInvalidateClientInquiriesData();
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -56,33 +57,10 @@ const ClientInquiryTable = () => {
   const [deletingInquiry, setDeletingInquiry] = useState<ClientInquiry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchInquiries = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`);
-      const result = await response.json();
-      if (result.status === "success") {
-        setInquiries(result.data || []);
-      } else {
-        toast({ title: "Error", description: "Failed to fetch inquiries", variant: "destructive" });
-      }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to fetch inquiries", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+  const fetchInquiries = () => {
+    invalidateInquiries();
+    refetch();
   };
-
-  useEffect(() => {
-    fetchInquiries();
-    
-    // Auto-refresh every 30 seconds
-    const intervalId = setInterval(() => {
-      fetchInquiries();
-    }, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
 
   const filteredInquiries = useMemo(() => {
     return inquiries
@@ -244,10 +222,8 @@ const ClientInquiryTable = () => {
       const result = await response.json();
       
       if (result.status === "success" || result.result === "success") {
-        // Update local state
-        setInquiries(prev => prev.map(inq => 
-          inq.rowIndex === inquiry.rowIndex ? { ...inq, aiStatus: newStatus } : inq
-        ));
+        // Refetch to get updated data
+        fetchInquiries();
         toast({ title: "Success", description: `AI ${newStatus === "ON-AI" ? "enabled" : "disabled"}` });
       } else {
         throw new Error(result.message || "Update failed");

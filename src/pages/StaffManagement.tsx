@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Trash2, Edit, Eye, EyeOff } from "lucide-react";
 import {
-  getAllUsers,
   addUser,
   updateUser,
   removeUser,
@@ -38,6 +37,7 @@ import {
 } from "@/lib/userCredentials";
 import { DEPARTMENTS } from "@/lib/constants";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useStaff, useInvalidateStaff } from "@/hooks/useStaff";
 
 const StaffManagement = () => {
   const navigate = useNavigate();
@@ -53,7 +53,23 @@ const StaffManagement = () => {
     }
   }, [navigate, userRole]);
 
-  const [staffList, setStaffList] = useState<UserCredential[]>([]);
+  // Use React Query for staff data
+  const { data: staffData = [] } = useStaff();
+  const invalidateStaff = useInvalidateStaff();
+  
+  // Transform staff data to match UserCredential interface
+  const staffList = useMemo(() => {
+    return staffData.map((staff) => ({
+      staffId: staff.staffId,
+      username: staff.username,
+      password: staff.password,
+      name: staff.name,
+      role: staff.role?.toLowerCase() as "admin" | "technician" | "management",
+      department: staff.department,
+      status: staff.status?.toLowerCase() as "active" | "inactive",
+    }));
+  }, [staffData]);
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<UserCredential | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,18 +91,13 @@ const StaffManagement = () => {
     status: "active" as "active" | "inactive",
   });
 
-  useEffect(() => {
-    loadStaffList();
-  }, []);
-
   const generateStaffId = () => {
     const timestamp = Date.now();
     return `ACTS${timestamp}`;
   };
 
-  const loadStaffList = async () => {
-    const users = await getAllUsers();
-    setStaffList(users);
+  const loadStaffList = () => {
+    invalidateStaff();
   };
 
   const handleAddStaff = async () => {

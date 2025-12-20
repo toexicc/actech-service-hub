@@ -24,6 +24,7 @@ import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from
 import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
+import { useStaff } from "@/hooks/useStaff";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -75,46 +76,29 @@ const ServiceForm = () => {
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
-  const [adminList, setAdminList] = useState<string[]>([]);
-  const [technicianList, setTechnicianList] = useState<Array<{name: string, department: string}>>([]);
   const [signatureUrl, setSignatureUrl] = useState("");
   const signatureRef = useRef<SignatureCanvasRef>(null);
   const [annotationImageUrl, setAnnotationImageUrl] = useState("");
 
+  // Use React Query for staff data
+  const { data: staffData = [] } = useStaff();
+  
+  const adminList = staffData
+    .filter((staff) => staff.role?.toLowerCase() === "admin" && staff.status?.toLowerCase() !== "inactive")
+    .map((staff) => staff.name);
+  
+  const technicianList = staffData
+    .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() !== "inactive")
+    .map((staff) => ({
+      name: staff.name,
+      department: staff.department || ""
+    }));
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
-    } else {
-      fetchStaffLists();
     }
   }, [navigate]);
-
-  const fetchStaffLists = async () => {
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`
-      );
-      const data = await response.json();
-      
-      if (data.status === "success") {
-        const admins = data.data
-          .filter((staff: any) => staff.role === "Admin" && staff.status !== "Inactive")
-          .map((staff: any) => staff.name);
-        const technicians = data.data
-          .filter((staff: any) => staff.role === "Technician" && staff.status !== "Inactive")
-          .map((staff: any) => ({
-            name: staff.name,
-            department: staff.department || ""
-          }));
-        
-        setAdminList(admins);
-        setTechnicianList(technicians);
-      }
-    } catch (error) {
-      console.error("Error fetching staff lists:", error);
-    }
-  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

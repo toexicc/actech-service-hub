@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,24 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
-import { CalendarIcon, Loader2, DollarSign } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { handleError } from "@/lib/errorHandling";
-import { sanitizeNumber } from "@/lib/validation";
 import DashboardLayout from "@/components/DashboardLayout";
-
-interface DoneService {
-  serviceId: string;
-  timestamp: string;
-  technician: string;
-  department: string;
-  clientName: string;
-  service: string;
-  quotedPrice: number;
-  discount: number;
-  partsCost: number;
-}
+import { useDoneServices } from "@/hooks/useDoneServices";
 
 const TransactionTracker = () => {
   const navigate = useNavigate();
@@ -43,73 +29,13 @@ const TransactionTracker = () => {
     }
   }, [navigate, userRole]);
 
-  const [services, setServices] = useState<DoneService[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: services = [], isLoading } = useDoneServices();
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [commissionRate, setCommissionRate] = useState(0);
   const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    fetchDoneServices();
-  }, []);
-
-  const fetchDoneServices = async () => {
-    setIsLoading(true);
-    try {
-      const [doneRes, staffRes] = await Promise.all([
-        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getDoneServices`),
-        fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`),
-      ]);
-      const [doneData, staffData] = await Promise.all([
-        doneRes.json(),
-        staffRes.json(),
-      ]);
-
-      if (doneData.status === "success" && doneData.services) {
-        let servicesWithDept = doneData.services as DoneService[];
-
-        // Enrich missing department from Staff Management if backend didn't store it
-        if (staffData?.status === "success" && Array.isArray(staffData.data)) {
-          const deptByTech = new Map<string, string>();
-          for (const staff of staffData.data) {
-            const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
-            if (role === "Technician") {
-              const name = staff.name ?? staff["Name"] ?? "";
-              const dept = staff.department ?? staff["Department"] ?? "";
-              if (name) deptByTech.set(name, dept);
-            }
-          }
-          servicesWithDept = servicesWithDept.map((s: any) => {
-            const existing = (s.department || "").toString().trim();
-            // Replace if empty, "N/A", or numeric placeholder like "123456"
-            const isInvalid = !existing || existing === "N/A" || /^\d+$/.test(existing);
-            const enriched = isInvalid ? deptByTech.get(s.technician) || existing : existing;
-            return { ...s, department: enriched || "" } as DoneService;
-          });
-        }
-
-        setServices(servicesWithDept);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load completed services",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load completed services",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const filteredServices = useMemo(() => {
     return services.filter((service) => {
