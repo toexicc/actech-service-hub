@@ -188,19 +188,27 @@ const RequestForParts = () => {
       const partId = result.partId;
 
       // Update Inquiry Database Part ID if Service ID matches
+      // NOTE: Apps Script doPost reliably reads URL-encoded bodies via e.parameter (multipart FormData can be flaky).
       if (partId && formData.serviceId) {
         const serviceId = formData.serviceId.trim();
 
+        const postUrlEncoded = async (payload: Record<string, string>) => {
+          const body = new URLSearchParams(payload);
+          return fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            },
+            body,
+          });
+        };
+
         // 1) Preferred: server-side helper action (fast)
         try {
-          const updateFormData = new FormData();
-          updateFormData.append("action", "updateInquiryPartIdByServiceId");
-          updateFormData.append("serviceId", serviceId);
-          updateFormData.append("partId", partId);
-
-          const updateRes = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-            method: "POST",
-            body: updateFormData,
+          const updateRes = await postUrlEncoded({
+            action: "updateInquiryPartIdByServiceId",
+            serviceId,
+            partId,
           });
 
           const updateText = await updateRes.text();
@@ -211,44 +219,38 @@ const RequestForParts = () => {
             updateJson = null;
           }
 
-          // If script didn't update anything (or action not deployed), fall back.
-          if (updateJson?.updated === true) {
-            // ok
-          } else {
+          if (updateJson?.updated !== true) {
             throw new Error("No matching inquiry updated (fallback)");
           }
         } catch (updateError) {
-          // 2) Fallback: use existing getClientInquiries + updateClientInquiry (works even if helper action isn't deployed)
+          // 2) Fallback: use existing getClientInquiries + updateClientInquiry
           try {
-            const inquiriesRes = await fetch(
-              `${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`,
-              { method: "GET" }
-            );
+            const inquiriesRes = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`);
             const inquiriesJson = await inquiriesRes.json();
             const list = inquiriesJson?.data || [];
             const match = list.find((i: any) => (i.serviceId || "").toString().trim() === serviceId);
 
             if (match?.rowIndex) {
-              const fd = new FormData();
-              fd.append("action", "updateClientInquiry");
-              fd.append("rowIndex", match.rowIndex.toString());
-              fd.append("clientId", match.clientId || "");
-              fd.append("serviceId", match.serviceId || "");
-              fd.append("timestamp", match.timestamp || "");
-              fd.append("name", match.name || "");
-              fd.append("address", match.address || "");
-              fd.append("contactNumber", match.contactNumber || "");
-              fd.append("modeOfTransfer", match.modeOfTransfer || "");
-              fd.append("device", match.device || "");
-              fd.append("initialDiagnosis", match.initialDiagnosis || "");
-              fd.append("quotation", match.quotation || "");
-              fd.append("pickUpDate", match.pickUpDate || "");
-              fd.append("directChatLink", match.directChatLink || "");
-              fd.append("preOrder", match.preOrder || "");
-              fd.append("initialPayment", match.initialPayment || "");
-              fd.append("partId", partId);
-
-              await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: fd });
+              // Preserve all existing values; only set Part ID
+              await postUrlEncoded({
+                action: "updateClientInquiry",
+                rowIndex: match.rowIndex.toString(),
+                clientId: match.clientId || "",
+                serviceId: match.serviceId || "",
+                timestamp: match.timestamp || "",
+                name: match.name || "",
+                address: match.address || "",
+                contactNumber: match.contactNumber || "",
+                modeOfTransfer: match.modeOfTransfer || "",
+                device: match.device || "",
+                initialDiagnosis: match.initialDiagnosis || "",
+                quotation: match.quotation || "",
+                pickUpDate: match.pickUpDate || "",
+                directChatLink: match.directChatLink || "",
+                preOrder: match.preOrder || "",
+                initialPayment: match.initialPayment || "",
+                partId,
+              });
             }
           } catch (fallbackError) {
             console.error("Error updating inquiry Part ID:", updateError);
