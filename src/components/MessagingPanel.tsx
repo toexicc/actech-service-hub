@@ -457,24 +457,24 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
       );
     }
 
-    // Check for forwarded service messages with links
+    // Check for forwarded service messages with navigation path
     const forwardMatch = content.match(/📋 Service Forwarded:/);
     if (forwardMatch) {
-      // Extract the URL from the message
-      const urlMatch = content.match(/🔗 View Details: (https?:\/\/[^\s]+)/);
-      const textWithoutUrl = content.replace(/🔗 View Details: https?:\/\/[^\s]+/, '').trim();
+      // Extract the navigation path from the message
+      const navPathMatch = content.match(/🔗 NAV_PATH: (\/[^\s]+)/);
+      const textWithoutPath = content.replace(/🔗 NAV_PATH: \/[^\s]+/, '').trim();
       
       return (
         <div className="space-y-2">
-          <p className="text-sm whitespace-pre-wrap">{textWithoutUrl}</p>
-          {urlMatch && (
+          <p className="text-sm whitespace-pre-wrap">{textWithoutPath}</p>
+          {navPathMatch && (
             <Button
               size="sm"
               variant="secondary"
               className="w-full"
               onClick={() => {
-                // Navigate to the URL
-                window.location.href = urlMatch[1];
+                // Use window.location for navigation (react-router not available here)
+                window.location.href = navPathMatch[1];
               }}
             >
               🔗 View Service Details

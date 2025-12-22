@@ -925,7 +925,7 @@ const ManageClient = () => {
 
         <div className="flex gap-3 mb-6">
           <Button 
-            onClick={() => window.open("https://docs.google.com/spreadsheets/d/1gpCaFtFu3IrpUfYFTRGHwQQqfghWRki6WHzDU-0ikAg/edit?usp=sharing", "_blank")} 
+            onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")} 
             variant="outline"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
