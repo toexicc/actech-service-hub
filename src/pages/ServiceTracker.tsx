@@ -14,7 +14,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,8 @@ import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
 import { useServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
+
+import { createNotification } from "@/lib/notifications";
 
 interface ServiceRecord {
   serviceId: string;
@@ -35,6 +37,7 @@ interface ServiceRecord {
   targetDate: string;
   status: string;
   clientName: string;
+  adminRep?: string;
 }
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
@@ -122,6 +125,123 @@ const ServiceTracker = () => {
       return;
     }
     navigate(`/manage-client?serviceId=${encodeURIComponent(serviceId)}`);
+  };
+
+  // Check if status is after "In Service" (Ongoing Service or later)
+  const isAfterInService = (status: string): boolean => {
+    const afterInServiceStatuses = [
+      "Ongoing Service",
+      "Done Repair - Observation",
+      "Done Repair - Under Observation",
+      "Done Repair - For Release",
+      "Done Repair - Advise Client",
+      "Done Repair - Advice Client",
+      "For Payment",
+      "For Pickup",
+      "On Hold",
+      "RTO",
+      "Backjob"
+    ];
+    return afterInServiceStatuses.includes(status);
+  };
+
+  const handleNotify = async (service: ServiceRecord) => {
+    const userFullName = sessionStorage.getItem("fullName") || "System";
+    const deviceInfo = service.device || service.deviceType || "device";
+    
+    try {
+      if (userRole === "management") {
+        // Notify assigned admin and technician
+        const notifyPromises: Promise<boolean>[] = [];
+        
+        // Notify admin
+        if (service.adminRep) {
+          const adminStaff = staffList.find(s => s.name === service.adminRep);
+          if (adminStaff?.staffId) {
+            notifyPromises.push(
+              createNotification({
+                userId: adminStaff.staffId,
+                title: `Reminder: Check on ${service.serviceId}`,
+                message: `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+                type: "service_update",
+                serviceId: service.serviceId,
+              })
+            );
+          }
+        }
+        
+        // Notify technicians
+        const techNames = service.technician?.split(",").map(t => t.trim()).filter(Boolean) || [];
+        for (const techName of techNames) {
+          const tech = staffList.find(s => s.name.split(" - ")[0].trim().toLowerCase() === techName.split(" - ")[0].trim().toLowerCase());
+          if (tech?.staffId) {
+            notifyPromises.push(
+              createNotification({
+                userId: tech.staffId,
+                title: `Reminder: Check on ${service.serviceId}`,
+                message: `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+                type: "service_update",
+                serviceId: service.serviceId,
+              })
+            );
+          }
+        }
+        
+        await Promise.all(notifyPromises);
+        toast({ title: "Notification sent", description: "Admin and technician have been notified." });
+        
+      } else if (userRole === "admin") {
+        // Notify technicians only
+        const techNames = service.technician?.split(",").map(t => t.trim()).filter(Boolean) || [];
+        const notifyPromises: Promise<boolean>[] = [];
+        
+        for (const techName of techNames) {
+          const tech = staffList.find(s => s.name.split(" - ")[0].trim().toLowerCase() === techName.split(" - ")[0].trim().toLowerCase());
+          if (tech?.staffId) {
+            notifyPromises.push(
+              createNotification({
+                userId: tech.staffId,
+                title: `Reminder: Check on ${service.serviceId}`,
+                message: `Admin is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+                type: "service_update",
+                serviceId: service.serviceId,
+              })
+            );
+          }
+        }
+        
+        await Promise.all(notifyPromises);
+        toast({ title: "Notification sent", description: "Technician has been notified." });
+        
+      } else if (userRole === "technician") {
+        // Notify assigned admin
+        if (service.adminRep) {
+          const adminStaff = staffList.find(s => s.name === service.adminRep);
+          if (adminStaff?.staffId) {
+            await createNotification({
+              userId: adminStaff.staffId,
+              title: `Reminder: Check on ${service.serviceId}`,
+              message: `Technician ${userFullName} is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+              type: "service_update",
+              serviceId: service.serviceId,
+            });
+            toast({ title: "Notification sent", description: "Admin has been notified." });
+          } else {
+            toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
+          }
+        } else {
+          toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
+        }
+      }
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      toast({ title: "Error", description: "Failed to send notification.", variant: "destructive" });
+    }
+  };
+
+  const handleForward = (service: ServiceRecord) => {
+    // Navigate to service tracking with service ID pre-filled
+    navigate(`/track?serviceId=${encodeURIComponent(service.serviceId)}`);
   };
 
   const applyDatePreset = (preset: string) => {
@@ -822,6 +942,7 @@ const ServiceTracker = () => {
                           In Service <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -883,6 +1004,36 @@ const ServiceTracker = () => {
                                <span className={`font-semibold ${inServiceDays > 7 ? "text-orange-600" : ""}`}>
                                  {inServiceDays} {inServiceDays === 1 ? "day" : "days"}
                                </span>
+                             )}
+                           </TableCell>
+                           <TableCell>
+                             {isAfterInService(service.status) && !isCompleted && (
+                               <div className="flex items-center gap-1">
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleNotify(service as ServiceRecord);
+                                   }}
+                                   title="Notify"
+                                   className="h-8 w-8 p-0"
+                                 >
+                                   <Bell className="h-4 w-4" />
+                                 </Button>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleForward(service as ServiceRecord);
+                                   }}
+                                   title="Forward to Service Tracking"
+                                   className="h-8 w-8 p-0"
+                                 >
+                                   <Forward className="h-4 w-4" />
+                                 </Button>
+                               </div>
                              )}
                            </TableCell>
                          </ActivityLogRow>
