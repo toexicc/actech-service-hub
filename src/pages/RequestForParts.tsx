@@ -153,23 +153,27 @@ const RequestForParts = () => {
 
     setIsSubmitting(true);
     try {
-      // Match InventoryManagement submission style (FormData + fetch + JSON response)
-      const formDataToSend = new FormData();
-      formDataToSend.append("action", "addFastMovingPart");
-      formDataToSend.append("requestedBy", userFullName);
-      formDataToSend.append("serviceId", formData.serviceId);
-      formDataToSend.append("partName", formData.partName);
-      formDataToSend.append("deviceType", formData.deviceType);
-      formDataToSend.append("brand", formData.brand);
-      formDataToSend.append("model", formData.model);
-      formDataToSend.append("quantity", formData.quantity);
-      formDataToSend.append("dateNeeded", format(dateNeeded, "MM/dd/yyyy"));
-      formDataToSend.append("status", "For Ordering");
-      formDataToSend.append("remarks", formData.remarks);
+      // Apps Script doPost reads URL-encoded bodies reliably via e.parameter
+      const body = new URLSearchParams({
+        action: "addFastMovingPart",
+        requestedBy: userFullName,
+        serviceId: formData.serviceId,
+        partName: formData.partName,
+        deviceType: formData.deviceType,
+        brand: formData.brand,
+        model: formData.model,
+        quantity: formData.quantity,
+        dateNeeded: format(dateNeeded, "MM/dd/yyyy"),
+        status: "For Ordering",
+        remarks: formData.remarks,
+      });
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
-        body: formDataToSend,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body,
       });
 
       const rawText = await response.text();
@@ -177,7 +181,9 @@ const RequestForParts = () => {
       try {
         result = rawText ? JSON.parse(rawText) : null;
       } catch {
-        throw new Error(`Non-JSON response from Apps Script (status ${response.status}): ${rawText?.slice(0, 200)}`);
+        throw new Error(
+          `Non-JSON response from Apps Script (status ${response.status}): ${rawText?.slice(0, 200)}`
+        );
       }
 
       if (result?.result !== "success") {
