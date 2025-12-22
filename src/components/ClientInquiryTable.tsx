@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,9 @@ interface ClientInquiry {
   pickUpDate: string;
   directChatLink: string;
   aiStatus?: string;
+  preOrder?: string;
+  initialPayment?: string;
+  partId?: string;
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -138,6 +142,9 @@ const ClientInquiryTable = () => {
       formData.append("quotation", editForm.quotation || "");
       formData.append("pickUpDate", editForm.pickUpDate || "");
       formData.append("directChatLink", editForm.directChatLink || "");
+      formData.append("preOrder", editForm.preOrder || "");
+      formData.append("initialPayment", editForm.initialPayment || "");
+      formData.append("partId", editForm.partId || "");
       
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -352,6 +359,9 @@ const ClientInquiryTable = () => {
                 <TableHead className="whitespace-nowrap">Device</TableHead>
                 <TableHead className="whitespace-nowrap">Initial Diagnosis</TableHead>
                 <TableHead className="whitespace-nowrap">Quotation</TableHead>
+                <TableHead className="whitespace-nowrap">Pre-Order</TableHead>
+                <TableHead className="whitespace-nowrap">Initial Payment</TableHead>
+                <TableHead className="whitespace-nowrap">Part ID</TableHead>
                 <TableHead className="whitespace-nowrap">Mode of Transfer</TableHead>
                 <TableHead className="whitespace-nowrap">Pick-Up Date</TableHead>
                 <TableHead className="whitespace-nowrap">Direct Chat</TableHead>
@@ -360,15 +370,30 @@ const ClientInquiryTable = () => {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={13} className="text-center py-8">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    Loading...
-                  </TableCell>
-                </TableRow>
+                // Loading skeleton rows
+                Array.from({ length: 5 }).map((_, rowIndex) => (
+                  <TableRow key={`skeleton-${rowIndex}`}>
+                    <TableCell><Skeleton className="h-6 w-10" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+                  </TableRow>
+                ))
               ) : paginatedInquiries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
                     No inquiries found
                   </TableCell>
                 </TableRow>
@@ -406,6 +431,18 @@ const ClientInquiryTable = () => {
                     <TableCell>{inquiry.device || "-"}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{inquiry.initialDiagnosis || "-"}</TableCell>
                     <TableCell>{inquiry.quotation || "-"}</TableCell>
+                    <TableCell>
+                      <span className={cn(
+                        "px-2 py-1 rounded text-xs font-medium",
+                        inquiry.preOrder?.toLowerCase() === "true" 
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                      )}>
+                        {inquiry.preOrder?.toLowerCase() === "true" ? "Yes" : "No"}
+                      </span>
+                    </TableCell>
+                    <TableCell>{inquiry.initialPayment || "-"}</TableCell>
+                    <TableCell className="font-mono text-xs">{inquiry.partId || "-"}</TableCell>
                     <TableCell>{inquiry.modeOfTransfer || "-"}</TableCell>
                     <TableCell className="whitespace-nowrap">{inquiry.pickUpDate || "-"}</TableCell>
                     <TableCell>
@@ -540,6 +577,37 @@ const ClientInquiryTable = () => {
               <Input
                 value={editForm.quotation || ""}
                 onChange={(e) => setEditForm({ ...editForm, quotation: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Pre-Order</Label>
+              <Select
+                value={editForm.preOrder || "false"}
+                onValueChange={(value) => setEditForm({ ...editForm, preOrder: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="false">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Initial Payment</Label>
+              <Input
+                value={editForm.initialPayment || ""}
+                onChange={(e) => setEditForm({ ...editForm, initialPayment: e.target.value })}
+                placeholder="Enter initial payment amount"
+              />
+            </div>
+            <div>
+              <Label>Part ID</Label>
+              <Input
+                value={editForm.partId || ""}
+                onChange={(e) => setEditForm({ ...editForm, partId: e.target.value })}
+                placeholder="Enter part ID(s)"
               />
             </div>
             <div>

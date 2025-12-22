@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
 import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
@@ -963,7 +964,44 @@ const InventoryManagement = () => {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="text-center py-8">Loading inventory...</div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Part ID</TableHead>
+                          <TableHead>Part Name</TableHead>
+                          <TableHead>Device Type</TableHead>
+                          <TableHead>Brand</TableHead>
+                          <TableHead>Model</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          {!isViewOnly && <TableHead>Cost</TableHead>}
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Updated</TableHead>
+                          <TableHead>Remarks</TableHead>
+                          <TableHead>QR Code</TableHead>
+                          {!isViewOnly && <TableHead>Actions</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <TableRow key={`skeleton-${i}`}>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                            {!isViewOnly && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
+                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                            {!isViewOnly && <TableCell><Skeleton className="h-8 w-20" /></TableCell>}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 ) : filteredAndSortedInventory.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No inventory items found</div>
                 ) : (

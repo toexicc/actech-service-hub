@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -751,7 +752,42 @@ const ServiceTracker = () => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8">Loading services...</div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Service ID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Client Name</TableHead>
+                      <TableHead>Service Date</TableHead>
+                      <TableHead>Technician</TableHead>
+                      <TableHead>Service/s</TableHead>
+                      <TableHead>Device Type</TableHead>
+                      <TableHead>Brand</TableHead>
+                      <TableHead>Model</TableHead>
+                      <TableHead>Target Date</TableHead>
+                      <TableHead>In Service</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <TableRow key={`skeleton-${i}`}>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : filteredAndSortedServices.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No ongoing services found</div>
             ) : (

@@ -16,6 +16,9 @@ interface ClientInquiry {
   pickUpDate: string;
   directChatLink: string;
   aiStatus?: string;
+  preOrder?: string;
+  initialPayment?: string;
+  partId?: string;
 }
 
 const fetchClientInquiriesData = async (): Promise<ClientInquiry[]> => {
