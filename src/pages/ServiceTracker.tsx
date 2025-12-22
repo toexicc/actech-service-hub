@@ -1137,35 +1137,33 @@ Technician: ${forwardService.technician || "Unassigned"}
                              )}
                            </TableCell>
                            <TableCell>
-                             {!isCompleted && (
-                               <div className="flex items-center gap-1">
-                                 <Button
-                                   variant="ghost"
-                                   size="sm"
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     handleNotify(service as ServiceRecord);
-                                   }}
-                                   title="Notify"
-                                   className="h-8 w-8 p-0"
-                                 >
-                                   <Bell className="h-4 w-4" />
-                                 </Button>
-                                 <Button
-                                   variant="ghost"
-                                   size="sm"
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     handleForward(service as ServiceRecord);
-                                   }}
-                                   title="Forward"
-                                   className="h-8 w-8 p-0"
-                                 >
-                                   <Forward className="h-4 w-4" />
-                                 </Button>
-                               </div>
-                             )}
-                           </TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNotify(service as ServiceRecord);
+                                  }}
+                                  title="Notify"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Bell className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleForward(service as ServiceRecord);
+                                  }}
+                                  title="Forward"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Forward className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
                          </ActivityLogRow>
                        );
                      })}
