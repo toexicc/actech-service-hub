@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -67,6 +68,7 @@ const ServiceTracker = () => {
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardService, setForwardService] = useState<ServiceRecord | null>(null);
   const [forwardRecipient, setForwardRecipient] = useState("");
+  const [forwardMessage, setForwardMessage] = useState("");
   const [forwardSending, setForwardSending] = useState(false);
   const itemsPerPage = 15;
 
@@ -280,6 +282,7 @@ const ServiceTracker = () => {
   const handleForward = (service: ServiceRecord) => {
     setForwardService(service);
     setForwardRecipient("");
+    setForwardMessage("");
     setForwardDialogOpen(true);
   };
 
@@ -309,6 +312,7 @@ const ServiceTracker = () => {
         navPath = `/manage-client?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
       }
       
+      const customMessage = forwardMessage.trim();
       const messageContent = `📋 Service Forwarded: ${forwardService.serviceId}
       
 Client: ${forwardService.clientName}
@@ -318,7 +322,7 @@ Model: ${forwardService.device || "N/A"}
 Status: ${forwardService.status}
 Target Date: ${forwardService.targetDate}
 Technician: ${forwardService.technician || "Unassigned"}
-
+${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 🔗 NAV_PATH: ${navPath}`;
 
       const success = await sendMessage({
@@ -1250,6 +1254,16 @@ Technician: ${forwardService.technician || "Unassigned"}
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Message (optional)</Label>
+              <Textarea
+                placeholder="Add a note or instructions..."
+                value={forwardMessage}
+                onChange={(e) => setForwardMessage(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
             </div>
           </div>
           <DialogFooter>
