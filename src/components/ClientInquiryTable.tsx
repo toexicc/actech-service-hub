@@ -41,7 +41,7 @@ interface ClientInquiry {
 const ITEMS_PER_PAGE = 9;
 
 const ClientInquiryTable = () => {
-  const { data: inquiries = [], isLoading: loading, refetch } = useClientInquiriesData();
+  const { data: inquiries = [], isLoading: loading, refetch, isFetching } = useClientInquiriesData();
   const invalidateInquiries = useInvalidateClientInquiriesData();
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -61,9 +61,9 @@ const ClientInquiryTable = () => {
   const [deletingInquiry, setDeletingInquiry] = useState<ClientInquiry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchInquiries = () => {
+  const fetchInquiries = async () => {
     invalidateInquiries();
-    refetch();
+    await refetch();
   };
 
   const filteredInquiries = useMemo(() => {
@@ -338,8 +338,8 @@ const ClientInquiryTable = () => {
           </Select>
 
           {/* Reload Button - Icon only */}
-          <Button variant="outline" size="icon" onClick={fetchInquiries} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="icon" onClick={fetchInquiries} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
