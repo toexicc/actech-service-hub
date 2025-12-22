@@ -298,7 +298,6 @@ const ServiceForm = () => {
       const finalServiceId = serviceId || generateServiceId();
 
       // Generate PDF
-      console.log("Generating PDF...");
       const pdfBlob = await generateServicePDF({
         serviceId: finalServiceId,
         timestamp,
@@ -330,7 +329,7 @@ const ServiceForm = () => {
         annotationImageUrl: annotationImageUrl || undefined,
         annotationNotes: data.annotationNotes || undefined,
       });
-      console.log("PDF generated successfully:", pdfBlob);
+      // PDF generated successfully
 
       // Fallback: also send base64 for Apps Script environments where e.files is unavailable
       const blobToBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
@@ -388,7 +387,7 @@ const ServiceForm = () => {
       const sanitizeFileName = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '_');
       const pdfFileName = `${finalServiceId}_${sanitizeFileName(data.clientName)}_${sanitizeFileName(data.deviceType)}.pdf`;
       const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
-      console.log("Appending PDF with filename:", pdfFileName);
+      // Appending PDF with generated filename
       formData.append("PDF", pdfFile);
       // Base64 fallback for Apps Script if e.files is not populated
       formData.append("PDF_Base64", pdfBase64);

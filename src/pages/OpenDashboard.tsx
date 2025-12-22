@@ -96,19 +96,15 @@ const OpenDashboard = () => {
 
   const filterServicesByDate = (services: any[]) => {
     const today = startOfDay(new Date());
-    console.log("Today's date:", today);
-    console.log("View mode:", viewMode);
     
     const filtered = services.filter((service) => {
       if (!service.targetDate) {
-        console.log(`Service ${service.serviceId} has no target date`);
         return false;
       }
       
       try {
         const parts = service.targetDate.split(/[-/]/);
         if (parts.length !== 3) {
-          console.warn(`Unexpected targetDate format for service ${service.serviceId}: ${service.targetDate}`);
           return false;
         }
         const [month, day, year] = parts;
@@ -116,16 +112,8 @@ const OpenDashboard = () => {
         targetDate.setHours(0, 0, 0, 0);
         
         if (isNaN(targetDate.getTime())) {
-          console.warn(`Invalid date for service ${service.serviceId}: ${service.targetDate}`);
           return false;
         }
-        
-        console.log(
-          `Service ${service.serviceId}: target=${service.targetDate}, parsed=${targetDate}, isSameDay=${isSameDay(
-            targetDate,
-            today
-          )}, isBefore=${isBefore(targetDate, today)}`
-        );
         
         if (viewMode === "dueToday") {
           return isSameDay(targetDate, today);
@@ -133,12 +121,10 @@ const OpenDashboard = () => {
           return isBefore(targetDate, today);
         }
       } catch (error) {
-        console.error(`Error parsing date for service ${service.serviceId}:`, error);
         return false;
       }
     });
     
-    console.log(`Filtered ${filtered.length} services out of ${services.length} total`);
     return filtered;
   };
 
@@ -210,7 +196,7 @@ const OpenDashboard = () => {
       });
     });
 
-    console.log("Grouped services (dashboard):", grouped);
+    // Grouped services ready
     return grouped;
   };
 

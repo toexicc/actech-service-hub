@@ -19,6 +19,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
+import { DeviceReportViewer } from "@/components/DeviceReportViewer";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
@@ -247,12 +248,7 @@ const ManageClient = () => {
 
       if (data.status === "found") {
         setServiceData(data.data);
-        console.log("[MANAGE-CLIENT] Loaded service from sheet", {
-          serviceId,
-          serviceCost: data.data.serviceCost,
-          discount: data.data.discount,
-          finalCost: data.data.finalCost,
-        });
+        // Service data loaded successfully
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
@@ -286,14 +282,7 @@ const ManageClient = () => {
         const savedDiscountNum = sanitizeNumber(String(data.data.discount ?? "0"));
         const savedFinalCost = sanitizeNumber(String(data.data.finalCost ?? "0"));
         
-        console.log("[MANAGE-CLIENT] Parsed cost values", {
-          rawServiceCost: data.data.serviceCost,
-          rawDiscount: data.data.discount,
-          rawFinalCost: data.data.finalCost,
-          serviceCostNum,
-          savedDiscountNum,
-          savedFinalCost,
-        });
+        // Cost values parsed successfully
         
         // Set discount values
         setDiscountAmount(savedDiscountNum);
@@ -628,7 +617,7 @@ const ManageClient = () => {
         });
       }
     } catch (error) {
-      console.error("Update error:", error);
+      // Update failed - handle error
       const errorMessage = error instanceof Error && error.name === 'AbortError' 
         ? "Request timed out - your Google Script may be taking too long to process the update"
         : "Failed to update client information";
@@ -825,10 +814,7 @@ const ManageClient = () => {
       const pdfBase64 = await blobToBase64(pdfBlob);
 
       // Use Column AQ (clientFolderUrl) for quotation PDFs, NOT Column AV (deviceReportFolderUrl)
-      console.log("Quotation PDF Upload - Client Folder URL (Column AQ):", serviceData.clientFolderUrl);
-      console.log("Quotation PDF Upload - Device Report Folder (Column AV):", serviceData.deviceReportFolderUrl);
-      console.log("Quotation PDF Upload - Service ID:", serviceId);
-      console.log("Quotation PDF Upload - File Name:", fileName);
+      // Using Column AQ (clientFolderUrl) for quotation PDFs
 
       const formData = new FormData();
       formData.append("action", "updateQuotationPDF");
@@ -1528,24 +1514,12 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                {/* Device Report - Proof (Google Drive Folder) */}
+                {/* Device Report - Proof (Google Drive Folder with photo previews) */}
                 {serviceData?.status === "Done Repair - For Release" && serviceData?.deviceReportFolderUrl && (
-                  <div className="bg-muted/30 p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">Device Report - Proof</p>
-                        <p className="text-sm text-muted-foreground">Open the uploaded device report photos in Google Drive.</p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => window.open(serviceData.deviceReportFolderUrl, "_blank")}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Folder
-                      </Button>
-                    </div>
-                  </div>
+                  <DeviceReportViewer 
+                    folderUrl={serviceData.deviceReportFolderUrl}
+                    serviceId={serviceId}
+                  />
                 )}
 
                 <div className="space-y-2">

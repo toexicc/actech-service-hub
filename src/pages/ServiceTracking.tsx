@@ -62,17 +62,17 @@ const ServiceTracking = () => {
       try {
         const folderId = extractFolderIdFromUrl(serviceData.deviceReportFolderUrl);
         if (!folderId) {
-          console.log("[TRACK] No folderId extracted from URL", serviceData.deviceReportFolderUrl);
+          // No folderId - folder URL might be invalid
           setDevicePhotos([]);
           return;
         }
 
-        console.log("[TRACK] Fetching device photos", { folderId, url: serviceData.deviceReportFolderUrl });
+        // Fetching device photos from folder
         const response = await fetch(
           `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
         );
         const data = await response.json();
-        console.log("[TRACK] Device photos response", data);
+        // Photos response received
 
         if (data.status === "success" && data.photos) {
           setDevicePhotos(data.photos);

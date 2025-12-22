@@ -215,7 +215,7 @@ const ServiceUpdate = () => {
           }
         }
       } catch (e) {
-        console.warn('Failed to derive parts from logs', e);
+        // Failed to derive parts from logs
       }
     };
     run();
@@ -391,23 +391,23 @@ const ServiceUpdate = () => {
     try {
       const folderId = extractFolderIdFromUrl(folderUrl);
       if (!folderId) {
-        console.log("[UPDATE] No folderId extracted from URL", folderUrl);
+        // No folderId - folder URL might be invalid
         return;
       }
 
-      console.log("[UPDATE] Fetching existing photos", { folderId, url: folderUrl });
+      // Fetching existing photos from folder
       const response = await fetch(
         `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
       );
       const data = await response.json();
-      console.log("[UPDATE] Existing photos response", data);
+      // Photos response received
 
       if (data.status === "success" && data.photos && data.photos.length > 0) {
         setExistingDeviceReportPhotoUrls(data.photos);
       }
 
     } catch (error) {
-      console.error("Error loading existing photos:", error);
+      // Failed to load existing photos
     }
   };
 
@@ -445,16 +445,7 @@ const ServiceUpdate = () => {
       // For Google Sheets: send a single space when no parts so Apps Script updates the cell and clears previous value
       const partsUsedForSheet = noParts ? " " : partsUsedString;
       
-      console.log("[UPDATE] Parts data being sent:", {
-        partsUsedForSheet,
-        partsUsedString,
-        partsUsedArray,
-        unmatchedArray,
-        actualCost,
-        selectedParts,
-        unmatchedParts,
-        isEmpty: noParts
-      });
+      // Parts data prepared for update
 
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
@@ -530,11 +521,11 @@ const ServiceUpdate = () => {
 
             const aiResult = await aiResponse.json();
             if (aiResult.result !== "success") {
-              console.warn("AI fields update failed:", aiResult);
+              // AI fields update issue - non-critical
             }
           }
         } catch (aiError) {
-          console.error("Error updating AI diagnosis/report:", aiError);
+          // AI fields update error - non-critical
         }
 
         // Log the activity
@@ -563,7 +554,7 @@ const ServiceUpdate = () => {
             role: userRole,
             activity: `Service updated: ${changes.join(", ")}`
           });
-          console.log("Activity log result:", logResult);
+          // Activity logged
         }
 
         // Send notifications for status changes
@@ -618,7 +609,7 @@ const ServiceUpdate = () => {
         });
       }
     } catch (error) {
-      console.error("Update error:", error);
+      // Update failed
       toast({
         title: "Error",
         description: "Failed to update service information",
@@ -1110,7 +1101,7 @@ const ServiceUpdate = () => {
                                     throw new Error("No formatted diagnosis received from AI service");
                                   }
                                 } catch (error: any) {
-                                  console.error("Error formatting diagnosis:", error);
+                                  // Error formatting diagnosis
                                   toast({
                                     title: "Error",
                                     description: error.message || "Failed to format diagnosis with AI.",
@@ -1226,7 +1217,7 @@ const ServiceUpdate = () => {
                                     throw new Error("No formatted report received from AI service");
                                   }
                                 } catch (error: any) {
-                                  console.error("Error formatting service report:", error);
+                                  // Error formatting service report
                                   toast({
                                     title: "Error",
                                     description: error.message || "Failed to format service report with AI.",
@@ -1327,7 +1318,7 @@ const ServiceUpdate = () => {
                             description: "Photo removed successfully",
                           });
                         } catch (error) {
-                          console.error("Error deleting photo:", error);
+                          // Failed to delete photo
                           toast({
                             title: "Error",
                             description: "Failed to delete photo",
