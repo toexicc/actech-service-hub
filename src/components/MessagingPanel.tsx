@@ -440,12 +440,13 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
   };
 
   const renderMessageContent = (content: string) => {
+    // Check for image attachments
     const imageMatch = content.match(/\[Image: (data:image\/[^;]+;base64,[^\]]+)\]/);
     if (imageMatch) {
       const textContent = content.replace(/\[Image: data:image\/[^;]+;base64,[^\]]+\]/, '').trim();
       return (
         <>
-          {textContent && <p className="text-sm mb-2">{textContent}</p>}
+          {textContent && <p className="text-sm mb-2 whitespace-pre-wrap">{textContent}</p>}
           <img 
             src={imageMatch[1]} 
             alt="Attached" 
@@ -455,7 +456,64 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
         </>
       );
     }
-    return <p className="text-sm">{content}</p>;
+
+    // Check for forwarded service messages with links
+    const forwardMatch = content.match(/📋 Service Forwarded:/);
+    if (forwardMatch) {
+      // Extract the URL from the message
+      const urlMatch = content.match(/🔗 View Details: (https?:\/\/[^\s]+)/);
+      const textWithoutUrl = content.replace(/🔗 View Details: https?:\/\/[^\s]+/, '').trim();
+      
+      return (
+        <div className="space-y-2">
+          <p className="text-sm whitespace-pre-wrap">{textWithoutUrl}</p>
+          {urlMatch && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                // Navigate to the URL
+                window.location.href = urlMatch[1];
+              }}
+            >
+              🔗 View Service Details
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    // Check for any URLs in regular messages and make them clickable
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+    const hasUrls = urlRegex.test(content);
+    
+    if (hasUrls) {
+      return (
+        <p className="text-sm whitespace-pre-wrap">
+          {parts.map((part, index) => {
+            if (part.match(/^https?:\/\//)) {
+              return (
+                <a 
+                  key={index}
+                  href={part}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-300 underline hover:text-blue-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {part}
+                </a>
+              );
+            }
+            return part;
+          })}
+        </p>
+      );
+    }
+    
+    return <p className="text-sm whitespace-pre-wrap">{content}</p>;
   };
 
   const renderMessageStatus = (msg: any, isOwn: boolean) => {
