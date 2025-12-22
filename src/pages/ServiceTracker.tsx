@@ -160,11 +160,7 @@ const ServiceTracker = () => {
       if (!name) return undefined;
       const normalizedName = name.trim().toLowerCase();
       
-      // Log for debugging
-      console.log("Looking for staff:", name, "| Normalized:", normalizedName);
-      console.log("Available staff:", staffList.map(s => ({ name: s.name, staffId: s.staffId, role: s.role })));
-      
-      const found = staffList.find(s => {
+      return staffList.find(s => {
         const staffName = s.name?.trim().toLowerCase() || "";
         const staffNameBase = staffName.split(" - ")[0].trim();
         const searchNameBase = normalizedName.split(" - ")[0].trim();
@@ -174,9 +170,6 @@ const ServiceTracker = () => {
                staffName.includes(normalizedName) ||
                normalizedName.includes(staffName);
       });
-      
-      console.log("Found staff:", found);
-      return found;
     };
     
     try {
@@ -259,9 +252,6 @@ const ServiceTracker = () => {
       } else if (userRole === "technician") {
         // Notify assigned admin - check both possible field names
         const adminName = service.adminRep || (service as any).adminRepresentative || (service as any)["Admin Representative"];
-        console.log("Technician trying to notify. Service object:", service);
-        console.log("AdminRep:", service.adminRep, "| adminRepresentative:", (service as any).adminRepresentative, "| Admin Representative:", (service as any)["Admin Representative"]);
-        console.log("Resolved adminName:", adminName);
         
         if (adminName) {
           const adminStaff = findStaffByName(adminName);
