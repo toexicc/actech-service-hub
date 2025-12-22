@@ -189,18 +189,71 @@ const RequestForParts = () => {
 
       // Update Inquiry Database Part ID if Service ID matches
       if (partId && formData.serviceId) {
+        const serviceId = formData.serviceId.trim();
+
+        // 1) Preferred: server-side helper action (fast)
         try {
           const updateFormData = new FormData();
           updateFormData.append("action", "updateInquiryPartIdByServiceId");
-          updateFormData.append("serviceId", formData.serviceId);
+          updateFormData.append("serviceId", serviceId);
           updateFormData.append("partId", partId);
-          
-          await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+
+          const updateRes = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
             method: "POST",
             body: updateFormData,
           });
+
+          const updateText = await updateRes.text();
+          let updateJson: any = null;
+          try {
+            updateJson = updateText ? JSON.parse(updateText) : null;
+          } catch {
+            updateJson = null;
+          }
+
+          // If script didn't update anything (or action not deployed), fall back.
+          if (updateJson?.updated === true) {
+            // ok
+          } else {
+            throw new Error("No matching inquiry updated (fallback)");
+          }
         } catch (updateError) {
-          console.error("Error updating inquiry Part ID:", updateError);
+          // 2) Fallback: use existing getClientInquiries + updateClientInquiry (works even if helper action isn't deployed)
+          try {
+            const inquiriesRes = await fetch(
+              `${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`,
+              { method: "GET" }
+            );
+            const inquiriesJson = await inquiriesRes.json();
+            const list = inquiriesJson?.data || [];
+            const match = list.find((i: any) => (i.serviceId || "").toString().trim() === serviceId);
+
+            if (match?.rowIndex) {
+              const fd = new FormData();
+              fd.append("action", "updateClientInquiry");
+              fd.append("rowIndex", match.rowIndex.toString());
+              fd.append("clientId", match.clientId || "");
+              fd.append("serviceId", match.serviceId || "");
+              fd.append("timestamp", match.timestamp || "");
+              fd.append("name", match.name || "");
+              fd.append("address", match.address || "");
+              fd.append("contactNumber", match.contactNumber || "");
+              fd.append("modeOfTransfer", match.modeOfTransfer || "");
+              fd.append("device", match.device || "");
+              fd.append("initialDiagnosis", match.initialDiagnosis || "");
+              fd.append("quotation", match.quotation || "");
+              fd.append("pickUpDate", match.pickUpDate || "");
+              fd.append("directChatLink", match.directChatLink || "");
+              fd.append("preOrder", match.preOrder || "");
+              fd.append("initialPayment", match.initialPayment || "");
+              fd.append("partId", partId);
+
+              await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: fd });
+            }
+          } catch (fallbackError) {
+            console.error("Error updating inquiry Part ID:", updateError);
+            console.error("Fallback update failed:", fallbackError);
+          }
         }
       }
 
