@@ -5,6 +5,3 @@ verify_jwt = false
 
 [functions.format-report]
 verify_jwt = false
-
-[functions.daily-overdue-notifications]
-verify_jwt = false

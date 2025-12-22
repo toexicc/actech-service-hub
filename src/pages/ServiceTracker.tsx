@@ -11,10 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,7 @@ import ActivityLogRow from "@/components/ActivityLogRow";
 import { useServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
 
-import { createNotification } from "@/lib/notifications";
+import { createNotification, sendMessage } from "@/lib/notifications";
 
 interface ServiceRecord {
   serviceId: string;
@@ -62,6 +63,10 @@ const ServiceTracker = () => {
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
   const [dueDateFilter, setDueDateFilter] = useState("all");
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
+  const [forwardService, setForwardService] = useState<ServiceRecord | null>(null);
+  const [forwardRecipient, setForwardRecipient] = useState("");
+  const [forwardSending, setForwardSending] = useState(false);
   const itemsPerPage = 15;
 
   // Derive technicians with departments from staff data
@@ -240,14 +245,81 @@ const ServiceTracker = () => {
   };
 
   const handleForward = (service: ServiceRecord) => {
-    // Navigate based on user role
-    if (userRole === "technician") {
-      navigate(`/service-update?serviceId=${encodeURIComponent(service.serviceId)}`);
-    } else {
-      // Admin and management go to manage-client
-      navigate(`/manage-client?serviceId=${encodeURIComponent(service.serviceId)}`);
+    setForwardService(service);
+    setForwardRecipient("");
+    setForwardDialogOpen(true);
+  };
+
+  const handleSendForward = async () => {
+    if (!forwardService || !forwardRecipient) return;
+    
+    setForwardSending(true);
+    try {
+      const userId = sessionStorage.getItem("staffId") || "";
+      const userFullName = sessionStorage.getItem("fullName") || "System";
+      
+      // Find recipient staff
+      const recipient = staffList.find(s => s.staffId === forwardRecipient);
+      if (!recipient) {
+        toast({ title: "Error", description: "Recipient not found.", variant: "destructive" });
+        return;
+      }
+
+      // Build service details message with link
+      const deviceInfo = forwardService.device || forwardService.deviceType || "device";
+      const baseUrl = window.location.origin;
+      
+      // Determine link based on recipient role
+      let linkUrl = "";
+      if (recipient.role?.toLowerCase() === "technician") {
+        linkUrl = `${baseUrl}/service-update?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
+      } else {
+        linkUrl = `${baseUrl}/manage-client?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
+      }
+      
+      const messageContent = `📋 Service Forwarded: ${forwardService.serviceId}
+      
+Client: ${forwardService.clientName}
+Device: ${deviceInfo}
+Brand: ${forwardService.brand || "N/A"}
+Model: ${forwardService.device || "N/A"}
+Status: ${forwardService.status}
+Target Date: ${forwardService.targetDate}
+Technician: ${forwardService.technician || "Unassigned"}
+
+🔗 View Details: ${linkUrl}`;
+
+      const success = await sendMessage({
+        senderId: userId,
+        senderName: userFullName,
+        receiverId: recipient.staffId,
+        receiverName: recipient.name,
+        content: messageContent,
+      });
+
+      if (success) {
+        toast({ title: "Forwarded", description: `Service details sent to ${recipient.name}.` });
+        setForwardDialogOpen(false);
+      } else {
+        toast({ title: "Error", description: "Failed to send message.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error forwarding service:", error);
+      toast({ title: "Error", description: "Failed to forward service.", variant: "destructive" });
+    } finally {
+      setForwardSending(false);
     }
   };
+
+  // Get available staff for forwarding (exclude current user)
+  const forwardableStaff = useMemo(() => {
+    const currentUserId = sessionStorage.getItem("staffId");
+    return staffList.filter(s => 
+      s.staffId !== currentUserId && 
+      s.status?.toLowerCase() === "active" &&
+      ["technician", "admin", "management"].includes(s.role?.toLowerCase() || "")
+    );
+  }, [staffList]);
 
   const applyDatePreset = (preset: string) => {
     const today = new Date();
@@ -1108,6 +1180,51 @@ const ServiceTracker = () => {
           powered by Stack&Scale
         </div>
       </div>
+
+      {/* Forward Service Dialog */}
+      <Dialog open={forwardDialogOpen} onOpenChange={setForwardDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Forward Service</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {forwardService && (
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <p className="font-semibold">{forwardService.serviceId}</p>
+                <p className="text-muted-foreground">{forwardService.clientName} - {forwardService.device || forwardService.deviceType}</p>
+                <p className="text-muted-foreground">Status: {forwardService.status}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Send to</Label>
+              <Select value={forwardRecipient} onValueChange={setForwardRecipient}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select recipient..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {forwardableStaff.map((staff) => (
+                    <SelectItem key={staff.staffId} value={staff.staffId}>
+                      {staff.name} ({staff.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForwardDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendForward} 
+              disabled={!forwardRecipient || forwardSending}
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {forwardSending ? "Sending..." : "Send"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
