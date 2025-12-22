@@ -256,7 +256,7 @@ const ServiceTracker = () => {
     setForwardSending(true);
     try {
       const userId = sessionStorage.getItem("staffId") || "";
-      const userFullName = sessionStorage.getItem("fullName") || "System";
+      const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
       
       // Find recipient staff
       const recipient = staffList.find(s => s.staffId === forwardRecipient);
