@@ -441,7 +441,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
     );
   };
 
-  const renderMessageContent = (content: string) => {
+  const renderMessageContent = (content: string, isOwn: boolean = false) => {
     // Check for image attachments
     const imageMatch = content.match(/\[Image: (data:image\/[^;]+;base64,[^\]]+)\]/);
     if (imageMatch) {
@@ -498,8 +498,8 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
           {!!targetRaw && (
             <Button
               size="sm"
-              variant="secondary"
-              className="w-full"
+              variant={isOwn ? "secondary" : "default"}
+              className={`w-full ${isOwn ? "" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
               onClick={() => navigateTo(targetRaw)}
             >
               View Service Details
@@ -767,7 +767,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
                                 {msg.senderName}
                               </p>
                             )}
-                            {renderMessageContent(msg.content)}
+                            {renderMessageContent(msg.content, isOwn)}
                             {isOwn ? (
                               renderMessageStatus(msg, isOwn)
                             ) : (
@@ -790,7 +790,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
                         ? 'bg-destructive/80 text-destructive-foreground' 
                         : 'bg-primary/70 text-primary-foreground'
                     }`}>
-                      {renderMessageContent(pendingMsg.content)}
+                      {renderMessageContent(pendingMsg.content, true)}
                       {renderPendingStatus(pendingMsg.status, () => retryMessage(pendingMsg))}
                     </div>
                   </div>
