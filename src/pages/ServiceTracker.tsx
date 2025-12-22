@@ -265,16 +265,15 @@ const ServiceTracker = () => {
         return;
       }
 
-      // Build service details message with link
+      // Build service details message with navigation path
       const deviceInfo = forwardService.device || forwardService.deviceType || "device";
-      const baseUrl = window.location.origin;
       
-      // Determine link based on recipient role
-      let linkUrl = "";
+      // Determine navigation path based on recipient role
+      let navPath = "";
       if (recipient.role?.toLowerCase() === "technician") {
-        linkUrl = `${baseUrl}/service-update?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
+        navPath = `/service-update?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
       } else {
-        linkUrl = `${baseUrl}/manage-client?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
+        navPath = `/manage-client?serviceId=${encodeURIComponent(forwardService.serviceId)}`;
       }
       
       const messageContent = `📋 Service Forwarded: ${forwardService.serviceId}
@@ -287,7 +286,7 @@ Status: ${forwardService.status}
 Target Date: ${forwardService.targetDate}
 Technician: ${forwardService.technician || "Unassigned"}
 
-🔗 View Details: ${linkUrl}`;
+🔗 NAV_PATH: ${navPath}`;
 
       const success = await sendMessage({
         senderId: userId,
@@ -611,9 +610,20 @@ Technician: ${forwardService.technician || "Unassigned"}
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Service Tracker</h1>
-          <p className="text-muted-foreground">Monitor all ongoing services</p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Service Tracker</h1>
+            <p className="text-muted-foreground">Monitor all ongoing services</p>
+          </div>
+          {(userRole === "admin" || userRole === "management") && (
+            <Button 
+              onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")} 
+              variant="outline"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View Sheet
+            </Button>
+          )}
         </div>
 
         {/* Search Bar */}
