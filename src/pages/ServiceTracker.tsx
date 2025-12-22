@@ -39,6 +39,7 @@ interface ServiceRecord {
   status: string;
   clientName: string;
   adminRep?: string;
+  adminRepresentative?: string;
 }
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
@@ -256,11 +257,14 @@ const ServiceTracker = () => {
         }
         
       } else if (userRole === "technician") {
-        // Notify assigned admin
-        console.log("Technician trying to notify. AdminRep:", service.adminRep);
+        // Notify assigned admin - check both possible field names
+        const adminName = service.adminRep || (service as any).adminRepresentative || (service as any)["Admin Representative"];
+        console.log("Technician trying to notify. Service object:", service);
+        console.log("AdminRep:", service.adminRep, "| adminRepresentative:", (service as any).adminRepresentative, "| Admin Representative:", (service as any)["Admin Representative"]);
+        console.log("Resolved adminName:", adminName);
         
-        if (service.adminRep) {
-          const adminStaff = findStaffByName(service.adminRep);
+        if (adminName) {
+          const adminStaff = findStaffByName(adminName);
           if (adminStaff?.staffId) {
             await createNotification({
               userId: adminStaff.staffId,
@@ -271,7 +275,7 @@ const ServiceTracker = () => {
             });
             toast({ title: "Notification sent", description: "Admin has been notified." });
           } else {
-            toast({ title: "Admin not found", description: `Could not find staff record for "${service.adminRep}".`, variant: "destructive" });
+            toast({ title: "Admin not found", description: `Could not find staff record for "${adminName}".`, variant: "destructive" });
           }
         } else {
           toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
