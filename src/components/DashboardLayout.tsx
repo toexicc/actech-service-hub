@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  MessageSquare, Monitor, Menu, ShoppingCart,
+  MessageSquare, Monitor, Menu, ShoppingCart, Loader2,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -50,12 +50,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(true);
   const [techOpen, setTechOpen] = useState(true);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const userRole = sessionStorage.getItem("userRole");
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
   const messagingPanelRef = useRef<MessagingPanelRef>(null);
 
-  useEffect(() => { if (!sessionStorage.getItem("authenticated")) navigate("/"); }, [navigate]);
+  useEffect(() => { 
+    if (!sessionStorage.getItem("authenticated")) {
+      navigate("/");
+    } else {
+      setIsAuthChecked(true);
+    }
+  }, [navigate]);
   useEffect(() => {
     if (adminSection.items.some((i) => location.pathname === i.path)) setAdminOpen(true);
     if (techSection.items.some((i) => location.pathname === i.path)) setTechOpen(true);
@@ -115,6 +122,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
     </>
   );
+
+  // Show loading spinner while checking auth
+  if (!isAuthChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (isMobile) return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">

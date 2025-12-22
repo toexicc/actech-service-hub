@@ -27,15 +27,16 @@ const RequestForParts = lazy(() => import("./pages/RequestForParts"));
 const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Configure QueryClient with optimal caching settings
+// Configure QueryClient with optimal caching settings for fast navigation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes - data stays fresh
-      gcTime: 10 * 60 * 1000, // 10 minutes - cached data kept in memory
+      staleTime: 3 * 60 * 1000, // 3 minutes - data stays fresh longer
+      gcTime: 15 * 60 * 1000, // 15 minutes - cached data kept in memory
       refetchOnWindowFocus: false, // Don't refetch when window regains focus
       retry: 1, // Only retry failed requests once
-      refetchOnMount: "always", // Always check for updates on mount
+      refetchOnMount: false, // Use cached data on mount if available
+      refetchOnReconnect: false, // Don't auto-refetch on reconnect
     },
   },
 });
