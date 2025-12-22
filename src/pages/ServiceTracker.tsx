@@ -151,18 +151,29 @@ const ServiceTracker = () => {
   };
 
   const handleNotify = async (service: ServiceRecord) => {
-    const userFullName = sessionStorage.getItem("fullName") || "System";
+    const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
     const deviceInfo = service.device || service.deviceType || "device";
+    
+    // Helper to find staff by name (case-insensitive, trimmed)
+    const findStaffByName = (name: string) => {
+      const normalizedName = name.trim().toLowerCase();
+      return staffList.find(s => 
+        s.name.trim().toLowerCase() === normalizedName ||
+        s.name.split(" - ")[0].trim().toLowerCase() === normalizedName.split(" - ")[0]
+      );
+    };
     
     try {
       if (userRole === "management") {
         // Notify assigned admin and technician
         const notifyPromises: Promise<boolean>[] = [];
+        let notifiedSomeone = false;
         
         // Notify admin
         if (service.adminRep) {
-          const adminStaff = staffList.find(s => s.name === service.adminRep);
+          const adminStaff = findStaffByName(service.adminRep);
           if (adminStaff?.staffId) {
+            notifiedSomeone = true;
             notifyPromises.push(
               createNotification({
                 userId: adminStaff.staffId,
@@ -178,8 +189,9 @@ const ServiceTracker = () => {
         // Notify technicians
         const techNames = service.technician?.split(",").map(t => t.trim()).filter(Boolean) || [];
         for (const techName of techNames) {
-          const tech = staffList.find(s => s.name.split(" - ")[0].trim().toLowerCase() === techName.split(" - ")[0].trim().toLowerCase());
+          const tech = findStaffByName(techName);
           if (tech?.staffId) {
+            notifiedSomeone = true;
             notifyPromises.push(
               createNotification({
                 userId: tech.staffId,
@@ -192,17 +204,23 @@ const ServiceTracker = () => {
           }
         }
         
-        await Promise.all(notifyPromises);
-        toast({ title: "Notification sent", description: "Admin and technician have been notified." });
+        if (notifiedSomeone) {
+          await Promise.all(notifyPromises);
+          toast({ title: "Notification sent", description: "Admin and technician have been notified." });
+        } else {
+          toast({ title: "No recipients found", description: "Could not find any assigned staff to notify.", variant: "destructive" });
+        }
         
       } else if (userRole === "admin") {
         // Notify technicians only
         const techNames = service.technician?.split(",").map(t => t.trim()).filter(Boolean) || [];
         const notifyPromises: Promise<boolean>[] = [];
+        let notifiedSomeone = false;
         
         for (const techName of techNames) {
-          const tech = staffList.find(s => s.name.split(" - ")[0].trim().toLowerCase() === techName.split(" - ")[0].trim().toLowerCase());
+          const tech = findStaffByName(techName);
           if (tech?.staffId) {
+            notifiedSomeone = true;
             notifyPromises.push(
               createNotification({
                 userId: tech.staffId,
@@ -215,13 +233,17 @@ const ServiceTracker = () => {
           }
         }
         
-        await Promise.all(notifyPromises);
-        toast({ title: "Notification sent", description: "Technician has been notified." });
+        if (notifiedSomeone) {
+          await Promise.all(notifyPromises);
+          toast({ title: "Notification sent", description: "Technician has been notified." });
+        } else {
+          toast({ title: "No technician assigned", description: "This service has no assigned technician.", variant: "destructive" });
+        }
         
       } else if (userRole === "technician") {
         // Notify assigned admin
         if (service.adminRep) {
-          const adminStaff = staffList.find(s => s.name === service.adminRep);
+          const adminStaff = findStaffByName(service.adminRep);
           if (adminStaff?.staffId) {
             await createNotification({
               userId: adminStaff.staffId,
@@ -1094,7 +1116,7 @@ Technician: ${forwardService.technician || "Unassigned"}
                              )}
                            </TableCell>
                            <TableCell>
-                             {isAfterInService(service.status) && !isCompleted && (
+                             {!isCompleted && (
                                <div className="flex items-center gap-1">
                                  <Button
                                    variant="ghost"
@@ -1115,7 +1137,7 @@ Technician: ${forwardService.technician || "Unassigned"}
                                      e.stopPropagation();
                                      handleForward(service as ServiceRecord);
                                    }}
-                                   title="Forward to Service Tracking"
+                                   title="Forward"
                                    className="h-8 w-8 p-0"
                                  >
                                    <Forward className="h-4 w-4" />
