@@ -240,8 +240,13 @@ const ServiceTracker = () => {
   };
 
   const handleForward = (service: ServiceRecord) => {
-    // Navigate to service tracking with service ID pre-filled
-    navigate(`/track?serviceId=${encodeURIComponent(service.serviceId)}`);
+    // Navigate based on user role
+    if (userRole === "technician") {
+      navigate(`/service-update?serviceId=${encodeURIComponent(service.serviceId)}`);
+    } else {
+      // Admin and management go to manage-client
+      navigate(`/manage-client?serviceId=${encodeURIComponent(service.serviceId)}`);
+    }
   };
 
   const applyDatePreset = (preset: string) => {

@@ -1,8 +1,10 @@
+project_id = ""
+
 [functions.format-diagnosis]
 verify_jwt = false
 
 [functions.format-report]
 verify_jwt = false
 
-[functions.format-diagnosis]
+[functions.daily-overdue-notifications]
 verify_jwt = false
