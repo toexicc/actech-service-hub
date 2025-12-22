@@ -32,6 +32,8 @@ interface ServiceRecord {
   technicianDepartment?: string;
   brand?: string;
   device?: string;
+  adminRep?: string;
+  adminRepresentative?: string;
 }
 
 const fetchAllServices = async (): Promise<ServiceRecord[]> => {
