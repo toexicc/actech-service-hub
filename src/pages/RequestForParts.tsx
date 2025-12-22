@@ -184,6 +184,26 @@ const RequestForParts = () => {
         throw new Error(result?.message || "Request not accepted by Apps Script");
       }
 
+      // Get the Part ID from the result
+      const partId = result.partId;
+
+      // Update Inquiry Database Part ID if Service ID matches
+      if (partId && formData.serviceId) {
+        try {
+          const updateFormData = new FormData();
+          updateFormData.append("action", "updateInquiryPartIdByServiceId");
+          updateFormData.append("serviceId", formData.serviceId);
+          updateFormData.append("partId", partId);
+          
+          await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+            method: "POST",
+            body: updateFormData,
+          });
+        } catch (updateError) {
+          console.error("Error updating inquiry Part ID:", updateError);
+        }
+      }
+
       // Notify management about the new part request
       await notifyPartRequest(userFullName, formData.serviceId, formData.partName);
 

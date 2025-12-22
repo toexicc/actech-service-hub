@@ -2046,6 +2046,37 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Update Inquiry Database Part ID by matching Service ID
+  if (params.action === 'updateInquiryPartIdByServiceId' && params.serviceId && params.partId) {
+    var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
+    if (!inquirySheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Inquiry Database sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var data = inquirySheet.getDataRange().getValues();
+    var updated = false;
+    
+    // Column B (index 1) = Service ID, Column Q (column 17) = Part ID
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] && data[i][1].toString().trim() === params.serviceId.toString().trim()) {
+        // Get existing Part ID and append new one (comma-separated if multiple)
+        var existingPartId = data[i][16] ? data[i][16].toString().trim() : "";
+        var newPartId = existingPartId ? existingPartId + ", " + params.partId : params.partId;
+        inquirySheet.getRange(i + 1, 17).setValue(newPartId); // Column Q = Part ID
+        updated = true;
+        break;
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "updated": updated
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
   // ========== NOTIFICATIONS (POST) ==========
   
   // Create a new notification
