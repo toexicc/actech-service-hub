@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
+import { useNavigate } from "react-router-dom";
 import { MessageCircle, Send, ArrowLeft, Users, Search, Image, X, Camera, Check, CheckCheck, RotateCcw, UsersRound, UserPlus, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +70,7 @@ interface PendingMessage {
 }
 
 export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>(({ userId, userName }, ref) => {
+  const navigate = useNavigate();
   const username = typeof window !== 'undefined' ? sessionStorage.getItem('username') : null;
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
@@ -457,27 +459,50 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
       );
     }
 
-    // Check for forwarded service messages with navigation path
+    // Check for forwarded service messages and render a redirect button
+    // Supports both legacy "🔗 View Details: https://..." and newer "🔗 NAV_PATH: /..." formats.
     const forwardMatch = content.match(/📋 Service Forwarded:/);
     if (forwardMatch) {
-      // Extract the navigation path from the message
-      const navPathMatch = content.match(/🔗 NAV_PATH: (\/[^\s]+)/);
-      const textWithoutPath = content.replace(/🔗 NAV_PATH: \/[^\s]+/, '').trim();
-      
+      const legacyUrlMatch = content.match(/🔗 View Details: ([^\s]+)/);
+      const navPathMatch = content.match(/🔗 NAV_PATH: (\/[\S]+)/);
+
+      const targetRaw = navPathMatch?.[1] || legacyUrlMatch?.[1] || "";
+
+      const textWithoutLink = content
+        .replace(/🔗\s*NAV_PATH:\s*\/[\S]+/, "")
+        .replace(/🔗\s*View Details:\s*[^\s]+/, "")
+        .trim();
+
+      const navigateTo = (raw: string) => {
+        if (!raw) return;
+
+        let path = raw;
+        try {
+          if (raw.startsWith("http")) {
+            const u = new URL(raw);
+            path = `${u.pathname}${u.search}`;
+          }
+        } catch {
+          // ignore
+        }
+
+        if (!path.startsWith("/")) return;
+
+        setIsSheetOpen(false);
+        navigate(path);
+      };
+
       return (
         <div className="space-y-2">
-          <p className="text-sm whitespace-pre-wrap">{textWithoutPath}</p>
-          {navPathMatch && (
+          <p className="text-sm whitespace-pre-wrap">{textWithoutLink}</p>
+          {!!targetRaw && (
             <Button
               size="sm"
               variant="secondary"
               className="w-full"
-              onClick={() => {
-                // Use window.location for navigation (react-router not available here)
-                window.location.href = navPathMatch[1];
-              }}
+              onClick={() => navigateTo(targetRaw)}
             >
-              🔗 View Service Details
+              View Service Details
             </Button>
           )}
         </div>
