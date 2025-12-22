@@ -154,13 +154,28 @@ const ServiceTracker = () => {
     const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
     const deviceInfo = service.device || service.deviceType || "device";
     
-    // Helper to find staff by name (case-insensitive, trimmed)
+    // Helper to find staff by name (case-insensitive, trimmed, flexible matching)
     const findStaffByName = (name: string) => {
+      if (!name) return undefined;
       const normalizedName = name.trim().toLowerCase();
-      return staffList.find(s => 
-        s.name.trim().toLowerCase() === normalizedName ||
-        s.name.split(" - ")[0].trim().toLowerCase() === normalizedName.split(" - ")[0]
-      );
+      
+      // Log for debugging
+      console.log("Looking for staff:", name, "| Normalized:", normalizedName);
+      console.log("Available staff:", staffList.map(s => ({ name: s.name, staffId: s.staffId, role: s.role })));
+      
+      const found = staffList.find(s => {
+        const staffName = s.name?.trim().toLowerCase() || "";
+        const staffNameBase = staffName.split(" - ")[0].trim();
+        const searchNameBase = normalizedName.split(" - ")[0].trim();
+        
+        return staffName === normalizedName || 
+               staffNameBase === searchNameBase ||
+               staffName.includes(normalizedName) ||
+               normalizedName.includes(staffName);
+      });
+      
+      console.log("Found staff:", found);
+      return found;
     };
     
     try {
@@ -242,6 +257,8 @@ const ServiceTracker = () => {
         
       } else if (userRole === "technician") {
         // Notify assigned admin
+        console.log("Technician trying to notify. AdminRep:", service.adminRep);
+        
         if (service.adminRep) {
           const adminStaff = findStaffByName(service.adminRep);
           if (adminStaff?.staffId) {
@@ -254,7 +271,7 @@ const ServiceTracker = () => {
             });
             toast({ title: "Notification sent", description: "Admin has been notified." });
           } else {
-            toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
+            toast({ title: "Admin not found", description: `Could not find staff record for "${service.adminRep}".`, variant: "destructive" });
           }
         } else {
           toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
