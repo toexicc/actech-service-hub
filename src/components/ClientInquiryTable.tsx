@@ -156,7 +156,7 @@ const ClientInquiryTable = () => {
       if (result.status === "success" || result.result === "success") {
         toast({ title: "Success", description: "Inquiry updated successfully" });
         setEditDialogOpen(false);
-        fetchInquiries();
+        await refetch();
       } else {
         throw new Error(result.message || "Update failed");
       }
@@ -357,7 +357,7 @@ const ClientInquiryTable = () => {
                 <TableHead className="whitespace-nowrap">Address/Contact</TableHead>
                 <TableHead className="whitespace-nowrap">Service ID</TableHead>
                 <TableHead className="whitespace-nowrap">Device</TableHead>
-                <TableHead className="whitespace-nowrap">Initial Diagnosis</TableHead>
+                <TableHead className="whitespace-nowrap min-w-[300px]">Initial Diagnosis</TableHead>
                 <TableHead className="whitespace-nowrap">Quotation</TableHead>
                 <TableHead className="whitespace-nowrap">Pre-Order</TableHead>
                 <TableHead className="whitespace-nowrap">Initial Payment</TableHead>
@@ -429,7 +429,7 @@ const ClientInquiryTable = () => {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{inquiry.serviceId || "-"}</TableCell>
                     <TableCell>{inquiry.device || "-"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{inquiry.initialDiagnosis || "-"}</TableCell>
+                    <TableCell className="min-w-[300px] whitespace-pre-wrap">{inquiry.initialDiagnosis || "-"}</TableCell>
                     <TableCell>{inquiry.quotation || "-"}</TableCell>
                     <TableCell>
                       <span className={cn(
