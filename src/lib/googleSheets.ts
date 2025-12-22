@@ -363,7 +363,8 @@ function doGet(e) {
     var inquiries = [];
     
     // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
-    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status
+    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status,
+    //          O=Pre-Order, P=Initial Payment, Q=Part ID
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Client ID exists
         inquiries.push({
@@ -380,7 +381,10 @@ function doGet(e) {
           "quotation": data[i][10],
           "pickUpDate": data[i][11],
           "directChatLink": data[i][12],
-          "aiStatus": data[i][13] || "OFF-AI" // Column N - AI Status, default to OFF-AI
+          "aiStatus": data[i][13] || "OFF-AI", // Column N - AI Status, default to OFF-AI
+          "preOrder": data[i][14] || "", // Column O - Pre-Order (true/false)
+          "initialPayment": data[i][15] || "", // Column P - Initial Payment
+          "partId": data[i][16] || "" // Column Q - Part ID
         });
       }
     }
@@ -1983,7 +1987,8 @@ function doPost(e) {
     
     var rowIndex = parseInt(params.rowIndex);
     // Columns: A=Client ID, B=Service ID, C=Timestamp, D=(unused), E=Name, F=Address, G=Contact Number,
-    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status
+    //          H=Mode of Transfer, I=Device, J=Initial Diagnosis, K=Quotation, L=Pick-Up Date, M=Direct Chat Link, N=AI Status,
+    //          O=Pre-Order, P=Initial Payment, Q=Part ID
     inquirySheet.getRange(rowIndex, 1).setValue(params.clientId || "");
     inquirySheet.getRange(rowIndex, 2).setValue(params.serviceId || "");
     inquirySheet.getRange(rowIndex, 5).setValue(params.name || "");
@@ -1995,6 +2000,9 @@ function doPost(e) {
     inquirySheet.getRange(rowIndex, 11).setValue(params.quotation || "");
     inquirySheet.getRange(rowIndex, 12).setValue(params.pickUpDate || "");
     inquirySheet.getRange(rowIndex, 13).setValue(params.directChatLink || "");
+    inquirySheet.getRange(rowIndex, 15).setValue(params.preOrder || ""); // Column O - Pre-Order
+    inquirySheet.getRange(rowIndex, 16).setValue(params.initialPayment || ""); // Column P - Initial Payment
+    inquirySheet.getRange(rowIndex, 17).setValue(params.partId || ""); // Column Q - Part ID
     
     return ContentService.createTextOutput(JSON.stringify({
       "status": "success"
