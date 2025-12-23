@@ -84,7 +84,7 @@ export const useNotifications = (userId: string | null) => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const previousNotificationIds = useRef<Set<string>>(new Set());
-  const isInitialLoad = useRef(true);
+  const hasShownInitialNotifications = useRef(false);
 
   // Request permission on mount
   useEffect(() => {
@@ -95,24 +95,47 @@ export const useNotifications = (userId: string | null) => {
     if (!userId) return;
     try {
       const data = await fetchNotifications(userId);
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       
-      // Check for new notifications (not on initial load)
-      if (!isInitialLoad.current && data.length > 0) {
+      // On initial load, show notifications for recent unread messages
+      if (!hasShownInitialNotifications.current && data.length > 0) {
+        hasShownInitialNotifications.current = true;
+        
+        // Filter unread notifications from last 24 hours
+        const recentUnread = data.filter(n => {
+          if (n.read) return false;
+          const notifDate = new Date(n.createdAt);
+          return notifDate > twentyFourHoursAgo;
+        });
+        
+        // Show native notifications with delay between each (max 5 to avoid spam)
+        const notificationsToShow = recentUnread.slice(0, 5);
+        notificationsToShow.forEach((notification, index) => {
+          setTimeout(() => {
+            const cleanMessage = cleanNotificationMessage(notification.message);
+            showBrowserNotification(notification.title, cleanMessage);
+            if (index === 0) playNotificationSound(); // Only play sound once
+          }, index * 1000); // 1 second delay between each
+        });
+        
+        // Initialize previous IDs
+        previousNotificationIds.current = new Set(data.map(n => n.id));
+      } else if (hasShownInitialNotifications.current && data.length > 0) {
+        // After initial load, only notify for truly new notifications
         const newNotifications = data.filter(
           n => !n.read && !previousNotificationIds.current.has(n.id)
         );
         
-        // Show browser notification and play sound for each new notification
         for (const notification of newNotifications) {
           const cleanMessage = cleanNotificationMessage(notification.message);
           showBrowserNotification(notification.title, cleanMessage);
           playNotificationSound();
         }
+        
+        // Update previous notification IDs
+        previousNotificationIds.current = new Set(data.map(n => n.id));
       }
-      
-      // Update previous notification IDs
-      previousNotificationIds.current = new Set(data.map(n => n.id));
-      isInitialLoad.current = false;
       
       // Clean messages for display
       const cleanedNotifications = data.map(n => ({
