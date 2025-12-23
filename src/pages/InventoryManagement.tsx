@@ -132,6 +132,8 @@ const InventoryManagement = () => {
     deviceType: "",
     brand: "",
     model: "",
+    partType: "",
+    partTypeOther: "",
     quantity: "",
     orderedQuantity: "", // Track ordered quantity separately
     dateOrdered: "",
@@ -191,6 +193,9 @@ const InventoryManagement = () => {
       formData.append("deviceType", newPart.deviceType);
       formData.append("brand", newPart.brand);
       formData.append("model", newPart.model);
+      // Part Type - use partTypeOther if "Others" is selected
+      const partTypeValue = newPart.partType === "Others" ? newPart.partTypeOther : newPart.partType;
+      formData.append("partType", partTypeValue);
       formData.append("quantity", actualQuantity);
       formData.append("dateOrdered", newPart.dateOrdered);
       formData.append("supplier", newPart.supplier);
@@ -223,6 +228,8 @@ const InventoryManagement = () => {
           deviceType: "",
           brand: "",
           model: "",
+          partType: "",
+          partTypeOther: "",
           quantity: "",
           orderedQuantity: "",
           dateOrdered: "",
@@ -715,6 +722,42 @@ const InventoryManagement = () => {
                       placeholder="e.g., iPhone 15 Pro"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="partType">Part Type</Label>
+                  {newPart.partType === "Others" ? (
+                    <div className="flex gap-2">
+                      <Input
+                        id="partType"
+                        value={newPart.partTypeOther}
+                        onChange={(e) => setNewPart({...newPart, partTypeOther: e.target.value})}
+                        placeholder="Enter part type..."
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewPart({...newPart, partType: "", partTypeOther: ""})}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={newPart.partType}
+                      onValueChange={(value) => setNewPart({...newPart, partType: value, partTypeOther: ""})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select part type (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OEM">OEM</SelectItem>
+                        <SelectItem value="Original">Original</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
