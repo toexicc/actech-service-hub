@@ -79,6 +79,8 @@ const RequestForParts = () => {
     deviceType: "",
     brand: "",
     model: "",
+    partType: "",
+    partTypeOther: "",
     quantity: "",
     remarks: ""
   });
@@ -154,6 +156,8 @@ const RequestForParts = () => {
     setIsSubmitting(true);
     try {
       // Apps Script doPost reads URL-encoded bodies reliably via e.parameter
+      // Part Type - use partTypeOther if "Others" is selected
+      const partTypeValue = formData.partType === "Others" ? formData.partTypeOther : formData.partType;
       const body = new URLSearchParams({
         action: "addFastMovingPart",
         requestedBy: userFullName,
@@ -162,6 +166,7 @@ const RequestForParts = () => {
         deviceType: formData.deviceType,
         brand: formData.brand,
         model: formData.model,
+        partType: partTypeValue,
         quantity: formData.quantity,
         dateNeeded: format(dateNeeded, "MM/dd/yyyy"),
         status: "For Ordering",
@@ -282,6 +287,8 @@ const RequestForParts = () => {
         deviceType: "",
         brand: "",
         model: "",
+        partType: "",
+        partTypeOther: "",
         quantity: "",
         remarks: "",
       });
@@ -424,6 +431,8 @@ const RequestForParts = () => {
       deviceType: request.deviceType,
       brand: request.brand,
       model: request.model,
+      partType: (request as any).partType || "",
+      partTypeOther: (request as any).partTypeOther || "",
       quantity: request.quantity,
       remarks: request.remarks
     });
@@ -689,6 +698,41 @@ const RequestForParts = () => {
                     placeholder="Enter Model"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Part Type</Label>
+                {formData.partType === "Others" ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.partTypeOther}
+                      onChange={(e) => setFormData({ ...formData, partTypeOther: e.target.value })}
+                      placeholder="Enter part type..."
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData({ ...formData, partType: "", partTypeOther: "" })}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.partType}
+                    onValueChange={(value) => setFormData({ ...formData, partType: value, partTypeOther: "" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select part type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OEM">OEM</SelectItem>
+                      <SelectItem value="Original">Original</SelectItem>
+                      <SelectItem value="Others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
