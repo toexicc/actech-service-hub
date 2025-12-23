@@ -109,9 +109,8 @@ export const useNotifications = (userId: string | null) => {
           return notifDate > twentyFourHoursAgo;
         });
         
-        // Show native notifications with delay between each (max 5 to avoid spam)
-        const notificationsToShow = recentUnread.slice(0, 5);
-        notificationsToShow.forEach((notification, index) => {
+        // Show native notifications with delay between each
+        recentUnread.forEach((notification, index) => {
           setTimeout(() => {
             const cleanMessage = cleanNotificationMessage(notification.message);
             showBrowserNotification(notification.title, cleanMessage);
