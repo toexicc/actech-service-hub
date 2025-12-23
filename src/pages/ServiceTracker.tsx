@@ -70,6 +70,11 @@ const ServiceTracker = () => {
   const [forwardRecipient, setForwardRecipient] = useState("");
   const [forwardMessage, setForwardMessage] = useState("");
   const [forwardSending, setForwardSending] = useState(false);
+  // Notify dialog state
+  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+  const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifySending, setNotifySending] = useState(false);
   const itemsPerPage = 15;
 
   // Derive technicians with departments from staff data
@@ -153,9 +158,21 @@ const ServiceTracker = () => {
     return afterInServiceStatuses.includes(status);
   };
 
-  const handleNotify = async (service: ServiceRecord) => {
+  // Open notify dialog instead of sending immediately
+  const openNotifyDialog = (service: ServiceRecord) => {
+    setNotifyService(service);
+    setNotifyMessage("");
+    setNotifyDialogOpen(true);
+  };
+
+  const handleNotify = async () => {
+    if (!notifyService) return;
+    
+    setNotifySending(true);
+    const service = notifyService;
     const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
     const deviceInfo = service.device || service.deviceType || "device";
+    const customMsg = notifyMessage.trim();
     
     // Helper to find staff by name (case-insensitive, trimmed, flexible matching)
     const findStaffByName = (name: string) => {
@@ -185,11 +202,12 @@ const ServiceTracker = () => {
           const adminStaff = findStaffByName(service.adminRep);
           if (adminStaff?.staffId) {
             notifiedSomeone = true;
+            const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
                 userId: adminStaff.staffId,
                 title: `Reminder: Check on ${service.serviceId}`,
-                message: `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+                message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
                 serviceId: service.serviceId,
               })
@@ -203,11 +221,12 @@ const ServiceTracker = () => {
           const tech = findStaffByName(techName);
           if (tech?.staffId) {
             notifiedSomeone = true;
+            const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
                 userId: tech.staffId,
                 title: `Reminder: Check on ${service.serviceId}`,
-                message: `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+                message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
                 serviceId: service.serviceId,
               })
@@ -232,11 +251,12 @@ const ServiceTracker = () => {
           const tech = findStaffByName(techName);
           if (tech?.staffId) {
             notifiedSomeone = true;
+            const baseMessage = `Admin is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
                 userId: tech.staffId,
                 title: `Reminder: Check on ${service.serviceId}`,
-                message: `Admin is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+                message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
                 serviceId: service.serviceId,
               })
@@ -258,10 +278,11 @@ const ServiceTracker = () => {
         if (adminName) {
           const adminStaff = findStaffByName(adminName);
           if (adminStaff?.staffId) {
+            const baseMessage = `Technician ${userFullName} is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             await createNotification({
               userId: adminStaff.staffId,
               title: `Reminder: Check on ${service.serviceId}`,
-              message: `Technician ${userFullName} is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`,
+              message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
               type: "service_update",
               serviceId: service.serviceId,
             });
@@ -273,9 +294,13 @@ const ServiceTracker = () => {
           toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
         }
       }
+      
+      setNotifyDialogOpen(false);
     } catch (error) {
       console.error("Error sending notification:", error);
       toast({ title: "Error", description: "Failed to send notification.", variant: "destructive" });
+    } finally {
+      setNotifySending(false);
     }
   };
 
@@ -1146,7 +1171,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleNotify(service as ServiceRecord);
+                                    openNotifyDialog(service as ServiceRecord);
                                   }}
                                   title="Notify"
                                   className="h-8 w-8 p-0"
@@ -1234,6 +1259,49 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           powered by Stack&Scale
         </div>
       </div>
+
+      {/* Notify Service Dialog */}
+      <Dialog open={notifyDialogOpen} onOpenChange={setNotifyDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Notification</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {notifyService && (
+              <div className="p-3 bg-muted rounded-lg text-sm">
+                <p className="font-semibold">{notifyService.serviceId}</p>
+                <p className="text-muted-foreground">{notifyService.clientName} - {notifyService.device || notifyService.deviceType}</p>
+                <p className="text-muted-foreground">Status: {notifyService.status}</p>
+                {notifyService.technician && (
+                  <p className="text-muted-foreground">Technician: {notifyService.technician}</p>
+                )}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Message (optional)</Label>
+              <Textarea
+                placeholder="Add a message to include in the notification..."
+                value={notifyMessage}
+                onChange={(e) => setNotifyMessage(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotifyDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleNotify} 
+              disabled={notifySending}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              {notifySending ? "Sending..." : "Notify"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Forward Service Dialog */}
       <Dialog open={forwardDialogOpen} onOpenChange={setForwardDialogOpen}>
