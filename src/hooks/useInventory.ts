@@ -36,9 +36,25 @@ interface InventoryLog {
 const fetchInventory = async (): Promise<InventoryItem[]> => {
   const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`);
   const data = await response.json();
-  if (data.status === "success" && data.inventory) {
-    return data.inventory;
+
+  // Support multiple response shapes from Apps Script
+  const items: any[] =
+    (data?.inventory ?? data?.data ?? data?.items ?? (data?.parts ?? null)) || [];
+
+  if (data?.status === "success" && Array.isArray(items)) {
+    return items.map((item) => ({
+      ...item,
+      // Normalize partType key variants
+      partType:
+        item?.partType ??
+        item?.part_type ??
+        item?.PartType ??
+        item?.["Part Type"] ??
+        item?.["part type"] ??
+        "",
+    })) as InventoryItem[];
   }
+
   throw new Error("Failed to load inventory");
 };
 
