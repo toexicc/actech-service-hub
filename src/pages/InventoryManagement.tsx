@@ -14,7 +14,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -985,6 +985,13 @@ const InventoryManagement = () => {
                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Reload Button */}
+              <div className="flex items-end">
+                <Button variant="outline" size="icon" onClick={() => { refetchInventory(); refetchLogs(); }} disabled={isLoading || isLogsLoading} title="Reload table">
+                  <RefreshCw className={`h-4 w-4 ${isLoading || isLogsLoading ? "animate-spin" : ""}`} />
+                </Button>
               </div>
             </div>
           </CardContent>
