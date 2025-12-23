@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDoneServices } from "@/hooks/useDoneServices";
@@ -29,7 +29,7 @@ const TransactionTracker = () => {
     }
   }, [navigate, userRole]);
 
-  const { data: services = [], isLoading } = useDoneServices();
+  const { data: services = [], isLoading, refetch } = useDoneServices();
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -307,7 +307,7 @@ const TransactionTracker = () => {
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -319,6 +319,9 @@ const TransactionTracker = () => {
                 }}
               >
                 Clear All Filters
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading} title="Reload table">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </CardContent>

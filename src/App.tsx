@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
 import Login from "./pages/Login";
 import Menu from "./pages/Menu";
@@ -38,29 +36,12 @@ const queryClient = new QueryClient({
   },
 });
 
-// Lightweight route transition loader (only shown briefly on initial mount)
-const AppLoader = () => {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setShow(true), 120);
-    return () => clearTimeout(t);
-  }, []);
-  if (!show) return null;
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter basename={import.meta.env.MODE === "production" ? "/actech-service-hub" : ""}>
-        {/* Keep a tiny loader for the very first render only */}
-        <AppLoader />
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/menu" element={<Menu />} />

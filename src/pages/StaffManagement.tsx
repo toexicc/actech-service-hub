@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Trash2, Edit, Eye, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Edit, Eye, EyeOff, RefreshCw } from "lucide-react";
 import {
   addUser,
   updateUser,
@@ -451,6 +451,12 @@ const StaffManagement = () => {
                       <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                {/* Reload Button */}
+                <div className="flex items-end">
+                  <Button variant="outline" size="icon" onClick={() => invalidateStaff()} title="Reload table">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </CardHeader>
