@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { cn } from "@/lib/utils";
-import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
+import { Search, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useClientInquiriesData, useInvalidateClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import { logInquiryActivity } from "@/lib/activityLogger";
@@ -338,10 +338,6 @@ const ClientInquiryTable = () => {
             </SelectContent>
           </Select>
 
-          {/* Reload Button - Icon only */}
-          <Button variant="outline" size="icon" onClick={fetchInquiries} disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-          </Button>
         </div>
       </div>
 
