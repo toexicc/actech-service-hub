@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useClientInquiriesData, useInvalidateClientInquiriesData } from "@/hooks/useClientInquiriesData";
+import { logInquiryActivity } from "@/lib/activityLogger";
 
 interface ClientInquiry {
   rowIndex: number;

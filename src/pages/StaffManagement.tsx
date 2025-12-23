@@ -38,6 +38,7 @@ import {
 import { DEPARTMENTS } from "@/lib/constants";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useStaff, useInvalidateStaff } from "@/hooks/useStaff";
+import { logStaffActivity } from "@/lib/activityLogger";
 
 const StaffManagement = () => {
   const navigate = useNavigate();
@@ -160,6 +161,8 @@ const StaffManagement = () => {
       });
 
       if (success) {
+        logStaffActivity("Added new staff member", `${newStaff.name} (${newStaff.role})`);
+        
         toast({
           title: "Success",
           description: "Staff member added successfully",
@@ -187,7 +190,7 @@ const StaffManagement = () => {
     }
   };
 
-  const handleRemoveStaff = async (username: string) => {
+  const handleRemoveStaff = async (username: string, staffName: string) => {
     if (isDeletingStaff) return; // Prevent double-click
     
     if (!confirm("Are you sure you want to remove this staff member?")) {
@@ -199,6 +202,8 @@ const StaffManagement = () => {
       const success = await removeUser(username);
 
       if (success) {
+        logStaffActivity("Removed staff member", staffName);
+        
         toast({
           title: "Success",
           description: "Staff member removed successfully",
@@ -253,6 +258,8 @@ const StaffManagement = () => {
       });
 
       if (success) {
+        logStaffActivity("Updated staff member", `${selectedStaff.name} (${selectedStaff.role})`);
+        
         toast({
           title: "Success",
           description: "Staff member updated successfully",
@@ -514,7 +521,7 @@ const StaffManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveStaff(staff.username)}
+                                onClick={() => handleRemoveStaff(staff.username, staff.name)}
                                 disabled={isDeletingStaff === staff.username}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >

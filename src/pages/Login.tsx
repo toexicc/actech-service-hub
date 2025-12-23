@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Search, Loader2, Wrench, Shield } from "lucide-react";
 import { findUser } from "@/lib/userCredentials";
+import { logAuthActivity } from "@/lib/activityLogger";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 
 const Login = () => {
@@ -39,6 +40,9 @@ const Login = () => {
         sessionStorage.setItem("username", user.username);
         sessionStorage.setItem("userFullName", user.name);
         sessionStorage.setItem("staffId", user.staffId);
+        
+        // Log successful login
+        logAuthActivity(user.username, `User logged in successfully`, user.role);
         
         // All users go to /menu
         navigate("/menu");
