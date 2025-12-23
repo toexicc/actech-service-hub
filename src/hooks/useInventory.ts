@@ -7,6 +7,7 @@ interface InventoryItem {
   deviceType: string;
   brand: string;
   model: string;
+  partType?: string;
   quantity: number;
   dateOrdered?: string;
   supplier?: string;

@@ -28,6 +28,7 @@ interface PartRequest {
   deviceType: string;
   brand: string;
   model: string;
+  partType?: string;
   quantity: string;
   dateNeeded: string;
   dateOrdered: string;
@@ -65,6 +66,7 @@ const RequestForParts = () => {
     deviceType: "",
     brand: "",
     model: "",
+    partType: "",
     quantity: "",
     remarks: ""
   });
@@ -322,6 +324,7 @@ const RequestForParts = () => {
       deviceType: request.deviceType,
       brand: request.brand,
       model: request.model,
+      partType: request.partType || "",
       quantity: request.quantity,
       remarks: request.remarks
     });
@@ -340,6 +343,7 @@ const RequestForParts = () => {
       formDataToSend.append("deviceType", editForm.deviceType);
       formDataToSend.append("brand", editForm.brand);
       formDataToSend.append("model", editForm.model);
+      formDataToSend.append("partType", editForm.partType || "");
       formDataToSend.append("quantity", editForm.quantity);
       formDataToSend.append("remarks", editForm.remarks);
 
@@ -543,6 +547,7 @@ const RequestForParts = () => {
                           <TableHead>Service ID</TableHead>
                           <TableHead>Part Name</TableHead>
                           <TableHead>Model</TableHead>
+                          <TableHead>Part Type</TableHead>
                           <TableHead>Device Type</TableHead>
                           <TableHead>Qty</TableHead>
                           <TableHead>Date Needed</TableHead>
@@ -560,6 +565,7 @@ const RequestForParts = () => {
                             <TableCell>{req.serviceId}</TableCell>
                             <TableCell>{req.partName}</TableCell>
                             <TableCell>{req.model || "N/A"}</TableCell>
+                            <TableCell>{req.partType || "N/A"}</TableCell>
                             <TableCell>{req.deviceType || "N/A"}</TableCell>
                             <TableCell>{req.quantity}</TableCell>
                             <TableCell>{req.dateNeeded || "N/A"}</TableCell>
@@ -852,6 +858,22 @@ const RequestForParts = () => {
                     placeholder="Enter Model"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Part Type</Label>
+                <Select
+                  value={editForm.partType || ""}
+                  onValueChange={(value) => setEditForm({ ...editForm, partType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select part type (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OEM">OEM</SelectItem>
+                    <SelectItem value="Original">Original</SelectItem>
+                    <SelectItem value="Others">Others</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Quantity *</Label>
