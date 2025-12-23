@@ -559,7 +559,7 @@ function doGet(e) {
     var inventory = [];
     
     // Loop through all rows (skip header row)
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks, QR Code (M)
+    // Columns: A=Part ID, B=Part Name, C=Device Type, D=Brand, E=Model, F=Quantity, G=Date Ordered, H=Supplier, I=Cost/Unit, J=Status, K=Last Updated, L=Remarks, M=QR Code, N=Part Type
     for (var i = 1; i < data.length; i++) {
       inventory.push({
         "partId": data[i][0],
@@ -574,7 +574,8 @@ function doGet(e) {
         "status": data[i][9],
         "lastUpdated": data[i][10],
         "remarks": data[i][11],
-        "qrCode": data[i][12] // Column M - QR Code data URL
+        "qrCode": data[i][12], // Column M - QR Code data URL
+        "partType": data[i][13] // Column N - Part Type (OEM/Original/Others)
       });
     }
     
@@ -1027,6 +1028,9 @@ function doGet(e) {
     
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) {
+        // Columns: A=Part ID, B=Requested By, C=Service ID, D=Part Name, E=Device Type, F=Brand, G=Model,
+        //          H=Quantity, I=Date Needed, J=Date Ordered, K=Date Received, L=Supplier, M=Cost,
+        //          N=Status, O=Last Updated, P=Remarks, Q=Part Type
         parts.push({
           "partId": data[i][0],
           "requestedBy": data[i][1],
@@ -1043,7 +1047,8 @@ function doGet(e) {
           "cost": data[i][12],
           "status": data[i][13],
           "lastUpdated": data[i][14],
-          "remarks": data[i][15]
+          "remarks": data[i][15],
+          "partType": data[i][16] // Column Q - Part Type (OEM/Original/Others)
         });
       }
     }
@@ -1561,6 +1566,7 @@ function doPost(e) {
         if (params.supplier) inventorySheet.getRange(i + 1, 8).setValue(params.supplier); // Column H
         if (params.costPerUnit) inventorySheet.getRange(i + 1, 9).setValue(params.costPerUnit); // Column I
         if (params.remarks !== undefined) inventorySheet.getRange(i + 1, 12).setValue(params.remarks); // Column L
+        if (params.partType !== undefined) inventorySheet.getRange(i + 1, 14).setValue(params.partType); // Column N - Part Type
         inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K - Last Updated
         
         // Log the update
@@ -1641,7 +1647,7 @@ function doPost(e) {
     var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
-    // Columns: Part ID, Part Name, Device Type, Brand, Model, Quantity, Date Ordered, Supplier, Cost/Unit, Status, Last Updated, Remarks, QR Code (M)
+    // Columns: A=Part ID, B=Part Name, C=Device Type, D=Brand, E=Model, F=Quantity, G=Date Ordered, H=Supplier, I=Cost/Unit, J=Status, K=Last Updated, L=Remarks, M=QR Code, N=Part Type
     inventorySheet.appendRow([
       partId,
       params.partName,
@@ -1655,7 +1661,8 @@ function doPost(e) {
       params.status,
       timestamp,
       params.remarks,
-      params.qrCode || "" // Column M - QR Code data URL (generated client-side)
+      params.qrCode || "", // Column M - QR Code data URL (generated client-side)
+      params.partType || "" // Column N - Part Type (OEM/Original/Others)
     ]);
     
     // Log the initial stock to Inventory Log
@@ -2624,6 +2631,7 @@ function doPost(e) {
         fmSheet.getRange(i + 1, 8).setValue(e.parameter.quantity || data[i][7]); // Column H
         fmSheet.getRange(i + 1, 15).setValue(timestamp); // Column O
         fmSheet.getRange(i + 1, 16).setValue(e.parameter.remarks || data[i][15]); // Column P
+        if (e.parameter.partType !== undefined) fmSheet.getRange(i + 1, 17).setValue(e.parameter.partType); // Column Q - Part Type
         break;
       }
     }

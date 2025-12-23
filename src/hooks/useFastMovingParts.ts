@@ -9,6 +9,7 @@ interface FastMovingPart {
   deviceType: string;
   brand: string;
   model: string;
+  partType?: string;
   quantity: string;
   dateNeeded: string;
   dateOrdered: string;

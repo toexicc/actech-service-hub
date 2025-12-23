@@ -27,6 +27,7 @@ interface FastMovingPart {
   deviceType: string;
   brand: string;
   model: string;
+  partType?: string;
   quantity: string;
   dateNeeded: string;
   dateOrdered: string;
@@ -294,6 +295,7 @@ export const FastMovingPartsTab = ({
       formData.append("deviceType", editForm.deviceType);
       formData.append("brand", editForm.brand);
       formData.append("model", editForm.model);
+      formData.append("partType", editForm.partType || "");
       formData.append("quantity", editForm.quantity);
       formData.append("remarks", editForm.remarks);
 
@@ -524,6 +526,8 @@ export const FastMovingPartsTab = ({
                     <TableHead>Requested By</TableHead>
                     <TableHead>Service ID</TableHead>
                     <TableHead>Part Name</TableHead>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Part Type</TableHead>
                     <TableHead>Device Type</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Date Needed</TableHead>
@@ -543,6 +547,8 @@ export const FastMovingPartsTab = ({
                       <TableCell>{part.requestedBy}</TableCell>
                       <TableCell>{part.serviceId}</TableCell>
                       <TableCell>{part.partName}</TableCell>
+                      <TableCell>{part.model || "N/A"}</TableCell>
+                      <TableCell>{part.partType || "N/A"}</TableCell>
                       <TableCell>{part.deviceType || "N/A"}</TableCell>
                       <TableCell>{part.quantity}</TableCell>
                       <TableCell>{part.dateNeeded || "N/A"}</TableCell>
@@ -747,7 +753,7 @@ export const FastMovingPartsTab = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Brand</Label>
-                    <Input
+                      <Input
                       value={editForm.brand}
                       onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
                     />
@@ -759,6 +765,22 @@ export const FastMovingPartsTab = ({
                       onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Part Type</Label>
+                  <Select
+                    value={editForm.partType || ""}
+                    onValueChange={(value) => setEditForm({ ...editForm, partType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select part type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OEM">OEM</SelectItem>
+                      <SelectItem value="Original">Original</SelectItem>
+                      <SelectItem value="Others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Quantity</Label>

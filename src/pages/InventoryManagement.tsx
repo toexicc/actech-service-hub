@@ -33,6 +33,7 @@ interface InventoryItem {
   deviceType: string;
   brand: string;
   model: string;
+  partType?: string;
   quantity: number;
   dateOrdered?: string;
   supplier?: string;
@@ -357,6 +358,7 @@ const InventoryManagement = () => {
       formData.append("deviceType", editingPart.deviceType);
       formData.append("brand", editingPart.brand || "");
       formData.append("model", editingPart.model || "");
+      formData.append("partType", editingPart.partType || "");
       formData.append("supplier", editingPart.supplier || "");
       formData.append("costPerUnit", editingPart.costPerUnit || "");
       formData.append("remarks", editingPart.remarks || "");
@@ -1024,6 +1026,7 @@ const InventoryManagement = () => {
                           <TableHead>Device Type</TableHead>
                           <TableHead>Brand</TableHead>
                           <TableHead>Model</TableHead>
+                          <TableHead>Part Type</TableHead>
                           <TableHead>Quantity</TableHead>
                           {!isViewOnly && <TableHead>Cost</TableHead>}
                           <TableHead>Status</TableHead>
@@ -1041,6 +1044,7 @@ const InventoryManagement = () => {
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                             {!isViewOnly && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
                             <TableCell><Skeleton className="h-6 w-20" /></TableCell>
@@ -1074,6 +1078,7 @@ const InventoryManagement = () => {
                           <TableHead>Device Type</TableHead>
                           <TableHead>Brand</TableHead>
                           <TableHead>Model</TableHead>
+                          <TableHead>Part Type</TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("quantity")}>
                             <div className="flex items-center gap-1">
                               Quantity <ArrowUpDown className="h-4 w-4" />
@@ -1118,6 +1123,7 @@ const InventoryManagement = () => {
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
                                 <TableCell>{item.brand || "N/A"}</TableCell>
                                 <TableCell>{item.model || "N/A"}</TableCell>
+                                <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
                                   {item.quantity}
                                 </TableCell>
@@ -1780,6 +1786,23 @@ const InventoryManagement = () => {
                       onChange={(e) => setEditingPart({...editingPart, model: e.target.value})}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-partType">Part Type</Label>
+                  <Select
+                    value={editingPart.partType || ""}
+                    onValueChange={(value) => setEditingPart({...editingPart, partType: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select part type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OEM">OEM</SelectItem>
+                      <SelectItem value="Original">Original</SelectItem>
+                      <SelectItem value="Others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
