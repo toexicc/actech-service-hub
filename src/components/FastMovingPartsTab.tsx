@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { notifyPartOrdered, notifyPartReceived, notifyPartCancelled } from "@/lib/partNotifications";
 import { useFastMovingParts, useInvalidateFastMovingParts } from "@/hooks/useFastMovingParts";
+import { logActivityAsync } from "@/lib/activityLogger";
 
 interface FastMovingPart {
   partId: string;
@@ -180,6 +181,16 @@ export const FastMovingPartsTab = ({
            orderForm.supplier
          );
 
+        // Log activity
+        const username = sessionStorage.getItem("username") || "System";
+        const role = sessionStorage.getItem("userRole") || "management";
+        logActivityAsync({
+          serviceId: `FMP-${selectedPart.partId}`,
+          username,
+          role,
+          activity: `Part ordered - ${selectedPart.partName} for Service ${selectedPart.serviceId}, Supplier: ${orderForm.supplier}, Cost: ${orderForm.cost}`,
+        });
+
         toast({
           title: "Success",
           description: "Order placed successfully",
@@ -237,6 +248,16 @@ export const FastMovingPartsTab = ({
         // Notify assigned admin and technician that the part is received
         await notifyPartReceived(part.serviceId, part.partName);
 
+        // Log activity
+        const username = sessionStorage.getItem("username") || "System";
+        const role = sessionStorage.getItem("userRole") || "management";
+        logActivityAsync({
+          serviceId: `FMP-${part.partId}`,
+          username,
+          role,
+          activity: `Part received - ${part.partName} for Service ${part.serviceId}, Qty: ${part.quantity}, Cost: ${part.cost}`,
+        });
+
         toast({
           title: "Success",
           description: "Part received and added to service",
@@ -284,6 +305,16 @@ export const FastMovingPartsTab = ({
       const result = await response.json();
 
       if (result.result === "success") {
+        // Log activity
+        const username = sessionStorage.getItem("username") || "System";
+        const role = sessionStorage.getItem("userRole") || "management";
+        logActivityAsync({
+          serviceId: `FMP-${editForm.partId}`,
+          username,
+          role,
+          activity: `Part updated - ${editForm.partName}, Device: ${editForm.deviceType}, Qty: ${editForm.quantity}`,
+        });
+
         toast({
           title: "Success",
           description: "Part updated successfully",
@@ -337,6 +368,16 @@ export const FastMovingPartsTab = ({
           userFullName,
           cancelRemark
         );
+
+        // Log activity
+        const username = sessionStorage.getItem("username") || "System";
+        const role = sessionStorage.getItem("userRole") || "management";
+        logActivityAsync({
+          serviceId: `FMP-${selectedPart.partId}`,
+          username,
+          role,
+          activity: `Part cancelled - ${selectedPart.partName} for Service ${selectedPart.serviceId}, Reason: ${cancelRemark}`,
+        });
 
         toast({
           title: "Cancelled",
@@ -417,6 +458,16 @@ export const FastMovingPartsTab = ({
       const result = await response.json();
 
       if (result.result === "success") {
+        // Log activity
+        const username = sessionStorage.getItem("username") || "System";
+        const role = sessionStorage.getItem("userRole") || "management";
+        logActivityAsync({
+          serviceId: `FMP-NEW`,
+          username,
+          role,
+          activity: `Part request duplicated - ${duplicateForm.partName} for Service ${duplicateForm.serviceId}, Qty: ${duplicateForm.quantity}`,
+        });
+
         toast({
           title: "Duplicated",
           description: "New part request created",

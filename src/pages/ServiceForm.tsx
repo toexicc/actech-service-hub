@@ -25,6 +25,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { useStaff } from "@/hooks/useStaff";
+import { logActivity } from "@/lib/activityLogger";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -462,6 +463,16 @@ const ServiceForm = () => {
             adminName
           );
         }
+
+        // Log activity for new service creation
+        const username = sessionStorage.getItem("username") || data.adminRep;
+        const role = sessionStorage.getItem("userRole") || "admin";
+        await logActivity({
+          serviceId: finalServiceId,
+          username,
+          role,
+          activity: `New service created - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician}, Priority: ${data.priority}`,
+        });
 
         toast({
           title: "Success",
