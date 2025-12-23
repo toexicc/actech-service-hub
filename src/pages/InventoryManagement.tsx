@@ -25,6 +25,7 @@ import { useInventory, useInventoryLogs, useInvalidateInventory } from "@/hooks/
 import QRCode from "qrcode";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
+import { logInventoryActivity } from "@/lib/activityLogger";
 
 interface InventoryItem {
   partId: string;
@@ -207,6 +208,9 @@ const InventoryManagement = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        const partId = result.partId || "NEW";
+        logInventoryActivity(partId, `Added new part: ${newPart.partName} (${newPart.deviceType}) - Qty: ${isOnOrder ? newPart.orderedQuantity : newPart.quantity}`);
+        
         toast({
           title: "Success",
           description: isOnOrder 
@@ -404,6 +408,8 @@ const InventoryManagement = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        logInventoryActivity(selectedPart?.partId || "UNKNOWN", `Deleted part: ${selectedPart?.partName}`);
+        
         toast({
           title: "Success",
           description: "Part deleted successfully",
@@ -449,6 +455,8 @@ const InventoryManagement = () => {
       const result = await response.json();
 
       if (result.result === "success") {
+        logInventoryActivity(item.partId, `Order received for: ${item.partName}`);
+        
         toast({
           title: "Success",
           description: `Order received! Status updated to: ${result.newStatus}`,

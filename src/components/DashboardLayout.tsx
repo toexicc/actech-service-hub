@@ -13,6 +13,7 @@ import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { MessagingPanel, MessagingPanelRef } from "@/components/MessagingPanel";
+import { logAuthActivity } from "@/lib/activityLogger";
 interface NavItem { title: string; icon: React.ElementType; path: string; roles?: string[]; }
 interface NavSection { title: string; icon: React.ElementType; items: NavItem[]; roles?: string[]; }
 
@@ -69,7 +70,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   }, [location.pathname]);
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
-  const handleLogout = () => { sessionStorage.clear(); navigate("/"); };
+  const handleLogout = () => { 
+    const username = sessionStorage.getItem("username") || "Unknown";
+    const role = sessionStorage.getItem("userRole") || "unknown";
+    logAuthActivity(username, "User logged out", role);
+    sessionStorage.clear(); 
+    navigate("/"); 
+  };
   const canViewSection = (s: NavSection) => !s.roles || s.roles.includes(userRole || "");
   const canViewItem = (i: NavItem) => !i.roles || i.roles.includes(userRole || "");
 
