@@ -95,6 +95,10 @@ const ServiceForm = () => {
       department: staff.department || ""
     }));
 
+  // Get logged-in user's full name for admin auto-select
+  const loggedInUserFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "";
+  const loggedInUserRole = sessionStorage.getItem("userRole") || "";
+
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
@@ -139,6 +143,19 @@ const ServiceForm = () => {
       annotationNotes: "",
     },
   });
+
+  // Auto-select logged in admin on form load
+  useEffect(() => {
+    if (loggedInUserRole === "admin" && loggedInUserFullName && adminList.length > 0) {
+      // Check if the logged in user is in the admin list
+      const matchingAdmin = adminList.find(admin => 
+        admin.toLowerCase() === loggedInUserFullName.toLowerCase()
+      );
+      if (matchingAdmin && !form.getValues("adminRep")) {
+        form.setValue("adminRep", matchingAdmin);
+      }
+    }
+  }, [loggedInUserRole, loggedInUserFullName, adminList, form]);
 
   const generateServiceId = () => {
     const now = new Date();
@@ -970,7 +987,15 @@ const ServiceForm = () => {
                   render={({ field }) => (
                     <FormItem className="flex items-center space-x-2 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (checked) {
+                              form.setValue("enablePhotoAnnotation", true);
+                            }
+                          }} 
+                        />
                       </FormControl>
                       <FormLabel className="!mt-0">Physical Damage</FormLabel>
                     </FormItem>
