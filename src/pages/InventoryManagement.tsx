@@ -303,8 +303,10 @@ const InventoryManagement = () => {
       let successCount = 0;
       let failCount = 0;
 
-      for (const part of validParts) {
-        const partId = `PART${Date.now()}${Math.random().toString(36).substr(2, 4)}`;
+      for (let i = 0; i < validParts.length; i++) {
+        const part = validParts[i];
+        // Ensure unique ID: timestamp + index + longer random string
+        const partId = `PART${Date.now()}${i}${Math.random().toString(36).substr(2, 8)}`;
         
         // Generate QR code
         const qrCodeDataUrl = await QRCode.toDataURL(partId, {
