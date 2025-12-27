@@ -144,6 +144,20 @@ const InventoryManagement = () => {
     remarks: ""
   });
 
+  // Batch add parts state
+  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
+  const [batchDeviceType, setBatchDeviceType] = useState("");
+  const [batchBrand, setBatchBrand] = useState("");
+  const [batchModel, setBatchModel] = useState("");
+  const [batchParts, setBatchParts] = useState<Array<{
+    partName: string;
+    quantity: string;
+    costPerUnit: string;
+    status: string;
+    supplier: string;
+    dateOrdered: string;
+  }>>([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "" }]);
+
   // Form states for stock adjustment
   const [stockAdjustment, setStockAdjustment] = useState({
     quantity: "",
@@ -258,6 +272,129 @@ const InventoryManagement = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle batch add parts
+  const handleBatchAddParts = async () => {
+    // Validate required fields
+    if (!batchDeviceType) {
+      toast({
+        title: "Validation Error",
+        description: "Device Type is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validParts = batchParts.filter(p => p.partName && p.quantity && p.costPerUnit);
+    if (validParts.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "At least one part with Part Name, Quantity, and Cost per Unit is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const part of validParts) {
+        const partId = `PART${Date.now()}${Math.random().toString(36).substr(2, 4)}`;
+        
+        // Generate QR code
+        const qrCodeDataUrl = await QRCode.toDataURL(partId, {
+          width: 300,
+          margin: 1,
+        });
+
+        const formData = new FormData();
+        formData.append("action", "addInventoryItem");
+        formData.append("partId", partId);
+        formData.append("partName", part.partName);
+        formData.append("deviceType", batchDeviceType);
+        formData.append("brand", batchBrand);
+        formData.append("model", batchModel);
+        formData.append("partType", "");
+        
+        const isOnOrder = part.status === "On Order";
+        const actualQuantity = isOnOrder ? "0" : part.quantity;
+        formData.append("quantity", actualQuantity);
+        formData.append("dateOrdered", part.dateOrdered || "");
+        formData.append("supplier", part.supplier || "");
+        formData.append("costPerUnit", part.costPerUnit);
+        formData.append("status", part.status);
+        formData.append("remarks", isOnOrder ? `Ordered: ${part.quantity} units` : "");
+        formData.append("qrCode", qrCodeDataUrl);
+        formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
+
+        try {
+          const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+          if (result.result === "success") {
+            successCount++;
+            logInventoryActivity(partId, `Batch added: ${part.partName} (${batchDeviceType}) - Qty: ${part.quantity}`);
+          } else {
+            failCount++;
+          }
+        } catch {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Success",
+          description: `Added ${successCount} part(s)${failCount > 0 ? `, ${failCount} failed` : ""}`,
+        });
+        setIsBatchDialogOpen(false);
+        setBatchDeviceType("");
+        setBatchBrand("");
+        setBatchModel("");
+        setBatchParts([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "" }]);
+        fetchInventory();
+        fetchInventoryLogs();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add parts",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error batch adding parts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add parts",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const addBatchPartRow = () => {
+    setBatchParts([...batchParts, { partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "" }]);
+  };
+
+  const removeBatchPartRow = (index: number) => {
+    if (batchParts.length > 1) {
+      setBatchParts(batchParts.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateBatchPart = (index: number, field: string, value: string) => {
+    const updated = [...batchParts];
+    updated[index] = { ...updated[index], [field]: value };
+    setBatchParts(updated);
   };
 
   const handleStockAdjustment = async () => {
@@ -659,16 +796,150 @@ const InventoryManagement = () => {
           <p className="text-muted-foreground">Track parts and materials</p>
         </div>
 
-        <div className="flex justify-end mb-6">
+        <div className="flex justify-end gap-2 mb-6">
 
           {!isViewOnly && (
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add New Part
-                </Button>
-              </DialogTrigger>
+            <>
+              {/* Batch Add Parts Button */}
+              <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Batch Add Parts
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Batch Add Parts</DialogTitle>
+                    <DialogDescription>Add multiple parts for the same device model</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    {/* Shared device info */}
+                    <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                      <div className="space-y-2">
+                        <Label>Device Type *</Label>
+                        <Select value={batchDeviceType} onValueChange={setBatchDeviceType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select device type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DEVICE_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Brand</Label>
+                        <Input
+                          value={batchBrand}
+                          onChange={(e) => setBatchBrand(e.target.value)}
+                          placeholder="e.g., Apple"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Model</Label>
+                        <Input
+                          value={batchModel}
+                          onChange={(e) => setBatchModel(e.target.value)}
+                          placeholder="e.g., iPhone 15 Pro"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Parts list */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-semibold">Parts</Label>
+                        <Button type="button" variant="outline" size="sm" onClick={addBatchPartRow}>
+                          <Plus className="h-4 w-4 mr-1" /> Add Row
+                        </Button>
+                      </div>
+                      
+                      {batchParts.map((part, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-lg">
+                          <div className="col-span-3 space-y-1">
+                            <Label className="text-xs">Part Name *</Label>
+                            <Input
+                              value={part.partName}
+                              onChange={(e) => updateBatchPart(index, "partName", e.target.value)}
+                              placeholder="e.g., LCD Screen"
+                            />
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <Label className="text-xs">Quantity *</Label>
+                            <Input
+                              type="number"
+                              value={part.quantity}
+                              onChange={(e) => updateBatchPart(index, "quantity", e.target.value)}
+                              placeholder="0"
+                            />
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <Label className="text-xs">Cost per Unit *</Label>
+                            <Input
+                              value={part.costPerUnit}
+                              onChange={(e) => updateBatchPart(index, "costPerUnit", e.target.value)}
+                              placeholder="₱0.00"
+                            />
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <Label className="text-xs">Status *</Label>
+                            <Select value={part.status} onValueChange={(v) => updateBatchPart(index, "status", v)}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="In Stock">In Stock</SelectItem>
+                                <SelectItem value="Low Stock">Low Stock</SelectItem>
+                                <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                                <SelectItem value="On Order">On Order</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="col-span-2 space-y-1">
+                            <Label className="text-xs">Supplier</Label>
+                            <Input
+                              value={part.supplier}
+                              onChange={(e) => updateBatchPart(index, "supplier", e.target.value)}
+                              placeholder="Optional"
+                            />
+                          </div>
+                          <div className="col-span-1 flex items-center justify-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeBatchPartRow(index)}
+                              disabled={batchParts.length === 1}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsBatchDialogOpen(false)} disabled={isSubmitting}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleBatchAddParts} disabled={isSubmitting}>
+                      {isSubmitting ? "Adding..." : `Add ${batchParts.filter(p => p.partName && p.quantity && p.costPerUnit).length} Part(s)`}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Single Add Part Button */}
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Part
+                  </Button>
+                </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Part</DialogTitle>
@@ -861,6 +1132,7 @@ const InventoryManagement = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+            </>
           )}
         </div>
 
