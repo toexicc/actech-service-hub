@@ -335,8 +335,12 @@ const InventoryManagement = () => {
         formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
 
         try {
-          // Small delay to avoid Apps Script rate limiting when batch posting
-          await new Promise((r) => setTimeout(r, 200));
+          // Longer delay (1 second) between requests to avoid Apps Script rate limiting
+          if (i > 0) {
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+
+          console.log("[BatchAdd] Sending request for:", part.partName, partId);
 
           const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
             method: "POST",
@@ -351,12 +355,12 @@ const InventoryManagement = () => {
             // Keep rawText for debugging
           }
 
-          console.log("[BatchAdd]", {
+          console.log("[BatchAdd] Response:", {
             partId,
             partName: part.partName,
             status: response.status,
             ok: response.ok,
-            rawText,
+            rawText: rawText.substring(0, 200),
           });
 
           const isSuccess =
@@ -367,10 +371,11 @@ const InventoryManagement = () => {
             successCount++;
             logInventoryActivity(partId, `Batch added: ${part.partName} (${batchDeviceType}) - Qty: ${part.quantity}`);
           } else {
+            console.warn("[BatchAdd] Part failed:", part.partName, rawText);
             failCount++;
           }
         } catch (err) {
-          console.error("[BatchAdd] request failed", { partId, err });
+          console.error("[BatchAdd] Request error:", partId, part.partName, err);
           failCount++;
         }
       }
