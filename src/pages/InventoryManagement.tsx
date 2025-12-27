@@ -335,19 +335,42 @@ const InventoryManagement = () => {
         formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
 
         try {
+          // Small delay to avoid Apps Script rate limiting when batch posting
+          await new Promise((r) => setTimeout(r, 200));
+
           const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
             method: "POST",
             body: formData,
           });
 
-          const result = await response.json();
-          if (result.result === "success") {
+          const rawText = await response.text();
+          let result: any = null;
+          try {
+            result = JSON.parse(rawText);
+          } catch {
+            // Keep rawText for debugging
+          }
+
+          console.log("[BatchAdd]", {
+            partId,
+            partName: part.partName,
+            status: response.status,
+            ok: response.ok,
+            rawText,
+          });
+
+          const isSuccess =
+            (result && (result.result === "success" || result.status === "success")) ||
+            rawText.toLowerCase().includes("success");
+
+          if (response.ok && isSuccess) {
             successCount++;
             logInventoryActivity(partId, `Batch added: ${part.partName} (${batchDeviceType}) - Qty: ${part.quantity}`);
           } else {
             failCount++;
           }
-        } catch {
+        } catch (err) {
+          console.error("[BatchAdd] request failed", { partId, err });
           failCount++;
         }
       }
@@ -367,7 +390,7 @@ const InventoryManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to add parts",
+          description: "Failed to add parts (check console for BatchAdd details)",
           variant: "destructive",
         });
       }
