@@ -3065,12 +3065,19 @@ function onServiceStatusEdit(e) {
     // Check Column BC (55) for the "APP" flag
     var flagCell = sheet.getRange(row, 55); // Column BC
     var flagValue = flagCell.getValue();
-    
+
     if (flagValue === "APP") {
-      // Web app made this change - clear flag and skip notification
+      // Clear the flag no matter what so it can't block future manual edits
       flagCell.setValue("");
-      Logger.log("Status change from web app - skipping notification for row " + row);
-      return;
+
+      // If this edit likely came from the web app/script (often no oldValue), skip notification
+      if (typeof e.oldValue === 'undefined') {
+        Logger.log("Status change from web app/script - skipping notification for row " + row);
+        return;
+      }
+
+      // Otherwise, treat it as a manual edit (stale APP flag) and continue to notify
+      Logger.log("Stale APP flag cleared - continuing manual notification for row " + row);
     }
     
     // This is a manual edit - send notifications
