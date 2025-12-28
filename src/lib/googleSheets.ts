@@ -3169,9 +3169,9 @@ function sendManualStatusNotifications(serviceId, oldStatus, newStatus, clientNa
           n.title,
           n.message,
           n.type,
-          n.serviceId,
           n.isRead,
-          n.createdAt
+          n.createdAt,
+          n.serviceId
         ]);
       }
       Logger.log("Created " + notifications.length + " notifications for manual status change");
