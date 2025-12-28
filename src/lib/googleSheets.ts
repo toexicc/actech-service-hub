@@ -147,11 +147,14 @@ function doGet(e) {
       var technician = params.technician || '';
       var finalCost = params.finalCost || '0';
 
+      var serviceCost = params.serviceCost || params.finalCost || '0';
+
       var prompt = 'You are formatting a service report for AC Tech Repair PH.\n\n' +
         'Format the following information into a customer-friendly service report:\n\n' +
         'Customer: ' + customerName + '\n' +
         'Device: ' + deviceType + ' (' + model + ')\n' +
         'Service ID: ' + serviceId + '\n' +
+        'Service Cost: Php ' + serviceCost + '\n' +
         'Raw Service Report: ' + technicianReport + '\n\n' +
         'EXACT FORMAT TO FOLLOW:\n' +
         'Customer Name: [name]\n' +
@@ -163,6 +166,7 @@ function doGet(e) {
         'Technical Findings:\n[Detailed technical observations and results]\n\n' +
         'Final Status:\n[Current condition of the device]\n\n' +
         'Recommendations:\n[Professional advice for device maintenance and care]\n\n' +
+        'Service Cost: Php ' + serviceCost + '\n\n' +
         '---\n\n' +
         'To finalize the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions\n\n' +
         'WRITING STYLE REQUIREMENTS:\n' +
@@ -1105,7 +1109,11 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
         // Update the specified columns
-        if (params.status) sheet.getRange(i + 1, 2).setValue(params.status);
+        if (params.status) {
+          sheet.getRange(i + 1, 2).setValue(params.status);
+          // Set Column BC (55) to "APP" flag to prevent duplicate notification from onEdit trigger
+          sheet.getRange(i + 1, 55).setValue("APP");
+        }
         if (params.technician) sheet.getRange(i + 1, 4).setValue(params.technician);
         // Update Technician Department (Column AN)
         if (params.technicianDepartment || params.department || params["Technician Department"]) {
@@ -3004,6 +3012,296 @@ function fixNotificationTimestamps() {
   
   Logger.log("Fixed " + fixedCount + " notification timestamps");
   SpreadsheetApp.getUi().alert("Fixed " + fixedCount + " notification timestamps.");
+}
+
+// =============================================================================
+// AUTOMATIC TRIGGER SETUP - Run this ONCE to install the onEdit trigger
+// Go to Apps Script Editor → Select "installOnEditTrigger" → Click Run
+// =============================================================================
+function installOnEditTrigger() {
+  // Remove existing triggers to avoid duplicates
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'onServiceStatusEdit') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // Create new trigger
+  ScriptApp.newTrigger('onServiceStatusEdit')
+    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
+    .onEdit()
+    .create();
+  
+  Logger.log('onEdit trigger installed successfully!');
+  SpreadsheetApp.getUi().alert('onEdit trigger for manual status notifications installed successfully!');
+}
+
+// =============================================================================
+// MAIN EDIT HANDLER - Detects manual status changes in Google Sheet
+// Sends notifications only for manual edits (not web app updates)
+// =============================================================================
+function onServiceStatusEdit(e) {
+  try {
+    var sheet = e.source.getActiveSheet();
+    var sheetName = sheet.getName();
+    
+    // Only monitor Service Database sheet
+    if (sheetName !== "Service Database") return;
+    
+    var range = e.range;
+    var col = range.getColumn();
+    var row = range.getRow();
+    
+    // Only trigger for Column B (Status) changes, skip header row
+    if (col !== 2 || row <= 1) return;
+    
+    var oldValue = e.oldValue || "";
+    var newValue = e.value || "";
+    
+    // Skip if no actual change
+    if (oldValue === newValue) return;
+    
+    // Check Column BC (55) for the "APP" flag
+    var flagCell = sheet.getRange(row, 55); // Column BC
+    var flagValue = flagCell.getValue();
+    
+    if (flagValue === "APP") {
+      // Web app made this change - clear flag and skip notification
+      flagCell.setValue("");
+      Logger.log("Status change from web app - skipping notification for row " + row);
+      return;
+    }
+    
+    // This is a manual edit - send notifications
+    Logger.log("Manual status change detected at row " + row + ": " + oldValue + " → " + newValue);
+    
+    // Get service data for notification
+    var rowData = sheet.getRange(row, 1, 1, 54).getValues()[0];
+    var serviceId = rowData[0];     // Column A
+    var adminRep = rowData[2];      // Column C
+    var technician = rowData[3];    // Column D
+    var clientName = rowData[8];    // Column I
+    var deviceType = rowData[12];   // Column M
+    var device = rowData[16];       // Column Q (Model)
+    
+    // Send notifications
+    sendManualStatusNotifications(serviceId, oldValue, newValue, clientName, deviceType, device, adminRep, technician);
+    
+  } catch (error) {
+    Logger.log("Error in onServiceStatusEdit: " + error.toString());
+  }
+}
+
+// =============================================================================
+// NOTIFICATION SENDER - Sends notifications for manual sheet status changes
+// =============================================================================
+function sendManualStatusNotifications(serviceId, oldStatus, newStatus, clientName, deviceType, device, adminRep, technician) {
+  var messages = getStatusMessages(serviceId, newStatus, clientName, device || deviceType);
+  
+  if (!messages.adminMessage && !messages.technicianMessage) {
+    Logger.log("No notification messages for status: " + newStatus);
+    return;
+  }
+  
+  // Get staff list
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+  if (!staffSheet) {
+    Logger.log("Staff Management sheet not found");
+    return;
+  }
+  
+  var staffData = staffSheet.getDataRange().getValues();
+  // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+  
+  var notifications = [];
+  var timestamp = new Date().toISOString();
+  
+  // Notify assigned admin
+  if (messages.adminMessage && adminRep) {
+    var adminStaff = findStaffByNameForNotif(staffData, adminRep);
+    if (adminStaff) {
+      notifications.push({
+        notificationId: "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5),
+        recipientId: adminStaff.staffId,
+        title: "Service " + serviceId + ": " + newStatus,
+        message: messages.adminMessage,
+        type: "service_update",
+        serviceId: serviceId,
+        isRead: false,
+        createdAt: timestamp
+      });
+    }
+  }
+  
+  // Notify assigned technicians
+  if (messages.technicianMessage && technician) {
+    var techNames = technician.split(',');
+    for (var i = 0; i < techNames.length; i++) {
+      var techName = techNames[i].trim();
+      if (techName) {
+        var techStaff = findStaffByNameForNotif(staffData, techName);
+        if (techStaff) {
+          notifications.push({
+            notificationId: "NOTIF" + Date.now() + Math.random().toString(36).substr(2, 5) + i,
+            recipientId: techStaff.staffId,
+            title: "Service " + serviceId + ": " + newStatus,
+            message: messages.technicianMessage,
+            type: "service_update",
+            serviceId: serviceId,
+            isRead: false,
+            createdAt: timestamp
+          });
+        }
+      }
+    }
+  }
+  
+  // Write notifications to sheet
+  if (notifications.length > 0) {
+    var notifSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Notifications");
+    if (notifSheet) {
+      for (var j = 0; j < notifications.length; j++) {
+        var n = notifications[j];
+        notifSheet.appendRow([
+          n.notificationId,
+          n.recipientId,
+          n.title,
+          n.message,
+          n.type,
+          n.serviceId,
+          n.isRead,
+          n.createdAt
+        ]);
+      }
+      Logger.log("Created " + notifications.length + " notifications for manual status change");
+    }
+  }
+}
+
+// =============================================================================
+// HELPER: Find staff by name (handles "Name - Department" format)
+// =============================================================================
+function findStaffByNameForNotif(staffData, name) {
+  var needle = name.split(' - ')[0].trim().toLowerCase();
+  for (var i = 1; i < staffData.length; i++) {
+    var staffName = (staffData[i][3] || "").split(' - ')[0].trim().toLowerCase();
+    if (staffName === needle) {
+      return {
+        staffId: staffData[i][0],
+        name: staffData[i][3],
+        role: staffData[i][4]
+      };
+    }
+  }
+  return null;
+}
+
+// =============================================================================
+// HELPER: Get notification messages by status
+// =============================================================================
+function getStatusMessages(serviceId, newStatus, clientName, device) {
+  var deviceInfo = device || 'device';
+  
+  switch (newStatus) {
+    case 'Pending Diagnosis':
+      return {
+        adminMessage: '',
+        technicianMessage: 'You have a device that has pending diagnosis (' + serviceId + ' - ' + clientName + "'s " + deviceInfo + '). When done, update status to Confirmed Diagnosis.'
+      };
+    
+    case 'Confirmed Diagnosis':
+      return {
+        adminMessage: 'Technician already has a diagnosis for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please review and generate a service quotation form and update status to Waiting to Proceed.',
+        technicianMessage: ''
+      };
+    
+    case 'Waiting to Proceed':
+      return {
+        adminMessage: 'Diagnosis sent to client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for approval.',
+        technicianMessage: ''
+      };
+    
+    case 'Proceed Repair':
+      return {
+        adminMessage: 'Client approved diagnosis for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Service will proceed to repair.',
+        technicianMessage: 'Client approved diagnosis for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Service will proceed to repair. Update status to Ongoing Service once you start working on the device.'
+      };
+    
+    case 'Ongoing Service':
+      return {
+        adminMessage: 'Technician is starting the repair for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ').',
+        technicianMessage: ''
+      };
+    
+    case 'Done Repair - Under Observation':
+    case 'Done Repair - Observation':
+      return {
+        adminMessage: '',
+        technicianMessage: 'After the repair of ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '), make sure to draft a report, upload checklist and photos, and update status to Done Repair - Under Observation.'
+      };
+    
+    case 'Done Repair - For Release':
+      return {
+        adminMessage: 'Technician is done with the repair for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Kindly review the report and update status to Done Repair - Advise Client.',
+        technicianMessage: ''
+      };
+    
+    case 'Done Repair - Advise Client':
+    case 'Done Repair - Advice Client':
+      return {
+        adminMessage: 'Report sent to client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for feedback and update status to For Payment once okay.',
+        technicianMessage: ''
+      };
+    
+    case 'For Payment':
+      return {
+        adminMessage: 'Please process payment with client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ') and update status to For Pickup once okay.',
+        technicianMessage: ''
+      };
+    
+    case 'For Pickup':
+      return {
+        adminMessage: 'Please process pickup details with client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ') and update status to Completed once okay.',
+        technicianMessage: ''
+      };
+    
+    case 'Completed':
+      return {
+        adminMessage: 'Hooray! Service ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ') is completed!',
+        technicianMessage: 'Hooray! Service ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ') is completed!'
+      };
+    
+    case 'Backjob':
+      return {
+        adminMessage: 'Service ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ') is tagged as backjob. Please communicate as soon as possible.',
+        technicianMessage: 'Service ' + serviceId + ' (' + clientName + "'s " + deviceInfo + ') is tagged as backjob. Please communicate as soon as possible.'
+      };
+    
+    case 'RTO':
+      return {
+        adminMessage: "Client didn't want to proceed with service " + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please process the return of the unit to the client.',
+        technicianMessage: "Client didn't want to proceed with service " + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please process the return of the unit to the client.'
+      };
+    
+    case 'On Hold':
+      return {
+        adminMessage: 'Client is not sure yet with service ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for feedback.',
+        technicianMessage: 'Client is not sure yet with service ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for feedback.'
+      };
+    
+    case 'Cancelled':
+      return {
+        adminMessage: "Client didn't push through with service " + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Update status to RTO to process return if unit is on hand.',
+        technicianMessage: "Client didn't push through with service " + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Update status to RTO to process return if unit is on hand.'
+      };
+    
+    default:
+      return {
+        adminMessage: 'Service ' + serviceId + ' status changed to "' + newStatus + '".',
+        technicianMessage: 'Service ' + serviceId + ' status changed to "' + newStatus + '".'
+      };
+  }
 }
 
 */
