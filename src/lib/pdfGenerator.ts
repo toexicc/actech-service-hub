@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
+import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
 
 interface PDFData {
   serviceId: string;
@@ -40,22 +41,8 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     unit: "mm",
   });
 
-  // Add logo - use public path for production compatibility
-  const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
-  const logoImg = await fetch(`${basePath}/ac-tech-logo-pdf.png`)
-    .then((res) => {
-      if (!res.ok) throw new Error("Failed to load logo");
-      return res.blob();
-    })
-    .then(
-      (blob) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read logo"));
-          reader.readAsDataURL(blob);
-        }),
-    );
+  // Use cached logo for faster generation
+  const logoImg = await getLogoDataUrl();
 
   // Center logo at top with proper aspect ratio (square logo)
   doc.addImage(logoImg, "PNG", 80, 10, 50, 50);
@@ -315,18 +302,17 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   // Convert jsPDF to blob first
   const intakeBlob = doc.output("blob");
 
-  // Merge with Terms and Conditions PDF
+  // Merge with Terms and Conditions PDF using cached terms
   try {
-    // Load the intake PDF
-    const intakePdfBytes = await intakeBlob.arrayBuffer();
+    // Load the intake PDF and get cached terms in parallel
+    const [intakePdfBytes, termsPdfBytes] = await Promise.all([
+      intakeBlob.arrayBuffer(),
+      getTermsPdfBytes(),
+    ]);
+    
     const intakePdfDoc = await PDFDocument.load(intakePdfBytes);
 
-    // Load the Terms and Conditions PDF from public folder
-    const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
-    const termsResponse = await fetch(`${basePath}/AC_Tech_Terms_and_Condition.pdf`);
-    
-    if (termsResponse.ok) {
-      const termsPdfBytes = await termsResponse.arrayBuffer();
+    if (termsPdfBytes) {
       const termsPdfDoc = await PDFDocument.load(termsPdfBytes);
       
       // Copy all pages from Terms PDF to the intake PDF

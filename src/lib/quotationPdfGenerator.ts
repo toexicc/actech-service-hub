@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
+import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
 
 interface QuotationPDFData {
   serviceId: string;
@@ -110,22 +111,8 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     unit: "mm",
   });
 
-  // Add logo - use public path for production compatibility
-  const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
-  const logoImg = await fetch(`${basePath}/ac-tech-logo-pdf.png`)
-    .then((res) => {
-      if (!res.ok) throw new Error("Failed to load logo");
-      return res.blob();
-    })
-    .then(
-      (blob) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read logo"));
-          reader.readAsDataURL(blob);
-        }),
-    );
+  // Use cached logo for faster generation
+  const logoImg = await getLogoDataUrl();
 
   // Center logo at top with proper aspect ratio (matching client intake form)
   doc.addImage(logoImg, "PNG", 80, 10, 50, 50);
@@ -401,18 +388,17 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   // Convert jsPDF to blob first
   const quotationBlob = doc.output("blob");
 
-  // Merge with Terms and Conditions PDF
+  // Merge with Terms and Conditions PDF using cached terms
   try {
-    // Load the quotation PDF
-    const quotationPdfBytes = await quotationBlob.arrayBuffer();
+    // Load the quotation PDF and get cached terms in parallel
+    const [quotationPdfBytes, termsPdfBytes] = await Promise.all([
+      quotationBlob.arrayBuffer(),
+      getTermsPdfBytes(),
+    ]);
+    
     const quotationPdfDoc = await PDFDocument.load(quotationPdfBytes);
 
-    // Load the Terms and Conditions PDF from public folder
-    const basePath = import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
-    const termsResponse = await fetch(`${basePath}/AC_Tech_Terms_and_Condition.pdf`);
-    
-    if (termsResponse.ok) {
-      const termsPdfBytes = await termsResponse.arrayBuffer();
+    if (termsPdfBytes) {
       const termsPdfDoc = await PDFDocument.load(termsPdfBytes);
       
       // Copy all pages from Terms PDF to the quotation PDF
