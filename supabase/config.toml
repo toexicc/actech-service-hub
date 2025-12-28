@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.format-report]
 verify_jwt = false
+
+[functions.sheet-status-webhook]
+verify_jwt = false

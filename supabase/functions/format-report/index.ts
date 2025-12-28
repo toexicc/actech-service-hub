@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { technicianReport, customerName, deviceType, model, serviceId, technician, finalCost } = await req.json();
+    const { technicianReport, customerName, deviceType, model, serviceId, technician, finalCost, serviceCost } = await req.json();
 
     if (!technicianReport) {
       return new Response(
@@ -26,6 +26,9 @@ serve(async (req) => {
         }
       );
     }
+
+    // Use finalCost if available, otherwise use serviceCost
+    const costToDisplay = finalCost || serviceCost || '0';
 
     console.log('Formatting service report with OpenAI...');
 
@@ -57,7 +60,7 @@ Service Performed:
 Recommendation:
 [1 sentence - professional advice for the customer]
 
-Service Cost: Php {Enter Amount}
+Service Cost: Php [cost from data]
 
 ---
 
@@ -68,7 +71,8 @@ IMPORTANT RULES:
 - Maximum 1-2 sentences per section
 - Use technical terms but keep it understandable
 - NO emojis or special symbols
-- Focus on clarity and professionalism` 
+- Focus on clarity and professionalism
+- Use the exact Service Cost provided in the data` 
           },
           { 
             role: 'user', 
@@ -76,6 +80,7 @@ IMPORTANT RULES:
 Device Type: ${deviceType}
 Model: ${model}
 Service ID: ${serviceId}
+Service Cost: Php ${costToDisplay}
 
 Raw technician report:
 ${technicianReport}` 
