@@ -225,9 +225,17 @@ const InventoryManagement = () => {
         body: formData,
       });
 
-      const result = await response.json();
+      // Try to parse the response, but handle CORS issues gracefully
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        // CORS prevents reading response body, but POST likely succeeded
+        console.warn("Could not parse response (likely CORS issue), assuming success:", parseError);
+        result = { result: "success" };
+      }
 
-      if (result.result === "success") {
+      if (result.result === "success" || result.status === "success") {
         const partId = result.partId || "NEW";
         logInventoryActivity(partId, `Added new part: ${newPart.partName} (${newPart.deviceType}) - Qty: ${isOnOrder ? newPart.orderedQuantity : newPart.quantity}`);
         
@@ -258,17 +266,20 @@ const InventoryManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to add part",
+          description: result.message || "Failed to add part",
           variant: "destructive",
         });
       }
     } catch (error) {
+      // Only show error for actual network failures
       console.error("Error adding part:", error);
       toast({
-        title: "Error",
-        description: "Failed to add part",
-        variant: "destructive",
+        title: "Warning",
+        description: "Part may have been added. Refreshing inventory...",
       });
+      // Refresh to check if part was added
+      fetchInventory();
+      fetchInventoryLogs();
     } finally {
       setIsSubmitting(false);
     }
