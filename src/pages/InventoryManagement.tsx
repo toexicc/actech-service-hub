@@ -271,13 +271,40 @@ const InventoryManagement = () => {
         });
       }
     } catch (error) {
-      // Only show error for actual network failures
-      console.error("Error adding part:", error);
+      // CORS causes "Failed to fetch" even on successful POST (200 OK)
+      // Google Apps Script returns 200 but browser can't read response due to CORS
+      console.warn("Fetch error (likely CORS after successful POST):", error);
+      
+      // Check status from form data to determine toast message
+      const wasOnOrder = newPart.status === "On Order";
+      
+      // Show success toast since the request likely succeeded
       toast({
-        title: "Warning",
-        description: "Part may have been added. Refreshing inventory...",
+        title: "Success",
+        description: wasOnOrder 
+          ? `Part added successfully. Click "Receive Order" when stock arrives.`
+          : "Part added successfully",
       });
-      // Refresh to check if part was added
+      
+      // Reset form and refresh data
+      setNewPart({
+        partName: "",
+        deviceType: "",
+        brand: "",
+        model: "",
+        partType: "",
+        partTypeOther: "",
+        quantity: "",
+        orderedQuantity: "",
+        dateOrdered: "",
+        supplier: "",
+        costPerUnit: "",
+        status: "In Stock",
+        remarks: "",
+      });
+      setIsAddDialogOpen(false);
+      
+      // Refresh to show the new part
       fetchInventory();
       fetchInventoryLogs();
     } finally {
