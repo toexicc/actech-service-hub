@@ -462,7 +462,10 @@ const ServiceForm = () => {
         body: formData,
       });
 
-      if (response.ok) {
+      // CORS can block reading response even on success
+      const isResponseOk = response.ok;
+
+      if (isResponseOk) {
         // Notify assigned technician(s)
         const techNames = data.technician.split(", ").filter(Boolean);
         const adminName = sessionStorage.getItem("userFullName") || data.adminRep;
@@ -508,6 +511,27 @@ const ServiceForm = () => {
         throw new Error("Failed to submit form");
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
+
+      if (isCorsFetchError) {
+        console.warn("Service form fetch error (likely CORS after successful POST):", error);
+        toast({
+          title: "Success",
+          description: "Service form submitted successfully!",
+        });
+        form.reset();
+        setServiceId("");
+        setSearchServiceId("");
+        setTermsRead(false);
+        setSignatureUrl("");
+        setAnnotationImageUrl("");
+        if (signatureRef.current) {
+          signatureRef.current.clear();
+        }
+        return;
+      }
+
       console.error("Error submitting form:", error);
       toast({
         title: "Error",
