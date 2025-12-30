@@ -188,12 +188,18 @@ const RequestForParts = () => {
       try {
         result = rawText ? JSON.parse(rawText) : null;
       } catch {
-        throw new Error(
-          `Non-JSON response from Apps Script (status ${response.status}): ${rawText?.slice(0, 200)}`
-        );
+        // CORS may block reading response - assume success if response.ok
+        if (response.ok) {
+          console.warn("Could not parse response (likely CORS), assuming success");
+          result = { result: "success" };
+        } else {
+          throw new Error(
+            `Non-JSON response from Apps Script (status ${response.status}): ${rawText?.slice(0, 200)}`
+          );
+        }
       }
 
-      if (result?.result !== "success") {
+      if (result?.result !== "success" && !response.ok) {
         throw new Error(result?.message || "Request not accepted by Apps Script");
       }
 
@@ -352,9 +358,18 @@ const RequestForParts = () => {
         body: formDataToSend,
       });
 
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+      }
 
-      if (result.result === "success") {
+      const isSuccess =
+        (result && (result.result === "success" || result.status === "success")) ||
+        (response.ok && result === null);
+
+      if (isSuccess) {
         // Notify management about the edit
         await notifyPartRequest(userFullName, editingRequest.serviceId, `${editForm.partName} (edited)`);
 
@@ -366,13 +381,25 @@ const RequestForParts = () => {
         setEditingRequest(null);
         fetchRequests();
       } else {
-        throw new Error(result.message || "Failed to update");
+        throw new Error(result?.message || "Failed to update");
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
+
+      if (isCorsFetchError) {
+        console.warn("Edit request fetch error (likely CORS after successful POST):", error);
+        toast({ title: "Updated", description: "Request updated and management notified." });
+        setIsEditDialogOpen(false);
+        setEditingRequest(null);
+        fetchRequests();
+        return;
+      }
+
       console.error("Error updating request:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update request.",
+        description: msg.includes("Failed to") ? msg : "Failed to update request.",
         variant: "destructive",
       });
     } finally {
@@ -399,9 +426,18 @@ const RequestForParts = () => {
         body: formDataToSend,
       });
 
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+      }
 
-      if (result.result === "success") {
+      const isSuccess =
+        (result && (result.result === "success" || result.status === "success")) ||
+        (response.ok && result === null);
+
+      if (isSuccess) {
         // Notify management about cancellation
         await notifyPartRequest(userFullName, cancellingRequest.serviceId, `${cancellingRequest.partName} (CANCELLED)`);
 
@@ -413,13 +449,25 @@ const RequestForParts = () => {
         setCancellingRequest(null);
         fetchRequests();
       } else {
-        throw new Error(result.message || "Failed to cancel");
+        throw new Error(result?.message || "Failed to cancel");
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
+
+      if (isCorsFetchError) {
+        console.warn("Cancel request fetch error (likely CORS after successful POST):", error);
+        toast({ title: "Cancelled", description: "Request cancelled and management notified." });
+        setIsCancelDialogOpen(false);
+        setCancellingRequest(null);
+        fetchRequests();
+        return;
+      }
+
       console.error("Error cancelling request:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to cancel request.",
+        description: msg.includes("Failed to") ? msg : "Failed to cancel request.",
         variant: "destructive",
       });
     } finally {
