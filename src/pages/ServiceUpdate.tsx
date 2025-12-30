@@ -27,6 +27,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { useTechnicians } from "@/hooks/useStaff";
 import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
+import { preloadPdfAssets } from "@/lib/pdfAssets";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -136,6 +137,9 @@ const ServiceUpdate = () => {
 
   // Auto-load when arriving from notifications (/service-update?serviceId=...)
   useEffect(() => {
+    // Preload PDF assets for faster generation
+    preloadPdfAssets();
+    
     const urlServiceId = searchParams.get("serviceId");
     if (urlServiceId) {
       setServiceId(urlServiceId);
@@ -513,36 +517,25 @@ const ServiceUpdate = () => {
         (response.ok && result === null);
 
       if (isSuccess) {
-        // After technician update, also push AI fields to AF (AI Diagnosis) and BB (AI Report)
-        try {
-          if (updateAIDiagnosis || updateServiceReport) {
-            const aiFormData = new FormData();
-            aiFormData.append("action", "updateService");
-            aiFormData.append("serviceId", serviceId);
-            aiFormData.append("deviceType", serviceData.deviceType);
-            aiFormData.append("aiDiagnosis", updateAIDiagnosis);
-            aiFormData.append("aiReport", updateServiceReport);
+        // Show success immediately - don't wait for background tasks
+        toast({
+          title: "Success",
+          description: "Service information updated successfully",
+        });
+        
+        // Clear selected parts and new photos
+        setSelectedParts({});
+        setDeviceReportPhotos([]);
+        // Refresh the data to show updated photos
+        handleSearch();
 
-            try {
-              await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-                method: "POST",
-                body: aiFormData,
-              });
-            } catch {
-              // AI fields update error - non-critical
-            }
-          }
-        } catch (aiError) {
-          // AI fields update error - non-critical
-        }
-
-        // Log the activity
-        const changes = [];
+        // Fire-and-forget: AI fields, logging, and notifications (don't block UI)
+        const userFullName = sessionStorage.getItem("userFullName") || username;
+        const changes: string[] = [];
         if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status} → ${updateStatus}`);
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
         
-        // Log parts changes with more detail
         const prevParts = (serviceData.partsUsed || "").trim();
         const newPartsDisplay = partsUsedString.trim();
         if (newPartsDisplay !== prevParts) {
@@ -554,61 +547,75 @@ const ServiceUpdate = () => {
         }
         
         if (deviceReportPhotos.length > 0) changes.push(`Added ${deviceReportPhotos.length} device report photo${deviceReportPhotos.length > 1 ? 's' : ''}`);
-        
+
+        // Run all background tasks in parallel, non-blocking
+        const backgroundTasks: Promise<any>[] = [];
+
+        // AI fields update
+        if (updateAIDiagnosis || updateServiceReport) {
+          const aiFormData = new FormData();
+          aiFormData.append("action", "updateService");
+          aiFormData.append("serviceId", serviceId);
+          aiFormData.append("deviceType", serviceData.deviceType);
+          aiFormData.append("aiDiagnosis", updateAIDiagnosis);
+          aiFormData.append("aiReport", updateServiceReport);
+          backgroundTasks.push(
+            fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: aiFormData }).catch(() => {})
+          );
+        }
+
+        // Activity logging
         if (changes.length > 0) {
-          const logResult = await logActivity({
-            serviceId: serviceId,
-            username: username,
-            role: userRole,
-            activity: `Service updated: ${changes.join(", ")}`
-          });
-          // Activity logged
+          backgroundTasks.push(
+            logActivity({
+              serviceId: serviceId,
+              username: username,
+              role: userRole,
+              activity: `Service updated: ${changes.join(", ")}`
+            }).catch(() => {})
+          );
         }
 
-        // Send notifications for status changes
-        const userFullName = sessionStorage.getItem("userFullName") || username;
+        // Status change notification
         if (updateStatus !== serviceData.status) {
-          notifyServiceStatusChange(
-            {
-              serviceId,
-              clientName: serviceData.clientName,
-              technician: updateTechnician,
-              adminRep: serviceData.adminRep,
-              deviceType: serviceData.deviceType,
-              device: serviceData.device,
-            },
-            serviceData.status,
-            updateStatus,
-            userFullName,
-            userRole || undefined
+          backgroundTasks.push(
+            Promise.resolve(notifyServiceStatusChange(
+              {
+                serviceId,
+                clientName: serviceData.clientName,
+                technician: updateTechnician,
+                adminRep: serviceData.adminRep,
+                deviceType: serviceData.deviceType,
+                device: serviceData.device,
+              },
+              serviceData.status,
+              updateStatus,
+              userFullName,
+              userRole || undefined
+            )).catch(() => {})
           );
         }
 
-        // Notify if technician changed
+        // Technician change notification
         if (updateTechnician !== serviceData.technician) {
-          notifyNewServiceAssignment(
-            {
-              serviceId,
-              clientName: serviceData.clientName,
-              technician: updateTechnician,
-              adminRep: serviceData.adminRep,
-              deviceType: serviceData.deviceType,
-              device: serviceData.device,
-            },
-            updateTechnician,
-            userFullName
+          backgroundTasks.push(
+            Promise.resolve(notifyNewServiceAssignment(
+              {
+                serviceId,
+                clientName: serviceData.clientName,
+                technician: updateTechnician,
+                adminRep: serviceData.adminRep,
+                deviceType: serviceData.deviceType,
+                device: serviceData.device,
+              },
+              updateTechnician,
+              userFullName
+            )).catch(() => {})
           );
         }
 
-        toast({
-          title: "Success",
-          description: "Service information updated successfully",
-        });
-        // Clear selected parts and new photos
-        setSelectedParts({});
-        setDeviceReportPhotos([]);
-        // Refresh the data to show updated photos
-        handleSearch();
+        // Execute all background tasks without blocking
+        Promise.allSettled(backgroundTasks).catch(console.error);
       } else {
         toast({
           title: "Error",

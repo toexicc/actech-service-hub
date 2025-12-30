@@ -26,6 +26,7 @@ import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
+import { preloadPdfAssets } from "@/lib/pdfAssets";
 
 const formSchema = z.object({
   clientId: z.string().optional(),
@@ -103,6 +104,8 @@ const ServiceForm = () => {
     if (!sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
+    // Preload PDF assets for faster generation
+    preloadPdfAssets();
   }, [navigate]);
 
   const form = useForm<FormValues>({
@@ -292,6 +295,14 @@ const ServiceForm = () => {
     }
   };
 
+  // Helper to convert blob to base64 (defined outside for reuse)
+  const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
   const onSubmit = async (data: FormValues) => {
     // Validate signature if required
     if (data.physicalSignature && (!signatureUrl || (signatureRef.current?.isEmpty() ?? true))) {
@@ -315,7 +326,7 @@ const ServiceForm = () => {
       const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
       const finalServiceId = serviceId || generateServiceId();
 
-      // Generate PDF
+      // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateServicePDF({
         serviceId: finalServiceId,
         timestamp,
@@ -347,17 +358,10 @@ const ServiceForm = () => {
         annotationImageUrl: annotationImageUrl || undefined,
         annotationNotes: data.annotationNotes || undefined,
       });
-      // PDF generated successfully
 
-      // Fallback: also send base64 for Apps Script environments where e.files is unavailable
-      const blobToBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1] || '');
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-      const pdfBase64 = await blobToBase64(pdfBlob);
-
+      // Build FormData and convert PDF to base64 in parallel
+      const pdfBase64Promise = blobToBase64(pdfBlob);
+      
       const formData = new FormData();
       formData.append("Service ID", finalServiceId);
       formData.append("Client ID", data.clientId || "");
@@ -392,7 +396,7 @@ const ServiceForm = () => {
       const allDepartments = techNames
         .map(name => technicianList.find(t => t.name === name)?.department)
         .filter(Boolean);
-      const uniqueDepartments = [...new Set(allDepartments)]; // Remove duplicates
+      const uniqueDepartments = [...new Set(allDepartments)];
       formData.append("Technician Department", uniqueDepartments.join(", ") || "");
       
       formData.append("Time Frame", data.timeFrame);
@@ -401,27 +405,26 @@ const ServiceForm = () => {
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
       
+      // Wait for base64 conversion
+      const pdfBase64 = await pdfBase64Promise;
+      
       // Append PDF file with Service ID in filename
       const sanitizeFileName = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '_');
       const pdfFileName = `${finalServiceId}_${sanitizeFileName(data.clientName)}_${sanitizeFileName(data.deviceType)}.pdf`;
       const pdfFile = new File([pdfBlob], pdfFileName, { type: 'application/pdf' });
-      // Appending PDF with generated filename
       formData.append("PDF", pdfFile);
-      // Base64 fallback for Apps Script if e.files is not populated
       formData.append("PDF_Base64", pdfBase64);
       formData.append("PDF_FileName", pdfFileName);
       formData.append("PDF_MimeType", "application/pdf");
 
-      // Handle signature if provided
+      // Handle signature if provided (prepare in parallel)
       if (data.physicalSignature && signatureUrl) {
-        // Convert base64 to blob
         const signatureBase64 = signatureUrl.split(',')[1];
         const byteCharacters = atob(signatureBase64);
-        const byteNumbers = new Array(byteCharacters.length);
+        const byteArray = new Uint8Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+          byteArray[i] = byteCharacters.charCodeAt(i);
         }
-        const byteArray = new Uint8Array(byteNumbers);
         const signatureBlob = new Blob([byteArray], { type: 'image/png' });
         const signatureFileName = `${finalServiceId}_signature.png`;
         const signatureFile = new File([signatureBlob], signatureFileName, { type: 'image/png' });
@@ -466,34 +469,7 @@ const ServiceForm = () => {
       const isResponseOk = response.ok;
 
       if (isResponseOk) {
-        // Notify assigned technician(s)
-        const techNames = data.technician.split(", ").filter(Boolean);
-        const adminName = sessionStorage.getItem("userFullName") || data.adminRep;
-        for (const techName of techNames) {
-          await notifyNewServiceAssignment(
-            {
-              serviceId: finalServiceId,
-              clientName: data.clientName,
-              technician: techName,
-              adminRep: data.adminRep,
-              deviceType: data.deviceType,
-              device: data.model,
-            },
-            techName,
-            adminName
-          );
-        }
-
-        // Log activity for new service creation
-        const username = sessionStorage.getItem("username") || data.adminRep;
-        const role = sessionStorage.getItem("userRole") || "admin";
-        await logActivity({
-          serviceId: finalServiceId,
-          username,
-          role,
-          activity: `New service created - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician}, Priority: ${data.priority}`,
-        });
-
+        // Show success immediately - don't wait for notifications/logging
         toast({
           title: "Success",
           description: `Service form submitted successfully! Service ID: ${finalServiceId}`,
@@ -507,6 +483,35 @@ const ServiceForm = () => {
         if (signatureRef.current) {
           signatureRef.current.clear();
         }
+
+        // Fire-and-forget: notifications and logging (don't block UI)
+        const adminName = sessionStorage.getItem("userFullName") || data.adminRep;
+        const username = sessionStorage.getItem("username") || data.adminRep;
+        const role = sessionStorage.getItem("userRole") || "admin";
+        
+        // Run all notifications in parallel, non-blocking
+        Promise.allSettled([
+          ...techNames.map(techName => 
+            notifyNewServiceAssignment(
+              {
+                serviceId: finalServiceId,
+                clientName: data.clientName,
+                technician: techName,
+                adminRep: data.adminRep,
+                deviceType: data.deviceType,
+                device: data.model,
+              },
+              techName,
+              adminName
+            )
+          ),
+          logActivity({
+            serviceId: finalServiceId,
+            username,
+            role,
+            activity: `New service created - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician}, Priority: ${data.priority}`,
+          }),
+        ]).catch(console.error);
       } else {
         throw new Error("Failed to submit form");
       }

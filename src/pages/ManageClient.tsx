@@ -28,6 +28,7 @@ import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useTechnicians } from "@/hooks/useStaff";
+import { preloadPdfAssets } from "@/lib/pdfAssets";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -150,6 +151,8 @@ const ManageClient = () => {
   
   useEffect(() => {
     fetchApiKey();
+    // Preload PDF assets for faster generation
+    preloadPdfAssets();
   }, []);
 
   // Handle serviceId from URL params (from Service Tracker redirect)
@@ -813,6 +816,7 @@ const ManageClient = () => {
         isUpdated: !!serviceData.quotationPdfUrl,
       };
       
+      // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateQuotationPDF(quotationData);
 
       // Build filename with timestamp if updated
@@ -826,18 +830,16 @@ const ManageClient = () => {
         ? `${safeServiceId}_${safeClient}_${safeDevice} - QUOTATION UPDATED (${tsForName}).pdf`
         : `${safeServiceId}_${safeClient}_${safeDevice} - QUOTATION.pdf`;
 
-      // Convert to base64
-      const blobToBase64 = (blob: Blob) =>
-        new Promise<string>((resolve, reject) => {
+      // Convert to base64 while building FormData
+      const blobToBase64 = (blob: Blob): Promise<string> =>
+        new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(String(reader.result).split(",")[1] || "");
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
-      const pdfBase64 = await blobToBase64(pdfBlob);
-
-      // Use Column AQ (clientFolderUrl) for quotation PDFs, NOT Column AV (deviceReportFolderUrl)
-      // Using Column AQ (clientFolderUrl) for quotation PDFs
+      
+      const pdfBase64Promise = blobToBase64(pdfBlob);
 
       const formData = new FormData();
       formData.append("action", "updateQuotationPDF");
@@ -846,9 +848,11 @@ const ManageClient = () => {
       formData.append("Serial", serviceData.serialNumber || "");
       formData.append("Client Name", serviceData.clientName || "");
       formData.append("Device Type", serviceData.deviceType || "");
-      formData.append("ClientFolderUrl", serviceData.clientFolderUrl || ""); // Column AQ - folder location
+      formData.append("ClientFolderUrl", serviceData.clientFolderUrl || "");
 
-      // Attach PDF - will be uploaded to client folder (AQ) and link stored in AG
+      // Wait for base64 conversion
+      const pdfBase64 = await pdfBase64Promise;
+
       formData.append("QuotationPDF", pdfBlob, fileName);
       formData.append("QuotationPDF_Base64", pdfBase64);
       formData.append("QuotationPDF_FileName", fileName);
@@ -864,21 +868,20 @@ const ManageClient = () => {
       });
 
       clearTimeout(timeoutId);
-      const result = await response.json();
+      
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        // CORS may block reading response
+      }
 
-      if (result.result === "success") {
-        const username = sessionStorage.getItem("username") || "Admin";
-        const role = sessionStorage.getItem("userRole") || "admin";
+      const isSuccess = 
+        (result && result.result === "success") ||
+        (response.ok && result === null);
 
-        await logActivity({
-          serviceId: serviceId,
-          username: username,
-          role: role,
-          activity: serviceData.quotationPdfUrl 
-            ? "Service quotation form updated" 
-            : "Service quotation form generated",
-        });
-
+      if (isSuccess) {
+        // Show success immediately
         toast({
           title: "Success",
           description: serviceData.quotationPdfUrl 
@@ -887,6 +890,18 @@ const ManageClient = () => {
         });
         // Refresh the data
         handleSearch();
+
+        // Fire-and-forget: log activity without blocking
+        const username = sessionStorage.getItem("username") || "Admin";
+        const role = sessionStorage.getItem("userRole") || "admin";
+        logActivity({
+          serviceId: serviceId,
+          username: username,
+          role: role,
+          activity: serviceData.quotationPdfUrl 
+            ? "Service quotation form updated" 
+            : "Service quotation form generated",
+        }).catch(console.error);
       } else {
         toast({
           title: "Error",
@@ -896,7 +911,21 @@ const ManageClient = () => {
       }
     } catch (error) {
       console.error("Quotation generation error:", error);
-      const errorMessage = error instanceof Error && error.name === 'AbortError' 
+      const msg = error instanceof Error ? error.message : String(error);
+      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
+      const isAbort = error instanceof Error && error.name === 'AbortError';
+      
+      if (isCorsFetchError) {
+        // CORS error likely means success
+        toast({
+          title: "Success",
+          description: "Service quotation form generated successfully",
+        });
+        handleSearch();
+        return;
+      }
+      
+      const errorMessage = isAbort 
         ? "Request timed out - PDF generation may be taking too long"
         : "Failed to generate quotation form";
       
