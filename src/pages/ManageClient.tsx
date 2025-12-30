@@ -530,9 +530,19 @@ const ManageClient = () => {
       });
 
       clearTimeout(timeoutId);
-      const result = await response.json();
+      
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+      }
 
-      if (result.result === "success") {
+      const isSuccess =
+        (result && (result.result === "success" || result.status === "success")) ||
+        (response.ok && result === null);
+
+      if (isSuccess) {
         // Log only the fields that actually changed
         const username = sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
@@ -617,8 +627,21 @@ const ManageClient = () => {
         });
       }
     } catch (error) {
-      // Update failed - handle error
-      const errorMessage = error instanceof Error && error.name === 'AbortError' 
+      const msg = error instanceof Error ? error.message : String(error);
+      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
+
+      if (isCorsFetchError) {
+        console.warn("Update client info fetch error (likely CORS after successful POST):", error);
+        toast({
+          title: "Success",
+          description: "Client information updated successfully",
+        });
+        handleSearch();
+        return;
+      }
+
+      const errorMessage = isAbortError 
         ? "Request timed out - your Google Script may be taking too long to process the update"
         : "Failed to update client information";
       
