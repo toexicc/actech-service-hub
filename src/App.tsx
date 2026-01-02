@@ -20,6 +20,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ClientInquiry from "./pages/ClientInquiry";
 import RequestForParts from "./pages/RequestForParts";
 import Install from "./pages/Install";
+import ClosedDates from "./pages/ClosedDates";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with caching settings for fast navigation
@@ -59,6 +60,7 @@ const App = () => (
           <Route path="/tech-dashboard" element={<OpenDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/request-for-parts" element={<RequestForParts />} />
+          <Route path="/closed-dates" element={<ClosedDates />} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

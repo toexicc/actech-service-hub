@@ -353,6 +353,43 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle getting all closed dates
+  if (params.action === 'getClosedDates') {
+    var closedSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Closed Dates");
+    if (!closedSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        "status": "error",
+        "message": "Closed Dates sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var closedData = closedSheet.getDataRange().getDisplayValues();
+    var closedDates = [];
+    
+    // Columns: A=ID, B=Start Date, C=End Date, D=Type, E=Custom Type, F=Description, G=Created By, H=Created At, I=Last Updated
+    for (var ci = 1; ci < closedData.length; ci++) {
+      if (closedData[ci][0]) {
+        closedDates.push({
+          "rowIndex": ci + 1,
+          "id": closedData[ci][0],
+          "startDate": closedData[ci][1],
+          "endDate": closedData[ci][2],
+          "type": closedData[ci][3],
+          "customType": closedData[ci][4],
+          "description": closedData[ci][5],
+          "createdBy": closedData[ci][6],
+          "createdAt": closedData[ci][7],
+          "lastUpdated": closedData[ci][8]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success",
+      "data": closedDates
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Handle getting all client inquiries from Inquiry Database
   if (params.action === 'getClientInquiries') {
     var inquirySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inquiry Database");
@@ -2172,6 +2209,82 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // ========== CLOSED DATES (POST) ==========
+  
+  // Add a new closed date
+  if (params.action === 'addClosedDate') {
+    var closedSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Closed Dates");
+    if (!closedSheet) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      closedSheet = ss.insertSheet("Closed Dates");
+      closedSheet.appendRow(["ID", "Start Date", "End Date", "Type", "Custom Type", "Description", "Created By", "Created At", "Last Updated"]);
+    }
+    
+    var closedId = "CD-" + Date.now();
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    closedSheet.appendRow([
+      closedId,
+      params.startDate,
+      params.endDate,
+      params.type,
+      params.customType || "",
+      params.description,
+      params.createdBy,
+      timestamp,
+      timestamp
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      id: closedId
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Update a closed date
+  if (params.action === 'updateClosedDate' && params.rowIndex) {
+    var closedSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Closed Dates");
+    if (!closedSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "Closed Dates sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var rowIndex = parseInt(params.rowIndex);
+    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    
+    // Update columns B-F and I (Start Date, End Date, Type, Custom Type, Description, Last Updated)
+    closedSheet.getRange(rowIndex, 2).setValue(params.startDate);
+    closedSheet.getRange(rowIndex, 3).setValue(params.endDate);
+    closedSheet.getRange(rowIndex, 4).setValue(params.type);
+    closedSheet.getRange(rowIndex, 5).setValue(params.customType || "");
+    closedSheet.getRange(rowIndex, 6).setValue(params.description);
+    closedSheet.getRange(rowIndex, 9).setValue(timestamp);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // Delete a closed date
+  if (params.action === 'deleteClosedDate' && params.rowIndex) {
+    var closedSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Closed Dates");
+    if (!closedSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: "Closed Dates sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var rowIndex = parseInt(params.rowIndex);
+    closedSheet.deleteRow(rowIndex);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // ========== MESSAGING (POST) ==========
   
   // Send a new message
