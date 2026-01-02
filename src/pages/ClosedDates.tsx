@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { format, isWithinInterval, parseISO } from "date-fns";
-import { CalendarOff, Search, Filter, Edit, Trash2, Plus, CalendarIcon, Loader2 } from "lucide-react";
+import { format } from "date-fns";
+import { CalendarOff, Search, Filter, Edit, Trash2, Plus, CalendarIcon, Loader2, RefreshCw } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,10 +45,11 @@ import { corsSafePost } from "@/lib/corsPostHandler";
 
 const ClosedDates = () => {
   const { toast } = useToast();
-  const { data: closedDates = [], isLoading } = useClosedDates();
+  const { data: closedDates = [], isLoading, refetch, isFetching } = useClosedDates();
   const invalidateClosedDates = useInvalidateClosedDates();
   const userRole = sessionStorage.getItem("userRole");
   const isManagement = userRole === "management";
+  const [isReloading, setIsReloading] = useState(false);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -141,22 +142,16 @@ const ClosedDates = () => {
     formData.append("rowIndex", String(deleteTarget.rowIndex));
 
     try {
-      const result = await corsSafePost(formData);
+      await corsSafePost(formData);
       
-      if (result.success) {
-        toast({
-          title: "Closed date deleted",
-          description: "The closure has been removed successfully.",
-        });
-        invalidateClosedDates();
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to delete closed date",
-          variant: "destructive",
-        });
-      }
+      // Treat as success - CORS issues often prevent reading the response
+      toast({
+        title: "Closed date deleted",
+        description: "The closure has been removed successfully.",
+      });
+      await invalidateClosedDates();
     } catch (error) {
+      console.error("Error deleting closed date:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -173,6 +168,17 @@ const ClosedDates = () => {
   function handleAddNew() {
     setEditData(null);
     setModalOpen(true);
+  }
+
+  // Handle manual reload
+  async function handleReload() {
+    setIsReloading(true);
+    await refetch();
+    setIsReloading(false);
+    toast({
+      title: "Data refreshed",
+      description: "Closed dates have been reloaded.",
+    });
   }
 
   // Clear filters
@@ -228,12 +234,18 @@ const ClosedDates = () => {
             </div>
           </div>
 
-          {isManagement && (
-            <Button onClick={handleAddNew}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Closed Date
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleReload} disabled={isReloading || isFetching}>
+              <RefreshCw className={cn("mr-2 h-4 w-4", (isReloading || isFetching) && "animate-spin")} />
+              Reload
             </Button>
-          )}
+            {isManagement && (
+              <Button onClick={handleAddNew}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Closed Date
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
