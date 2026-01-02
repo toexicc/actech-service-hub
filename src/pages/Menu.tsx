@@ -23,7 +23,9 @@ import {
   ChevronRight,
   ClipboardList,
   Monitor,
+  CalendarOff,
 } from "lucide-react";
+import { ClosedDateModal } from "@/components/ClosedDateModal";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
@@ -61,6 +63,7 @@ interface LowStockItem {
 const Menu = () => {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [closedDateModalOpen, setClosedDateModalOpen] = useState(false);
   
   // Pagination for dashboards
   const [partsPage, setPartsPage] = useState(1);
@@ -324,6 +327,12 @@ const Menu = () => {
           icon: DollarSign,
           path: "/transaction-tracker",
         },
+        {
+          title: "Set Closed Dates",
+          description: "Manage shop closures",
+          icon: CalendarOff,
+          action: () => setClosedDateModalOpen(true),
+        },
       ];
     }
 
@@ -396,11 +405,17 @@ const Menu = () => {
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${!isTechnician && userRole === 'management' ? 'xl:grid-cols-5' : ''} gap-4`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${!isTechnician && userRole === 'management' ? 'xl:grid-cols-6' : ''} gap-4`}>
               {quickActions.map((action, index) => (
                 <button
                   key={index}
-                  onClick={() => navigate(action.path)}
+                  onClick={() => {
+                    if ('action' in action && action.action) {
+                      action.action();
+                    } else if ('path' in action && action.path) {
+                      navigate(action.path);
+                    }
+                  }}
                   className="flex flex-col items-center p-4 rounded-xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 group"
                 >
                   <div className="p-3 rounded-xl bg-primary/10 mb-3 group-hover:bg-primary/20 transition-colors">
@@ -682,6 +697,12 @@ const Menu = () => {
         <div className="text-center mt-8 text-sm text-muted-foreground">
           Powered by Stack&Scale
         </div>
+
+        {/* Closed Date Modal */}
+        <ClosedDateModal
+          open={closedDateModalOpen}
+          onOpenChange={setClosedDateModalOpen}
+        />
       </div>
     </DashboardLayout>
   );

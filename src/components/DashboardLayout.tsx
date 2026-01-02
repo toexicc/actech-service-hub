@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  MessageSquare, Monitor, Menu, ShoppingCart, Loader2,
+  MessageSquare, Monitor, Menu, ShoppingCart, Loader2, CalendarOff,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -28,6 +28,7 @@ const adminSection: NavSection = {
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"] },
     { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management"] },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"] },
+    { title: "Closed Dates", icon: CalendarOff, path: "/closed-dates" },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"] },
   ],
   roles: ["admin", "management"],
