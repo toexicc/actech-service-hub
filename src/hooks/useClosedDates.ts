@@ -27,14 +27,17 @@ async function fetchClosedDates(): Promise<ClosedDate[]> {
 }
 
 export function useClosedDates() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["closedDates"],
     queryFn: fetchClosedDates,
     staleTime: 5 * 60 * 1000,
   });
+  return query;
 }
 
 export function useInvalidateClosedDates() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ["closedDates"] });
+  return async () => {
+    await queryClient.invalidateQueries({ queryKey: ["closedDates"] });
+  };
 }

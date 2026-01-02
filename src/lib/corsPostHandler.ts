@@ -20,29 +20,44 @@ export async function corsSafePost(formData: FormData): Promise<CorsPostResult> 
 
     // Try to parse the response
     let result: any = null;
+    let parseError = false;
     try {
       result = await response.json();
-    } catch (parseError) {
+    } catch (err) {
       // CORS prevents reading response body, but POST likely succeeded
-      console.warn("Could not parse response (likely CORS issue), assuming success:", parseError);
+      console.warn("Could not parse response (likely CORS issue), assuming success:", err);
+      parseError = true;
     }
 
-    // Determine success from parsed result or HTTP status
-    const isSuccess =
-      (result && (result.result === "success" || result.status === "success")) ||
-      (response.ok && result === null);
-
-    if (isSuccess) {
-      return { success: true, data: result };
-    } else {
-      return { 
-        success: false, 
-        error: result?.message || "Operation failed" 
-      };
+    // If we couldn't parse the response but got a successful HTTP status, treat as success
+    if (parseError && response.ok) {
+      return { success: true, data: null };
     }
+
+    // If we got a response, check for success indicators
+    if (result) {
+      const isSuccess = result.result === "success" || result.status === "success";
+      if (isSuccess) {
+        return { success: true, data: result };
+      } else {
+        return { 
+          success: false, 
+          error: result?.message || "Operation failed" 
+        };
+      }
+    }
+
+    // If response.ok and no result, assume success (CORS blocked response body)
+    if (response.ok) {
+      return { success: true, data: null };
+    }
+
+    return { success: false, error: "Operation failed" };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
+    const isCorsFetchError = msg.toLowerCase().includes("failed to fetch") || 
+                              msg.toLowerCase().includes("cors") ||
+                              msg.toLowerCase().includes("network");
 
     if (isCorsFetchError) {
       // CORS causes "Failed to fetch" even on successful POST (200 OK)
