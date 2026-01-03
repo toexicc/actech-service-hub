@@ -34,6 +34,7 @@ interface InventoryItem {
   brand: string;
   model: string;
   partType?: string;
+  color?: string;
   quantity: number;
   dateOrdered?: string;
   supplier?: string;
@@ -135,6 +136,7 @@ const InventoryManagement = () => {
     model: "",
     partType: "",
     partTypeOther: "",
+    color: "",
     quantity: "",
     orderedQuantity: "", // Track ordered quantity separately
     dateOrdered: "",
@@ -156,7 +158,8 @@ const InventoryManagement = () => {
     status: string;
     supplier: string;
     dateOrdered: string;
-  }>>([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "" }]);
+    color: string;
+  }>>([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "", color: "" }]);
 
   // Form states for stock adjustment
   const [stockAdjustment, setStockAdjustment] = useState({
@@ -219,6 +222,7 @@ const InventoryManagement = () => {
       formData.append("remarks", remarksWithOrder);
       formData.append("qrCode", qrCodeDataUrl);
       formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("color", newPart.color);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -253,6 +257,7 @@ const InventoryManagement = () => {
           model: "",
           partType: "",
           partTypeOther: "",
+          color: "",
           quantity: "",
           orderedQuantity: "",
           dateOrdered: "",
@@ -294,6 +299,7 @@ const InventoryManagement = () => {
         model: "",
         partType: "",
         partTypeOther: "",
+        color: "",
         quantity: "",
         orderedQuantity: "",
         dateOrdered: "",
@@ -373,6 +379,7 @@ const InventoryManagement = () => {
         formData.append("remarks", isOnOrder ? `Ordered: ${part.quantity} units` : "");
         formData.append("qrCode", qrCodeDataUrl);
         formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
+        formData.append("color", part.color || "");
 
         try {
           // Delay between requests to reduce Apps Script throttling
@@ -422,7 +429,7 @@ const InventoryManagement = () => {
         setBatchDeviceType("");
         setBatchBrand("");
         setBatchModel("");
-        setBatchParts([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "" }]);
+        setBatchParts([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "", color: "" }]);
         fetchInventory();
         fetchInventoryLogs();
       } else {
@@ -445,7 +452,7 @@ const InventoryManagement = () => {
   };
 
   const addBatchPartRow = () => {
-    setBatchParts([...batchParts, { partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "" }]);
+    setBatchParts([...batchParts, { partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "", color: "" }]);
   };
 
   const removeBatchPartRow = (index: number) => {
@@ -605,6 +612,7 @@ const InventoryManagement = () => {
       formData.append("costPerUnit", editingPart.costPerUnit || "");
       formData.append("remarks", editingPart.remarks || "");
       formData.append("updatedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("color", editingPart.color || "");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -1085,6 +1093,14 @@ const InventoryManagement = () => {
                               placeholder="Optional"
                             />
                           </div>
+                          <div className="col-span-2 space-y-1">
+                            <Label className="text-xs">Color</Label>
+                            <Input
+                              value={part.color}
+                              onChange={(e) => updateBatchPart(index, "color", e.target.value)}
+                              placeholder="Optional"
+                            />
+                          </div>
                           <div className="col-span-1 flex items-center justify-center">
                             <Button
                               type="button"
@@ -1211,6 +1227,16 @@ const InventoryManagement = () => {
                       </SelectContent>
                     </Select>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="color">Color (optional)</Label>
+                  <Input
+                    id="color"
+                    value={newPart.color}
+                    onChange={(e) => setNewPart({...newPart, color: e.target.value})}
+                    placeholder="e.g., Black, White, Space Gray"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1537,6 +1563,7 @@ const InventoryManagement = () => {
                           <TableHead>Device Type</TableHead>
                           <TableHead>Brand</TableHead>
                           <TableHead>Model</TableHead>
+                          <TableHead>Color</TableHead>
                           <TableHead>Part Type</TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("quantity")}>
                             <div className="flex items-center gap-1">
@@ -1582,6 +1609,7 @@ const InventoryManagement = () => {
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
                                 <TableCell>{item.brand || "N/A"}</TableCell>
                                 <TableCell>{item.model || "N/A"}</TableCell>
+                                <TableCell>{item.color || "N/A"}</TableCell>
                                 <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
                                   {item.quantity}
@@ -2262,6 +2290,16 @@ const InventoryManagement = () => {
                       <SelectItem value="Others">Others</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-color">Color (optional)</Label>
+                  <Input
+                    id="edit-color"
+                    value={editingPart.color || ""}
+                    onChange={(e) => setEditingPart({...editingPart, color: e.target.value})}
+                    placeholder="e.g., Black, White, Space Gray"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

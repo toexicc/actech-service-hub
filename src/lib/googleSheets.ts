@@ -600,7 +600,7 @@ function doGet(e) {
     var inventory = [];
     
     // Loop through all rows (skip header row)
-    // Columns: A=Part ID, B=Part Name, C=Device Type, D=Brand, E=Model, F=Quantity, G=Date Ordered, H=Supplier, I=Cost/Unit, J=Status, K=Last Updated, L=Remarks, M=QR Code, N=Part Type
+    // Columns: A=Part ID, B=Part Name, C=Device Type, D=Brand, E=Model, F=Quantity, G=Date Ordered, H=Supplier, I=Cost/Unit, J=Status, K=Last Updated, L=Remarks, M=QR Code, N=Part Type, O=Color
     for (var i = 1; i < data.length; i++) {
       inventory.push({
         "partId": data[i][0],
@@ -616,7 +616,8 @@ function doGet(e) {
         "lastUpdated": data[i][10],
         "remarks": data[i][11],
         "qrCode": data[i][12], // Column M - QR Code data URL
-        "partType": data[i][13] // Column N - Part Type (OEM/Original/Others)
+        "partType": data[i][13], // Column N - Part Type (OEM/Original/Others)
+        "color": data[i][14] || "" // Column O - Color
       });
     }
     
@@ -1612,6 +1613,7 @@ function doPost(e) {
         if (params.costPerUnit) inventorySheet.getRange(i + 1, 9).setValue(params.costPerUnit); // Column I
         if (params.remarks !== undefined) inventorySheet.getRange(i + 1, 12).setValue(params.remarks); // Column L
         if (params.partType !== undefined) inventorySheet.getRange(i + 1, 14).setValue(params.partType); // Column N - Part Type
+        if (params.color !== undefined) inventorySheet.getRange(i + 1, 15).setValue(params.color); // Column O - Color
         inventorySheet.getRange(i + 1, 11).setValue(timestamp); // Column K - Last Updated
         
         // Log the update
@@ -1692,7 +1694,7 @@ function doPost(e) {
     var logId = "LOG" + Date.now();
     
     // Add to Inventory Management sheet
-    // Columns: A=Part ID, B=Part Name, C=Device Type, D=Brand, E=Model, F=Quantity, G=Date Ordered, H=Supplier, I=Cost/Unit, J=Status, K=Last Updated, L=Remarks, M=QR Code, N=Part Type
+    // Columns: A=Part ID, B=Part Name, C=Device Type, D=Brand, E=Model, F=Quantity, G=Date Ordered, H=Supplier, I=Cost/Unit, J=Status, K=Last Updated, L=Remarks, M=QR Code, N=Part Type, O=Color
     inventorySheet.appendRow([
       partId,
       params.partName,
@@ -1707,7 +1709,8 @@ function doPost(e) {
       timestamp,
       params.remarks,
       params.qrCode || "", // Column M - QR Code data URL (generated client-side)
-      params.partType || "" // Column N - Part Type (OEM/Original/Others)
+      params.partType || "", // Column N - Part Type (OEM/Original/Others)
+      params.color || "" // Column O - Color
     ]);
     
     // Log the initial stock to Inventory Log
