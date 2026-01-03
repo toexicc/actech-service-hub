@@ -392,7 +392,7 @@ const ClosedDates = () => {
                         </TableCell>
                         <TableCell>{item.createdBy}</TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {item.createdAt ? displayDate(item.createdAt, "MMM d, yyyy") : "-"}
+                          {item.createdAt ? displayDate(item.createdAt, "MMM dd, yyyy, hh:mm a") : "-"}
                         </TableCell>
                         {isManagement && (
                           <TableCell>
