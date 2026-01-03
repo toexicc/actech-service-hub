@@ -8,6 +8,7 @@ interface InventoryItem {
   brand: string;
   model: string;
   partType?: string;
+  color?: string;
   quantity: number;
   dateOrdered?: string;
   supplier?: string;
@@ -51,6 +52,12 @@ const fetchInventory = async (): Promise<InventoryItem[]> => {
         item?.PartType ??
         item?.["Part Type"] ??
         item?.["part type"] ??
+        "",
+      // Normalize color key variants
+      color:
+        item?.color ??
+        item?.Color ??
+        item?.["Color"] ??
         "",
     })) as InventoryItem[];
   }

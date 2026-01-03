@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useServices } from "@/hooks/useServices";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { useInventory } from "@/hooks/useInventory";
-import { useClientInquiries } from "@/hooks/useClients";
+import { useClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import DashboardLayout from "@/components/DashboardLayout";
 import {
   MessageSquare,
@@ -79,7 +79,7 @@ const Menu = () => {
   const { data: allServices = [], isLoading: isServicesLoading } = useServices();
   const { data: fastMovingParts = [], isLoading: isPartsLoading } = useFastMovingParts();
   const { data: inventoryItems = [], isLoading: isInventoryLoading } = useInventory();
-  const { data: inquiriesData = [], isLoading: isInquiriesLoading } = useClientInquiries();
+  const { data: inquiriesData = [], isLoading: isInquiriesLoading } = useClientInquiriesData();
 
   const isLoading = isServicesLoading || (isManagement && (isPartsLoading || isInventoryLoading)) || (!isTechnician && isInquiriesLoading);
 
