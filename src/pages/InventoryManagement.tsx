@@ -1085,7 +1085,7 @@ const InventoryManagement = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="col-span-1 space-y-1">
                             <Label className="text-xs">Supplier</Label>
                             <Input
                               value={part.supplier}
@@ -1093,7 +1093,7 @@ const InventoryManagement = () => {
                               placeholder="Optional"
                             />
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="col-span-1 space-y-1">
                             <Label className="text-xs">Color</Label>
                             <Input
                               value={part.color}
@@ -1193,50 +1193,51 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="partType">Part Type</Label>
-                  {newPart.partType === "Others" ? (
-                    <div className="flex gap-2">
-                      <Input
-                        id="partType"
-                        value={newPart.partTypeOther}
-                        onChange={(e) => setNewPart({...newPart, partTypeOther: e.target.value})}
-                        placeholder="Enter part type..."
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setNewPart({...newPart, partType: "", partTypeOther: ""})}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="partType">Part Type</Label>
+                    {newPart.partType === "Others" ? (
+                      <div className="flex gap-2">
+                        <Input
+                          id="partType"
+                          value={newPart.partTypeOther}
+                          onChange={(e) => setNewPart({...newPart, partTypeOther: e.target.value})}
+                          placeholder="Enter part type..."
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setNewPart({...newPart, partType: "", partTypeOther: ""})}
+                        >
+                          Reset
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select
+                        value={newPart.partType}
+                        onValueChange={(value) => setNewPart({...newPart, partType: value, partTypeOther: ""})}
                       >
-                        Reset
-                      </Button>
-                    </div>
-                  ) : (
-                    <Select
-                      value={newPart.partType}
-                      onValueChange={(value) => setNewPart({...newPart, partType: value, partTypeOther: ""})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select part type (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OEM">OEM</SelectItem>
-                        <SelectItem value="Original">Original</SelectItem>
-                        <SelectItem value="Others">Others</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="color">Color (optional)</Label>
-                  <Input
-                    id="color"
-                    value={newPart.color}
-                    onChange={(e) => setNewPart({...newPart, color: e.target.value})}
-                    placeholder="e.g., Black, White, Space Gray"
-                  />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OEM">OEM</SelectItem>
+                          <SelectItem value="Original">Original</SelectItem>
+                          <SelectItem value="Others">Others</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="color">Color</Label>
+                    <Input
+                      id="color"
+                      value={newPart.color}
+                      onChange={(e) => setNewPart({...newPart, color: e.target.value})}
+                      placeholder="e.g., Black, White"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -2275,31 +2276,32 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-partType">Part Type</Label>
-                  <Select
-                    value={editingPart.partType || ""}
-                    onValueChange={(value) => setEditingPart({...editingPart, partType: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select part type (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OEM">OEM</SelectItem>
-                      <SelectItem value="Original">Original</SelectItem>
-                      <SelectItem value="Others">Others</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-color">Color (optional)</Label>
-                  <Input
-                    id="edit-color"
-                    value={editingPart.color || ""}
-                    onChange={(e) => setEditingPart({...editingPart, color: e.target.value})}
-                    placeholder="e.g., Black, White, Space Gray"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-partType">Part Type</Label>
+                    <Select
+                      value={editingPart.partType || ""}
+                      onValueChange={(value) => setEditingPart({...editingPart, partType: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OEM">OEM</SelectItem>
+                        <SelectItem value="Original">Original</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-color">Color</Label>
+                    <Input
+                      id="edit-color"
+                      value={editingPart.color || ""}
+                      onChange={(e) => setEditingPart({...editingPart, color: e.target.value})}
+                      placeholder="e.g., Black, White"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
