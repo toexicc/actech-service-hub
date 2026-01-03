@@ -79,7 +79,7 @@ const Login = () => {
         <SplashScreen onComplete={handleSplashComplete} />
       )}
       
-      <div className={`min-h-screen gradient-bg flex flex-col items-center justify-center p-4 transition-opacity duration-500 ${
+      <div className={`h-screen gradient-bg flex flex-col items-center justify-center p-4 py-6 sm:py-4 transition-opacity duration-500 ${
         showContent ? 'opacity-100' : 'opacity-0'
       }`}>
         {/* Background Pattern */}
@@ -87,38 +87,38 @@ const Login = () => {
         
         <div className="w-full max-w-md relative z-10">
           {/* Logo and Title */}
-          <div className={`text-center mb-8 transition-all duration-700 delay-100 ${
+          <div className={`text-center mb-4 sm:mb-8 transition-all duration-700 delay-100 ${
             showContent ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
           }`}>
-            <div className="flex justify-center mb-4">
-              <div className="p-4 rounded-2xl bg-card shadow-lg border border-border/50">
+            <div className="flex justify-center mb-2 sm:mb-4">
+              <div className="p-3 sm:p-4 rounded-2xl bg-card shadow-lg border border-border/50">
                 <img 
                   src={acTechLogo}
                   alt="AC Tech Repair" 
-                  className="h-16 w-16 object-contain rounded-lg"
+                  className="h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg"
                 />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-1">AC Tech Repair</h1>
-            <p className="text-muted-foreground">Internal Team Portal</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5 sm:mb-1">AC Tech Repair</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Internal Team Portal</p>
           </div>
 
           {/* Login Card */}
           <Card className={`shadow-xl border-border/50 bg-card/80 backdrop-blur-sm transition-all duration-700 delay-200 ${
             showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl flex items-center gap-2">
+            <CardHeader className="space-y-1 pb-2 sm:pb-4">
+              <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
                 Sign In
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Enter your credentials to access the portal
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
+            <CardContent className="pt-0">
+              <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
@@ -126,12 +126,12 @@ const Login = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter username"
-                    className="h-11"
+                    className="h-10 sm:h-11"
                     autoComplete="username"
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
@@ -139,14 +139,14 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
-                    className="h-11"
+                    className="h-10 sm:h-11"
                     autoComplete="current-password"
                   />
                 </div>
 
                 <Button 
                   type="submit" 
-                  className="w-full h-11 gradient-primary text-primary-foreground hover:opacity-90 transition-opacity" 
+                  className="w-full h-10 sm:h-11 gradient-primary text-primary-foreground hover:opacity-90 transition-opacity" 
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -160,10 +160,10 @@ const Login = () => {
                 </Button>
               </form>
 
-              <div className="mt-6 pt-6 border-t border-border">
+              <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border">
                 <Button 
                   variant="outline" 
-                  className="w-full h-11 group"
+                  className="w-full h-10 sm:h-11 group"
                   onClick={() => navigate("/track")}
                 >
                   <Search className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
@@ -174,31 +174,31 @@ const Login = () => {
           </Card>
 
           {/* Features */}
-          <div className={`mt-8 grid grid-cols-3 gap-4 transition-all duration-700 delay-300 ${
+          <div className={`mt-4 sm:mt-8 grid grid-cols-3 gap-2 sm:gap-4 transition-all duration-700 delay-300 ${
             showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
-            <div className="text-center p-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <Wrench className="h-5 w-5 text-primary" />
+            <div className="text-center p-2 sm:p-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-1 sm:mb-2">
+                <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
-              <p className="text-xs text-muted-foreground">Service Management</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Service Management</p>
             </div>
-            <div className="text-center p-3">
-              <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center mx-auto mb-2">
-                <Search className="h-5 w-5 text-info" />
+            <div className="text-center p-2 sm:p-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-info/10 flex items-center justify-center mx-auto mb-1 sm:mb-2">
+                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-info" />
               </div>
-              <p className="text-xs text-muted-foreground">Real-time Tracking</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Real-time Tracking</p>
             </div>
-            <div className="text-center p-3">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-2">
-                <Shield className="h-5 w-5 text-success" />
+            <div className="text-center p-2 sm:p-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-1 sm:mb-2">
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
               </div>
-              <p className="text-xs text-muted-foreground">Secure Access</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Secure Access</p>
             </div>
           </div>
         </div>
         
-        <footer className={`mt-8 text-center text-sm text-muted-foreground relative z-10 transition-all duration-700 delay-400 ${
+        <footer className={`mt-4 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground relative z-10 transition-all duration-700 delay-400 ${
           showContent ? 'opacity-100' : 'opacity-0'
         }`}>
           Powered by Stack&Scale
