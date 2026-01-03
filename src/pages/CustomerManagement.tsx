@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
+import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -256,7 +257,7 @@ const CustomerManagement = () => {
                             <TableCell className="max-w-[300px]">
                               {service.service || "N/A"}
                             </TableCell>
-                            <TableCell>{service.targetDate || "N/A"}</TableCell>
+                            <TableCell>{service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "N/A"}</TableCell>
                             <TableCell className="font-semibold">
                               {service.serviceCost ? `Php ${service.serviceCost}` : "N/A"}
                             </TableCell>

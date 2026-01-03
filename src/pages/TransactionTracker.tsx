@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -383,7 +384,7 @@ const TransactionTracker = () => {
                       return (
                         <TableRow key={service.serviceId}>
                           <TableCell className="font-medium">{service.serviceId}</TableCell>
-                          <TableCell>{service.timestamp}</TableCell>
+                          <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell>{service.technician}</TableCell>
                           <TableCell>{service.department}</TableCell>

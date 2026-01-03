@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
+import { displayDate } from "@/lib/timezone";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1142,7 +1143,7 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
-                    <p className="text-lg">{serviceData.timestamp || "N/A"}</p>
+                    <p className="text-lg">{serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</p>
                   </div>
 
                   <div>
@@ -1152,7 +1153,7 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
-                    <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
+                    <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
                   </div>
 
                   <div>
