@@ -21,6 +21,7 @@ export const initOneSignal = async (): Promise<void> => {
         allowLocalhostAsSecureOrigin: true, // For development
         serviceWorkerParam: { scope: '/' },
         serviceWorkerPath: '/OneSignalSDKWorker.js',
+        serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
         notifyButton: {
           enable: false, // We'll use custom UI
         },
@@ -43,9 +44,12 @@ export const initOneSignal = async (): Promise<void> => {
             ],
           },
         },
-      });
+      } as any);
       
       console.log('OneSignal initialized successfully');
+      console.log('OneSignal permission:', OneSignal.Notifications?.permissionNative);
+      console.log('OneSignal subscribed:', OneSignal.User?.PushSubscription?.optedIn);
+      console.log('OneSignal subscription id:', OneSignal.User?.PushSubscription?.id ? 'exists' : 'none');
     } catch (error) {
       console.error('Failed to initialize OneSignal:', error);
     }
