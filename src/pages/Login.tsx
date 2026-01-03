@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,24 +16,14 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [splashAnimating, setSplashAnimating] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Start splash animation after 1.5 seconds
-    const timer = setTimeout(() => {
-      setSplashAnimating(true);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleSplashComplete = () => {
     setShowSplash(false);
     // Small delay before showing content for smooth transition
-    setTimeout(() => setShowContent(true), 100);
+    setTimeout(() => setShowContent(true), 50);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -80,10 +70,7 @@ const Login = () => {
   return (
     <>
       {showSplash && (
-        <SplashScreen 
-          isAnimating={splashAnimating} 
-          onAnimationComplete={handleSplashComplete} 
-        />
+        <SplashScreen onComplete={handleSplashComplete} />
       )}
       
       <div className={`min-h-screen gradient-bg flex flex-col items-center justify-center p-4 transition-opacity duration-500 ${
