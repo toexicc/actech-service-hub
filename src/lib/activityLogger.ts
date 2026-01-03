@@ -1,5 +1,6 @@
 // Activity Logger - logs all service updates to Google Sheets
 import { GOOGLE_SHEETS_SCRIPT_URL } from "./googleSheets";
+import { getManilaTimestamp } from "./timezone";
 
 export interface ActivityLog {
   logId?: string;
@@ -31,15 +32,7 @@ const processQueue = async () => {
 
 const sendLogToServer = async (log: Omit<ActivityLog, "logId" | "timestamp">) => {
   try {
-    const timestamp = new Date().toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true
-    });
+    const timestamp = getManilaTimestamp();
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -71,15 +64,7 @@ const sendLogToServer = async (log: Omit<ActivityLog, "logId" | "timestamp">) =>
 
 export const logActivity = async (log: Omit<ActivityLog, "logId" | "timestamp">) => {
   try {
-    const timestamp = new Date().toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true
-    });
+    const timestamp = getManilaTimestamp();
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);

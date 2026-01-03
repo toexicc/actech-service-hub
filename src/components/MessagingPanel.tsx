@@ -24,17 +24,25 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useMessaging } from '@/hooks/useMessaging';
-import { format, isToday, isYesterday, isSameDay } from 'date-fns';
+import { format, isToday, isYesterday, isSameDay, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
 import { setTypingStatus, clearTypingStatus, getTypingStatus, markGroupMessageRead, getGroupMessageReadReceipts, ReadReceipt } from '@/lib/notifications';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
+const TIMEZONE = 'Asia/Manila';
+
 const parseMessageDate = (value: string) => {
   if (!value) return new Date(0);
-  if (value.endsWith('Z')) return new Date(value.replace(/Z$/, ''));
-  return new Date(value);
+  try {
+    // Parse the ISO string and convert to Manila timezone
+    const date = parseISO(value);
+    return toZonedTime(date, TIMEZONE);
+  } catch {
+    return new Date(value);
+  }
 };
 
 const formatDateSeparator = (date: Date): string => {

@@ -1187,8 +1187,7 @@ function doPost(e) {
 
           if (pdfBlob) {
             var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
-            var tz = Session.getScriptTimeZone();
-            var ts = Utilities.formatDate(new Date(), tz, "MM-dd HH.mm");
+            var ts = Utilities.formatDate(new Date(), "Asia/Manila", "MM-dd HH.mm");
 
             var serviceId = sanitize(params["serviceId"]);
             var clientName = sanitize(params["Client Name"]);
@@ -1348,7 +1347,7 @@ function doPost(e) {
           var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
           var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
           var invData = inventorySheet.getDataRange().getValues();
-          var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+          var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "MM-dd-yyyy HH:mm:ss");
           
           // Build a map of part ID to quantities
           var existingMap = {};
@@ -1598,7 +1597,7 @@ function doPost(e) {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
     var data = inventorySheet.getDataRange().getValues();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "MM-dd-yyyy HH:mm:ss");
     var logId = "LOG" + Date.now();
     
     // Search for the part ID in column A (index 0)
@@ -1648,7 +1647,7 @@ function doPost(e) {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
     var data = inventorySheet.getDataRange().getValues();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "MM-dd-yyyy HH:mm:ss");
     var logId = "LOG" + Date.now();
     
     // Search for the part ID in column A (index 0)
@@ -1688,7 +1687,7 @@ function doPost(e) {
   if (params.action === 'addInventoryItem') {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "MM-dd-yyyy HH:mm:ss");
     // Use client-provided partId when available so it matches the QR code encoded on the frontend
     var partId = params.partId || ("PART" + Date.now());
     var logId = "LOG" + Date.now();
@@ -1741,7 +1740,7 @@ function doPost(e) {
     var inventorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Management");
     var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory Log");
     var data = inventorySheet.getDataRange().getValues();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MM-dd-yyyy HH:mm:ss");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "MM-dd-yyyy HH:mm:ss");
     var logId = "LOG" + Date.now();
     
     // Search for the part ID in column A (index 0)
@@ -2145,8 +2144,7 @@ function doPost(e) {
     }
     
     var notifId = "NOTIF" + Date.now();
-    // IMPORTANT: store real UTC ISO timestamp ("Z" means UTC). Don't format in local timezone with a "Z" suffix.
-    var timestamp = new Date().toISOString();
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     notifSheet.appendRow([
       notifId,
       params.userId,
@@ -2224,7 +2222,7 @@ function doPost(e) {
     }
     
     var closedId = "CD-" + Date.now();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     closedSheet.appendRow([
       closedId,
@@ -2255,7 +2253,7 @@ function doPost(e) {
     }
     
     var rowIndex = parseInt(params.rowIndex);
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     // Update columns B-F and I (Start Date, End Date, Type, Custom Type, Description, Last Updated)
     closedSheet.getRange(rowIndex, 2).setValue(params.startDate);
@@ -2301,7 +2299,7 @@ function doPost(e) {
     }
     
     var msgId = "MSG" + Date.now();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     msgSheet.appendRow([
       msgId,
@@ -2374,7 +2372,7 @@ function doPost(e) {
     }
     
     var groupId = "GRP" + Date.now();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     groupSheet.appendRow([
       groupId,
@@ -2415,7 +2413,7 @@ function doPost(e) {
     }
     
     var msgId = "MSG" + Date.now();
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     msgSheet.appendRow([
       msgId,
@@ -2519,7 +2517,7 @@ function doPost(e) {
     
     var data = typingSheet.getDataRange().getValues();
     var found = false;
-    var timestamp = new Date().toISOString();
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === params.userId && data[i][1] === params.conversationId) {
@@ -2579,7 +2577,7 @@ function doPost(e) {
     }
     
     var receiptId = "RR" + Date.now() + Math.random().toString(36).substr(2, 5);
-    var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     receiptsSheet.appendRow([
       receiptId,
@@ -2606,7 +2604,7 @@ function doPost(e) {
       }
 
       var partId = "FM" + Date.now();
-      var timestamp = new Date().toISOString();
+      var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
 
       // Use params (e.parameter) consistently
       fmSheet.appendRow([
@@ -2668,7 +2666,7 @@ function doPost(e) {
   if (action === 'updateFastMovingPartOrder') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var data = fmSheet.getDataRange().getValues();
-    var timestamp = new Date().toISOString();
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === e.parameter.partId) {
@@ -2694,7 +2692,7 @@ function doPost(e) {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
     var data = fmSheet.getDataRange().getValues();
-    var timestamp = new Date().toISOString();
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     var partName = e.parameter.partName; // kept for backwards compatibility (older clients send part name)
     var serviceId = e.parameter.serviceId;
@@ -2744,7 +2742,7 @@ function doPost(e) {
   if (action === 'updateFastMovingPart') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var data = fmSheet.getDataRange().getValues();
-    var timestamp = new Date().toISOString();
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
     
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === e.parameter.partId) {
@@ -2769,7 +2767,7 @@ function doPost(e) {
   if (action === 'cancelFastMovingPart') {
     var fmSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Fast Moving Inventory");
     var data = fmSheet.getDataRange().getValues();
-    var timestamp = new Date().toISOString();
+    var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
 
     // Robust header matching (handles extra spaces/typos like "Requsted By")
     var headers = fmSheet.getRange(1, 1, 1, fmSheet.getLastColumn()).getDisplayValues()[0] || [];
@@ -3238,7 +3236,7 @@ function sendManualStatusNotifications(serviceId, oldStatus, newStatus, clientNa
   // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
   
   var notifications = [];
-  var timestamp = new Date().toISOString();
+  var timestamp = Utilities.formatDate(new Date(), "Asia/Manila", "yyyy-MM-dd'T'HH:mm:ss'+08:00'");
   
   // Notify assigned admin
   if (messages.adminMessage && adminRep) {

@@ -12,52 +12,48 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useNotifications } from '@/hooks/useNotifications';
+import { formatManilaDate, displayDateTime } from '@/lib/timezone';
+import { parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'Asia/Manila';
+
 interface NotificationDropdownProps {
   userId: string | null;
   userRole?: string;
   onOpenMessaging?: (conversationId?: string) => void;
 }
 
-// Format date to local time - simple display without timezone suffix
+// Format date to Manila timezone
 const formatLocalTime = (dateString: string) => {
   try {
-    const date = new Date(dateString);
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return dateString;
-    }
-
-    return new Intl.DateTimeFormat(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(date);
+    return displayDateTime(dateString, 'MMM d, yyyy h:mm a');
   } catch {
     return dateString;
   }
 };
 
-// Get date key for grouping (YYYY-MM-DD)
+// Get date key for grouping (YYYY-MM-DD in Manila timezone)
 const getDateKey = (dateString: string) => {
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Unknown";
-    return date.toISOString().split('T')[0];
+    const date = parseISO(dateString);
+    const manilaDate = toZonedTime(date, TIMEZONE);
+    if (isNaN(manilaDate.getTime())) return "Unknown";
+    const year = manilaDate.getFullYear();
+    const month = String(manilaDate.getMonth() + 1).padStart(2, '0');
+    const day = String(manilaDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   } catch {
     return "Unknown";
   }
 };
 
-// Format date for divider display
+// Format date for divider display (in Manila timezone)
 const formatDateDivider = (dateKey: string) => {
   if (dateKey === "Unknown") return "Unknown Date";
   
-  const date = new Date(dateKey + "T00:00:00");
-  const today = new Date();
+  const date = new Date(dateKey + "T00:00:00+08:00"); // Manila timezone offset
+  const today = toZonedTime(new Date(), TIMEZONE);
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   
@@ -66,7 +62,7 @@ const formatDateDivider = (dateKey: string) => {
   } else if (date.toDateString() === yesterday.toDateString()) {
     return "Yesterday";
   } else {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
