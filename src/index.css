@@ -138,6 +138,11 @@
   .nav-item-active {
     @apply bg-sidebar-accent text-sidebar-foreground font-medium;
   }
+  
+  /* Splash Screen */
+  .splash-screen {
+    background-color: #1a1f4e;
+  }
 }
 
 @layer utilities {
