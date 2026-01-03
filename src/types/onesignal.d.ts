@@ -16,6 +16,7 @@ interface OneSignalNamespace {
     allowLocalhostAsSecureOrigin?: boolean;
     serviceWorkerParam?: { scope: string };
     serviceWorkerPath?: string;
+    serviceWorkerUpdaterPath?: string;
     notifyButton?: { enable: boolean };
     promptOptions?: {
       slidedown?: {

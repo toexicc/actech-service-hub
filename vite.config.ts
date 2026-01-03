@@ -18,7 +18,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       strategies: 'injectManifest',
       srcDir: 'src',
-      filename: 'sw.js',
+      // IMPORTANT: this must match the path OneSignal expects
+      filename: 'OneSignalSDKWorker.js',
       includeAssets: [
         'favicon.ico',
         'apple-touch-icon-180x180.png',
@@ -57,9 +58,7 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       injectManifest: {
-        // Output the ONE service worker that OneSignal is configured to use
-        swDest: 'OneSignalSDKWorker.js',
-        // Avoid ESM output (importScripts + some SW libs expect classic scripts)
+        // Avoid ESM output (importScripts expects classic scripts)
         rollupFormat: 'iife',
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
       }
