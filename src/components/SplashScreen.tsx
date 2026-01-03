@@ -1,33 +1,50 @@
-import acTechLogo from "@/assets/S_S_Marketing-2.png";
+import { useEffect, useState } from "react";
+import splashLogo from "@/assets/splash-logo.png";
 
 interface SplashScreenProps {
-  isAnimating: boolean;
-  onAnimationComplete: () => void;
+  onComplete: () => void;
 }
 
-const SplashScreen = ({ isAnimating, onAnimationComplete }: SplashScreenProps) => {
+const SplashScreen = ({ onComplete }: SplashScreenProps) => {
+  const [phase, setPhase] = useState<'visible' | 'shrinking' | 'hidden'>('visible');
+
+  useEffect(() => {
+    // Start shrink animation after 1.5 seconds
+    const shrinkTimer = setTimeout(() => {
+      setPhase('shrinking');
+    }, 1500);
+
+    // Complete and hide after animation
+    const hideTimer = setTimeout(() => {
+      setPhase('hidden');
+      onComplete();
+    }, 2200);
+
+    return () => {
+      clearTimeout(shrinkTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [onComplete]);
+
+  if (phase === 'hidden') return null;
+
   return (
     <div 
       className={`fixed inset-0 z-50 flex items-center justify-center bg-[#1a1f4e] transition-opacity duration-500 ${
-        isAnimating ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        phase === 'shrinking' ? 'opacity-0' : 'opacity-100'
       }`}
-      onTransitionEnd={() => {
-        if (isAnimating) {
-          onAnimationComplete();
-        }
-      }}
     >
       <div 
-        className={`transition-all duration-700 ease-out ${
-          isAnimating 
-            ? 'scale-[0.4] -translate-y-[calc(50vh-80px)] opacity-0' 
-            : 'scale-100 translate-y-0 opacity-100 animate-pulse-gentle'
+        className={`flex flex-col items-center transition-all duration-700 ease-out ${
+          phase === 'shrinking' 
+            ? 'scale-50 -translate-y-[40vh] opacity-0' 
+            : 'scale-100 translate-y-0 opacity-100'
         }`}
       >
         <img 
-          src={acTechLogo}
-          alt="AC Tech Repair"
-          className="h-32 w-32 object-contain rounded-2xl shadow-2xl"
+          src={splashLogo}
+          alt="AC Tech Service Hub" 
+          className={`w-64 h-auto object-contain ${phase === 'visible' ? 'animate-pulse-gentle' : ''}`}
         />
       </div>
     </div>
