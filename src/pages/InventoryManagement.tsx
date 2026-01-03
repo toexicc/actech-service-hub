@@ -1085,7 +1085,7 @@ const InventoryManagement = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-1 space-y-1">
+                          <div className="col-span-2 space-y-1">
                             <Label className="text-xs">Supplier</Label>
                             <Input
                               value={part.supplier}
@@ -1093,7 +1093,7 @@ const InventoryManagement = () => {
                               placeholder="Optional"
                             />
                           </div>
-                          <div className="col-span-1 space-y-1">
+                          <div className="col-span-2 space-y-1">
                             <Label className="text-xs">Color</Label>
                             <Input
                               value={part.color}
