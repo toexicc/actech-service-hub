@@ -1402,7 +1402,7 @@ const InventoryManagement = () => {
             <CardTitle>Filters & Search</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-5">
               <div className="space-y-2">
                 <Label>Search</Label>
                 <div className="relative">
