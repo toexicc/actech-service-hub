@@ -2156,6 +2156,18 @@ function doPost(e) {
       params.serviceId || ""
     ]);
     
+    // Send push notification via OneSignal
+    sendPushNotification(
+      params.userId,
+      params.title || 'ACTech Service Hub',
+      params.message,
+      {
+        type: params.type || 'notification',
+        serviceId: params.serviceId || '',
+        notificationId: notifId
+      }
+    );
+    
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       notificationId: notifId
@@ -2327,6 +2339,19 @@ function doPost(e) {
         ""
       ]);
     }
+    
+    // Send push notification to receiver via OneSignal
+    sendPushNotification(
+      params.receiverId,
+      'New message from ' + params.senderName,
+      params.content.substring(0, 100) + (params.content.length > 100 ? '...' : ''),
+      {
+        type: 'message',
+        senderId: params.senderId,
+        senderName: params.senderName,
+        messageId: msgId
+      }
+    );
     
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
@@ -3422,6 +3447,115 @@ function getStatusMessages(serviceId, newStatus, clientName, device) {
         adminMessage: 'Service ' + serviceId + ' status changed to "' + newStatus + '".',
         technicianMessage: 'Service ' + serviceId + ' status changed to "' + newStatus + '".'
       };
+  }
+}
+
+// ========== HELPER FUNCTIONS ==========
+
+// Get a value from the Keys sheet by key name
+function getKeyValue(keyName) {
+  var keysSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Keys');
+  if (!keysSheet) return null;
+  
+  var data = keysSheet.getDataRange().getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0] === keyName) {
+      return data[i][1];
+    }
+  }
+  return null;
+}
+
+// ========== ONESIGNAL PUSH NOTIFICATIONS ==========
+
+// Send a push notification via OneSignal
+// Requires ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY in Keys sheet
+function sendPushNotification(externalUserId, title, message, data) {
+  try {
+    var appId = getKeyValue('ONESIGNAL_APP_ID');
+    var restApiKey = getKeyValue('ONESIGNAL_REST_API_KEY');
+    
+    if (!appId || !restApiKey) {
+      console.log('OneSignal keys not configured in Keys sheet');
+      return false;
+    }
+    
+    var payload = {
+      app_id: appId,
+      include_aliases: { 
+        external_id: [externalUserId] 
+      },
+      target_channel: "push",
+      contents: { en: message },
+      headings: { en: title },
+      data: data || {},
+      url: 'https://YOUR_GITHUB_USERNAME.github.io/actech-service-hub/' // Replace with your URL
+    };
+
+    var options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 
+        'Authorization': 'Basic ' + restApiKey 
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    var response = UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', options);
+    var result = JSON.parse(response.getContentText());
+    
+    console.log('OneSignal response:', JSON.stringify(result));
+    
+    return result.id ? true : false;
+  } catch (error) {
+    console.error('Push notification error:', error);
+    return false;
+  }
+}
+
+// Send push notification to multiple users
+function sendPushNotificationToMany(externalUserIds, title, message, data) {
+  try {
+    var appId = getKeyValue('ONESIGNAL_APP_ID');
+    var restApiKey = getKeyValue('ONESIGNAL_REST_API_KEY');
+    
+    if (!appId || !restApiKey) {
+      console.log('OneSignal keys not configured in Keys sheet');
+      return false;
+    }
+    
+    var payload = {
+      app_id: appId,
+      include_aliases: { 
+        external_id: externalUserIds 
+      },
+      target_channel: "push",
+      contents: { en: message },
+      headings: { en: title },
+      data: data || {},
+      url: 'https://YOUR_GITHUB_USERNAME.github.io/actech-service-hub/' // Replace with your URL
+    };
+
+    var options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 
+        'Authorization': 'Basic ' + restApiKey 
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    var response = UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', options);
+    var result = JSON.parse(response.getContentText());
+    
+    console.log('OneSignal bulk response:', JSON.stringify(result));
+    
+    return result.id ? true : false;
+  } catch (error) {
+    console.error('Bulk push notification error:', error);
+    return false;
   }
 }
 
