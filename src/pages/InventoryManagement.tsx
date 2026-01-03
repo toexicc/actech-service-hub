@@ -996,7 +996,7 @@ const InventoryManagement = () => {
                     Batch Add Parts
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Batch Add Parts</DialogTitle>
                     <DialogDescription>Add multiple parts for the same device model</DialogDescription>
@@ -1045,8 +1045,8 @@ const InventoryManagement = () => {
                       </div>
                       
                       {batchParts.map((part, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-lg">
-                          <div className="col-span-3 space-y-1">
+                        <div key={index} className="grid grid-cols-[2fr_1fr_1fr_1.2fr_1.2fr_1fr_auto] gap-2 items-end p-3 border rounded-lg">
+                          <div className="space-y-1">
                             <Label className="text-xs">Part Name *</Label>
                             <Input
                               value={part.partName}
@@ -1054,7 +1054,7 @@ const InventoryManagement = () => {
                               placeholder="e.g., LCD Screen"
                             />
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label className="text-xs">Quantity *</Label>
                             <Input
                               type="number"
@@ -1063,7 +1063,7 @@ const InventoryManagement = () => {
                               placeholder="0"
                             />
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label className="text-xs">Cost per Unit *</Label>
                             <Input
                               value={part.costPerUnit}
@@ -1071,7 +1071,7 @@ const InventoryManagement = () => {
                               placeholder="₱0.00"
                             />
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label className="text-xs">Status *</Label>
                             <Select value={part.status} onValueChange={(v) => updateBatchPart(index, "status", v)}>
                               <SelectTrigger>
@@ -1085,7 +1085,7 @@ const InventoryManagement = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label className="text-xs">Supplier</Label>
                             <Input
                               value={part.supplier}
@@ -1093,7 +1093,7 @@ const InventoryManagement = () => {
                               placeholder="Optional"
                             />
                           </div>
-                          <div className="col-span-2 space-y-1">
+                          <div className="space-y-1">
                             <Label className="text-xs">Color</Label>
                             <Input
                               value={part.color}
@@ -1101,7 +1101,7 @@ const InventoryManagement = () => {
                               placeholder="Optional"
                             />
                           </div>
-                          <div className="col-span-1 flex items-center justify-center">
+                          <div className="flex items-center justify-center">
                             <Button
                               type="button"
                               variant="ghost"
