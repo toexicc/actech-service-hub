@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -402,12 +403,12 @@ const ServiceTracking = () => {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
-                  <p className="text-lg">{serviceData.timestamp || "N/A"}</p>
+                  <p className="text-lg">{serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
-                  <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
+                  <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
                 </div>
               </div>
 

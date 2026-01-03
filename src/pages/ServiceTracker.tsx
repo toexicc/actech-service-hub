@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, differenceInDays, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1137,7 +1138,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               </span>
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
-                           <TableCell>{service.timestamp || "N/A"}</TableCell>
+                           <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
                            <TableCell>
                              <div className="flex flex-col">
                                <span>{service.technician || "Unassigned"}</span>
@@ -1153,7 +1154,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                            <TableCell>{service.brand || "N/A"}</TableCell>
                            <TableCell>{service.device || "N/A"}</TableCell>
                            <TableCell className={overdueStatus ? "text-destructive font-semibold" : ""}>
-                             {service.targetDate || "N/A"}
+                             {service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "N/A"}
                            </TableCell>
                            <TableCell>
                              {isCompleted ? (
