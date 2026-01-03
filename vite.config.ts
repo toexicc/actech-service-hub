@@ -16,9 +16,6 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      strategies: 'injectManifest',
-      srcDir: 'src',
-      filename: 'onesignal-sw.ts',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'ACTech Service Hub',
@@ -49,11 +46,28 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      injectManifest: {
-        swDest: 'OneSignalSDKWorker.js',
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-      },
+        // Import OneSignal SDK into the generated service worker
+        importScripts: ['https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      }
     })
   ].filter(Boolean),
   resolve: {
