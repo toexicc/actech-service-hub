@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { CalendarOff, Search, Filter, Edit, Trash2, Plus, CalendarIcon, Loader2, RefreshCw } from "lucide-react";
+import { displayDate } from "@/lib/timezone";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -391,7 +392,7 @@ const ClosedDates = () => {
                         </TableCell>
                         <TableCell>{item.createdBy}</TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {item.createdAt ? format(new Date(item.createdAt), "MMM d, yyyy") : "-"}
+                          {item.createdAt ? displayDate(item.createdAt, "MMM d, yyyy") : "-"}
                         </TableCell>
                         {isManagement && (
                           <TableCell>
