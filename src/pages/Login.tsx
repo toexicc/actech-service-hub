@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search, Loader2, Wrench, Shield } from "lucide-react";
 import { findUser } from "@/lib/userCredentials";
 import { logAuthActivity } from "@/lib/activityLogger";
-import { setOneSignalExternalUserId, promptForPushPermission } from "@/lib/onesignal";
+import { setupPushNotificationsForUser } from "@/lib/onesignal";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import SplashScreen from "@/components/SplashScreen";
 
@@ -54,13 +54,10 @@ const Login = () => {
         // Log successful login
         logAuthActivity(user.username, `User logged in successfully`, user.role);
         
-        // Set OneSignal external user ID for targeted push notifications
-        setOneSignalExternalUserId(user.staffId);
-        
-        // Prompt for push notification permission after login
+        // Setup push notifications for this user (prompts permission and sets user ID)
         setTimeout(() => {
-          promptForPushPermission();
-        }, 2000);
+          setupPushNotificationsForUser(user.staffId);
+        }, 1500);
         
         // All users go to /menu
         navigate("/menu");
