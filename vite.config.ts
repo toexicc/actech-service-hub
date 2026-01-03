@@ -6,7 +6,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/actech-service-hub/' : '/',
+  base: '/',
   server: {
     host: "::",
     port: 8080,
@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => ({
         background_color: '#1a1f4e',
         display: 'standalone',
         orientation: 'portrait',
-        scope: mode === 'production' ? '/actech-service-hub/' : '/',
-        start_url: mode === 'production' ? '/actech-service-hub/' : '/',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
