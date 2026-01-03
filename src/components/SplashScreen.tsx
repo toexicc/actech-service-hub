@@ -21,12 +21,12 @@ const SplashScreen = ({ isAnimating, onAnimationComplete }: SplashScreenProps) =
         className={`transition-all duration-700 ease-out ${
           isAnimating 
             ? 'scale-[0.4] -translate-y-[calc(50vh-80px)] opacity-0' 
-            : 'scale-100 translate-y-0 opacity-100'
+            : 'scale-100 translate-y-0 opacity-100 animate-pulse-gentle'
         }`}
       >
         <img 
           src={acTechLogo}
-          alt="AC Tech Repair" 
+          alt="AC Tech Repair"
           className="h-32 w-32 object-contain rounded-2xl shadow-2xl"
         />
       </div>
