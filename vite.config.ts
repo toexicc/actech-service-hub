@@ -16,11 +16,21 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      includeAssets: [
+        'favicon.ico',
+        'apple-touch-icon-180x180.png',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
+        'OneSignalSDKUpdaterWorker.js'
+      ],
       manifest: {
         name: 'ACTech Service Hub',
         short_name: 'ACTech Service Hub',
-        description: 'AC Tech Repair internal service management portal for tracking client device repairs and service requests',
+        description:
+          'AC Tech Repair internal service management portal for tracking client device repairs and service requests',
         theme_color: '#1a1f4e',
         background_color: '#1a1f4e',
         display: 'standalone',
@@ -46,27 +56,12 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        // Import OneSignal SDK into the generated service worker
-        importScripts: ['https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
+      injectManifest: {
+        // Output the ONE service worker that OneSignal is configured to use
+        swDest: 'OneSignalSDKWorker.js',
+        // Avoid ESM output (importScripts + some SW libs expect classic scripts)
+        rollupFormat: 'iife',
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
       }
     })
   ].filter(Boolean),
