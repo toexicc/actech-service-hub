@@ -1,5 +1,5 @@
 // OneSignal App ID - This is a public identifier, safe to include in frontend code
-const ONESIGNAL_APP_ID = "YOUR_ONESIGNAL_APP_ID"; // Replace with your actual App ID
+const ONESIGNAL_APP_ID = "0ba186cc-b8d9-4573-83f1-cc2ea6b9e841";
 
 export const initOneSignal = async (): Promise<void> => {
   // Skip initialization if not in browser
