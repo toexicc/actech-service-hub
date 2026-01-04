@@ -38,9 +38,18 @@ export const initOneSignal = async (): Promise<void> => {
   if (typeof window === "undefined") return;
 
   // Only init OneSignal on production domain to avoid errors on preview/localhost
-  const isProduction = window.location.hostname === "www.actechrepair-service.com";
+  const isProduction =
+    window.location.hostname === "www.actechrepair-service.com" ||
+    window.location.hostname === "actechrepair-service.com";
   if (!isProduction) {
     console.log("OneSignal: Skipping init on non-production origin");
+    return;
+  }
+
+  // iOS/macOS Safari has recurring white-screen crashes with the OneSignal web SDK.
+  // We disable OneSignal entirely on Safari for stability.
+  if (document.documentElement?.dataset?.browser === "safari") {
+    console.log("OneSignal: Disabled on Safari for stability");
     return;
   }
 
@@ -61,7 +70,8 @@ export const initOneSignal = async (): Promise<void> => {
         serviceWorkerPath: "OneSignalSDKWorker.js",
         serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
 
-        notifyButton: { enable: true },
+        // Disable the OneSignal in-app bell/button so it doesn't overlay the PWA UI.
+        notifyButton: { enable: false },
         promptOptions: {
           slidedown: {
             prompts: [
@@ -169,6 +179,9 @@ export const checkSubscriptionStatus = async (): Promise<boolean> => {
 // Combined function to handle the full push notification setup after login
 export const setupPushNotificationsForUser = async (userId: string): Promise<void> => {
   if (typeof window === "undefined") return;
+
+  // Safari stability: skip completely.
+  if (document.documentElement?.dataset?.browser === "safari") return;
 
   // Ensure init was queued (safe if already queued)
   await initOneSignal();
