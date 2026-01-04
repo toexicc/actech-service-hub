@@ -1,4 +1,5 @@
 import { GOOGLE_SHEETS_SCRIPT_URL } from './googleSheets';
+import { sendPushNotification } from './pushNotificationSender';
 
 export interface Notification {
   id: string;
@@ -83,6 +84,14 @@ export const createNotification = async (
   notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
 ): Promise<boolean> => {
   try {
+    // Send push notification in parallel (fire-and-forget for background delivery)
+    sendPushNotification({
+      userId: notification.userId,
+      title: notification.title,
+      message: notification.message,
+      data: notification.serviceId ? { serviceId: notification.serviceId } : undefined,
+    }).catch((err) => console.error('Push notification error:', err));
+
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
       body: new URLSearchParams({
