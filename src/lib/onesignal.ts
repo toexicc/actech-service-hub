@@ -34,9 +34,23 @@ export const initOneSignal = async (): Promise<void> => {
 
   withOneSignal(async (OneSignal) => {
     try {
+      const isLocalhost =
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         safari_web_id: "web.onesignal.auto.2e77cfdc-f6e8-4572-82d4-363b6713f2bc",
+
+        // Critical: ensure OneSignal SW is registered at the correct location/scope.
+        // If this is wrong, notifications will only appear while the app is open.
+        serviceWorkerParam: { scope: "/" },
+        serviceWorkerPath: "/OneSignalSDKWorker.js",
+        serviceWorkerUpdaterPath: "/OneSignalSDKUpdaterWorker.js",
+
+        // Helpful for local testing only (doesn't affect production).
+        allowLocalhostAsSecureOrigin: isLocalhost,
+
         notifyButton: { enable: true },
         promptOptions: {
           slidedown: {
@@ -57,6 +71,14 @@ export const initOneSignal = async (): Promise<void> => {
       } as any);
 
       console.log("OneSignal initialized successfully");
+
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        console.log(
+          "[OneSignal] SW registrations:",
+          regs.map((r) => ({ scope: r.scope, active: r.active?.scriptURL })),
+        );
+      }
     } catch (error) {
       console.error("Failed to initialize OneSignal:", error);
     }
