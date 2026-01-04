@@ -114,31 +114,41 @@
   }
 }
 
+/* Safari (esp iOS) can occasionally white-screen with backdrop-filter + fixed/sticky layers.
+   We disable backdrop-filter in Safari only as a stability workaround. */
+:root[data-browser="safari"] .backdrop-blur,
+:root[data-browser="safari"] .backdrop-blur-sm,
+:root[data-browser="safari"] .backdrop-blur-md,
+:root[data-browser="safari"] .backdrop-blur-lg {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 @layer components {
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg;
   }
-  
+
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
   }
-  
+
   .gradient-bg {
     background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 20% 94%) 100%);
   }
-  
+
   .stat-card {
     @apply bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:shadow-md transition-all duration-200;
   }
-  
+
   .nav-item {
     @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200;
   }
-  
+
   .nav-item-active {
     @apply bg-sidebar-accent text-sidebar-foreground font-medium;
   }
-  
+
   /* Splash Screen */
   .splash-screen {
     background-color: #1a1f4e;
