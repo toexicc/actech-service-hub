@@ -8,8 +8,15 @@ async function cleanupLegacyPwaServiceWorker() {
 
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
-    const legacyRegs = regs.filter((r) => r.active?.scriptURL?.includes("/sw.js"));
 
+    const isLegacySw = (r: ServiceWorkerRegistration) => {
+      const urls = [r.active?.scriptURL, r.waiting?.scriptURL, r.installing?.scriptURL].filter(
+        Boolean,
+      ) as string[];
+      return urls.some((u) => u.includes("/sw.js"));
+    };
+
+    const legacyRegs = regs.filter(isLegacySw);
     if (legacyRegs.length === 0) return;
 
     await Promise.all(legacyRegs.map((r) => r.unregister()));
