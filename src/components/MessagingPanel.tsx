@@ -34,14 +34,28 @@ import { Badge } from '@/components/ui/badge';
 
 const TIMEZONE = 'Asia/Manila';
 
-const parseMessageDate = (value: string) => {
+const parseMessageDate = (value: string): Date => {
   if (!value) return new Date(0);
   try {
     // Parse the ISO string and convert to Manila timezone
     const date = parseISO(value);
+    // Validate the date - if invalid, return epoch
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date value in MessagingPanel:', value);
+      return new Date(0);
+    }
     return toZonedTime(date, TIMEZONE);
   } catch {
-    return new Date(value);
+    // Fallback with validation
+    try {
+      const fallbackDate = new Date(value);
+      if (isNaN(fallbackDate.getTime())) {
+        return new Date(0);
+      }
+      return fallbackDate;
+    } catch {
+      return new Date(0);
+    }
   }
 };
 
