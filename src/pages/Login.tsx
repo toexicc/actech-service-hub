@@ -54,8 +54,11 @@ const Login = () => {
         logAuthActivity(user.username, `User logged in successfully`, user.role);
         
         // Setup push notifications for this user (prompts permission and sets user ID)
+        // Safari stability: OneSignal web SDK can cause white screens, so we skip it.
         setTimeout(() => {
-          setupPushNotificationsForUser(user.staffId);
+          if (document.documentElement?.dataset?.browser !== "safari") {
+            setupPushNotificationsForUser(user.staffId);
+          }
         }, 1500);
         
         // All users go to /menu
