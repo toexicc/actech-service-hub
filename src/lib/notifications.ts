@@ -85,12 +85,17 @@ export const createNotification = async (
 ): Promise<boolean> => {
   try {
     // Send push notification in parallel (fire-and-forget for background delivery)
-    sendPushNotification({
-      userId: notification.userId,
-      title: notification.title,
-      message: notification.message,
-      data: notification.serviceId ? { serviceId: notification.serviceId } : undefined,
-    }).catch((err) => console.error('Push notification error:', err));
+    // This is wrapped in try-catch so failures don't affect the main notification flow
+    try {
+      sendPushNotification({
+        userId: notification.userId,
+        title: notification.title,
+        message: notification.message,
+        data: notification.serviceId ? { serviceId: notification.serviceId } : undefined,
+      });
+    } catch {
+      // Silently ignore push failures
+    }
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',

@@ -3,6 +3,14 @@
 
 const SUPABASE_URL = "https://ulzxolpefyutprfpfrxp.supabase.co";
 
+// Check if push notifications via edge function are available
+// (Only works on production with Cloud enabled)
+const isPushEnabled = (): boolean => {
+  if (typeof window === "undefined") return false;
+  // Only attempt push on production domain
+  return window.location.hostname === "www.actechrepair-service.com";
+};
+
 interface PushNotificationPayload {
   userId: string;
   title: string;
@@ -12,26 +20,35 @@ interface PushNotificationPayload {
 }
 
 export const sendPushNotification = async (payload: PushNotificationPayload): Promise<boolean> => {
+  // Skip if not on production (edge function won't exist)
+  if (!isPushEnabled()) {
+    return false;
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Push notification failed:", errorData);
+      // Silently fail - don't break the app
       return false;
     }
 
     const result = await response.json();
-    console.log("Push notification sent:", result);
     return result.success === true;
-  } catch (error) {
-    console.error("Error sending push notification:", error);
+  } catch {
+    // Silently fail - network errors shouldn't crash the app
     return false;
   }
 };

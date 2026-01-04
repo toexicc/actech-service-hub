@@ -27,6 +27,13 @@ const withOneSignal = (cb: (OneSignal: any) => void | Promise<void>) => {
 export const initOneSignal = async (): Promise<void> => {
   if (typeof window === "undefined") return;
 
+  // Only init OneSignal on production domain to avoid errors on preview/localhost
+  const isProduction = window.location.hostname === "www.actechrepair-service.com";
+  if (!isProduction) {
+    console.log("OneSignal: Skipping init on non-production origin");
+    return;
+  }
+
   // Important: do NOT bail just because window.OneSignal exists.
   // In v16 the SDK can define globals before init completes.
   if (initQueued) return;
@@ -34,23 +41,15 @@ export const initOneSignal = async (): Promise<void> => {
 
   withOneSignal(async (OneSignal) => {
     try {
-      const isLocalhost =
-        typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         safari_web_id: "web.onesignal.auto.2e77cfdc-f6e8-4572-82d4-363b6713f2bc",
 
         // Critical: ensure OneSignal SW is registered at the correct location/scope.
-        // If this is wrong, notifications will only appear while the app is open.
         // Paths must be relative (no leading slash) to avoid origin mismatch errors.
         serviceWorkerParam: { scope: "/" },
         serviceWorkerPath: "OneSignalSDKWorker.js",
         serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
-
-        // Helpful for local testing only (doesn't affect production).
-        allowLocalhostAsSecureOrigin: isLocalhost,
 
         notifyButton: { enable: true },
         promptOptions: {
