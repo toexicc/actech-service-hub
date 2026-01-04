@@ -30,10 +30,11 @@ const fetchFastMovingParts = async (): Promise<FastMovingPart[]> => {
   throw new Error("Failed to load fast moving parts");
 };
 
-export const useFastMovingParts = () => {
+export const useFastMovingParts = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ["fastMovingParts"],
     queryFn: fetchFastMovingParts,
+    enabled,
     staleTime: 1 * 60 * 1000, // 1 minute - parts change frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
   });

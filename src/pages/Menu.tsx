@@ -77,9 +77,9 @@ const Menu = () => {
 
   // Use React Query hooks for cached data
   const { data: allServices = [], isLoading: isServicesLoading } = useServices();
-  const { data: fastMovingParts = [], isLoading: isPartsLoading } = useFastMovingParts();
-  const { data: inventoryItems = [], isLoading: isInventoryLoading } = useInventory();
-  const { data: inquiriesData = [], isLoading: isInquiriesLoading } = useClientInquiriesData();
+  const { data: fastMovingParts = [], isLoading: isPartsLoading } = useFastMovingParts(isManagement);
+  const { data: inventoryItems = [], isLoading: isInventoryLoading } = useInventory(isManagement);
+  const { data: inquiriesData = [], isLoading: isInquiriesLoading } = useClientInquiriesData(!isTechnician);
 
   const isLoading = isServicesLoading || (isManagement && (isPartsLoading || isInventoryLoading)) || (!isTechnician && isInquiriesLoading);
 
