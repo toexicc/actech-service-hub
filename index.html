@@ -26,13 +26,15 @@
     <!-- GitHub Pages SPA Redirect Script -->
     <script type="text/javascript">
       (function(l) {
-        if (l.search[1] === '/' ) {
+        if (l.search[1] === '/') {
           var decoded = l.search.slice(1).split('&').map(function(s) { 
             return s.replace(/~and~/g, '&')
           }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
+          var path = l.pathname;
+          if (path.length > 1 && path.endsWith('/')) {
+            path = path.slice(0, -1);
+          }
+          window.history.replaceState(null, null, path + decoded + l.hash);
         }
       }(window.location))
     </script>
