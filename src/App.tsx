@@ -4,8 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import BrowserFlags from "@/components/BrowserFlags";
-
 import Login from "./pages/Login";
 import Menu from "./pages/Menu";
 import ServiceForm from "./pages/ServiceForm";
@@ -44,7 +42,6 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserFlags />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
