@@ -142,7 +142,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   if (isMobile) return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between px-4 border-b bg-background">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -190,7 +190,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       <main className={cn("flex flex-col flex-1 h-screen min-w-0", collapsed ? "ml-20" : "ml-64")}>
-        <header className="sticky top-0 z-50 flex h-14 w-full shrink-0 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur">
+        <header className="sticky top-0 z-50 flex h-14 w-full shrink-0 items-center justify-end gap-2 px-6 border-b bg-background">
           <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </header>
