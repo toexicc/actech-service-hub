@@ -17,14 +17,13 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [showContent, setShowContent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSplashComplete = () => {
+    // Render the login UI immediately; the splash already covers it.
+    // Avoids iOS Safari edge-cases where a delayed state update can leave a blank screen.
     setShowSplash(false);
-    // Small delay before showing content for smooth transition
-    setTimeout(() => setShowContent(true), 50);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -79,17 +78,13 @@ const Login = () => {
         <SplashScreen onComplete={handleSplashComplete} />
       )}
       
-      <div className={`h-screen gradient-bg flex flex-col items-center justify-center p-4 py-6 sm:py-4 transition-opacity duration-500 ${
-        showContent ? 'opacity-100' : 'opacity-0'
-      }`}>
+      <div className="min-h-screen min-h-[100dvh] gradient-bg flex flex-col items-center justify-center p-4 py-6 sm:py-4 relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
         
         <div className="w-full max-w-md relative z-10">
           {/* Logo and Title */}
-          <div className={`text-center mb-4 sm:mb-8 transition-all duration-700 delay-100 ${
-            showContent ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
-          }`}>
+          <div className="text-center mb-4 sm:mb-8">
             <div className="flex justify-center mb-2 sm:mb-4">
               <div className="p-3 sm:p-4 rounded-2xl bg-card shadow-lg border border-border/50">
                 <img 
@@ -104,9 +99,7 @@ const Login = () => {
           </div>
 
           {/* Login Card */}
-          <Card className={`shadow-xl border-border/50 bg-card/80 backdrop-blur-sm transition-all duration-700 delay-200 ${
-            showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-          }`}>
+          <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
             <CardHeader className="space-y-1 pb-2 sm:pb-4">
               <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
@@ -174,9 +167,7 @@ const Login = () => {
           </Card>
 
           {/* Features */}
-          <div className={`mt-4 sm:mt-8 grid grid-cols-3 gap-2 sm:gap-4 transition-all duration-700 delay-300 ${
-            showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-          }`}>
+          <div className="mt-4 sm:mt-8 grid grid-cols-3 gap-2 sm:gap-4">
             <div className="text-center p-2 sm:p-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-1 sm:mb-2">
                 <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
@@ -198,9 +189,7 @@ const Login = () => {
           </div>
         </div>
         
-        <footer className={`mt-4 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground relative z-10 transition-all duration-700 delay-400 ${
-          showContent ? 'opacity-100' : 'opacity-0'
-        }`}>
+        <footer className="mt-4 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground relative z-10">
           Powered by Stack&Scale
         </footer>
       </div>
