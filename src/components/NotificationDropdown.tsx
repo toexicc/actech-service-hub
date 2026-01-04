@@ -99,7 +99,8 @@ const groupNotificationsByDate = (notifications: any[]) => {
 
 export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: NotificationDropdownProps) => {
   const navigate = useNavigate();
-  const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications(userId);
+  const [isOpen, setIsOpen] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications(userId, isOpen);
   const [activeTab, setActiveTab] = useState<'services' | 'messages' | 'others'>('services');
   const [showPreview, setShowPreview] = useState(false);
   const [previewNotification, setPreviewNotification] = useState<typeof notifications[0] | null>(null);
@@ -247,7 +248,7 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
         </div>
       )}
 
-      <DropdownMenu>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />

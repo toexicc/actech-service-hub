@@ -79,17 +79,18 @@ const cleanNotificationMessage = (message: string): string => {
   return message;
 };
 
-export const useNotifications = (userId: string | null) => {
+export const useNotifications = (userId: string | null, enabled: boolean = true) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const previousNotificationIds = useRef<Set<string>>(new Set());
   const hasShownInitialNotifications = useRef(false);
 
-  // Request permission on mount
+  // Request permission only when enabled (iOS requires user gesture)
   useEffect(() => {
+    if (!enabled) return;
     requestNotificationPermission();
-  }, []);
+  }, [enabled]);
 
   const loadNotifications = useCallback(async () => {
     if (!userId) return;
@@ -152,11 +153,16 @@ export const useNotifications = (userId: string | null) => {
   }, [userId]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     loadNotifications();
     // Poll every 30 seconds
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
-  }, [loadNotifications]);
+  }, [enabled, loadNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     const success = await markNotificationRead(notificationId);

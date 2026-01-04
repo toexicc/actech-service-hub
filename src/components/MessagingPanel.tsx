@@ -90,8 +90,8 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
     getConversations, 
     getGroupConversations,
     refresh 
-  } = useMessaging(userId, username);
-  
+  } = useMessaging(userId, username, isSheetOpen);
+
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -121,6 +121,8 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
   }), []);
 
   useEffect(() => {
+    if (!isSheetOpen) return;
+
     const fetchStaff = async () => {
       try {
         const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -132,7 +134,7 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
       }
     };
     fetchStaff();
-  }, [userId, username]);
+  }, [isSheetOpen, userId, username]);
 
   const findStaffById = (id: string) => 
     staffList.find(s => s.staffId === id || s.username === id);

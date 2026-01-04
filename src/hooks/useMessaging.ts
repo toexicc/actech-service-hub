@@ -21,7 +21,11 @@ const parseMessageDate = (value: string): Date => {
   return parsed;
 };
 
-export const useMessaging = (userId: string | null, username?: string | null) => {
+export const useMessaging = (
+  userId: string | null,
+  username?: string | null,
+  enabled: boolean = true,
+) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
   const [groupMessages, setGroupMessages] = useState<Record<string, Message[]>>({});
@@ -104,6 +108,11 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
   }, [userId]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     loadMessages();
     loadGroupChats();
     // Poll every 15 seconds for messages
@@ -112,7 +121,7 @@ export const useMessaging = (userId: string | null, username?: string | null) =>
       loadGroupChats();
     }, 15000);
     return () => clearInterval(interval);
-  }, [loadMessages, loadGroupChats]);
+  }, [enabled, loadMessages, loadGroupChats]);
 
   const sendMessage = async (receiverId: string, receiverName: string, senderName: string, content: string) => {
     if (!userId) return false;
