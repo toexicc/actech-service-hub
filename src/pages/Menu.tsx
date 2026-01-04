@@ -83,12 +83,17 @@ const Menu = () => {
 
   const isLoading = isServicesLoading || (isManagement && (isPartsLoading || isInventoryLoading)) || (!isTechnician && isInquiriesLoading);
 
-  // Dynamic clock
+  // Dynamic clock - use longer interval to reduce iOS Safari issues
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
+    let mounted = true;
+    const tick = () => {
+      if (mounted) setCurrentTime(new Date());
+    };
+    const timer = setInterval(tick, 1000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -97,69 +102,84 @@ const Menu = () => {
     }
   }, [navigate]);
 
-  // Compute stats from cached data
+  // Compute stats from cached data - wrapped in try-catch for iOS safety
   const { stats, servicesDueToday, servicesOverdue } = useMemo(() => {
-    const today = startOfDay(new Date());
-    
-    // Filter services based on role
-    let services = isTechnician 
-      ? allServices.filter((s: any) => s.technician === userFullName)
-      : allServices;
+    try {
+      const today = startOfDay(new Date());
 
-    const ongoing = services.filter((s: any) => {
-      const status = s.status?.toLowerCase() || "";
-      return !status.includes("completed") && !status.includes("cancelled");
-    }).length;
+      // Filter services based on role
+      const services = isTechnician
+        ? allServices.filter((s: any) => s.technician === userFullName)
+        : allServices;
 
-    // Services due today
-    const dueToday = services.filter((s: any) => {
-      const status = s.status?.toLowerCase() || "";
-      if (status.includes("completed") || status.includes("cancelled")) return false;
-      if (!s.targetDate) return false;
-      const parts = s.targetDate.split(/[-/]/);
-      if (parts.length !== 3) return false;
-      const [month, day, year] = parts;
-      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      target.setHours(0, 0, 0, 0);
-      return isSameDay(target, today);
-    });
+      const ongoing = services.filter((s: any) => {
+        const status = s.status?.toLowerCase() || "";
+        return !status.includes("completed") && !status.includes("cancelled");
+      }).length;
 
-    // Overdue services
-    const overdue = services.filter((s: any) => {
-      const status = s.status?.toLowerCase() || "";
-      if (status.includes("completed") || status.includes("cancelled")) return false;
-      if (!s.targetDate) return false;
-      const parts = s.targetDate.split(/[-/]/);
-      if (parts.length !== 3) return false;
-      const [month, day, year] = parts;
-      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      target.setHours(0, 0, 0, 0);
-      return isBefore(target, today);
-    });
+      // Helper to safely parse target date
+      const parseTarget = (targetDate: string | undefined) => {
+        if (!targetDate) return null;
+        const parts = targetDate.split(/[-/]/);
+        if (parts.length !== 3) return null;
+        const [month, day, year] = parts;
+        const m = parseInt(month, 10);
+        const d = parseInt(day, 10);
+        const y = parseInt(year, 10);
+        if (isNaN(m) || isNaN(d) || isNaN(y)) return null;
+        const date = new Date(y, m - 1, d);
+        date.setHours(0, 0, 0, 0);
+        return date;
+      };
 
-    const completed = services.filter((s: any) => {
-      const status = s.status?.toLowerCase() || "";
-      return status.includes("completed");
-    }).length;
+      // Services due today
+      const dueToday = services.filter((s: any) => {
+        const status = s.status?.toLowerCase() || "";
+        if (status.includes("completed") || status.includes("cancelled")) return false;
+        const target = parseTarget(s.targetDate);
+        return target && isSameDay(target, today);
+      });
 
-    // Pending inquiries
-    const pendingInquiries = !isTechnician && Array.isArray(inquiriesData)
-      ? (inquiriesData as any[]).filter((inquiry: any) => {
-          const modeOfTransfer = (inquiry.modeOfTransfer || "").trim().toUpperCase();
-          return modeOfTransfer === "TBD" || modeOfTransfer === "";
-        }).length
-      : 0;
+      // Overdue services
+      const overdue = services.filter((s: any) => {
+        const status = s.status?.toLowerCase() || "";
+        if (status.includes("completed") || status.includes("cancelled")) return false;
+        const target = parseTarget(s.targetDate);
+        return target && isBefore(target, today);
+      });
 
-    return {
-      stats: {
-        pendingInquiries,
-        ongoingServices: ongoing,
-        overdueServices: overdue.length,
-        completedServices: completed,
-      },
-      servicesDueToday: dueToday.slice(0, 5),
-      servicesOverdue: overdue.slice(0, 5),
-    };
+      const completed = services.filter((s: any) => {
+        const status = s.status?.toLowerCase() || "";
+        return status.includes("completed");
+      }).length;
+
+      // Pending inquiries
+      const pendingInquiries =
+        !isTechnician && Array.isArray(inquiriesData)
+          ? (inquiriesData as any[]).filter((inquiry: any) => {
+              const modeOfTransfer = (inquiry.modeOfTransfer || "").trim().toUpperCase();
+              return modeOfTransfer === "TBD" || modeOfTransfer === "";
+            }).length
+          : 0;
+
+      return {
+        stats: {
+          pendingInquiries,
+          ongoingServices: ongoing,
+          overdueServices: overdue.length,
+          completedServices: completed,
+        },
+        servicesDueToday: dueToday.slice(0, 5),
+        servicesOverdue: overdue.slice(0, 5),
+      };
+    } catch (e) {
+      console.error("Menu stats computation error:", e);
+      return {
+        stats: { pendingInquiries: 0, ongoingServices: 0, overdueServices: 0, completedServices: 0 },
+        servicesDueToday: [],
+        servicesOverdue: [],
+      };
+    }
   }, [allServices, inquiriesData, isTechnician, userFullName]);
 
   // Parts for ordering (management only)

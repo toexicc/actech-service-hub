@@ -20,8 +20,18 @@ const ensureDeferredQueue = () => {
  */
 const withOneSignal = (cb: (OneSignal: any) => void | Promise<void>) => {
   if (typeof window === "undefined") return;
-  ensureDeferredQueue();
-  window.OneSignalDeferred!.push(cb);
+  // Skip entirely on non-production to prevent any SDK issues
+  const isProduction =
+    window.location.hostname === "www.actechrepair-service.com" ||
+    window.location.hostname === "actechrepair-service.com";
+  if (!isProduction) return;
+
+  try {
+    ensureDeferredQueue();
+    window.OneSignalDeferred!.push(cb);
+  } catch (e) {
+    console.warn("OneSignal deferred queue error:", e);
+  }
 };
 
 export const initOneSignal = async (): Promise<void> => {
