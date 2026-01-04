@@ -38,9 +38,11 @@ export const initOneSignal = async (): Promise<void> => {
   if (typeof window === "undefined") return;
 
   // Only init OneSignal on production domain to avoid errors on preview/localhost
-  const isProduction = window.location.hostname === "www.actechrepair-service.com";
+  const isProduction =
+    window.location.hostname === "www.actechrepair-service.com" ||
+    window.location.hostname === "actechrepair-service.com";
   if (!isProduction) {
-    console.log("OneSignal: Skipping init on non-production origin");
+    console.log("OneSignal: Skipping init on non-production origin:", window.location.hostname);
     return;
   }
 
