@@ -44,9 +44,9 @@ export const initOneSignal = async (): Promise<void> => {
 
         // Critical: ensure OneSignal SW is registered at the correct location/scope.
         // If this is wrong, notifications will only appear while the app is open.
-        // Use the v16 SW file served from the site root.
+        // Paths must be relative (no leading slash) to avoid origin mismatch errors.
         serviceWorkerParam: { scope: "/" },
-        serviceWorkerPath: "OneSignalSDK.sw.js",
+        serviceWorkerPath: "OneSignalSDKWorker.js",
         serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
 
         // Helpful for local testing only (doesn't affect production).
