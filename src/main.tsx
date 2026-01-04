@@ -32,7 +32,43 @@ async function cleanupLegacyPwaServiceWorker() {
   }
 }
 
+const GLOBAL_ERROR_KEY = "actech:last_global_error";
+
+function installGlobalErrorHandlers() {
+  if (typeof window === "undefined") return;
+
+  const store = (kind: "error" | "unhandledrejection", err: unknown) => {
+    try {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : JSON.stringify(err);
+
+      const payload = {
+        kind,
+        message,
+        href: window.location.href,
+        ua: navigator.userAgent,
+        at: new Date().toISOString(),
+      };
+
+      localStorage.setItem(GLOBAL_ERROR_KEY, JSON.stringify(payload));
+      // Keep logs for remote debugging (esp. iOS Safari)
+      console.error("[GlobalError]", payload);
+    } catch {
+      // ignore
+    }
+  };
+
+  window.addEventListener("error", (e) => store("error", e.error ?? e.message));
+  window.addEventListener("unhandledrejection", (e) => store("unhandledrejection", e.reason));
+}
+
 (async () => {
+  installGlobalErrorHandlers();
+
   // If a legacy PWA service worker was previously installed, unregister it.
   // This prevents the browser from repeatedly requesting /sw.js (now removed).
   await cleanupLegacyPwaServiceWorker();
