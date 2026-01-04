@@ -27,6 +27,16 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    let lastGlobalError: { kind?: string; message?: string; at?: string; href?: string } | null = null;
+    try {
+      const raw = localStorage.getItem("actech:last_global_error");
+      lastGlobalError = raw ? JSON.parse(raw) : null;
+    } catch {
+      // ignore
+    }
+
+    const details = this.state.error?.message || lastGlobalError?.message;
+
     return (
       <main className="min-h-screen bg-background text-foreground p-6 flex items-center justify-center">
         <Card className="max-w-lg w-full">
@@ -36,7 +46,7 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               The app hit an unexpected error. Try reloading. If it keeps happening on iPhone/iPad,
-              we can use the console error output to pinpoint the exact cause.
+              the error details below will help pinpoint the exact cause.
             </p>
             <div className="flex gap-2">
               <Button onClick={() => window.location.reload()}>Reload</Button>
@@ -47,9 +57,12 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
                 Try again
               </Button>
             </div>
-            {this.state.error?.message ? (
-              <pre className="text-xs whitespace-pre-wrap rounded-md border border-border bg-muted/30 p-3 overflow-auto max-h-48">
-                {this.state.error.message}
+            {details ? (
+              <pre className="text-xs whitespace-pre-wrap rounded-md border border-border bg-muted/30 p-3 overflow-auto max-h-56">
+                {details}
+                {lastGlobalError?.at ? `\n\nTime: ${lastGlobalError.at}` : ""}
+                {lastGlobalError?.href ? `\nURL: ${lastGlobalError.href}` : ""}
+                {lastGlobalError?.kind ? `\nType: ${lastGlobalError.kind}` : ""}
               </pre>
             ) : null}
           </CardContent>
