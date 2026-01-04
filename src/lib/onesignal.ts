@@ -36,8 +36,8 @@ export const initOneSignal = async (): Promise<void> => {
     try {
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
-        allowLocalhostAsSecureOrigin: true,
-        notifyButton: { enable: false },
+        safari_web_id: "web.onesignal.auto.2e77cfdc-f6e8-4572-82d4-363b6713f2bc",
+        notifyButton: { enable: true },
         promptOptions: {
           slidedown: {
             prompts: [
