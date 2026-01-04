@@ -2,9 +2,64 @@
 // All dates should use Asia/Manila timezone for this Philippine-based app
 
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { format, parseISO } from 'date-fns';
+import { format, parse, parseISO, isValid } from 'date-fns';
 
 export const TIMEZONE = 'Asia/Manila';
+
+/**
+ * Parse many date shapes coming from Sheets / Apps Script into a real Date.
+ *
+ * Supported examples:
+ * - 2026-01-04T14:34:00.000Z
+ * - 01-04-2026, 14:34
+ * - 01/04/2026, 14:34
+ * - 01/04/2026 2:34 PM
+ */
+export function parseManilaDate(input: string): Date | null {
+  if (!input) return null;
+
+  const value = String(input).trim();
+
+  // ISO-like values
+  if (value.includes('T')) {
+    try {
+      // Some Apps Script values represent local time but end with "Z".
+      // If we treat as UTC it shifts; removing "Z" keeps the wall-clock time.
+      const normalized = value.endsWith('Z') ? value.replace(/Z$/, '') : value;
+      const iso = parseISO(normalized);
+      return isValid(iso) ? toZonedTime(iso, TIMEZONE) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Common sheet string formats
+  const formats = [
+    'MM-dd-yyyy, HH:mm',
+    'dd-MM-yyyy, HH:mm',
+    'MM/dd/yyyy, HH:mm',
+    'MM/dd/yyyy HH:mm',
+    'MM/dd/yyyy h:mm a',
+    'MM/dd/yyyy, h:mm a',
+    'MM-dd-yyyy',
+    'MM/dd/yyyy',
+  ];
+
+  // Heuristic for ambiguous "01-04-2026": if first part > 12, it's day-month.
+  const m = value.match(/^(\d{2})-(\d{2})-(\d{4})(?:,\s*(\d{2}):(\d{2}))?$/);
+  const preferDayFirst = !!(m && Number(m[1]) > 12);
+
+  for (const fmt of formats) {
+    if (preferDayFirst && fmt.startsWith('MM-')) continue;
+    const parsed = parse(value, fmt, new Date());
+    if (isValid(parsed)) return toZonedTime(parsed, TIMEZONE);
+  }
+
+  // Final fallback: let JS try (can be browser-dependent)
+  const d = new Date(value);
+  return isValid(d) ? toZonedTime(d, TIMEZONE) : null;
+}
+
 
 /**
  * Get the current date/time in Manila timezone
