@@ -99,7 +99,7 @@ const Login = () => {
           </div>
 
           {/* Login Card */}
-          <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="shadow-xl border-border/50 bg-card">
             <CardHeader className="space-y-1 pb-2 sm:pb-4">
               <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
