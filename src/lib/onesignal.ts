@@ -14,12 +14,37 @@ const ensureDeferredQueue = () => {
   window.OneSignalDeferred = window.OneSignalDeferred || [];
 };
 
+const isSafariBrowser = (): boolean => {
+  try {
+    // Prefer our global browser flag (set in <BrowserFlags />)
+    if (document?.documentElement?.dataset?.browser === "safari") return true;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const ua = navigator.userAgent;
+    const isAppleWebKit = /AppleWebKit/i.test(ua);
+    const isSafariLike = /Safari/i.test(ua);
+    const isChromeLike = /CriOS|Chrome|Chromium/i.test(ua);
+    const isFirefoxLike = /FxiOS|Firefox/i.test(ua);
+    return isAppleWebKit && isSafariLike && !isChromeLike && !isFirefoxLike;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Ensures OneSignal SDK is ready and provides the SDK instance.
  * Uses the official deferred pattern so we don't race the SDK load.
  */
 const withOneSignal = (cb: (OneSignal: any) => void | Promise<void>) => {
   if (typeof window === "undefined") return;
+
+  // Hard-disable OneSignal on Safari: we've seen it cause delayed white-screens.
+  // (Login works, but the app blanks a few seconds later on Safari only.)
+  if (isSafariBrowser()) return;
+
   // Skip entirely on non-production to prevent any SDK issues
   const isProduction =
     window.location.hostname === "www.actechrepair-service.com" ||
@@ -37,8 +62,13 @@ const withOneSignal = (cb: (OneSignal: any) => void | Promise<void>) => {
 export const initOneSignal = async (): Promise<void> => {
   if (typeof window === "undefined") return;
 
+  // Hard-disable on Safari (stability)
+  if (isSafariBrowser()) return;
+
   // Only init OneSignal on production domain to avoid errors on preview/localhost
-  const isProduction = window.location.hostname === "www.actechrepair-service.com";
+  const isProduction =
+    window.location.hostname === "www.actechrepair-service.com" ||
+    window.location.hostname === "actechrepair-service.com";
   if (!isProduction) {
     console.log("OneSignal: Skipping init on non-production origin");
     return;
@@ -56,12 +86,13 @@ export const initOneSignal = async (): Promise<void> => {
         safari_web_id: "web.onesignal.auto.2e77cfdc-f6e8-4572-82d4-363b6713f2bc",
 
         // Critical: ensure OneSignal SW is registered at the correct location/scope.
-        // Paths must be relative (no leading slash) to avoid origin mismatch errors.
         serviceWorkerParam: { scope: "/" },
         serviceWorkerPath: "OneSignalSDKWorker.js",
         serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
 
-        notifyButton: { enable: true },
+        // Remove the bottom-right OneSignal widget
+        notifyButton: { enable: false },
+
         promptOptions: {
           slidedown: {
             prompts: [
