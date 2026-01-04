@@ -10,29 +10,15 @@ import {
   sendGroupMessage as sendGroupMessageApi,
   createGroupChat as createGroupChatApi
 } from '@/lib/notifications';
+import { parseManilaDate } from '@/lib/timezone';
 
 const parseMessageDate = (value: string): Date => {
-  // Apps Script sometimes returns an ISO string that represents local time but ends with "Z".
-  // If we treat it as UTC, it shifts and shows the wrong time.
-  // Heuristic: when it ends with Z, parse it as *local* by removing the timezone.
-  if (!value) return new Date(0);
-  try {
-    let date: Date;
-    if (value.endsWith('Z')) {
-      date = new Date(value.replace(/Z$/, ''));
-    } else {
-      date = new Date(value);
-    }
-    // Validate the date - if invalid, return epoch
-    if (isNaN(date.getTime())) {
-      console.warn('Invalid date value:', value);
-      return new Date(0);
-    }
-    return date;
-  } catch {
-    console.warn('Error parsing date:', value);
+  const parsed = parseManilaDate(value);
+  if (!parsed) {
+    console.warn('Invalid date value:', value);
     return new Date(0);
   }
+  return parsed;
 };
 
 export const useMessaging = (userId: string | null, username?: string | null) => {

@@ -24,39 +24,21 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useMessaging } from '@/hooks/useMessaging';
-import { format, isToday, isYesterday, isSameDay, parseISO } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { format, isToday, isYesterday, isSameDay } from 'date-fns';
+import { parseManilaDate } from '@/lib/timezone';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
 import { setTypingStatus, clearTypingStatus, getTypingStatus, markGroupMessageRead, getGroupMessageReadReceipts, ReadReceipt } from '@/lib/notifications';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
-const TIMEZONE = 'Asia/Manila';
-
 const parseMessageDate = (value: string): Date => {
-  if (!value) return new Date(0);
-  try {
-    // Parse the ISO string and convert to Manila timezone
-    const date = parseISO(value);
-    // Validate the date - if invalid, return epoch
-    if (isNaN(date.getTime())) {
-      console.warn('Invalid date value in MessagingPanel:', value);
-      return new Date(0);
-    }
-    return toZonedTime(date, TIMEZONE);
-  } catch {
-    // Fallback with validation
-    try {
-      const fallbackDate = new Date(value);
-      if (isNaN(fallbackDate.getTime())) {
-        return new Date(0);
-      }
-      return fallbackDate;
-    } catch {
-      return new Date(0);
-    }
+  const parsed = parseManilaDate(value);
+  if (!parsed) {
+    console.warn('Invalid date value in MessagingPanel:', value);
+    return new Date(0);
   }
+  return parsed;
 };
 
 const formatDateSeparator = (date: Date): string => {
