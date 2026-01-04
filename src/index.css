@@ -119,16 +119,9 @@
 :root[data-browser="safari"] .backdrop-blur,
 :root[data-browser="safari"] .backdrop-blur-sm,
 :root[data-browser="safari"] .backdrop-blur-md,
-:root[data-browser="safari"] .backdrop-blur-lg,
-:root[data-browser="safari"] [class*="backdrop-blur"] {
+:root[data-browser="safari"] .backdrop-blur-lg {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  background-color: hsl(var(--background)) !important;
-}
-
-/* Also fix bg-background/95 which uses opacity and can cause issues */
-:root[data-browser="safari"] .bg-background\/95 {
-  background-color: hsl(var(--background)) !important;
 }
 
 @layer components {
