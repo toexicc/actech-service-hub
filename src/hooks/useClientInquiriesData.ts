@@ -30,13 +30,14 @@ const fetchClientInquiriesData = async (): Promise<ClientInquiry[]> => {
   throw new Error("Failed to fetch inquiries");
 };
 
-export const useClientInquiriesData = () => {
+export const useClientInquiriesData = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ["clientInquiriesData"],
     queryFn: fetchClientInquiriesData,
+    enabled,
     staleTime: 30 * 1000, // 30 seconds - inquiries change frequently
     gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: enabled ? 30000 : false, // Auto-refresh every 30 seconds
   });
 };
 

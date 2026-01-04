@@ -74,10 +74,11 @@ const fetchInventoryLogs = async (): Promise<InventoryLog[]> => {
   throw new Error("Failed to load inventory logs");
 };
 
-export const useInventory = () => {
+export const useInventory = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ["inventory"],
     queryFn: fetchInventory,
+    enabled,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });

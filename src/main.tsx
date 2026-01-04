@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initOneSignal } from "./lib/onesignal";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 
 async function cleanupLegacyPwaServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -39,5 +40,9 @@ async function cleanupLegacyPwaServiceWorker() {
   // Initialize OneSignal for push notifications
   initOneSignal();
 
-  createRoot(document.getElementById("root")!).render(<App />);
+  createRoot(document.getElementById("root")!).render(
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>,
+  );
 })();
