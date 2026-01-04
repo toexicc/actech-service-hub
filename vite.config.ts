@@ -16,15 +16,13 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      strategies: 'injectManifest',
-      srcDir: 'src',
-      // IMPORTANT: this must match the path OneSignal expects
-      filename: 'OneSignalSDKWorker.js',
+      strategies: 'generateSW',
       includeAssets: [
         'favicon.ico',
         'apple-touch-icon-180x180.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'OneSignalSDKWorker.js',
         'OneSignalSDKUpdaterWorker.js'
       ],
       manifest: {
@@ -57,10 +55,10 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      injectManifest: {
-        // Avoid ESM output (importScripts expects classic scripts)
-        rollupFormat: 'iife',
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Don't precache the OneSignal workers - they must remain standalone
+        globIgnores: ['**/OneSignalSDK*.js']
       }
     })
   ].filter(Boolean),
