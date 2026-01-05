@@ -543,6 +543,7 @@ function doGet(e) {
         "targetDate": data[i][28],
         "status": data[i][1],
         "clientName": data[i][8],
+        "serviceCost": data[i][51], // Column AZ - Final Cost
         "internalAdminNotes": data[i][38], // Column AM - Internal Admin Notes
         "internalTechnicianNotes": data[i][40] // Column AO - Internal Technician Notes
       });

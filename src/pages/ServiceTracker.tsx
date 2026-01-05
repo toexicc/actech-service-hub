@@ -42,6 +42,7 @@ interface ServiceRecord {
   clientName: string;
   adminRep?: string;
   adminRepresentative?: string;
+  serviceCost?: string;
 }
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
@@ -1039,12 +1040,13 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       <TableHead>Status</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead>Service Date</TableHead>
+                      <TableHead>Admin</TableHead>
                       <TableHead>Technician</TableHead>
                       <TableHead>Service/s</TableHead>
                       <TableHead>Device Type</TableHead>
                       <TableHead>Brand</TableHead>
                       <TableHead>Model</TableHead>
-                      <TableHead>Admin</TableHead>
+                      <TableHead>Service Cost</TableHead>
                       <TableHead>Target Date</TableHead>
                       <TableHead>In Service</TableHead>
                     </TableRow>
@@ -1056,12 +1058,13 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                         <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       </TableRow>
@@ -1084,6 +1087,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           Service Date <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead>Admin</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("technician")}>
                         <div className="flex items-center gap-1">
                           Technician <ArrowUpDown className="h-4 w-4" />
@@ -1093,7 +1097,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       <TableHead>Device Type</TableHead>
                       <TableHead>Brand</TableHead>
                       <TableHead>Model</TableHead>
-                      <TableHead>Admin</TableHead>
+                      <TableHead>Service Cost</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("targetDate")}>
                         <div className="flex items-center gap-1">
                           Target Date <ArrowUpDown className="h-4 w-4" />
@@ -1142,6 +1146,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
                            <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
+                           <TableCell>{service.adminRep || "N/A"}</TableCell>
                            <TableCell>
                              <div className="flex flex-col">
                                <span>{service.technician || "Unassigned"}</span>
@@ -1156,7 +1161,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                            <TableCell>{service.deviceType || "N/A"}</TableCell>
                            <TableCell>{service.brand || "N/A"}</TableCell>
                            <TableCell>{service.device || "N/A"}</TableCell>
-                           <TableCell>{service.adminRep || "N/A"}</TableCell>
+                           <TableCell>{service.serviceCost || "N/A"}</TableCell>
                            <TableCell className={overdueStatus ? "text-destructive font-semibold" : ""}>
                              {service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "N/A"}
                            </TableCell>
