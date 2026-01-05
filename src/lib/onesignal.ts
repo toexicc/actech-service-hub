@@ -29,8 +29,8 @@ const withOneSignal = (cb: (OneSignal: any) => void | Promise<void>) => {
   try {
     ensureDeferredQueue();
     window.OneSignalDeferred!.push(cb);
-  } catch (e) {
-    console.warn("OneSignal deferred queue error:", e);
+  } catch {
+    // Silent fail - deferred queue is non-critical
   }
 };
 
@@ -42,7 +42,6 @@ export const initOneSignal = async (): Promise<void> => {
     window.location.hostname === "www.actechrepair-service.com" ||
     window.location.hostname === "actechrepair-service.com";
   if (!isProduction) {
-    console.log("OneSignal: Skipping init on non-production origin:", window.location.hostname);
     return;
   }
 
@@ -86,8 +85,6 @@ export const initOneSignal = async (): Promise<void> => {
         },
       } as any);
 
-      console.log("OneSignal initialized successfully, notifyButton:", !isAlreadySubscribed ? "shown" : "hidden");
-
       // Listen for subscription changes and hide the button when user subscribes
       OneSignal.User?.PushSubscription?.addEventListener?.("change", (event: any) => {
         if (event?.current?.optedIn === true) {
@@ -96,17 +93,8 @@ export const initOneSignal = async (): Promise<void> => {
           if (notifyButton) {
             notifyButton.style.display = "none";
           }
-          console.log("OneSignal: User subscribed, hiding notify button");
         }
       });
-
-      if ("serviceWorker" in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        console.log(
-          "[OneSignal] SW registrations:",
-          regs.map((r) => ({ scope: r.scope, active: r.active?.scriptURL })),
-        );
-      }
     } catch (error) {
       console.error("Failed to initialize OneSignal:", error);
     }
@@ -119,9 +107,8 @@ export const setOneSignalExternalUserId = async (userId: string): Promise<void> 
   withOneSignal(async (OneSignal) => {
     try {
       await OneSignal.login(userId);
-      console.log("OneSignal external user ID set");
-    } catch (error) {
-      console.error("Failed to set OneSignal external user ID:", error);
+    } catch {
+      // Silent fail - external user ID binding is non-critical
     }
   });
 };
@@ -132,9 +119,8 @@ export const clearOneSignalExternalUserId = async (): Promise<void> => {
   withOneSignal(async (OneSignal) => {
     try {
       await OneSignal.logout();
-      console.log("OneSignal external user ID cleared");
-    } catch (error) {
-      console.error("Failed to clear OneSignal external user ID:", error);
+    } catch {
+      // Silent fail - logout is non-critical
     }
   });
 };

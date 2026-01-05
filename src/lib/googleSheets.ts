@@ -534,6 +534,7 @@ function doGet(e) {
         "serviceId": data[i][0],
         "timestamp": data[i][4],
         "technician": data[i][3],
+        "adminRep": data[i][2], // Column C - Admin Representative
         "technicianDepartment": data[i][39], // Column AN - Technician Department (comma-separated if multiple)
         "service": data[i][26],
         "deviceType": data[i][12],
