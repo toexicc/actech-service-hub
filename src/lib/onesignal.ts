@@ -53,6 +53,9 @@ export const initOneSignal = async (): Promise<void> => {
 
   withOneSignal(async (OneSignal) => {
     try {
+      // Check if already subscribed to determine whether to show the notify button
+      const isAlreadySubscribed = OneSignal.User?.PushSubscription?.optedIn === true;
+
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
         safari_web_id: "web.onesignal.auto.2e77cfdc-f6e8-4572-82d4-363b6713f2bc",
@@ -63,7 +66,8 @@ export const initOneSignal = async (): Promise<void> => {
         serviceWorkerPath: "OneSignalSDKWorker.js",
         serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
 
-        notifyButton: { enable: true },
+        // Hide the notify button if user is already subscribed
+        notifyButton: { enable: !isAlreadySubscribed },
         promptOptions: {
           slidedown: {
             prompts: [
@@ -82,7 +86,19 @@ export const initOneSignal = async (): Promise<void> => {
         },
       } as any);
 
-      console.log("OneSignal initialized successfully");
+      console.log("OneSignal initialized successfully, notifyButton:", !isAlreadySubscribed ? "shown" : "hidden");
+
+      // Listen for subscription changes and hide the button when user subscribes
+      OneSignal.User?.PushSubscription?.addEventListener?.("change", (event: any) => {
+        if (event?.current?.optedIn === true) {
+          // Hide the notify button after subscription
+          const notifyButton = document.getElementById("onesignal-bell-container");
+          if (notifyButton) {
+            notifyButton.style.display = "none";
+          }
+          console.log("OneSignal: User subscribed, hiding notify button");
+        }
+      });
 
       if ("serviceWorker" in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
