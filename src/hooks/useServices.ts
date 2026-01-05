@@ -34,6 +34,7 @@ interface ServiceRecord {
   device?: string;
   adminRep?: string;
   adminRepresentative?: string;
+  serviceCost?: string;
 }
 
 const fetchAllServices = async (): Promise<ServiceRecord[]> => {
