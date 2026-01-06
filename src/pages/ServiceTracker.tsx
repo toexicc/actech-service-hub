@@ -535,9 +535,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         return false;
       }
 
-      // Technician filter - if a specific technician is selected, show ONLY their services
+      // Technician filter - if a specific technician is selected, show services where they are assigned
+      // Supports multiple technicians (comma-separated in the technician field)
       if (technicianFilter !== "all") {
-        if (service.technician !== technicianFilter) {
+        const assignedTechnicians = service.technician?.split(",").map(t => t.trim()) || [];
+        if (!assignedTechnicians.includes(technicianFilter)) {
           return false;
         }
       } else if (departmentFilter !== "all") {

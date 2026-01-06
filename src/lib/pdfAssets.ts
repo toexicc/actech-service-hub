@@ -3,7 +3,8 @@ let cachedLogoDataUrl: string | null = null;
 let cachedTermsPdfBytes: ArrayBuffer | null = null;
 let loadingPromise: Promise<void> | null = null;
 
-const getBasePath = () => import.meta.env.MODE === 'production' ? '/actech-service-hub' : '';
+// Custom domain doesn't need base path prefix
+const getBasePath = () => '';
 
 // Preload all assets in parallel
 export const preloadPdfAssets = async (): Promise<void> => {

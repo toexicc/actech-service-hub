@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Notification as AppNotification, fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/notifications';
 
 // Create a simple notification sound using Web Audio API
@@ -20,14 +21,13 @@ const playNotificationSound = () => {
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.3);
   } catch (error) {
-    console.log('Could not play notification sound:', error);
+    // Silent fail for audio
   }
 };
 
 // Request browser notification permission
 const requestNotificationPermission = async () => {
   if (!('Notification' in window)) {
-    console.log('Browser does not support notifications');
     return false;
   }
   
@@ -79,12 +79,13 @@ const cleanNotificationMessage = (message: string): string => {
   return message;
 };
 
+// Global tracker for shown notification IDs to prevent duplicates across component mounts
+const shownNotificationIds = new Set<string>();
+
 export const useNotifications = (userId: string | null, enabled: boolean = true) => {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const queryClient = useQueryClient();
   const previousNotificationIds = useRef<Set<string>>(new Set());
-  const hasShownInitialNotifications = useRef(false);
+  const hasInitialLoad = useRef(false);
 
   // Request permission only when enabled (iOS requires user gesture)
   useEffect(() => {
@@ -92,103 +93,113 @@ export const useNotifications = (userId: string | null, enabled: boolean = true)
     requestNotificationPermission();
   }, [enabled]);
 
-  const loadNotifications = useCallback(async () => {
-    if (!userId) return;
-    try {
+  // Fetch notifications using React Query for proper caching
+  const { data: rawNotifications = [], isLoading } = useQuery({
+    queryKey: ['notifications', userId],
+    queryFn: async () => {
+      if (!userId) return [];
       const data = await fetchNotifications(userId);
-      const now = new Date();
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      return data;
+    },
+    enabled: !!userId && enabled,
+    staleTime: 30 * 1000, // 30 seconds - notifications stay fresh
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+    refetchInterval: enabled ? 30000 : false, // Poll every 30 seconds when enabled
+    refetchOnWindowFocus: true, // Refetch when user returns to app
+    refetchOnMount: false, // Don't refetch on every mount - use cached data
+  });
+
+  // Clean and process notifications
+  const notifications = rawNotifications.map(n => ({
+    ...n,
+    message: cleanNotificationMessage(n.message)
+  }));
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Handle new notification alerts (browser notifications + sound)
+  useEffect(() => {
+    if (!enabled || !rawNotifications.length) return;
+
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    if (!hasInitialLoad.current) {
+      // First load - show notifications for recent unread messages
+      hasInitialLoad.current = true;
       
-      // On initial load, show notifications for recent unread messages
-      if (!hasShownInitialNotifications.current && data.length > 0) {
-        hasShownInitialNotifications.current = true;
-        
-        // Filter unread notifications from last 24 hours
-        const recentUnread = data.filter(n => {
-          if (n.read) return false;
-          const notifDate = new Date(n.createdAt);
-          return notifDate > twentyFourHoursAgo;
-        });
-        
-        // Show native notifications with delay between each
-        recentUnread.forEach((notification, index) => {
-          setTimeout(() => {
-            const cleanMessage = cleanNotificationMessage(notification.message);
-            showBrowserNotification(notification.title, cleanMessage);
-            if (index === 0) playNotificationSound(); // Only play sound once
-          }, index * 1000); // 1 second delay between each
-        });
-        
-        // Initialize previous IDs
-        previousNotificationIds.current = new Set(data.map(n => n.id));
-      } else if (hasShownInitialNotifications.current && data.length > 0) {
-        // After initial load, only notify for truly new notifications
-        const newNotifications = data.filter(
-          n => !n.read && !previousNotificationIds.current.has(n.id)
-        );
-        
-        for (const notification of newNotifications) {
+      const recentUnread = rawNotifications.filter(n => {
+        if (n.read) return false;
+        if (shownNotificationIds.has(n.id)) return false;
+        const notifDate = new Date(n.createdAt);
+        return notifDate > twentyFourHoursAgo;
+      });
+      
+      // Show native notifications with delay between each
+      recentUnread.forEach((notification, index) => {
+        shownNotificationIds.add(notification.id);
+        setTimeout(() => {
           const cleanMessage = cleanNotificationMessage(notification.message);
           showBrowserNotification(notification.title, cleanMessage);
-          playNotificationSound();
-        }
-        
-        // Update previous notification IDs
-        previousNotificationIds.current = new Set(data.map(n => n.id));
+          if (index === 0) playNotificationSound();
+        }, index * 1000);
+      });
+      
+      // Initialize previous IDs
+      previousNotificationIds.current = new Set(rawNotifications.map(n => n.id));
+    } else {
+      // Subsequent fetches - only notify for truly new notifications
+      const newNotifications = rawNotifications.filter(
+        n => !n.read && 
+             !previousNotificationIds.current.has(n.id) && 
+             !shownNotificationIds.has(n.id)
+      );
+      
+      for (const notification of newNotifications) {
+        shownNotificationIds.add(notification.id);
+        const cleanMessage = cleanNotificationMessage(notification.message);
+        showBrowserNotification(notification.title, cleanMessage);
+        playNotificationSound();
       }
       
-      // Clean messages for display
-      const cleanedNotifications = data.map(n => ({
-        ...n,
-        message: cleanNotificationMessage(n.message)
-      }));
-      
-      setNotifications(cleanedNotifications);
-      setUnreadCount(data.filter(n => !n.read).length);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    } finally {
-      setLoading(false);
+      // Update previous notification IDs
+      previousNotificationIds.current = new Set(rawNotifications.map(n => n.id));
     }
-  }, [userId]);
+  }, [rawNotifications, enabled]);
 
-  useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-
-    loadNotifications();
-    // Poll every 30 seconds
-    const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [enabled, loadNotifications]);
-
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = useCallback(async (notificationId: string) => {
     const success = await markNotificationRead(notificationId);
     if (success) {
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      // Optimistically update cache
+      queryClient.setQueryData(['notifications', userId], (old: AppNotification[] | undefined) => {
+        if (!old) return old;
+        return old.map(n => n.id === notificationId ? { ...n, read: true } : n);
+      });
     }
-  };
+  }, [queryClient, userId]);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     if (!userId) return;
     const success = await markAllNotificationsRead(userId);
     if (success) {
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
+      // Optimistically update cache
+      queryClient.setQueryData(['notifications', userId], (old: AppNotification[] | undefined) => {
+        if (!old) return old;
+        return old.map(n => ({ ...n, read: true }));
+      });
     }
-  };
+  }, [queryClient, userId]);
+
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+  }, [queryClient, userId]);
 
   return {
     notifications,
-    loading,
+    loading: isLoading,
     unreadCount,
     markAsRead,
     markAllAsRead,
-    refresh: loadNotifications
+    refresh
   };
 };

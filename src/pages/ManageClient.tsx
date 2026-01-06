@@ -383,8 +383,8 @@ const ManageClient = () => {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
         toast({
-          title: "Success",
-          description: "AI formatting complete! Click 'Edit' to modify or 'Approve' to use.",
+          title: "AI Formatting Complete",
+          description: "⚠️ Please double-check and proofread the generated diagnosis before approving.",
         });
       } else {
         throw new Error("No formatted diagnosis received from AI service");
@@ -466,8 +466,8 @@ const ManageClient = () => {
         setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
         toast({
-          title: "Success",
-          description: "Service report formatted successfully!",
+          title: "AI Formatting Complete",
+          description: "⚠️ Please double-check and proofread the generated report before approving.",
         });
       } else {
         throw new Error("No formatted report received from AI service");

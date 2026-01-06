@@ -142,7 +142,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   if (isMobile) return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between px-4 border-b bg-background/95 backdrop-blur">
+      <header className="fixed top-0 left-0 right-0 z-50 flex h-14 shrink-0 items-center justify-between px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -168,7 +168,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </div>
       </header>
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">{children}</main>
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-none pt-14 -webkit-overflow-scrolling-touch">{children}</main>
     </div>
   );
 
