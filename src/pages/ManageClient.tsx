@@ -20,6 +20,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
+import { createNotification } from "@/lib/notifications";
 import { DeviceReportViewer } from "@/components/DeviceReportViewer";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
@@ -382,6 +383,19 @@ const ManageClient = () => {
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
+        
+        // Create notification in panel for proofread reminder
+        const userId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
+        if (userId) {
+          createNotification({
+            userId,
+            title: "AI Diagnosis Generated",
+            message: `⚠️ Please double-check and proofread the AI-generated diagnosis for ${serviceId} before approving.`,
+            type: "others",
+            serviceId,
+          });
+        }
+        
         toast({
           title: "AI Formatting Complete",
           description: "⚠️ Please double-check and proofread the generated diagnosis before approving.",
@@ -465,6 +479,19 @@ const ManageClient = () => {
       if (formattedReport) {
         setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
+        
+        // Create notification in panel for proofread reminder
+        const userId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
+        if (userId) {
+          createNotification({
+            userId,
+            title: "AI Report Generated",
+            message: `⚠️ Please double-check and proofread the AI-generated service report for ${serviceId} before approving.`,
+            type: "others",
+            serviceId,
+          });
+        }
+        
         toast({
           title: "AI Formatting Complete",
           description: "⚠️ Please double-check and proofread the generated report before approving.",

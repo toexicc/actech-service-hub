@@ -82,7 +82,9 @@ const cleanNotificationMessage = (message: string): string => {
 // Global tracker for shown notification IDs to prevent duplicates across component mounts
 const shownNotificationIds = new Set<string>();
 
-export const useNotifications = (userId: string | null, enabled: boolean = true) => {
+export const useNotifications = (userId: string | null, _enabled: boolean = true) => {
+  // Always enabled when userId is present - notifications should load immediately on login
+  const enabled = !!userId;
   const queryClient = useQueryClient();
   const previousNotificationIds = useRef<Set<string>>(new Set());
   const hasInitialLoad = useRef(false);
