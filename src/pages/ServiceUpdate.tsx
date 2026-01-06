@@ -1123,8 +1123,8 @@ const ServiceUpdate = () => {
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
                                     toast({
-                                      title: "Success",
-                                      description: "AI formatting complete!",
+                                      title: "AI Formatting Complete",
+                                      description: "⚠️ Please double-check and proofread the generated diagnosis before saving.",
                                     });
                                   } else {
                                     throw new Error("No formatted diagnosis received from AI service");
@@ -1239,8 +1239,8 @@ const ServiceUpdate = () => {
                                   if (formattedReport) {
                                     setUpdateServiceReport(formattedReport);
                                     toast({
-                                      title: "Success",
-                                      description: "Service report formatted successfully!",
+                                      title: "AI Formatting Complete",
+                                      description: "⚠️ Please double-check and proofread the generated report before saving.",
                                     });
                                   } else {
                                     throw new Error("No formatted report received from AI service");
