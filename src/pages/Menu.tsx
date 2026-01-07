@@ -172,8 +172,7 @@ const Menu = () => {
         servicesDueToday: dueToday.slice(0, 5),
         servicesOverdue: overdue.slice(0, 5),
       };
-    } catch (e) {
-      console.error("Menu stats computation error:", e);
+    } catch {
       return {
         stats: { pendingInquiries: 0, ongoingServices: 0, overdueServices: 0, completedServices: 0 },
         servicesDueToday: [],

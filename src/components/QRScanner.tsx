@@ -35,7 +35,6 @@ export const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
           qrbox: { width: 250, height: 250 }
         },
         (decodedText) => {
-          console.log("QR Code scanned:", decodedText);
           onScan(decodedText);
           stopScanner();
         },
@@ -45,8 +44,7 @@ export const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
       );
       
       setIsScanning(true);
-    } catch (err) {
-      console.error("QR Scanner error:", err);
+    } catch {
       setError("Failed to start camera. Please ensure camera permissions are granted.");
       setIsScanning(false);
     }
@@ -57,8 +55,8 @@ export const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
       try {
         await scannerRef.current.stop();
         scannerRef.current.clear();
-      } catch (err) {
-        console.error("Error stopping scanner:", err);
+      } catch {
+        // Scanner stop error - ignore
       }
       scannerRef.current = null;
     }

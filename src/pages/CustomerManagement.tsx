@@ -77,7 +77,7 @@ const CustomerManagement = () => {
         setServiceRecords([]);
       }
     } catch (error) {
-      console.error("Error searching customer:", error);
+      // Error searching customer
       toast({
         title: "Error",
         description: "Failed to search for customer",

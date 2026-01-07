@@ -298,8 +298,7 @@ const ServiceTracker = () => {
       }
       
       setNotifyDialogOpen(false);
-    } catch (error) {
-      console.error("Error sending notification:", error);
+    } catch {
       toast({ title: "Error", description: "Failed to send notification.", variant: "destructive" });
     } finally {
       setNotifySending(false);
@@ -366,8 +365,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       } else {
         toast({ title: "Error", description: "Failed to send message.", variant: "destructive" });
       }
-    } catch (error) {
-      console.error("Error forwarding service:", error);
+    } catch {
       toast({ title: "Error", description: "Failed to forward service.", variant: "destructive" });
     } finally {
       setForwardSending(false);
