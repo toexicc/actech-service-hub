@@ -133,8 +133,8 @@ const ManageClient = () => {
         setOpenAIKey(data.apiKey);
         localStorage.setItem('actech_openai_key', data.apiKey);
       }
-    } catch (error) {
-      console.error("Error fetching API key:", error);
+    } catch {
+      // Error fetching API key - ignore
     }
   };
 
@@ -224,8 +224,8 @@ const ManageClient = () => {
               variant: "destructive",
             });
           }
-        } catch (error) {
-          console.error("Error auto-searching service:", error);
+        } catch {
+          // Error auto-searching service
         } finally {
           setIsLoading(false);
         }
@@ -404,7 +404,7 @@ const ManageClient = () => {
         throw new Error("No formatted diagnosis received from AI service");
       }
     } catch (error: any) {
-      console.error("Error formatting diagnosis:", error);
+      // Error formatting diagnosis
       toast({
         title: "Error",
         description: error.message || "Failed to format diagnosis with AI.",
@@ -500,7 +500,7 @@ const ManageClient = () => {
         throw new Error("No formatted report received from AI service");
       }
     } catch (error: any) {
-      console.error("Error formatting service report:", error);
+      // Error formatting service report
       toast({
         title: "Error",
         description: error.message || "Failed to format service report with AI.",
@@ -565,8 +565,8 @@ const ManageClient = () => {
       let result: any = null;
       try {
         result = await response.json();
-      } catch (parseError) {
-        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+      } catch {
+        // Could not parse response (likely CORS), assuming success
       }
 
       const isSuccess =
@@ -663,7 +663,7 @@ const ManageClient = () => {
       const isAbortError = error instanceof Error && error.name === 'AbortError';
 
       if (isCorsFetchError) {
-        console.warn("Update client info fetch error (likely CORS after successful POST):", error);
+        // Update client info fetch error (likely CORS after successful POST)
         toast({
           title: "Success",
           description: "Client information updated successfully",
@@ -796,7 +796,7 @@ const ManageClient = () => {
         });
       }
     } catch (error) {
-      console.error("Update form error:", error);
+      // Update form error
       const errorMessage = error instanceof Error && error.name === 'AbortError' 
         ? "Request timed out - PDF generation may be taking too long"
         : "Failed to update PDF form";
@@ -929,7 +929,7 @@ const ManageClient = () => {
           activity: serviceData.quotationPdfUrl 
             ? "Service quotation form updated" 
             : "Service quotation form generated",
-        }).catch(console.error);
+        }).catch(() => {});
       } else {
         toast({
           title: "Error",
@@ -938,7 +938,7 @@ const ManageClient = () => {
         });
       }
     } catch (error) {
-      console.error("Quotation generation error:", error);
+      // Quotation generation error
       const msg = error instanceof Error ? error.message : String(error);
       const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
       const isAbort = error instanceof Error && error.name === 'AbortError';

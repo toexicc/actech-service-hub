@@ -25,7 +25,7 @@ import { createNotification } from "@/lib/notifications";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { useTechnicians } from "@/hooks/useStaff";
+import { useTechnicians, useStaff } from "@/hooks/useStaff";
 import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
@@ -75,9 +75,20 @@ const ServiceUpdate = () => {
   const { toast } = useToast();
 
   // Use React Query for staff and inventory
+  const { data: staffData = [] } = useStaff();
   const { data: technicianData = [] } = useTechnicians();
   const { data: inventoryData = [] } = useInventory();
   const { data: fastMovingData = [] } = useFastMovingParts();
+
+  const username = sessionStorage.getItem("username") || "Unknown";
+  const userRole = sessionStorage.getItem("userRole") || "Unknown";
+  
+  // Get current user's full name if they're a technician
+  const currentUserFullName = useMemo(() => {
+    if (userRole !== "technician") return "";
+    const currentUser = staffData.find(s => s.username === username);
+    return currentUser?.name || "";
+  }, [staffData, username, userRole]);
 
   // Derive technicians list with display names
   const technicians = useMemo(() => {
@@ -112,9 +123,6 @@ const ServiceUpdate = () => {
 
     return [...allInventory, ...receivedParts];
   }, [inventoryData, fastMovingData]);
-
-  const username = sessionStorage.getItem("username") || "Unknown";
-  const userRole = sessionStorage.getItem("userRole") || "Unknown";
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
@@ -328,6 +336,24 @@ const ServiceUpdate = () => {
       const data = await response.json();
 
       if (data.status === "found") {
+        // Check if technician user is assigned to this service
+        if (userRole === "technician" && currentUserFullName) {
+          const assignedTechnicians = (data.data.technician || "").split(",").map((t: string) => t.trim().toLowerCase());
+          const isAssigned = assignedTechnicians.some((t: string) => t.includes(currentUserFullName.toLowerCase()) || currentUserFullName.toLowerCase().includes(t));
+          
+          if (!isAssigned) {
+            toast({
+              title: "Access Denied",
+              description: "You are not assigned to this service",
+              variant: "destructive",
+            });
+            setServiceData(null);
+            setDeviceReportPhotos([]);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
         setServiceData(data.data);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
@@ -509,8 +535,8 @@ const ServiceUpdate = () => {
       let result: any = null;
       try {
         result = await response.json();
-      } catch (parseError) {
-        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+      } catch {
+        // Could not parse response (likely CORS), assuming success
       }
 
       const isSuccess =
@@ -616,7 +642,7 @@ const ServiceUpdate = () => {
         }
 
         // Execute all background tasks without blocking
-        Promise.allSettled(backgroundTasks).catch(console.error);
+        Promise.allSettled(backgroundTasks).catch(() => {});
       } else {
         toast({
           title: "Error",
@@ -629,7 +655,7 @@ const ServiceUpdate = () => {
       const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
 
       if (isCorsFetchError) {
-        console.warn("Service update fetch error (likely CORS after successful POST):", error);
+        // Service update fetch error (likely CORS after successful POST)
         toast({
           title: "Success",
           description: "Service information updated successfully",

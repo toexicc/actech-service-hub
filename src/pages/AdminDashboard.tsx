@@ -94,7 +94,7 @@ const AdminDashboard = () => {
           return isBefore(targetDate, today);
         }
       } catch (error) {
-        console.error(`Error parsing date for service ${service.serviceId}:`, error);
+        // Error parsing date
         return false;
       }
     });

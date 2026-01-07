@@ -232,8 +232,8 @@ const ServiceForm = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error("Error searching client ID:", error);
+    } catch {
+      // Error searching client ID
       toast({
         title: "Error",
         description: "Failed to search client ID. Please try again.",
@@ -283,8 +283,8 @@ const ServiceForm = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error("Error searching service ID:", error);
+    } catch {
+      // Error searching service ID
       toast({
         title: "Error",
         description: "Failed to search service ID. Please try again.",
@@ -511,7 +511,7 @@ const ServiceForm = () => {
             role,
             activity: `New service created - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician}, Priority: ${data.priority}`,
           }),
-        ]).catch(console.error);
+        ]).catch(() => {});
       } else {
         throw new Error("Failed to submit form");
       }
@@ -520,7 +520,7 @@ const ServiceForm = () => {
       const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
 
       if (isCorsFetchError) {
-        console.warn("Service form fetch error (likely CORS after successful POST):", error);
+        // Service form fetch error (likely CORS after successful POST)
         toast({
           title: "Success",
           description: "Service form submitted successfully!",
@@ -537,7 +537,7 @@ const ServiceForm = () => {
         return;
       }
 
-      console.error("Error submitting form:", error);
+      // Error submitting form
       toast({
         title: "Error",
         description: "Failed to submit form. Please try again.",
