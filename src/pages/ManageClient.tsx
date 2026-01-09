@@ -1053,7 +1053,7 @@ const ManageClient = () => {
                       onClick={handleUpdateForm} 
                       variant="outline" 
                       className="flex-1" 
-                      disabled={isUpdatingForm || serviceData.status !== "Pending Diagnosis"}
+                      disabled={isUpdatingForm}
                     >
                       {isUpdatingForm ? (
                         <>
@@ -1083,7 +1083,7 @@ const ManageClient = () => {
                       onClick={handleGenerateQuotation} 
                       variant="outline" 
                       className="flex-1" 
-                      disabled={isUpdatingQuotation || serviceData.status !== "Confirmed Diagnosis"}
+                      disabled={isUpdatingQuotation}
                     >
                       {isUpdatingQuotation ? (
                         <>

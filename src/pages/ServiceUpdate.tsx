@@ -338,8 +338,25 @@ const ServiceUpdate = () => {
       if (data.status === "found") {
         // Check if technician user is assigned to this service
         if (userRole === "technician" && currentUserFullName) {
-          const assignedTechnicians = (data.data.technician || "").split(",").map((t: string) => t.trim().toLowerCase());
-          const isAssigned = assignedTechnicians.some((t: string) => t.includes(currentUserFullName.toLowerCase()) || currentUserFullName.toLowerCase().includes(t));
+          // Parse technician field - can be comma-separated list of full names
+          const assignedTechnicians = (data.data.technician || "")
+            .split(",")
+            .map((t: string) => t.trim().toLowerCase())
+            .filter(Boolean);
+          
+          // Current user's name (lowercase for comparison)
+          const currentUserName = currentUserFullName.toLowerCase().trim();
+          
+          // Check if current technician's exact name matches any assigned technician
+          const isAssigned = assignedTechnicians.some((assignedName: string) => {
+            // Exact match check
+            if (assignedName === currentUserName) return true;
+            // Check if the assigned name contains the full name (for cases like "John Doe - Department")
+            if (assignedName.includes(currentUserName)) return true;
+            // Check if the current user's name contains the assigned name
+            if (currentUserName.includes(assignedName) && assignedName.length > 3) return true;
+            return false;
+          });
           
           if (!isAssigned) {
             toast({
