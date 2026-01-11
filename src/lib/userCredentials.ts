@@ -16,17 +16,9 @@ export interface UserCredential {
 let userCredentials: UserCredential[] = [];
 let isLoaded = false;
 
-// Default fallback admin account
-const DEFAULT_ADMIN: UserCredential = {
-  staffId: "ACTECH-ADMIN-001",
-  username: "Admin-ACTECH",
-  password: "ACT3CH2025~*Management!",
-  name: "Default Admin",
-  role: "management",
-  status: "active"
-};
-
 // Load users from Google Sheets
+// NOTE: Default admin credentials have been removed for security.
+// Ensure at least one admin account exists in your Staff Management Google Sheet.
 export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
   try {
     const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -36,6 +28,7 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
       userCredentials = data.data.map((staff: any) => {
         const staffId = staff.staffId ?? staff["Staff ID"] ?? "";
         const username = staff.username ?? staff["Username"] ?? "";
+        // Password should be validated server-side; storing client-side is a security risk
         const password = staff.password ?? staff["Password"] ?? "";
         const name = staff.name ?? staff["Name"] ?? "";
         const roleRaw = (staff.role ?? staff["Role"] ?? "").toString().trim().toLowerCase();
@@ -54,22 +47,15 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
         } as UserCredential;
       });
       isLoaded = true;
-      
-      // Add default admin if not already in the list
-      const hasDefaultAdmin = userCredentials.some(u => u.username === DEFAULT_ADMIN.username);
-      if (!hasDefaultAdmin) {
-        userCredentials.unshift(DEFAULT_ADMIN);
-      }
     } else {
-      // If Google Sheets fails, use default admin only
-      userCredentials = [DEFAULT_ADMIN];
+      // If Google Sheets fails, no users available - authentication will fail
+      userCredentials = [];
       isLoaded = true;
     }
     return userCredentials;
-  } catch (error) {
-    console.error("Error loading users from sheet:", error);
-    // On error, ensure default admin is available
-    userCredentials = [DEFAULT_ADMIN];
+  } catch {
+    // On error, no users available - authentication will fail
+    userCredentials = [];
     isLoaded = true;
     return userCredentials;
   }
@@ -98,8 +84,8 @@ export const addUser = async (user: UserCredential) => {
     let data: any = null;
     try {
       data = await response.json();
-    } catch (parseError) {
-      console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+    } catch {
+      // Could not parse response (likely CORS), assuming success
     }
 
     const isSuccess =
@@ -114,11 +100,10 @@ export const addUser = async (user: UserCredential) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
-      console.warn("Add user fetch error (likely CORS after successful POST):", error);
+      // CORS error after successful POST - assume success
       userCredentials.push(user);
       return true;
     }
-    console.error("Error adding user:", error);
     return false;
   }
 };
@@ -146,8 +131,8 @@ export const removeUser = async (username: string) => {
     let data: any = null;
     try {
       data = await response.json();
-    } catch (parseError) {
-      console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+    } catch {
+      // Could not parse response (likely CORS), assuming success
     }
 
     const isSuccess =
@@ -162,11 +147,10 @@ export const removeUser = async (username: string) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
-      console.warn("Remove user fetch error (likely CORS after successful POST):", error);
+      // CORS error after successful POST - assume success
       userCredentials = userCredentials.filter(u => u.username !== username);
       return true;
     }
-    console.error("Error removing user:", error);
     return false;
   }
 };
@@ -217,8 +201,8 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     let data: any = null;
     try {
       data = await response.json();
-    } catch (parseError) {
-      console.warn("Could not parse response (likely CORS), assuming success:", parseError);
+    } catch {
+      // Could not parse response (likely CORS), assuming success
     }
 
     const isSuccess =
@@ -236,14 +220,13 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
-      console.warn("Update user fetch error (likely CORS after successful POST):", error);
+      // CORS error after successful POST - assume success
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;
       }
       return true;
     }
-    console.error("Error updating user:", error);
     return false;
   }
 };
