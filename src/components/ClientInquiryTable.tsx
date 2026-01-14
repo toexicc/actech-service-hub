@@ -176,13 +176,16 @@ const ClientInquiryTable = () => {
           const scheduledDate = editForm.pickUpDate || "Not specified";
           const modeDisplay = newMode === "store visit" ? "Store Visit" : "Delivery";
           
-          // Notify all management users
-          await createNotification({
-            userId: "all_management",
-            title: "Client Transfer Scheduled",
-            message: `${editForm.name || "Client"} has scheduled a ${modeDisplay} on ${scheduledDate}.`,
-            type: "others",
-          });
+          // Notify admin and management users
+          const notificationPromises = ["admin", "management"].map(role =>
+            createNotification({
+              userId: `role_${role}`,
+              title: "Client Transfer Scheduled",
+              message: `${editForm.name || "Client"} has scheduled a ${modeDisplay} on ${scheduledDate}.`,
+              type: "others",
+            })
+          );
+          await Promise.all(notificationPromises);
         }
         
         toast({ title: "Success", description: "Inquiry updated successfully" });
