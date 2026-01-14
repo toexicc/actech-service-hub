@@ -169,9 +169,18 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
       // For message notifications, open messaging panel
       onOpenMessaging?.();
     } else if (notification.type === 'part_request' || notification.type === 'others') {
+      // Check if it's a transfer notification with a direct chat link
+      const serviceId = notification.serviceId;
+      if (serviceId?.startsWith('chat:')) {
+        const chatLink = serviceId.replace('chat:', '');
+        if (chatLink) {
+          window.open(chatLink, '_blank');
+          return;
+        }
+      }
+      
       // Check if it's a "Part Received" notification - navigate to service page
       const isPartReceived = notification.title === 'Part Received';
-      const serviceId = notification.serviceId;
       
       if (isPartReceived && serviceId) {
         const isAdmin = userRole === 'admin' || userRole === 'management';
