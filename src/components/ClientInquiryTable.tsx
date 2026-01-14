@@ -19,6 +19,7 @@ import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useClientInquiriesData, useInvalidateClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import { logInquiryActivity } from "@/lib/activityLogger";
 import { createNotification } from "@/lib/notifications";
+import { useStaff } from "@/hooks/useStaff";
 
 interface ClientInquiry {
   rowIndex: number;
@@ -45,6 +46,7 @@ const ITEMS_PER_PAGE = 9;
 const ClientInquiryTable = () => {
   const { data: inquiries = [], isLoading: loading, refetch, isFetching } = useClientInquiriesData();
   const invalidateInquiries = useInvalidateClientInquiriesData();
+  const { data: staffList = [] } = useStaff();
   const [searchQuery, setSearchQuery] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
@@ -172,7 +174,7 @@ const ClientInquiryTable = () => {
         const isNowStoreVisitOrDelivery = newMode === "store visit" || newMode === "delivery";
         
         if (wasTBD && isNowStoreVisitOrDelivery) {
-          // Send notification to admin and management users
+          // Send notification to all admin and management users
           const scheduledDate = editForm.pickUpDate || "Not specified";
           const modeDisplay = newMode === "store visit" ? "Store Visit" : "Delivery";
           const diagnosis = editForm.initialDiagnosis || "No diagnosis provided";
@@ -183,10 +185,17 @@ const ClientInquiryTable = () => {
             ? diagnosis.substring(0, 100) + "..." 
             : diagnosis;
           
-          // Notify admin and management users
-          const notificationPromises = ["admin", "management"].map(role =>
+          // Get all active admin and management staff members
+          const adminManagementStaff = staffList.filter(
+            (staff) => 
+              (staff.role?.toLowerCase() === "admin" || staff.role?.toLowerCase() === "management") &&
+              staff.status?.toLowerCase() === "active"
+          );
+          
+          // Create notification for each admin/management user
+          const notificationPromises = adminManagementStaff.map((staff) =>
             createNotification({
-              userId: `role_${role}`,
+              userId: staff.staffId,
               title: "Client Transfer Scheduled",
               message: `${editForm.name || "Client"} has scheduled a ${modeDisplay} on ${scheduledDate}.\n\nDiagnosis: ${truncatedDiagnosis}`,
               type: "others",
