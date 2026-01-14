@@ -172,17 +172,25 @@ const ClientInquiryTable = () => {
         const isNowStoreVisitOrDelivery = newMode === "store visit" || newMode === "delivery";
         
         if (wasTBD && isNowStoreVisitOrDelivery) {
-          // Send notification to all management users
+          // Send notification to admin and management users
           const scheduledDate = editForm.pickUpDate || "Not specified";
           const modeDisplay = newMode === "store visit" ? "Store Visit" : "Delivery";
+          const diagnosis = editForm.initialDiagnosis || "No diagnosis provided";
+          const directChatLink = editForm.directChatLink || "";
+          
+          // Truncate diagnosis if too long
+          const truncatedDiagnosis = diagnosis.length > 100 
+            ? diagnosis.substring(0, 100) + "..." 
+            : diagnosis;
           
           // Notify admin and management users
           const notificationPromises = ["admin", "management"].map(role =>
             createNotification({
               userId: `role_${role}`,
               title: "Client Transfer Scheduled",
-              message: `${editForm.name || "Client"} has scheduled a ${modeDisplay} on ${scheduledDate}.`,
+              message: `${editForm.name || "Client"} has scheduled a ${modeDisplay} on ${scheduledDate}.\n\nDiagnosis: ${truncatedDiagnosis}`,
               type: "others",
+              serviceId: directChatLink ? `chat:${directChatLink}` : undefined,
             })
           );
           await Promise.all(notificationPromises);
