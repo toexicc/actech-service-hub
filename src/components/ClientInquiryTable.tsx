@@ -18,6 +18,7 @@ import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRi
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useClientInquiriesData, useInvalidateClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import { logInquiryActivity } from "@/lib/activityLogger";
+import { createNotification } from "@/lib/notifications";
 
 interface ClientInquiry {
   rowIndex: number;
@@ -164,6 +165,26 @@ const ClientInquiryTable = () => {
         (response.ok && result === null);
 
       if (isSuccess) {
+        // Check if Mode of Transfer changed from TBD/blank to Store Visit or Delivery
+        const oldMode = (editingInquiry.modeOfTransfer || "").trim().toLowerCase();
+        const newMode = (editForm.modeOfTransfer || "").trim().toLowerCase();
+        const wasTBD = oldMode === "" || oldMode === "tbd";
+        const isNowStoreVisitOrDelivery = newMode === "store visit" || newMode === "delivery";
+        
+        if (wasTBD && isNowStoreVisitOrDelivery) {
+          // Send notification to all management users
+          const scheduledDate = editForm.pickUpDate || "Not specified";
+          const modeDisplay = newMode === "store visit" ? "Store Visit" : "Delivery";
+          
+          // Notify all management users
+          await createNotification({
+            userId: "all_management",
+            title: "Client Transfer Scheduled",
+            message: `${editForm.name || "Client"} has scheduled a ${modeDisplay} on ${scheduledDate}.`,
+            type: "others",
+          });
+        }
+        
         toast({ title: "Success", description: "Inquiry updated successfully" });
         setEditDialogOpen(false);
         await refetch();
@@ -414,7 +435,7 @@ const ClientInquiryTable = () => {
                 <TableHead className="whitespace-nowrap">Initial Payment</TableHead>
                 <TableHead className="whitespace-nowrap">Part ID</TableHead>
                 <TableHead className="whitespace-nowrap">Mode of Transfer</TableHead>
-                <TableHead className="whitespace-nowrap">Pick-Up Date</TableHead>
+                <TableHead className="whitespace-nowrap">Date</TableHead>
                 <TableHead className="whitespace-nowrap">Direct Chat</TableHead>
                 <TableHead className="whitespace-nowrap">Actions</TableHead>
               </TableRow>
@@ -610,7 +631,7 @@ const ClientInquiryTable = () => {
               </Select>
             </div>
             <div>
-              <Label>Pick-Up Date</Label>
+              <Label>Date</Label>
               <Input
                 value={editForm.pickUpDate || ""}
                 onChange={(e) => setEditForm({ ...editForm, pickUpDate: e.target.value })}
