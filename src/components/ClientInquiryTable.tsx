@@ -179,13 +179,22 @@ const ClientInquiryTable = () => {
       const truncatedDiagnosis = diagnosis.length > 100 ? `${diagnosis.substring(0, 100)}...` : diagnosis;
       const chatLink = inquiry.directChatLink || "";
 
-      const message = `${inquiry.name || "Client"} has scheduled a ${displayMode(currMode)} on ${scheduledDate}.\n\nDiagnosis: ${truncatedDiagnosis}`;
+      // Determine title based on mode
+      const isStoreVisit = currMode === "store visit";
+      const title = isStoreVisit 
+        ? "Client Visit Confirmation" 
+        : "Client Pickup/Delivery Confirmation | Check Now!";
 
-        for (const staff of adminManagementStaff) {
-          tasks.push(
-            createNotification({
-              userId: staff.staffId,
-              title: "Client Visit/Pickup Confirmed",
+      // For pickup/delivery, don't include date in message
+      const message = isStoreVisit
+        ? `${inquiry.name || "Client"} has scheduled a ${displayMode(currMode)} on ${scheduledDate}.\n\nDiagnosis: ${truncatedDiagnosis}`
+        : `${inquiry.name || "Client"} has scheduled a ${displayMode(currMode)}.\n\nDiagnosis: ${truncatedDiagnosis}`;
+
+      for (const staff of adminManagementStaff) {
+        tasks.push(
+          createNotification({
+            userId: staff.staffId,
+            title,
             message,
             type: "others",
             serviceId: chatLink ? `chat:${chatLink}` : undefined,
