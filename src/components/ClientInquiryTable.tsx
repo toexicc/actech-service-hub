@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -119,6 +119,96 @@ const ClientInquiryTable = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, startDate, endDate, modeFilter]);
+
+  // Detect Mode of Transfer updates coming from the sheet (not from manual edits)
+  // and create "others" notifications when a row transitions from TBD/blank -> Store Visit/Pickup/Delivery.
+  const modeSnapshotRef = useRef<Record<string, string> | null>(null);
+  const snapshotHydratedRef = useRef(false);
+  const NOTIFIED_SNAPSHOT_KEY = "ac_tech:client_inquiry_mode_snapshot:v1";
+
+  useEffect(() => {
+    if (!inquiries?.length) return;
+    if (!staffList?.length) return;
+
+    // Hydrate snapshot once per session
+    if (!snapshotHydratedRef.current) {
+      snapshotHydratedRef.current = true;
+      try {
+        const raw = localStorage.getItem(NOTIFIED_SNAPSHOT_KEY);
+        modeSnapshotRef.current = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      } catch {
+        modeSnapshotRef.current = {};
+      }
+    }
+
+    const snapshot = modeSnapshotRef.current ?? {};
+
+    const normalizeMode = (mode: string | undefined | null) => (mode ?? "").trim().toLowerCase();
+    const isTbd = (mode: string) => mode === "" || mode === "tbd";
+    const isNotifyMode = (mode: string) => mode === "store visit" || mode === "pickup" || mode === "delivery";
+    const displayMode = (mode: string) => {
+      if (mode === "store visit") return "Store Visit";
+      if (mode === "pickup") return "Pickup";
+      if (mode === "delivery") return "Delivery";
+      return mode;
+    };
+
+    const adminManagementStaff = staffList.filter(
+      (staff) =>
+        (staff.role?.toLowerCase() === "admin" || staff.role?.toLowerCase() === "management") &&
+        staff.status?.toLowerCase() === "active"
+    );
+
+    // If there are no recipients, still update snapshot so we don't re-trigger forever.
+    const tasks: Promise<boolean>[] = [];
+
+    for (const inquiry of inquiries) {
+      const key = `${inquiry.clientId || ""}::${inquiry.serviceId || ""}::${inquiry.rowIndex}`;
+      const prevMode = normalizeMode(snapshot[key]);
+      const currMode = normalizeMode(inquiry.modeOfTransfer);
+
+      const shouldNotify = isTbd(prevMode) && isNotifyMode(currMode);
+
+      // Always update snapshot to current mode
+      snapshot[key] = currMode;
+
+      if (!shouldNotify) continue;
+
+      const scheduledDate = inquiry.pickUpDate || "Not specified";
+      const diagnosis = inquiry.initialDiagnosis || "No diagnosis provided";
+      const truncatedDiagnosis = diagnosis.length > 100 ? `${diagnosis.substring(0, 100)}...` : diagnosis;
+      const chatLink = inquiry.directChatLink || "";
+
+      const message = `${inquiry.name || "Client"} has scheduled a ${displayMode(currMode)} on ${scheduledDate}.\n\nDiagnosis: ${truncatedDiagnosis}`;
+
+      for (const staff of adminManagementStaff) {
+        tasks.push(
+          createNotification({
+            userId: staff.staffId,
+            title: "Client Transfer Scheduled",
+            message,
+            type: "others",
+            serviceId: chatLink ? `chat:${chatLink}` : undefined,
+          })
+        );
+      }
+    }
+
+    // Persist snapshot after processing
+    modeSnapshotRef.current = snapshot;
+    try {
+      localStorage.setItem(NOTIFIED_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    } catch {
+      // ignore localStorage failures
+    }
+
+    if (tasks.length) {
+      // Fire and forget - do not block UI rendering
+      Promise.all(tasks).catch((err) => {
+        console.warn("Mode-of-transfer change notifications failed:", err);
+      });
+    }
+  }, [inquiries, staffList]);
 
   const handleEdit = (inquiry: ClientInquiry) => {
     setEditingInquiry(inquiry);
