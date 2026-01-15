@@ -181,11 +181,11 @@ const ClientInquiryTable = () => {
 
       const message = `${inquiry.name || "Client"} has scheduled a ${displayMode(currMode)} on ${scheduledDate}.\n\nDiagnosis: ${truncatedDiagnosis}`;
 
-      for (const staff of adminManagementStaff) {
-        tasks.push(
-          createNotification({
-            userId: staff.staffId,
-            title: "Client Transfer Scheduled",
+        for (const staff of adminManagementStaff) {
+          tasks.push(
+            createNotification({
+              userId: staff.staffId,
+              title: "Client Visit/Pickup Confirmed",
             message,
             type: "others",
             serviceId: chatLink ? `chat:${chatLink}` : undefined,
