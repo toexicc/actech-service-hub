@@ -42,6 +42,22 @@ const CustomerManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [customerData, setCustomerData] = useState<CustomerData | null>(null);
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
+  const [customerListOpen, setCustomerListOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+
+  const { data: clientsList = [], isLoading: isClientsLoading } = useClients();
+
+  const filteredClients = useMemo(() => {
+    if (!customerSearch) return clientsList;
+    const q = customerSearch.toLowerCase();
+    return clientsList.filter(
+      (c: any) =>
+        c.clientId?.toLowerCase().includes(q) ||
+        c.clientName?.toLowerCase().includes(q) ||
+        c.contactNumber?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q)
+    );
+  }, [clientsList, customerSearch]);
 
   const handleSearch = async () => {
     if (!clientId.trim()) {
