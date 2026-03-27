@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { displayDate } from "@/lib/timezone";
@@ -8,10 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
-import { Search, User, FileText, Loader2 } from "lucide-react";
+import { Search, User, FileText, Loader2, ChevronDown, Users } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useClients } from "@/hooks/useClients";
 import logo from "@/assets/S_S_Marketing-2.png";
 
 interface CustomerData {
