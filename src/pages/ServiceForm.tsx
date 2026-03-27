@@ -73,8 +73,7 @@ const ServiceForm = () => {
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceId, setServiceId] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchServiceId, setSearchServiceId] = useState("");
+  const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
@@ -587,29 +586,8 @@ const ServiceForm = () => {
           )}
         </div>
 
-        {/* Service ID Search */}
-        <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h2 className="text-lg font-semibold text-blue-600 mb-3">Service ID Search</h2>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter Service ID to load existing data"
-              value={searchServiceId}
-              onChange={(e) => setSearchServiceId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearchServiceId()}
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              onClick={handleSearchServiceId}
-              disabled={isSearching}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Search className="mr-2 h-4 w-4" />
-              {isSearching ? "Searching..." : "Search"}
-            </Button>
-          </div>
-          {serviceId && <p className="mt-2 text-sm text-green-600 font-medium">Loaded Service ID: {serviceId}</p>}
-        </div>
+
+
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
