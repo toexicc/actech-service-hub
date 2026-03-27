@@ -424,7 +424,6 @@ const ServiceForm = () => {
         });
         form.reset();
         setServiceId("");
-        setSearchServiceId("");
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
@@ -475,7 +474,7 @@ const ServiceForm = () => {
         });
         form.reset();
         setServiceId("");
-        setSearchServiceId("");
+        
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
