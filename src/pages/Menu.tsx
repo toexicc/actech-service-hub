@@ -251,12 +251,12 @@ const Menu = () => {
 
     return [
       {
-        title: "Pending Inquiries",
-        value: stats.pendingInquiries,
-        icon: MessageSquare,
-        color: "text-info",
-        bgColor: "bg-info/10",
-        onClick: () => navigate("/client-inquiry"),
+        title: "Ongoing Services",
+        value: stats.ongoingServices,
+        icon: Wrench,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        onClick: () => navigate("/service-tracker?status=Ongoing Service"),
       },
       {
         title: "Ongoing Services",
@@ -344,13 +344,7 @@ const Menu = () => {
           title: "Transactions",
           description: "View financial reports",
           icon: DollarSign,
-          path: "/transaction-tracker",
-        },
-        {
-          title: "Set Closed Dates",
-          description: "Manage shop closures",
-          icon: CalendarOff,
-          action: () => setClosedDateModalOpen(true),
+          path: "/completed-transactions",
         },
       ];
     }
