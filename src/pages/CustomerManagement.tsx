@@ -60,7 +60,9 @@ const CustomerManagement = () => {
   }, [clientsList, customerSearch]);
 
   const handleSearch = async () => {
-    if (!clientId.trim()) {
+  const handleSearch = async (overrideId?: string) => {
+    const searchId = overrideId || clientId;
+    if (!searchId.trim()) {
       toast({
         title: "Validation Error",
         description: "Please enter a Client ID",
@@ -68,6 +70,7 @@ const CustomerManagement = () => {
       });
       return;
     }
+    if (overrideId) setClientId(overrideId);
 
     setIsLoading(true);
     try {
