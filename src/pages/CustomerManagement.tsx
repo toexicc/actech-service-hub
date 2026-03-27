@@ -154,6 +154,76 @@ const CustomerManagement = () => {
           <p className="text-muted-foreground">View customer service history</p>
         </div>
 
+        {/* Customer List - Collapsible */}
+        <Card className="mb-6">
+          <Collapsible open={customerListOpen} onOpenChange={setCustomerListOpen}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Customer List ({filteredClients.length})
+                  </span>
+                  <ChevronDown className={`h-5 w-5 transition-transform ${customerListOpen ? "rotate-180" : ""}`} />
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <Input
+                  placeholder="Search customers by name, ID, contact, or email..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="mb-4"
+                />
+                {isClientsLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  <p className="text-center py-6 text-muted-foreground">No customers found</p>
+                ) : (
+                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Client ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredClients.map((client: any) => (
+                          <TableRow key={client.clientId}>
+                            <TableCell className="font-medium">{client.clientId}</TableCell>
+                            <TableCell>{client.clientName || "N/A"}</TableCell>
+                            <TableCell>{client.contactNumber || "N/A"}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{client.email || "N/A"}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setClientId(client.clientId);
+                                  handleSearch();
+                                }}
+                              >
+                                <Search className="h-3 w-3 mr-1" /> View
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+
         {/* Search Section */}
         <Card className="mb-8">
           <CardHeader>
