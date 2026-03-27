@@ -126,7 +126,12 @@ const PointOfSales = () => {
 
       if (result.status === "success") {
         toast({ title: "Transaction Recorded", description: "Transaction has been saved successfully" });
-        logActivityAsync(`POS: Recorded ${finalTransactionType} of Php ${amount} for ${serviceData.serviceId} via ${finalMOP}`);
+        logActivityAsync({
+          serviceId: serviceData.serviceId,
+          username,
+          role: userRole || "",
+          activity: `POS: Recorded ${finalTransactionType} of Php ${amount} via ${finalMOP}`,
+        });
         
         // Reset form
         setTransactionType("");
