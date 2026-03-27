@@ -59,7 +59,6 @@ const CustomerManagement = () => {
     );
   }, [clientsList, customerSearch]);
 
-  const handleSearch = async () => {
   const handleSearch = async (overrideId?: string) => {
     const searchId = overrideId || clientId;
     if (!searchId.trim()) {
