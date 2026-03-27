@@ -74,7 +74,6 @@ const ServiceForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceId, setServiceId] = useState("");
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
-  const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
   const [signatureUrl, setSignatureUrl] = useState("");
