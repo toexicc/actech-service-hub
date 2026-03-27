@@ -207,10 +207,7 @@ const CustomerManagement = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  setClientId(client.clientId);
-                                  handleSearch();
-                                }}
+                                onClick={() => handleSearch(client.clientId)}
                               >
                                 <Search className="h-3 w-3 mr-1" /> View
                               </Button>
