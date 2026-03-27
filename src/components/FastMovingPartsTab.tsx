@@ -596,7 +596,7 @@ export const FastMovingPartsTab = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Fast Moving Parts ({filteredParts.length})
+            Pre-Ordered Parts ({filteredParts.length})
           </CardTitle>
         </div>
       </CardHeader>

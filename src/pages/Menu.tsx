@@ -23,9 +23,7 @@ import {
   ChevronRight,
   ClipboardList,
   Monitor,
-  CalendarOff,
 } from "lucide-react";
-import { ClosedDateModal } from "@/components/ClosedDateModal";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
@@ -63,7 +61,7 @@ interface LowStockItem {
 const Menu = () => {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [closedDateModalOpen, setClosedDateModalOpen] = useState(false);
+  
   
   // Pagination for dashboards
   const [partsPage, setPartsPage] = useState(1);
@@ -251,12 +249,12 @@ const Menu = () => {
 
     return [
       {
-        title: "Pending Inquiries",
-        value: stats.pendingInquiries,
-        icon: MessageSquare,
-        color: "text-info",
-        bgColor: "bg-info/10",
-        onClick: () => navigate("/client-inquiry"),
+        title: "Ongoing Services",
+        value: stats.ongoingServices,
+        icon: Wrench,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        onClick: () => navigate("/service-tracker?status=Ongoing Service"),
       },
       {
         title: "Ongoing Services",
@@ -344,13 +342,7 @@ const Menu = () => {
           title: "Transactions",
           description: "View financial reports",
           icon: DollarSign,
-          path: "/transaction-tracker",
-        },
-        {
-          title: "Set Closed Dates",
-          description: "Manage shop closures",
-          icon: CalendarOff,
-          action: () => setClosedDateModalOpen(true),
+          path: "/completed-transactions",
         },
       ];
     }
@@ -424,14 +416,12 @@ const Menu = () => {
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${!isTechnician && userRole === 'management' ? 'xl:grid-cols-6' : ''} gap-4`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${!isTechnician && userRole === 'management' ? 'xl:grid-cols-5' : ''} gap-4`}>
               {quickActions.map((action, index) => (
                 <button
                   key={index}
                   onClick={() => {
-                    if ('action' in action && action.action) {
-                      action.action();
-                    } else if ('path' in action && action.path) {
+                    if ('path' in action && action.path) {
                       navigate(action.path);
                     }
                   }}
@@ -717,11 +707,6 @@ const Menu = () => {
           Powered by Stack&Scale
         </div>
 
-        {/* Closed Date Modal */}
-        <ClosedDateModal
-          open={closedDateModalOpen}
-          onOpenChange={setClosedDateModalOpen}
-        />
       </div>
     </DashboardLayout>
   );

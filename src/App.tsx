@@ -17,12 +17,12 @@ import InventoryManagement from "./pages/InventoryManagement";
 import CustomerManagement from "./pages/CustomerManagement";
 import StaffManagement from "./pages/StaffManagement";
 import TransactionTracker from "./pages/TransactionTracker";
+import CompletedTransactions from "./pages/CompletedTransactions";
 import OpenDashboard from "./pages/OpenDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import ClientInquiry from "./pages/ClientInquiry";
 import RequestForParts from "./pages/RequestForParts";
 import Install from "./pages/Install";
-import ClosedDates from "./pages/ClosedDates";
+import PointOfSales from "./pages/PointOfSales";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with caching settings for fast navigation
@@ -49,7 +49,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/menu" element={<Menu />} />
-          <Route path="/client-inquiry" element={<ClientInquiry />} />
+          <Route path="/pos" element={<PointOfSales />} />
           <Route path="/service-form" element={<ServiceForm />} />
           <Route path="/track" element={<ServiceTracking />} />
           <Route path="/service-tracking" element={<ServiceTracker />} />
@@ -59,11 +59,11 @@ const App = () => (
           <Route path="/inventory-management" element={<InventoryManagement />} />
           <Route path="/customer-management" element={<CustomerManagement />} />
           <Route path="/staff-management" element={<StaffManagement />} />
+          <Route path="/completed-transactions" element={<CompletedTransactions />} />
           <Route path="/transaction-tracker" element={<TransactionTracker />} />
           <Route path="/tech-dashboard" element={<OpenDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/request-for-parts" element={<RequestForParts />} />
-          <Route path="/closed-dates" element={<ClosedDates />} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

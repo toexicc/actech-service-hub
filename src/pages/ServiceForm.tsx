@@ -73,8 +73,6 @@ const ServiceForm = () => {
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceId, setServiceId] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchServiceId, setSearchServiceId] = useState("");
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
@@ -244,56 +242,6 @@ const ServiceForm = () => {
     }
   };
 
-  const handleSearchServiceId = async () => {
-    if (!searchServiceId.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a Service ID to search",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.found) {
-        setServiceId(searchServiceId);
-        form.setValue("clientName", result.data.name || "");
-        form.setValue("phone", result.data.contactNumber || "");
-        form.setValue("model", result.data.device || "");
-        form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
-        form.setValue("estimatedCost", parseFloat(result.data.estimatedCost) || 0);
-        toast({
-          title: "Success",
-          description: "Service information loaded successfully!",
-        });
-      } else {
-        toast({
-          title: "Not Found",
-          description: "Service ID not found in database",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      // Error searching service ID
-      toast({
-        title: "Error",
-        description: "Failed to search service ID. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   // Helper to convert blob to base64 (defined outside for reuse)
   const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
@@ -476,7 +424,6 @@ const ServiceForm = () => {
         });
         form.reset();
         setServiceId("");
-        setSearchServiceId("");
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
@@ -527,7 +474,7 @@ const ServiceForm = () => {
         });
         form.reset();
         setServiceId("");
-        setSearchServiceId("");
+        
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
@@ -587,29 +534,8 @@ const ServiceForm = () => {
           )}
         </div>
 
-        {/* Service ID Search */}
-        <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h2 className="text-lg font-semibold text-blue-600 mb-3">Service ID Search</h2>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter Service ID to load existing data"
-              value={searchServiceId}
-              onChange={(e) => setSearchServiceId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearchServiceId()}
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              onClick={handleSearchServiceId}
-              disabled={isSearching}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Search className="mr-2 h-4 w-4" />
-              {isSearching ? "Searching..." : "Search"}
-            </Button>
-          </div>
-          {serviceId && <p className="mt-2 text-sm text-green-600 font-medium">Loaded Service ID: {serviceId}</p>}
-        </div>
+
+
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

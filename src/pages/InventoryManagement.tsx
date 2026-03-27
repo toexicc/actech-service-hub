@@ -1485,7 +1485,7 @@ const InventoryManagement = () => {
             </TabsTrigger>
             <TabsTrigger value="fast-moving">
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Fast Moving Parts
+              Pre-Ordered Parts
             </TabsTrigger>
             {!isViewOnly && (
               <TabsTrigger value="logs">
