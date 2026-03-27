@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDoneServices } from "@/hooks/useDoneServices";
 
-const TransactionTracker = () => {
+const CompletedTransactions = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const userRole = sessionStorage.getItem("userRole");
@@ -433,4 +433,4 @@ const TransactionTracker = () => {
   );
 };
 
-export default TransactionTracker;
+export default CompletedTransactions;
