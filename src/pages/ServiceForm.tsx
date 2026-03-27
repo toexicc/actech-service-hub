@@ -242,56 +242,6 @@ const ServiceForm = () => {
     }
   };
 
-  const handleSearchServiceId = async () => {
-    if (!searchServiceId.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a Service ID to search",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (result.found) {
-        setServiceId(searchServiceId);
-        form.setValue("clientName", result.data.name || "");
-        form.setValue("phone", result.data.contactNumber || "");
-        form.setValue("model", result.data.device || "");
-        form.setValue("chiefComplaint", result.data.initialDiagnosis || "");
-        form.setValue("estimatedCost", parseFloat(result.data.estimatedCost) || 0);
-        toast({
-          title: "Success",
-          description: "Service information loaded successfully!",
-        });
-      } else {
-        toast({
-          title: "Not Found",
-          description: "Service ID not found in database",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      // Error searching service ID
-      toast({
-        title: "Error",
-        description: "Failed to search service ID. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   // Helper to convert blob to base64 (defined outside for reuse)
   const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
