@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  MessageSquare, Monitor, Menu, ShoppingCart, Loader2, CalendarOff,
+  MessageSquare, Monitor, Menu, ShoppingCart, Loader2,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,15 +20,15 @@ interface NavSection { title: string; icon: React.ElementType; items: NavItem[];
 const adminSection: NavSection = {
   title: "Admin Portal", icon: LayoutDashboard,
   items: [
-    { title: "Client Inquiry", icon: MessageSquare, path: "/client-inquiry" },
+    { title: "Point of Sales", icon: ShoppingCart, path: "/pos", roles: ["management", "admin"] },
     { title: "Client Intake Form", icon: FileText, path: "/service-form" },
     { title: "Manage Client", icon: Users, path: "/manage-client" },
     { title: "Customer Management", icon: UserCog, path: "/customer-management" },
     { title: "Service Tracker", icon: ClipboardList, path: "/service-tracker" },
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"] },
-    { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management"] },
+    { title: "Completed Transactions", icon: DollarSign, path: "/completed-transactions", roles: ["management"] },
+    { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management", "admin"] },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"] },
-    { title: "Closed Dates", icon: CalendarOff, path: "/closed-dates" },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"] },
   ],
   roles: ["admin", "management"],
