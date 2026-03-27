@@ -247,7 +247,7 @@ const CustomerManagement = () => {
                 />
               </div>
               <div className="flex items-end">
-                <Button onClick={handleSearch} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => handleSearch()} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
                   {isLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
