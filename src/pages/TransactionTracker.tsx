@@ -351,14 +351,14 @@ const TransactionTracker = () => {
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Expenses</p>
-              <p className="text-xl font-bold text-red-600">Php {totalExpenses.toLocaleString()}</p>
+              <p className="text-xl font-bold text-destructive">Php {totalExpenses.toLocaleString()}</p>
               <TrendingDown className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Salary Disbursed</p>
-              <p className="text-xl font-bold text-orange-600">Php {totalSalary.toLocaleString()}</p>
+              <p className="text-xl font-bold text-accent-foreground">Php {totalSalary.toLocaleString()}</p>
               <Banknote className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
