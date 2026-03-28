@@ -1103,6 +1103,38 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle getTransactions - fetch all transactions from Transactions sheet
+  if (params.action === 'getTransactions') {
+    var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+    if (!txnSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success", transactions: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var txnData = txnSheet.getDataRange().getDisplayValues();
+    var txns = [];
+    for (var ti = 1; ti < txnData.length; ti++) {
+      if (!txnData[ti][0] && !txnData[ti][1]) continue; // skip empty rows
+      txns.push({
+        timestamp: txnData[ti][0],
+        serviceId: txnData[ti][1],
+        transactionType: txnData[ti][2],
+        modeOfPayment: txnData[ti][3],
+        name: txnData[ti][4],
+        device: txnData[ti][5],
+        amount: txnData[ti][6],
+        serviceCost: txnData[ti][7],
+        remarks: txnData[ti][8],
+        partsUsed: txnData[ti][9],
+        recordedBy: txnData[ti][10],
+        transactionId: txnData[ti][11]
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success", transactions: txns
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   return ContentService.createTextOutput(JSON.stringify({
     "error": "Invalid request"
   })).setMimeType(ContentService.MimeType.JSON);
@@ -1111,6 +1143,89 @@ function doGet(e) {
 function doPost(e) {
   var params = e.parameter;
   var action = params.action;
+
+  // Handle addTransaction - add a new row to Transactions sheet
+  if (action === 'addTransaction') {
+    var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+    if (!txnSheet) {
+      // Create the sheet with headers if it doesn't exist
+      txnSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Transactions");
+      txnSheet.appendRow(["Timestamp", "Service ID", "Type of Transaction", "Mode of Payment", "Name", "Device", "Amount", "Service Cost", "Remarks", "Parts Used", "Recorded By", "Transaction ID"]);
+    }
+    var now = new Date();
+    var timestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy, hh:mm:ss a");
+    txnSheet.appendRow([
+      timestamp,
+      params.serviceId || "",
+      params.transactionType || "",
+      params.modeOfPayment || "",
+      params.name || "",
+      params.device || "",
+      params.amount || "",
+      params.serviceCost || "",
+      params.remarks || "",
+      params.partsUsed || "",
+      params.recordedBy || "",
+      params.transactionId || ("TXN" + now.getTime())
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success", transactionId: params.transactionId || ("TXN" + now.getTime())
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle editTransaction - update an existing transaction row
+  if (action === 'editTransaction') {
+    var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+    if (!txnSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error", message: "Transactions sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var txnData = txnSheet.getDataRange().getDisplayValues();
+    for (var ei = 1; ei < txnData.length; ei++) {
+      if (txnData[ei][11] === params.transactionId) {
+        // Update columns B-K (indices 1-10), keep timestamp and txn ID
+        txnSheet.getRange(ei + 1, 2).setValue(params.serviceId || "");
+        txnSheet.getRange(ei + 1, 3).setValue(params.transactionType || "");
+        txnSheet.getRange(ei + 1, 4).setValue(params.modeOfPayment || "");
+        txnSheet.getRange(ei + 1, 5).setValue(params.name || "");
+        txnSheet.getRange(ei + 1, 6).setValue(params.device || "");
+        txnSheet.getRange(ei + 1, 7).setValue(params.amount || "");
+        txnSheet.getRange(ei + 1, 8).setValue(params.serviceCost || "");
+        txnSheet.getRange(ei + 1, 9).setValue(params.remarks || "");
+        txnSheet.getRange(ei + 1, 10).setValue(params.partsUsed || "");
+        txnSheet.getRange(ei + 1, 11).setValue(params.recordedBy || "");
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error", message: "Transaction not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle deleteTransaction - remove a transaction row
+  if (action === 'deleteTransaction') {
+    var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+    if (!txnSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error", message: "Transactions sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var txnData = txnSheet.getDataRange().getDisplayValues();
+    for (var di = 1; di < txnData.length; di++) {
+      if (txnData[di][11] === params.transactionId) {
+        txnSheet.deleteRow(di + 1);
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error", message: "Transaction not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
   
   // Handle device report photo deletion (Service Update page)
   if (params.action === 'deleteDeviceReportPhoto') {
