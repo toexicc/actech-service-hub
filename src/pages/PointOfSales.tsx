@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
@@ -18,10 +19,9 @@ interface ServiceData {
   clientName: string;
   device: string;
   serviceCost: string;
-  totalCost: string;
+  finalCost: string;
   partsUsed: string;
   status: string;
-  paymentStatus: string;
 }
 
 const PointOfSales = () => {
@@ -34,6 +34,7 @@ const PointOfSales = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [serviceData, setServiceData] = useState<ServiceData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
 
   // Transaction fields
   const [transactionType, setTransactionType] = useState("");
@@ -43,13 +44,14 @@ const PointOfSales = () => {
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
 
+  // Manual input fields
+  const [manualName, setManualName] = useState("");
+  const [manualDevice, setManualDevice] = useState("");
+  const [manualServiceCost, setManualServiceCost] = useState("");
+
   useEffect(() => {
-    if (!sessionStorage.getItem("authenticated")) {
-      navigate("/");
-    }
-    if (userRole !== "management" && userRole !== "admin") {
-      navigate("/menu");
-    }
+    if (!sessionStorage.getItem("authenticated")) navigate("/");
+    if (userRole !== "management" && userRole !== "admin") navigate("/menu");
   }, [navigate, userRole]);
 
   const handleSearchService = async () => {
@@ -61,24 +63,23 @@ const PointOfSales = () => {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=search&serviceId=${encodeURIComponent(searchServiceId)}`
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(searchServiceId)}`
       );
       const result = await response.json();
 
-      if (result.found && result.data) {
+      if (result.status === "found" && result.data) {
         setServiceData({
           serviceId: searchServiceId,
-          clientName: result.data.name || result.data.clientName || "",
-          device: result.data.device || result.data.deviceModel || "",
-          serviceCost: result.data.serviceCost || result.data.estimatedCost || "0",
-          totalCost: result.data.totalCost || result.data.finalCost || result.data.serviceCost || "0",
+          clientName: result.data.clientName || "",
+          device: result.data.device || "",
+          serviceCost: result.data.serviceCost || "0",
+          finalCost: result.data.finalCost || result.data.serviceCost || "0",
           partsUsed: result.data.partsUsed || "",
           status: result.data.status || "",
-          paymentStatus: result.data.paymentStatus || "",
         });
         toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` });
       } else {
-        toast({ title: "Not Found", description: "Service ID not found", variant: "destructive" });
+        toast({ title: "Not Found", description: "Service ID not found in Service Database", variant: "destructive" });
         setServiceData(null);
       }
     } catch {
@@ -88,33 +89,45 @@ const PointOfSales = () => {
     }
   };
 
-  const handleSubmitTransaction = async () => {
-    if (!serviceData) {
-      toast({ title: "Error", description: "Please search for a service first", variant: "destructive" });
-      return;
-    }
+  const generateTransactionId = () => {
+    return `TXN${Date.now()}`;
+  };
 
+  const handleSubmitTransaction = async () => {
     const finalTransactionType = transactionType === "Others" ? otherTransactionType : transactionType;
     const finalMOP = modeOfPayment === "Others" ? otherMOP : modeOfPayment;
 
     if (!finalTransactionType || !finalMOP || !amount) {
-      toast({ title: "Validation Error", description: "Please fill in all required fields", variant: "destructive" });
+      toast({ title: "Validation Error", description: "Please fill in Transaction Type, MOP, and Amount", variant: "destructive" });
       return;
     }
+
+    if (!manualMode && !serviceData) {
+      toast({ title: "Error", description: "Please search for a service or enable manual input", variant: "destructive" });
+      return;
+    }
+
+    const name = manualMode ? manualName : (serviceData?.clientName || "");
+    const device = manualMode ? manualDevice : (serviceData?.device || "");
+    const serviceCost = manualMode ? manualServiceCost : (serviceData?.serviceCost || "0");
+    const serviceId = manualMode ? (searchServiceId || "MANUAL") : (serviceData?.serviceId || "");
+    const partsUsed = serviceData?.partsUsed || "";
+    const transactionId = generateTransactionId();
 
     setIsSubmitting(true);
     try {
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
-      params.append("serviceId", serviceData.serviceId);
+      params.append("transactionId", transactionId);
+      params.append("serviceId", serviceId);
       params.append("transactionType", finalTransactionType);
       params.append("modeOfPayment", finalMOP);
-      params.append("name", serviceData.clientName);
-      params.append("device", serviceData.device);
+      params.append("name", name);
+      params.append("device", device);
       params.append("amount", amount);
-      params.append("serviceCost", serviceData.serviceCost);
+      params.append("serviceCost", serviceCost);
       params.append("remarks", remarks);
-      params.append("partsUsed", serviceData.partsUsed);
+      params.append("partsUsed", partsUsed);
       params.append("recordedBy", username);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -125,14 +138,14 @@ const PointOfSales = () => {
       const result = await response.json();
 
       if (result.status === "success") {
-        toast({ title: "Transaction Recorded", description: "Transaction has been saved successfully" });
+        toast({ title: "Transaction Recorded", description: `Transaction ${transactionId} saved successfully` });
         logActivityAsync({
-          serviceId: serviceData.serviceId,
+          serviceId,
           username,
           role: userRole || "",
-          activity: `POS: Recorded ${finalTransactionType} of Php ${amount} via ${finalMOP}`,
+          activity: `POS: Recorded ${finalTransactionType} of Php ${amount} via ${finalMOP} (${transactionId})`,
         });
-        
+
         // Reset form
         setTransactionType("");
         setOtherTransactionType("");
@@ -142,6 +155,9 @@ const PointOfSales = () => {
         setRemarks("");
         setServiceData(null);
         setSearchServiceId("");
+        setManualName("");
+        setManualDevice("");
+        setManualServiceCost("");
       } else {
         toast({ title: "Error", description: result.message || "Failed to record transaction", variant: "destructive" });
       }
@@ -151,6 +167,8 @@ const PointOfSales = () => {
       setIsSubmitting(false);
     }
   };
+
+  const canShowForm = manualMode || serviceData;
 
   return (
     <DashboardLayout>
@@ -166,32 +184,47 @@ const PointOfSales = () => {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Search & Service Info - Left Column */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Service ID Search */}
+            {/* Manual Mode Toggle */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Search className="h-5 w-5" />
-                  Search Service
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Enter Service ID"
-                    value={searchServiceId}
-                    onChange={(e) => setSearchServiceId(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearchService()}
-                  />
-                  <Button onClick={handleSearchService} disabled={isSearching} className="w-full">
-                    {isSearching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                    {isSearching ? "Searching..." : "Search"}
-                  </Button>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-medium">Manual Input Mode</Label>
+                    <p className="text-xs text-muted-foreground">Skip service ID search</p>
+                  </div>
+                  <Switch checked={manualMode} onCheckedChange={(v) => { setManualMode(v); if (v) setServiceData(null); }} />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Service Details */}
-            {serviceData && (
+            {/* Service ID Search */}
+            {!manualMode && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Search className="h-5 w-5" />
+                    Search Service
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Enter Service ID"
+                      value={searchServiceId}
+                      onChange={(e) => setSearchServiceId(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSearchService()}
+                    />
+                    <Button onClick={handleSearchService} disabled={isSearching} className="w-full">
+                      {isSearching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                      {isSearching ? "Searching..." : "Search"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Service Details (from search) */}
+            {!manualMode && serviceData && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Service Details</CardTitle>
@@ -215,6 +248,10 @@ const PointOfSales = () => {
                     <p className="text-lg font-bold">Php {serviceData.serviceCost}</p>
                   </div>
                   <div>
+                    <Label className="text-xs text-muted-foreground">Final Cost</Label>
+                    <p className="text-lg font-bold text-primary">Php {serviceData.finalCost}</p>
+                  </div>
+                  <div>
                     <Label className="text-xs text-muted-foreground">Parts Used</Label>
                     <p className="text-sm">{serviceData.partsUsed || "None"}</p>
                   </div>
@@ -223,9 +260,36 @@ const PointOfSales = () => {
                     <Label className="text-xs text-muted-foreground">Status</Label>
                     <p>{serviceData.status || "N/A"}</p>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Payment Status</Label>
-                    <p className="font-medium">{serviceData.paymentStatus || "N/A"}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Manual Input Fields */}
+            {manualMode && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Manual Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Service ID (optional)</Label>
+                    <Input
+                      placeholder="Enter Service ID if applicable"
+                      value={searchServiceId}
+                      onChange={(e) => setSearchServiceId(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Client Name</Label>
+                    <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Enter client name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Device</Label>
+                    <Input value={manualDevice} onChange={(e) => setManualDevice(e.target.value)} placeholder="Enter device" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Service Cost</Label>
+                    <Input type="number" value={manualServiceCost} onChange={(e) => setManualServiceCost(e.target.value)} placeholder="0" />
                   </div>
                 </CardContent>
               </Card>
@@ -242,11 +306,11 @@ const PointOfSales = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {!serviceData ? (
+                {!canShowForm ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium">Search for a Service ID to begin</p>
-                    <p className="text-sm">Enter a Service ID on the left to load service data and record a transaction.</p>
+                    <p className="text-lg font-medium">Search for a Service ID or enable Manual Input</p>
+                    <p className="text-sm">Load service data or toggle manual mode to record a transaction.</p>
                   </div>
                 ) : (
                   <>
@@ -262,6 +326,7 @@ const PointOfSales = () => {
                             <SelectItem value="Down Payment">Down Payment</SelectItem>
                             <SelectItem value="Full Payment">Full Payment</SelectItem>
                             <SelectItem value="Payment Settlement (Full Payment)">Payment Settlement (Full Payment)</SelectItem>
+                            <SelectItem value="Parts Inventory">Parts Inventory</SelectItem>
                             <SelectItem value="Others">Others</SelectItem>
                           </SelectContent>
                         </Select>
@@ -312,25 +377,27 @@ const PointOfSales = () => {
                       />
                     </div>
 
-                    {/* Pre-filled info */}
-                    <div className="grid md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Client Name (auto)</Label>
-                        <p className="font-medium">{serviceData.clientName}</p>
+                    {/* Pre-filled info (only when from search) */}
+                    {!manualMode && serviceData && (
+                      <div className="grid md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Client Name (auto)</Label>
+                          <p className="font-medium">{serviceData.clientName}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Device (auto)</Label>
+                          <p>{serviceData.device}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Service Cost (auto)</Label>
+                          <p>Php {serviceData.serviceCost}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Parts Used (auto)</Label>
+                          <p>{serviceData.partsUsed || "None"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Device (auto)</Label>
-                        <p>{serviceData.device}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Service Cost (auto)</Label>
-                        <p>Php {serviceData.serviceCost}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Parts Used (auto)</Label>
-                        <p>{serviceData.partsUsed || "None"}</p>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Remarks */}
                     <div className="space-y-2">
