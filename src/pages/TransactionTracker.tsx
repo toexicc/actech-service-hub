@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { displayDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
-  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
+  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet, TrendingDown, Banknote,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,18 @@ interface Transaction {
   recordedBy: string;
 }
 
+const SALES_TYPES = ["Down Payment", "Full Payment", "Payment Settlement (Full Payment)"];
+const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
+const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
+
+const ALL_TRANSACTION_TYPES = [
+  ...SALES_TYPES,
+  "Money in Bank",
+  ...EXPENSE_TYPES,
+  ...SALARY_TYPES,
+  "Others",
+];
+
 const fetchTransactions = async (): Promise<Transaction[]> => {
   const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTransactions`);
   const data = await response.json();
@@ -55,17 +68,15 @@ const TransactionTracker = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [mopFilter, setMopFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("general");
   const itemsPerPage = 15;
-
-  // Mini dashboard
-  const [moneyInBank, setMoneyInBank] = useState(() => localStorage.getItem("pos_money_in_bank") || "0");
 
   // Edit/Add dialog
   const [editDialog, setEditDialog] = useState(false);
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [editForm, setEditForm] = useState({
-    transactionType: "", modeOfPayment: "", amount: "", remarks: "", serviceId: "",
-    name: "", device: "", serviceCost: "", partsUsed: "",
+    transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
+    amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsUsed: "",
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
@@ -86,21 +97,39 @@ const TransactionTracker = () => {
     gcTime: 5 * 60 * 1000,
   });
 
-  const filteredTransactions = useMemo(() => {
+  // Tab-based filtering
+  const tabFilteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
+      const type = t.transactionType || "";
+      switch (activeTab) {
+        case "sales":
+          return SALES_TYPES.includes(type) || type === "Money in Bank";
+        case "expenses":
+          return EXPENSE_TYPES.includes(type) || type === "Parts Inventory";
+        case "salary":
+          return SALARY_TYPES.includes(type);
+        default: // general
+          return true;
+      }
+    });
+  }, [transactions, activeTab]);
+
+  const filteredTransactions = useMemo(() => {
+    return tabFilteredTransactions.filter((t) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (
           !t.serviceId?.toLowerCase().includes(q) &&
           !t.name?.toLowerCase().includes(q) &&
           !t.transactionType?.toLowerCase().includes(q) &&
+          !t.transactionId?.toLowerCase().includes(q) &&
           !t.recordedBy?.toLowerCase().includes(q)
         ) return false;
       }
       if (mopFilter !== "all" && t.modeOfPayment !== mopFilter) return false;
       return true;
     });
-  }, [transactions, searchQuery, mopFilter]);
+  }, [tabFilteredTransactions, searchQuery, mopFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
   const paginatedTransactions = filteredTransactions.slice(
@@ -109,23 +138,39 @@ const TransactionTracker = () => {
   );
 
   // Mini dashboard stats
+  const moneyInBank = useMemo(() => {
+    return transactions
+      .filter((t) => t.transactionType === "Money in Bank")
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  }, [transactions]);
+
   const totalSales = useMemo(() => {
-    return transactions.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+    return transactions
+      .filter((t) => SALES_TYPES.includes(t.transactionType))
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  }, [transactions]);
+
+  const totalExpenses = useMemo(() => {
+    return transactions
+      .filter((t) => [...EXPENSE_TYPES, "Parts Inventory"].includes(t.transactionType))
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  }, [transactions]);
+
+  const totalSalary = useMemo(() => {
+    return transactions
+      .filter((t) => SALARY_TYPES.includes(t.transactionType))
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
   }, [transactions]);
 
   const mopBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};
     transactions.forEach((t) => {
+      if (!SALES_TYPES.includes(t.transactionType)) return;
       const mop = t.modeOfPayment || "Unknown";
       breakdown[mop] = (breakdown[mop] || 0) + (parseFloat(t.amount) || 0);
     });
     return breakdown;
   }, [transactions]);
-
-  const handleSaveMoneyInBank = (val: string) => {
-    setMoneyInBank(val);
-    localStorage.setItem("pos_money_in_bank", val);
-  };
 
   const handleEdit = (transaction: Transaction) => {
     if (userRole === "admin") {
@@ -133,9 +178,13 @@ const TransactionTracker = () => {
       return;
     }
     setEditData(transaction);
+    const isOtherType = !ALL_TRANSACTION_TYPES.filter(t => t !== "Others").includes(transaction.transactionType);
+    const isOtherMOP = !["GCash", "Maya", "Bank Transfer", "Credit Card", "Cash", "N/A"].includes(transaction.modeOfPayment);
     setEditForm({
-      transactionType: transaction.transactionType,
-      modeOfPayment: transaction.modeOfPayment,
+      transactionType: isOtherType ? "Others" : transaction.transactionType,
+      otherTransactionType: isOtherType ? transaction.transactionType : "",
+      modeOfPayment: isOtherMOP ? "Others" : transaction.modeOfPayment,
+      otherMOP: isOtherMOP ? transaction.modeOfPayment : "",
       amount: transaction.amount,
       remarks: transaction.remarks,
       serviceId: transaction.serviceId,
@@ -150,26 +199,36 @@ const TransactionTracker = () => {
   const handleAdd = () => {
     setEditData(null);
     setEditForm({
-      transactionType: "", modeOfPayment: "", amount: "", remarks: "", serviceId: "",
-      name: "", device: "", serviceCost: "", partsUsed: "",
+      transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
+      amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsUsed: "",
     });
     setEditDialog(true);
   };
 
   const handleSaveEdit = async () => {
-    if (!editForm.serviceId || !editForm.transactionType || !editForm.modeOfPayment || !editForm.amount) {
-      toast({ title: "Validation Error", description: "Please fill required fields", variant: "destructive" });
+    const finalType = editForm.transactionType === "Others" ? editForm.otherTransactionType : editForm.transactionType;
+    const finalMOP = editForm.transactionType === "Money in Bank" ? "N/A"
+      : (editForm.modeOfPayment === "Others" ? editForm.otherMOP : editForm.modeOfPayment);
+
+    if (!finalType || !editForm.amount) {
+      toast({ title: "Validation Error", description: "Please fill Transaction Type and Amount", variant: "destructive" });
+      return;
+    }
+    if (editForm.transactionType !== "Money in Bank" && !finalMOP) {
+      toast({ title: "Validation Error", description: "Please select a Mode of Payment", variant: "destructive" });
       return;
     }
 
     setIsEditSubmitting(true);
     try {
+      const transactionId = editData ? editData.transactionId : `TXN${Date.now()}`;
       const params = new URLSearchParams();
       params.append("action", editData ? "editTransaction" : "addTransaction");
       if (editData) params.append("transactionId", editData.transactionId);
+      else params.append("transactionId", transactionId);
       params.append("serviceId", editForm.serviceId);
-      params.append("transactionType", editForm.transactionType);
-      params.append("modeOfPayment", editForm.modeOfPayment);
+      params.append("transactionType", finalType);
+      params.append("modeOfPayment", finalMOP);
       params.append("name", editForm.name);
       params.append("device", editForm.device);
       params.append("amount", editForm.amount);
@@ -184,12 +243,12 @@ const TransactionTracker = () => {
       if (result.status === "success") {
         toast({ title: "Success", description: editData ? "Transaction updated" : "Transaction added" });
         logActivityAsync({
-          serviceId: editForm.serviceId,
+          serviceId: editForm.serviceId || "TRACKER",
           username,
           role: userRole || "",
           activity: editData
-            ? `Edited transaction ${editData.transactionId}`
-            : `Added manual transaction for ${editForm.serviceId}`,
+            ? `Edited transaction ${editData.transactionId}: ${finalType} Php ${editForm.amount}`
+            : `Added transaction ${transactionId}: ${finalType} Php ${editForm.amount} via ${finalMOP}`,
         });
         setEditDialog(false);
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -224,7 +283,7 @@ const TransactionTracker = () => {
       if (result.status === "success") {
         toast({ title: "Deleted", description: "Transaction removed" });
         logActivityAsync({
-          serviceId: deleteTarget.serviceId,
+          serviceId: deleteTarget.serviceId || "TRACKER",
           username,
           role: userRole || "",
           activity: `Deleted transaction ${deleteTarget.transactionId}`,
@@ -250,6 +309,8 @@ const TransactionTracker = () => {
     }
   };
 
+  const needsMOP = editForm.transactionType !== "Money in Bank";
+
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
@@ -272,55 +333,62 @@ const TransactionTracker = () => {
         </div>
 
         {/* Mini Dashboard */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Money in Bank</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm">Php</span>
-                    <Input
-                      type="number"
-                      value={moneyInBank}
-                      onChange={(e) => handleSaveMoneyInBank(e.target.value)}
-                      className="h-8 w-32 font-bold text-lg"
-                    />
-                  </div>
-                </div>
-                <Landmark className="h-8 w-8 text-muted-foreground/30" />
-              </div>
+              <p className="text-xs text-muted-foreground">Money in Bank</p>
+              <p className="text-xl font-bold text-primary">Php {moneyInBank.toLocaleString()}</p>
+              <Landmark className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Sales</p>
-                  <p className="text-2xl font-bold text-primary">Php {totalSales.toLocaleString()}</p>
-                </div>
-                <DollarSign className="h-8 w-8 text-muted-foreground/30" />
-              </div>
+              <p className="text-xs text-muted-foreground">Total Sales</p>
+              <p className="text-xl font-bold text-green-600">Php {totalSales.toLocaleString()}</p>
+              <DollarSign className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
-          <Card className="sm:col-span-2">
+          <Card>
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-2">Transactions by MOP</p>
-              <div className="flex flex-wrap gap-3">
+              <p className="text-xs text-muted-foreground">Total Expenses</p>
+              <p className="text-xl font-bold text-red-600">Php {totalExpenses.toLocaleString()}</p>
+              <TrendingDown className="h-5 w-5 text-muted-foreground/30 mt-1" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Salary Disbursed</p>
+              <p className="text-xl font-bold text-orange-600">Php {totalSalary.toLocaleString()}</p>
+              <Banknote className="h-5 w-5 text-muted-foreground/30 mt-1" />
+            </CardContent>
+          </Card>
+          <Card className="col-span-2 sm:col-span-3 lg:col-span-1">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground mb-2">Sales by MOP</p>
+              <div className="space-y-1">
                 {Object.entries(mopBreakdown).map(([mop, total]) => (
-                  <div key={mop} className="flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-lg">
-                    {getMOPIcon(mop)}
-                    <span className="text-xs font-medium">{mop}:</span>
-                    <span className="text-xs font-bold">Php {total.toLocaleString()}</span>
+                  <div key={mop} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1">{getMOPIcon(mop)} {mop}</span>
+                    <span className="font-bold">Php {total.toLocaleString()}</span>
                   </div>
                 ))}
                 {Object.keys(mopBreakdown).length === 0 && (
-                  <span className="text-xs text-muted-foreground">No transactions yet</span>
+                  <span className="text-xs text-muted-foreground">No sales yet</span>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); }} className="mb-6">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="sales">Sales</TabsTrigger>
+            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="salary">Salary</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Filters */}
         <Card className="mb-6">
@@ -328,7 +396,7 @@ const TransactionTracker = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
                 <Input
-                  placeholder="Search by Service ID, Name, Type, or Recorded By..."
+                  placeholder="Search by ID, Name, Type, or Recorded By..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 />
@@ -344,6 +412,7 @@ const TransactionTracker = () => {
                   <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                   <SelectItem value="Credit Card">Credit Card</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="N/A">N/A</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -367,14 +436,13 @@ const TransactionTracker = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>TXN ID</TableHead>
                       <TableHead>Timestamp</TableHead>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>MOP</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Device</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Service Cost</TableHead>
                       <TableHead>Recorded By</TableHead>
                       <TableHead>Remarks</TableHead>
                       <TableHead>Actions</TableHead>
@@ -383,20 +451,19 @@ const TransactionTracker = () => {
                   <TableBody>
                     {paginatedTransactions.map((t) => (
                       <TableRow key={t.transactionId}>
+                        <TableCell className="text-xs font-mono">{t.transactionId}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {t.timestamp ? displayDate(t.timestamp, "MMM dd, yyyy hh:mm a") : "N/A"}
                         </TableCell>
-                        <TableCell className="font-medium">{t.serviceId}</TableCell>
+                        <TableCell className="font-medium">{t.serviceId || "-"}</TableCell>
                         <TableCell className="text-xs">{t.transactionType}</TableCell>
                         <TableCell>
                           <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">
                             {getMOPIcon(t.modeOfPayment)} {t.modeOfPayment}
                           </span>
                         </TableCell>
-                        <TableCell>{t.name}</TableCell>
-                        <TableCell className="text-xs">{t.device}</TableCell>
+                        <TableCell>{t.name || "-"}</TableCell>
                         <TableCell className="font-semibold">Php {t.amount}</TableCell>
-                        <TableCell>Php {t.serviceCost}</TableCell>
                         <TableCell className="text-xs">{t.recordedBy}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">{t.remarks || "-"}</TableCell>
                         <TableCell>
@@ -442,7 +509,7 @@ const TransactionTracker = () => {
 
         {/* Edit/Add Dialog */}
         <Dialog open={editDialog} onOpenChange={setEditDialog}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editData ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
               <DialogDescription>
@@ -451,8 +518,8 @@ const TransactionTracker = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Service ID *</Label>
-                <Input value={editForm.serviceId} onChange={(e) => setEditForm({ ...editForm, serviceId: e.target.value })} />
+                <Label>Service ID (optional)</Label>
+                <Input value={editForm.serviceId} onChange={(e) => setEditForm({ ...editForm, serviceId: e.target.value })} placeholder="Leave blank if not service-related" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -463,22 +530,49 @@ const TransactionTracker = () => {
                       <SelectItem value="Down Payment">Down Payment</SelectItem>
                       <SelectItem value="Full Payment">Full Payment</SelectItem>
                       <SelectItem value="Payment Settlement (Full Payment)">Payment Settlement</SelectItem>
+                      <SelectItem value="Money in Bank">Money in Bank</SelectItem>
+                      <SelectItem value="Parts Inventory">Parts Inventory</SelectItem>
+                      <SelectItem value="Supplies">Supplies</SelectItem>
+                      <SelectItem value="Utilities">Utilities</SelectItem>
+                      <SelectItem value="Rent">Rent</SelectItem>
+                      <SelectItem value="Miscellaneous Expense">Miscellaneous Expense</SelectItem>
+                      <SelectItem value="Salary Disbursement">Salary Disbursement</SelectItem>
+                      <SelectItem value="Bonus">Bonus</SelectItem>
+                      <SelectItem value="Commission">Commission</SelectItem>
+                      <SelectItem value="Others">Others</SelectItem>
                     </SelectContent>
                   </Select>
+                  {editForm.transactionType === "Others" && (
+                    <Input
+                      placeholder="Specify type"
+                      value={editForm.otherTransactionType}
+                      onChange={(e) => setEditForm({ ...editForm, otherTransactionType: e.target.value })}
+                    />
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label>MOP *</Label>
-                  <Select value={editForm.modeOfPayment} onValueChange={(v) => setEditForm({ ...editForm, modeOfPayment: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="GCash">GCash</SelectItem>
-                      <SelectItem value="Maya">Maya</SelectItem>
-                      <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="Credit Card">Credit Card</SelectItem>
-                      <SelectItem value="Cash">Cash</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {needsMOP && (
+                  <div className="space-y-2">
+                    <Label>MOP *</Label>
+                    <Select value={editForm.modeOfPayment} onValueChange={(v) => setEditForm({ ...editForm, modeOfPayment: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GCash">GCash</SelectItem>
+                        <SelectItem value="Maya">Maya</SelectItem>
+                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="Credit Card">Credit Card</SelectItem>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {editForm.modeOfPayment === "Others" && (
+                      <Input
+                        placeholder="Specify MOP"
+                        value={editForm.otherMOP}
+                        onChange={(e) => setEditForm({ ...editForm, otherMOP: e.target.value })}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
