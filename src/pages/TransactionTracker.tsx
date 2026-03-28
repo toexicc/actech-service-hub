@@ -344,7 +344,7 @@ const TransactionTracker = () => {
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Sales</p>
-              <p className="text-xl font-bold text-green-600">Php {totalSales.toLocaleString()}</p>
+              <p className="text-xl font-bold text-primary">Php {totalSales.toLocaleString()}</p>
               <DollarSign className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
