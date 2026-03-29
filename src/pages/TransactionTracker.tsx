@@ -11,16 +11,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { displayDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
-  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet, TrendingDown, Banknote,
+  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet, TrendingDown,
+  CalendarIcon, FileText,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { logActivityAsync } from "@/lib/activityLogger";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Transaction {
   transactionId: string;
@@ -32,21 +37,30 @@ interface Transaction {
   device: string;
   amount: string;
   serviceCost: string;
+  attendant: string;
   remarks: string;
-  partsUsed: string;
-  recordedBy: string;
+  partsCost: string;
 }
 
-const SALES_TYPES = ["Down Payment", "Full Payment", "Payment Settlement (Full Payment)"];
+interface ActivityLog {
+  logId: string;
+  serviceId: string;
+  username: string;
+  role: string;
+  timestamp: string;
+  activity: string;
+}
+
+const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
+const OTHER_TYPES = ["Money In Bank", "Investment"];
 
-const ALL_TRANSACTION_TYPES = [
-  ...SALES_TYPES,
-  "Money in Bank",
-  ...EXPENSE_TYPES,
-  ...SALARY_TYPES,
-  "Others",
+const ALL_GROUPED = [
+  { label: "Sales", items: SALES_TYPES },
+  { label: "Expenses", items: EXPENSE_TYPES },
+  { label: "Salary", items: SALARY_TYPES },
+  { label: "Others", items: [...OTHER_TYPES, "Others"] },
 ];
 
 const fetchTransactions = async (): Promise<Transaction[]> => {
@@ -69,6 +83,8 @@ const TransactionTracker = () => {
   const [mopFilter, setMopFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("general");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const itemsPerPage = 15;
 
   // Edit/Add dialog
@@ -76,7 +92,7 @@ const TransactionTracker = () => {
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [editForm, setEditForm] = useState({
     transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
-    amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsUsed: "",
+    amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "",
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
@@ -84,6 +100,12 @@ const TransactionTracker = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Logs dialog
+  const [logsDialog, setLogsDialog] = useState(false);
+  const [logsTarget, setLogsTarget] = useState<Transaction | null>(null);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) navigate("/");
@@ -97,18 +119,43 @@ const TransactionTracker = () => {
     gcTime: 5 * 60 * 1000,
   });
 
+  const handleViewLogs = async (t: Transaction) => {
+    setLogsTarget(t);
+    setLogsDialog(true);
+    setIsLoadingLogs(true);
+    try {
+      const response = await fetch(
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getServiceLogs&serviceId=${encodeURIComponent(t.serviceId || t.transactionId)}&limit=50`
+      );
+      const result = await response.json();
+      if (result.status === "success" && result.logs) {
+        // Filter logs related to this transaction
+        const relevant = result.logs.filter((l: ActivityLog) =>
+          l.activity?.includes(t.transactionId) || l.activity?.includes("POS:") || l.activity?.includes("transaction")
+        );
+        setActivityLogs(relevant.length > 0 ? relevant : result.logs);
+      } else {
+        setActivityLogs([]);
+      }
+    } catch {
+      setActivityLogs([]);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
   // Tab-based filtering
   const tabFilteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const type = t.transactionType || "";
       switch (activeTab) {
         case "sales":
-          return SALES_TYPES.includes(type) || type === "Money in Bank";
+          return SALES_TYPES.includes(type);
         case "expenses":
-          return EXPENSE_TYPES.includes(type) || type === "Parts Inventory";
+          return EXPENSE_TYPES.includes(type);
         case "salary":
           return SALARY_TYPES.includes(type);
-        default: // general
+        default:
           return true;
       }
     });
@@ -123,13 +170,26 @@ const TransactionTracker = () => {
           !t.name?.toLowerCase().includes(q) &&
           !t.transactionType?.toLowerCase().includes(q) &&
           !t.transactionId?.toLowerCase().includes(q) &&
-          !t.recordedBy?.toLowerCase().includes(q)
+          !t.attendant?.toLowerCase().includes(q)
         ) return false;
       }
       if (mopFilter !== "all" && t.modeOfPayment !== mopFilter) return false;
+
+      // Date range filter
+      if (startDate || endDate) {
+        const txDate = t.timestamp ? new Date(t.timestamp) : null;
+        if (!txDate || isNaN(txDate.getTime())) return false;
+        if (startDate && txDate < startDate) return false;
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (txDate > end) return false;
+        }
+      }
+
       return true;
     });
-  }, [tabFilteredTransactions, searchQuery, mopFilter]);
+  }, [tabFilteredTransactions, searchQuery, mopFilter, startDate, endDate]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
   const paginatedTransactions = filteredTransactions.slice(
@@ -140,7 +200,7 @@ const TransactionTracker = () => {
   // Mini dashboard stats
   const moneyInBank = useMemo(() => {
     return transactions
-      .filter((t) => t.transactionType === "Money in Bank")
+      .filter((t) => t.transactionType === "Money In Bank")
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
   }, [transactions]);
 
@@ -152,13 +212,7 @@ const TransactionTracker = () => {
 
   const totalExpenses = useMemo(() => {
     return transactions
-      .filter((t) => [...EXPENSE_TYPES, "Parts Inventory"].includes(t.transactionType))
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  }, [transactions]);
-
-  const totalSalary = useMemo(() => {
-    return transactions
-      .filter((t) => SALARY_TYPES.includes(t.transactionType))
+      .filter((t) => EXPENSE_TYPES.includes(t.transactionType))
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
   }, [transactions]);
 
@@ -178,7 +232,8 @@ const TransactionTracker = () => {
       return;
     }
     setEditData(transaction);
-    const isOtherType = !ALL_TRANSACTION_TYPES.filter(t => t !== "Others").includes(transaction.transactionType);
+    const allKnownTypes = [...SALES_TYPES, ...EXPENSE_TYPES, ...SALARY_TYPES, ...OTHER_TYPES];
+    const isOtherType = !allKnownTypes.includes(transaction.transactionType);
     const isOtherMOP = !["GCash", "Maya", "Bank Transfer", "Credit Card", "Cash", "N/A"].includes(transaction.modeOfPayment);
     setEditForm({
       transactionType: isOtherType ? "Others" : transaction.transactionType,
@@ -191,7 +246,7 @@ const TransactionTracker = () => {
       name: transaction.name,
       device: transaction.device,
       serviceCost: transaction.serviceCost,
-      partsUsed: transaction.partsUsed,
+      partsCost: transaction.partsCost || "",
     });
     setEditDialog(true);
   };
@@ -200,21 +255,20 @@ const TransactionTracker = () => {
     setEditData(null);
     setEditForm({
       transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
-      amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsUsed: "",
+      amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "",
     });
     setEditDialog(true);
   };
 
   const handleSaveEdit = async () => {
     const finalType = editForm.transactionType === "Others" ? editForm.otherTransactionType : editForm.transactionType;
-    const finalMOP = editForm.transactionType === "Money in Bank" ? "N/A"
-      : (editForm.modeOfPayment === "Others" ? editForm.otherMOP : editForm.modeOfPayment);
+    const finalMOP = editForm.modeOfPayment === "Others" ? editForm.otherMOP : editForm.modeOfPayment;
 
     if (!finalType || !editForm.amount) {
       toast({ title: "Validation Error", description: "Please fill Transaction Type and Amount", variant: "destructive" });
       return;
     }
-    if (editForm.transactionType !== "Money in Bank" && !finalMOP) {
+    if (!finalMOP) {
       toast({ title: "Validation Error", description: "Please select a Mode of Payment", variant: "destructive" });
       return;
     }
@@ -224,8 +278,7 @@ const TransactionTracker = () => {
       const transactionId = editData ? editData.transactionId : `TXN${Date.now()}`;
       const params = new URLSearchParams();
       params.append("action", editData ? "editTransaction" : "addTransaction");
-      if (editData) params.append("transactionId", editData.transactionId);
-      else params.append("transactionId", transactionId);
+      params.append("transactionId", editData ? editData.transactionId : transactionId);
       params.append("serviceId", editForm.serviceId);
       params.append("transactionType", finalType);
       params.append("modeOfPayment", finalMOP);
@@ -233,9 +286,9 @@ const TransactionTracker = () => {
       params.append("device", editForm.device);
       params.append("amount", editForm.amount);
       params.append("serviceCost", editForm.serviceCost);
+      params.append("attendant", username);
       params.append("remarks", editForm.remarks);
-      params.append("partsUsed", editForm.partsUsed);
-      params.append("recordedBy", username);
+      params.append("partsCost", editForm.partsCost);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
@@ -309,8 +362,6 @@ const TransactionTracker = () => {
     }
   };
 
-  const needsMOP = editForm.transactionType !== "Money in Bank";
-
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
@@ -333,7 +384,7 @@ const TransactionTracker = () => {
         </div>
 
         {/* Mini Dashboard */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Money in Bank</p>
@@ -356,13 +407,6 @@ const TransactionTracker = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Salary Disbursed</p>
-              <p className="text-xl font-bold text-accent-foreground">Php {totalSalary.toLocaleString()}</p>
-              <Banknote className="h-5 w-5 text-muted-foreground/30 mt-1" />
-            </CardContent>
-          </Card>
-          <Card className="col-span-2 sm:col-span-3 lg:col-span-1">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-2">Sales by MOP</p>
               <div className="space-y-1">
@@ -396,13 +440,13 @@ const TransactionTracker = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
                 <Input
-                  placeholder="Search by ID, Name, Type, or Recorded By..."
+                  placeholder="Search by ID, Name, Type, or Attendant..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 />
               </div>
               <Select value={mopFilter} onValueChange={(v) => { setMopFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Filter by MOP" />
                 </SelectTrigger>
                 <SelectContent>
@@ -412,9 +456,31 @@ const TransactionTracker = () => {
                   <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                   <SelectItem value="Credit Card">Credit Card</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="N/A">N/A</SelectItem>
                 </SelectContent>
               </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "MMM dd") : "From"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={(d) => { setStartDate(d); setCurrentPage(1); }} /></PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "MMM dd") : "To"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={(d) => { setEndDate(d); setCurrentPage(1); }} /></PopoverContent>
+              </Popover>
+              {(startDate || endDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setStartDate(undefined); setEndDate(undefined); }}>
+                  Clear Dates
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -443,14 +509,15 @@ const TransactionTracker = () => {
                       <TableHead>MOP</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Recorded By</TableHead>
+                      <TableHead>Parts Cost</TableHead>
+                      <TableHead>Attendant</TableHead>
                       <TableHead>Remarks</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedTransactions.map((t) => (
-                      <TableRow key={t.transactionId}>
+                      <TableRow key={t.transactionId} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewLogs(t)}>
                         <TableCell className="text-xs font-mono">{t.transactionId}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap">
                           {t.timestamp ? displayDate(t.timestamp, "MMM dd, yyyy hh:mm a") : "N/A"}
@@ -464,19 +531,15 @@ const TransactionTracker = () => {
                         </TableCell>
                         <TableCell>{t.name || "-"}</TableCell>
                         <TableCell className="font-semibold">Php {t.amount}</TableCell>
-                        <TableCell className="text-xs">{t.recordedBy}</TableCell>
+                        <TableCell className="text-xs">{t.partsCost || "-"}</TableCell>
+                        <TableCell className="text-xs">{t.attendant || "-"}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">{t.remarks || "-"}</TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(t)}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive"
-                              onClick={() => { setDeleteTarget(t); setDeleteDialog(true); }}
-                            >
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeleteTarget(t); setDeleteDialog(true); }}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -527,52 +590,37 @@ const TransactionTracker = () => {
                   <Select value={editForm.transactionType} onValueChange={(v) => setEditForm({ ...editForm, transactionType: v })}>
                     <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Down Payment">Down Payment</SelectItem>
-                      <SelectItem value="Full Payment">Full Payment</SelectItem>
-                      <SelectItem value="Payment Settlement (Full Payment)">Payment Settlement</SelectItem>
-                      <SelectItem value="Money in Bank">Money in Bank</SelectItem>
-                      <SelectItem value="Parts Inventory">Parts Inventory</SelectItem>
-                      <SelectItem value="Supplies">Supplies</SelectItem>
-                      <SelectItem value="Utilities">Utilities</SelectItem>
-                      <SelectItem value="Rent">Rent</SelectItem>
-                      <SelectItem value="Miscellaneous Expense">Miscellaneous Expense</SelectItem>
-                      <SelectItem value="Salary Disbursement">Salary Disbursement</SelectItem>
-                      <SelectItem value="Bonus">Bonus</SelectItem>
-                      <SelectItem value="Commission">Commission</SelectItem>
-                      <SelectItem value="Others">Others</SelectItem>
+                      {ALL_GROUPED.map((group) => (
+                        <div key={group.label}>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</div>
+                          {group.items.map((item) => (
+                            <SelectItem key={item} value={item}>{item}</SelectItem>
+                          ))}
+                        </div>
+                      ))}
                     </SelectContent>
                   </Select>
                   {editForm.transactionType === "Others" && (
-                    <Input
-                      placeholder="Specify type"
-                      value={editForm.otherTransactionType}
-                      onChange={(e) => setEditForm({ ...editForm, otherTransactionType: e.target.value })}
-                    />
+                    <Input placeholder="Specify type" value={editForm.otherTransactionType} onChange={(e) => setEditForm({ ...editForm, otherTransactionType: e.target.value })} />
                   )}
                 </div>
-                {needsMOP && (
-                  <div className="space-y-2">
-                    <Label>MOP *</Label>
-                    <Select value={editForm.modeOfPayment} onValueChange={(v) => setEditForm({ ...editForm, modeOfPayment: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GCash">GCash</SelectItem>
-                        <SelectItem value="Maya">Maya</SelectItem>
-                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="Credit Card">Credit Card</SelectItem>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Others">Others</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {editForm.modeOfPayment === "Others" && (
-                      <Input
-                        placeholder="Specify MOP"
-                        value={editForm.otherMOP}
-                        onChange={(e) => setEditForm({ ...editForm, otherMOP: e.target.value })}
-                      />
-                    )}
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label>MOP *</Label>
+                  <Select value={editForm.modeOfPayment} onValueChange={(v) => setEditForm({ ...editForm, modeOfPayment: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GCash">GCash</SelectItem>
+                      <SelectItem value="Maya">Maya</SelectItem>
+                      <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="Credit Card">Credit Card</SelectItem>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {editForm.modeOfPayment === "Others" && (
+                    <Input placeholder="Specify MOP" value={editForm.otherMOP} onChange={(e) => setEditForm({ ...editForm, otherMOP: e.target.value })} />
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -584,7 +632,7 @@ const TransactionTracker = () => {
                   <Input value={editForm.device} onChange={(e) => setEditForm({ ...editForm, device: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
                   <Label>Amount *</Label>
                   <Input type="number" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
@@ -592,6 +640,10 @@ const TransactionTracker = () => {
                 <div className="space-y-2">
                   <Label>Service Cost</Label>
                   <Input type="number" value={editForm.serviceCost} onChange={(e) => setEditForm({ ...editForm, serviceCost: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Parts Cost</Label>
+                  <Input type="number" value={editForm.partsCost} onChange={(e) => setEditForm({ ...editForm, partsCost: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-2">
@@ -625,6 +677,49 @@ const TransactionTracker = () => {
                 Delete
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Logs Dialog */}
+        <Dialog open={logsDialog} onOpenChange={setLogsDialog}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Transaction Logs
+              </DialogTitle>
+              <DialogDescription>
+                {logsTarget?.transactionId} — {logsTarget?.transactionType}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              {/* Transaction Details */}
+              <div className="grid grid-cols-2 gap-2 text-sm p-3 rounded-lg bg-muted/50">
+                <div><span className="text-muted-foreground text-xs">Amount:</span> <strong>Php {logsTarget?.amount}</strong></div>
+                <div><span className="text-muted-foreground text-xs">MOP:</span> {logsTarget?.modeOfPayment}</div>
+                <div><span className="text-muted-foreground text-xs">Name:</span> {logsTarget?.name || "-"}</div>
+                <div><span className="text-muted-foreground text-xs">Attendant:</span> {logsTarget?.attendant || "-"}</div>
+              </div>
+              <Separator />
+              <p className="text-sm font-medium">Activity Logs</p>
+              {isLoadingLogs ? (
+                <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+              ) : activityLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No logs found for this transaction</p>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {activityLogs.map((log) => (
+                    <div key={log.logId} className="p-2 rounded border text-xs">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{log.username}</span>
+                        <span className="text-muted-foreground">{log.timestamp ? displayDate(log.timestamp, "MMM dd, hh:mm a") : ""}</span>
+                      </div>
+                      <p className="mt-1 text-muted-foreground">{log.activity}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
 
