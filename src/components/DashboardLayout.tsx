@@ -115,7 +115,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {(isMobile || !collapsed) && <div className="flex flex-col"><span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span><span className="text-xs text-sidebar-foreground/60">Service Portal</span></div>}
         </div>
       </div>
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[calc(100vh-180px)]">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto overscroll-none" style={{ maxHeight: "calc(100vh - 180px)" }}>
         <button onClick={() => navigate("/menu")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/menu" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><Home className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Home</span>}</button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
