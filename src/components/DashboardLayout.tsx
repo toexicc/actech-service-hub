@@ -168,7 +168,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </div>
       </header>
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-none pt-14 -webkit-overflow-scrolling-touch">{children}</main>
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain pt-14" style={{ WebkitOverflowScrolling: "touch" }}>{children}</main>
     </div>
   );
 
@@ -194,7 +194,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </header>
-        <div className="flex-1 min-w-0 w-full overflow-auto p-0">{children}</div>
+        <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain p-0">{children}</div>
       </main>
     </div>
   );
