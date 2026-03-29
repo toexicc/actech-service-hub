@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
@@ -20,9 +19,27 @@ interface ServiceData {
   device: string;
   serviceCost: string;
   finalCost: string;
+  partsCost: string;
   partsUsed: string;
   status: string;
 }
+
+// Transaction types that require service/customer info
+const SERVICE_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
+
+const SALES_TYPES = [...SERVICE_TYPES];
+const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
+const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
+const OTHER_TYPES = ["Money In Bank", "Investment"];
+
+const ALL_GROUPED = [
+  { label: "Sales", items: SALES_TYPES },
+  { label: "Expenses", items: EXPENSE_TYPES },
+  { label: "Salary", items: SALARY_TYPES },
+  { label: "Others", items: [...OTHER_TYPES, "Others"] },
+];
+
+const needsServiceInfo = (type: string) => SERVICE_TYPES.includes(type);
 
 const PointOfSales = () => {
   const navigate = useNavigate();
@@ -30,21 +47,20 @@ const PointOfSales = () => {
   const userRole = sessionStorage.getItem("userRole");
   const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Unknown";
 
-  const [searchServiceId, setSearchServiceId] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [serviceData, setServiceData] = useState<ServiceData | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
-
-  // Transaction fields
   const [transactionType, setTransactionType] = useState("");
   const [otherTransactionType, setOtherTransactionType] = useState("");
   const [modeOfPayment, setModeOfPayment] = useState("");
   const [otherMOP, setOtherMOP] = useState("");
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Manual input fields
+  // Service-related fields (only for payment types)
+  const [searchServiceId, setSearchServiceId] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [serviceData, setServiceData] = useState<ServiceData | null>(null);
+
+  // Manual input fields for service payments
   const [manualName, setManualName] = useState("");
   const [manualDevice, setManualDevice] = useState("");
   const [manualServiceCost, setManualServiceCost] = useState("");
@@ -59,14 +75,12 @@ const PointOfSales = () => {
       toast({ title: "Error", description: "Please enter a Service ID", variant: "destructive" });
       return;
     }
-
     setIsSearching(true);
     try {
       const response = await fetch(
         `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(searchServiceId)}`
       );
       const result = await response.json();
-
       if (result.status === "found" && result.data) {
         setServiceData({
           serviceId: searchServiceId,
@@ -74,6 +88,7 @@ const PointOfSales = () => {
           device: result.data.device || "",
           serviceCost: result.data.serviceCost || "0",
           finalCost: result.data.finalCost || result.data.serviceCost || "0",
+          partsCost: result.data.partsCost || "0",
           partsUsed: result.data.partsUsed || "",
           status: result.data.status || "",
         });
@@ -89,9 +104,7 @@ const PointOfSales = () => {
     }
   };
 
-  const generateTransactionId = () => {
-    return `TXN${Date.now()}`;
-  };
+  const generateTransactionId = () => `TXN${Date.now()}`;
 
   const handleSubmitTransaction = async () => {
     const finalTransactionType = transactionType === "Others" ? otherTransactionType : transactionType;
@@ -102,16 +115,18 @@ const PointOfSales = () => {
       return;
     }
 
-    if (!manualMode && !serviceData) {
-      toast({ title: "Error", description: "Please search for a service or enable manual input", variant: "destructive" });
+    // For payment types, we need either service data or manual info
+    const isServiceType = needsServiceInfo(transactionType);
+    if (isServiceType && !serviceData && !manualName) {
+      toast({ title: "Error", description: "Please search for a service or enter client details", variant: "destructive" });
       return;
     }
 
-    const name = manualMode ? manualName : (serviceData?.clientName || "");
-    const device = manualMode ? manualDevice : (serviceData?.device || "");
-    const serviceCost = manualMode ? manualServiceCost : (serviceData?.serviceCost || "0");
-    const serviceId = manualMode ? (searchServiceId || "MANUAL") : (serviceData?.serviceId || "");
-    const partsUsed = serviceData?.partsUsed || "";
+    const name = isServiceType ? (serviceData?.clientName || manualName) : "";
+    const device = isServiceType ? (serviceData?.device || manualDevice) : "";
+    const serviceCost = isServiceType ? (serviceData?.serviceCost || manualServiceCost || "0") : "0";
+    const serviceId = isServiceType ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
+    const partsCost = isServiceType ? (serviceData?.partsCost || "0") : "0";
     const transactionId = generateTransactionId();
 
     setIsSubmitting(true);
@@ -126,21 +141,17 @@ const PointOfSales = () => {
       params.append("device", device);
       params.append("amount", amount);
       params.append("serviceCost", serviceCost);
+      params.append("attendant", username);
       params.append("remarks", remarks);
-      params.append("partsUsed", partsUsed);
-      params.append("recordedBy", username);
+      params.append("partsCost", partsCost);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: params,
-      });
-
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {
         toast({ title: "Transaction Recorded", description: `Transaction ${transactionId} saved successfully` });
         logActivityAsync({
-          serviceId,
+          serviceId: serviceId || "POS",
           username,
           role: userRole || "",
           activity: `POS: Recorded ${finalTransactionType} of Php ${amount} via ${finalMOP} (${transactionId})`,
@@ -168,7 +179,7 @@ const PointOfSales = () => {
     }
   };
 
-  const canShowForm = manualMode || serviceData;
+  const showServiceSection = needsServiceInfo(transactionType);
 
   return (
     <DashboardLayout>
@@ -182,163 +193,103 @@ const PointOfSales = () => {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Search & Service Info - Left Column */}
+          {/* Left Column - Transaction Type & Service Info */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Manual Mode Toggle */}
+            {/* Transaction Type Selection */}
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="font-medium">Manual Input Mode</Label>
-                    <p className="text-xs text-muted-foreground">Skip service ID search</p>
-                  </div>
-                  <Switch checked={manualMode} onCheckedChange={(v) => { setManualMode(v); if (v) setServiceData(null); }} />
-                </div>
+              <CardHeader>
+                <CardTitle className="text-lg">Transaction Type</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Select value={transactionType} onValueChange={(v) => { setTransactionType(v); if (!needsServiceInfo(v)) { setServiceData(null); setSearchServiceId(""); } }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select transaction type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_GROUPED.map((group) => (
+                      <div key={group.label}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</div>
+                        {group.items.map((item) => (
+                          <SelectItem key={item} value={item}>{item}</SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {transactionType === "Others" && (
+                  <Input placeholder="Specify transaction type" value={otherTransactionType} onChange={(e) => setOtherTransactionType(e.target.value)} />
+                )}
               </CardContent>
             </Card>
 
-            {/* Service ID Search */}
-            {!manualMode && (
+            {/* Service Search - only for payment types */}
+            {showServiceSection && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Search className="h-5 w-5" />
-                    Search Service
+                    Service Lookup
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <Input
-                      placeholder="Enter Service ID"
-                      value={searchServiceId}
-                      onChange={(e) => setSearchServiceId(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSearchService()}
-                    />
-                    <Button onClick={handleSearchService} disabled={isSearching} className="w-full">
-                      {isSearching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                      {isSearching ? "Searching..." : "Search"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Service Details (from search) */}
-            {!manualMode && serviceData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Service Details</CardTitle>
-                </CardHeader>
                 <CardContent className="space-y-3">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Service ID</Label>
-                    <p className="font-semibold text-primary">{serviceData.serviceId}</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Client Name</Label>
-                    <p className="font-medium">{serviceData.clientName || "N/A"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Device</Label>
-                    <p>{serviceData.device || "N/A"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Service Cost</Label>
-                    <p className="text-lg font-bold">Php {serviceData.serviceCost}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Final Cost</Label>
-                    <p className="text-lg font-bold text-primary">Php {serviceData.finalCost}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Parts Used</Label>
-                    <p className="text-sm">{serviceData.partsUsed || "None"}</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Status</Label>
-                    <p>{serviceData.status || "N/A"}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  <Input
+                    placeholder="Enter Service ID"
+                    value={searchServiceId}
+                    onChange={(e) => setSearchServiceId(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearchService()}
+                  />
+                  <Button onClick={handleSearchService} disabled={isSearching} className="w-full">
+                    {isSearching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                    {isSearching ? "Searching..." : "Search"}
+                  </Button>
 
-            {/* Manual Input Fields */}
-            {manualMode && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Manual Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Service ID (optional)</Label>
-                    <Input
-                      placeholder="Enter Service ID if applicable"
-                      value={searchServiceId}
-                      onChange={(e) => setSearchServiceId(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Client Name</Label>
-                    <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Enter client name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Device</Label>
-                    <Input value={manualDevice} onChange={(e) => setManualDevice(e.target.value)} placeholder="Enter device" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Service Cost</Label>
-                    <Input type="number" value={manualServiceCost} onChange={(e) => setManualServiceCost(e.target.value)} placeholder="0" />
-                  </div>
+                  {serviceData && (
+                    <div className="space-y-2 mt-3 p-3 rounded-lg bg-muted/50">
+                      <div><Label className="text-xs text-muted-foreground">Service ID</Label><p className="font-semibold text-primary">{serviceData.serviceId}</p></div>
+                      <Separator />
+                      <div><Label className="text-xs text-muted-foreground">Client Name</Label><p className="font-medium">{serviceData.clientName || "N/A"}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Device</Label><p>{serviceData.device || "N/A"}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p className="font-bold">Php {serviceData.serviceCost}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="text-lg font-bold text-primary">Php {serviceData.finalCost}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>Php {serviceData.partsCost}</p></div>
+                      <div><Label className="text-xs text-muted-foreground">Status</Label><p>{serviceData.status || "N/A"}</p></div>
+                    </div>
+                  )}
+
+                  {!serviceData && (
+                    <div className="space-y-2 mt-3 p-3 rounded-lg border border-dashed">
+                      <p className="text-xs text-muted-foreground mb-2">Or enter details manually:</p>
+                      <div className="space-y-2">
+                        <Input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Client Name" />
+                        <Input value={manualDevice} onChange={(e) => setManualDevice(e.target.value)} placeholder="Device" />
+                        <Input type="number" value={manualServiceCost} onChange={(e) => setManualServiceCost(e.target.value)} placeholder="Service Cost" />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Transaction Form - Right Column */}
+          {/* Right Column - Payment Details */}
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <CreditCard className="h-5 w-5" />
-                  Record Transaction
+                  Payment Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {!canShowForm ? (
+                {!transactionType ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium">Search for a Service ID or enable Manual Input</p>
-                    <p className="text-sm">Load service data or toggle manual mode to record a transaction.</p>
+                    <p className="text-lg font-medium">Select a Transaction Type</p>
+                    <p className="text-sm">Choose a transaction type from the left to get started.</p>
                   </div>
                 ) : (
                   <>
                     <div className="grid md:grid-cols-2 gap-4">
-                      {/* Type of Transaction */}
-                      <div className="space-y-2">
-                        <Label>Type of Transaction *</Label>
-                        <Select value={transactionType} onValueChange={setTransactionType}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Down Payment">Down Payment</SelectItem>
-                            <SelectItem value="Full Payment">Full Payment</SelectItem>
-                            <SelectItem value="Payment Settlement (Full Payment)">Payment Settlement (Full Payment)</SelectItem>
-                            <SelectItem value="Parts Inventory">Parts Inventory</SelectItem>
-                            <SelectItem value="Others">Others</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {transactionType === "Others" && (
-                          <Input
-                            placeholder="Specify transaction type"
-                            value={otherTransactionType}
-                            onChange={(e) => setOtherTransactionType(e.target.value)}
-                          />
-                        )}
-                      </div>
-
                       {/* Mode of Payment */}
                       <div className="space-y-2">
                         <Label>Mode of Payment *</Label>
@@ -356,68 +307,36 @@ const PointOfSales = () => {
                           </SelectContent>
                         </Select>
                         {modeOfPayment === "Others" && (
-                          <Input
-                            placeholder="Specify payment method"
-                            value={otherMOP}
-                            onChange={(e) => setOtherMOP(e.target.value)}
-                          />
+                          <Input placeholder="Specify payment method" value={otherMOP} onChange={(e) => setOtherMOP(e.target.value)} />
                         )}
+                      </div>
+
+                      {/* Amount */}
+                      <div className="space-y-2">
+                        <Label>Amount (Php) *</Label>
+                        <Input type="number" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="text-lg font-semibold" />
                       </div>
                     </div>
 
-                    {/* Amount */}
-                    <div className="space-y-2">
-                      <Label>Amount (Php) *</Label>
-                      <Input
-                        type="number"
-                        placeholder="Enter amount"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="text-lg font-semibold"
-                      />
-                    </div>
-
-                    {/* Pre-filled info (only when from search) */}
-                    {!manualMode && serviceData && (
+                    {/* Pre-filled info from service search */}
+                    {showServiceSection && serviceData && (
                       <div className="grid md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Client Name (auto)</Label>
-                          <p className="font-medium">{serviceData.clientName}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Device (auto)</Label>
-                          <p>{serviceData.device}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Service Cost (auto)</Label>
-                          <p>Php {serviceData.serviceCost}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Parts Used (auto)</Label>
-                          <p>{serviceData.partsUsed || "None"}</p>
-                        </div>
+                        <div><Label className="text-xs text-muted-foreground">Client Name (auto)</Label><p className="font-medium">{serviceData.clientName}</p></div>
+                        <div><Label className="text-xs text-muted-foreground">Device (auto)</Label><p>{serviceData.device}</p></div>
+                        <div><Label className="text-xs text-muted-foreground">Service Cost (auto)</Label><p>Php {serviceData.serviceCost}</p></div>
+                        <div><Label className="text-xs text-muted-foreground">Parts Cost (auto)</Label><p>Php {serviceData.partsCost}</p></div>
                       </div>
                     )}
 
                     {/* Remarks */}
                     <div className="space-y-2">
                       <Label>Remarks (optional)</Label>
-                      <Textarea
-                        placeholder="Add any notes about this transaction"
-                        value={remarks}
-                        onChange={(e) => setRemarks(e.target.value)}
-                        rows={3}
-                      />
+                      <Textarea placeholder="Add any notes about this transaction" value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={3} />
                     </div>
 
                     <Separator />
 
-                    <Button
-                      onClick={handleSubmitTransaction}
-                      disabled={isSubmitting}
-                      className="w-full h-12 text-lg"
-                      size="lg"
-                    >
+                    <Button onClick={handleSubmitTransaction} disabled={isSubmitting} className="w-full h-12 text-lg" size="lg">
                       {isSubmitting ? (
                         <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Processing...</>
                       ) : (

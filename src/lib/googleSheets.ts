@@ -257,6 +257,7 @@ function doGet(e) {
             "discount": data[i][50], // Column AY - Discount
             "finalCost": data[i][51], // Column AZ - Final Cost
             "quotationPdfUrl": data[i][32], // Column AG - Service Quotation PDF URL
+          "partsCost": data[i][45], // Column AT - Parts Cost
             "status": data[i][1] || "PENDING - APPROVAL",
             "technician": data[i][3],
             "techNotes": data[i][39],
@@ -1104,6 +1105,8 @@ function doGet(e) {
   }
   
   // Handle getTransactions - fetch all transactions from Transactions sheet
+  // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
+  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID
   if (params.action === 'getTransactions') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
@@ -1114,7 +1117,7 @@ function doGet(e) {
     var txnData = txnSheet.getDataRange().getDisplayValues();
     var txns = [];
     for (var ti = 1; ti < txnData.length; ti++) {
-      if (!txnData[ti][0] && !txnData[ti][1]) continue; // skip empty rows
+      if (!txnData[ti][0] && !txnData[ti][1]) continue;
       txns.push({
         timestamp: txnData[ti][0],
         serviceId: txnData[ti][1],
@@ -1124,10 +1127,10 @@ function doGet(e) {
         device: txnData[ti][5],
         amount: txnData[ti][6],
         serviceCost: txnData[ti][7],
-        remarks: txnData[ti][8],
-        partsUsed: txnData[ti][9],
-        recordedBy: txnData[ti][10],
-        transactionId: txnData[ti][11]
+        attendant: txnData[ti][8],       // Column I - Attendant
+        remarks: txnData[ti][9],          // Column J - Remarks
+        partsCost: txnData[ti][10],       // Column K - Parts Cost
+        transactionId: txnData[ti][11]    // Column L - Transaction ID
       });
     }
     return ContentService.createTextOutput(JSON.stringify({
@@ -1145,15 +1148,18 @@ function doPost(e) {
   var action = params.action;
 
   // Handle addTransaction - add a new row to Transactions sheet
+  // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
+  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID
   if (action === 'addTransaction') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
-      // Create the sheet with headers if it doesn't exist
       txnSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Transactions");
-      txnSheet.appendRow(["Timestamp", "Service ID", "Type of Transaction", "Mode of Payment", "Name", "Device", "Amount", "Service Cost", "Remarks", "Parts Used", "Recorded By", "Transaction ID"]);
+      txnSheet.appendRow(["Timestamp", "Service ID", "Type of Transaction", "Mode of Payment", "Name", "Device", "Amount", "Service Cost", "Attendant", "Remarks", "Parts Cost", "Transaction ID"]);
     }
     var now = new Date();
     var timestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy, hh:mm:ss a");
+    var transactionId = params.transactionId || ("TXN" + now.getTime());
+    
     txnSheet.appendRow([
       timestamp,
       params.serviceId || "",
@@ -1163,17 +1169,77 @@ function doPost(e) {
       params.device || "",
       params.amount || "",
       params.serviceCost || "",
-      params.remarks || "",
-      params.partsUsed || "",
-      params.recordedBy || "",
-      params.transactionId || ("TXN" + now.getTime())
+      params.attendant || "",          // Column I - Attendant
+      params.remarks || "",             // Column J - Remarks
+      params.partsCost || "",           // Column K - Parts Cost
+      transactionId                     // Column L - Transaction ID
     ]);
+    
+    // Update Service Database Column BD (Transaction Status) for payment types
+    var paymentTypes = ["Down Payment", "Full Payment", "Partial Payment"];
+    if (paymentTypes.indexOf(params.transactionType) > -1 && params.serviceId) {
+      var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+      if (serviceSheet) {
+        var serviceData = serviceSheet.getDataRange().getDisplayValues();
+        for (var si = 1; si < serviceData.length; si++) {
+          if (serviceData[si][0] === params.serviceId) {
+            var finalCost = parseFloat(serviceData[si][51]) || 0; // Column AZ - Final Cost
+            var currentAmount = parseFloat(params.amount) || 0;
+            
+            // Sum all existing payment transactions for this service
+            var allTxns = txnSheet.getDataRange().getDisplayValues();
+            var totalPaid = 0;
+            for (var ti = 1; ti < allTxns.length; ti++) {
+              if (allTxns[ti][1] === params.serviceId && paymentTypes.indexOf(allTxns[ti][2]) > -1) {
+                totalPaid += parseFloat(allTxns[ti][6]) || 0;
+              }
+            }
+            
+            // Determine payment status
+            var paymentStatus = "";
+            if (totalPaid >= finalCost && finalCost > 0) {
+              paymentStatus = "Fully Paid";
+              
+              // When fully paid, add parts cost as an expense transaction
+              var partsCost = parseFloat(serviceData[si][45]) || 0; // Column AT - Parts Cost
+              if (partsCost > 0) {
+                var expTxnId = "TXN" + (now.getTime() + 1);
+                txnSheet.appendRow([
+                  timestamp,
+                  params.serviceId,
+                  "Parts Inventory",
+                  "N/A",
+                  serviceData[si][8], // Client Name
+                  serviceData[si][16], // Device
+                  partsCost.toString(),
+                  "",
+                  "System",
+                  "Auto-logged parts cost on full payment",
+                  partsCost.toString(),
+                  expTxnId
+                ]);
+              }
+            } else if (totalPaid > 0) {
+              paymentStatus = "Partially Paid (Php " + totalPaid + " / Php " + finalCost + ")";
+            } else {
+              paymentStatus = "Pending";
+            }
+            
+            // Update Column BD (index 55)
+            serviceSheet.getRange(si + 1, 56).setValue(paymentStatus);
+            break;
+          }
+        }
+      }
+    }
+    
     return ContentService.createTextOutput(JSON.stringify({
-      status: "success", transactionId: params.transactionId || ("TXN" + now.getTime())
+      status: "success", transactionId: transactionId
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
   // Handle editTransaction - update an existing transaction row
+  // Columns: B=Service ID, C=Type, D=MOP, E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost
   if (action === 'editTransaction') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
@@ -1184,7 +1250,6 @@ function doPost(e) {
     var txnData = txnSheet.getDataRange().getDisplayValues();
     for (var ei = 1; ei < txnData.length; ei++) {
       if (txnData[ei][11] === params.transactionId) {
-        // Update columns B-K (indices 1-10), keep timestamp and txn ID
         txnSheet.getRange(ei + 1, 2).setValue(params.serviceId || "");
         txnSheet.getRange(ei + 1, 3).setValue(params.transactionType || "");
         txnSheet.getRange(ei + 1, 4).setValue(params.modeOfPayment || "");
@@ -1192,9 +1257,9 @@ function doPost(e) {
         txnSheet.getRange(ei + 1, 6).setValue(params.device || "");
         txnSheet.getRange(ei + 1, 7).setValue(params.amount || "");
         txnSheet.getRange(ei + 1, 8).setValue(params.serviceCost || "");
-        txnSheet.getRange(ei + 1, 9).setValue(params.remarks || "");
-        txnSheet.getRange(ei + 1, 10).setValue(params.partsUsed || "");
-        txnSheet.getRange(ei + 1, 11).setValue(params.recordedBy || "");
+        txnSheet.getRange(ei + 1, 9).setValue(params.attendant || "");     // Column I
+        txnSheet.getRange(ei + 1, 10).setValue(params.remarks || "");       // Column J
+        txnSheet.getRange(ei + 1, 11).setValue(params.partsCost || "");     // Column K
         return ContentService.createTextOutput(JSON.stringify({
           status: "success"
         })).setMimeType(ContentService.MimeType.JSON);
