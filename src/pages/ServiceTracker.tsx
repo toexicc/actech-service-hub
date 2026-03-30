@@ -1082,6 +1082,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <TableRow>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Txn Status</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("timestamp")}>
                         <div className="flex items-center gap-1">
@@ -1143,6 +1144,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             <TableCell>
                               <span className={getStatusTextColor(service.status || "")}>
                                 {service.status || "N/A"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs">
+                                {(service as any).transactionStatus || "-"}
                               </span>
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
