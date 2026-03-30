@@ -545,6 +545,7 @@ function doGet(e) {
         "status": data[i][1],
         "clientName": data[i][8],
         "serviceCost": data[i][51], // Column AZ - Final Cost
+        "transactionStatus": data[i][55] || "", // Column BD - Transaction Status
         "internalAdminNotes": data[i][38], // Column AM - Internal Admin Notes
         "internalTechnicianNotes": data[i][40] // Column AO - Internal Technician Notes
       });
