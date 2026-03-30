@@ -1104,9 +1104,30 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle getServicePayments - get total paid for a service ID
+  if (params.action === 'getServicePayments' && params.serviceId) {
+    var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
+    if (!txnSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success", totalPaid: 0
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var paymentTypes = ["Down Payment", "Full Payment", "Partial Payment"];
+    var txnData = txnSheet.getDataRange().getDisplayValues();
+    var totalPaid = 0;
+    for (var ti = 1; ti < txnData.length; ti++) {
+      if (txnData[ti][1] === params.serviceId && paymentTypes.indexOf(txnData[ti][2]) > -1) {
+        totalPaid += parseFloat(txnData[ti][6]) || 0;
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success", totalPaid: totalPaid
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   // Handle getTransactions - fetch all transactions from Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
-  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID
+  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
   if (params.action === 'getTransactions') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
@@ -1130,7 +1151,8 @@ function doGet(e) {
         attendant: txnData[ti][8],       // Column I - Attendant
         remarks: txnData[ti][9],          // Column J - Remarks
         partsCost: txnData[ti][10],       // Column K - Parts Cost
-        transactionId: txnData[ti][11]    // Column L - Transaction ID
+        transactionId: txnData[ti][11],   // Column L - Transaction ID
+        remaining: txnData[ti][12] || ""  // Column M - Remaining
       });
     }
     return ContentService.createTextOutput(JSON.stringify({
