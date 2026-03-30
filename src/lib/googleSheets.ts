@@ -1303,7 +1303,7 @@ function doPost(e) {
   }
 
   // Handle editTransaction - update an existing transaction row
-  // Columns: B=Service ID, C=Type, D=MOP, E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost
+  // Columns: B=Service ID, C=Type, D=MOP, E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, M=Remaining
   if (action === 'editTransaction') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
@@ -1324,6 +1324,7 @@ function doPost(e) {
         txnSheet.getRange(ei + 1, 9).setValue(params.attendant || "");     // Column I
         txnSheet.getRange(ei + 1, 10).setValue(params.remarks || "");       // Column J
         txnSheet.getRange(ei + 1, 11).setValue(params.partsCost || "");     // Column K
+        txnSheet.getRange(ei + 1, 13).setValue(params.remaining || "");     // Column M - Remaining
         return ContentService.createTextOutput(JSON.stringify({
           status: "success"
         })).setMimeType(ContentService.MimeType.JSON);
