@@ -19,7 +19,7 @@ import { displayDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
   ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet, TrendingDown,
-  CalendarIcon, FileText,
+  CalendarIcon, FileText, PiggyBank,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +40,7 @@ interface Transaction {
   attendant: string;
   remarks: string;
   partsCost: string;
+  remaining: string;
 }
 
 interface ActivityLog {
@@ -54,13 +55,24 @@ interface ActivityLog {
 const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
-const OTHER_TYPES = ["Money In Bank", "Investment"];
+const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
+const SAVINGS_TYPES = ["Money In Bank", "Investment", "Savings/Interest"];
 
 const ALL_GROUPED = [
   { label: "Sales", items: SALES_TYPES },
   { label: "Expenses", items: EXPENSE_TYPES },
   { label: "Salary", items: SALARY_TYPES },
   { label: "Others", items: [...OTHER_TYPES, "Others"] },
+];
+
+// Expense sub-tabs
+const EXPENSE_SUB_TABS = [
+  { value: "all", label: "General", types: EXPENSE_TYPES },
+  { value: "parts", label: "Parts", types: ["Parts Inventory"] },
+  { value: "opex", label: "OpEx", types: EXPENSE_TYPES },
+  { value: "supplies", label: "Supplies/Utilities", types: ["Supplies", "Utilities"] },
+  { value: "rent", label: "Rent", types: ["Rent"] },
+  { value: "misc", label: "Miscellaneous", types: ["Miscellaneous Expense"] },
 ];
 
 const fetchTransactions = async (): Promise<Transaction[]> => {
@@ -71,6 +83,8 @@ const fetchTransactions = async (): Promise<Transaction[]> => {
   }
   return [];
 };
+
+const fmtCurrency = (val: number) => `Php ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const TransactionTracker = () => {
   const navigate = useNavigate();
@@ -83,6 +97,7 @@ const TransactionTracker = () => {
   const [mopFilter, setMopFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState("general");
+  const [expenseSubTab, setExpenseSubTab] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const itemsPerPage = 15;
@@ -92,7 +107,7 @@ const TransactionTracker = () => {
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [editForm, setEditForm] = useState({
     transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
-    amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "",
+    amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "", remaining: "",
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
@@ -129,7 +144,6 @@ const TransactionTracker = () => {
       );
       const result = await response.json();
       if (result.status === "success" && result.logs) {
-        // Filter logs related to this transaction
         const relevant = result.logs.filter((l: ActivityLog) =>
           l.activity?.includes(t.transactionId) || l.activity?.includes("POS:") || l.activity?.includes("transaction")
         );
@@ -151,15 +165,21 @@ const TransactionTracker = () => {
       switch (activeTab) {
         case "sales":
           return SALES_TYPES.includes(type);
-        case "expenses":
-          return EXPENSE_TYPES.includes(type);
+        case "expenses": {
+          if (!EXPENSE_TYPES.includes(type)) return false;
+          if (expenseSubTab === "all" || expenseSubTab === "opex") return true;
+          const subDef = EXPENSE_SUB_TABS.find((s) => s.value === expenseSubTab);
+          return subDef ? subDef.types.includes(type) : true;
+        }
         case "salary":
           return SALARY_TYPES.includes(type);
+        case "savings":
+          return SAVINGS_TYPES.includes(type);
         default:
           return true;
       }
     });
-  }, [transactions, activeTab]);
+  }, [transactions, activeTab, expenseSubTab]);
 
   const filteredTransactions = useMemo(() => {
     return tabFilteredTransactions.filter((t) => {
@@ -175,7 +195,6 @@ const TransactionTracker = () => {
       }
       if (mopFilter !== "all" && t.modeOfPayment !== mopFilter) return false;
 
-      // Date range filter
       if (startDate || endDate) {
         const txDate = t.timestamp ? new Date(t.timestamp) : null;
         if (!txDate || isNaN(txDate.getTime())) return false;
@@ -197,11 +216,20 @@ const TransactionTracker = () => {
     currentPage * itemsPerPage
   );
 
-  // Mini dashboard stats
+  // Mini dashboard stats - Sales ADD, Expenses DEDUCT from Money in Bank
   const moneyInBank = useMemo(() => {
-    return transactions
-      .filter((t) => t.transactionType === "Money In Bank")
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+    let total = 0;
+    transactions.forEach((t) => {
+      const amt = parseFloat(t.amount) || 0;
+      const type = t.transactionType || "";
+      if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
+        total += amt;
+      }
+      if (EXPENSE_TYPES.includes(type) || SALARY_TYPES.includes(type)) {
+        total -= amt;
+      }
+    });
+    return total;
   }, [transactions]);
 
   const totalSales = useMemo(() => {
@@ -247,6 +275,7 @@ const TransactionTracker = () => {
       device: transaction.device,
       serviceCost: transaction.serviceCost,
       partsCost: transaction.partsCost || "",
+      remaining: transaction.remaining || "",
     });
     setEditDialog(true);
   };
@@ -255,7 +284,7 @@ const TransactionTracker = () => {
     setEditData(null);
     setEditForm({
       transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
-      amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "",
+      amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "", remaining: "",
     });
     setEditDialog(true);
   };
@@ -289,6 +318,7 @@ const TransactionTracker = () => {
       params.append("attendant", username);
       params.append("remarks", editForm.remarks);
       params.append("partsCost", editForm.partsCost);
+      params.append("remaining", editForm.remaining);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
@@ -388,21 +418,21 @@ const TransactionTracker = () => {
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Money in Bank</p>
-              <p className="text-xl font-bold text-primary">Php {moneyInBank.toLocaleString()}</p>
+              <p className={`text-xl font-bold ${moneyInBank >= 0 ? "text-primary" : "text-destructive"}`}>{fmtCurrency(moneyInBank)}</p>
               <Landmark className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Sales</p>
-              <p className="text-xl font-bold text-primary">Php {totalSales.toLocaleString()}</p>
+              <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
               <DollarSign className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Expenses</p>
-              <p className="text-xl font-bold text-destructive">Php {totalExpenses.toLocaleString()}</p>
+              <p className="text-xl font-bold text-destructive">{fmtCurrency(totalExpenses)}</p>
               <TrendingDown className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
@@ -413,7 +443,7 @@ const TransactionTracker = () => {
                 {Object.entries(mopBreakdown).map(([mop, total]) => (
                   <div key={mop} className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1">{getMOPIcon(mop)} {mop}</span>
-                    <span className="font-bold">Php {total.toLocaleString()}</span>
+                    <span className="font-bold">{fmtCurrency(total)}</span>
                   </div>
                 ))}
                 {Object.keys(mopBreakdown).length === 0 && (
@@ -425,14 +455,33 @@ const TransactionTracker = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); }} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); setExpenseSubTab("all"); }} className="mb-4">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="salary">Salary</TabsTrigger>
+            <TabsTrigger value="savings">
+              <PiggyBank className="h-3.5 w-3.5 mr-1" /> Savings
+            </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* Expense Sub-Tabs */}
+        {activeTab === "expenses" && (
+          <div className="flex flex-wrap gap-1 mb-4">
+            {EXPENSE_SUB_TABS.map((sub) => (
+              <Button
+                key={sub.value}
+                variant={expenseSubTab === sub.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setExpenseSubTab(sub.value); setCurrentPage(1); }}
+              >
+                {sub.label}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {/* Filters */}
         <Card className="mb-6">
@@ -510,6 +559,7 @@ const TransactionTracker = () => {
                       <TableHead>Name</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Parts Cost</TableHead>
+                      <TableHead>Remaining</TableHead>
                       <TableHead>Attendant</TableHead>
                       <TableHead>Remarks</TableHead>
                       <TableHead>Actions</TableHead>
@@ -532,6 +582,7 @@ const TransactionTracker = () => {
                         <TableCell>{t.name || "-"}</TableCell>
                         <TableCell className="font-semibold">Php {t.amount}</TableCell>
                         <TableCell className="text-xs">{t.partsCost || "-"}</TableCell>
+                        <TableCell className="text-xs">{t.remaining || "-"}</TableCell>
                         <TableCell className="text-xs">{t.attendant || "-"}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">{t.remarks || "-"}</TableCell>
                         <TableCell>
@@ -614,6 +665,7 @@ const TransactionTracker = () => {
                       <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                       <SelectItem value="Credit Card">Credit Card</SelectItem>
                       <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="N/A">N/A</SelectItem>
                       <SelectItem value="Others">Others</SelectItem>
                     </SelectContent>
                   </Select>
@@ -632,18 +684,24 @@ const TransactionTracker = () => {
                   <Input value={editForm.device} onChange={(e) => setEditForm({ ...editForm, device: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Amount *</Label>
-                  <Input type="number" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
+                  <Input type="number" step="0.01" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Service Cost</Label>
-                  <Input type="number" value={editForm.serviceCost} onChange={(e) => setEditForm({ ...editForm, serviceCost: e.target.value })} />
+                  <Input type="number" step="0.01" value={editForm.serviceCost} onChange={(e) => setEditForm({ ...editForm, serviceCost: e.target.value })} />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Parts Cost</Label>
-                  <Input type="number" value={editForm.partsCost} onChange={(e) => setEditForm({ ...editForm, partsCost: e.target.value })} />
+                  <Input type="number" step="0.01" value={editForm.partsCost} onChange={(e) => setEditForm({ ...editForm, partsCost: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Remaining</Label>
+                  <Input type="number" step="0.01" value={editForm.remaining} onChange={(e) => setEditForm({ ...editForm, remaining: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-2">
@@ -693,12 +751,14 @@ const TransactionTracker = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
-              {/* Transaction Details */}
               <div className="grid grid-cols-2 gap-2 text-sm p-3 rounded-lg bg-muted/50">
                 <div><span className="text-muted-foreground text-xs">Amount:</span> <strong>Php {logsTarget?.amount}</strong></div>
                 <div><span className="text-muted-foreground text-xs">MOP:</span> {logsTarget?.modeOfPayment}</div>
                 <div><span className="text-muted-foreground text-xs">Name:</span> {logsTarget?.name || "-"}</div>
                 <div><span className="text-muted-foreground text-xs">Attendant:</span> {logsTarget?.attendant || "-"}</div>
+                {logsTarget?.remaining && (
+                  <div><span className="text-muted-foreground text-xs">Remaining:</span> <strong>{logsTarget.remaining}</strong></div>
+                )}
               </div>
               <Separator />
               <p className="text-sm font-medium">Activity Logs</p>

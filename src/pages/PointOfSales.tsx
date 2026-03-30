@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ const SERVICE_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
 const SALES_TYPES = [...SERVICE_TYPES];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
-const OTHER_TYPES = ["Money In Bank", "Investment"];
+const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
 
 const ALL_GROUPED = [
   { label: "Sales", items: SALES_TYPES },
@@ -65,6 +65,9 @@ const PointOfSales = () => {
   const [manualDevice, setManualDevice] = useState("");
   const [manualServiceCost, setManualServiceCost] = useState("");
 
+  // Remaining balance from previous payments
+  const [previousPayments, setPreviousPayments] = useState(0);
+
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) navigate("/");
     if (userRole !== "management" && userRole !== "admin") navigate("/menu");
@@ -92,10 +95,21 @@ const PointOfSales = () => {
           partsUsed: result.data.partsUsed || "",
           status: result.data.status || "",
         });
+
+        // Fetch previous payments for this service
+        const txnResponse = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getServicePayments&serviceId=${encodeURIComponent(searchServiceId)}`);
+        const txnResult = await txnResponse.json();
+        if (txnResult.status === "success") {
+          setPreviousPayments(txnResult.totalPaid || 0);
+        } else {
+          setPreviousPayments(0);
+        }
+
         toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` });
       } else {
         toast({ title: "Not Found", description: "Service ID not found in Service Database", variant: "destructive" });
         setServiceData(null);
+        setPreviousPayments(0);
       }
     } catch {
       toast({ title: "Error", description: "Failed to search service", variant: "destructive" });
@@ -105,6 +119,11 @@ const PointOfSales = () => {
   };
 
   const generateTransactionId = () => `TXN${Date.now()}`;
+
+  // Computed remaining balance
+  const finalCostNum = parseFloat(serviceData?.finalCost || "0") || 0;
+  const amountNum = parseFloat(amount) || 0;
+  const remaining = Math.max(0, finalCostNum - previousPayments - amountNum);
 
   const handleSubmitTransaction = async () => {
     const finalTransactionType = transactionType === "Others" ? otherTransactionType : transactionType;
@@ -126,6 +145,7 @@ const PointOfSales = () => {
     const device = isServiceType ? (serviceData?.device || manualDevice) : "";
     const serviceCost = isServiceType ? (serviceData?.serviceCost || manualServiceCost || "0") : "0";
     const serviceId = isServiceType ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
+    // Don't send partsCost on Down Payment - only on Full Payment or when Partial completes payment
     const partsCost = isServiceType ? (serviceData?.partsCost || "0") : "0";
     const transactionId = generateTransactionId();
 
@@ -144,6 +164,8 @@ const PointOfSales = () => {
       params.append("attendant", username);
       params.append("remarks", remarks);
       params.append("partsCost", partsCost);
+      params.append("finalCost", serviceData?.finalCost || "0");
+      params.append("previousPayments", previousPayments.toString());
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
@@ -169,6 +191,7 @@ const PointOfSales = () => {
         setManualName("");
         setManualDevice("");
         setManualServiceCost("");
+        setPreviousPayments(0);
       } else {
         toast({ title: "Error", description: result.message || "Failed to record transaction", variant: "destructive" });
       }
@@ -201,7 +224,7 @@ const PointOfSales = () => {
                 <CardTitle className="text-lg">Transaction Type</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Select value={transactionType} onValueChange={(v) => { setTransactionType(v); if (!needsServiceInfo(v)) { setServiceData(null); setSearchServiceId(""); } }}>
+                <Select value={transactionType} onValueChange={(v) => { setTransactionType(v); if (!needsServiceInfo(v)) { setServiceData(null); setSearchServiceId(""); setPreviousPayments(0); } }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select transaction type" />
                   </SelectTrigger>
@@ -244,15 +267,8 @@ const PointOfSales = () => {
                   </Button>
 
                   {serviceData && (
-                    <div className="space-y-2 mt-3 p-3 rounded-lg bg-muted/50">
-                      <div><Label className="text-xs text-muted-foreground">Service ID</Label><p className="font-semibold text-primary">{serviceData.serviceId}</p></div>
-                      <Separator />
-                      <div><Label className="text-xs text-muted-foreground">Client Name</Label><p className="font-medium">{serviceData.clientName || "N/A"}</p></div>
-                      <div><Label className="text-xs text-muted-foreground">Device</Label><p>{serviceData.device || "N/A"}</p></div>
-                      <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p className="font-bold">Php {serviceData.serviceCost}</p></div>
-                      <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="text-lg font-bold text-primary">Php {serviceData.finalCost}</p></div>
-                      <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>Php {serviceData.partsCost}</p></div>
-                      <div><Label className="text-xs text-muted-foreground">Status</Label><p>{serviceData.status || "N/A"}</p></div>
+                    <div className="p-3 rounded-lg bg-muted/50 text-sm">
+                      <p className="text-primary font-semibold">{serviceData.serviceId} — Service found</p>
                     </div>
                   )}
 
@@ -314,17 +330,28 @@ const PointOfSales = () => {
                       {/* Amount */}
                       <div className="space-y-2">
                         <Label>Amount (Php) *</Label>
-                        <Input type="number" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="text-lg font-semibold" />
+                        <Input type="number" step="0.01" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="text-lg font-semibold" />
                       </div>
                     </div>
 
                     {/* Pre-filled info from service search */}
                     {showServiceSection && serviceData && (
-                      <div className="grid md:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/50">
-                        <div><Label className="text-xs text-muted-foreground">Client Name (auto)</Label><p className="font-medium">{serviceData.clientName}</p></div>
-                        <div><Label className="text-xs text-muted-foreground">Device (auto)</Label><p>{serviceData.device}</p></div>
-                        <div><Label className="text-xs text-muted-foreground">Service Cost (auto)</Label><p>Php {serviceData.serviceCost}</p></div>
-                        <div><Label className="text-xs text-muted-foreground">Parts Cost (auto)</Label><p>Php {serviceData.partsCost}</p></div>
+                      <div className="space-y-3 p-4 rounded-lg bg-muted/50">
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <div><Label className="text-xs text-muted-foreground">Client Name</Label><p className="font-medium">{serviceData.clientName}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Device</Label><p>{serviceData.device}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p>Php {serviceData.serviceCost}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="font-bold text-primary">Php {serviceData.finalCost}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>Php {serviceData.partsCost}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Previous Payments</Label><p>Php {previousPayments.toFixed(2)}</p></div>
+                        </div>
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold">Remaining Balance</Label>
+                          <p className={`text-lg font-bold ${remaining <= 0 ? "text-green-600" : "text-destructive"}`}>
+                            Php {remaining.toFixed(2)}
+                          </p>
+                        </div>
                       </div>
                     )}
 
