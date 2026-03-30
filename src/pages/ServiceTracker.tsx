@@ -43,6 +43,7 @@ interface ServiceRecord {
   adminRep?: string;
   adminRepresentative?: string;
   serviceCost?: string;
+  transactionStatus?: string;
 }
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
