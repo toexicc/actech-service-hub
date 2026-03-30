@@ -1039,6 +1039,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <TableRow>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Txn Status</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead>Service Date</TableHead>
                       <TableHead>Admin</TableHead>
