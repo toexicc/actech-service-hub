@@ -424,27 +424,60 @@ const TransactionTracker = () => {
           </div>
         </div>
 
+        {/* Dashboard Date Range */}
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">Dashboard Range:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dashStartDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {dashStartDate ? format(dashStartDate, "MMM dd") : "From"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={dashStartDate} onSelect={setDashStartDate} className="pointer-events-auto" /></PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dashEndDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {dashEndDate ? format(dashEndDate, "MMM dd") : "To"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={dashEndDate} onSelect={setDashEndDate} className="pointer-events-auto" /></PopoverContent>
+              </Popover>
+              {(dashStartDate || dashEndDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setDashStartDate(undefined); setDashEndDate(undefined); }}>Clear</Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Mini Dashboard */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Money in Bank</p>
               <p className={`text-xl font-bold ${moneyInBank >= 0 ? "text-primary" : "text-destructive"}`}>{fmtCurrency(moneyInBank)}</p>
-              <Landmark className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Sales</p>
               <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
-              <DollarSign className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Expenses</p>
               <p className="text-xl font-bold text-destructive">{fmtCurrency(totalExpenses)}</p>
-              <TrendingDown className="h-5 w-5 text-muted-foreground/30 mt-1" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Profit</p>
+              <p className={`text-xl font-bold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>{fmtCurrency(profit)}</p>
             </CardContent>
           </Card>
           <Card>
