@@ -101,6 +101,8 @@ const TransactionTracker = () => {
   const [expenseSubTab, setExpenseSubTab] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dashStartDate, setDashStartDate] = useState<Date | undefined>();
+  const [dashEndDate, setDashEndDate] = useState<Date | undefined>();
   const itemsPerPage = 15;
 
   // Edit/Add dialog
