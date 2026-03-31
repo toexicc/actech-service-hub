@@ -27,7 +27,7 @@ interface ServiceData {
 // Transaction types that require service/customer info
 const SERVICE_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
 
-const SALES_TYPES = [...SERVICE_TYPES];
+const SALES_TYPES = [...SERVICE_TYPES, "Refund"];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
 const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
