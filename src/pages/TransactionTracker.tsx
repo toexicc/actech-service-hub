@@ -18,8 +18,8 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { displayDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
-  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet, TrendingDown,
-  CalendarIcon, FileText, PiggyBank,
+  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
+  CalendarIcon, FileText,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
