@@ -219,14 +219,30 @@ const TransactionTracker = () => {
     currentPage * itemsPerPage
   );
 
+  // Filter transactions for dashboard by date range
+  const dashTransactions = useMemo(() => {
+    if (!dashStartDate && !dashEndDate) return transactions;
+    return transactions.filter((t) => {
+      const txDate = t.timestamp ? new Date(t.timestamp) : null;
+      if (!txDate || isNaN(txDate.getTime())) return false;
+      if (dashStartDate && txDate < dashStartDate) return false;
+      if (dashEndDate) {
+        const end = new Date(dashEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (txDate > end) return false;
+      }
+      return true;
+    });
+  }, [transactions, dashStartDate, dashEndDate]);
+
   // Mini dashboard stats - Sales ADD, Expenses/Salary DEDUCT, Refund DEDUCTS from sales
   const moneyInBank = useMemo(() => {
     let total = 0;
-    transactions.forEach((t) => {
+    dashTransactions.forEach((t) => {
       const amt = parseFloat(t.amount) || 0;
       const type = t.transactionType || "";
       if (type === REFUND_TYPE) {
-        total -= amt; // Refunds deduct
+        total -= amt;
       } else if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
         total += amt;
       }
@@ -235,37 +251,37 @@ const TransactionTracker = () => {
       }
     });
     return total;
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const totalSales = useMemo(() => {
-    return transactions
+    return dashTransactions
       .filter((t) => SALES_TYPES.includes(t.transactionType) && t.transactionType !== REFUND_TYPE)
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const totalExpenses = useMemo(() => {
-    return transactions
+    return dashTransactions
       .filter((t) => EXPENSE_TYPES.includes(t.transactionType))
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const totalRefunds = useMemo(() => {
-    return transactions
+    return dashTransactions
       .filter((t) => t.transactionType === REFUND_TYPE)
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
   const mopBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};
-    transactions.forEach((t) => {
-      if (!SALES_TYPES.includes(t.transactionType)) return;
+    dashTransactions.forEach((t) => {
+      if (!SALES_TYPES.includes(t.transactionType) || t.transactionType === REFUND_TYPE) return;
       const mop = t.modeOfPayment || "Unknown";
       breakdown[mop] = (breakdown[mop] || 0) + (parseFloat(t.amount) || 0);
     });
     return breakdown;
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const handleEdit = (transaction: Transaction) => {
     if (userRole === "admin") {
