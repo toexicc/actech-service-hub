@@ -52,11 +52,12 @@ interface ActivityLog {
   activity: string;
 }
 
-const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
+const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment", "Refund"];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
 const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
 const SAVINGS_TYPES = ["Money In Bank", "Investment", "Savings/Interest"];
+const REFUND_TYPE = "Refund";
 
 const ALL_GROUPED = [
   { label: "Sales", items: SALES_TYPES },
