@@ -120,10 +120,10 @@ const PointOfSales = () => {
 
   const generateTransactionId = () => `TXN${Date.now()}`;
 
-  // Computed remaining balance
-  const finalCostNum = parseFloat(serviceData?.finalCost || "0") || 0;
+  // Computed remaining balance - only for service payment types
+  const finalCostNum = parseFloat(serviceData?.finalCost || manualServiceCost || "0") || 0;
   const amountNum = parseFloat(amount) || 0;
-  const remaining = Math.max(0, finalCostNum - previousPayments - amountNum);
+  const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
 
   const handleSubmitTransaction = async () => {
     const finalTransactionType = transactionType === "Others" ? otherTransactionType : transactionType;
