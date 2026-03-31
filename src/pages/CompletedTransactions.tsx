@@ -150,8 +150,8 @@ const CompletedTransactions = () => {
     <DashboardLayout>
       <div className="p-6 lg:p-8 animate-fade-in">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Transaction Tracker</h1>
-          <p className="text-muted-foreground">View financial reports</p>
+          <h1 className="text-3xl font-bold text-foreground">Completed Transaction</h1>
+          <p className="text-muted-foreground">View Completed Transactions Overview</p>
         </div>
 
         {/* Financial Summary Cards */}
