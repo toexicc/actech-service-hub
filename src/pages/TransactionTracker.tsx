@@ -523,9 +523,7 @@ const TransactionTracker = () => {
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="salary">Salary</TabsTrigger>
-            <TabsTrigger value="savings">
-              <PiggyBank className="h-3.5 w-3.5 mr-1" /> Savings
-            </TabsTrigger>
+            <TabsTrigger value="savings">Savings</TabsTrigger>
           </TabsList>
         </Tabs>
 
