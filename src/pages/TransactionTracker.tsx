@@ -18,8 +18,8 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { displayDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
-  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet, TrendingDown,
-  CalendarIcon, FileText, PiggyBank,
+  ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
+  CalendarIcon, FileText,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,11 +52,12 @@ interface ActivityLog {
   activity: string;
 }
 
-const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
+const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment", "Refund"];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
 const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
 const SAVINGS_TYPES = ["Money In Bank", "Investment", "Savings/Interest"];
+const REFUND_TYPE = "Refund";
 
 const ALL_GROUPED = [
   { label: "Sales", items: SALES_TYPES },
@@ -100,6 +101,8 @@ const TransactionTracker = () => {
   const [expenseSubTab, setExpenseSubTab] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dashStartDate, setDashStartDate] = useState<Date | undefined>();
+  const [dashEndDate, setDashEndDate] = useState<Date | undefined>();
   const itemsPerPage = 15;
 
   // Edit/Add dialog
@@ -216,13 +219,31 @@ const TransactionTracker = () => {
     currentPage * itemsPerPage
   );
 
-  // Mini dashboard stats - Sales ADD, Expenses DEDUCT from Money in Bank
+  // Filter transactions for dashboard by date range
+  const dashTransactions = useMemo(() => {
+    if (!dashStartDate && !dashEndDate) return transactions;
+    return transactions.filter((t) => {
+      const txDate = t.timestamp ? new Date(t.timestamp) : null;
+      if (!txDate || isNaN(txDate.getTime())) return false;
+      if (dashStartDate && txDate < dashStartDate) return false;
+      if (dashEndDate) {
+        const end = new Date(dashEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (txDate > end) return false;
+      }
+      return true;
+    });
+  }, [transactions, dashStartDate, dashEndDate]);
+
+  // Mini dashboard stats - Sales ADD, Expenses/Salary DEDUCT, Refund DEDUCTS from sales
   const moneyInBank = useMemo(() => {
     let total = 0;
-    transactions.forEach((t) => {
+    dashTransactions.forEach((t) => {
       const amt = parseFloat(t.amount) || 0;
       const type = t.transactionType || "";
-      if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
+      if (type === REFUND_TYPE) {
+        total -= amt;
+      } else if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
         total += amt;
       }
       if (EXPENSE_TYPES.includes(type) || SALARY_TYPES.includes(type)) {
@@ -230,29 +251,37 @@ const TransactionTracker = () => {
       }
     });
     return total;
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const totalSales = useMemo(() => {
-    return transactions
-      .filter((t) => SALES_TYPES.includes(t.transactionType))
+    return dashTransactions
+      .filter((t) => SALES_TYPES.includes(t.transactionType) && t.transactionType !== REFUND_TYPE)
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const totalExpenses = useMemo(() => {
-    return transactions
+    return dashTransactions
       .filter((t) => EXPENSE_TYPES.includes(t.transactionType))
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  }, [transactions]);
+  }, [dashTransactions]);
+
+  const totalRefunds = useMemo(() => {
+    return dashTransactions
+      .filter((t) => t.transactionType === REFUND_TYPE)
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  }, [dashTransactions]);
+
+  const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
   const mopBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};
-    transactions.forEach((t) => {
-      if (!SALES_TYPES.includes(t.transactionType)) return;
+    dashTransactions.forEach((t) => {
+      if (!SALES_TYPES.includes(t.transactionType) || t.transactionType === REFUND_TYPE) return;
       const mop = t.modeOfPayment || "Unknown";
       breakdown[mop] = (breakdown[mop] || 0) + (parseFloat(t.amount) || 0);
     });
     return breakdown;
-  }, [transactions]);
+  }, [dashTransactions]);
 
   const handleEdit = (transaction: Transaction) => {
     if (userRole === "admin") {
@@ -413,27 +442,60 @@ const TransactionTracker = () => {
           </div>
         </div>
 
+        {/* Dashboard Date Range */}
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">Dashboard Range:</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dashStartDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {dashStartDate ? format(dashStartDate, "MMM dd") : "From"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={dashStartDate} onSelect={setDashStartDate} className="pointer-events-auto" /></PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-[130px] justify-start text-left font-normal", !dashEndDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-3 w-3" />
+                    {dashEndDate ? format(dashEndDate, "MMM dd") : "To"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={dashEndDate} onSelect={setDashEndDate} className="pointer-events-auto" /></PopoverContent>
+              </Popover>
+              {(dashStartDate || dashEndDate) && (
+                <Button variant="ghost" size="sm" onClick={() => { setDashStartDate(undefined); setDashEndDate(undefined); }}>Clear</Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Mini Dashboard */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Money in Bank</p>
               <p className={`text-xl font-bold ${moneyInBank >= 0 ? "text-primary" : "text-destructive"}`}>{fmtCurrency(moneyInBank)}</p>
-              <Landmark className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Sales</p>
               <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
-              <DollarSign className="h-5 w-5 text-muted-foreground/30 mt-1" />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">Total Expenses</p>
               <p className="text-xl font-bold text-destructive">{fmtCurrency(totalExpenses)}</p>
-              <TrendingDown className="h-5 w-5 text-muted-foreground/30 mt-1" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Profit</p>
+              <p className={`text-xl font-bold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>{fmtCurrency(profit)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -461,9 +523,7 @@ const TransactionTracker = () => {
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="salary">Salary</TabsTrigger>
-            <TabsTrigger value="savings">
-              <PiggyBank className="h-3.5 w-3.5 mr-1" /> Savings
-            </TabsTrigger>
+            <TabsTrigger value="savings">Savings</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -501,7 +561,6 @@ const TransactionTracker = () => {
                 <SelectContent>
                   <SelectItem value="all">All MOP</SelectItem>
                   <SelectItem value="GCash">GCash</SelectItem>
-                  <SelectItem value="Maya">Maya</SelectItem>
                   <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                   <SelectItem value="Credit Card">Credit Card</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
@@ -580,7 +639,7 @@ const TransactionTracker = () => {
                           </span>
                         </TableCell>
                         <TableCell>{t.name || "-"}</TableCell>
-                        <TableCell className="font-semibold">Php {t.amount}</TableCell>
+                        <TableCell className="font-semibold">{fmtCurrency(parseFloat(t.amount) || 0)}</TableCell>
                         <TableCell className="text-xs">{t.partsCost || "-"}</TableCell>
                         <TableCell className="text-xs">{t.remaining || "-"}</TableCell>
                         <TableCell className="text-xs">{t.attendant || "-"}</TableCell>
@@ -661,7 +720,6 @@ const TransactionTracker = () => {
                     <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="GCash">GCash</SelectItem>
-                      <SelectItem value="Maya">Maya</SelectItem>
                       <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                       <SelectItem value="Credit Card">Credit Card</SelectItem>
                       <SelectItem value="Cash">Cash</SelectItem>

@@ -27,7 +27,7 @@ interface ServiceData {
 // Transaction types that require service/customer info
 const SERVICE_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
 
-const SALES_TYPES = [...SERVICE_TYPES];
+const SALES_TYPES = [...SERVICE_TYPES, "Refund"];
 const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
 const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
 const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
@@ -120,10 +120,10 @@ const PointOfSales = () => {
 
   const generateTransactionId = () => `TXN${Date.now()}`;
 
-  // Computed remaining balance
-  const finalCostNum = parseFloat(serviceData?.finalCost || "0") || 0;
+  // Computed remaining balance - only for service payment types
+  const finalCostNum = parseFloat(serviceData?.finalCost || manualServiceCost || "0") || 0;
   const amountNum = parseFloat(amount) || 0;
-  const remaining = Math.max(0, finalCostNum - previousPayments - amountNum);
+  const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
 
   const handleSubmitTransaction = async () => {
     const finalTransactionType = transactionType === "Others" ? otherTransactionType : transactionType;
@@ -315,7 +315,6 @@ const PointOfSales = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="GCash">GCash</SelectItem>
-                            <SelectItem value="Maya">Maya</SelectItem>
                             <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                             <SelectItem value="Credit Card">Credit Card</SelectItem>
                             <SelectItem value="Cash">Cash</SelectItem>
