@@ -217,13 +217,15 @@ const TransactionTracker = () => {
     currentPage * itemsPerPage
   );
 
-  // Mini dashboard stats - Sales ADD, Expenses DEDUCT from Money in Bank
+  // Mini dashboard stats - Sales ADD, Expenses/Salary DEDUCT, Refund DEDUCTS from sales
   const moneyInBank = useMemo(() => {
     let total = 0;
     transactions.forEach((t) => {
       const amt = parseFloat(t.amount) || 0;
       const type = t.transactionType || "";
-      if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
+      if (type === REFUND_TYPE) {
+        total -= amt; // Refunds deduct
+      } else if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
         total += amt;
       }
       if (EXPENSE_TYPES.includes(type) || SALARY_TYPES.includes(type)) {
@@ -235,7 +237,7 @@ const TransactionTracker = () => {
 
   const totalSales = useMemo(() => {
     return transactions
-      .filter((t) => SALES_TYPES.includes(t.transactionType))
+      .filter((t) => SALES_TYPES.includes(t.transactionType) && t.transactionType !== REFUND_TYPE)
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
   }, [transactions]);
 
@@ -244,6 +246,14 @@ const TransactionTracker = () => {
       .filter((t) => EXPENSE_TYPES.includes(t.transactionType))
       .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
   }, [transactions]);
+
+  const totalRefunds = useMemo(() => {
+    return transactions
+      .filter((t) => t.transactionType === REFUND_TYPE)
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  }, [transactions]);
+
+  const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
   const mopBreakdown = useMemo(() => {
     const breakdown: Record<string, number> = {};

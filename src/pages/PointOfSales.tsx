@@ -315,7 +315,6 @@ const PointOfSales = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="GCash">GCash</SelectItem>
-                            <SelectItem value="Maya">Maya</SelectItem>
                             <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                             <SelectItem value="Credit Card">Credit Card</SelectItem>
                             <SelectItem value="Cash">Cash</SelectItem>
