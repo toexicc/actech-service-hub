@@ -639,7 +639,7 @@ const TransactionTracker = () => {
                           </span>
                         </TableCell>
                         <TableCell>{t.name || "-"}</TableCell>
-                        <TableCell className="font-semibold">Php {t.amount}</TableCell>
+                        <TableCell className="font-semibold">{fmtCurrency(parseFloat(t.amount) || 0)}</TableCell>
                         <TableCell className="text-xs">{t.partsCost || "-"}</TableCell>
                         <TableCell className="text-xs">{t.remaining || "-"}</TableCell>
                         <TableCell className="text-xs">{t.attendant || "-"}</TableCell>
