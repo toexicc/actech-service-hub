@@ -511,6 +511,7 @@ const StaffManagement = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Department</TableHead>
+                        <TableHead>Salary</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
