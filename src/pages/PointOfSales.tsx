@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
 
-// Strip commas/spaces so parseFloat works on "16,500.00" → 16500.00
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
   const cleaned = String(val).replace(/[^0-9.\-]/g, "");
@@ -38,18 +37,19 @@ interface ServiceData {
 const SERVICE_TYPES = ["Down Payment", "Full Payment", "Partial Payment"];
 
 const SALES_TYPES = [...SERVICE_TYPES, "Refund"];
-const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
-const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
-const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
+const EXPENSE_TYPES = ["Parts Inventory", "Rent", "Miscellaneous Expense"];
+const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit", "Savings (General)", "Savings (Tax)", "Other Banks"];
 
 const ALL_GROUPED = [
   { label: "Sales", items: SALES_TYPES },
   { label: "Expenses", items: EXPENSE_TYPES },
-  { label: "Salary", items: SALARY_TYPES },
   { label: "Others", items: [...OTHER_TYPES, "Others"] },
 ];
 
 const needsServiceInfo = (type: string) => SERVICE_TYPES.includes(type) || type === "Refund";
+
+// Fund types that accumulate like Money In Bank
+const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Other Banks"];
 
 const PointOfSales = () => {
   const navigate = useNavigate();
@@ -64,6 +64,9 @@ const PointOfSales = () => {
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fund source for expenses
+  const [fundSource, setFundSource] = useState("Money In Bank");
 
   // Service-related fields (only for payment types)
   const [searchServiceId, setSearchServiceId] = useState("");
@@ -106,7 +109,6 @@ const PointOfSales = () => {
           status: result.data.status || "",
         });
 
-        // Fetch previous payments for this service
         const txnResponse = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getServicePayments&serviceId=${encodeURIComponent(searchServiceId)}`);
         const txnResult = await txnResponse.json();
         if (txnResult.status === "success") {
@@ -130,10 +132,12 @@ const PointOfSales = () => {
 
   const generateTransactionId = () => `TXN${Date.now()}`;
 
-  // Computed remaining balance - only for service payment types
   const finalCostNum = parseCurrency(serviceData?.finalCost || manualServiceCost);
   const amountNum = parseCurrency(amount);
   const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
+
+  const isExpenseType = EXPENSE_TYPES.includes(transactionType);
+  const isOthersType = OTHER_TYPES.includes(transactionType) || transactionType === "Others";
 
   const handleSubmitTransaction = async () => {
     const finalTransactionType = transactionType === "Others" ? otherTransactionType : transactionType;
@@ -144,7 +148,6 @@ const PointOfSales = () => {
       return;
     }
 
-    // For payment types, we need either service data or manual info
     const isServiceType = needsServiceInfo(transactionType);
     if (isServiceType && !serviceData && !manualName) {
       toast({ title: "Error", description: "Please search for a service or enter client details", variant: "destructive" });
@@ -179,6 +182,13 @@ const PointOfSales = () => {
       params.append("partsCost", partsCostRaw);
       params.append("finalCost", finalCostClean);
       params.append("previousPayments", previousPayments.toFixed(2));
+      // Send fund source for expenses and others
+      if (isExpenseType) {
+        params.append("fundSource", fundSource);
+      }
+      if (isOthersType && FUND_TYPES.includes(transactionType)) {
+        params.append("fundSource", transactionType);
+      }
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
@@ -189,7 +199,7 @@ const PointOfSales = () => {
           serviceId: serviceId || "POS",
           username,
           role: userRole || "",
-          activity: `POS: Recorded ${finalTransactionType} of Php ${amount} via ${finalMOP} (${transactionId})`,
+          activity: `POS: Recorded ${finalTransactionType} of Php ${amountClean} via ${finalMOP} (${transactionId})`,
         });
 
         // Reset form
@@ -205,6 +215,7 @@ const PointOfSales = () => {
         setManualDevice("");
         setManualServiceCost("");
         setPreviousPayments(0);
+        setFundSource("Money In Bank");
       } else {
         toast({ title: "Error", description: result.message || "Failed to record transaction", variant: "destructive" });
       }
@@ -331,6 +342,7 @@ const PointOfSales = () => {
                             <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                             <SelectItem value="Credit Card">Credit Card</SelectItem>
                             <SelectItem value="Cash">Cash</SelectItem>
+                            <SelectItem value="N/A">N/A</SelectItem>
                             <SelectItem value="Others">Others</SelectItem>
                           </SelectContent>
                         </Select>
@@ -345,6 +357,23 @@ const PointOfSales = () => {
                         <Input type="number" step="0.01" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="text-lg font-semibold" />
                       </div>
                     </div>
+
+                    {/* Fund Source for Expenses */}
+                    {isExpenseType && (
+                      <div className="space-y-2">
+                        <Label>Deduct From</Label>
+                        <Select value={fundSource} onValueChange={setFundSource}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select fund source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FUND_TYPES.map((f) => (
+                              <SelectItem key={f} value={f}>{f}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     {/* Pre-filled info from service search */}
                     {showServiceSection && serviceData && (
