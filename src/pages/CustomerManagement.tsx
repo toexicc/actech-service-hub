@@ -160,8 +160,10 @@ const CustomerManagement = () => {
                         <TableRow>
                           <TableHead>Client ID</TableHead>
                           <TableHead>Name</TableHead>
+                          <TableHead>Username</TableHead>
                           <TableHead>Contact</TableHead>
                           <TableHead>Email</TableHead>
+                          <TableHead>Service ID</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
