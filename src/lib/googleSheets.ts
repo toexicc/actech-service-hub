@@ -502,7 +502,7 @@ function doGet(e) {
     var staffList = [];
     
     // Skip header row (i = 1)
-    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Staff ID exists
         staffList.push({
@@ -512,7 +512,8 @@ function doGet(e) {
           "name": data[i][3],
           "role": data[i][4],
           "department": data[i][5] || "",
-          "status": data[i][6]
+          "status": data[i][6],
+          "salary": data[i][7] || ""
         });
       }
     }
