@@ -13,6 +13,16 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
 
+// Strip commas/spaces so parseFloat works on "16,500.00" → 16500.00
+const parseCurrency = (val: string | number | undefined): number => {
+  if (val === undefined || val === null || val === "") return 0;
+  const cleaned = String(val).replace(/[^0-9.\-]/g, "");
+  return parseFloat(cleaned) || 0;
+};
+
+const fmtPeso = (n: number) =>
+  `Php ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 interface ServiceData {
   serviceId: string;
   clientName: string;
