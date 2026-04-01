@@ -1105,6 +1105,40 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle getClients - fetch all clients from Client Database sheet
+  // Columns: A=Client ID, B=Client Name, C=Username, D=Contact Number, E=Email, F=Service ID
+  if (params.action === 'getClients') {
+    var clientSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Client Database");
+    if (!clientSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success", clients: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var clientData = clientSheet.getDataRange().getDisplayValues();
+    var clients = [];
+    for (var ci = 1; ci < clientData.length; ci++) {
+      if (!clientData[ci][0] && !clientData[ci][1]) continue;
+      clients.push({
+        clientId: clientData[ci][0],
+        clientName: clientData[ci][1],
+        username: clientData[ci][2],
+        contactNumber: clientData[ci][3],
+        email: clientData[ci][4],
+        serviceId: clientData[ci][5]
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success", clients: clients
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Helper: strip commas from currency strings before parseFloat
+  // e.g. "16,500.00" → 16500.00, "15,298" → 15298
+  function parseCurrencyValue(val) {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/[^0-9.\-]/g, '')) || 0;
+  }
+
   // Handle getServicePayments - get total paid for a service ID
   if (params.action === 'getServicePayments' && params.serviceId) {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
@@ -1118,7 +1152,7 @@ function doGet(e) {
     var totalPaid = 0;
     for (var ti = 1; ti < txnData.length; ti++) {
       if (txnData[ti][1] === params.serviceId && paymentTypes.indexOf(txnData[ti][2]) > -1) {
-        totalPaid += parseFloat(txnData[ti][6]) || 0;
+        totalPaid += parseCurrencyValue(txnData[ti][6]);
       }
     }
     return ContentService.createTextOutput(JSON.stringify({
