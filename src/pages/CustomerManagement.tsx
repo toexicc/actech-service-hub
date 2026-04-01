@@ -172,8 +172,10 @@ const CustomerManagement = () => {
                           <TableRow key={client.clientId}>
                             <TableCell className="font-medium">{client.clientId}</TableCell>
                             <TableCell>{client.clientName || "N/A"}</TableCell>
+                            <TableCell>{client.username || "N/A"}</TableCell>
                             <TableCell>{client.contactNumber || "N/A"}</TableCell>
                             <TableCell className="max-w-[200px] truncate">{client.email || "N/A"}</TableCell>
+                            <TableCell>{client.serviceId || "N/A"}</TableCell>
                             <TableCell>
                               <Button variant="outline" size="sm" onClick={() => handleSearch(client.clientId)}>
                                 <Search className="h-3 w-3 mr-1" /> View
