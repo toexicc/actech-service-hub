@@ -151,12 +151,15 @@ const PointOfSales = () => {
       return;
     }
 
-    const name = isServiceType ? (serviceData?.clientName || manualName) : "";
-    const device = isServiceType ? (serviceData?.device || manualDevice) : "";
-    const serviceCost = isServiceType ? (serviceData?.serviceCost || manualServiceCost || "0") : "0";
-    const serviceId = isServiceType ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
-    // Don't send partsCost on Down Payment - only on Full Payment or when Partial completes payment
-    const partsCost = isServiceType ? (serviceData?.partsCost || "0") : "0";
+    const isRefund = transactionType === "Refund";
+    const showsService = isServiceType || isRefund;
+    const name = showsService ? (serviceData?.clientName || manualName) : "";
+    const device = showsService ? (serviceData?.device || manualDevice) : "";
+    const serviceCostRaw = showsService ? parseCurrency(serviceData?.serviceCost || manualServiceCost).toFixed(2) : "0";
+    const serviceId = showsService ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
+    const partsCostRaw = showsService ? parseCurrency(serviceData?.partsCost).toFixed(2) : "0";
+    const amountClean = parseCurrency(amount).toFixed(2);
+    const finalCostClean = parseCurrency(serviceData?.finalCost).toFixed(2);
     const transactionId = generateTransactionId();
 
     setIsSubmitting(true);
