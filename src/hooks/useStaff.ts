@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 
-interface StaffMember {
+export interface StaffMember {
   staffId: string;
   username: string;
   password: string;
@@ -9,6 +9,7 @@ interface StaffMember {
   role: string;
   department: string;
   status: string;
+  salary: string;
 }
 
 const fetchStaffList = async (): Promise<StaffMember[]> => {
@@ -24,8 +25,8 @@ export const useStaff = () => {
   return useQuery({
     queryKey: ["staff"],
     queryFn: fetchStaffList,
-    staleTime: 5 * 60 * 1000, // 5 minutes - staff data changes infrequently
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 };
 

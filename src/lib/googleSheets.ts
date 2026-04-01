@@ -502,7 +502,7 @@ function doGet(e) {
     var staffList = [];
     
     // Skip header row (i = 1)
-    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Staff ID exists
         staffList.push({
@@ -512,7 +512,8 @@ function doGet(e) {
           "name": data[i][3],
           "role": data[i][4],
           "department": data[i][5] || "",
-          "status": data[i][6]
+          "status": data[i][6],
+          "salary": data[i][7] || ""
         });
       }
     }
@@ -1162,7 +1163,7 @@ function doGet(e) {
 
   // Handle getTransactions - fetch all transactions from Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
-  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
+  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining, N=Fund Source
   if (params.action === 'getTransactions') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
@@ -1183,15 +1184,42 @@ function doGet(e) {
         device: txnData[ti][5],
         amount: txnData[ti][6],
         serviceCost: txnData[ti][7],
-        attendant: txnData[ti][8],       // Column I - Attendant
-        remarks: txnData[ti][9],          // Column J - Remarks
-        partsCost: txnData[ti][10],       // Column K - Parts Cost
-        transactionId: txnData[ti][11],   // Column L - Transaction ID
-        remaining: txnData[ti][12] || ""  // Column M - Remaining
+        attendant: txnData[ti][8],
+        remarks: txnData[ti][9],
+        partsCost: txnData[ti][10],
+        transactionId: txnData[ti][11],
+        remaining: txnData[ti][12] || "",
+        fundSource: txnData[ti][13] || "Money In Bank"
       });
     }
     return ContentService.createTextOutput(JSON.stringify({
       status: "success", transactions: txns
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle getSalaryLogs - fetch all salary disbursement logs
+  // Salary sheet columns: A=Timestamp, B=Staff ID, C=Staff Name, D=Salary Amount, E=Status
+  if (params.action === 'getSalaryLogs') {
+    var salarySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Salary");
+    if (!salarySheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success", logs: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var salaryData = salarySheet.getDataRange().getDisplayValues();
+    var salaryLogs = [];
+    for (var si = 1; si < salaryData.length; si++) {
+      if (!salaryData[si][0] && !salaryData[si][1]) continue;
+      salaryLogs.push({
+        timestamp: salaryData[si][0],
+        staffId: salaryData[si][1],
+        staffName: salaryData[si][2],
+        salaryAmount: salaryData[si][3],
+        status: salaryData[si][4] || "Disbursed"
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success", logs: salaryLogs
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -1264,7 +1292,8 @@ function doPost(e) {
       params.remarks || "",
       isPayment ? partsCostToRecord : (parseCurrencyValue(params.partsCost).toFixed(2)),
       transactionId,
-      remaining
+      remaining,
+      params.fundSource || ""
     ]);
     
     // Handle Refund: void all previous payment and parts transactions for this service
@@ -1339,7 +1368,80 @@ function doPost(e) {
                     expTxnId,
                     ""
                   ]);
-                }
+  }
+
+  // Handle disburseSalary - add a salary disbursement to Salary sheet and log as transaction
+  if (action === 'disburseSalary') {
+    var salarySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Salary");
+    if (!salarySheet) {
+      salarySheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Salary");
+      salarySheet.appendRow(["Timestamp", "Staff ID", "Staff Name", "Salary Amount", "Status"]);
+    }
+    var now = new Date();
+    var timestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy, hh:mm:ss a");
+    
+    salarySheet.appendRow([
+      timestamp,
+      params.staffId || "",
+      params.staffName || "",
+      parseCurrencyValue(params.salaryAmount).toFixed(2),
+      params.status || "Disbursed"
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle addStaff - includes Column H for Salary
+  if (action === 'addStaff') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error", message: "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    staffSheet.appendRow([
+      params.staffId || "",
+      params.username || "",
+      params.password || "",
+      params.name || "",
+      params.role || "",
+      params.department || "",
+      params.status || "Active",
+      params.salary || ""
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle updateStaff - includes Column H for Salary
+  if (action === 'updateStaff') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error", message: "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var data = staffSheet.getDataRange().getDisplayValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === params.username) {
+        if (params.name) staffSheet.getRange(i + 1, 4).setValue(params.name);
+        if (params.password) staffSheet.getRange(i + 1, 3).setValue(params.password);
+        if (params.role) staffSheet.getRange(i + 1, 5).setValue(params.role);
+        staffSheet.getRange(i + 1, 6).setValue(params.department || "");
+        if (params.status) staffSheet.getRange(i + 1, 7).setValue(params.status);
+        staffSheet.getRange(i + 1, 8).setValue(params.salary || "");
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error", message: "Staff not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
               }
             } else if (params.transactionType === "Down Payment") {
               paymentStatus = "Down Payment (Php " + totalPaid.toFixed(2) + " / Php " + finalCost.toFixed(2) + ")";

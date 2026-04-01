@@ -23,6 +23,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import RequestForParts from "./pages/RequestForParts";
 import Install from "./pages/Install";
 import PointOfSales from "./pages/PointOfSales";
+import SalaryDisbursement from "./pages/SalaryDisbursement";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with caching settings for fast navigation
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/tech-dashboard" element={<OpenDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/request-for-parts" element={<RequestForParts />} />
+          <Route path="/salary-disbursement" element={<SalaryDisbursement />} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

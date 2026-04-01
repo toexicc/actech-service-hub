@@ -10,6 +10,7 @@ export interface UserCredential {
   role: "admin" | "technician" | "management";
   department?: string;
   status: "active" | "inactive";
+  salary?: string;
 }
 
 // Cache for user credentials loaded from Google Sheets
@@ -75,6 +76,7 @@ export const addUser = async (user: UserCredential) => {
     formData.append("role", capitalizedRole);
     formData.append("department", user.department || "");
     formData.append("status", user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase());
+    formData.append("salary", user.salary || "");
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
@@ -192,6 +194,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     formData.append("role", capitalizedRole);
     formData.append("department", updatedUser.department || "");
     formData.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
+    formData.append("salary", updatedUser.salary || "");
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
