@@ -49,7 +49,7 @@ const ALL_GROUPED = [
   { label: "Others", items: [...OTHER_TYPES, "Others"] },
 ];
 
-const needsServiceInfo = (type: string) => SERVICE_TYPES.includes(type);
+const needsServiceInfo = (type: string) => SERVICE_TYPES.includes(type) || type === "Refund";
 
 const PointOfSales = () => {
   const navigate = useNavigate();
