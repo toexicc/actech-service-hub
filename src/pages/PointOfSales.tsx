@@ -361,7 +361,7 @@ const PointOfSales = () => {
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold">Remaining Balance</Label>
                           <p className={`text-lg font-bold ${remaining <= 0 ? "text-green-600" : "text-destructive"}`}>
-                            Php {remaining.toFixed(2)}
+                            {fmtPeso(remaining)}
                           </p>
                         </div>
                       </div>
