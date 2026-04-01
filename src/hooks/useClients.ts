@@ -1,14 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 
-interface ClientRecord {
+export interface ClientRecord {
   clientId: string;
   clientName: string;
+  username: string;
   contactNumber: string;
   email: string;
-  address: string;
-  dateAdded: string;
-  lastUpdated: string;
+  serviceId: string;
 }
 
 interface ClientInquiry {

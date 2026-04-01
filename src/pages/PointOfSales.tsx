@@ -13,6 +13,16 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
 
+// Strip commas/spaces so parseFloat works on "16,500.00" → 16500.00
+const parseCurrency = (val: string | number | undefined): number => {
+  if (val === undefined || val === null || val === "") return 0;
+  const cleaned = String(val).replace(/[^0-9.\-]/g, "");
+  return parseFloat(cleaned) || 0;
+};
+
+const fmtPeso = (n: number) =>
+  `Php ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 interface ServiceData {
   serviceId: string;
   clientName: string;
@@ -39,7 +49,7 @@ const ALL_GROUPED = [
   { label: "Others", items: [...OTHER_TYPES, "Others"] },
 ];
 
-const needsServiceInfo = (type: string) => SERVICE_TYPES.includes(type);
+const needsServiceInfo = (type: string) => SERVICE_TYPES.includes(type) || type === "Refund";
 
 const PointOfSales = () => {
   const navigate = useNavigate();
@@ -121,8 +131,8 @@ const PointOfSales = () => {
   const generateTransactionId = () => `TXN${Date.now()}`;
 
   // Computed remaining balance - only for service payment types
-  const finalCostNum = parseFloat(serviceData?.finalCost || manualServiceCost || "0") || 0;
-  const amountNum = parseFloat(amount) || 0;
+  const finalCostNum = parseCurrency(serviceData?.finalCost || manualServiceCost);
+  const amountNum = parseCurrency(amount);
   const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
 
   const handleSubmitTransaction = async () => {
@@ -141,12 +151,15 @@ const PointOfSales = () => {
       return;
     }
 
-    const name = isServiceType ? (serviceData?.clientName || manualName) : "";
-    const device = isServiceType ? (serviceData?.device || manualDevice) : "";
-    const serviceCost = isServiceType ? (serviceData?.serviceCost || manualServiceCost || "0") : "0";
-    const serviceId = isServiceType ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
-    // Don't send partsCost on Down Payment - only on Full Payment or when Partial completes payment
-    const partsCost = isServiceType ? (serviceData?.partsCost || "0") : "0";
+    const isRefund = transactionType === "Refund";
+    const showsService = isServiceType || isRefund;
+    const name = showsService ? (serviceData?.clientName || manualName) : "";
+    const device = showsService ? (serviceData?.device || manualDevice) : "";
+    const serviceCostRaw = showsService ? parseCurrency(serviceData?.serviceCost || manualServiceCost).toFixed(2) : "0";
+    const serviceId = showsService ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
+    const partsCostRaw = showsService ? parseCurrency(serviceData?.partsCost).toFixed(2) : "0";
+    const amountClean = parseCurrency(amount).toFixed(2);
+    const finalCostClean = parseCurrency(serviceData?.finalCost).toFixed(2);
     const transactionId = generateTransactionId();
 
     setIsSubmitting(true);
@@ -159,13 +172,13 @@ const PointOfSales = () => {
       params.append("modeOfPayment", finalMOP);
       params.append("name", name);
       params.append("device", device);
-      params.append("amount", amount);
-      params.append("serviceCost", serviceCost);
+      params.append("amount", amountClean);
+      params.append("serviceCost", serviceCostRaw);
       params.append("attendant", username);
       params.append("remarks", remarks);
-      params.append("partsCost", partsCost);
-      params.append("finalCost", serviceData?.finalCost || "0");
-      params.append("previousPayments", previousPayments.toString());
+      params.append("partsCost", partsCostRaw);
+      params.append("finalCost", finalCostClean);
+      params.append("previousPayments", previousPayments.toFixed(2));
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
@@ -339,16 +352,16 @@ const PointOfSales = () => {
                         <div className="grid md:grid-cols-2 gap-3">
                           <div><Label className="text-xs text-muted-foreground">Client Name</Label><p className="font-medium">{serviceData.clientName}</p></div>
                           <div><Label className="text-xs text-muted-foreground">Device</Label><p>{serviceData.device}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p>Php {serviceData.serviceCost}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="font-bold text-primary">Php {serviceData.finalCost}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>Php {serviceData.partsCost}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Previous Payments</Label><p>Php {previousPayments.toFixed(2)}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p>{fmtPeso(parseCurrency(serviceData.serviceCost))}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="font-bold text-primary">{fmtPeso(parseCurrency(serviceData.finalCost))}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>{fmtPeso(parseCurrency(serviceData.partsCost))}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Previous Payments</Label><p>{fmtPeso(previousPayments)}</p></div>
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold">Remaining Balance</Label>
                           <p className={`text-lg font-bold ${remaining <= 0 ? "text-green-600" : "text-destructive"}`}>
-                            Php {remaining.toFixed(2)}
+                            {fmtPeso(remaining)}
                           </p>
                         </div>
                       </div>
