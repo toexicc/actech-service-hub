@@ -540,6 +540,7 @@ const StaffManagement = () => {
                             </span>
                           </TableCell>
                           <TableCell>{staff.department || "-"}</TableCell>
+                          <TableCell>{(staff as any).salary ? `Php ${parseFloat((staff as any).salary).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "Service Based"}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
