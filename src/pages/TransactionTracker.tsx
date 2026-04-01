@@ -41,6 +41,7 @@ interface Transaction {
   remarks: string;
   partsCost: string;
   remaining: string;
+  fundSource?: string;
 }
 
 interface ActivityLog {
@@ -53,26 +54,24 @@ interface ActivityLog {
 }
 
 const SALES_TYPES = ["Down Payment", "Full Payment", "Partial Payment", "Refund"];
-const EXPENSE_TYPES = ["Parts Inventory", "Supplies", "Utilities", "Rent", "Miscellaneous Expense"];
-const SALARY_TYPES = ["Salary Disbursement", "Bonus", "Commission"];
-const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit"];
-const SAVINGS_TYPES = ["Money In Bank", "Investment", "Savings/Interest"];
+const EXPENSE_TYPES = ["Parts Inventory", "Rent", "Miscellaneous Expense", "Salary Disbursement"];
+const OTHER_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Profit", "Savings (General)", "Savings (Tax)", "Other Banks"];
+const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Other Banks"];
+const SAVINGS_TYPES = ["Money In Bank", "Investment", "Savings/Interest", "Savings (General)", "Savings (Tax)", "Other Banks"];
 const REFUND_TYPE = "Refund";
 
 const ALL_GROUPED = [
   { label: "Sales", items: SALES_TYPES },
   { label: "Expenses", items: EXPENSE_TYPES },
-  { label: "Salary", items: SALARY_TYPES },
   { label: "Others", items: [...OTHER_TYPES, "Others"] },
 ];
 
-// Expense sub-tabs
 const EXPENSE_SUB_TABS = [
   { value: "all", label: "General", types: EXPENSE_TYPES },
   { value: "parts", label: "Parts", types: ["Parts Inventory"] },
   { value: "opex", label: "OpEx", types: EXPENSE_TYPES },
-  { value: "supplies", label: "Supplies/Utilities", types: ["Supplies", "Utilities"] },
   { value: "rent", label: "Rent", types: ["Rent"] },
+  { value: "salary", label: "Salary", types: ["Salary Disbursement"] },
   { value: "misc", label: "Miscellaneous", types: ["Miscellaneous Expense"] },
 ];
 
@@ -110,21 +109,19 @@ const TransactionTracker = () => {
   const [dashEndDate, setDashEndDate] = useState<Date | undefined>();
   const itemsPerPage = 15;
 
-  // Edit/Add dialog
   const [editDialog, setEditDialog] = useState(false);
   const [editData, setEditData] = useState<Transaction | null>(null);
   const [editForm, setEditForm] = useState({
     transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
     amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "", remaining: "",
+    fundSource: "Money In Bank",
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
-  // Delete dialog
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Logs dialog
   const [logsDialog, setLogsDialog] = useState(false);
   const [logsTarget, setLogsTarget] = useState<Transaction | null>(null);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
@@ -179,8 +176,6 @@ const TransactionTracker = () => {
           const subDef = EXPENSE_SUB_TABS.find((s) => s.value === expenseSubTab);
           return subDef ? subDef.types.includes(type) : true;
         }
-        case "salary":
-          return SALARY_TYPES.includes(type);
         case "savings":
           return SAVINGS_TYPES.includes(type);
         default:
@@ -240,22 +235,37 @@ const TransactionTracker = () => {
     });
   }, [transactions, dashStartDate, dashEndDate]);
 
-  // Mini dashboard stats - Sales ADD, Expenses/Salary DEDUCT, Refund DEDUCTS from sales
-  const moneyInBank = useMemo(() => {
-    let total = 0;
+  // Dashboard stats - Fund accumulators
+  const fundTotals = useMemo(() => {
+    const totals: Record<string, number> = {
+      "Money In Bank": 0,
+      "Savings (General)": 0,
+      "Savings (Tax)": 0,
+      "Other Banks": 0,
+    };
     dashTransactions.forEach((t) => {
       const amt = parseCurrency(t.amount);
       const type = t.transactionType || "";
-      if (type === REFUND_TYPE) {
-        total -= amt;
-      } else if (SALES_TYPES.includes(type) || OTHER_TYPES.includes(type) || type === "Others") {
-        total += amt;
+      const fundSrc = t.fundSource || "Money In Bank";
+
+      // Others types that ADD to their respective fund
+      if (FUND_TYPES.includes(type)) {
+        totals[type] = (totals[type] || 0) + amt;
       }
-      if (EXPENSE_TYPES.includes(type) || SALARY_TYPES.includes(type)) {
-        total -= amt;
+      // Expenses DEDUCT from their fund source
+      if (EXPENSE_TYPES.includes(type)) {
+        if (totals[fundSrc] !== undefined) {
+          totals[fundSrc] -= amt;
+        }
+      }
+      // Refunds deduct
+      if (type === REFUND_TYPE) {
+        if (totals[fundSrc] !== undefined) {
+          totals[fundSrc] -= amt;
+        }
       }
     });
-    return total;
+    return totals;
   }, [dashTransactions]);
 
   const totalSales = useMemo(() => {
@@ -276,6 +286,11 @@ const TransactionTracker = () => {
       .reduce((sum, t) => sum + parseCurrency(t.amount), 0);
   }, [dashTransactions]);
 
+  const totalPartsCost = useMemo(() => {
+    return dashTransactions
+      .reduce((sum, t) => sum + parseCurrency(t.partsCost), 0);
+  }, [dashTransactions]);
+
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
   const mopBreakdown = useMemo(() => {
@@ -294,9 +309,9 @@ const TransactionTracker = () => {
       return;
     }
     setEditData(transaction);
-    const allKnownTypes = [...SALES_TYPES, ...EXPENSE_TYPES, ...SALARY_TYPES, ...OTHER_TYPES];
+    const allKnownTypes = [...SALES_TYPES, ...EXPENSE_TYPES, ...OTHER_TYPES];
     const isOtherType = !allKnownTypes.includes(transaction.transactionType);
-    const isOtherMOP = !["GCash", "Maya", "Bank Transfer", "Credit Card", "Cash", "N/A"].includes(transaction.modeOfPayment);
+    const isOtherMOP = !["GCash", "Bank Transfer", "Credit Card", "Cash", "N/A"].includes(transaction.modeOfPayment);
     setEditForm({
       transactionType: isOtherType ? "Others" : transaction.transactionType,
       otherTransactionType: isOtherType ? transaction.transactionType : "",
@@ -310,6 +325,7 @@ const TransactionTracker = () => {
       serviceCost: transaction.serviceCost,
       partsCost: transaction.partsCost || "",
       remaining: transaction.remaining || "",
+      fundSource: transaction.fundSource || "Money In Bank",
     });
     setEditDialog(true);
   };
@@ -319,6 +335,7 @@ const TransactionTracker = () => {
     setEditForm({
       transactionType: "", otherTransactionType: "", modeOfPayment: "", otherMOP: "",
       amount: "", remarks: "", serviceId: "", name: "", device: "", serviceCost: "", partsCost: "", remaining: "",
+      fundSource: "Money In Bank",
     });
     setEditDialog(true);
   };
@@ -353,6 +370,7 @@ const TransactionTracker = () => {
       params.append("remarks", editForm.remarks);
       params.append("partsCost", editForm.partsCost);
       params.append("remaining", editForm.remaining);
+      params.append("fundSource", editForm.fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
@@ -419,12 +437,14 @@ const TransactionTracker = () => {
 
   const getMOPIcon = (mop: string) => {
     switch (mop) {
-      case "GCash": case "Maya": return <Wallet className="h-3 w-3" />;
+      case "GCash": return <Wallet className="h-3 w-3" />;
       case "Bank Transfer": return <Landmark className="h-3 w-3" />;
       case "Credit Card": return <CreditCard className="h-3 w-3" />;
       default: return <DollarSign className="h-3 w-3" />;
     }
   };
+
+  const isExpenseType = EXPENSE_TYPES.includes(editForm.transactionType);
 
   return (
     <DashboardLayout>
@@ -477,48 +497,68 @@ const TransactionTracker = () => {
           </CardContent>
         </Card>
 
-        {/* Mini Dashboard */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Money in Bank</p>
-              <p className={`text-xl font-bold ${moneyInBank >= 0 ? "text-primary" : "text-destructive"}`}>{fmtCurrency(moneyInBank)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total Sales</p>
-              <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total Expenses</p>
-              <p className="text-xl font-bold text-destructive">{fmtCurrency(totalExpenses)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Profit</p>
-              <p className={`text-xl font-bold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>{fmtCurrency(profit)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-2">Sales by MOP</p>
-              <div className="space-y-1">
-                {Object.entries(mopBreakdown).map(([mop, total]) => (
-                  <div key={mop} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1">{getMOPIcon(mop)} {mop}</span>
-                    <span className="font-bold">{fmtCurrency(total)}</span>
-                  </div>
-                ))}
-                {Object.keys(mopBreakdown).length === 0 && (
-                  <span className="text-xs text-muted-foreground">No sales yet</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Dashboard Row 1: AC Tech Funds */}
+        <div className="mb-2">
+          <p className="text-xs font-semibold text-muted-foreground mb-2">AC Tech Funds</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {FUND_TYPES.map((fund) => (
+              <Card key={fund}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">{fund}</p>
+                  <p className={`text-xl font-bold ${(fundTotals[fund] || 0) >= 0 ? "text-primary" : "text-destructive"}`}>
+                    {fmtCurrency(fundTotals[fund] || 0)}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Dashboard Row 2: AC Tech Transactions */}
+        <div className="mb-6">
+          <p className="text-xs font-semibold text-muted-foreground mb-2">AC Tech Transactions</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Total Sales</p>
+                <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Total Expenses</p>
+                <p className="text-xl font-bold text-destructive">{fmtCurrency(totalExpenses)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Total Profit</p>
+                <p className={`text-xl font-bold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>{fmtCurrency(profit)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">Total Parts Cost</p>
+                <p className="text-xl font-bold text-destructive">{fmtCurrency(totalPartsCost)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground mb-2">Sales by MOP</p>
+                <div className="space-y-1">
+                  {Object.entries(mopBreakdown).map(([mop, total]) => (
+                    <div key={mop} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1">{getMOPIcon(mop)} {mop}</span>
+                      <span className="font-bold">{fmtCurrency(total)}</span>
+                    </div>
+                  ))}
+                  {Object.keys(mopBreakdown).length === 0 && (
+                    <span className="text-xs text-muted-foreground">No sales yet</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -527,7 +567,6 @@ const TransactionTracker = () => {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="salary">Salary</TabsTrigger>
             <TabsTrigger value="savings">Savings</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -644,9 +683,9 @@ const TransactionTracker = () => {
                           </span>
                         </TableCell>
                         <TableCell>{t.name || "-"}</TableCell>
-                        <TableCell className="font-semibold">{fmtCurrency(parseFloat(t.amount) || 0)}</TableCell>
-                        <TableCell className="text-xs">{t.partsCost || "-"}</TableCell>
-                        <TableCell className="text-xs">{t.remaining || "-"}</TableCell>
+                        <TableCell className="font-semibold">{fmtCurrency(parseCurrency(t.amount))}</TableCell>
+                        <TableCell className="text-xs">{parseCurrency(t.partsCost) > 0 ? fmtCurrency(parseCurrency(t.partsCost)) : "-"}</TableCell>
+                        <TableCell className="text-xs">{parseCurrency(t.remaining) > 0 ? fmtCurrency(parseCurrency(t.remaining)) : (t.remaining === "0.00" ? fmtCurrency(0) : "-")}</TableCell>
                         <TableCell className="text-xs">{t.attendant || "-"}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">{t.remarks || "-"}</TableCell>
                         <TableCell>
@@ -737,6 +776,20 @@ const TransactionTracker = () => {
                   )}
                 </div>
               </div>
+              {/* Fund source for expenses */}
+              {isExpenseType && (
+                <div className="space-y-2">
+                  <Label>Deduct From</Label>
+                  <Select value={editForm.fundSource} onValueChange={(v) => setEditForm({ ...editForm, fundSource: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {FUND_TYPES.map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Name</Label>
@@ -815,12 +868,12 @@ const TransactionTracker = () => {
             </DialogHeader>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-sm p-3 rounded-lg bg-muted/50">
-                <div><span className="text-muted-foreground text-xs">Amount:</span> <strong>Php {logsTarget?.amount}</strong></div>
+                <div><span className="text-muted-foreground text-xs">Amount:</span> <strong>{fmtCurrency(parseCurrency(logsTarget?.amount))}</strong></div>
                 <div><span className="text-muted-foreground text-xs">MOP:</span> {logsTarget?.modeOfPayment}</div>
                 <div><span className="text-muted-foreground text-xs">Name:</span> {logsTarget?.name || "-"}</div>
                 <div><span className="text-muted-foreground text-xs">Attendant:</span> {logsTarget?.attendant || "-"}</div>
                 {logsTarget?.remaining && (
-                  <div><span className="text-muted-foreground text-xs">Remaining:</span> <strong>{logsTarget.remaining}</strong></div>
+                  <div><span className="text-muted-foreground text-xs">Remaining:</span> <strong>{fmtCurrency(parseCurrency(logsTarget.remaining))}</strong></div>
                 )}
               </div>
               <Separator />
