@@ -1204,6 +1204,12 @@ function doPost(e) {
   var params = e.parameter;
   var action = params.action;
 
+  // Helper: strip commas from currency strings before parseFloat
+  function parseCurrencyValue(val) {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/[^0-9.\-]/g, '')) || 0;
+  }
+
   // Handle addTransaction - add a new row to Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
   //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
@@ -1219,11 +1225,12 @@ function doPost(e) {
     
     var paymentTypes = ["Down Payment", "Full Payment", "Partial Payment"];
     var isPayment = paymentTypes.indexOf(params.transactionType) > -1;
+    var isRefund = params.transactionType === "Refund";
     var serviceId = params.serviceId || "";
-    var currentAmount = parseFloat(params.amount) || 0;
-    var previousPayments = parseFloat(params.previousPayments) || 0;
-    var finalCostParam = parseFloat(params.finalCost) || 0;
-    var partsCostParam = parseFloat(params.partsCost) || 0;
+    var currentAmount = parseCurrencyValue(params.amount);
+    var previousPayments = parseCurrencyValue(params.previousPayments);
+    var finalCostParam = parseCurrencyValue(params.finalCost);
+    var partsCostParam = parseCurrencyValue(params.partsCost);
     
     // Calculate remaining for payment types
     var remaining = "";
@@ -1236,16 +1243,13 @@ function doPost(e) {
     // For Down Payment: do NOT charge parts cost
     var partsCostToRecord = "0";
     if (params.transactionType === "Full Payment") {
-      // Full payment always charges parts cost
-      partsCostToRecord = partsCostParam.toString();
+      partsCostToRecord = partsCostParam.toFixed(2);
     } else if (params.transactionType === "Partial Payment" && isPayment && serviceId) {
-      // Partial payment: only charge parts if this completes the full payment (remaining = 0)
       var totalAfterPartial = previousPayments + currentAmount;
       if (totalAfterPartial >= finalCostParam && finalCostParam > 0) {
-        partsCostToRecord = partsCostParam.toString();
+        partsCostToRecord = partsCostParam.toFixed(2);
       }
     }
-    // Down Payment: partsCostToRecord stays "0"
     
     txnSheet.appendRow([
       timestamp,
@@ -1254,14 +1258,39 @@ function doPost(e) {
       params.modeOfPayment || "",
       params.name || "",
       params.device || "",
-      params.amount || "",
-      params.serviceCost || "",
-      params.attendant || "",          // Column I - Attendant
-      params.remarks || "",             // Column J - Remarks
-      isPayment ? partsCostToRecord : (params.partsCost || ""), // Column K - Parts Cost
-      transactionId,                    // Column L - Transaction ID
-      remaining                         // Column M - Remaining
+      currentAmount.toFixed(2),
+      parseCurrencyValue(params.serviceCost).toFixed(2),
+      params.attendant || "",
+      params.remarks || "",
+      isPayment ? partsCostToRecord : (parseCurrencyValue(params.partsCost).toFixed(2)),
+      transactionId,
+      remaining
     ]);
+    
+    // Handle Refund: void all previous payment and parts transactions for this service
+    if (isRefund && serviceId) {
+      var allTxns = txnSheet.getDataRange().getDisplayValues();
+      for (var ri = 1; ri < allTxns.length; ri++) {
+        if (allTxns[ri][1] === serviceId && allTxns[ri][11] !== transactionId) {
+          var txType = allTxns[ri][2];
+          if (paymentTypes.indexOf(txType) > -1 || txType === "Parts Inventory") {
+            txnSheet.getRange(ri + 1, 7).setValue("0.00"); // void amount
+            txnSheet.getRange(ri + 1, 11).setValue("0.00"); // void parts cost
+          }
+        }
+      }
+      // Update Service Database Transaction Status to "Refunded"
+      var serviceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+      if (serviceSheet) {
+        var sData = serviceSheet.getDataRange().getDisplayValues();
+        for (var si = 1; si < sData.length; si++) {
+          if (sData[si][0] === serviceId) {
+            serviceSheet.getRange(si + 1, 56).setValue("Refunded");
+            break;
+          }
+        }
+      }
+    }
     
     // Update Service Database Column BD (Transaction Status) for payment types
     if (isPayment && serviceId) {
@@ -1270,26 +1299,22 @@ function doPost(e) {
         var serviceData = serviceSheet.getDataRange().getDisplayValues();
         for (var si = 1; si < serviceData.length; si++) {
           if (serviceData[si][0] === serviceId) {
-            var finalCost = parseFloat(serviceData[si][51]) || 0; // Column AZ - Final Cost
+            var finalCost = parseCurrencyValue(serviceData[si][51]); // Column AZ - Final Cost
             
-            // Sum all existing payment transactions for this service (including the one just added)
             var allTxns = txnSheet.getDataRange().getDisplayValues();
             var totalPaid = 0;
             for (var ti = 1; ti < allTxns.length; ti++) {
               if (allTxns[ti][1] === serviceId && paymentTypes.indexOf(allTxns[ti][2]) > -1) {
-                totalPaid += parseFloat(allTxns[ti][6]) || 0;
+                totalPaid += parseCurrencyValue(allTxns[ti][6]);
               }
             }
             
-            // Determine payment status
             var paymentStatus = "";
             if (totalPaid >= finalCost && finalCost > 0) {
               paymentStatus = "Fully Paid";
               
-              // When fully paid, add parts cost as an expense transaction (only if not already added)
-              var partsCost = parseFloat(serviceData[si][45]) || 0; // Column AT - Parts Cost
+              var partsCost = parseCurrencyValue(serviceData[si][45]); // Column AT - Parts Cost
               if (partsCost > 0) {
-                // Check if parts expense already exists for this service
                 var partsExpenseExists = false;
                 for (var pti = 1; pti < allTxns.length; pti++) {
                   if (allTxns[pti][1] === serviceId && allTxns[pti][2] === "Parts Inventory" && allTxns[pti][8] === "System") {
@@ -1304,27 +1329,26 @@ function doPost(e) {
                     serviceId,
                     "Parts Inventory",
                     "N/A",
-                    serviceData[si][8], // Client Name
-                    serviceData[si][16], // Device
-                    partsCost.toString(),
+                    serviceData[si][8],
+                    serviceData[si][16],
+                    partsCost.toFixed(2),
                     "",
                     "System",
                     "Auto-logged parts cost on full payment settlement",
-                    partsCost.toString(),
+                    partsCost.toFixed(2),
                     expTxnId,
                     ""
                   ]);
                 }
               }
             } else if (params.transactionType === "Down Payment") {
-              paymentStatus = "Down Payment (Php " + totalPaid + " / Php " + finalCost + ")";
+              paymentStatus = "Down Payment (Php " + totalPaid.toFixed(2) + " / Php " + finalCost.toFixed(2) + ")";
             } else if (totalPaid > 0) {
-              paymentStatus = "Partially Paid (Php " + totalPaid + " / Php " + finalCost + ")";
+              paymentStatus = "Partially Paid (Php " + totalPaid.toFixed(2) + " / Php " + finalCost.toFixed(2) + ")";
             } else {
               paymentStatus = "Pending";
             }
             
-            // Update Column BD (index 55)
             serviceSheet.getRange(si + 1, 56).setValue(paymentStatus);
             break;
           }
