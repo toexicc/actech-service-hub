@@ -76,6 +76,7 @@ export const addUser = async (user: UserCredential) => {
     formData.append("role", capitalizedRole);
     formData.append("department", user.department || "");
     formData.append("status", user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase());
+    formData.append("salary", user.salary || "");
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
