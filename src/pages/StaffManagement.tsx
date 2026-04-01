@@ -178,6 +178,8 @@ const StaffManagement = () => {
           role: "" as "admin" | "technician" | "management",
           department: "",
           status: "active",
+          salaryType: "",
+          salary: "",
         });
         
         loadStaffList();
