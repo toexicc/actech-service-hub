@@ -23,6 +23,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import RequestForParts from "./pages/RequestForParts";
 import Install from "./pages/Install";
 import PointOfSales from "./pages/PointOfSales";
+import SalaryDisbursement from "./pages/SalaryDisbursement";
 import NotFound from "./pages/NotFound";
 
 // Configure QueryClient with caching settings for fast navigation
