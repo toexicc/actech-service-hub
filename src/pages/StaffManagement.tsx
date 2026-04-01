@@ -407,6 +407,36 @@ const StaffManagement = () => {
                     </Select>
                   </div>
                 )}
+                <div>
+                  <Label htmlFor="salaryType">Salary Type</Label>
+                  <Select
+                    value={newStaff.salaryType}
+                    onValueChange={(value: "" | "fixed" | "service-based") =>
+                      setNewStaff({ ...newStaff, salaryType: value, salary: value === "service-based" ? "" : newStaff.salary })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select salary type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="service-based">Service Based</SelectItem>
+                      <SelectItem value="fixed">Fixed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {newStaff.salaryType === "fixed" && (
+                  <div>
+                    <Label htmlFor="salary">Salary Amount</Label>
+                    <Input
+                      id="salary"
+                      type="number"
+                      step="0.01"
+                      value={newStaff.salary}
+                      onChange={(e) => setNewStaff({ ...newStaff, salary: e.target.value })}
+                      placeholder="Enter salary amount"
+                    />
+                  </div>
+                )}
                 <div className="flex items-end">
                   <Button
                     onClick={handleAddStaff}
