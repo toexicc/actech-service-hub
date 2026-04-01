@@ -1292,7 +1292,8 @@ function doPost(e) {
       params.remarks || "",
       isPayment ? partsCostToRecord : (parseCurrencyValue(params.partsCost).toFixed(2)),
       transactionId,
-      remaining
+      remaining,
+      params.fundSource || ""
     ]);
     
     // Handle Refund: void all previous payment and parts transactions for this service
