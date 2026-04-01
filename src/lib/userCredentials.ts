@@ -10,6 +10,7 @@ export interface UserCredential {
   role: "admin" | "technician" | "management";
   department?: string;
   status: "active" | "inactive";
+  salary?: string;
 }
 
 // Cache for user credentials loaded from Google Sheets
