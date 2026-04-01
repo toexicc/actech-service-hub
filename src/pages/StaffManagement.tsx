@@ -90,6 +90,8 @@ const StaffManagement = () => {
     role: "" as "admin" | "technician" | "management",
     department: "",
     status: "active" as "active" | "inactive",
+    salaryType: "" as "" | "fixed" | "service-based",
+    salary: "",
   });
 
   const generateStaffId = () => {
