@@ -352,10 +352,10 @@ const PointOfSales = () => {
                         <div className="grid md:grid-cols-2 gap-3">
                           <div><Label className="text-xs text-muted-foreground">Client Name</Label><p className="font-medium">{serviceData.clientName}</p></div>
                           <div><Label className="text-xs text-muted-foreground">Device</Label><p>{serviceData.device}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p>Php {serviceData.serviceCost}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="font-bold text-primary">Php {serviceData.finalCost}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>Php {serviceData.partsCost}</p></div>
-                          <div><Label className="text-xs text-muted-foreground">Previous Payments</Label><p>Php {previousPayments.toFixed(2)}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Service Cost</Label><p>{fmtPeso(parseCurrency(serviceData.serviceCost))}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Final Cost</Label><p className="font-bold text-primary">{fmtPeso(parseCurrency(serviceData.finalCost))}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Parts Cost</Label><p>{fmtPeso(parseCurrency(serviceData.partsCost))}</p></div>
+                          <div><Label className="text-xs text-muted-foreground">Previous Payments</Label><p>{fmtPeso(previousPayments)}</p></div>
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
