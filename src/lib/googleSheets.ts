@@ -1163,7 +1163,7 @@ function doGet(e) {
 
   // Handle getTransactions - fetch all transactions from Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
-  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
+  //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining, N=Fund Source
   if (params.action === 'getTransactions') {
     var txnSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Transactions");
     if (!txnSheet) {
@@ -1184,15 +1184,42 @@ function doGet(e) {
         device: txnData[ti][5],
         amount: txnData[ti][6],
         serviceCost: txnData[ti][7],
-        attendant: txnData[ti][8],       // Column I - Attendant
-        remarks: txnData[ti][9],          // Column J - Remarks
-        partsCost: txnData[ti][10],       // Column K - Parts Cost
-        transactionId: txnData[ti][11],   // Column L - Transaction ID
-        remaining: txnData[ti][12] || ""  // Column M - Remaining
+        attendant: txnData[ti][8],
+        remarks: txnData[ti][9],
+        partsCost: txnData[ti][10],
+        transactionId: txnData[ti][11],
+        remaining: txnData[ti][12] || "",
+        fundSource: txnData[ti][13] || "Money In Bank"
       });
     }
     return ContentService.createTextOutput(JSON.stringify({
       status: "success", transactions: txns
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle getSalaryLogs - fetch all salary disbursement logs
+  // Salary sheet columns: A=Timestamp, B=Staff ID, C=Staff Name, D=Salary Amount, E=Status
+  if (params.action === 'getSalaryLogs') {
+    var salarySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Salary");
+    if (!salarySheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success", logs: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var salaryData = salarySheet.getDataRange().getDisplayValues();
+    var salaryLogs = [];
+    for (var si = 1; si < salaryData.length; si++) {
+      if (!salaryData[si][0] && !salaryData[si][1]) continue;
+      salaryLogs.push({
+        timestamp: salaryData[si][0],
+        staffId: salaryData[si][1],
+        staffName: salaryData[si][2],
+        salaryAmount: salaryData[si][3],
+        status: salaryData[si][4] || "Disbursed"
+      });
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success", logs: salaryLogs
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
