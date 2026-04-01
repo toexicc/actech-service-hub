@@ -28,6 +28,7 @@ const adminSection: NavSection = {
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"] },
     { title: "Completed Transactions", icon: DollarSign, path: "/completed-transactions", roles: ["management"] },
     { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management", "admin"] },
+    { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"] },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"] },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"] },
   ],
