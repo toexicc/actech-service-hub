@@ -1368,7 +1368,80 @@ function doPost(e) {
                     expTxnId,
                     ""
                   ]);
-                }
+  }
+
+  // Handle disburseSalary - add a salary disbursement to Salary sheet and log as transaction
+  if (action === 'disburseSalary') {
+    var salarySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Salary");
+    if (!salarySheet) {
+      salarySheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Salary");
+      salarySheet.appendRow(["Timestamp", "Staff ID", "Staff Name", "Salary Amount", "Status"]);
+    }
+    var now = new Date();
+    var timestamp = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy, hh:mm:ss a");
+    
+    salarySheet.appendRow([
+      timestamp,
+      params.staffId || "",
+      params.staffName || "",
+      parseCurrencyValue(params.salaryAmount).toFixed(2),
+      params.status || "Disbursed"
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle addStaff - includes Column H for Salary
+  if (action === 'addStaff') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error", message: "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    staffSheet.appendRow([
+      params.staffId || "",
+      params.username || "",
+      params.password || "",
+      params.name || "",
+      params.role || "",
+      params.department || "",
+      params.status || "Active",
+      params.salary || ""
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Handle updateStaff - includes Column H for Salary
+  if (action === 'updateStaff') {
+    var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
+    if (!staffSheet) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error", message: "Staff Management sheet not found"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var data = staffSheet.getDataRange().getDisplayValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === params.username) {
+        if (params.name) staffSheet.getRange(i + 1, 4).setValue(params.name);
+        if (params.password) staffSheet.getRange(i + 1, 3).setValue(params.password);
+        if (params.role) staffSheet.getRange(i + 1, 5).setValue(params.role);
+        staffSheet.getRange(i + 1, 6).setValue(params.department || "");
+        if (params.status) staffSheet.getRange(i + 1, 7).setValue(params.status);
+        staffSheet.getRange(i + 1, 8).setValue(params.salary || "");
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error", message: "Staff not found"
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
               }
             } else if (params.transactionType === "Down Payment") {
               paymentStatus = "Down Payment (Php " + totalPaid.toFixed(2) + " / Php " + finalCost.toFixed(2) + ")";
