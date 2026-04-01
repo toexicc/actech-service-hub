@@ -260,6 +260,7 @@ const StaffManagement = () => {
         department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
         status: selectedStaff.status,
         password: selectedStaff.password,
+        salary: (selectedStaff as any).salary || "",
       });
 
       if (success) {
