@@ -244,7 +244,7 @@ const TransactionTracker = () => {
   const moneyInBank = useMemo(() => {
     let total = 0;
     dashTransactions.forEach((t) => {
-      const amt = parseFloat(t.amount) || 0;
+      const amt = parseCurrency(t.amount);
       const type = t.transactionType || "";
       if (type === REFUND_TYPE) {
         total -= amt;
@@ -261,19 +261,19 @@ const TransactionTracker = () => {
   const totalSales = useMemo(() => {
     return dashTransactions
       .filter((t) => SALES_TYPES.includes(t.transactionType) && t.transactionType !== REFUND_TYPE)
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+      .reduce((sum, t) => sum + parseCurrency(t.amount), 0);
   }, [dashTransactions]);
 
   const totalExpenses = useMemo(() => {
     return dashTransactions
       .filter((t) => EXPENSE_TYPES.includes(t.transactionType))
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+      .reduce((sum, t) => sum + parseCurrency(t.amount), 0);
   }, [dashTransactions]);
 
   const totalRefunds = useMemo(() => {
     return dashTransactions
       .filter((t) => t.transactionType === REFUND_TYPE)
-      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+      .reduce((sum, t) => sum + parseCurrency(t.amount), 0);
   }, [dashTransactions]);
 
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
@@ -283,7 +283,7 @@ const TransactionTracker = () => {
     dashTransactions.forEach((t) => {
       if (!SALES_TYPES.includes(t.transactionType) || t.transactionType === REFUND_TYPE) return;
       const mop = t.modeOfPayment || "Unknown";
-      breakdown[mop] = (breakdown[mop] || 0) + (parseFloat(t.amount) || 0);
+      breakdown[mop] = (breakdown[mop] || 0) + parseCurrency(t.amount);
     });
     return breakdown;
   }, [dashTransactions]);
