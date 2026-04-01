@@ -194,6 +194,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     formData.append("role", capitalizedRole);
     formData.append("department", updatedUser.department || "");
     formData.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
+    formData.append("salary", updatedUser.salary || "");
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
