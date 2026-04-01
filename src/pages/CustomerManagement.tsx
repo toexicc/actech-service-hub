@@ -142,7 +142,7 @@ const CustomerManagement = () => {
               </CardHeader>
               <CardContent>
                 <Input
-                  placeholder="Search customers by name, ID, contact, or email..."
+                  placeholder="Search by name, ID, username, service ID, contact, or email..."
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
                   className="mb-4"
