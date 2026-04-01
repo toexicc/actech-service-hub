@@ -53,8 +53,10 @@ const CustomerManagement = () => {
       (c: any) =>
         c.clientId?.toLowerCase().includes(q) ||
         c.clientName?.toLowerCase().includes(q) ||
+        c.username?.toLowerCase().includes(q) ||
         c.contactNumber?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q)
+        c.email?.toLowerCase().includes(q) ||
+        c.serviceId?.toLowerCase().includes(q)
     );
   }, [clientsList, customerSearch]);
 
