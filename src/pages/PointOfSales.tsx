@@ -172,13 +172,13 @@ const PointOfSales = () => {
       params.append("modeOfPayment", finalMOP);
       params.append("name", name);
       params.append("device", device);
-      params.append("amount", amount);
-      params.append("serviceCost", serviceCost);
+      params.append("amount", amountClean);
+      params.append("serviceCost", serviceCostRaw);
       params.append("attendant", username);
       params.append("remarks", remarks);
-      params.append("partsCost", partsCost);
-      params.append("finalCost", serviceData?.finalCost || "0");
-      params.append("previousPayments", previousPayments.toString());
+      params.append("partsCost", partsCostRaw);
+      params.append("finalCost", finalCostClean);
+      params.append("previousPayments", previousPayments.toFixed(2));
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
