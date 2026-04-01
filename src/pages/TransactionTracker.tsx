@@ -85,6 +85,11 @@ const fetchTransactions = async (): Promise<Transaction[]> => {
   return [];
 };
 
+const parseCurrency = (val: string | number | undefined): number => {
+  if (val === undefined || val === null || val === "") return 0;
+  return parseFloat(String(val).replace(/[^0-9.\-]/g, "")) || 0;
+};
+
 const fmtCurrency = (val: number) => `Php ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const TransactionTracker = () => {
