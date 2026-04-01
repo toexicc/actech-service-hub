@@ -160,6 +160,7 @@ const StaffManagement = () => {
         role: newStaff.role,
         department: newStaff.role === "technician" ? newStaff.department : undefined,
         status: newStaff.status,
+        salary: newStaff.salaryType === "fixed" ? newStaff.salary : "",
       });
 
       if (success) {
