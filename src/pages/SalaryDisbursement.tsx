@@ -435,9 +435,9 @@ const SalaryDisbursement = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => handleDisburse(staff, final)}
-                                  disabled={disbursing === staff.staffId || final <= 0}
+                                  disabled={disbursing === staff.staffId || final <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
                                 >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Disburse"}
+                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
                                 </Button>
                               </TableCell>
                             </TableRow>
