@@ -140,7 +140,7 @@ const SalaryDisbursement = () => {
   };
 
   const computeFixedFinal = (staff: any) => {
-    const salary = parseCurrency(staff.salary);
+    const salary = parseCurrency(staff.salary) / 2; // Divided by 2 (15th and end of month)
     const commission = parseCurrency(commissions[staff.staffId]);
     const bonus = parseCurrency(bonuses[staff.staffId]);
     const deduction = parseCurrency(deductions[staff.staffId]);
