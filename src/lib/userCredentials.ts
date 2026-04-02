@@ -176,6 +176,9 @@ export const getAllUsers = async (): Promise<UserCredential[]> => {
 };
 
 export const updateUser = async (username: string, updates: Partial<UserCredential>) => {
+  if (!isLoaded) {
+    await loadUsersFromSheet();
+  }
   const user = userCredentials.find(u => u.username === username);
   if (!user) return false;
 
