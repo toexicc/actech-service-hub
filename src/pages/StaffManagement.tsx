@@ -227,8 +227,12 @@ const StaffManagement = () => {
     }
   };
 
+  const [editSalaryType, setEditSalaryType] = useState<"fixed" | "service-based">("service-based");
+
   const handleEditStaff = (staff: UserCredential) => {
     setSelectedStaff({ ...staff });
+    const hasSalary = !!(staff as any).salary && parseFloat(String((staff as any).salary).replace(/[^0-9.\-]/g, "")) > 0;
+    setEditSalaryType(hasSalary ? "fixed" : "service-based");
     setEditDialogOpen(true);
   };
 
