@@ -281,20 +281,34 @@ const SalaryDisbursement = () => {
           <p className="text-muted-foreground">Manage staff salary and commission disbursements</p>
         </div>
 
-        {/* Fund Source Selector */}
+        {/* Salary Period & Fund Source */}
         <Card className="mb-4">
-          <CardContent className="p-3 flex items-center gap-3">
-            <Label className="text-sm font-medium whitespace-nowrap">Deduct From:</Label>
-            <Select value={fundSource} onValueChange={setFundSource}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FUND_TYPES.map((f) => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium whitespace-nowrap">Salary Period:</Label>
+              <Select value={salaryPeriod} onValueChange={(v: "15th Salary" | "End of Month Salary") => setSalaryPeriod(v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15th Salary">15th Salary</SelectItem>
+                  <SelectItem value="End of Month Salary">End of Month Salary</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium whitespace-nowrap">Deduct From:</Label>
+              <Select value={fundSource} onValueChange={setFundSource}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FUND_TYPES.map((f) => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
