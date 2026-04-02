@@ -634,7 +634,7 @@ const StaffManagement = () => {
         </div>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-background max-h-[95dvh] overflow-hidden !flex !p-0">
+          <DialogContent className="bg-background max-h-[95dvh] w-[calc(100%-2rem)] overflow-hidden !flex !flex-col !p-0 sm:max-w-xl">
             <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
               <DialogTitle>Edit Staff Member</DialogTitle>
               <DialogDescription>
@@ -642,7 +642,7 @@ const StaffManagement = () => {
               </DialogDescription>
             </DialogHeader>
             {selectedStaff && (
-              <div className="min-h-0 overflow-y-auto px-6 py-4 overscroll-contain [-webkit-overflow-scrolling:touch]">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 overscroll-contain [-webkit-overflow-scrolling:touch]">
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="edit-staffId">Staff ID</Label>
