@@ -758,10 +758,13 @@ const StaffManagement = () => {
                 <div>
                   <Label htmlFor="edit-salaryType">Salary Type</Label>
                   <Select
-                    value={(selectedStaff as any).salary ? "fixed" : "service-based"}
-                    onValueChange={(value) =>
-                      setSelectedStaff({ ...selectedStaff, salary: value === "fixed" ? ((selectedStaff as any).salary || "") : "" } as any)
-                    }
+                    value={editSalaryType}
+                    onValueChange={(value: "fixed" | "service-based") => {
+                      setEditSalaryType(value);
+                      if (value === "service-based") {
+                        setSelectedStaff({ ...selectedStaff, salary: "" } as any);
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -772,7 +775,7 @@ const StaffManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {(selectedStaff as any).salary !== undefined && (selectedStaff as any).salary !== "" && (
+                {editSalaryType === "fixed" && (
                   <div>
                     <Label htmlFor="edit-salary">Salary Amount</Label>
                     <Input
