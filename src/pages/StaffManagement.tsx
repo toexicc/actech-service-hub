@@ -634,163 +634,165 @@ const StaffManagement = () => {
         </div>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-white max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="bg-background max-h-[95dvh] overflow-hidden !flex !p-0">
+            <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
               <DialogTitle>Edit Staff Member</DialogTitle>
               <DialogDescription>
                 Update staff member information and password
               </DialogDescription>
             </DialogHeader>
             {selectedStaff && (
-              <div className="grid gap-4 py-4">
-                <div>
-                  <Label htmlFor="edit-staffId">Staff ID</Label>
-                  <Input
-                    id="edit-staffId"
-                    value={selectedStaff.staffId}
-                    disabled
-                    className="bg-gray-100"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-username">Username</Label>
-                  <Input
-                    id="edit-username"
-                    value={selectedStaff.username}
-                    disabled
-                    className="bg-gray-100"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-password">New Password (optional)</Label>
-                  <div className="relative">
-                    <Input
-                      id="edit-password"
-                      type={showEditPassword ? "text" : "password"}
-                      value={selectedStaff.password}
-                      onChange={(e) =>
-                        setSelectedStaff({ ...selectedStaff, password: e.target.value })
-                      }
-                      placeholder="Enter new password"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowEditPassword(!showEditPassword)}
-                    >
-                      {showEditPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={selectedStaff.name}
-                    onChange={(e) =>
-                      setSelectedStaff({ ...selectedStaff, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-role">Role</Label>
-                  <Select
-                    value={selectedStaff.role}
-                    onValueChange={(value: "admin" | "technician" | "management") =>
-                      setSelectedStaff({ ...selectedStaff, role: value, department: value !== "technician" ? "" : selectedStaff.department })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="technician">Technician</SelectItem>
-                      <SelectItem value="management">Management</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedStaff.role === "technician" && (
+              <div className="min-h-0 overflow-y-auto px-6 py-4 overscroll-contain [-webkit-overflow-scrolling:touch]">
+                <div className="grid gap-4">
                   <div>
-                    <Label htmlFor="edit-department">Department</Label>
+                    <Label htmlFor="edit-staffId">Staff ID</Label>
+                    <Input
+                      id="edit-staffId"
+                      value={selectedStaff.staffId}
+                      disabled
+                      className="bg-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-username">Username</Label>
+                    <Input
+                      id="edit-username"
+                      value={selectedStaff.username}
+                      disabled
+                      className="bg-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-password">New Password (optional)</Label>
+                    <div className="relative">
+                      <Input
+                        id="edit-password"
+                        type={showEditPassword ? "text" : "password"}
+                        value={selectedStaff.password}
+                        onChange={(e) =>
+                          setSelectedStaff({ ...selectedStaff, password: e.target.value })
+                        }
+                        placeholder="Enter new password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowEditPassword(!showEditPassword)}
+                      >
+                        {showEditPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-name">Full Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={selectedStaff.name}
+                      onChange={(e) =>
+                        setSelectedStaff({ ...selectedStaff, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-role">Role</Label>
                     <Select
-                      value={selectedStaff.department || ""}
-                      onValueChange={(value) =>
-                        setSelectedStaff({ ...selectedStaff, department: value })
+                      value={selectedStaff.role}
+                      onValueChange={(value: "admin" | "technician" | "management") =>
+                        setSelectedStaff({ ...selectedStaff, role: value, department: value !== "technician" ? "" : selectedStaff.department })
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {DEPARTMENTS.map((dept) => (
-                          <SelectItem key={dept} value={dept}>
-                            {dept}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="technician">Technician</SelectItem>
+                        <SelectItem value="management">Management</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-                <div>
-                  <Label htmlFor="edit-status">Status</Label>
-                  <Select
-                    value={selectedStaff.status}
-                    onValueChange={(value: "active" | "inactive") =>
-                      setSelectedStaff({ ...selectedStaff, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="edit-salaryType">Salary Type</Label>
-                  <Select
-                    value={editSalaryType}
-                    onValueChange={(value: "fixed" | "service-based") => {
-                      setEditSalaryType(value);
-                      if (value === "service-based") {
-                        setSelectedStaff({ ...selectedStaff, salary: "" } as any);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="service-based">Service Based</SelectItem>
-                      <SelectItem value="fixed">Fixed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {editSalaryType === "fixed" && (
+                  {selectedStaff.role === "technician" && (
+                    <div>
+                      <Label htmlFor="edit-department">Department</Label>
+                      <Select
+                        value={selectedStaff.department || ""}
+                        onValueChange={(value) =>
+                          setSelectedStaff({ ...selectedStaff, department: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DEPARTMENTS.map((dept) => (
+                            <SelectItem key={dept} value={dept}>
+                              {dept}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div>
-                    <Label htmlFor="edit-salary">Salary Amount</Label>
-                    <Input
-                      id="edit-salary"
-                      type="number"
-                      step="0.01"
-                      value={(selectedStaff as any).salary || ""}
-                      onChange={(e) => setSelectedStaff({ ...selectedStaff, salary: e.target.value } as any)}
-                      placeholder="Enter salary amount"
-                    />
+                    <Label htmlFor="edit-status">Status</Label>
+                    <Select
+                      value={selectedStaff.status}
+                      onValueChange={(value: "active" | "inactive") =>
+                        setSelectedStaff({ ...selectedStaff, status: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                  <div>
+                    <Label htmlFor="edit-salaryType">Salary Type</Label>
+                    <Select
+                      value={editSalaryType}
+                      onValueChange={(value: "fixed" | "service-based") => {
+                        setEditSalaryType(value);
+                        if (value === "service-based") {
+                          setSelectedStaff({ ...selectedStaff, salary: "" } as any);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="service-based">Service Based</SelectItem>
+                        <SelectItem value="fixed">Fixed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editSalaryType === "fixed" && (
+                    <div>
+                      <Label htmlFor="edit-salary">Salary Amount</Label>
+                      <Input
+                        id="edit-salary"
+                        type="number"
+                        step="0.01"
+                        value={(selectedStaff as any).salary || ""}
+                        onChange={(e) => setSelectedStaff({ ...selectedStaff, salary: e.target.value } as any)}
+                        placeholder="Enter salary amount"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
               <Button
                 variant="outline"
                 onClick={() => {
