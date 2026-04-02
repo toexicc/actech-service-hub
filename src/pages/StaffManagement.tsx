@@ -68,6 +68,7 @@ const StaffManagement = () => {
       role: staff.role?.toLowerCase() as "admin" | "technician" | "management",
       department: staff.department,
       status: staff.status?.toLowerCase() as "active" | "inactive",
+      salary: staff.salary || "",
     }));
   }, [staffData]);
 
