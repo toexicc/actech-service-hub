@@ -84,6 +84,7 @@ const SalaryDisbursement = () => {
 
   const [activeTab, setActiveTab] = useState("disbursement");
   const [fundSource, setFundSource] = useState("Money In Bank");
+  const [salaryPeriod, setSalaryPeriod] = useState<"15th Salary" | "End of Month Salary">("15th Salary");
 
   // Disbursement state
   const [commissions, setCommissions] = useState<Record<string, string>>({});
@@ -91,6 +92,8 @@ const SalaryDisbursement = () => {
   const [deductions, setDeductions] = useState<Record<string, string>>({});
   const [techCommissions, setTechCommissions] = useState<Record<string, string>>({});
   const [disbursing, setDisbursing] = useState<string | null>(null);
+  const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Salary Logs state
   const [logSearch, setLogSearch] = useState("");
