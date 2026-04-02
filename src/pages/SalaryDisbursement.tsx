@@ -449,6 +449,45 @@ const SalaryDisbursement = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Submit Batch Section */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {disbursedList.length === 0
+                        ? "Disburse staff salaries above, then submit as one transaction."
+                        : `${disbursedList.length} staff disbursed`}
+                    </p>
+                    {disbursedList.length > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                        {disbursedList.map((d) => (
+                          <div key={d.staffId}>{d.staffName}: {fmtCurrency(d.amount)}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Total Disbursed</p>
+                      <p className="text-xl font-bold">{fmtCurrency(totalDisbursed)}</p>
+                    </div>
+                    <Button
+                      onClick={handleSubmitBatch}
+                      disabled={isSubmitting || disbursedList.length === 0}
+                      className="min-w-[140px]"
+                    >
+                      {isSubmitting ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
+                      ) : (
+                        `Submit ${salaryPeriod}`
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="logs" className="mt-4">
