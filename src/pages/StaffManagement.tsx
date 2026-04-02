@@ -634,7 +634,7 @@ const StaffManagement = () => {
         </div>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="bg-white">
+          <DialogContent className="bg-white max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Staff Member</DialogTitle>
               <DialogDescription>
