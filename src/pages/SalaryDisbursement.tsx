@@ -161,6 +161,10 @@ const SalaryDisbursement = () => {
       toast({ title: "Error", description: "Final amount must be greater than 0", variant: "destructive" });
       return;
     }
+    if (disbursedList.some((d) => d.staffId === staff.staffId)) {
+      toast({ title: "Already Disbursed", description: `${staff.name} has already been disbursed in this batch.`, variant: "destructive" });
+      return;
+    }
     setDisbursing(staff.staffId);
     try {
       const params = new URLSearchParams();
@@ -173,16 +177,14 @@ const SalaryDisbursement = () => {
       params.append("fundSource", fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
-      const result = await response.json();
+      let result: any = null;
+      try { result = await response.json(); } catch { /* CORS */ }
 
-      if (result.status === "success") {
-        toast({ title: "Disbursed", description: `Salary of ${fmtCurrency(finalAmount)} disbursed to ${staff.name}` });
-        logActivityAsync({
-          serviceId: "SALARY",
-          username,
-          role: userRole || "",
-          activity: `Disbursed salary of ${fmtCurrency(finalAmount)} to ${staff.name} from ${fundSource}`,
-        });
+      const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
+
+      if (isSuccess) {
+        toast({ title: "Disbursed", description: `Salary of ${fmtCurrency(finalAmount)} logged for ${staff.name}` });
+        setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
         // Reset inputs for this staff
         setCommissions((p) => ({ ...p, [staff.staffId]: "" }));
         setBonuses((p) => ({ ...p, [staff.staffId]: "" }));
@@ -190,12 +192,58 @@ const SalaryDisbursement = () => {
         setTechCommissions((p) => ({ ...p, [staff.staffId]: "" }));
         refetchLogs();
       } else {
-        toast({ title: "Error", description: result.message || "Failed to disburse", variant: "destructive" });
+        toast({ title: "Error", description: result?.message || "Failed to disburse", variant: "destructive" });
       }
     } catch {
       toast({ title: "Error", description: "Failed to disburse salary", variant: "destructive" });
     } finally {
       setDisbursing(null);
+    }
+  };
+
+  const totalDisbursed = disbursedList.reduce((sum, d) => sum + d.amount, 0);
+
+  const handleSubmitBatch = async () => {
+    if (disbursedList.length === 0) {
+      toast({ title: "No Disbursements", description: "Disburse at least one staff member before submitting.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const params = new URLSearchParams();
+      params.append("action", "addTransaction");
+      params.append("transactionType", salaryPeriod);
+      params.append("category", "Expenses");
+      params.append("amount", totalDisbursed.toFixed(2));
+      params.append("description", `${salaryPeriod} - ${disbursedList.length} staff members`);
+      params.append("mop", "Bank Transfer");
+      params.append("attendant", username);
+      params.append("remarks", disbursedList.map((d) => `${d.staffName}: ${fmtCurrency(d.amount)}`).join("; "));
+      params.append("fundSource", fundSource);
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      let result: any = null;
+      try { result = await response.json(); } catch { /* CORS */ }
+
+      const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
+
+      if (isSuccess) {
+        toast({ title: "Submitted", description: `${salaryPeriod} transaction of ${fmtCurrency(totalDisbursed)} submitted successfully.` });
+        logActivityAsync({
+          serviceId: "SALARY",
+          username,
+          role: userRole || "",
+          activity: `Submitted ${salaryPeriod} batch of ${fmtCurrency(totalDisbursed)} for ${disbursedList.length} staff from ${fundSource}`,
+        });
+        setDisbursedList([]);
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      } else {
+        toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
