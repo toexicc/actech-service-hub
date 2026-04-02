@@ -84,6 +84,7 @@ const SalaryDisbursement = () => {
 
   const [activeTab, setActiveTab] = useState("disbursement");
   const [fundSource, setFundSource] = useState("Money In Bank");
+  const [salaryPeriod, setSalaryPeriod] = useState<"15th Salary" | "End of Month Salary">("15th Salary");
 
   // Disbursement state
   const [commissions, setCommissions] = useState<Record<string, string>>({});
@@ -91,6 +92,8 @@ const SalaryDisbursement = () => {
   const [deductions, setDeductions] = useState<Record<string, string>>({});
   const [techCommissions, setTechCommissions] = useState<Record<string, string>>({});
   const [disbursing, setDisbursing] = useState<string | null>(null);
+  const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Salary Logs state
   const [logSearch, setLogSearch] = useState("");
@@ -158,6 +161,10 @@ const SalaryDisbursement = () => {
       toast({ title: "Error", description: "Final amount must be greater than 0", variant: "destructive" });
       return;
     }
+    if (disbursedList.some((d) => d.staffId === staff.staffId)) {
+      toast({ title: "Already Disbursed", description: `${staff.name} has already been disbursed in this batch.`, variant: "destructive" });
+      return;
+    }
     setDisbursing(staff.staffId);
     try {
       const params = new URLSearchParams();
@@ -170,16 +177,14 @@ const SalaryDisbursement = () => {
       params.append("fundSource", fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
-      const result = await response.json();
+      let result: any = null;
+      try { result = await response.json(); } catch { /* CORS */ }
 
-      if (result.status === "success") {
-        toast({ title: "Disbursed", description: `Salary of ${fmtCurrency(finalAmount)} disbursed to ${staff.name}` });
-        logActivityAsync({
-          serviceId: "SALARY",
-          username,
-          role: userRole || "",
-          activity: `Disbursed salary of ${fmtCurrency(finalAmount)} to ${staff.name} from ${fundSource}`,
-        });
+      const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
+
+      if (isSuccess) {
+        toast({ title: "Disbursed", description: `Salary of ${fmtCurrency(finalAmount)} logged for ${staff.name}` });
+        setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
         // Reset inputs for this staff
         setCommissions((p) => ({ ...p, [staff.staffId]: "" }));
         setBonuses((p) => ({ ...p, [staff.staffId]: "" }));
@@ -187,12 +192,58 @@ const SalaryDisbursement = () => {
         setTechCommissions((p) => ({ ...p, [staff.staffId]: "" }));
         refetchLogs();
       } else {
-        toast({ title: "Error", description: result.message || "Failed to disburse", variant: "destructive" });
+        toast({ title: "Error", description: result?.message || "Failed to disburse", variant: "destructive" });
       }
     } catch {
       toast({ title: "Error", description: "Failed to disburse salary", variant: "destructive" });
     } finally {
       setDisbursing(null);
+    }
+  };
+
+  const totalDisbursed = disbursedList.reduce((sum, d) => sum + d.amount, 0);
+
+  const handleSubmitBatch = async () => {
+    if (disbursedList.length === 0) {
+      toast({ title: "No Disbursements", description: "Disburse at least one staff member before submitting.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const params = new URLSearchParams();
+      params.append("action", "addTransaction");
+      params.append("transactionType", salaryPeriod);
+      params.append("category", "Expenses");
+      params.append("amount", totalDisbursed.toFixed(2));
+      params.append("description", `${salaryPeriod} - ${disbursedList.length} staff members`);
+      params.append("mop", "Bank Transfer");
+      params.append("attendant", username);
+      params.append("remarks", disbursedList.map((d) => `${d.staffName}: ${fmtCurrency(d.amount)}`).join("; "));
+      params.append("fundSource", fundSource);
+
+      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      let result: any = null;
+      try { result = await response.json(); } catch { /* CORS */ }
+
+      const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
+
+      if (isSuccess) {
+        toast({ title: "Submitted", description: `${salaryPeriod} transaction of ${fmtCurrency(totalDisbursed)} submitted successfully.` });
+        logActivityAsync({
+          serviceId: "SALARY",
+          username,
+          role: userRole || "",
+          activity: `Submitted ${salaryPeriod} batch of ${fmtCurrency(totalDisbursed)} for ${disbursedList.length} staff from ${fundSource}`,
+        });
+        setDisbursedList([]);
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      } else {
+        toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -230,20 +281,34 @@ const SalaryDisbursement = () => {
           <p className="text-muted-foreground">Manage staff salary and commission disbursements</p>
         </div>
 
-        {/* Fund Source Selector */}
+        {/* Salary Period & Fund Source */}
         <Card className="mb-4">
-          <CardContent className="p-3 flex items-center gap-3">
-            <Label className="text-sm font-medium whitespace-nowrap">Deduct From:</Label>
-            <Select value={fundSource} onValueChange={setFundSource}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FUND_TYPES.map((f) => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium whitespace-nowrap">Salary Period:</Label>
+              <Select value={salaryPeriod} onValueChange={(v: "15th Salary" | "End of Month Salary") => setSalaryPeriod(v)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="15th Salary">15th Salary</SelectItem>
+                  <SelectItem value="End of Month Salary">End of Month Salary</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium whitespace-nowrap">Deduct From:</Label>
+              <Select value={fundSource} onValueChange={setFundSource}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FUND_TYPES.map((f) => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -309,9 +374,9 @@ const SalaryDisbursement = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => handleDisburse(staff, final)}
-                                  disabled={disbursing === staff.staffId || final <= 0}
+                                  disabled={disbursing === staff.staffId || final <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
                                 >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Disburse"}
+                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -370,9 +435,9 @@ const SalaryDisbursement = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => handleDisburse(staff, final)}
-                                  disabled={disbursing === staff.staffId || final <= 0}
+                                  disabled={disbursing === staff.staffId || final <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
                                 >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Disburse"}
+                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -382,6 +447,45 @@ const SalaryDisbursement = () => {
                     </Table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Submit Batch Section */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {disbursedList.length === 0
+                        ? "Disburse staff salaries above, then submit as one transaction."
+                        : `${disbursedList.length} staff disbursed`}
+                    </p>
+                    {disbursedList.length > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                        {disbursedList.map((d) => (
+                          <div key={d.staffId}>{d.staffName}: {fmtCurrency(d.amount)}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Total Disbursed</p>
+                      <p className="text-xl font-bold">{fmtCurrency(totalDisbursed)}</p>
+                    </div>
+                    <Button
+                      onClick={handleSubmitBatch}
+                      disabled={isSubmitting || disbursedList.length === 0}
+                      className="min-w-[140px]"
+                    >
+                      {isSubmitting ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
+                      ) : (
+                        `Submit ${salaryPeriod}`
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
