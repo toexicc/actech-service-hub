@@ -416,7 +416,7 @@ const StaffManagement = () => {
                   <Label htmlFor="salaryType">Salary Type</Label>
                   <Select
                     value={newStaff.salaryType}
-                    onValueChange={(value: "" | "fixed" | "service-based") =>
+                    onValueChange={(value: "fixed" | "service-based") =>
                       setNewStaff({ ...newStaff, salaryType: value, salary: value === "service-based" ? "" : newStaff.salary })
                     }
                   >
