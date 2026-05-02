@@ -207,20 +207,21 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     // Capitalize first letter of role for Google Sheets
     const capitalizedRole = updatedUser.role.charAt(0).toUpperCase() + updatedUser.role.slice(1).toLowerCase();
     
-    const formData = new FormData();
-    formData.append("action", "updateStaff");
-    formData.append("staffId", updatedUser.staffId);
-    formData.append("username", username);
-    formData.append("name", updatedUser.name);
-    formData.append("password", updatedUser.password);
-    formData.append("role", capitalizedRole);
-    formData.append("department", updatedUser.department || "");
-    formData.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
-    formData.append("salary", updatedUser.salary || "");
+    const params = new URLSearchParams();
+    params.append("action", "updateStaff");
+    params.append("staffId", updatedUser.staffId);
+    params.append("username", username);
+    params.append("name", updatedUser.name);
+    params.append("password", updatedUser.password);
+    params.append("role", capitalizedRole);
+    params.append("department", updatedUser.department || "");
+    params.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
+    params.append("salary", updatedUser.salary || "");
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: params,
     });
 
     let data: any = null;
