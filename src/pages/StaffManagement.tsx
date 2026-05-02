@@ -165,6 +165,10 @@ const StaffManagement = () => {
     setIsAddingStaff(true);
     
     try {
+      const fixedSalaryAmount = newStaff.salaryType === "fixed"
+        ? String(parseFloat(String(newStaff.salary).replace(/[^0-9.\-]/g, "")) || 0)
+        : "";
+
       const success = await addUser({
         staffId: staffId,
         username: newStaff.username,
@@ -173,7 +177,7 @@ const StaffManagement = () => {
         role: newStaff.role,
         department: newStaff.role === "technician" ? newStaff.department : undefined,
         status: newStaff.status,
-        salary: newStaff.salaryType === "fixed" ? newStaff.salary : "",
+        salary: fixedSalaryAmount,
       });
 
       if (success) {
