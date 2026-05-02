@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { applyStaffSalaryOverride } from "@/lib/staffSalaryOverrides";
 
 export interface StaffMember {
   staffId: string;
@@ -16,7 +17,7 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
   const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
   const data = await response.json();
   if (data.status === "success" && data.data) {
-    return data.data;
+    return data.data.map(applyStaffSalaryOverride);
   }
   throw new Error("Failed to load staff list");
 };

@@ -1,6 +1,7 @@
 // User credentials - synced with Google Sheets
 // Management can update passwords through Staff Management interface
 import { GOOGLE_SHEETS_SCRIPT_URL } from "./googleSheets";
+import { applyStaffSalaryOverride, rememberStaffSalary } from "./staffSalaryOverrides";
 
 export interface UserCredential {
   staffId: string;
@@ -43,6 +44,11 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
     
     if (data.status === "success" && data.data) {
       userCredentials = data.data.map((staff: any) => {
+        const normalizedStaff = applyStaffSalaryOverride({
+          staffId: staff.staffId ?? staff["Staff ID"] ?? "",
+          username: staff.username ?? staff["Username"] ?? "",
+          salary: staff.salary ?? staff["Salary"] ?? "",
+        });
         const staffId = staff.staffId ?? staff["Staff ID"] ?? "";
         const username = staff.username ?? staff["Username"] ?? "";
         // Password should be validated server-side; storing client-side is a security risk
@@ -61,6 +67,7 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
           role: (roleRaw as "admin" | "technician" | "management") || "management",
           department,
           status: normalizedStatus,
+          salary: normalizedStaff.salary || "",
         } as UserCredential;
       });
       isLoaded = true;
@@ -114,6 +121,7 @@ export const addUser = async (user: UserCredential) => {
       (response.ok && data === null);
 
     if (isSuccess) {
+      rememberStaffSalary(user, user.salary);
       userCredentials.push(user);
       return true;
     }
@@ -122,6 +130,7 @@ export const addUser = async (user: UserCredential) => {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
       // CORS error after successful POST - assume success
+      rememberStaffSalary(user, user.salary);
       userCredentials.push(user);
       return true;
     }
@@ -236,6 +245,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
       (response.ok && data === null);
 
     if (isSuccess) {
+      rememberStaffSalary(updatedUser, updatedUser.salary);
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;
@@ -247,6 +257,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
       // CORS error after successful POST - assume success
+      rememberStaffSalary(updatedUser, updatedUser.salary);
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;

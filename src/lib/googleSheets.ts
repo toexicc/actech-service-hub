@@ -2360,7 +2360,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary
     var row = [
       params.staffId,
       params.username,
@@ -2368,7 +2368,8 @@ function doPost(e) {
       params.name,
       params.role,
       params.department || "",
-      params.status
+      params.status,
+      params.salary || ""
     ];
     staffSheet.appendRow(row);
     
@@ -2388,7 +2389,7 @@ function doPost(e) {
     }
     
     var data = staffSheet.getDataRange().getValues();
-    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary
     for (var i = 1; i < data.length; i++) {
       if (data[i][1] == params.username) { // Column B = Username
         // Update all fields
@@ -2398,6 +2399,7 @@ function doPost(e) {
         if (params.role) staffSheet.getRange(i + 1, 5).setValue(params.role);
         staffSheet.getRange(i + 1, 6).setValue(params.department || "");
         if (params.status) staffSheet.getRange(i + 1, 7).setValue(params.status);
+        staffSheet.getRange(i + 1, 8).setValue(params.salary || "");
         
         return ContentService.createTextOutput(JSON.stringify({
           "status": "success"
