@@ -65,15 +65,17 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
       });
       isLoaded = true;
     } else {
-      // If Google Sheets fails, no users available - authentication will fail
+      // If Google Sheets fails, keep only the built-in admin
       userCredentials = [];
       isLoaded = true;
     }
+    ensureDefaultAdmin();
     return userCredentials;
   } catch {
-    // On error, no users available - authentication will fail
+    // On error, keep only the built-in admin
     userCredentials = [];
     isLoaded = true;
+    ensureDefaultAdmin();
     return userCredentials;
   }
 };
