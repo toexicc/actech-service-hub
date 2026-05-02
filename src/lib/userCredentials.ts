@@ -13,13 +13,29 @@ export interface UserCredential {
   salary?: string;
 }
 
+// Built-in fallback admin so the app always has at least one working login,
+// even when the Google Sheet is empty or unreachable (e.g. after a full reset).
+const DEFAULT_ADMIN: UserCredential = {
+  staffId: "ADMIN-001",
+  username: "admin-actech",
+  password: "act3ch2026~*!",
+  name: "AC Tech Admin",
+  role: "admin",
+  department: "Management",
+  status: "active",
+};
+
 // Cache for user credentials loaded from Google Sheets
-let userCredentials: UserCredential[] = [];
+let userCredentials: UserCredential[] = [DEFAULT_ADMIN];
 let isLoaded = false;
 
+const ensureDefaultAdmin = () => {
+  if (!userCredentials.some(u => u.username === DEFAULT_ADMIN.username)) {
+    userCredentials.unshift(DEFAULT_ADMIN);
+  }
+};
+
 // Load users from Google Sheets
-// NOTE: Default admin credentials have been removed for security.
-// Ensure at least one admin account exists in your Staff Management Google Sheet.
 export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
   try {
     const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
@@ -49,15 +65,17 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
       });
       isLoaded = true;
     } else {
-      // If Google Sheets fails, no users available - authentication will fail
+      // If Google Sheets fails, keep only the built-in admin
       userCredentials = [];
       isLoaded = true;
     }
+    ensureDefaultAdmin();
     return userCredentials;
   } catch {
-    // On error, no users available - authentication will fail
+    // On error, keep only the built-in admin
     userCredentials = [];
     isLoaded = true;
+    ensureDefaultAdmin();
     return userCredentials;
   }
 };
