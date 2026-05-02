@@ -125,6 +125,18 @@ const StaffManagement = () => {
       return;
     }
 
+    if (newStaff.salaryType === "fixed") {
+      const amt = parseFloat(String(newStaff.salary).replace(/[^0-9.\-]/g, ""));
+      if (!amt || amt <= 0) {
+        toast({
+          title: "Missing Salary Amount",
+          description: "Please enter a valid salary amount for Fixed salary type",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Generate Staff ID when adding
     const staffId = generateStaffId();
 
