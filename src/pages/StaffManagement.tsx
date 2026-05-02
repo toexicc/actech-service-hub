@@ -125,6 +125,18 @@ const StaffManagement = () => {
       return;
     }
 
+    if (newStaff.salaryType === "fixed") {
+      const amt = parseFloat(String(newStaff.salary).replace(/[^0-9.\-]/g, ""));
+      if (!amt || amt <= 0) {
+        toast({
+          title: "Missing Salary Amount",
+          description: "Please enter a valid salary amount for Fixed salary type",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Generate Staff ID when adding
     const staffId = generateStaffId();
 
@@ -153,6 +165,10 @@ const StaffManagement = () => {
     setIsAddingStaff(true);
     
     try {
+      const fixedSalaryAmount = newStaff.salaryType === "fixed"
+        ? String(parseFloat(String(newStaff.salary).replace(/[^0-9.\-]/g, "")) || 0)
+        : "";
+
       const success = await addUser({
         staffId: staffId,
         username: newStaff.username,
@@ -161,7 +177,7 @@ const StaffManagement = () => {
         role: newStaff.role,
         department: newStaff.role === "technician" ? newStaff.department : undefined,
         status: newStaff.status,
-        salary: newStaff.salaryType === "fixed" ? newStaff.salary : "",
+        salary: fixedSalaryAmount,
       });
 
       if (success) {
@@ -257,15 +273,31 @@ const StaffManagement = () => {
       return;
     }
 
+    if (editSalaryType === "fixed") {
+      const amt = parseFloat(String((selectedStaff as any).salary || "").replace(/[^0-9.\-]/g, ""));
+      if (!amt || amt <= 0) {
+        toast({
+          title: "Missing Salary Amount",
+          description: "Please enter a valid salary amount for Fixed salary type",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsUpdatingStaff(true);
     try {
+      const salaryToSave = editSalaryType === "fixed"
+        ? String(parseFloat(String((selectedStaff as any).salary).replace(/[^0-9.\-]/g, "")) || 0)
+        : "";
+
       const success = await updateUser(selectedStaff.username, {
         name: selectedStaff.name,
         role: selectedStaff.role,
         department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
         status: selectedStaff.status,
         password: selectedStaff.password,
-        salary: (selectedStaff as any).salary || "",
+        salary: salaryToSave,
       });
 
       if (success) {

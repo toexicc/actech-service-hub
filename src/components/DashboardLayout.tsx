@@ -191,11 +191,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       </aside>
 
       <main className={cn("flex flex-col flex-1 h-screen min-w-0", collapsed ? "ml-20" : "ml-64")}>
-        <header className="sticky top-0 z-50 flex h-14 w-full shrink-0 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur">
+        <header className={cn("fixed top-0 right-0 z-50 flex h-14 shrink-0 items-center justify-end gap-2 px-6 border-b bg-background/95 backdrop-blur", collapsed ? "left-20" : "left-64")}>
           <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
           <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
         </header>
-        <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain p-0">{children}</div>
+        <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain p-0 pt-14">{children}</div>
       </main>
     </div>
   );
