@@ -255,8 +255,8 @@ const ServiceTracking = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 sm:p-6 max-w-4xl w-full">
+    <div className="h-full w-full overflow-y-auto overscroll-contain bg-background" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl w-full min-h-full">
         {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
