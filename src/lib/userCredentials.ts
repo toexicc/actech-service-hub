@@ -20,7 +20,7 @@ const DEFAULT_ADMIN: UserCredential = {
   username: "admin-actech",
   password: "act3ch2026~*!",
   name: "AC Tech Admin",
-  role: "admin",
+  role: "management",
   department: "Management",
   status: "active",
 };
