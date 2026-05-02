@@ -273,15 +273,31 @@ const StaffManagement = () => {
       return;
     }
 
+    if (editSalaryType === "fixed") {
+      const amt = parseFloat(String((selectedStaff as any).salary || "").replace(/[^0-9.\-]/g, ""));
+      if (!amt || amt <= 0) {
+        toast({
+          title: "Missing Salary Amount",
+          description: "Please enter a valid salary amount for Fixed salary type",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsUpdatingStaff(true);
     try {
+      const salaryToSave = editSalaryType === "fixed"
+        ? String(parseFloat(String((selectedStaff as any).salary).replace(/[^0-9.\-]/g, "")) || 0)
+        : "";
+
       const success = await updateUser(selectedStaff.username, {
         name: selectedStaff.name,
         role: selectedStaff.role,
         department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
         status: selectedStaff.status,
         password: selectedStaff.password,
-        salary: (selectedStaff as any).salary || "",
+        salary: salaryToSave,
       });
 
       if (success) {
