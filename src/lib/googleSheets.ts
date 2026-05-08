@@ -538,7 +538,8 @@ function doGet(e) {
         "timestamp": data[i][4],
         "technician": data[i][3],
         "adminRep": data[i][2], // Column C - Admin Representative
-        "technicianDepartment": data[i][39], // Column AN - Technician Department (comma-separated if multiple)
+        "receivingStaff": data[i][56] || "", // Column BE - Receiving Staff
+        "technicianDepartment": data[i][39],
         "service": data[i][26],
         "deviceType": data[i][12],
         "brand": data[i][14],
@@ -546,10 +547,10 @@ function doGet(e) {
         "targetDate": data[i][28],
         "status": data[i][1],
         "clientName": data[i][8],
-        "serviceCost": data[i][51], // Column AZ - Final Cost
-        "transactionStatus": data[i][55] || "", // Column BD - Transaction Status
-        "internalAdminNotes": data[i][38], // Column AM - Internal Admin Notes
-        "internalTechnicianNotes": data[i][40] // Column AO - Internal Technician Notes
+        "serviceCost": data[i][51],
+        "transactionStatus": data[i][55] || "",
+        "internalAdminNotes": data[i][38],
+        "internalTechnicianNotes": data[i][40]
       });
     }
     
@@ -3525,6 +3526,12 @@ function doPost(e) {
   ];
   
   sheet.appendRow(row);
+
+  // Write Receiving Staff to Column BE (column 57) for the row just added
+  try {
+    var lastRow = sheet.getLastRow();
+    sheet.getRange(lastRow, 57).setValue(params["Receiving Staff"] || "");
+  } catch (err) { Logger.log("Receiving Staff write error: " + err); }
   
   return ContentService.createTextOutput(JSON.stringify({
     "result": "success"
