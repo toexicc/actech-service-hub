@@ -52,6 +52,7 @@ const App = () => (
           <Route path="/menu" element={<Menu />} />
           <Route path="/pos" element={<PointOfSales />} />
           <Route path="/service-form" element={<ServiceForm />} />
+          <Route path="/intake" element={<ServiceForm />} />
           <Route path="/track" element={<ServiceTracking />} />
           <Route path="/service-tracking" element={<ServiceTracker />} />
           <Route path="/manage-client" element={<ManageClient />} />
