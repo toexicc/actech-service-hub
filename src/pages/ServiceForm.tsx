@@ -464,7 +464,7 @@ const ServiceForm = () => {
                   userId: mgr.staffId || mgr.username || mgr.name,
                   title: "New Client Intake — Action Required",
                   message: `${data.clientName} submitted a public intake for ${data.deviceType} ${data.brand} ${data.model}. Assign Admin Rep, Receiving Staff, Technician, Estimated Cost & Time Frame on the Service Tracker.`,
-                  type: "service",
+                  type: "new_inquiry",
                   serviceId: finalServiceId,
                 })
               )
