@@ -72,6 +72,9 @@ type FormValues = z.infer<typeof formSchema>;
 
 const ServiceForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPublic = location.pathname === "/intake";
+  const activeSchema = useMemo(() => buildFormSchema(isPublic), [isPublic]);
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
