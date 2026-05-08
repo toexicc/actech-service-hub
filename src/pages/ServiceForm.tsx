@@ -583,6 +583,37 @@ const ServiceForm = () => {
 
               <FormField
                 control={form.control}
+                name="receivingStaff"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Receiving Staff:</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Receiving Staff" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {receivingStaffList.length > 0 ? (
+                          receivingStaffList.map((staff) => (
+                            <SelectItem key={staff} value={staff}>
+                              {staff}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="No Staff" disabled>
+                            No Staff Available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="technician"
                 render={({ field }) => (
                   <FormItem>
