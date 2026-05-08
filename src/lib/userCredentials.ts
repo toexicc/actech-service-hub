@@ -12,6 +12,7 @@ export interface UserCredential {
   department?: string;
   status: "active" | "inactive";
   salary?: string;
+  salaryType?: "fixed" | "service-based";
 }
 
 // Built-in fallback admin so the app always has at least one working login,
@@ -48,10 +49,10 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
           staffId: staff.staffId ?? staff["Staff ID"] ?? "",
           username: staff.username ?? staff["Username"] ?? "",
           salary: staff.salary ?? staff["Salary"] ?? "",
+          salaryType: staff.salaryType ?? staff["Salary Type"] ?? "",
         });
         const staffId = staff.staffId ?? staff["Staff ID"] ?? "";
         const username = staff.username ?? staff["Username"] ?? "";
-        // Password should be validated server-side; storing client-side is a security risk
         const password = staff.password ?? staff["Password"] ?? "";
         const name = staff.name ?? staff["Name"] ?? "";
         const roleRaw = (staff.role ?? staff["Role"] ?? "").toString().trim().toLowerCase();
@@ -68,6 +69,7 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
           department,
           status: normalizedStatus,
           salary: normalizedStaff.salary || "",
+          salaryType: (normalizedStaff.salaryType as "fixed" | "service-based") || undefined,
         } as UserCredential;
       });
       isLoaded = true;
