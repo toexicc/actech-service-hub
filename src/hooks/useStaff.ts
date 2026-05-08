@@ -11,6 +11,7 @@ export interface StaffMember {
   department: string;
   status: string;
   salary: string;
+  salaryType?: string;
 }
 
 const fetchStaffList = async (): Promise<StaffMember[]> => {
