@@ -112,7 +112,7 @@ const ServiceForm = () => {
   const loggedInUserRole = sessionStorage.getItem("userRole") || "";
 
   useEffect(() => {
-    if (!sessionStorage.getItem("authenticated")) {
+    if (!isPublic && !sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
     // Preload PDF assets for faster generation
