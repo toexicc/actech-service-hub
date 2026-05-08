@@ -1177,6 +1177,7 @@ const ServiceForm = () => {
                 )}
               />
             </div>
+            )}
 
             {/* Client Acknowledgement */}
             <div>
