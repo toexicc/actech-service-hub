@@ -502,7 +502,7 @@ function doGet(e) {
     var staffList = [];
     
     // Skip header row (i = 1)
-    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary, I=Salary Type
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Staff ID exists
         staffList.push({
@@ -513,7 +513,8 @@ function doGet(e) {
           "role": data[i][4],
           "department": data[i][5] || "",
           "status": data[i][6],
-          "salary": data[i][7] || ""
+          "salary": data[i][7] || "",
+          "salaryType": data[i][8] || ""
         });
       }
     }
@@ -1393,7 +1394,7 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Handle addStaff - includes Column H for Salary
+  // Handle addStaff - includes Column H (Salary) and Column I (Salary Type)
   if (action === 'addStaff') {
     var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     if (!staffSheet) {
@@ -1409,14 +1410,15 @@ function doPost(e) {
       params.role || "",
       params.department || "",
       params.status || "Active",
-      params.salary || ""
+      params.salary || "",
+      params.salaryType || (params.salary ? "fixed" : "service-based")
     ]);
     return ContentService.createTextOutput(JSON.stringify({
       status: "success"
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Handle updateStaff - includes Column H for Salary
+  // Handle updateStaff - includes Column H (Salary) and Column I (Salary Type)
   if (action === 'updateStaff') {
     var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     if (!staffSheet) {
@@ -1433,6 +1435,7 @@ function doPost(e) {
         staffSheet.getRange(i + 1, 6).setValue(params.department || "");
         if (params.status) staffSheet.getRange(i + 1, 7).setValue(params.status);
         staffSheet.getRange(i + 1, 8).setValue(params.salary || "");
+        staffSheet.getRange(i + 1, 9).setValue(params.salaryType || (params.salary ? "fixed" : "service-based"));
         return ContentService.createTextOutput(JSON.stringify({
           status: "success"
         })).setMimeType(ContentService.MimeType.JSON);
