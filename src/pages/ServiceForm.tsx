@@ -362,8 +362,8 @@ const ServiceForm = () => {
       const uniqueDepartments = [...new Set(allDepartments)];
       formData.append("Technician Department", uniqueDepartments.join(", ") || "");
       
-      formData.append("Time Frame", data.timeFrame);
-      formData.append("Estimated Cost", data.estimatedCost.toString());
+      formData.append("Time Frame", data.timeFrame || "");
+      formData.append("Estimated Cost", (data.estimatedCost ?? 0).toString());
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
