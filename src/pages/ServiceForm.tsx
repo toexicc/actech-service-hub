@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
+import { createNotification } from "@/lib/notifications";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,11 +29,11 @@ import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 
-const formSchema = z.object({
+const buildFormSchema = (isPublic: boolean) => z.object({
   clientId: z.string().optional(),
-  adminRep: z.string().min(1, "Admin Representative is required"),
-  receivingStaff: z.string().min(1, "Receiving Staff is required"),
-  technician: z.string().min(1, "Technician is required"),
+  adminRep: isPublic ? z.string().optional() : z.string().min(1, "Admin Representative is required"),
+  receivingStaff: isPublic ? z.string().optional() : z.string().min(1, "Receiving Staff is required"),
+  technician: isPublic ? z.string().optional() : z.string().min(1, "Technician is required"),
   clientType: z.string().min(1, "Client Type is required"),
   priority: z.string().min(1, "Priority is required"),
   clientName: z.string().min(1, "Client Name is required"),
@@ -55,8 +56,8 @@ const formSchema = z.object({
   noPower: z.boolean().default(false),
   repairHistory: z.boolean().default(false),
   physicalSignature: z.boolean().default(false),
-  estimatedCost: z.number().min(1, "Estimated Cost is required"),
-  timeFrame: z.string().min(1, "Time Frame is required"),
+  estimatedCost: isPublic ? z.number().optional() : z.number().min(1, "Estimated Cost is required"),
+  timeFrame: isPublic ? z.string().optional() : z.string().min(1, "Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
@@ -65,10 +66,15 @@ const formSchema = z.object({
   annotationNotes: z.string().optional(),
 });
 
+const formSchema = buildFormSchema(false);
+
 type FormValues = z.infer<typeof formSchema>;
 
 const ServiceForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPublic = location.pathname === "/intake";
+  const activeSchema = useMemo(() => buildFormSchema(isPublic), [isPublic]);
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
@@ -106,7 +112,7 @@ const ServiceForm = () => {
   const loggedInUserRole = sessionStorage.getItem("userRole") || "";
 
   useEffect(() => {
-    if (!sessionStorage.getItem("authenticated")) {
+    if (!isPublic && !sessionStorage.getItem("authenticated")) {
       navigate("/");
     }
     // Preload PDF assets for faster generation
@@ -114,7 +120,7 @@ const ServiceForm = () => {
   }, [navigate]);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(activeSchema as typeof formSchema),
     defaultValues: {
       clientId: "",
       adminRep: "",
@@ -286,8 +292,8 @@ const ServiceForm = () => {
       const pdfBlob = await generateServicePDF({
         serviceId: finalServiceId,
         timestamp,
-        adminRep: data.adminRep,
-        technician: data.technician,
+        adminRep: data.adminRep || "",
+        technician: data.technician || "",
         clientType: data.clientType,
         priority: data.priority,
         clientName: data.clientName,
@@ -308,8 +314,8 @@ const ServiceForm = () => {
         importantFiles: data.importantFiles,
         noPower: data.noPower,
         repairHistory: data.repairHistory,
-        estimatedCost: data.estimatedCost,
-        timeFrame: data.timeFrame,
+        estimatedCost: data.estimatedCost ?? 0,
+        timeFrame: data.timeFrame || "",
         signatureUrl: signatureUrl || undefined,
         annotationImageUrl: annotationImageUrl || undefined,
         annotationNotes: data.annotationNotes || undefined,
@@ -322,9 +328,10 @@ const ServiceForm = () => {
       formData.append("Service ID", finalServiceId);
       formData.append("Client ID", data.clientId || "");
       formData.append("Timestamp", timestamp);
-      formData.append("Admin Representative", data.adminRep);
-      formData.append("Receiving Staff", data.receivingStaff);
-      formData.append("Technician", data.technician);
+      formData.append("Admin Representative", data.adminRep || "");
+      formData.append("Receiving Staff", data.receivingStaff || "");
+      formData.append("Technician", data.technician || "");
+      if (isPublic) formData.append("Source", "Public Intake");
       formData.append("Priority", data.priority);
       formData.append("Client Type", data.clientType);
       formData.append("Client Name", data.clientName);
@@ -349,15 +356,15 @@ const ServiceForm = () => {
       formData.append("Device Password", data.devicePassword || "");
       
       // Get ALL technicians' departments (comma-separated if multiple)
-      const techNames = data.technician.split(", ").filter(Boolean);
+      const techNames = (data.technician || "").split(", ").filter(Boolean);
       const allDepartments = techNames
         .map(name => technicianList.find(t => t.name === name)?.department)
         .filter(Boolean);
       const uniqueDepartments = [...new Set(allDepartments)];
       formData.append("Technician Department", uniqueDepartments.join(", ") || "");
       
-      formData.append("Time Frame", data.timeFrame);
-      formData.append("Estimated Cost", data.estimatedCost.toString());
+      formData.append("Time Frame", data.timeFrame || "");
+      formData.append("Estimated Cost", (data.estimatedCost ?? 0).toString());
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
@@ -441,19 +448,37 @@ const ServiceForm = () => {
         }
 
         // Fire-and-forget: notifications and logging (don't block UI)
-        const adminName = sessionStorage.getItem("userFullName") || data.adminRep;
-        const username = sessionStorage.getItem("username") || data.adminRep;
-        const role = sessionStorage.getItem("userRole") || "admin";
-        
+        const adminName = sessionStorage.getItem("userFullName") || data.adminRep || "Client";
+        const username = sessionStorage.getItem("username") || data.adminRep || "client-intake";
+        const role = sessionStorage.getItem("userRole") || (isPublic ? "client" : "admin");
+
+        // Notify management when public client intake is submitted (missing fields need filling)
+        const managementNotifications = isPublic
+          ? staffData
+              .filter((s) => {
+                const r = s.role?.toLowerCase();
+                return (r === "management" || r === "admin") && s.status?.toLowerCase() !== "inactive";
+              })
+              .map((mgr) =>
+                createNotification({
+                  userId: mgr.staffId || mgr.username || mgr.name,
+                  title: "New Client Intake — Action Required",
+                  message: `${data.clientName} submitted a public intake for ${data.deviceType} ${data.brand} ${data.model}. Assign Admin Rep, Receiving Staff, Technician, Estimated Cost & Time Frame on the Service Tracker.`,
+                  type: "new_inquiry",
+                  serviceId: finalServiceId,
+                })
+              )
+          : [];
+
         // Run all notifications in parallel, non-blocking
         Promise.allSettled([
-          ...techNames.map(techName => 
+          ...techNames.map(techName =>
             notifyNewServiceAssignment(
               {
                 serviceId: finalServiceId,
                 clientName: data.clientName,
                 technician: techName,
-                adminRep: data.adminRep,
+                adminRep: data.adminRep || "",
                 deviceType: data.deviceType,
                 device: data.model,
               },
@@ -461,11 +486,12 @@ const ServiceForm = () => {
               adminName
             )
           ),
+          ...managementNotifications,
           logActivity({
             serviceId: finalServiceId,
             username,
             role,
-            activity: `New service created - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician}, Priority: ${data.priority}`,
+            activity: `${isPublic ? "Public client intake submitted" : "New service created"} - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician || "TBD"}, Priority: ${data.priority}`,
           }),
         ]).catch(() => {});
       } else {
@@ -504,18 +530,25 @@ const ServiceForm = () => {
     }
   };
 
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    isPublic ? (
+      <div className="min-h-screen w-full overflow-y-auto bg-background">{children}</div>
+    ) : (
+      <DashboardLayout>{children}</DashboardLayout>
+    );
+
   return (
-    <DashboardLayout>
+    <Wrapper>
       <div className="p-4 md:p-8 animate-fade-in pb-8">
         <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50 mb-0">
         
         <div className="text-center mb-8">
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
-          <h1 className="text-3xl font-bold text-blue-600 mb-2">Initial Diagnosis Form</h1>
-          <p className="text-muted-foreground">Client Initial Diagnosis Form</p>
+          <h1 className="text-3xl font-bold text-blue-600 mb-2">{isPublic ? "Client Intake Form" : "Initial Diagnosis Form"}</h1>
+          <p className="text-muted-foreground">{isPublic ? "Please fill out your details below. Our team will be in touch shortly." : "Client Initial Diagnosis Form"}</p>
         </div>
 
-        {/* Client ID Search */}
+        {!isPublic && (
         <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
           <div className="flex gap-2">
@@ -542,13 +575,14 @@ const ServiceForm = () => {
             </p>
           )}
         </div>
+        )}
 
 
 
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Admin Info */}
+            {!isPublic && (
             <div className="grid md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -636,6 +670,7 @@ const ServiceForm = () => {
                 )}
               />
             </div>
+            )}
 
             {/* Contact Information */}
             <div>
@@ -1114,7 +1149,7 @@ const ServiceForm = () => {
               )}
             </div>
 
-            {/* Cost and Time */}
+            {!isPublic && (
             <div className="grid md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -1161,6 +1196,7 @@ const ServiceForm = () => {
                 )}
               />
             </div>
+            )}
 
             {/* Client Acknowledgement */}
             <div>
@@ -1287,9 +1323,11 @@ const ServiceForm = () => {
                   "Submit"
                 )}
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
-                Cancel
-              </Button>
+              {!isPublic && (
+                <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
+                  Cancel
+                </Button>
+              )}
             </div>
           </form>
         </Form>
@@ -1326,7 +1364,7 @@ const ServiceForm = () => {
         </Dialog>
         </div>
       </div>
-    </DashboardLayout>
+    </Wrapper>
   );
 };
 
