@@ -18,7 +18,10 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
   const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
   const data = await response.json();
   if (data.status === "success" && data.data) {
-    return data.data.map(applyStaffSalaryOverride);
+    return data.data.map((s: any) => applyStaffSalaryOverride({
+      ...s,
+      salaryType: s.salaryType ?? s["Salary Type"] ?? "",
+    }));
   }
   throw new Error("Failed to load staff list");
 };
