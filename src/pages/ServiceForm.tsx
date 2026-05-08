@@ -1323,9 +1323,11 @@ const ServiceForm = () => {
                   "Submit"
                 )}
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
-                Cancel
-              </Button>
+              {!isPublic && (
+                <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
+                  Cancel
+                </Button>
+              )}
             </div>
           </form>
         </Form>
