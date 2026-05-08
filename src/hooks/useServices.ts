@@ -34,6 +34,7 @@ interface ServiceRecord {
   device?: string;
   adminRep?: string;
   adminRepresentative?: string;
+  receivingStaff?: string;
   serviceCost?: string;
 }
 

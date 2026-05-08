@@ -107,8 +107,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   const SidebarContent = () => (
-    <>
-      <div className="flex h-20 items-center px-4 border-b border-sidebar-border">
+    <div className="flex h-full w-full flex-col">
+      <div className="flex h-20 shrink-0 items-center px-4 border-b border-sidebar-border">
         <div className={cn("flex items-center gap-3", !isMobile && collapsed && "justify-center w-full")}>
           <div className="h-10 w-10 rounded-lg bg-card border border-border/60 shadow-sm p-1">
             <img src={acTechLogo} alt="AC Tech Repair logo" className="h-full w-full object-contain" loading="lazy" />
@@ -116,7 +116,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {(isMobile || !collapsed) && <div className="flex flex-col"><span className="text-sm font-bold text-sidebar-foreground">AC Tech Repair</span><span className="text-xs text-sidebar-foreground/60">Service Portal</span></div>}
         </div>
       </div>
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto overscroll-none" style={{ maxHeight: "calc(100vh - 180px)" }}>
+      <nav className="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <button onClick={() => navigate("/menu")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/menu" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><Home className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Home</span>}</button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
@@ -125,11 +125,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <button onClick={() => navigate("/request-for-parts")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/request-for-parts" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><ShoppingCart className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Request for Parts</span>}</button>
         )}
       </nav>
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
+      <div className="shrink-0 p-4 border-t border-sidebar-border bg-sidebar">
         {(isMobile || !collapsed) && <div className="mb-3 px-2"><p className="text-sm font-medium text-sidebar-foreground truncate">{userFullName}</p><p className="text-xs text-sidebar-foreground/60 capitalize">{userRole}</p></div>}
         <Button variant="ghost" className={cn("w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10", !isMobile && collapsed && "justify-center px-2")} onClick={handleLogout}><LogOut className="h-5 w-5" />{(isMobile || !collapsed) && <span className="ml-3">Logout</span>}</Button>
       </div>
-    </>
+    </div>
   );
 
   // Show loading spinner while checking auth

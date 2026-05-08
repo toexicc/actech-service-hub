@@ -69,6 +69,7 @@ const StaffManagement = () => {
       department: staff.department,
       status: staff.status?.toLowerCase() as "active" | "inactive",
       salary: staff.salary || "",
+      salaryType: ((staff as any).salaryType as "fixed" | "service-based" | undefined) || (staff.salary ? "fixed" : "service-based"),
     }));
   }, [staffData]);
 
@@ -178,6 +179,7 @@ const StaffManagement = () => {
         department: newStaff.role === "technician" ? newStaff.department : undefined,
         status: newStaff.status,
         salary: fixedSalaryAmount,
+        salaryType: newStaff.salaryType,
       });
 
       if (success) {
@@ -247,8 +249,13 @@ const StaffManagement = () => {
 
   const handleEditStaff = (staff: UserCredential) => {
     setSelectedStaff({ ...staff });
-    const hasSalary = !!(staff as any).salary && parseFloat(String((staff as any).salary).replace(/[^0-9.\-]/g, "")) > 0;
-    setEditSalaryType(hasSalary ? "fixed" : "service-based");
+    const explicitType = (staff as any).salaryType as "fixed" | "service-based" | undefined;
+    if (explicitType === "fixed" || explicitType === "service-based") {
+      setEditSalaryType(explicitType);
+    } else {
+      const hasSalary = !!(staff as any).salary && parseFloat(String((staff as any).salary).replace(/[^0-9.\-]/g, "")) > 0;
+      setEditSalaryType(hasSalary ? "fixed" : "service-based");
+    }
     setEditDialogOpen(true);
   };
 
@@ -298,6 +305,7 @@ const StaffManagement = () => {
         status: selectedStaff.status,
         password: selectedStaff.password,
         salary: salaryToSave,
+        salaryType: editSalaryType,
       });
 
       if (success) {
@@ -577,7 +585,7 @@ const StaffManagement = () => {
                             </span>
                           </TableCell>
                           <TableCell>{staff.department || "-"}</TableCell>
-                          <TableCell>{(staff as any).salary ? `Php ${parseFloat((staff as any).salary).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "Service Based"}</TableCell>
+                          <TableCell>{((staff as any).salaryType === "fixed" || (!((staff as any).salaryType) && (staff as any).salary)) ? `Php ${parseFloat((staff as any).salary || "0").toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "Service Based"}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

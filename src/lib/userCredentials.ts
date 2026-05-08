@@ -12,6 +12,7 @@ export interface UserCredential {
   department?: string;
   status: "active" | "inactive";
   salary?: string;
+  salaryType?: "fixed" | "service-based";
 }
 
 // Built-in fallback admin so the app always has at least one working login,
@@ -48,10 +49,10 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
           staffId: staff.staffId ?? staff["Staff ID"] ?? "",
           username: staff.username ?? staff["Username"] ?? "",
           salary: staff.salary ?? staff["Salary"] ?? "",
+          salaryType: staff.salaryType ?? staff["Salary Type"] ?? "",
         });
         const staffId = staff.staffId ?? staff["Staff ID"] ?? "";
         const username = staff.username ?? staff["Username"] ?? "";
-        // Password should be validated server-side; storing client-side is a security risk
         const password = staff.password ?? staff["Password"] ?? "";
         const name = staff.name ?? staff["Name"] ?? "";
         const roleRaw = (staff.role ?? staff["Role"] ?? "").toString().trim().toLowerCase();
@@ -68,6 +69,7 @@ export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
           department,
           status: normalizedStatus,
           salary: normalizedStaff.salary || "",
+          salaryType: (normalizedStaff.salaryType as "fixed" | "service-based") || undefined,
         } as UserCredential;
       });
       isLoaded = true;
@@ -102,6 +104,7 @@ export const addUser = async (user: UserCredential) => {
     params.append("department", user.department || "");
     params.append("status", user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase());
     params.append("salary", user.salary || "");
+    params.append("salaryType", user.salaryType || (user.salary ? "fixed" : "service-based"));
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
@@ -121,7 +124,7 @@ export const addUser = async (user: UserCredential) => {
       (response.ok && data === null);
 
     if (isSuccess) {
-      rememberStaffSalary(user, user.salary);
+      rememberStaffSalary(user, user.salary, user.salaryType || (user.salary ? "fixed" : "service-based"));
       userCredentials.push(user);
       return true;
     }
@@ -130,7 +133,7 @@ export const addUser = async (user: UserCredential) => {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
       // CORS error after successful POST - assume success
-      rememberStaffSalary(user, user.salary);
+      rememberStaffSalary(user, user.salary, user.salaryType || (user.salary ? "fixed" : "service-based"));
       userCredentials.push(user);
       return true;
     }
@@ -226,6 +229,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     params.append("department", updatedUser.department || "");
     params.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
     params.append("salary", updatedUser.salary || "");
+    params.append("salaryType", updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
@@ -245,7 +249,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
       (response.ok && data === null);
 
     if (isSuccess) {
-      rememberStaffSalary(updatedUser, updatedUser.salary);
+      rememberStaffSalary(updatedUser, updatedUser.salary, updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;
@@ -257,7 +261,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
       // CORS error after successful POST - assume success
-      rememberStaffSalary(updatedUser, updatedUser.salary);
+      rememberStaffSalary(updatedUser, updatedUser.salary, updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;

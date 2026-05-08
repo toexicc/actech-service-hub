@@ -502,7 +502,7 @@ function doGet(e) {
     var staffList = [];
     
     // Skip header row (i = 1)
-    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary
+    // Columns: A=Staff ID, B=Username, C=Password, D=Name, E=Role, F=Department, G=Status, H=Salary, I=Salary Type
     for (var i = 1; i < data.length; i++) {
       if (data[i][0]) { // If Staff ID exists
         staffList.push({
@@ -513,7 +513,8 @@ function doGet(e) {
           "role": data[i][4],
           "department": data[i][5] || "",
           "status": data[i][6],
-          "salary": data[i][7] || ""
+          "salary": data[i][7] || "",
+          "salaryType": data[i][8] || ""
         });
       }
     }
@@ -537,7 +538,8 @@ function doGet(e) {
         "timestamp": data[i][4],
         "technician": data[i][3],
         "adminRep": data[i][2], // Column C - Admin Representative
-        "technicianDepartment": data[i][39], // Column AN - Technician Department (comma-separated if multiple)
+        "receivingStaff": data[i][56] || "", // Column BE - Receiving Staff
+        "technicianDepartment": data[i][39],
         "service": data[i][26],
         "deviceType": data[i][12],
         "brand": data[i][14],
@@ -545,10 +547,10 @@ function doGet(e) {
         "targetDate": data[i][28],
         "status": data[i][1],
         "clientName": data[i][8],
-        "serviceCost": data[i][51], // Column AZ - Final Cost
-        "transactionStatus": data[i][55] || "", // Column BD - Transaction Status
-        "internalAdminNotes": data[i][38], // Column AM - Internal Admin Notes
-        "internalTechnicianNotes": data[i][40] // Column AO - Internal Technician Notes
+        "serviceCost": data[i][51],
+        "transactionStatus": data[i][55] || "",
+        "internalAdminNotes": data[i][38],
+        "internalTechnicianNotes": data[i][40]
       });
     }
     
@@ -1393,7 +1395,7 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Handle addStaff - includes Column H for Salary
+  // Handle addStaff - includes Column H (Salary) and Column I (Salary Type)
   if (action === 'addStaff') {
     var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     if (!staffSheet) {
@@ -1409,14 +1411,15 @@ function doPost(e) {
       params.role || "",
       params.department || "",
       params.status || "Active",
-      params.salary || ""
+      params.salary || "",
+      params.salaryType || (params.salary ? "fixed" : "service-based")
     ]);
     return ContentService.createTextOutput(JSON.stringify({
       status: "success"
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Handle updateStaff - includes Column H for Salary
+  // Handle updateStaff - includes Column H (Salary) and Column I (Salary Type)
   if (action === 'updateStaff') {
     var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Staff Management");
     if (!staffSheet) {
@@ -1433,6 +1436,7 @@ function doPost(e) {
         staffSheet.getRange(i + 1, 6).setValue(params.department || "");
         if (params.status) staffSheet.getRange(i + 1, 7).setValue(params.status);
         staffSheet.getRange(i + 1, 8).setValue(params.salary || "");
+        staffSheet.getRange(i + 1, 9).setValue(params.salaryType || (params.salary ? "fixed" : "service-based"));
         return ContentService.createTextOutput(JSON.stringify({
           status: "success"
         })).setMimeType(ContentService.MimeType.JSON);
@@ -3522,6 +3526,12 @@ function doPost(e) {
   ];
   
   sheet.appendRow(row);
+
+  // Write Receiving Staff to Column BE (column 57) for the row just added
+  try {
+    var lastRow = sheet.getLastRow();
+    sheet.getRange(lastRow, 57).setValue(params["Receiving Staff"] || "");
+  } catch (err) { Logger.log("Receiving Staff write error: " + err); }
   
   return ContentService.createTextOutput(JSON.stringify({
     "result": "success"
