@@ -323,6 +323,7 @@ const ServiceForm = () => {
       formData.append("Client ID", data.clientId || "");
       formData.append("Timestamp", timestamp);
       formData.append("Admin Representative", data.adminRep);
+      formData.append("Receiving Staff", data.receivingStaff);
       formData.append("Technician", data.technician);
       formData.append("Priority", data.priority);
       formData.append("Client Type", data.clientType);
