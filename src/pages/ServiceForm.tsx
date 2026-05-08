@@ -529,7 +529,7 @@ const ServiceForm = () => {
           <p className="text-muted-foreground">{isPublic ? "Please fill out your details below. Our team will be in touch shortly." : "Client Initial Diagnosis Form"}</p>
         </div>
 
-        {/* Client ID Search */}
+        {!isPublic && (
         <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
           <div className="flex gap-2">
@@ -556,6 +556,7 @@ const ServiceForm = () => {
             </p>
           )}
         </div>
+        )}
 
 
 
