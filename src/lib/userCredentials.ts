@@ -104,6 +104,7 @@ export const addUser = async (user: UserCredential) => {
     params.append("department", user.department || "");
     params.append("status", user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase());
     params.append("salary", user.salary || "");
+    params.append("salaryType", user.salaryType || (user.salary ? "fixed" : "service-based"));
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
@@ -228,6 +229,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     params.append("department", updatedUser.department || "");
     params.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
     params.append("salary", updatedUser.salary || "");
+    params.append("salaryType", updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
 
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: "POST",
