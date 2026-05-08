@@ -356,7 +356,7 @@ const ServiceForm = () => {
       formData.append("Device Password", data.devicePassword || "");
       
       // Get ALL technicians' departments (comma-separated if multiple)
-      const techNames = data.technician.split(", ").filter(Boolean);
+      const techNames = (data.technician || "").split(", ").filter(Boolean);
       const allDepartments = techNames
         .map(name => technicianList.find(t => t.name === name)?.department)
         .filter(Boolean);
