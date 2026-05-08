@@ -1340,7 +1340,7 @@ const ServiceForm = () => {
         </Dialog>
         </div>
       </div>
-    </DashboardLayout>
+    </Wrapper>
   );
 };
 
