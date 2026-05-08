@@ -651,6 +651,7 @@ const ServiceForm = () => {
                 )}
               />
             </div>
+            )}
 
             {/* Contact Information */}
             <div>
