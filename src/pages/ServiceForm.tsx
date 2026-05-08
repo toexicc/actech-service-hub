@@ -448,19 +448,37 @@ const ServiceForm = () => {
         }
 
         // Fire-and-forget: notifications and logging (don't block UI)
-        const adminName = sessionStorage.getItem("userFullName") || data.adminRep;
-        const username = sessionStorage.getItem("username") || data.adminRep;
-        const role = sessionStorage.getItem("userRole") || "admin";
-        
+        const adminName = sessionStorage.getItem("userFullName") || data.adminRep || "Client";
+        const username = sessionStorage.getItem("username") || data.adminRep || "client-intake";
+        const role = sessionStorage.getItem("userRole") || (isPublic ? "client" : "admin");
+
+        // Notify management when public client intake is submitted (missing fields need filling)
+        const managementNotifications = isPublic
+          ? staffData
+              .filter((s) => {
+                const r = s.role?.toLowerCase();
+                return (r === "management" || r === "admin") && s.status?.toLowerCase() !== "inactive";
+              })
+              .map((mgr) =>
+                createNotification({
+                  userId: mgr.staffId || mgr.username || mgr.name,
+                  title: "New Client Intake — Action Required",
+                  message: `${data.clientName} submitted a public intake for ${data.deviceType} ${data.brand} ${data.model}. Assign Admin Rep, Receiving Staff, Technician, Estimated Cost & Time Frame on the Service Tracker.`,
+                  type: "service",
+                  serviceId: finalServiceId,
+                })
+              )
+          : [];
+
         // Run all notifications in parallel, non-blocking
         Promise.allSettled([
-          ...techNames.map(techName => 
+          ...techNames.map(techName =>
             notifyNewServiceAssignment(
               {
                 serviceId: finalServiceId,
                 clientName: data.clientName,
                 technician: techName,
-                adminRep: data.adminRep,
+                adminRep: data.adminRep || "",
                 deviceType: data.deviceType,
                 device: data.model,
               },
@@ -468,11 +486,12 @@ const ServiceForm = () => {
               adminName
             )
           ),
+          ...managementNotifications,
           logActivity({
             serviceId: finalServiceId,
             username,
             role,
-            activity: `New service created - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician}, Priority: ${data.priority}`,
+            activity: `${isPublic ? "Public client intake submitted" : "New service created"} - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician || "TBD"}, Priority: ${data.priority}`,
           }),
         ]).catch(() => {});
       } else {
