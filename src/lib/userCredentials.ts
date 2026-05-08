@@ -124,7 +124,7 @@ export const addUser = async (user: UserCredential) => {
       (response.ok && data === null);
 
     if (isSuccess) {
-      rememberStaffSalary(user, user.salary);
+      rememberStaffSalary(user, user.salary, user.salaryType || (user.salary ? "fixed" : "service-based"));
       userCredentials.push(user);
       return true;
     }
@@ -133,7 +133,7 @@ export const addUser = async (user: UserCredential) => {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
       // CORS error after successful POST - assume success
-      rememberStaffSalary(user, user.salary);
+      rememberStaffSalary(user, user.salary, user.salaryType || (user.salary ? "fixed" : "service-based"));
       userCredentials.push(user);
       return true;
     }
@@ -249,7 +249,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
       (response.ok && data === null);
 
     if (isSuccess) {
-      rememberStaffSalary(updatedUser, updatedUser.salary);
+      rememberStaffSalary(updatedUser, updatedUser.salary, updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;
@@ -261,7 +261,7 @@ export const updateUser = async (username: string, updates: Partial<UserCredenti
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.toLowerCase().includes("failed to fetch")) {
       // CORS error after successful POST - assume success
-      rememberStaffSalary(updatedUser, updatedUser.salary);
+      rememberStaffSalary(updatedUser, updatedUser.salary, updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
       const index = userCredentials.findIndex(u => u.username === username);
       if (index !== -1) {
         userCredentials[index] = updatedUser;
