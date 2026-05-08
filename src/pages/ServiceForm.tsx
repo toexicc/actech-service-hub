@@ -328,9 +328,10 @@ const ServiceForm = () => {
       formData.append("Service ID", finalServiceId);
       formData.append("Client ID", data.clientId || "");
       formData.append("Timestamp", timestamp);
-      formData.append("Admin Representative", data.adminRep);
-      formData.append("Receiving Staff", data.receivingStaff);
-      formData.append("Technician", data.technician);
+      formData.append("Admin Representative", data.adminRep || "");
+      formData.append("Receiving Staff", data.receivingStaff || "");
+      formData.append("Technician", data.technician || "");
+      if (isPublic) formData.append("Source", "Public Intake");
       formData.append("Priority", data.priority);
       formData.append("Client Type", data.clientType);
       formData.append("Client Name", data.clientName);
