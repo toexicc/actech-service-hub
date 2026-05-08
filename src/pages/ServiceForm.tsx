@@ -29,11 +29,11 @@ import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 
-const formSchema = z.object({
+const buildFormSchema = (isPublic: boolean) => z.object({
   clientId: z.string().optional(),
-  adminRep: z.string().min(1, "Admin Representative is required"),
-  receivingStaff: z.string().min(1, "Receiving Staff is required"),
-  technician: z.string().min(1, "Technician is required"),
+  adminRep: isPublic ? z.string().optional() : z.string().min(1, "Admin Representative is required"),
+  receivingStaff: isPublic ? z.string().optional() : z.string().min(1, "Receiving Staff is required"),
+  technician: isPublic ? z.string().optional() : z.string().min(1, "Technician is required"),
   clientType: z.string().min(1, "Client Type is required"),
   priority: z.string().min(1, "Priority is required"),
   clientName: z.string().min(1, "Client Name is required"),
@@ -56,8 +56,8 @@ const formSchema = z.object({
   noPower: z.boolean().default(false),
   repairHistory: z.boolean().default(false),
   physicalSignature: z.boolean().default(false),
-  estimatedCost: z.number().min(1, "Estimated Cost is required"),
-  timeFrame: z.string().min(1, "Time Frame is required"),
+  estimatedCost: isPublic ? z.number().optional() : z.number().min(1, "Estimated Cost is required"),
+  timeFrame: isPublic ? z.string().optional() : z.string().min(1, "Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
@@ -65,6 +65,8 @@ const formSchema = z.object({
   annotationDeviceType: z.string().optional(),
   annotationNotes: z.string().optional(),
 });
+
+const formSchema = buildFormSchema(false);
 
 type FormValues = z.infer<typeof formSchema>;
 
