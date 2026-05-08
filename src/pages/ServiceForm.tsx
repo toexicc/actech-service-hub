@@ -31,6 +31,7 @@ import { preloadPdfAssets } from "@/lib/pdfAssets";
 const formSchema = z.object({
   clientId: z.string().optional(),
   adminRep: z.string().min(1, "Admin Representative is required"),
+  receivingStaff: z.string().min(1, "Receiving Staff is required"),
   technician: z.string().min(1, "Technician is required"),
   clientType: z.string().min(1, "Client Type is required"),
   priority: z.string().min(1, "Priority is required"),
@@ -83,10 +84,16 @@ const ServiceForm = () => {
   // Use React Query for staff data
   const { data: staffData = [] } = useStaff();
   
+  // Admin Rep + Receiving Staff: include both admin and management roles
   const adminList = staffData
-    .filter((staff) => staff.role?.toLowerCase() === "admin" && staff.status?.toLowerCase() !== "inactive")
+    .filter((staff) => {
+      const role = staff.role?.toLowerCase();
+      return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+    })
     .map((staff) => staff.name);
-  
+
+  const receivingStaffList = adminList;
+
   const technicianList = staffData
     .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() !== "inactive")
     .map((staff) => ({
@@ -111,6 +118,7 @@ const ServiceForm = () => {
     defaultValues: {
       clientId: "",
       adminRep: "",
+      receivingStaff: "",
       technician: "",
       clientType: "",
       priority: "",
