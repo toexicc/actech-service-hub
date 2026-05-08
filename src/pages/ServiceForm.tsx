@@ -120,7 +120,7 @@ const ServiceForm = () => {
   }, [navigate]);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(activeSchema as typeof formSchema),
     defaultValues: {
       clientId: "",
       adminRep: "",
