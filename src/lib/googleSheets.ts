@@ -1728,31 +1728,15 @@ function doPost(e) {
             var desiredName = params["QuotationPDF_FileName"] || "ServiceQuotation.pdf";
             quotationPdfBlob.setName(desiredName);
 
-            // IMPORTANT: Use Column AQ folder (same as updateServicePDF)
-            var clientFolderUrl = params.ClientFolderUrl || data[i][42]; // Column AQ
-            var folderId = null;
-            
-            // Extract folder ID from URL if it exists
-            if (clientFolderUrl && clientFolderUrl.indexOf("/folders/") > -1) {
-              folderId = clientFolderUrl.split("/folders/")[1].split("?")[0];
-            }
-            
-            // If no folder exists, create one in Column AQ
-            if (!folderId) {
-              var parentFolder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
-              var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
-              var folderName = sanitize(params.serviceId) + "_" + sanitize(params["Client Name"]) + "_" + sanitize(params["Device Type"]);
-              var newFolder = parentFolder.createFolder(folderName);
-              folderId = newFolder.getId();
-              clientFolderUrl = "https://drive.google.com/drive/folders/" + folderId;
-              
-              // Save the folder URL to Column AQ
-              sheet.getRange(i + 1, 43).setValue(clientFolderUrl);
+            // IMPORTANT: Use the AQ folder when writable; if Apps Script cannot access it, create a writable replacement.
+            var folder = getWritableServiceFolder(params.ClientFolderUrl || data[i][42], params.serviceId, params["Client Name"] || data[i][8]);
+            if (!folder) throw new Error("No writable Drive folder available");
+            var clientFolderUrl = "https://drive.google.com/drive/folders/" + folder.getId();
+            if (clientFolderUrl !== data[i][42]) {
               writeFixedAndHeaders(sheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], clientFolderUrl);
             }
-            
+
             // Upload to the client folder (Column AQ)
-            var folder = DriveApp.getFolderById(folderId);
             var file = folder.createFile(quotationPdfBlob);
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
