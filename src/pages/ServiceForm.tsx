@@ -582,26 +582,17 @@ const ServiceForm = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Admin Rep:</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Admin" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {adminList.length > 0 ? (
-                          adminList.map((admin) => (
-                            <SelectItem key={admin} value={admin}>
-                              {admin}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="No Admins" disabled>
-                            No Admins Available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <MultiSelect
+                        options={adminList.map((admin) => ({
+                          label: admin,
+                          value: admin,
+                        }))}
+                        selected={field.value ? field.value.split(", ").filter(Boolean) : []}
+                        onChange={(values) => field.onChange(values.join(", "))}
+                        placeholder="Select Admin(s)"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
