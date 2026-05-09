@@ -93,13 +93,18 @@ const ServiceForm = () => {
   // Admin Rep + Receiving Staff: include both admin and management roles
   const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {
-      const role = staff.role?.toLowerCase();
+      const role = staff.role?.trim().toLowerCase();
       return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+    })
+    .sort((a, b) => {
+      const rank = (role?: string) => role?.trim().toLowerCase() === "admin" ? 0 : 1;
+      const roleDiff = rank(a.role) - rank(b.role);
+      return roleDiff || a.name.localeCompare(b.name);
     })
     .map((staff) => ({
       label: staff.name,
       value: staff.name,
-      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+      group: staff.role?.trim().toLowerCase() === "management" ? "Management" : "Admin",
     })), [staffData]);
 
   const adminList = useMemo(() => adminStaffOptions.map((staff) => staff.value), [adminStaffOptions]);

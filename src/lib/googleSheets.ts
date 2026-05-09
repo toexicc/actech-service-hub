@@ -1272,6 +1272,42 @@ function doPost(e) {
     }
   }
 
+  function extractDriveFolderId(url) {
+    if (!url) return null;
+    var value = String(url);
+    if (value.indexOf('/folders/') > -1) return value.split('/folders/')[1].split('?')[0].split('/')[0];
+    var match = value.match(/[?&]id=([^&]+)/);
+    return match ? match[1] : null;
+  }
+
+  function createServiceFolderFallback(serviceId, clientName) {
+    var parentIds = ["1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J", "1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj"];
+    for (var p = 0; p < parentIds.length; p++) {
+      try {
+        var parentFolder = DriveApp.getFolderById(parentIds[p]);
+        var folderName = String(serviceId || "Service") + " - " + String(clientName || "Unknown Client");
+        return parentFolder.createFolder(folderName);
+      } catch (folderErr) {
+        Logger.log('Folder fallback error: ' + folderErr);
+      }
+    }
+    return null;
+  }
+
+  function getWritableServiceFolder(folderUrl, serviceId, clientName) {
+    var folderId = extractDriveFolderId(folderUrl);
+    if (folderId) {
+      try {
+        var existingFolder = DriveApp.getFolderById(folderId);
+        existingFolder.getName();
+        return existingFolder;
+      } catch (accessErr) {
+        Logger.log('Existing AQ folder not writable: ' + accessErr);
+      }
+    }
+    return createServiceFolderFallback(serviceId, clientName);
+  }
+
   // Handle addTransaction - add a new row to Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
   //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
@@ -1692,31 +1728,15 @@ function doPost(e) {
             var desiredName = params["QuotationPDF_FileName"] || "ServiceQuotation.pdf";
             quotationPdfBlob.setName(desiredName);
 
-            // IMPORTANT: Use Column AQ folder (same as updateServicePDF)
-            var clientFolderUrl = params.ClientFolderUrl || data[i][42]; // Column AQ
-            var folderId = null;
-            
-            // Extract folder ID from URL if it exists
-            if (clientFolderUrl && clientFolderUrl.indexOf("/folders/") > -1) {
-              folderId = clientFolderUrl.split("/folders/")[1].split("?")[0];
-            }
-            
-            // If no folder exists, create one in Column AQ
-            if (!folderId) {
-              var parentFolder = DriveApp.getFolderById("1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj");
-              var sanitize = function (str) { return String(str || '').replace(/[^a-zA-Z0-9]/g, '_'); };
-              var folderName = sanitize(params.serviceId) + "_" + sanitize(params["Client Name"]) + "_" + sanitize(params["Device Type"]);
-              var newFolder = parentFolder.createFolder(folderName);
-              folderId = newFolder.getId();
-              clientFolderUrl = "https://drive.google.com/drive/folders/" + folderId;
-              
-              // Save the folder URL to Column AQ
-              sheet.getRange(i + 1, 43).setValue(clientFolderUrl);
+            // IMPORTANT: Use the AQ folder when writable; if Apps Script cannot access it, create a writable replacement.
+            var folder = getWritableServiceFolder(params.ClientFolderUrl || data[i][42], params.serviceId, params["Client Name"] || data[i][8]);
+            if (!folder) throw new Error("No writable Drive folder available");
+            var clientFolderUrl = "https://drive.google.com/drive/folders/" + folder.getId();
+            if (clientFolderUrl !== data[i][42]) {
               writeFixedAndHeaders(sheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], clientFolderUrl);
             }
-            
+
             // Upload to the client folder (Column AQ)
-            var folder = DriveApp.getFolderById(folderId);
             var file = folder.createFile(quotationPdfBlob);
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
@@ -2025,27 +2045,10 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == serviceId) { // Column A is serviceId
         
-        // Get existing folder or create new one
-        var folderUrl = data[i][42]; // Column AQ
-        var folderId = null;
-        
-        if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
-          folderId = folderUrl.split("/folders/")[1].split("?")[0];
-        }
-        
-        // If no folder exists, create one
-        if (!folderId) {
-          try {
-            var parentFolderForService = DriveApp.getFolderById("1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J");
-            var newServiceFolderName = serviceId + " - " + (data[i][8] || "Unknown Client");
-            var newServiceFolder = parentFolderForService.createFolder(newServiceFolderName);
-            folderId = newServiceFolder.getId();
-            folderUrl = "https://drive.google.com/drive/folders/" + folderId;
-            serviceSheet.getRange(i + 1, 43).setValue(folderUrl);
-              writeFixedAndHeaders(serviceSheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
-          } catch (folderErr) {
-            Logger.log("Folder creation error: " + folderErr);
-          }
+        var targetFolder = getWritableServiceFolder(data[i][42], serviceId, data[i][8] || params["Client Name"] || "Unknown Client");
+        var folderUrl = targetFolder ? "https://drive.google.com/drive/folders/" + targetFolder.getId() : data[i][42];
+        if (folderUrl && folderUrl !== data[i][42]) {
+          writeFixedAndHeaders(serviceSheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
         }
         
         // Upload the updated PDF to the service folder
@@ -2059,8 +2062,7 @@ function doPost(e) {
             pdfBlob = Utilities.newBlob(bytes, mimeType, fileName);
           }
           
-          if (pdfBlob && folderId) {
-            var targetFolder = DriveApp.getFolderById(folderId);
+          if (pdfBlob && targetFolder) {
             var file = targetFolder.createFile(pdfBlob);
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
             pdfUrl = file.getUrl();
@@ -3616,6 +3618,14 @@ function doPost(e) {
   
   sheet.appendRow(row);
 
+  var appendedRow = sheet.getLastRow();
+  var appendedFolderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
+  if (signatureUrl) sheet.getRange(appendedRow, 37).setValue(signatureUrl); // AK
+  if (pdfUrl) sheet.getRange(appendedRow, 42).setValue(pdfUrl); // AP
+  if (appendedFolderUrl) sheet.getRange(appendedRow, 43).setValue(appendedFolderUrl); // AQ
+  if (deviceReportFolderUrl) sheet.getRange(appendedRow, 48).setValue(deviceReportFolderUrl); // AV
+  if (annotationImageUrl) sheet.getRange(appendedRow, 49).setValue(annotationImageUrl); // AW
+
   // ===========================================================================
   // HEADER-NAME BASED OVERWRITE (robust against column shifts)
   // ===========================================================================
@@ -3623,7 +3633,7 @@ function doPost(e) {
   // reordered/inserted, link columns silently shift. Re-write critical fields
   // by looking up the column whose header text matches the field name.
   try {
-    var lastRow = sheet.getLastRow();
+    var lastRow = appendedRow;
     var lastCol = sheet.getLastColumn();
     var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
@@ -3648,7 +3658,7 @@ function doPost(e) {
       return false;
     };
 
-    var folderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
+    var folderUrl = appendedFolderUrl;
 
     // Critical generated-file links — restore previous fixed-column behavior first,
     // then also write every matching header alias so renamed headers still work.

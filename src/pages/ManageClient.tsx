@@ -109,13 +109,18 @@ const ManageClient = () => {
 
   const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {
-      const role = staff.role?.toLowerCase();
+      const role = staff.role?.trim().toLowerCase();
       return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+    })
+    .sort((a, b) => {
+      const rank = (role?: string) => role?.trim().toLowerCase() === "admin" ? 0 : 1;
+      const roleDiff = rank(a.role) - rank(b.role);
+      return roleDiff || a.name.localeCompare(b.name);
     })
     .map((staff) => ({
       label: staff.name,
       value: staff.name,
-      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+      group: staff.role?.trim().toLowerCase() === "management" ? "Management" : "Admin",
     })), [staffData]);
 
   // Update form fields
@@ -599,9 +604,9 @@ const ManageClient = () => {
         const changes: string[] = [];
 
         if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status || "N/A"} → ${updateStatus}`);
-        if (serviceData.deviceType !== (serviceData.deviceType || "")) {
+        if (updateDeviceType !== (serviceData.deviceType || "")) {
           const originalDeviceType = String(serviceData.deviceType || "");
-          const newDeviceType = String(serviceData.deviceType || "");
+          const newDeviceType = String(updateDeviceType || "");
           if (originalDeviceType !== newDeviceType) changes.push(`Device Type: ${originalDeviceType} → ${newDeviceType}`);
         }
         if (updateAdminRep !== serviceData.adminRep) changes.push(`Admin Rep: ${serviceData.adminRep || "Unassigned"} → ${updateAdminRep}`);
@@ -717,7 +722,7 @@ const ManageClient = () => {
       const pdfData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
-        adminRep: serviceData.adminRep || "Admin",
+        adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
         priority: updatePriority,
@@ -789,9 +794,18 @@ const ManageClient = () => {
       });
 
       clearTimeout(timeoutId);
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        // Some Apps Script deployments return an unreadable response even after a successful upload.
+      }
 
-      if (result.result === "success") {
+      const isSuccess =
+        (result && (result.result === "success" || result.status === "success")) ||
+        (response.ok && result === null);
+
+      if (isSuccess) {
         const username = sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
 
@@ -811,7 +825,7 @@ const ManageClient = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to update PDF form",
+          description: result?.message || "Failed to update PDF form",
           variant: "destructive",
         });
       }
@@ -841,7 +855,7 @@ const ManageClient = () => {
       const quotationData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
-        adminRep: serviceData.adminRep || "Admin",
+        adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
         priority: updatePriority,
@@ -925,7 +939,7 @@ const ManageClient = () => {
       }
 
       const isSuccess = 
-        (result && result.result === "success") ||
+        (result && (result.result === "success" || result.status === "success")) ||
         (response.ok && result === null);
 
       if (isSuccess) {
@@ -953,7 +967,7 @@ const ManageClient = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to generate quotation form",
+          description: result?.message || "Failed to generate quotation form",
           variant: "destructive",
         });
       }
@@ -1138,6 +1152,11 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Rep:</h3>
+                    <p className="text-lg">{serviceData.adminRep || "Unassigned"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Name:</h3>
                     <p className="text-lg">{serviceData.clientName}</p>
                   </div>
@@ -1280,6 +1299,19 @@ const ManageClient = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {canEditAdminRep && (
+                  <div className="space-y-2">
+                    <Label htmlFor="adminRep">Admin Rep:</Label>
+                    <MultiSelect
+                      options={adminStaffOptions}
+                      selected={updateAdminRep ? updateAdminRep.split(", ").filter(Boolean) : []}
+                      onChange={(values) => setUpdateAdminRep(values.join(", "))}
+                      placeholder="Select Admin Rep"
+                      grouped
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="technician">Technician:</Label>
