@@ -2042,6 +2042,7 @@ function doPost(e) {
             folderId = newServiceFolder.getId();
             folderUrl = "https://drive.google.com/drive/folders/" + folderId;
             serviceSheet.getRange(i + 1, 43).setValue(folderUrl);
+              writeFixedAndHeaders(serviceSheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
           } catch (folderErr) {
             Logger.log("Folder creation error: " + folderErr);
           }
@@ -2066,6 +2067,7 @@ function doPost(e) {
             
             // Update ONLY the PDF URL column (Column AP = 42 in 1-indexed)
             serviceSheet.getRange(i + 1, 42).setValue(pdfUrl);
+            writeFixedAndHeaders(serviceSheet, i + 1, 42, ["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
             
             return ContentService.createTextOutput(JSON.stringify({
               "result": "success",
