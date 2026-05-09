@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -91,14 +91,19 @@ const ServiceForm = () => {
   const { data: staffData = [] } = useStaff();
   
   // Admin Rep + Receiving Staff: include both admin and management roles
-  const adminList = staffData
+  const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {
       const role = staff.role?.toLowerCase();
       return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
     })
-    .map((staff) => staff.name);
+    .map((staff) => ({
+      label: staff.name,
+      value: staff.name,
+      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+    })), [staffData]);
 
-  const receivingStaffList = adminList;
+  const adminList = useMemo(() => adminStaffOptions.map((staff) => staff.value), [adminStaffOptions]);
+  const receivingStaffOptions = adminStaffOptions;
 
   const technicianList = staffData
     .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() !== "inactive")
