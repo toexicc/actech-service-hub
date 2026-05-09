@@ -200,9 +200,10 @@ const ServiceTracker = () => {
         const notifyPromises: Promise<boolean>[] = [];
         let notifiedSomeone = false;
         
-        // Notify admin
-        if (service.adminRep) {
-          const adminStaff = findStaffByName(service.adminRep);
+        // Notify each assigned admin (supports comma-separated multi-admin)
+        const adminNames = (service.adminRep || "").split(",").map(s => s.trim()).filter(Boolean);
+        for (const adminName of adminNames) {
+          const adminStaff = findStaffByName(adminName);
           if (adminStaff?.staffId) {
             notifiedSomeone = true;
             const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
