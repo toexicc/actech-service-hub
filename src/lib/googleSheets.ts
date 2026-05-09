@@ -1591,6 +1591,7 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
         // Update the specified columns
+        if (params.adminRep || params["Admin Representative"]) sheet.getRange(i + 1, 3).setValue(params.adminRep || params["Admin Representative"]);
         if (params.status) {
           sheet.getRange(i + 1, 2).setValue(params.status);
           // Set Column BC (55) to "APP" flag to prevent duplicate notification from onEdit trigger
@@ -1651,14 +1652,7 @@ function doPost(e) {
 
             var pdfUrl = file.getUrl();
             sheet.getRange(i + 1, 42).setValue(pdfUrl);
-            // Also write by header name for robustness
-            try {
-              var hdrs = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-              ["Client Intake Form","Intake PDF","Intake Form","PDF URL"].forEach(function(h){
-                var ix = hdrs.indexOf(h);
-                if (ix >= 0) sheet.getRange(i + 1, ix + 1).setValue(pdfUrl);
-              });
-            } catch(_){ }
+            writeFixedAndHeaders(sheet, i + 1, 42, ["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
           }
         } catch (err) {
           Logger.log("Error uploading updated PDF: " + err);
