@@ -1356,7 +1356,12 @@ const ServiceForm = () => {
         </Dialog>
         </div>
       </div>
-    </Wrapper>
+  );
+
+  return isPublic ? (
+    <div className="min-h-screen w-full overflow-y-auto bg-background">{content}</div>
+  ) : (
+    <DashboardLayout>{content}</DashboardLayout>
   );
 };
 
