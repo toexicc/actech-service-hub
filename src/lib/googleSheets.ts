@@ -3618,6 +3618,14 @@ function doPost(e) {
   
   sheet.appendRow(row);
 
+  var appendedRow = sheet.getLastRow();
+  var appendedFolderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
+  if (signatureUrl) sheet.getRange(appendedRow, 37).setValue(signatureUrl); // AK
+  if (pdfUrl) sheet.getRange(appendedRow, 42).setValue(pdfUrl); // AP
+  if (appendedFolderUrl) sheet.getRange(appendedRow, 43).setValue(appendedFolderUrl); // AQ
+  if (deviceReportFolderUrl) sheet.getRange(appendedRow, 48).setValue(deviceReportFolderUrl); // AV
+  if (annotationImageUrl) sheet.getRange(appendedRow, 49).setValue(annotationImageUrl); // AW
+
   // ===========================================================================
   // HEADER-NAME BASED OVERWRITE (robust against column shifts)
   // ===========================================================================
@@ -3625,7 +3633,7 @@ function doPost(e) {
   // reordered/inserted, link columns silently shift. Re-write critical fields
   // by looking up the column whose header text matches the field name.
   try {
-    var lastRow = sheet.getLastRow();
+    var lastRow = appendedRow;
     var lastCol = sheet.getLastColumn();
     var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
 
@@ -3650,7 +3658,7 @@ function doPost(e) {
       return false;
     };
 
-    var folderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
+    var folderUrl = appendedFolderUrl;
 
     // Critical generated-file links — restore previous fixed-column behavior first,
     // then also write every matching header alias so renamed headers still work.
