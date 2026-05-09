@@ -3553,6 +3553,40 @@ function doPost(e) {
     var lastRow = sheet.getLastRow();
     var lastCol = sheet.getLastColumn();
     var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+    // Normalize: lowercase, strip non-alphanumerics so "Photo Annotation",
+    // "photo_annotation", "Photo  Annotation " all match.
+    var normHeader = function (s) {
+      return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    };
+    var headerMap = {};
+    headers.forEach(function (h, i) {
+      var k = normHeader(h);
+      if (k && !(k in headerMap)) headerMap[k] = i;
+    });
+    var writeByHeader = function (aliases, value) {
+      for (var a = 0; a < aliases.length; a++) {
+        var idx = headerMap[normHeader(aliases[a])];
+        if (idx !== undefined) {
+          sheet.getRange(lastRow, idx + 1).setValue(value);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    var folderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
+
+    // Critical generated-file links — write to every reasonable alias
+    writeByHeader(["Client Signature","Physical Signature","Signature","Signature URL","Physical Signature URL"], signatureUrl);
+    writeByHeader(["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
+    writeByHeader(["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
+    writeByHeader(["Device Report Folder","Device Report Folder URL","Device Report"], deviceReportFolderUrl);
+    writeByHeader(["Photo Annotation","Device Annotation","Device Annotation Image","Device Annotation Image URL","Annotation Image"], annotationImageUrl);
+    writeByHeader(["Device Annotation Notes","Annotation Notes","Photo Annotation Notes"], params["AnnotationNotes"] || "");
+    writeByHeader(["Receiving Staff"], params["Receiving Staff"] || "");
+
+    // Other field aliases
     var fieldsByHeader = {
       "Service ID": params["Service ID"],
       "Status": "Pending Diagnosis",
@@ -3578,34 +3612,20 @@ function doPost(e) {
       "Estimated Cost": params["Estimated Cost"],
       "Technician Department": params["Technician Department"],
       "Has Password": params["Has Password"],
-      "Device Password": params["Device Password"],
-      "Physical Signature": signatureUrl,
-      "Physical Signature URL": signatureUrl,
-      "Client Intake Form": pdfUrl,
-      "Intake PDF": pdfUrl,
-      "Intake Form": pdfUrl,
-      "PDF URL": pdfUrl,
-      "Folder Link": serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "",
-      "Client Folder": serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "",
-      "Device Report Folder": deviceReportFolderUrl,
-      "Device Report Folder URL": deviceReportFolderUrl,
-      "Device Annotation": annotationImageUrl,
-      "Device Annotation Image": annotationImageUrl,
-      "Device Annotation Image URL": annotationImageUrl,
-      "Device Annotation Notes": params["AnnotationNotes"] || "",
-      "Annotation Notes": params["AnnotationNotes"] || "",
-      "Receiving Staff": params["Receiving Staff"] || ""
+      "Device Password": params["Device Password"]
     };
     Object.keys(fieldsByHeader).forEach(function (h) {
-      var idx = headers.indexOf(h);
-      if (idx >= 0) {
-        sheet.getRange(lastRow, idx + 1).setValue(fieldsByHeader[h]);
-      }
+      var idx = headerMap[normHeader(h)];
+      if (idx !== undefined) sheet.getRange(lastRow, idx + 1).setValue(fieldsByHeader[h]);
     });
-    // Backwards-compat: still hard-write Receiving Staff to BE if header missing
-    if (headers.indexOf("Receiving Staff") < 0) {
-      sheet.getRange(lastRow, 57).setValue(params["Receiving Staff"] || "");
-    }
+
+    // Hard fallbacks to fixed columns if header lookup found nothing
+    if (signatureUrl && !sheet.getRange(lastRow, 37).getValue()) sheet.getRange(lastRow, 37).setValue(signatureUrl); // AK
+    if (pdfUrl && !sheet.getRange(lastRow, 42).getValue()) sheet.getRange(lastRow, 42).setValue(pdfUrl); // AP
+    if (folderUrl && !sheet.getRange(lastRow, 43).getValue()) sheet.getRange(lastRow, 43).setValue(folderUrl); // AQ
+    if (deviceReportFolderUrl && !sheet.getRange(lastRow, 48).getValue()) sheet.getRange(lastRow, 48).setValue(deviceReportFolderUrl); // AV
+    if (annotationImageUrl && !sheet.getRange(lastRow, 49).getValue()) sheet.getRange(lastRow, 49).setValue(annotationImageUrl); // AW
+    if (!sheet.getRange(lastRow, 57).getValue()) sheet.getRange(lastRow, 57).setValue(params["Receiving Staff"] || ""); // BE
   } catch (err) { Logger.log("Header overwrite error: " + err); }
   
   return ContentService.createTextOutput(JSON.stringify({
