@@ -3650,12 +3650,13 @@ function doPost(e) {
 
     var folderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
 
-    // Critical generated-file links — write to every reasonable alias
-    writeByHeader(["Client Signature","Physical Signature","Signature","Signature URL","Physical Signature URL"], signatureUrl);
-    writeByHeader(["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
-    writeByHeader(["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
-    writeByHeader(["Device Report Folder","Device Report Folder URL","Device Report"], deviceReportFolderUrl);
-    writeByHeader(["Photo Annotation","Device Annotation","Device Annotation Image","Device Annotation Image URL","Annotation Image"], annotationImageUrl);
+    // Critical generated-file links — restore previous fixed-column behavior first,
+    // then also write every matching header alias so renamed headers still work.
+    writeFixedAndHeaders(sheet, lastRow, 37, ["Client Signature","Physical Signature","Signature","Signature URL","Physical Signature URL"], signatureUrl);
+    writeFixedAndHeaders(sheet, lastRow, 42, ["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
+    writeFixedAndHeaders(sheet, lastRow, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
+    writeFixedAndHeaders(sheet, lastRow, 48, ["Device Report Folder","Device Report Folder URL","Device Report"], deviceReportFolderUrl);
+    writeFixedAndHeaders(sheet, lastRow, 49, ["Photo Annotation","Device Annotation","Device Annotation Image","Device Annotation Image URL","Annotation Image"], annotationImageUrl);
     writeByHeader(["Device Annotation Notes","Annotation Notes","Photo Annotation Notes"], params["AnnotationNotes"] || "");
     writeByHeader(["Receiving Staff"], params["Receiving Staff"] || "");
 
@@ -3692,12 +3693,12 @@ function doPost(e) {
       if (idx !== undefined) sheet.getRange(lastRow, idx + 1).setValue(fieldsByHeader[h]);
     });
 
-    // Hard fallbacks to fixed columns if header lookup found nothing
-    if (signatureUrl && !sheet.getRange(lastRow, 37).getValue()) sheet.getRange(lastRow, 37).setValue(signatureUrl); // AK
-    if (pdfUrl && !sheet.getRange(lastRow, 42).getValue()) sheet.getRange(lastRow, 42).setValue(pdfUrl); // AP
-    if (folderUrl && !sheet.getRange(lastRow, 43).getValue()) sheet.getRange(lastRow, 43).setValue(folderUrl); // AQ
-    if (deviceReportFolderUrl && !sheet.getRange(lastRow, 48).getValue()) sheet.getRange(lastRow, 48).setValue(deviceReportFolderUrl); // AV
-    if (annotationImageUrl && !sheet.getRange(lastRow, 49).getValue()) sheet.getRange(lastRow, 49).setValue(annotationImageUrl); // AW
+    // Hard fallbacks to fixed columns, matching the previous working version.
+    if (signatureUrl) sheet.getRange(lastRow, 37).setValue(signatureUrl); // AK
+    if (pdfUrl) sheet.getRange(lastRow, 42).setValue(pdfUrl); // AP
+    if (folderUrl) sheet.getRange(lastRow, 43).setValue(folderUrl); // AQ
+    if (deviceReportFolderUrl) sheet.getRange(lastRow, 48).setValue(deviceReportFolderUrl); // AV
+    if (annotationImageUrl) sheet.getRange(lastRow, 49).setValue(annotationImageUrl); // AW
     if (!sheet.getRange(lastRow, 57).getValue()) sheet.getRange(lastRow, 57).setValue(params["Receiving Staff"] || ""); // BE
   } catch (err) { Logger.log("Header overwrite error: " + err); }
   
