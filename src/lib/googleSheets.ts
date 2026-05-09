@@ -1735,6 +1735,56 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
   
+  // Handle repair/backfill of generated file links from Drive folder back to Sheet cells
+  if (params.action === 'repairGeneratedFileLinks' && params.serviceId) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
+    var data = sheet.getDataRange().getValues();
+    var nrm = function(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");};
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == params.serviceId) {
+        try {
+          var folderUrl = data[i][42]; // AQ
+          if (!folderUrl || folderUrl.indexOf("/folders/") < 0) {
+            return ContentService.createTextOutput(JSON.stringify({result:"error",message:"No AQ folder URL"})).setMimeType(ContentService.MimeType.JSON);
+          }
+          var folderId = folderUrl.split("/folders/")[1].split("?")[0];
+          var folder = DriveApp.getFolderById(folderId);
+          var files = folder.getFiles();
+          var sigUrl = "", intakeUrl = "", quoteUrl = "", annUrl = "";
+          while (files.hasNext()) {
+            var f = files.next();
+            var n = f.getName().toLowerCase();
+            var u = f.getUrl();
+            if (n.indexOf("signature") > -1) sigUrl = u;
+            else if (n.indexOf("annotation") > -1) annUrl = "https://drive.google.com/uc?export=view&id=" + f.getId();
+            else if (n.indexOf("quotation") > -1 || n.indexOf("updated") > -1) quoteUrl = u;
+            else if (n.indexOf(".pdf") > -1) intakeUrl = intakeUrl || u;
+          }
+          var hdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+          var hmap = {}; hdrs.forEach(function(h,ix){var k=nrm(h); if(k && !(k in hmap)) hmap[k]=ix;});
+          var setBoth = function(aliases, fixedCol, val) {
+            if (!val) return;
+            var written = false;
+            for (var a=0;a<aliases.length;a++) {
+              var ix = hmap[nrm(aliases[a])];
+              if (ix !== undefined) { sheet.getRange(i+1, ix+1).setValue(val); written = true; break; }
+            }
+            if (!written && fixedCol) sheet.getRange(i+1, fixedCol).setValue(val);
+          };
+          setBoth(["Client Signature","Physical Signature","Signature"], 37, sigUrl);
+          setBoth(["Client Intake Form","Intake PDF","PDF URL"], 42, intakeUrl);
+          setBoth(["Service Quotation Form","Quotation PDF"], 33, quoteUrl);
+          setBoth(["Photo Annotation","Device Annotation"], 49, annUrl);
+          return ContentService.createTextOutput(JSON.stringify({result:"success",signature:sigUrl,intake:intakeUrl,quotation:quoteUrl,annotation:annUrl})).setMimeType(ContentService.MimeType.JSON);
+        } catch (err) {
+          return ContentService.createTextOutput(JSON.stringify({result:"error",message:err.toString()})).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({result:"not_found"})).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+
   // Handle update requests for Technician Portal
   if (params.action === 'updateTechnicianService' && params.serviceId) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Service Database");
