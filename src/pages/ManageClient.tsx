@@ -7,7 +7,7 @@ import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,13 +109,18 @@ const ManageClient = () => {
 
   const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {
-      const role = staff.role?.toLowerCase();
+      const role = staff.role?.trim().toLowerCase();
       return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+    })
+    .sort((a, b) => {
+      const rank = (role?: string) => role?.trim().toLowerCase() === "admin" ? 0 : 1;
+      const roleDiff = rank(a.role) - rank(b.role);
+      return roleDiff || a.name.localeCompare(b.name);
     })
     .map((staff) => ({
       label: staff.name,
       value: staff.name,
-      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+      group: staff.role?.trim().toLowerCase() === "management" ? "Management" : "Admin",
     })), [staffData]);
 
   // Update form fields
@@ -599,9 +604,9 @@ const ManageClient = () => {
         const changes: string[] = [];
 
         if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status || "N/A"} → ${updateStatus}`);
-        if (serviceData.deviceType !== (serviceData.deviceType || "")) {
+        if (updateDeviceType !== (serviceData.deviceType || "")) {
           const originalDeviceType = String(serviceData.deviceType || "");
-          const newDeviceType = String(serviceData.deviceType || "");
+          const newDeviceType = String(updateDeviceType || "");
           if (originalDeviceType !== newDeviceType) changes.push(`Device Type: ${originalDeviceType} → ${newDeviceType}`);
         }
         if (updateAdminRep !== serviceData.adminRep) changes.push(`Admin Rep: ${serviceData.adminRep || "Unassigned"} → ${updateAdminRep}`);
