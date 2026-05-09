@@ -1712,6 +1712,7 @@ function doPost(e) {
               
               // Save the folder URL to Column AQ
               sheet.getRange(i + 1, 43).setValue(clientFolderUrl);
+              writeFixedAndHeaders(sheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], clientFolderUrl);
             }
             
             // Upload to the client folder (Column AQ)
@@ -1723,23 +1724,8 @@ function doPost(e) {
             
             // Save the PDF URL to Column AG - Quotation PDF URL (fixed column)
             sheet.getRange(i + 1, 33).setValue(quotationPdfUrl);
-            // Also write by normalized header name for robustness
-            try {
-              var hdrs2 = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-              var nrm = function(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");};
-              var hmap2 = {}; hdrs2.forEach(function(h,ix){var k=nrm(h); if(k && !(k in hmap2)) hmap2[k]=ix;});
-              ["Service Quotation Form","Quotation PDF","Quotation Form","Service Quotation","Quotation"].forEach(function(h){
-                var ix = hmap2[nrm(h)];
-                if (ix !== undefined) sheet.getRange(i + 1, ix + 1).setValue(quotationPdfUrl);
-              });
-              // Also ensure AQ folder link if we created one
-              if (clientFolderUrl) {
-                ["Google Drive Folder","Folder Link","Client Folder","Drive Folder"].forEach(function(h){
-                  var ix = hmap2[nrm(h)];
-                  if (ix !== undefined) sheet.getRange(i + 1, ix + 1).setValue(clientFolderUrl);
-                });
-              }
-            } catch(_){ }
+            writeFixedAndHeaders(sheet, i + 1, 33, ["Service Quotation Form","Quotation PDF","Quotation Form","Service Quotation","Quotation"], quotationPdfUrl);
+            writeFixedAndHeaders(sheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], clientFolderUrl);
             
             return ContentService.createTextOutput(JSON.stringify({
               "result": "success",
