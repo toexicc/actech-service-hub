@@ -2061,27 +2061,10 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == serviceId) { // Column A is serviceId
         
-        // Get existing folder or create new one
-        var folderUrl = data[i][42]; // Column AQ
-        var folderId = null;
-        
-        if (folderUrl && folderUrl.indexOf("/folders/") > -1) {
-          folderId = folderUrl.split("/folders/")[1].split("?")[0];
-        }
-        
-        // If no folder exists, create one
-        if (!folderId) {
-          try {
-            var parentFolderForService = DriveApp.getFolderById("1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J");
-            var newServiceFolderName = serviceId + " - " + (data[i][8] || "Unknown Client");
-            var newServiceFolder = parentFolderForService.createFolder(newServiceFolderName);
-            folderId = newServiceFolder.getId();
-            folderUrl = "https://drive.google.com/drive/folders/" + folderId;
-            serviceSheet.getRange(i + 1, 43).setValue(folderUrl);
-              writeFixedAndHeaders(serviceSheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
-          } catch (folderErr) {
-            Logger.log("Folder creation error: " + folderErr);
-          }
+        var targetFolder = getWritableServiceFolder(data[i][42], serviceId, data[i][8] || params["Client Name"] || "Unknown Client");
+        var folderUrl = targetFolder ? "https://drive.google.com/drive/folders/" + targetFolder.getId() : data[i][42];
+        if (folderUrl && folderUrl !== data[i][42]) {
+          writeFixedAndHeaders(serviceSheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
         }
         
         // Upload the updated PDF to the service folder
@@ -2095,8 +2078,7 @@ function doPost(e) {
             pdfBlob = Utilities.newBlob(bytes, mimeType, fileName);
           }
           
-          if (pdfBlob && folderId) {
-            var targetFolder = DriveApp.getFolderById(folderId);
+          if (pdfBlob && targetFolder) {
             var file = targetFolder.createFile(pdfBlob);
             file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
             pdfUrl = file.getUrl();
