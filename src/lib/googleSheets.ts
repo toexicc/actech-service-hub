@@ -1240,6 +1240,38 @@ function doPost(e) {
     return parseFloat(String(val).replace(/[^0-9.\-]/g, '')) || 0;
   }
 
+  function normalizeHeaderKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+
+  function buildHeaderColumnMap(sheet) {
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var map = {};
+    headers.forEach(function(header, index) {
+      var key = normalizeHeaderKey(header);
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      map[key].push(index + 1);
+    });
+    return map;
+  }
+
+  function writeFixedAndHeaders(sheet, row, fixedColumn, aliases, value) {
+    if (value === undefined || value === null || value === '') return;
+    if (fixedColumn) sheet.getRange(row, fixedColumn).setValue(value);
+    try {
+      var headerMap = buildHeaderColumnMap(sheet);
+      aliases.forEach(function(alias) {
+        var columns = headerMap[normalizeHeaderKey(alias)] || [];
+        columns.forEach(function(column) {
+          sheet.getRange(row, column).setValue(value);
+        });
+      });
+    } catch (headerErr) {
+      Logger.log('Header write error: ' + headerErr);
+    }
+  }
+
   // Handle addTransaction - add a new row to Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
   //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
