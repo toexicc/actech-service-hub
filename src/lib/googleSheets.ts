@@ -1697,6 +1697,14 @@ function doPost(e) {
             
             // Save the PDF URL to Column AG - Quotation PDF URL
             sheet.getRange(i + 1, 33).setValue(quotationPdfUrl);
+            // Also write by header name for robustness
+            try {
+              var hdrs2 = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+              ["Service Quotation Form","Quotation PDF","Quotation Form","Service Quotation"].forEach(function(h){
+                var ix = hdrs2.indexOf(h);
+                if (ix >= 0) sheet.getRange(i + 1, ix + 1).setValue(quotationPdfUrl);
+              });
+            } catch(_){ }
             
             return ContentService.createTextOutput(JSON.stringify({
               "result": "success",
