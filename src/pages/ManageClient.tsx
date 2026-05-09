@@ -189,6 +189,7 @@ const ManageClient = () => {
           if (data.status === "found") {
             setServiceData(data.data);
             setUpdateStatus(data.data.status || "");
+            setUpdateAdminRep(data.data.adminRep || "");
             setUpdateTechnician(data.data.technician || "");
             setUpdateClientType(data.data.clientType || "");
             setUpdatePriority(data.data.priority || "");
@@ -271,6 +272,7 @@ const ManageClient = () => {
         // Service data loaded successfully
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
+        setUpdateAdminRep(data.data.adminRep || "");
         setUpdateTechnician(data.data.technician || "");
         setUpdateClientType(data.data.clientType || "");
         setUpdatePriority(data.data.priority || "");
@@ -540,6 +542,8 @@ const ManageClient = () => {
       formData.append("deviceType", updateDeviceType);
       formData.append("Device Type", updateDeviceType);
       formData.append("status", updateStatus);
+      formData.append("adminRep", updateAdminRep);
+      formData.append("Admin Representative", updateAdminRep);
       formData.append("technician", updateTechnician);
       
       // Get ALL technicians' departments (keep duplicates so each technician's department is visible)
@@ -600,6 +604,7 @@ const ManageClient = () => {
           const newDeviceType = String(serviceData.deviceType || "");
           if (originalDeviceType !== newDeviceType) changes.push(`Device Type: ${originalDeviceType} → ${newDeviceType}`);
         }
+        if (updateAdminRep !== serviceData.adminRep) changes.push(`Admin Rep: ${serviceData.adminRep || "Unassigned"} → ${updateAdminRep}`);
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
         if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
@@ -632,7 +637,7 @@ const ManageClient = () => {
               serviceId,
               clientName: serviceData.clientName,
               technician: updateTechnician,
-              adminRep: serviceData.adminRep,
+              adminRep: updateAdminRep,
               deviceType: updateDeviceType,
               device: serviceData.device,
             },
@@ -650,7 +655,7 @@ const ManageClient = () => {
               serviceId,
               clientName: serviceData.clientName,
               technician: updateTechnician,
-              adminRep: serviceData.adminRep,
+              adminRep: updateAdminRep,
               deviceType: updateDeviceType,
               device: serviceData.device,
             },
