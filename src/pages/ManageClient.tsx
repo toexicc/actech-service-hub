@@ -1143,6 +1143,11 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Rep:</h3>
+                    <p className="text-lg">{serviceData.adminRep || "Unassigned"}</p>
+                  </div>
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Name:</h3>
                     <p className="text-lg">{serviceData.clientName}</p>
                   </div>
@@ -1285,6 +1290,19 @@ const ManageClient = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {canEditAdminRep && (
+                  <div className="space-y-2">
+                    <Label htmlFor="adminRep">Admin Rep:</Label>
+                    <MultiSelect
+                      options={adminStaffOptions}
+                      selected={updateAdminRep ? updateAdminRep.split(", ").filter(Boolean) : []}
+                      onChange={(values) => setUpdateAdminRep(values.join(", "))}
+                      placeholder="Select Admin Rep"
+                      grouped
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="technician">Technician:</Label>
