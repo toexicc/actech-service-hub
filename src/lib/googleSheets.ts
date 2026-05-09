@@ -1272,6 +1272,42 @@ function doPost(e) {
     }
   }
 
+  function extractDriveFolderId(url) {
+    if (!url) return null;
+    var value = String(url);
+    if (value.indexOf('/folders/') > -1) return value.split('/folders/')[1].split('?')[0].split('/')[0];
+    var match = value.match(/[?&]id=([^&]+)/);
+    return match ? match[1] : null;
+  }
+
+  function createServiceFolderFallback(serviceId, clientName) {
+    var parentIds = ["1U1p3e89Av4nfil5cuBihXXFdCC9XgU8J", "1HODvuMnTrrGXSVByZEdDDH8ctxk7bpUj"];
+    for (var p = 0; p < parentIds.length; p++) {
+      try {
+        var parentFolder = DriveApp.getFolderById(parentIds[p]);
+        var folderName = String(serviceId || "Service") + " - " + String(clientName || "Unknown Client");
+        return parentFolder.createFolder(folderName);
+      } catch (folderErr) {
+        Logger.log('Folder fallback error: ' + folderErr);
+      }
+    }
+    return null;
+  }
+
+  function getWritableServiceFolder(folderUrl, serviceId, clientName) {
+    var folderId = extractDriveFolderId(folderUrl);
+    if (folderId) {
+      try {
+        var existingFolder = DriveApp.getFolderById(folderId);
+        existingFolder.getName();
+        return existingFolder;
+      } catch (accessErr) {
+        Logger.log('Existing AQ folder not writable: ' + accessErr);
+      }
+    }
+    return createServiceFolderFallback(serviceId, clientName);
+  }
+
   // Handle addTransaction - add a new row to Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
   //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
