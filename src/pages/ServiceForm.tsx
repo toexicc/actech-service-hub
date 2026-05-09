@@ -530,15 +530,7 @@ const ServiceForm = () => {
     }
   };
 
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    isPublic ? (
-      <div className="min-h-screen w-full overflow-y-auto bg-background">{children}</div>
-    ) : (
-      <DashboardLayout>{children}</DashboardLayout>
-    );
-
-  return (
-    <Wrapper>
+  const content = (
       <div className="p-4 md:p-8 animate-fade-in pb-8">
         <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50 mb-0">
         
@@ -1364,7 +1356,12 @@ const ServiceForm = () => {
         </Dialog>
         </div>
       </div>
-    </Wrapper>
+  );
+
+  return isPublic ? (
+    <div className="min-h-screen w-full overflow-y-auto bg-background">{content}</div>
+  ) : (
+    <DashboardLayout>{content}</DashboardLayout>
   );
 };
 

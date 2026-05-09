@@ -106,7 +106,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex h-full w-full flex-col">
       <div className="flex h-20 shrink-0 items-center px-4 border-b border-sidebar-border">
         <div className={cn("flex items-center gap-3", !isMobile && collapsed && "justify-center w-full")}>
@@ -120,7 +120,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <button onClick={() => navigate("/menu")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/menu" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><Home className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Home</span>}</button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
-        {/* Request for Parts - visible to admin and technician only */}
         {(userRole === "admin" || userRole === "technician") && (
           <button onClick={() => navigate("/request-for-parts")} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all", location.pathname === "/request-for-parts" ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" : "text-sidebar-foreground/70 hover:bg-sidebar-accent", !isMobile && collapsed && "justify-center px-2")}><ShoppingCart className="h-5 w-5 shrink-0" />{(isMobile || !collapsed) && <span>Request for Parts</span>}</button>
         )}
@@ -152,7 +151,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0 bg-sidebar">
             <div className="relative h-full">
-              <SidebarContent />
+              {sidebarContent}
             </div>
           </SheetContent>
         </Sheet>
@@ -181,7 +180,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           collapsed ? "w-20" : "w-64",
         )}
       >
-        <SidebarContent />
+        {sidebarContent}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
