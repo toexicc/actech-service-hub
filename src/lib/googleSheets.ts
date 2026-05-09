@@ -1619,6 +1619,14 @@ function doPost(e) {
 
             var pdfUrl = file.getUrl();
             sheet.getRange(i + 1, 42).setValue(pdfUrl);
+            // Also write by header name for robustness
+            try {
+              var hdrs = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+              ["Client Intake Form","Intake PDF","Intake Form","PDF URL"].forEach(function(h){
+                var ix = hdrs.indexOf(h);
+                if (ix >= 0) sheet.getRange(i + 1, ix + 1).setValue(pdfUrl);
+              });
+            } catch(_){ }
           }
         } catch (err) {
           Logger.log("Error uploading updated PDF: " + err);
