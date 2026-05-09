@@ -462,7 +462,7 @@ const ServiceForm = () => {
               userId: mgr.staffId || mgr.username || mgr.name,
               title: "New Service Assigned",
               message: `You have been assigned as Admin Rep for ${data.clientName}'s ${data.deviceType} ${data.brand} ${data.model} (Service ID: ${finalServiceId}).`,
-              type: "service_assigned",
+              type: "service_update",
               serviceId: finalServiceId,
             })
           );
