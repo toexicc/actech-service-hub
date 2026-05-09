@@ -605,13 +605,11 @@ const ServiceForm = () => {
                     <FormLabel>Admin Rep:</FormLabel>
                     <FormControl>
                       <MultiSelect
-                        options={adminList.map((admin) => ({
-                          label: admin,
-                          value: admin,
-                        }))}
+                        options={adminStaffOptions}
                         selected={field.value ? field.value.split(", ").filter(Boolean) : []}
                         onChange={(values) => field.onChange(values.join(", "))}
                         placeholder="Select Admin(s)"
+                        grouped
                       />
                     </FormControl>
                     <FormMessage />
@@ -632,12 +630,22 @@ const ServiceForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {receivingStaffList.length > 0 ? (
-                          receivingStaffList.map((staff) => (
-                            <SelectItem key={staff} value={staff}>
-                              {staff}
-                            </SelectItem>
-                          ))
+                        {receivingStaffOptions.length > 0 ? (
+                          ["Admin", "Management"].map((groupName, index) => {
+                            const options = receivingStaffOptions.filter((staff) => staff.group === groupName);
+                            if (options.length === 0) return null;
+                            return (
+                              <SelectGroup key={groupName}>
+                                {index > 0 && <SelectSeparator />}
+                                <SelectLabel>{groupName}</SelectLabel>
+                                {options.map((staff) => (
+                                  <SelectItem key={staff.value} value={staff.value}>
+                                    {staff.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            );
+                          })
                         ) : (
                           <SelectItem value="No Staff" disabled>
                             No Staff Available
