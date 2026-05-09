@@ -276,29 +276,33 @@ const ServiceTracker = () => {
         }
         
       } else if (userRole === "technician") {
-        // Notify assigned admin - check both possible field names
-        const adminName = service.adminRep || (service as any).adminRepresentative || (service as any)["Admin Representative"];
-        
-        if (adminName) {
+        // Notify all assigned admins (multi-admin supported)
+        const adminCsv = service.adminRep || (service as any).adminRepresentative || (service as any)["Admin Representative"] || "";
+        const adminNames = String(adminCsv).split(",").map(s => s.trim()).filter(Boolean);
+        let notifiedAny = false;
+        const promises: Promise<boolean>[] = [];
+        for (const adminName of adminNames) {
           const adminStaff = findStaffByName(adminName);
           if (adminStaff?.staffId) {
+            notifiedAny = true;
             const baseMessage = `Technician ${userFullName} is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
-            await createNotification({
+            promises.push(createNotification({
               userId: adminStaff.staffId,
               title: `Reminder: Check on ${service.serviceId}`,
               message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
               type: "service_update",
               serviceId: service.serviceId,
-            });
-            toast({ title: "Notification sent", description: "Admin has been notified." });
-          } else {
-            toast({ title: "Admin not found", description: `Could not find staff record for "${adminName}".`, variant: "destructive" });
+            }));
           }
+        }
+        if (notifiedAny) {
+          await Promise.all(promises);
+          toast({ title: "Notification sent", description: "Admin(s) have been notified." });
         } else {
           toast({ title: "No admin assigned", description: "This service has no assigned admin.", variant: "destructive" });
         }
       }
-      
+        
       setNotifyDialogOpen(false);
     } catch {
       toast({ title: "Error", description: "Failed to send notification.", variant: "destructive" });
