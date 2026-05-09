@@ -250,11 +250,14 @@ export const notifyServiceNotesUpdate = async (
         }
       }
     } else {
-      // Technician notes updated - notify assigned admin
+      // Technician notes updated - notify ALL assigned admins
       if (service.adminRep) {
-        const assignedAdmin = findStaffByName(staffList, service.adminRep);
-        if (assignedAdmin?.staffId && normalizeStaffName(assignedAdmin.name) !== normalizeStaffName(updatedBy)) {
-          notifyUsers.add(assignedAdmin.staffId);
+        const adminNames = service.adminRep.split(',').map(a => a.trim()).filter(Boolean);
+        for (const adminName of adminNames) {
+          const assignedAdmin = findStaffByName(staffList, adminName);
+          if (assignedAdmin?.staffId && normalizeStaffName(assignedAdmin.name) !== normalizeStaffName(updatedBy)) {
+            notifyUsers.add(assignedAdmin.staffId);
+          }
         }
       }
     }
