@@ -29,7 +29,7 @@ import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_D
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { useTechnicians } from "@/hooks/useStaff";
+import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
@@ -94,6 +94,9 @@ const ManageClient = () => {
 
   // Use React Query for technicians
   const { data: technicianData = [] } = useTechnicians();
+  const { data: staffData = [] } = useStaff();
+  const userRole = (sessionStorage.getItem("userRole") || "").toLowerCase();
+  const canEditAdminRep = userRole === "admin" || userRole === "management";
   
   // Derive technicians list with display names
   const technicians = useMemo(() => {
@@ -104,8 +107,20 @@ const ManageClient = () => {
     }));
   }, [technicianData]);
 
+  const adminStaffOptions = useMemo(() => staffData
+    .filter((staff) => {
+      const role = staff.role?.toLowerCase();
+      return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+    })
+    .map((staff) => ({
+      label: staff.name,
+      value: staff.name,
+      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+    })), [staffData]);
+
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
+  const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
