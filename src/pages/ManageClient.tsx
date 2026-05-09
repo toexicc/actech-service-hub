@@ -722,7 +722,7 @@ const ManageClient = () => {
       const pdfData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
-        adminRep: serviceData.adminRep || "Admin",
+        adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
         priority: updatePriority,
@@ -794,9 +794,18 @@ const ManageClient = () => {
       });
 
       clearTimeout(timeoutId);
-      const result = await response.json();
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        // Some Apps Script deployments return an unreadable response even after a successful upload.
+      }
 
-      if (result.result === "success") {
+      const isSuccess =
+        (result && (result.result === "success" || result.status === "success")) ||
+        (response.ok && result === null);
+
+      if (isSuccess) {
         const username = sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
 
@@ -816,7 +825,7 @@ const ManageClient = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to update PDF form",
+          description: result?.message || "Failed to update PDF form",
           variant: "destructive",
         });
       }
@@ -846,7 +855,7 @@ const ManageClient = () => {
       const quotationData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
-        adminRep: serviceData.adminRep || "Admin",
+        adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
         clientType: updateClientType,
         priority: updatePriority,
@@ -930,7 +939,7 @@ const ManageClient = () => {
       }
 
       const isSuccess = 
-        (result && result.result === "success") ||
+        (result && (result.result === "success" || result.status === "success")) ||
         (response.ok && result === null);
 
       if (isSuccess) {
@@ -958,7 +967,7 @@ const ManageClient = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to generate quotation form",
+          description: result?.message || "Failed to generate quotation form",
           variant: "destructive",
         });
       }
