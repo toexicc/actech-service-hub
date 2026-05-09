@@ -151,7 +151,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0 bg-sidebar">
             <div className="relative h-full">
-              <SidebarContent />
+              {sidebarContent}
             </div>
           </SheetContent>
         </Sheet>
@@ -180,7 +180,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           collapsed ? "w-20" : "w-64",
         )}
       >
-        <SidebarContent />
+        {sidebarContent}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-24 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
