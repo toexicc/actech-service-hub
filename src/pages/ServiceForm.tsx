@@ -448,9 +448,24 @@ const ServiceForm = () => {
         }
 
         // Fire-and-forget: notifications and logging (don't block UI)
-        const adminName = sessionStorage.getItem("userFullName") || data.adminRep || "Client";
-        const username = sessionStorage.getItem("username") || data.adminRep || "client-intake";
+        const adminName = sessionStorage.getItem("userFullName") || (data.adminRep || "").split(", ")[0] || "Client";
+        const username = sessionStorage.getItem("username") || (data.adminRep || "").split(", ")[0] || "client-intake";
         const role = sessionStorage.getItem("userRole") || (isPublic ? "client" : "admin");
+
+        // All assigned admins (multi-select supported)
+        const adminNames = (data.adminRep || "").split(", ").map((s) => s.trim()).filter(Boolean);
+        const assignedAdminNotifications = adminNames
+          .map((name) => staffData.find((s) => s.name?.toLowerCase() === name.toLowerCase()))
+          .filter((s): s is NonNullable<typeof s> => Boolean(s))
+          .map((mgr) =>
+            createNotification({
+              userId: mgr.staffId || mgr.username || mgr.name,
+              title: "New Service Assigned",
+              message: `You have been assigned as Admin Rep for ${data.clientName}'s ${data.deviceType} ${data.brand} ${data.model} (Service ID: ${finalServiceId}).`,
+              type: "service_assigned",
+              serviceId: finalServiceId,
+            })
+          );
 
         // Notify management when public client intake is submitted (missing fields need filling)
         const managementNotifications = isPublic
@@ -486,6 +501,7 @@ const ServiceForm = () => {
               adminName
             )
           ),
+          ...assignedAdminNotifications,
           ...managementNotifications,
           logActivity({
             serviceId: finalServiceId,
