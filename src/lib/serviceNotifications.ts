@@ -167,17 +167,20 @@ export const notifyServiceStatusChange = async (
     const staffList = await fetchStaffList();
     const messages = getStatusNotificationMessages(newStatus, service, changedBy);
     
-    // Notify the ASSIGNED admin (from column C - adminRep)
+    // Notify ALL ASSIGNED admins (from column C - adminRep, comma-separated)
     if (messages.adminMessage && service.adminRep) {
-      const assignedAdmin = findStaffByName(staffList, service.adminRep);
-      if (assignedAdmin?.staffId) {
-        await createNotification({
-          userId: assignedAdmin.staffId,
-          title: `Service ${service.serviceId}: ${newStatus}`,
-          message: messages.adminMessage,
-          type: 'service_update',
-          serviceId: service.serviceId,
-        });
+      const adminNames = service.adminRep.split(',').map(a => a.trim()).filter(Boolean);
+      for (const adminName of adminNames) {
+        const assignedAdmin = findStaffByName(staffList, adminName);
+        if (assignedAdmin?.staffId) {
+          await createNotification({
+            userId: assignedAdmin.staffId,
+            title: `Service ${service.serviceId}: ${newStatus}`,
+            message: messages.adminMessage,
+            type: 'service_update',
+            serviceId: service.serviceId,
+          });
+        }
       }
     }
     
