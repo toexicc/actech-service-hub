@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -91,14 +91,19 @@ const ServiceForm = () => {
   const { data: staffData = [] } = useStaff();
   
   // Admin Rep + Receiving Staff: include both admin and management roles
-  const adminList = staffData
+  const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {
       const role = staff.role?.toLowerCase();
       return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
     })
-    .map((staff) => staff.name);
+    .map((staff) => ({
+      label: staff.name,
+      value: staff.name,
+      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+    })), [staffData]);
 
-  const receivingStaffList = adminList;
+  const adminList = useMemo(() => adminStaffOptions.map((staff) => staff.value), [adminStaffOptions]);
+  const receivingStaffOptions = adminStaffOptions;
 
   const technicianList = staffData
     .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() !== "inactive")
@@ -600,13 +605,11 @@ const ServiceForm = () => {
                     <FormLabel>Admin Rep:</FormLabel>
                     <FormControl>
                       <MultiSelect
-                        options={adminList.map((admin) => ({
-                          label: admin,
-                          value: admin,
-                        }))}
+                        options={adminStaffOptions}
                         selected={field.value ? field.value.split(", ").filter(Boolean) : []}
                         onChange={(values) => field.onChange(values.join(", "))}
                         placeholder="Select Admin(s)"
+                        grouped
                       />
                     </FormControl>
                     <FormMessage />
@@ -627,12 +630,22 @@ const ServiceForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {receivingStaffList.length > 0 ? (
-                          receivingStaffList.map((staff) => (
-                            <SelectItem key={staff} value={staff}>
-                              {staff}
-                            </SelectItem>
-                          ))
+                        {receivingStaffOptions.length > 0 ? (
+                          ["Admin", "Management"].map((groupName, index) => {
+                            const options = receivingStaffOptions.filter((staff) => staff.group === groupName);
+                            if (options.length === 0) return null;
+                            return (
+                              <SelectGroup key={groupName}>
+                                {index > 0 && <SelectSeparator />}
+                                <SelectLabel>{groupName}</SelectLabel>
+                                {options.map((staff) => (
+                                  <SelectItem key={staff.value} value={staff.value}>
+                                    {staff.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            );
+                          })
                         ) : (
                           <SelectItem value="No Staff" disabled>
                             No Staff Available

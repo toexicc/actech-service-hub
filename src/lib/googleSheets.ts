@@ -1240,6 +1240,38 @@ function doPost(e) {
     return parseFloat(String(val).replace(/[^0-9.\-]/g, '')) || 0;
   }
 
+  function normalizeHeaderKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+
+  function buildHeaderColumnMap(sheet) {
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var map = {};
+    headers.forEach(function(header, index) {
+      var key = normalizeHeaderKey(header);
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      map[key].push(index + 1);
+    });
+    return map;
+  }
+
+  function writeFixedAndHeaders(sheet, row, fixedColumn, aliases, value) {
+    if (value === undefined || value === null || value === '') return;
+    if (fixedColumn) sheet.getRange(row, fixedColumn).setValue(value);
+    try {
+      var headerMap = buildHeaderColumnMap(sheet);
+      aliases.forEach(function(alias) {
+        var columns = headerMap[normalizeHeaderKey(alias)] || [];
+        columns.forEach(function(column) {
+          sheet.getRange(row, column).setValue(value);
+        });
+      });
+    } catch (headerErr) {
+      Logger.log('Header write error: ' + headerErr);
+    }
+  }
+
   // Handle addTransaction - add a new row to Transactions sheet
   // Columns: A=Timestamp, B=Service ID, C=Type of Transaction, D=Mode of Payment,
   //          E=Name, F=Device, G=Amount, H=Service Cost, I=Attendant, J=Remarks, K=Parts Cost, L=Transaction ID, M=Remaining
@@ -1559,6 +1591,7 @@ function doPost(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == params.serviceId && data[i][12] == params.deviceType) {
         // Update the specified columns
+        if (params.adminRep || params["Admin Representative"]) sheet.getRange(i + 1, 3).setValue(params.adminRep || params["Admin Representative"]);
         if (params.status) {
           sheet.getRange(i + 1, 2).setValue(params.status);
           // Set Column BC (55) to "APP" flag to prevent duplicate notification from onEdit trigger
@@ -1619,14 +1652,7 @@ function doPost(e) {
 
             var pdfUrl = file.getUrl();
             sheet.getRange(i + 1, 42).setValue(pdfUrl);
-            // Also write by header name for robustness
-            try {
-              var hdrs = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-              ["Client Intake Form","Intake PDF","Intake Form","PDF URL"].forEach(function(h){
-                var ix = hdrs.indexOf(h);
-                if (ix >= 0) sheet.getRange(i + 1, ix + 1).setValue(pdfUrl);
-              });
-            } catch(_){ }
+            writeFixedAndHeaders(sheet, i + 1, 42, ["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
           }
         } catch (err) {
           Logger.log("Error uploading updated PDF: " + err);
@@ -1686,6 +1712,7 @@ function doPost(e) {
               
               // Save the folder URL to Column AQ
               sheet.getRange(i + 1, 43).setValue(clientFolderUrl);
+              writeFixedAndHeaders(sheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], clientFolderUrl);
             }
             
             // Upload to the client folder (Column AQ)
@@ -1697,23 +1724,8 @@ function doPost(e) {
             
             // Save the PDF URL to Column AG - Quotation PDF URL (fixed column)
             sheet.getRange(i + 1, 33).setValue(quotationPdfUrl);
-            // Also write by normalized header name for robustness
-            try {
-              var hdrs2 = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-              var nrm = function(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"");};
-              var hmap2 = {}; hdrs2.forEach(function(h,ix){var k=nrm(h); if(k && !(k in hmap2)) hmap2[k]=ix;});
-              ["Service Quotation Form","Quotation PDF","Quotation Form","Service Quotation","Quotation"].forEach(function(h){
-                var ix = hmap2[nrm(h)];
-                if (ix !== undefined) sheet.getRange(i + 1, ix + 1).setValue(quotationPdfUrl);
-              });
-              // Also ensure AQ folder link if we created one
-              if (clientFolderUrl) {
-                ["Google Drive Folder","Folder Link","Client Folder","Drive Folder"].forEach(function(h){
-                  var ix = hmap2[nrm(h)];
-                  if (ix !== undefined) sheet.getRange(i + 1, ix + 1).setValue(clientFolderUrl);
-                });
-              }
-            } catch(_){ }
+            writeFixedAndHeaders(sheet, i + 1, 33, ["Service Quotation Form","Quotation PDF","Quotation Form","Service Quotation","Quotation"], quotationPdfUrl);
+            writeFixedAndHeaders(sheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], clientFolderUrl);
             
             return ContentService.createTextOutput(JSON.stringify({
               "result": "success",
@@ -2030,6 +2042,7 @@ function doPost(e) {
             folderId = newServiceFolder.getId();
             folderUrl = "https://drive.google.com/drive/folders/" + folderId;
             serviceSheet.getRange(i + 1, 43).setValue(folderUrl);
+              writeFixedAndHeaders(serviceSheet, i + 1, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
           } catch (folderErr) {
             Logger.log("Folder creation error: " + folderErr);
           }
@@ -2054,6 +2067,7 @@ function doPost(e) {
             
             // Update ONLY the PDF URL column (Column AP = 42 in 1-indexed)
             serviceSheet.getRange(i + 1, 42).setValue(pdfUrl);
+            writeFixedAndHeaders(serviceSheet, i + 1, 42, ["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
             
             return ContentService.createTextOutput(JSON.stringify({
               "result": "success",
@@ -3636,12 +3650,13 @@ function doPost(e) {
 
     var folderUrl = serviceFolderId ? "https://drive.google.com/drive/folders/" + serviceFolderId : "";
 
-    // Critical generated-file links — write to every reasonable alias
-    writeByHeader(["Client Signature","Physical Signature","Signature","Signature URL","Physical Signature URL"], signatureUrl);
-    writeByHeader(["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
-    writeByHeader(["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
-    writeByHeader(["Device Report Folder","Device Report Folder URL","Device Report"], deviceReportFolderUrl);
-    writeByHeader(["Photo Annotation","Device Annotation","Device Annotation Image","Device Annotation Image URL","Annotation Image"], annotationImageUrl);
+    // Critical generated-file links — restore previous fixed-column behavior first,
+    // then also write every matching header alias so renamed headers still work.
+    writeFixedAndHeaders(sheet, lastRow, 37, ["Client Signature","Physical Signature","Signature","Signature URL","Physical Signature URL"], signatureUrl);
+    writeFixedAndHeaders(sheet, lastRow, 42, ["Client Intake Form","Intake PDF","Intake Form","PDF URL","Client Intake Form URL"], pdfUrl);
+    writeFixedAndHeaders(sheet, lastRow, 43, ["Google Drive Folder","Folder Link","Client Folder","Drive Folder","Folder URL"], folderUrl);
+    writeFixedAndHeaders(sheet, lastRow, 48, ["Device Report Folder","Device Report Folder URL","Device Report"], deviceReportFolderUrl);
+    writeFixedAndHeaders(sheet, lastRow, 49, ["Photo Annotation","Device Annotation","Device Annotation Image","Device Annotation Image URL","Annotation Image"], annotationImageUrl);
     writeByHeader(["Device Annotation Notes","Annotation Notes","Photo Annotation Notes"], params["AnnotationNotes"] || "");
     writeByHeader(["Receiving Staff"], params["Receiving Staff"] || "");
 
@@ -3678,12 +3693,12 @@ function doPost(e) {
       if (idx !== undefined) sheet.getRange(lastRow, idx + 1).setValue(fieldsByHeader[h]);
     });
 
-    // Hard fallbacks to fixed columns if header lookup found nothing
-    if (signatureUrl && !sheet.getRange(lastRow, 37).getValue()) sheet.getRange(lastRow, 37).setValue(signatureUrl); // AK
-    if (pdfUrl && !sheet.getRange(lastRow, 42).getValue()) sheet.getRange(lastRow, 42).setValue(pdfUrl); // AP
-    if (folderUrl && !sheet.getRange(lastRow, 43).getValue()) sheet.getRange(lastRow, 43).setValue(folderUrl); // AQ
-    if (deviceReportFolderUrl && !sheet.getRange(lastRow, 48).getValue()) sheet.getRange(lastRow, 48).setValue(deviceReportFolderUrl); // AV
-    if (annotationImageUrl && !sheet.getRange(lastRow, 49).getValue()) sheet.getRange(lastRow, 49).setValue(annotationImageUrl); // AW
+    // Hard fallbacks to fixed columns, matching the previous working version.
+    if (signatureUrl) sheet.getRange(lastRow, 37).setValue(signatureUrl); // AK
+    if (pdfUrl) sheet.getRange(lastRow, 42).setValue(pdfUrl); // AP
+    if (folderUrl) sheet.getRange(lastRow, 43).setValue(folderUrl); // AQ
+    if (deviceReportFolderUrl) sheet.getRange(lastRow, 48).setValue(deviceReportFolderUrl); // AV
+    if (annotationImageUrl) sheet.getRange(lastRow, 49).setValue(annotationImageUrl); // AW
     if (!sheet.getRange(lastRow, 57).getValue()) sheet.getRange(lastRow, 57).setValue(params["Receiving Staff"] || ""); // BE
   } catch (err) { Logger.log("Header overwrite error: " + err); }
   

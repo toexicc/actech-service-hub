@@ -29,7 +29,7 @@ import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_D
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { useTechnicians } from "@/hooks/useStaff";
+import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
@@ -94,6 +94,9 @@ const ManageClient = () => {
 
   // Use React Query for technicians
   const { data: technicianData = [] } = useTechnicians();
+  const { data: staffData = [] } = useStaff();
+  const userRole = (sessionStorage.getItem("userRole") || "").toLowerCase();
+  const canEditAdminRep = userRole === "admin" || userRole === "management";
   
   // Derive technicians list with display names
   const technicians = useMemo(() => {
@@ -104,8 +107,20 @@ const ManageClient = () => {
     }));
   }, [technicianData]);
 
+  const adminStaffOptions = useMemo(() => staffData
+    .filter((staff) => {
+      const role = staff.role?.toLowerCase();
+      return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+    })
+    .map((staff) => ({
+      label: staff.name,
+      value: staff.name,
+      group: staff.role?.toLowerCase() === "management" ? "Management" : "Admin",
+    })), [staffData]);
+
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
+  const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
@@ -174,6 +189,7 @@ const ManageClient = () => {
           if (data.status === "found") {
             setServiceData(data.data);
             setUpdateStatus(data.data.status || "");
+            setUpdateAdminRep(data.data.adminRep || "");
             setUpdateTechnician(data.data.technician || "");
             setUpdateClientType(data.data.clientType || "");
             setUpdatePriority(data.data.priority || "");
@@ -256,6 +272,7 @@ const ManageClient = () => {
         // Service data loaded successfully
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
+        setUpdateAdminRep(data.data.adminRep || "");
         setUpdateTechnician(data.data.technician || "");
         setUpdateClientType(data.data.clientType || "");
         setUpdatePriority(data.data.priority || "");
@@ -525,6 +542,8 @@ const ManageClient = () => {
       formData.append("deviceType", updateDeviceType);
       formData.append("Device Type", updateDeviceType);
       formData.append("status", updateStatus);
+      formData.append("adminRep", updateAdminRep);
+      formData.append("Admin Representative", updateAdminRep);
       formData.append("technician", updateTechnician);
       
       // Get ALL technicians' departments (keep duplicates so each technician's department is visible)
@@ -585,6 +604,7 @@ const ManageClient = () => {
           const newDeviceType = String(serviceData.deviceType || "");
           if (originalDeviceType !== newDeviceType) changes.push(`Device Type: ${originalDeviceType} → ${newDeviceType}`);
         }
+        if (updateAdminRep !== serviceData.adminRep) changes.push(`Admin Rep: ${serviceData.adminRep || "Unassigned"} → ${updateAdminRep}`);
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
         if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
@@ -617,7 +637,7 @@ const ManageClient = () => {
               serviceId,
               clientName: serviceData.clientName,
               technician: updateTechnician,
-              adminRep: serviceData.adminRep,
+              adminRep: updateAdminRep,
               deviceType: updateDeviceType,
               device: serviceData.device,
             },
@@ -635,7 +655,7 @@ const ManageClient = () => {
               serviceId,
               clientName: serviceData.clientName,
               technician: updateTechnician,
-              adminRep: serviceData.adminRep,
+              adminRep: updateAdminRep,
               deviceType: updateDeviceType,
               device: serviceData.device,
             },
