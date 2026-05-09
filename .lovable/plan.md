@@ -1,56 +1,89 @@
-## Verification of previous plan
+## What you reported
 
-| Item | In Code | Live in Sheet |
-|---|---|---|
-| Sidebar `flex-col` + scrollable nav | Done | Buggy — see Cause #1 |
-| Salary `Salary Type` add/update (col H/I) | Done in `googleSheets.ts` (lines 1398–1448) | Empty — Apps Script not redeployed |
-| Intake PDF → AP, Quotation PDF → AG, Folder → AQ | Done (lines 1621, 1691, 3517–3518) | Wrong — Apps Script not redeployed |
-| Receiving Staff → BE | Done (line 3533) | Pending redeploy |
-| Admin Rep includes management | Done | OK |
-| Public `/intake` route + management notification | Done | OK |
-| Form reloads while typing | NOT addressed | See Cause #2 |
-| Sidebar rubber-band on Home | NOT fixed | See Cause #1 |
+1. Client intake PDF, photo annotation image, and service quotation PDF are generated and stored in Drive, but the URL is not landing in the right Sheet column (AP / AW / AG).
+2. Admin Rep should accept multiple selections, and any selected admin should see the Service ID on their dashboard (same way multi-technician already works).
 
-## Real root causes still open
+## Findings from the deployed Apps Script (Untitled_document.txt)
 
-**Cause #1 — Sidebar rubber-bands & loses scroll:**
-In `DashboardLayout.tsx`, `SidebarContent` is declared as a function component **inside** the parent (line 109). Every time `DashboardLayout` re-renders (auth check, location change, NotificationDropdown polling, etc.), React sees a brand-new component reference and **unmounts/remounts the entire `<nav>`**, resetting `scrollTop` to 0. That's the "rubber band back to top" you see.
+The deployed `doPost` *positionally* writes the row with `sheet.appendRow([...50 values...])`:
 
-**Cause #2 — Intake form reloads on every keystroke:**
-Same anti-pattern in `ServiceForm.tsx` (line 533): `Wrapper` is declared inside the parent. Each form `watch`/state update creates a new `Wrapper` reference, remounting the entire form subtree. Inputs lose focus / appear to "reload".
+```
+... AK signatureUrl, AL "", AM "", AN TechDept, AO "",
+    AP pdfUrl, AQ folderUrl, AR HasPwd, AS DevicePwd, AT "",
+    AU "", AV deviceReportFolderUrl, AW annotationImageUrl, AX AnnotationNotes
+```
 
-**Cause #3 — Sheet still showing old behavior:**
-The Apps Script code embedded in `src/lib/googleSheets.ts` already contains all the fixes (Salary Type to col I, PDF URL to AP, Quotation to AG, Receiving Staff to BE). However the Apps Script **runs on Google's servers**, not in the React app — so it only takes effect after you copy the updated template into your Apps Script project and redeploy. Until then, your Sheet will keep using the old behavior even though the codebase is fixed.
+That mapping matches your codebase's `googleSheets.ts`. The reason links still appear "off" in your live sheet is that **`appendRow` is column-position based** — if your real Service Database sheet has had any column inserted/removed/reordered (or the headers were renamed) between A and AX, every value after the inserted point shifts by one, so the PDF/annotation/quotation URLs land in the wrong cell. The `updateQuotationPDF` and `updateServicePDF` actions already use explicit `getRange(row, 33)` / `getRange(row, 42)` so they only break if the *headers themselves* moved.
 
-## Fixes to apply
+## Plan
 
-1. **`src/components/DashboardLayout.tsx`**
-   - Move `SidebarContent` out of the `DashboardLayout` body (top-level component) and pass it the props it needs (`collapsed`, `isMobile`, `userRole`, etc.) — OR convert it from `<SidebarContent />` calls into inline JSX so React keeps the same fiber tree across renders.
-   - Result: the `<nav>` element is preserved between renders, so `scrollTop` is no longer reset.
+### 1. Make Apps Script writes column-name based (robust against column shifts)
 
-2. **`src/pages/ServiceForm.tsx`**
-   - Move `Wrapper` out of the component (top-level) and accept `isPublic` as a prop, OR render the wrapping conditionally inline:
-     ```tsx
-     return isPublic
-       ? <div className="min-h-screen ...">{content}</div>
-       : <DashboardLayout>{content}</DashboardLayout>;
-     ```
-   - This stops the entire form from remounting on every keystroke / `form.watch()` re-render, which fixes the "keeps reloading" feel.
+Replace the positional `appendRow([...])` in the intake handler with a header-driven write so every value is placed in the column whose header matches its key — no more silent shifts.
 
-3. **Redeploy Apps Script (manual step you must do)** — required for the sheet-side fixes to actually take effect:
-   - Open your Google Sheet → Extensions → Apps Script.
-   - Replace the script with the contents of `src/lib/googleSheets.ts` (the long template string).
-   - Click **Deploy → Manage deployments → Edit (pencil) → New version → Deploy**.
-   - Verify by adding a staff with Salary Type "Fixed" → column I should show `fixed`; submit a new intake → column AP should hold the PDF URL, AQ the folder URL, AG the quotation URL once generated, BE the Receiving Staff name.
+In the deployed script (and in `src/lib/googleSheets.ts` template) do:
 
-## Out of scope (no changes needed)
+```js
+function writeRowByHeaders(sheet, fieldsByHeader) {
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var newRow = sheet.getLastRow() + 1;
+  var rowArr = new Array(lastCol).fill("");
+  Object.keys(fieldsByHeader).forEach(function (h) {
+    var idx = headers.indexOf(h);
+    if (idx >= 0) rowArr[idx] = fieldsByHeader[h];
+  });
+  sheet.getRange(newRow, 1, 1, lastCol).setValues([rowArr]);
+  return newRow;
+}
+```
 
-- Salary persistence logic in `userCredentials.ts` / `useStaff.ts` / `staffSalaryOverrides.ts` is already correct.
-- PDF column mapping in the Apps Script row template is already correct.
-- Public intake route + management notification flow is already implemented.
+Then build `fieldsByHeader` keyed by exact header text ("Service ID", "Status", "Admin Rep", … "Service Quotation Form", "Client Intake Form", "Folder Link", "Device Annotation", "Device Annotation Notes", "Receiving Staff", etc.) and pass it in. Same approach for `updateServicePDF`, `updateQuotationPDF`, and the annotation save — look up the header name, not a hard-coded `42` / `33` / `48`.
 
-## Verification after fixes
+This makes AP / AG / AW / BE always correct regardless of column order, which is the actual root cause of the "link in wrong column" symptom.
 
-- Scroll the sidebar to the bottom on `/menu` → it should stay where you left it after navigation/notification refresh.
-- Type into Client Name / Phone / etc. on `/intake` → no flicker, no focus loss, no scroll jump.
-- After Apps Script redeploy: add staff, check column I; submit intake, check AP/AQ/AG/BE.
+### 2. Multi-select Admin Rep (mirror the technician multi-select pattern)
+
+`ServiceForm.tsx`:
+- Change `adminRep` schema to an array of strings (`z.array(z.string()).min(1)` for non-public, `optional()` for public).
+- Replace the single `<Select>` for Admin Rep with `<MultiSelect>` (same component already used for technicians), populated from `adminList`.
+- On submit, send `formData.append("Admin Representative", data.adminRep.join(", "))` so the sheet stores a comma-separated list in column C — identical convention to multi-technician in column D.
+- Update notification logic at the bottom of submit to loop through every selected admin and create a notification per admin.
+- Auto-select the logged-in admin into the array (instead of `setValue` to a string).
+
+`ManageClient.tsx` and any other write paths that pass `adminRep` need to keep accepting either a string or array and join with `", "` before persisting.
+
+### 3. Show service to every assigned admin
+
+`ServiceTracker.tsx` (and Admin/Management dashboards) currently compare a single `service.adminRep` against the logged-in admin name. Update the filter to:
+
+```ts
+const assignedAdmins = (service.adminRep || "")
+  .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+const isAssigned = assignedAdmins.includes(loggedInName.toLowerCase());
+```
+
+Apply the same split-and-includes in:
+- `ServiceTracker.tsx` admin-side row visibility & the `findStaffByName(service.adminRep)` lookup (loop over each name).
+- Admin/Management dashboard "my services" filtering.
+- Notification targeting in `serviceNotifications.ts` / `notifications.ts` so every listed admin gets the alert (same pattern already used for `technicianAssigned`).
+
+### 4. Display
+
+- In `ServiceTracker` table cell, render `service.adminRep` as-is (already comma-separated) — no change needed beyond width/wrap.
+
+## Manual step you must do after the code is updated
+
+Open Sheet → Extensions → Apps Script → paste the new template from `src/lib/googleSheets.ts` → Deploy → Manage deployments → New version → Deploy. The header-name writes only take effect once redeployed. Also confirm the Service Database header row contains the exact header strings the script looks up (e.g. `Client Intake Form` for AP, `Service Quotation Form` for AG, `Device Annotation` for AW, `Folder Link` for AQ, `Receiving Staff` for BE, `Admin Rep` for C). If any header text differs, either rename the column header to match or update the key in `fieldsByHeader`.
+
+## Out of scope
+
+- No changes to PDF generation, Drive folder layout, signature handling, or device-report photo upload.
+- No changes to staff salary, sidebar scroll, or form-remount behavior (already shipped).
+
+## Verification
+
+- Submit a fresh intake → AP shows Intake PDF URL, AQ folder, AW annotation image, AX annotation notes, BE receiving staff, C contains comma-joined admin names.
+- Generate a quotation later → AG shows the quotation PDF URL.
+- Pick two admins on intake → both admins see the service in their dashboard and both receive the notification.
+- Insert a dummy column anywhere in Service Database → resubmit → URLs still land under the correct headers.
