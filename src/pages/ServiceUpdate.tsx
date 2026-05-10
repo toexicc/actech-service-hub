@@ -30,6 +30,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
+import { AiReportCard } from "@/components/AiReportCard";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -1372,6 +1373,10 @@ const ServiceUpdate = () => {
                     rows={4}
                   />
                 </div>
+
+                {serviceData?.status === "Done Repair - Advise Client" && (
+                  <AiReportCard report={updateServiceReport} />
+                )}
 
                 {/* Device Report Photo Upload - Only visible when status is "Done Repair - Under Observation" */}
                 {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
