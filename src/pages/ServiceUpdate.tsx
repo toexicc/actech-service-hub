@@ -1374,10 +1374,6 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {serviceData?.status === "Done Repair - Advise Client" && (
-                  <AiReportCard report={updateServiceReport} />
-                )}
-
                 {/* Device Report Photo Upload - Only visible when status is "Done Repair - Under Observation" */}
                 {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
                   <>
