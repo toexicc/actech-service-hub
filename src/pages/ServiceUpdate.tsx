@@ -735,6 +735,15 @@ const ServiceUpdate = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
+          <>
+          <StatusProgressBar
+            serviceId={serviceData.serviceId || ""}
+            clientName={serviceData.clientName || ""}
+            technician={serviceData.technician}
+            adminRep={serviceData.adminRep}
+            device={serviceData.device || serviceData.deviceType}
+            currentStatus={serviceData.status || ""}
+          />
           <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
             <Card>
@@ -1628,6 +1637,7 @@ const ServiceUpdate = () => {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
 
         {/* Footer */}
