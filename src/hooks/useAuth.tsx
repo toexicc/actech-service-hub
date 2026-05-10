@@ -44,7 +44,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       supabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
     setProfile(prof as AuthProfile | null);
-    setRoles((roleRows ?? []).map((r: any) => r.role as AppRole));
+    const r = (roleRows ?? []).map((x: any) => x.role as AppRole);
+    setRoles(r);
+    // Compatibility shim for legacy pages reading sessionStorage
+    try {
+      const primaryRole = r.includes("admin") ? "admin" : r.includes("management") ? "management" : r.includes("technician") ? "technician" : "";
+      sessionStorage.setItem("authenticated", "true");
+      sessionStorage.setItem("userRole", primaryRole);
+      sessionStorage.setItem("username", (prof as any)?.username ?? "");
+      sessionStorage.setItem("userFullName", (prof as any)?.name ?? "");
+      sessionStorage.setItem("staffId", (prof as any)?.staff_id ?? uid);
+    } catch {}
   };
 
   useEffect(() => {
@@ -73,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
+    try { sessionStorage.clear(); } catch {}
     await supabase.auth.signOut();
   };
 
