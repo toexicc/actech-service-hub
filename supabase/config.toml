@@ -1,13 +1,1 @@
-project_id = ""
-
-[functions.format-diagnosis]
-verify_jwt = false
-
-[functions.format-report]
-verify_jwt = false
-
-[functions.sheet-status-webhook]
-verify_jwt = false
-
-[functions.send-push-notification]
-verify_jwt = false
+project_id = "zpryngvwbybpshsfeqaz"
