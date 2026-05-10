@@ -13,8 +13,10 @@ import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import SplashScreen from "@/components/SplashScreen";
 
 const Login = () => {
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ const Login = () => {
     if (!loading && user) navigate("/menu", { replace: true });
   }, [user, loading, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast({ title: "Missing Information", description: "Enter email and password.", variant: "destructive" });
@@ -33,11 +35,28 @@ const Login = () => {
     }
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Sign-in failed", description: error.message, variant: "destructive" });
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { name: name || email, username: email },
+          },
+        });
+        if (error) {
+          toast({ title: "Sign-up failed", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: "Account created", description: "You can now sign in." });
+          setMode("signin");
+        }
       } else {
-        navigate("/menu");
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          toast({ title: "Sign-in failed", description: error.message, variant: "destructive" });
+        } else {
+          navigate("/menu");
+        }
       }
     } finally {
       setIsLoading(false);
