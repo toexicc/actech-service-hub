@@ -95,6 +95,44 @@ const SalaryDisbursement = () => {
   const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Calculator inputs (per staff)
+  const [daysPresent, setDaysPresent] = useState<Record<string, string>>({});
+  const [dailyRateOverride, setDailyRateOverride] = useState<Record<string, string>>({});
+  const [pagibig, setPagibig] = useState<Record<string, string>>({});
+  const [sss, setSss] = useState<Record<string, string>>({});
+  const [philhealth, setPhilhealth] = useState<Record<string, string>>({});
+
+  // Mon-Sat workdays in the active half-period
+  const workdaysInPeriod = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
+    const endDay = salaryPeriod === "15th Salary" ? 15 : new Date(year, month + 1, 0).getDate();
+    let count = 0;
+    for (let d = startDay; d <= endDay; d++) {
+      const dow = new Date(year, month, d).getDay(); // 0 Sun ... 6 Sat
+      if (dow !== 0) count++;
+    }
+    return count;
+  }, [salaryPeriod]);
+
+  const computeCalculator = (staff: any) => {
+    const monthly = parseCurrency(staff.salary);
+    const autoDaily = workdaysInPeriod > 0 ? monthly / workdaysInPeriod : 0;
+    const daily = parseCurrency(dailyRateOverride[staff.staffId]) || autoDaily;
+    const days = parseCurrency(daysPresent[staff.staffId]);
+    const gross = days * daily;
+    const dPagibig = parseCurrency(pagibig[staff.staffId]);
+    const dSss = parseCurrency(sss[staff.staffId]);
+    const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
+    const otherDeductions = parseCurrency(deductions[staff.staffId]);
+    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions;
+    const net = gross - totalDeductions;
+    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, totalDeductions, net };
+  };
+
+
   // Salary Logs state
   const [logSearch, setLogSearch] = useState("");
   const [logStartDate, setLogStartDate] = useState<Date | undefined>();
