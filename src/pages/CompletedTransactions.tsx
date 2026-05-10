@@ -440,7 +440,7 @@ const CompletedTransactions = () => {
                             </TableCell>
                           </TableRow>
                         )}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </TableBody>
