@@ -29,6 +29,7 @@ import { useTechnicians, useStaff } from "@/hooks/useStaff";
 import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
+import { StatusProgressBar } from "@/components/StatusProgressBar";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {

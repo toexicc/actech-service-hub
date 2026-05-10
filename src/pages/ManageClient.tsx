@@ -1855,6 +1855,7 @@ const ManageClient = () => {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
 
         {/* Footer */}
