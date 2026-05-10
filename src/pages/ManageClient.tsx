@@ -1174,6 +1174,7 @@ const ManageClient = () => {
                             serviceId,
                             activity: `Approved repair (status: ${previousStatus} → Proceed Repair)`,
                             username: sessionStorage.getItem("name") || "Unknown",
+                            role: sessionStorage.getItem("role") || "admin",
                           });
 
                           notifyServiceStatusChange(
