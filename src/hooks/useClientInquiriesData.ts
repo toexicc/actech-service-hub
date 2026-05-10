@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ClientInquiry {
   rowIndex: number;
+  id: string;
   clientId: string;
   serviceId: string;
   timestamp: string;
@@ -30,6 +31,7 @@ const fetchClientInquiriesData = async (): Promise<ClientInquiry[]> => {
   if (error) throw error;
   return (data ?? []).map((r: any, idx: number) => ({
     rowIndex: idx,
+    id: r.id,
     clientId: "",
     serviceId: r.service_id ?? "",
     timestamp: r.created_at ?? "",
