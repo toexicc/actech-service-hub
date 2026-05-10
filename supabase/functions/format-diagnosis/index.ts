@@ -79,7 +79,7 @@ IMPORTANT RULES:
 - Be concise, professional, and customer-friendly
 - Maximum 1-2 sentences per section
 - Use technical terms but keep it understandable
-- NO emojis or special symbols
+- NO emojis, NO markdown (do NOT use **bold**, __italic__, or # headings) — plain text only
 - Do NOT include customer name, device, model, service ID, or technician
 - Do NOT include "Customer Concern Reported" section
 - Focus on clarity and professionalism
