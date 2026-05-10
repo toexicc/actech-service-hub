@@ -115,8 +115,9 @@ const ServiceTracking = () => {
 
     return url;
   };
-  const handleSearch = async () => {
-    if (!serviceId) {
+  const handleSearch = async (overrideId?: string) => {
+    const targetId = (overrideId ?? serviceId).trim();
+    if (!targetId) {
       toast({
         title: "Missing Information",
         description: "Please enter Service ID",
@@ -128,16 +129,20 @@ const ServiceTracking = () => {
     // Clear previous results first
     setServiceData(null);
     setDevicePhotos([]);
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
       );
       const data = await response.json();
 
       if (data.status === "found") {
         setServiceData(data.data);
+        // Sync URL so the result is shareable
+        if (routeServiceId !== targetId) {
+          navigate(`/track/${encodeURIComponent(targetId)}`, { replace: true });
+        }
       } else {
         toast({
           title: "Not Found",
@@ -156,6 +161,14 @@ const ServiceTracking = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-fetch when arriving via /track/:serviceId
+  useEffect(() => {
+    if (routeServiceId && !serviceData && !isLoading) {
+      handleSearch(routeServiceId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeServiceId]);
 
   const handleClientSearch = async () => {
     if (!clientId.trim()) {
