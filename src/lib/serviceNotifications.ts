@@ -6,6 +6,7 @@ interface ServiceInfo {
   clientName: string;
   technician: string;
   adminRep?: string;
+  receivingStaff?: string;
   deviceType?: string;
   device?: string;
 }
@@ -178,6 +179,22 @@ export const notifyServiceStatusChange = async (
             serviceId: service.serviceId,
           });
         }
+      }
+    }
+
+    // Also notify the receiving staff (single name) on every status change
+    // so the front desk that intook the device stays in the loop.
+    if (service.receivingStaff) {
+      const recv = findStaffByName(staffList, service.receivingStaff);
+      const recvMsg = messages.adminMessage || messages.technicianMessage;
+      if (recv?.staffId && recvMsg) {
+        await createNotification({
+          userId: recv.staffId,
+          title: `Service ${service.serviceId}: ${newStatus}`,
+          message: recvMsg,
+          type: 'service_update',
+          serviceId: service.serviceId,
+        });
       }
     }
   } catch (error) {
