@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import BrowserFlags from "@/components/BrowserFlags";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 import Login from "./pages/Login";
 import Menu from "./pages/Menu";
@@ -47,29 +49,32 @@ const App = () => (
       <Sonner />
       <BrowserFlags />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/menu" element={<Menu />} />
-          <Route path="/pos" element={<PointOfSales />} />
-          <Route path="/service-form" element={<ServiceForm />} />
-          <Route path="/intake" element={<ServiceForm />} />
-          <Route path="/track" element={<ServiceTracking />} />
-          <Route path="/service-tracking" element={<ServiceTracker />} />
-          <Route path="/manage-client" element={<ManageClient />} />
-          <Route path="/service-update" element={<ServiceUpdate />} />
-          <Route path="/service-tracker" element={<ServiceTracker />} />
-          <Route path="/inventory-management" element={<InventoryManagement />} />
-          <Route path="/customer-management" element={<CustomerManagement />} />
-          <Route path="/staff-management" element={<StaffManagement />} />
-          <Route path="/completed-transactions" element={<CompletedTransactions />} />
-          <Route path="/transaction-tracker" element={<TransactionTracker />} />
-          <Route path="/tech-dashboard" element={<OpenDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/request-for-parts" element={<RequestForParts />} />
-          <Route path="/salary-disbursement" element={<SalaryDisbursement />} />
-          <Route path="/install" element={<Install />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/track" element={<ServiceTracking />} />
+            <Route path="/track/:serviceId" element={<ServiceTracking />} />
+            <Route path="/install" element={<Install />} />
+            <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+            <Route path="/pos" element={<ProtectedRoute><PointOfSales /></ProtectedRoute>} />
+            <Route path="/service-form" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
+            <Route path="/intake" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
+            <Route path="/service-tracking" element={<ProtectedRoute><ServiceTracker /></ProtectedRoute>} />
+            <Route path="/manage-client" element={<ProtectedRoute><ManageClient /></ProtectedRoute>} />
+            <Route path="/service-update" element={<ProtectedRoute><ServiceUpdate /></ProtectedRoute>} />
+            <Route path="/service-tracker" element={<ProtectedRoute><ServiceTracker /></ProtectedRoute>} />
+            <Route path="/inventory-management" element={<ProtectedRoute><InventoryManagement /></ProtectedRoute>} />
+            <Route path="/customer-management" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
+            <Route path="/staff-management" element={<ProtectedRoute roles={["admin","management"]}><StaffManagement /></ProtectedRoute>} />
+            <Route path="/completed-transactions" element={<ProtectedRoute><CompletedTransactions /></ProtectedRoute>} />
+            <Route path="/transaction-tracker" element={<ProtectedRoute><TransactionTracker /></ProtectedRoute>} />
+            <Route path="/tech-dashboard" element={<ProtectedRoute><OpenDashboard /></ProtectedRoute>} />
+            <Route path="/admin-dashboard" element={<ProtectedRoute roles={["admin","management"]}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/request-for-parts" element={<ProtectedRoute><RequestForParts /></ProtectedRoute>} />
+            <Route path="/salary-disbursement" element={<ProtectedRoute roles={["admin","management"]}><SalaryDisbursement /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
