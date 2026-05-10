@@ -82,19 +82,7 @@ const getStatusNotificationMessages = (
     case 'Done Repair - Advise Client':
     case 'Done Repair - Advice Client':
       return {
-        adminMessage: `Report sent to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to For Payment once okay.`,
-        technicianMessage: ''
-      };
-    
-    case 'For Payment':
-      return {
-        adminMessage: `Please process payment with client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}) and update status to For Pickup once okay.`,
-        technicianMessage: ''
-      };
-    
-    case 'For Pickup':
-      return {
-        adminMessage: `Please process pickup details with client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}) and update status to Completed once okay.`,
+        adminMessage: `Report sent to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to Completed once payment and pickup are settled.`,
         technicianMessage: ''
       };
     
@@ -134,6 +122,17 @@ const getStatusNotificationMessages = (
         technicianMessage: `Service ${service.serviceId} status changed to "${newStatus}" by ${changedBy}.`
       };
   }
+};
+
+// Public helper used by UI (StatusProgressBar) to show a role-aware "what to do next" message.
+export const getStatusGuidance = (
+  newStatus: string,
+  service: ServiceInfo,
+  role: 'admin' | 'management' | 'technician',
+): string => {
+  const messages = getStatusNotificationMessages(newStatus, service, '');
+  if (role === 'technician') return messages.technicianMessage || messages.adminMessage || '';
+  return messages.adminMessage || messages.technicianMessage || '';
 };
 
 // Notify about service status change

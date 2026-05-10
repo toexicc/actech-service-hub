@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,9 @@ interface ServiceRecord {
 }
 
 const ServiceTracking = () => {
-  const [serviceId, setServiceId] = useState("");
+  const { serviceId: routeServiceId } = useParams<{ serviceId?: string }>();
+  const navigate = useNavigate();
+  const [serviceId, setServiceId] = useState(routeServiceId ?? "");
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<"service" | "client">("service");
@@ -112,8 +115,9 @@ const ServiceTracking = () => {
 
     return url;
   };
-  const handleSearch = async () => {
-    if (!serviceId) {
+  const handleSearch = async (overrideId?: string) => {
+    const targetId = (overrideId ?? serviceId).trim();
+    if (!targetId) {
       toast({
         title: "Missing Information",
         description: "Please enter Service ID",
@@ -125,16 +129,20 @@ const ServiceTracking = () => {
     // Clear previous results first
     setServiceData(null);
     setDevicePhotos([]);
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
       );
       const data = await response.json();
 
       if (data.status === "found") {
         setServiceData(data.data);
+        // Sync URL so the result is shareable
+        if (routeServiceId !== targetId) {
+          navigate(`/track/${encodeURIComponent(targetId)}`, { replace: true });
+        }
       } else {
         toast({
           title: "Not Found",
@@ -153,6 +161,14 @@ const ServiceTracking = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-fetch when arriving via /track/:serviceId
+  useEffect(() => {
+    if (routeServiceId && !serviceData && !isLoading) {
+      handleSearch(routeServiceId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeServiceId]);
 
   const handleClientSearch = async () => {
     if (!clientId.trim()) {
@@ -319,7 +335,7 @@ const ServiceTracking = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
+                <Button onClick={() => handleSearch()} disabled={isLoading} className="w-full mt-6">
                   {isLoading ? "Searching..." : "Track Service"}
                 </Button>
               </CardContent>

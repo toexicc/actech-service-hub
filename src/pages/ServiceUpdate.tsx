@@ -29,6 +29,8 @@ import { useTechnicians, useStaff } from "@/hooks/useStaff";
 import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
+import { StatusProgressBar } from "@/components/StatusProgressBar";
+import { AiReportCard } from "@/components/AiReportCard";
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
 const getAnnotationImageUrl = (url: string): string => {
@@ -734,6 +736,15 @@ const ServiceUpdate = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
+          <>
+          <StatusProgressBar
+            serviceId={serviceData.serviceId || ""}
+            clientName={serviceData.clientName || ""}
+            technician={serviceData.technician}
+            adminRep={serviceData.adminRep}
+            device={serviceData.device || serviceData.deviceType}
+            currentStatus={serviceData.status || ""}
+          />
           <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
             <Card>
@@ -994,8 +1005,6 @@ const ServiceUpdate = () => {
                         "Waiting to Proceed",
                         "Proceed Repair",
                         "Done Repair - Advise Client",
-                        "For Payment",
-                        "For Pickup",
                         "Completed",
                         "Backjob",
                         "RTO",
@@ -1025,8 +1034,6 @@ const ServiceUpdate = () => {
                           "Waiting to Proceed",
                           "Proceed Repair",
                           "Done Repair - Advise Client",
-                          "For Payment",
-                          "For Pickup",
                           "Completed",
                           "Backjob",
                           "RTO",
@@ -1367,6 +1374,10 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
+                {serviceData?.status === "Done Repair - Advise Client" && (
+                  <AiReportCard report={updateServiceReport} />
+                )}
+
                 {/* Device Report Photo Upload - Only visible when status is "Done Repair - Under Observation" */}
                 {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
                   <>
@@ -1631,6 +1642,7 @@ const ServiceUpdate = () => {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
 
         {/* Footer */}

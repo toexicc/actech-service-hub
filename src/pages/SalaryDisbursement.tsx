@@ -95,6 +95,44 @@ const SalaryDisbursement = () => {
   const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Calculator inputs (per staff)
+  const [daysPresent, setDaysPresent] = useState<Record<string, string>>({});
+  const [dailyRateOverride, setDailyRateOverride] = useState<Record<string, string>>({});
+  const [pagibig, setPagibig] = useState<Record<string, string>>({});
+  const [sss, setSss] = useState<Record<string, string>>({});
+  const [philhealth, setPhilhealth] = useState<Record<string, string>>({});
+
+  // Mon-Sat workdays in the active half-period
+  const workdaysInPeriod = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
+    const endDay = salaryPeriod === "15th Salary" ? 15 : new Date(year, month + 1, 0).getDate();
+    let count = 0;
+    for (let d = startDay; d <= endDay; d++) {
+      const dow = new Date(year, month, d).getDay(); // 0 Sun ... 6 Sat
+      if (dow !== 0) count++;
+    }
+    return count;
+  }, [salaryPeriod]);
+
+  const computeCalculator = (staff: any) => {
+    const monthly = parseCurrency(staff.salary);
+    const autoDaily = workdaysInPeriod > 0 ? monthly / workdaysInPeriod : 0;
+    const daily = parseCurrency(dailyRateOverride[staff.staffId]) || autoDaily;
+    const days = parseCurrency(daysPresent[staff.staffId]);
+    const gross = days * daily;
+    const dPagibig = parseCurrency(pagibig[staff.staffId]);
+    const dSss = parseCurrency(sss[staff.staffId]);
+    const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
+    const otherDeductions = parseCurrency(deductions[staff.staffId]);
+    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions;
+    const net = gross - totalDeductions;
+    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, totalDeductions, net };
+  };
+
+
   // Salary Logs state
   const [logSearch, setLogSearch] = useState("");
   const [logStartDate, setLogStartDate] = useState<Date | undefined>();
@@ -167,6 +205,7 @@ const SalaryDisbursement = () => {
     }
     setDisbursing(staff.staffId);
     try {
+      const c = computeCalculator(staff);
       const params = new URLSearchParams();
       params.append("action", "disburseSalary");
       params.append("staffId", staff.staffId);
@@ -175,6 +214,18 @@ const SalaryDisbursement = () => {
       params.append("status", "Disbursed");
       params.append("disbursedBy", username);
       params.append("fundSource", fundSource);
+      params.append("periodLabel", salaryPeriod);
+      params.append("monthlySalary", c.monthly.toFixed(2));
+      params.append("workdaysInPeriod", String(workdaysInPeriod));
+      params.append("daysPresent", String(c.days));
+      params.append("dailyRate", c.daily.toFixed(2));
+      params.append("contributionPagibig", c.dPagibig.toFixed(2));
+      params.append("contributionSss", c.dSss.toFixed(2));
+      params.append("contributionPhilhealth", c.dPhilhealth.toFixed(2));
+      params.append("otherDeductions", c.otherDeductions.toFixed(2));
+      params.append("grossPay", c.gross.toFixed(2));
+      params.append("totalDeductions", c.totalDeductions.toFixed(2));
+      params.append("netPay", c.net.toFixed(2));
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       let result: any = null;
@@ -190,6 +241,11 @@ const SalaryDisbursement = () => {
         setBonuses((p) => ({ ...p, [staff.staffId]: "" }));
         setDeductions((p) => ({ ...p, [staff.staffId]: "" }));
         setTechCommissions((p) => ({ ...p, [staff.staffId]: "" }));
+        setDaysPresent((p) => ({ ...p, [staff.staffId]: "" }));
+        setDailyRateOverride((p) => ({ ...p, [staff.staffId]: "" }));
+        setPagibig((p) => ({ ...p, [staff.staffId]: "" }));
+        setSss((p) => ({ ...p, [staff.staffId]: "" }));
+        setPhilhealth((p) => ({ ...p, [staff.staffId]: "" }));
         refetchLogs();
       } else {
         toast({ title: "Error", description: result?.message || "Failed to disburse", variant: "destructive" });
@@ -330,51 +386,77 @@ const SalaryDisbursement = () => {
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
+                       <TableHeader>
                         <TableRow>
-                          <TableHead>Staff Name</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Salary</TableHead>
-                          <TableHead>Commission/Bonus</TableHead>
+                          <TableHead>Staff</TableHead>
+                          <TableHead>Monthly</TableHead>
+                          <TableHead>Days Present</TableHead>
+                          <TableHead>Daily Rate</TableHead>
+                          <TableHead>Pag-IBIG</TableHead>
+                          <TableHead>SSS</TableHead>
+                          <TableHead>PhilHealth</TableHead>
+                          <TableHead>Other Ded.</TableHead>
+                          <TableHead>Gross</TableHead>
                           <TableHead>Deductions</TableHead>
-                          <TableHead>Final Amount</TableHead>
+                          <TableHead>Net Pay</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {fixedStaff.map((staff: any) => {
-                          const final = computeFixedFinal(staff);
+                          const c = computeCalculator(staff);
                           return (
                             <TableRow key={staff.staffId}>
-                              <TableCell className="font-medium">{staff.name}</TableCell>
-                              <TableCell className="capitalize">{staff.role}</TableCell>
-                              <TableCell>{fmtCurrency(parseCurrency(staff.salary))}</TableCell>
+                              <TableCell className="font-medium">
+                                <div>{staff.name}</div>
+                                <div className="text-xs text-muted-foreground capitalize">{staff.role}</div>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">{fmtCurrency(c.monthly)}</TableCell>
                               <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="0.00"
-                                  className="w-24"
-                                  value={commissions[staff.staffId] || ""}
-                                  onChange={(e) => setCommissions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                <Input type="number" step="0.5" placeholder="0" className="w-20"
+                                  value={daysPresent[staff.staffId] || ""}
+                                  onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                />
+                                <div className="text-[10px] text-muted-foreground mt-1">/{workdaysInPeriod}</div>
+                              </TableCell>
+                              <TableCell>
+                                <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24"
+                                  value={dailyRateOverride[staff.staffId] || ""}
+                                  onChange={(e) => setDailyRateOverride((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="0.00"
-                                  className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                  value={pagibig[staff.staffId] || ""}
+                                  onChange={(e) => setPagibig((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                  value={sss[staff.staffId] || ""}
+                                  onChange={(e) => setSss((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                  value={philhealth[staff.staffId] || ""}
+                                  onChange={(e) => setPhilhealth((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
                                   value={deductions[staff.staffId] || ""}
                                   onChange={(e) => setDeductions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
-                              <TableCell className="font-bold">{fmtCurrency(final)}</TableCell>
+                              <TableCell className="font-medium whitespace-nowrap">{fmtCurrency(c.gross)}</TableCell>
+                              <TableCell className="text-destructive whitespace-nowrap">−{fmtCurrency(c.totalDeductions)}</TableCell>
+                              <TableCell className="font-bold whitespace-nowrap">{fmtCurrency(c.net)}</TableCell>
                               <TableCell>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleDisburse(staff, final)}
-                                  disabled={disbursing === staff.staffId || final <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
+                                  onClick={() => handleDisburse(staff, c.net)}
+                                  disabled={disbursing === staff.staffId || c.net <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
                                 >
                                   {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
                                 </Button>

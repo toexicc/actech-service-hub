@@ -31,6 +31,8 @@ import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validatio
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
+import { StatusProgressBar } from "@/components/StatusProgressBar";
+import { AiReportCard } from "@/components/AiReportCard";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -1065,6 +1067,15 @@ const ManageClient = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
+          <>
+          <StatusProgressBar
+            serviceId={serviceData.serviceId || ""}
+            clientName={serviceData.clientName || ""}
+            technician={serviceData.technician}
+            adminRep={serviceData.adminRep}
+            device={serviceData.device || serviceData.deviceType}
+            currentStatus={serviceData.status || ""}
+          />
           <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
             <Card>
@@ -1137,6 +1148,70 @@ const ManageClient = () => {
                     </Button>
                   </div>
                 </div>
+
+                {/* Approve Repair (Waiting to Proceed only) */}
+                {serviceData?.status === "Waiting to Proceed" && (
+                  <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
+                    <p className="text-sm text-foreground/80">
+                      Please review the service quotation form, then click <span className="font-semibold">Approve</span> once okay.
+                    </p>
+                    <Button
+                      onClick={async () => {
+                        if (isUpdatingClientInfo) return;
+                        const previousStatus = serviceData.status;
+                        setIsUpdatingClientInfo(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append("action", "updateService");
+                          formData.append("serviceId", serviceId);
+                          formData.append("status", "Proceed Repair");
+                          await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
+
+                          setUpdateStatus("Proceed Repair");
+                          setServiceData({ ...serviceData, status: "Proceed Repair" });
+
+                          await logActivity({
+                            serviceId,
+                            activity: `Approved repair (status: ${previousStatus} → Proceed Repair)`,
+                            username: sessionStorage.getItem("name") || "Unknown",
+                            role: sessionStorage.getItem("role") || "admin",
+                          });
+
+                          notifyServiceStatusChange(
+                            {
+                              serviceId,
+                              clientName: serviceData.clientName || "",
+                              technician: serviceData.technician || "",
+                              adminRep: serviceData.adminRep || "",
+                              device: serviceData.device || serviceData.deviceType,
+                            },
+                            previousStatus,
+                            "Proceed Repair",
+                            sessionStorage.getItem("name") || "Unknown",
+                          );
+
+                          toast({ title: "Approved", description: "Service moved to Proceed Repair." });
+                        } catch (err: any) {
+                          toast({
+                            title: "Error",
+                            description: err?.message || "Failed to approve",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsUpdatingClientInfo(false);
+                        }
+                      }}
+                      className="w-full"
+                      disabled={isUpdatingClientInfo}
+                    >
+                      {isUpdatingClientInfo ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Approving...</>
+                      ) : (
+                        "Approve"
+                      )}
+                    </Button>
+                  </div>
+                )}
 
                 <Separator />
 
@@ -1654,6 +1729,19 @@ const ManageClient = () => {
                   />
                 )}
 
+                {/* AI Service Report shown below photos when client is being advised */}
+                {serviceData?.status === "Done Repair - Advise Client" && (
+                  <>
+                    {serviceData?.deviceReportFolderUrl && (
+                      <DeviceReportViewer
+                        folderUrl={serviceData.deviceReportFolderUrl}
+                        serviceId={serviceId}
+                      />
+                    )}
+                    <AiReportCard report={updateServiceReport} />
+                  </>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="services">Service/s:</Label>
                   <Textarea
@@ -1845,6 +1933,7 @@ const ManageClient = () => {
               </CardContent>
             </Card>
           </div>
+          </>
         )}
 
         {/* Footer */}

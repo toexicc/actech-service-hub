@@ -119,10 +119,7 @@ const ServiceTracker = () => {
       case "Ongoing Service":
       case "Done Repair - Observation":
       case "Done Repair - Advise Client":
-      case "For Payment":
         return "text-green-600 font-medium";
-      case "For Pickup":
-        return "text-yellow-600 font-medium";
       case "Completed":
         return "text-orange-600 font-medium";
       case "Backjob":
@@ -152,8 +149,6 @@ const ServiceTracker = () => {
       "Done Repair - For Release",
       "Done Repair - Advise Client",
       "Done Repair - Advice Client",
-      "For Payment",
-      "For Pickup",
       "On Hold",
       "RTO",
       "Backjob"

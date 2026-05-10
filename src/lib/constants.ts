@@ -99,8 +99,6 @@ export const STATUS_OPTIONS = [
   "Done Repair - Under Observation",
   "Done Repair - For Release",
   "Done Repair - Advise Client",
-  "For Payment",
-  "For Pickup",
   "Completed",
   "Backjob",
   "RTO",
