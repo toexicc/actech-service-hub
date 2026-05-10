@@ -1,1 +1,4 @@
 project_id = "zpryngvwbybpshsfeqaz"
+
+[functions.sheets-bridge]
+verify_jwt = false

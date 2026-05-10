@@ -4,8 +4,12 @@
 // 2. Deploy it as a web app
 // 3. Replace YOUR_SCRIPT_ID with your actual script ID
 
+// Legacy export name, now points to the Lovable Cloud sheets-bridge edge function
+// which mimics the old Apps Script API but reads/writes from Supabase.
+const SUPABASE_PROJECT_ID =
+  (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID || "zpryngvwbybpshsfeqaz";
 export const GOOGLE_SHEETS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbzUF13j_X9NfoCLVihDThPcJtp2EoM3TFrb31u3q_nPABhaUMf6vrcX2HioFouWiPt4kg/exec";
+  `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/sheets-bridge`;
 
 // =============================================================================
 // GOOGLE APPS SCRIPT CODE - COPY EVERYTHING BELOW INTO YOUR APPS SCRIPT EDITOR
