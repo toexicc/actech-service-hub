@@ -1004,6 +1004,10 @@ async function serve() {
       if (req.method === "POST") {
         body = await parseBody(req);
         action = action || (body.action as string) || "";
+        // Legacy intake form posts FormData with no explicit action — detect it.
+        if (!action && (body["Service ID"] || body["Client Name"] || body["Chief Complaint"])) {
+          action = "Add Mode";
+        }
       }
 
       switch (action) {
