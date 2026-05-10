@@ -32,7 +32,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
-import { AiReportCard } from "@/components/AiReportCard";
+
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -1730,16 +1730,11 @@ const ManageClient = () => {
                 )}
 
                 {/* AI Service Report shown below photos when client is being advised */}
-                {serviceData?.status === "Done Repair - Advise Client" && (
-                  <>
-                    {serviceData?.deviceReportFolderUrl && (
-                      <DeviceReportViewer
-                        folderUrl={serviceData.deviceReportFolderUrl}
-                        serviceId={serviceId}
-                      />
-                    )}
-                    <AiReportCard report={updateServiceReport} />
-                  </>
+                {serviceData?.status === "Done Repair - Advise Client" && serviceData?.deviceReportFolderUrl && (
+                  <DeviceReportViewer
+                    folderUrl={serviceData.deviceReportFolderUrl}
+                    serviceId={serviceId}
+                  />
                 )}
 
                 <div className="space-y-2">
