@@ -1,12 +1,12 @@
-import { GOOGLE_SHEETS_SCRIPT_URL } from './googleSheets';
-import { sendPushNotification } from './pushNotificationSender';
+import { supabase } from "@/integrations/supabase/client";
+import { sendPushNotification } from "./pushNotificationSender";
 
 export interface Notification {
   id: string;
   userId: string;
   title: string;
   message: string;
-  type: 'service_update' | 'new_inquiry' | 'message' | 'system' | 'part_request' | 'others';
+  type: "service_update" | "new_inquiry" | "message" | "system" | "part_request" | "others";
   read: boolean;
   createdAt: string;
   serviceId?: string;
@@ -21,7 +21,7 @@ export interface Message {
   content: string;
   read: boolean;
   createdAt: string;
-  groupId?: string; // For group messages
+  groupId?: string;
 }
 
 export interface GroupChat {
@@ -33,346 +33,6 @@ export interface GroupChat {
   createdAt: string;
 }
 
-export const fetchNotifications = async (userId: string): Promise<Notification[]> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getNotifications&userId=${encodeURIComponent(userId)}`
-    );
-    const data = await response.json();
-    return data.notifications || data.data || [];
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return [];
-  }
-};
-
-export const markNotificationRead = async (notificationId: string): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'markNotificationRead',
-        notificationId,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error marking notification read:', error);
-    return false;
-  }
-};
-
-export const markAllNotificationsRead = async (userId: string): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'markAllNotificationsRead',
-        userId,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error marking all notifications read:', error);
-    return false;
-  }
-};
-
-export const createNotification = async (
-  notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
-): Promise<boolean> => {
-  try {
-    // Send push notification in parallel (fire-and-forget for background delivery)
-    // This is wrapped in try-catch so failures don't affect the main notification flow
-    try {
-      sendPushNotification({
-        userId: notification.userId,
-        title: notification.title,
-        message: notification.message,
-        data: notification.serviceId ? { serviceId: notification.serviceId } : undefined,
-      });
-    } catch {
-      // Silently ignore push failures
-    }
-
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'createNotification',
-        userId: notification.userId,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        serviceId: notification.serviceId ?? '',
-      }),
-    });
-
-    const rawText = await response.text();
-    let data: any = null;
-    try {
-      data = rawText ? JSON.parse(rawText) : null;
-    } catch {
-      console.error('Error creating notification: non-JSON response', {
-        status: response.status,
-        rawText: rawText?.slice(0, 500),
-      });
-      return false;
-    }
-
-    return data?.success || data?.result === 'success';
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    return false;
-  }
-};
-
-export const fetchMessages = async (userId: string): Promise<Message[]> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getMessages&userId=${encodeURIComponent(userId)}`
-    );
-    const data = await response.json();
-    return data.messages || data.data || [];
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    return [];
-  }
-};
-
-export const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'read'>): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'sendMessage',
-        senderId: message.senderId,
-        senderName: message.senderName,
-        receiverId: message.receiverId,
-        receiverName: message.receiverName,
-        content: message.content,
-        groupId: message.groupId || '',
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error sending message:', error);
-    return false;
-  }
-};
-
-export const markMessageRead = async (messageId: string): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'markMessageRead',
-        messageId,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error marking message read:', error);
-    return false;
-  }
-};
-
-// ============ GROUP CHAT FUNCTIONS ============
-
-export const fetchGroupChats = async (userId: string): Promise<GroupChat[]> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getGroupChats&userId=${encodeURIComponent(userId)}`
-    );
-    const data = await response.json();
-    return data.groups || data.data || [];
-  } catch (error) {
-    console.error('Error fetching group chats:', error);
-    return [];
-  }
-};
-
-export const createGroupChat = async (
-  group: Omit<GroupChat, 'id' | 'createdAt'>
-): Promise<{ success: boolean; groupId?: string }> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'createGroupChat',
-        name: group.name,
-        createdBy: group.createdBy,
-        memberIds: group.memberIds.join(','),
-        memberNames: group.memberNames.join(','),
-      }),
-    });
-    const data = await response.json();
-    return {
-      success: data.success || data.result === 'success',
-      groupId: data.groupId,
-    };
-  } catch (error) {
-    console.error('Error creating group chat:', error);
-    return { success: false };
-  }
-};
-
-export const fetchGroupMessages = async (groupId: string): Promise<Message[]> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getGroupMessages&groupId=${encodeURIComponent(groupId)}`
-    );
-    const data = await response.json();
-    return data.messages || data.data || [];
-  } catch (error) {
-    console.error('Error fetching group messages:', error);
-    return [];
-  }
-};
-
-export const sendGroupMessage = async (
-  groupId: string,
-  senderId: string,
-  senderName: string,
-  content: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'sendGroupMessage',
-        groupId,
-        senderId,
-        senderName,
-        content,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error sending group message:', error);
-    return false;
-  }
-};
-
-export const addGroupMember = async (
-  groupId: string,
-  memberId: string,
-  memberName: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'addGroupMember',
-        groupId,
-        memberId,
-        memberName,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error adding group member:', error);
-    return false;
-  }
-};
-
-export const removeGroupMember = async (
-  groupId: string,
-  memberId: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'removeGroupMember',
-        groupId,
-        memberId,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error removing group member:', error);
-    return false;
-  }
-};
-
-export const leaveGroupChat = async (
-  groupId: string,
-  userId: string
-): Promise<boolean> => {
-  return removeGroupMember(groupId, userId);
-};
-
-// ============ TYPING INDICATOR FUNCTIONS ============
-
-export const setTypingStatus = async (
-  userId: string,
-  conversationId: string,
-  isGroup: boolean
-): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'setTypingStatus',
-        userId,
-        conversationId,
-        isGroup: isGroup.toString(),
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error setting typing status:', error);
-    return false;
-  }
-};
-
-export const getTypingStatus = async (
-  conversationId: string,
-  isGroup: boolean
-): Promise<{ userId: string; timestamp: string }[]> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTypingStatus&conversationId=${encodeURIComponent(conversationId)}&isGroup=${isGroup}`
-    );
-    const data = await response.json();
-    return data.typingUsers || [];
-  } catch (error) {
-    console.error('Error getting typing status:', error);
-    return [];
-  }
-};
-
-export const clearTypingStatus = async (
-  userId: string,
-  conversationId: string
-): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'clearTypingStatus',
-        userId,
-        conversationId,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error clearing typing status:', error);
-    return false;
-  }
-};
-
-// ============ READ RECEIPTS FUNCTIONS ============
-
 export interface ReadReceipt {
   id: string;
   messageId: string;
@@ -381,56 +41,319 @@ export interface ReadReceipt {
   readAt: string;
 }
 
+const mapNotification = (r: any): Notification => ({
+  id: r.id,
+  userId: r.recipient_id ?? "",
+  title: r.title ?? "",
+  message: r.message ?? "",
+  type: (r.category as Notification["type"]) ?? "system",
+  read: !!r.is_read,
+  createdAt: r.created_at ?? "",
+  serviceId: r.service_id ?? undefined,
+});
+
+export const fetchNotifications = async (userId: string): Promise<Notification[]> => {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("recipient_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) return [];
+  return (data ?? []).map(mapNotification);
+};
+
+export const markNotificationRead = async (notificationId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true, read_at: new Date().toISOString() })
+    .eq("id", notificationId);
+  return !error;
+};
+
+export const markAllNotificationsRead = async (userId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true, read_at: new Date().toISOString() })
+    .eq("recipient_id", userId)
+    .eq("is_read", false);
+  return !error;
+};
+
+export const createNotification = async (
+  notification: Omit<Notification, "id" | "createdAt" | "read">
+): Promise<boolean> => {
+  try {
+    sendPushNotification({
+      userId: notification.userId,
+      title: notification.title,
+      message: notification.message,
+      data: notification.serviceId ? { serviceId: notification.serviceId } : undefined,
+    });
+  } catch {}
+
+  const { error } = await supabase.from("notifications").insert({
+    recipient_id: notification.userId,
+    title: notification.title,
+    message: notification.message,
+    category: notification.type,
+    service_id: notification.serviceId ?? null,
+  });
+  return !error;
+};
+
+// ============ MESSAGING (thread-based) ============
+
+export const fetchMessages = async (userId: string): Promise<Message[]> => {
+  if (!userId) return [];
+  const { data: memberships } = await supabase
+    .from("chat_members")
+    .select("thread_id")
+    .eq("user_id", userId);
+  const threadIds = (memberships ?? []).map((m: any) => m.thread_id);
+  if (threadIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .in("thread_id", threadIds)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    senderId: r.sender_id,
+    senderName: r.sender_name ?? "",
+    receiverId: "",
+    receiverName: "",
+    content: r.body ?? "",
+    read: false,
+    createdAt: r.created_at,
+    groupId: r.thread_id,
+  }));
+};
+
+export const sendMessage = async (
+  message: Omit<Message, "id" | "createdAt" | "read">
+): Promise<boolean> => {
+  if (!message.groupId) return false;
+  const { error } = await supabase.from("messages").insert({
+    thread_id: message.groupId,
+    sender_id: message.senderId,
+    sender_name: message.senderName,
+    body: message.content,
+  });
+  return !error;
+};
+
+export const markMessageRead = async (_messageId: string): Promise<boolean> => true;
+
+// ============ GROUP CHATS (chat_threads) ============
+
+export const fetchGroupChats = async (userId: string): Promise<GroupChat[]> => {
+  if (!userId) return [];
+  const { data: memberships } = await supabase
+    .from("chat_members")
+    .select("thread_id")
+    .eq("user_id", userId);
+  const threadIds = (memberships ?? []).map((m: any) => m.thread_id);
+  if (threadIds.length === 0) return [];
+  const { data: threads } = await supabase
+    .from("chat_threads")
+    .select("*")
+    .in("id", threadIds);
+  const { data: allMembers } = await supabase
+    .from("chat_members")
+    .select("thread_id, user_id")
+    .in("thread_id", threadIds);
+
+  const profileIds = Array.from(new Set((allMembers ?? []).map((m: any) => m.user_id)));
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", profileIds.length ? profileIds : ["00000000-0000-0000-0000-000000000000"]);
+  const nameById = new Map((profiles ?? []).map((p: any) => [p.id, p.name]));
+
+  return (threads ?? []).map((t: any) => {
+    const members = (allMembers ?? []).filter((m: any) => m.thread_id === t.id);
+    return {
+      id: t.id,
+      name: t.name ?? "",
+      createdBy: t.created_by ?? "",
+      memberIds: members.map((m: any) => m.user_id),
+      memberNames: members.map((m: any) => nameById.get(m.user_id) ?? ""),
+      createdAt: t.created_at,
+    };
+  });
+};
+
+export const createGroupChat = async (
+  group: Omit<GroupChat, "id" | "createdAt">
+): Promise<{ success: boolean; groupId?: string }> => {
+  const { data: thread, error } = await supabase
+    .from("chat_threads")
+    .insert({ name: group.name, created_by: group.createdBy, is_group: true })
+    .select("id")
+    .single();
+  if (error || !thread) return { success: false };
+  const memberRows = group.memberIds.map((id) => ({ thread_id: thread.id, user_id: id }));
+  if (memberRows.length) await supabase.from("chat_members").insert(memberRows);
+  return { success: true, groupId: thread.id };
+};
+
+export const fetchGroupMessages = async (groupId: string): Promise<Message[]> => {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("thread_id", groupId)
+    .order("created_at", { ascending: true })
+    .limit(500);
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    senderId: r.sender_id,
+    senderName: r.sender_name ?? "",
+    receiverId: "",
+    receiverName: "",
+    content: r.body ?? "",
+    read: false,
+    createdAt: r.created_at,
+    groupId: r.thread_id,
+  }));
+};
+
+export const sendGroupMessage = async (
+  groupId: string,
+  senderId: string,
+  senderName: string,
+  content: string
+): Promise<boolean> => {
+  const { error } = await supabase.from("messages").insert({
+    thread_id: groupId,
+    sender_id: senderId,
+    sender_name: senderName,
+    body: content,
+  });
+  return !error;
+};
+
+export const addGroupMember = async (
+  groupId: string,
+  memberId: string,
+  _memberName: string
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from("chat_members")
+    .insert({ thread_id: groupId, user_id: memberId });
+  return !error;
+};
+
+export const removeGroupMember = async (
+  groupId: string,
+  memberId: string
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from("chat_members")
+    .delete()
+    .eq("thread_id", groupId)
+    .eq("user_id", memberId);
+  return !error;
+};
+
+export const leaveGroupChat = (groupId: string, userId: string) =>
+  removeGroupMember(groupId, userId);
+
+// ============ TYPING ============
+
+export const setTypingStatus = async (
+  userId: string,
+  conversationId: string,
+  _isGroup: boolean
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from("typing_indicators")
+    .upsert({ user_id: userId, thread_id: conversationId, updated_at: new Date().toISOString() }, { onConflict: "user_id,thread_id" });
+  return !error;
+};
+
+export const getTypingStatus = async (
+  conversationId: string,
+  _isGroup: boolean
+): Promise<{ userId: string; timestamp: string }[]> => {
+  const { data, error } = await supabase
+    .from("typing_indicators")
+    .select("user_id, updated_at")
+    .eq("thread_id", conversationId);
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({ userId: r.user_id, timestamp: r.updated_at }));
+};
+
+export const clearTypingStatus = async (
+  userId: string,
+  conversationId: string
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from("typing_indicators")
+    .delete()
+    .eq("user_id", userId)
+    .eq("thread_id", conversationId);
+  return !error;
+};
+
+// ============ READ RECEIPTS ============
+
 export const markGroupMessageRead = async (
   messageId: string,
   userId: string,
-  userName: string
+  _userName: string
 ): Promise<boolean> => {
-  try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: 'POST',
-      body: new URLSearchParams({
-        action: 'markGroupMessageRead',
-        messageId,
-        userId,
-        userName,
-      }),
-    });
-    const data = await response.json();
-    return data.success || data.result === 'success';
-  } catch (error) {
-    console.error('Error marking group message read:', error);
-    return false;
-  }
+  const { error } = await supabase
+    .from("read_receipts")
+    .insert({ message_id: messageId, user_id: userId });
+  return !error;
 };
 
 export const getMessageReadReceipts = async (
   messageId: string
 ): Promise<ReadReceipt[]> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getMessageReadReceipts&messageId=${encodeURIComponent(messageId)}`
-    );
-    const data = await response.json();
-    return data.receipts || data.data || [];
-  } catch (error) {
-    console.error('Error fetching read receipts:', error);
-    return [];
-  }
+  const { data, error } = await supabase
+    .from("read_receipts")
+    .select("*")
+    .eq("message_id", messageId);
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    messageId: r.message_id,
+    userId: r.user_id,
+    userName: "",
+    readAt: r.read_at,
+  }));
 };
 
 export const getGroupMessageReadReceipts = async (
   groupId: string
 ): Promise<Record<string, ReadReceipt[]>> => {
-  try {
-    const response = await fetch(
-      `${GOOGLE_SHEETS_SCRIPT_URL}?action=getGroupReadReceipts&groupId=${encodeURIComponent(groupId)}`
-    );
-    const data = await response.json();
-    // Returns { messageId: [receipts] } format
-    return data.receipts || {};
-  } catch (error) {
-    console.error('Error fetching group read receipts:', error);
-    return {};
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("thread_id", groupId);
+  const msgIds = (msgs ?? []).map((m: any) => m.id);
+  if (msgIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("read_receipts")
+    .select("*")
+    .in("message_id", msgIds);
+  if (error) return {};
+  const out: Record<string, ReadReceipt[]> = {};
+  for (const r of data ?? []) {
+    const rr: ReadReceipt = {
+      id: r.id,
+      messageId: r.message_id,
+      userId: r.user_id,
+      userName: "",
+      readAt: r.read_at,
+    };
+    (out[r.message_id] ||= []).push(rr);
   }
+  return out;
 };
