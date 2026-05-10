@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
+import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
@@ -160,16 +161,16 @@ const ManageClient = () => {
     }
   };
 
-  const handleViewPDF = () => {
-    if (!serviceData?.pdfUrl) {
-      toast({
-        title: "No PDF Available",
-        description: "PDF link not found in database",
-        variant: "destructive",
-      });
+  const handleViewPDF = async () => {
+    // Prefer the new Supabase-stored PDF; fall back to legacy Drive URL.
+    const signed = serviceData?.serviceId
+      ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
+      : null;
+    const url = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview") : null);
+    if (!url) {
+      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
-    const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
     window.open(url, "_blank");
   };
   
@@ -924,6 +925,14 @@ const ManageClient = () => {
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+      // Upload to Supabase Storage in parallel with the legacy bridge call.
+      uploadServicePdf({
+        serviceId,
+        clientName: serviceData.clientName || "",
+        kind: "quotation",
+        blob: pdfBlob,
+      }).catch(() => {});
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
