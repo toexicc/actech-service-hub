@@ -17,6 +17,7 @@ import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
+import { uploadServicePdf } from "@/lib/servicePdfStorage";
 import { DEVICE_TYPES, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
@@ -438,6 +439,15 @@ const ServiceForm = () => {
         method: "POST",
         body: formData,
       });
+
+      // Always upload the generated PDF to Supabase Storage so the
+      // "View PDF" buttons can resolve a signed URL on the new backend.
+      uploadServicePdf({
+        serviceId: finalServiceId,
+        clientName: data.clientName,
+        kind: "intake",
+        blob: pdfBlob,
+      }).catch(() => {});
 
       // CORS can block reading response even on success
       const isResponseOk = response.ok;

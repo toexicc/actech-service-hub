@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { Search, User, FileText, Image as ImageIcon } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
@@ -258,16 +259,13 @@ const ServiceTracking = () => {
     return "bg-white hover:bg-gray-50";
   };
 
-  const handleViewPDF = (pdfUrl: string) => {
-    if (!pdfUrl) {
-      toast({
-        title: "No PDF Available",
-        description: "PDF link not found for this service",
-        variant: "destructive",
-      });
+  const handleViewPDF = async (pdfUrl: string, serviceId?: string) => {
+    const signed = serviceId ? await getServicePdfSignedUrl(serviceId, "intake") : null;
+    const url = signed || (pdfUrl ? normalizeGoogleDrivePdfUrl(pdfUrl, "preview") : null);
+    if (!url) {
+      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
-    const url = normalizeGoogleDrivePdfUrl(pdfUrl, "preview");
     window.open(url, "_blank");
   };
 
@@ -621,19 +619,15 @@ const ServiceTracking = () => {
                               {service.serviceCost ? `Php ${service.serviceCost}` : "N/A"}
                             </TableCell>
                             <TableCell>
-                              {service.pdfUrl ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleViewPDF(service.pdfUrl!)}
-                                  className="text-blue-600 hover:text-blue-700"
-                                >
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  View PDF
-                                </Button>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">N/A</span>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewPDF(service.pdfUrl || "", service.serviceId)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                View PDF
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
