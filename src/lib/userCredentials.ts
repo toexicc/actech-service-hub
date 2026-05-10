@@ -1,7 +1,8 @@
-// User credentials - synced with Google Sheets
-// Management can update passwords through Staff Management interface
-import { GOOGLE_SHEETS_SCRIPT_URL } from "./googleSheets";
-import { applyStaffSalaryOverride, rememberStaffSalary } from "./staffSalaryOverrides";
+// Cloud-backed user credential helpers. Replaces the old Google Sheets flow.
+// Auth itself is handled by Supabase Auth (see useAuth hook + Login page).
+// These helpers exist so Staff Management can keep its CRUD UX unchanged.
+
+import { supabase } from "@/integrations/supabase/client";
 
 export interface UserCredential {
   staffId: string;
@@ -12,262 +13,96 @@ export interface UserCredential {
   department?: string;
   status: "active" | "inactive";
   salary?: string;
-  salaryType?: "fixed" | "service-based";
+  salaryType?: "fixed" | "service-based" | "monthly";
+  userId?: string;
 }
 
-// Built-in fallback admin so the app always has at least one working login,
-// even when the Google Sheet is empty or unreachable (e.g. after a full reset).
-const DEFAULT_ADMIN: UserCredential = {
-  staffId: "ADMIN-001",
-  username: "admin-actech",
-  password: "act3ch2026~*!",
-  name: "AC Tech Admin",
-  role: "management",
-  department: "Management",
-  status: "active",
+const invokeManageStaff = async (body: Record<string, unknown>) => {
+  const { data, error } = await supabase.functions.invoke("manage-staff", { body });
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
 };
 
-// Cache for user credentials loaded from Google Sheets
-let userCredentials: UserCredential[] = [DEFAULT_ADMIN];
-let isLoaded = false;
-
-const ensureDefaultAdmin = () => {
-  if (!userCredentials.some(u => u.username === DEFAULT_ADMIN.username)) {
-    userCredentials.unshift(DEFAULT_ADMIN);
-  }
+const toNumberSalary = (s: string | undefined) => {
+  if (!s) return 0;
+  const n = Number(String(s).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
 };
 
-// Load users from Google Sheets
-export const loadUsersFromSheet = async (): Promise<UserCredential[]> => {
+export const addUser = async (user: UserCredential & { email?: string }) => {
   try {
-    const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-    const data = await response.json();
-    
-    if (data.status === "success" && data.data) {
-      userCredentials = data.data.map((staff: any) => {
-        const normalizedStaff = applyStaffSalaryOverride({
-          staffId: staff.staffId ?? staff["Staff ID"] ?? "",
-          username: staff.username ?? staff["Username"] ?? "",
-          salary: staff.salary ?? staff["Salary"] ?? "",
-          salaryType: staff.salaryType ?? staff["Salary Type"] ?? "",
-        });
-        const staffId = staff.staffId ?? staff["Staff ID"] ?? "";
-        const username = staff.username ?? staff["Username"] ?? "";
-        const password = staff.password ?? staff["Password"] ?? "";
-        const name = staff.name ?? staff["Name"] ?? "";
-        const roleRaw = (staff.role ?? staff["Role"] ?? "").toString().trim().toLowerCase();
-        const department = staff.department ?? staff["Department"] ?? undefined;
-        const statusRaw = (staff.status ?? staff["Status"] ?? "").toString().trim().toLowerCase();
-        const normalizedStatus: "active" | "inactive" = statusRaw.includes("inactive") ? "inactive" : "active";
-
-        return {
-          staffId,
-          username,
-          password,
-          name,
-          role: (roleRaw as "admin" | "technician" | "management") || "management",
-          department,
-          status: normalizedStatus,
-          salary: normalizedStaff.salary || "",
-          salaryType: (normalizedStaff.salaryType as "fixed" | "service-based") || undefined,
-        } as UserCredential;
-      });
-      isLoaded = true;
-    } else {
-      // If Google Sheets fails, keep only the built-in admin
-      userCredentials = [];
-      isLoaded = true;
-    }
-    ensureDefaultAdmin();
-    return userCredentials;
-  } catch {
-    // On error, keep only the built-in admin
-    userCredentials = [];
-    isLoaded = true;
-    ensureDefaultAdmin();
-    return userCredentials;
-  }
-};
-
-export const addUser = async (user: UserCredential) => {
-  try {
-    // Capitalize first letter of role for Google Sheets
-    const capitalizedRole = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
-    
-    const params = new URLSearchParams();
-    params.append("action", "addStaff");
-    params.append("staffId", user.staffId);
-    params.append("username", user.username);
-    params.append("password", user.password);
-    params.append("name", user.name);
-    params.append("role", capitalizedRole);
-    params.append("department", user.department || "");
-    params.append("status", user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase());
-    params.append("salary", user.salary || "");
-    params.append("salaryType", user.salaryType || (user.salary ? "fixed" : "service-based"));
-
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      body: params,
+    const email = (user as any).email || `${user.username}@actech.local`;
+    await invokeManageStaff({
+      action: "create",
+      email,
+      password: user.password,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      department: user.department,
+      staff_id: user.staffId,
+      salary: toNumberSalary(user.salary),
+      salary_type: user.salaryType ?? "monthly",
+      status: user.status,
     });
-
-    let data: any = null;
-    try {
-      data = await response.json();
-    } catch {
-      // Could not parse response (likely CORS), assuming success
-    }
-
-    const isSuccess =
-      (data && (data.status === "success" || data.result === "success")) ||
-      (response.ok && data === null);
-
-    if (isSuccess) {
-      rememberStaffSalary(user, user.salary, user.salaryType || (user.salary ? "fixed" : "service-based"));
-      userCredentials.push(user);
-      return true;
-    }
+    return true;
+  } catch {
     return false;
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg.toLowerCase().includes("failed to fetch")) {
-      // CORS error after successful POST - assume success
-      rememberStaffSalary(user, user.salary, user.salaryType || (user.salary ? "fixed" : "service-based"));
-      userCredentials.push(user);
-      return true;
+  }
+};
+
+export const updateUser = async (
+  usernameOrUserId: string,
+  updates: Partial<UserCredential> & { user_id?: string },
+) => {
+  try {
+    let userId = updates.userId || updates.user_id;
+    if (!userId) {
+      const { data } = await supabase.from("profiles").select("id").eq("username", usernameOrUserId).maybeSingle();
+      userId = data?.id;
     }
+    if (!userId) return false;
+    await invokeManageStaff({
+      action: "update",
+      user_id: userId,
+      name: updates.name,
+      username: updates.username,
+      role: updates.role,
+      department: updates.department,
+      staff_id: updates.staffId,
+      salary: updates.salary !== undefined ? toNumberSalary(updates.salary) : undefined,
+      salary_type: updates.salaryType,
+      status: updates.status,
+      password: updates.password || undefined,
+    });
+    return true;
+  } catch {
     return false;
   }
 };
 
 export const updateUserPassword = async (username: string, newPassword: string) => {
-  const user = userCredentials.find(u => u.username === username);
-  if (user) {
-    user.password = newPassword;
-    return await updateUser(username, { password: newPassword });
-  }
-  return false;
+  return updateUser(username, { password: newPassword });
 };
 
-export const removeUser = async (username: string) => {
+export const removeUser = async (usernameOrUserId: string) => {
   try {
-    const formData = new FormData();
-    formData.append("action", "removeStaff");
-    formData.append("username", username);
-
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: "POST",
-      body: formData,
-    });
-
-    let data: any = null;
-    try {
-      data = await response.json();
-    } catch {
-      // Could not parse response (likely CORS), assuming success
+    let userId = usernameOrUserId;
+    if (!/^[0-9a-f-]{36}$/i.test(usernameOrUserId)) {
+      const { data } = await supabase.from("profiles").select("id").eq("username", usernameOrUserId).maybeSingle();
+      if (!data?.id) return false;
+      userId = data.id;
     }
-
-    const isSuccess =
-      (data && (data.status === "success" || data.result === "success")) ||
-      (response.ok && data === null);
-
-    if (isSuccess) {
-      userCredentials = userCredentials.filter(u => u.username !== username);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg.toLowerCase().includes("failed to fetch")) {
-      // CORS error after successful POST - assume success
-      userCredentials = userCredentials.filter(u => u.username !== username);
-      return true;
-    }
+    await invokeManageStaff({ action: "delete", user_id: userId });
+    return true;
+  } catch {
     return false;
   }
 };
 
-export const findUser = async (username: string, password: string): Promise<UserCredential | undefined> => {
-  if (!isLoaded) {
-    await loadUsersFromSheet();
-  }
-  return userCredentials.find(
-    u => u.username === username && u.password === password && u.status === "active"
-  );
-};
-
-export const getUserByUsername = (username: string): UserCredential | undefined => {
-  return userCredentials.find(u => u.username === username);
-};
-
-export const getAllUsers = async (): Promise<UserCredential[]> => {
-  await loadUsersFromSheet();
-  return userCredentials;
-};
-
-export const updateUser = async (username: string, updates: Partial<UserCredential>) => {
-  if (!isLoaded) {
-    await loadUsersFromSheet();
-  }
-  const user = userCredentials.find(u => u.username === username);
-  if (!user) return false;
-
-  const updatedUser = { ...user, ...updates };
-
-  try {
-    // Capitalize first letter of role for Google Sheets
-    const capitalizedRole = updatedUser.role.charAt(0).toUpperCase() + updatedUser.role.slice(1).toLowerCase();
-    
-    const params = new URLSearchParams();
-    params.append("action", "updateStaff");
-    params.append("staffId", updatedUser.staffId);
-    params.append("username", username);
-    params.append("name", updatedUser.name);
-    params.append("password", updatedUser.password);
-    params.append("role", capitalizedRole);
-    params.append("department", updatedUser.department || "");
-    params.append("status", updatedUser.status.charAt(0).toUpperCase() + updatedUser.status.slice(1).toLowerCase());
-    params.append("salary", updatedUser.salary || "");
-    params.append("salaryType", updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
-
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      body: params,
-    });
-
-    let data: any = null;
-    try {
-      data = await response.json();
-    } catch {
-      // Could not parse response (likely CORS), assuming success
-    }
-
-    const isSuccess =
-      (data && (data.status === "success" || data.result === "success")) ||
-      (response.ok && data === null);
-
-    if (isSuccess) {
-      rememberStaffSalary(updatedUser, updatedUser.salary, updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
-      const index = userCredentials.findIndex(u => u.username === username);
-      if (index !== -1) {
-        userCredentials[index] = updatedUser;
-      }
-      return true;
-    }
-    return false;
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg.toLowerCase().includes("failed to fetch")) {
-      // CORS error after successful POST - assume success
-      rememberStaffSalary(updatedUser, updatedUser.salary, updatedUser.salaryType || (updatedUser.salary ? "fixed" : "service-based"));
-      const index = userCredentials.findIndex(u => u.username === username);
-      if (index !== -1) {
-        userCredentials[index] = updatedUser;
-      }
-      return true;
-    }
-    return false;
-  }
-};
+// Legacy helpers kept as no-ops for compatibility.
+export const loadUsersFromSheet = async (): Promise<UserCredential[]> => [];
+export const findUser = async (): Promise<UserCredential | undefined> => undefined;
+export const getUserByUsername = (): UserCredential | undefined => undefined;
+export const getAllUsers = async (): Promise<UserCredential[]> => [];
