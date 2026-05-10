@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
+import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { Search, User, FileText, Loader2, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClients } from "@/hooks/useClients";
@@ -117,12 +118,14 @@ const CustomerManagement = () => {
     return "bg-gray-100 text-gray-800";
   };
 
-  const handleViewPDF = (pdfUrl: string) => {
-    if (!pdfUrl) {
+  const handleViewPDF = async (pdfUrl: string, serviceId?: string) => {
+    const signed = serviceId ? await getServicePdfSignedUrl(serviceId, "intake") : null;
+    const url = signed || (pdfUrl ? normalizeGoogleDrivePdfUrl(pdfUrl, "preview") : null);
+    if (!url) {
       toast({ title: "No PDF Available", description: "PDF link not found for this service", variant: "destructive" });
       return;
     }
-    window.open(normalizeGoogleDrivePdfUrl(pdfUrl, "preview"), "_blank");
+    window.open(url, "_blank");
   };
 
   return (

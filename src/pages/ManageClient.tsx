@@ -790,6 +790,14 @@ const ManageClient = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large PDF uploads
 
+      // Mirror the regenerated intake PDF into Supabase Storage.
+      uploadServicePdf({
+        serviceId,
+        clientName: serviceData.clientName || "",
+        kind: "intake",
+        blob: pdfBlob,
+      }).catch(() => {});
+
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
