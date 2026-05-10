@@ -99,23 +99,34 @@ const Login = () => {
             <CardHeader className="space-y-1 pb-2 sm:pb-4">
               <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Sign In
+                {mode === "signup" ? "Create Account" : "Sign In"}
               </CardTitle>
-              <CardDescription className="text-sm">Access the team portal</CardDescription>
+              <CardDescription className="text-sm">
+                {mode === "signup" ? "First account becomes the admin" : "Access the team portal"}
+              </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+                {mode === "signup" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="h-10 sm:h-11" />
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@actech.com" className="h-10 sm:h-11" autoComplete="email" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 sm:h-11" autoComplete="current-password" />
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 sm:h-11" autoComplete={mode === "signup" ? "new-password" : "current-password"} />
                 </div>
                 <Button type="submit" className="w-full h-10 sm:h-11 gradient-primary text-primary-foreground hover:opacity-90" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</>) : "Sign In"}
+                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait...</>) : (mode === "signup" ? "Create Account" : "Sign In")}
                 </Button>
+                <button type="button" onClick={() => setMode(mode === "signup" ? "signin" : "signup")} className="w-full text-xs text-muted-foreground hover:text-primary transition-colors">
+                  {mode === "signup" ? "Already have an account? Sign in" : "Need an account? Sign up"}
+                </button>
               </form>
 
               <div className="relative my-4">
