@@ -31,6 +31,7 @@ import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validatio
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
+import { StatusProgressBar } from "@/components/StatusProgressBar";
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -1065,6 +1066,15 @@ const ManageClient = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
+          <>
+          <StatusProgressBar
+            serviceId={serviceData.serviceId || ""}
+            clientName={serviceData.clientName || ""}
+            technician={serviceData.technician}
+            adminRep={serviceData.adminRep}
+            device={serviceData.device || serviceData.deviceType}
+            currentStatus={serviceData.status || ""}
+          />
           <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
             <Card>
