@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,9 @@ interface ServiceRecord {
 }
 
 const ServiceTracking = () => {
-  const [serviceId, setServiceId] = useState("");
+  const { serviceId: routeServiceId } = useParams<{ serviceId?: string }>();
+  const navigate = useNavigate();
+  const [serviceId, setServiceId] = useState(routeServiceId ?? "");
   const [serviceData, setServiceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<"service" | "client">("service");
