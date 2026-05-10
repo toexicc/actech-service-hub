@@ -15,6 +15,8 @@ import { CalendarIcon, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDoneServices } from "@/hooks/useDoneServices";
+import { ChevronRight } from "lucide-react";
+import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 
 const CompletedTransactions = () => {
   const navigate = useNavigate();
@@ -37,6 +39,7 @@ const CompletedTransactions = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [commissionRate, setCommissionRate] = useState(0);
   const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const filteredServices = useMemo(() => {
     return services.filter((service) => {
@@ -347,6 +350,7 @@ const CompletedTransactions = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-8"></TableHead>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Client</TableHead>
@@ -381,8 +385,18 @@ const CompletedTransactions = () => {
                         commission = (profit * commissionRate) / 100;
                       }
                       
+                      const isOpen = expandedRow === service.serviceId;
+                      const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
                       return (
-                        <TableRow key={service.serviceId}>
+                        <>
+                        <TableRow
+                          key={service.serviceId}
+                          className="cursor-pointer"
+                          onClick={() => setExpandedRow(isOpen ? null : service.serviceId)}
+                        >
+                          <TableCell>
+                            <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen && "rotate-90")} />
+                          </TableCell>
                           <TableCell className="font-medium">{service.serviceId}</TableCell>
                           <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
@@ -394,7 +408,7 @@ const CompletedTransactions = () => {
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             {service.department === "Laptop (Screens)" ? (
                               <Input
                                 type="number"
@@ -416,6 +430,18 @@ const CompletedTransactions = () => {
                             )}
                           </TableCell>
                         </TableRow>
+                        {isOpen && (
+                          <TableRow key={`${service.serviceId}-expand`}>
+                            <TableCell colSpan={11} className="bg-muted/10">
+                              <ServiceBreakdownPanel
+                                serviceId={service.serviceId}
+                                totalCost={service.quotedPrice || 0}
+                                defaultTechnicians={techList}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        </>
                       );
                     })}
                   </TableBody>
