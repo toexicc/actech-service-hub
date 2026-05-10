@@ -205,6 +205,7 @@ const SalaryDisbursement = () => {
     }
     setDisbursing(staff.staffId);
     try {
+      const c = computeCalculator(staff);
       const params = new URLSearchParams();
       params.append("action", "disburseSalary");
       params.append("staffId", staff.staffId);
@@ -213,6 +214,18 @@ const SalaryDisbursement = () => {
       params.append("status", "Disbursed");
       params.append("disbursedBy", username);
       params.append("fundSource", fundSource);
+      params.append("periodLabel", salaryPeriod);
+      params.append("monthlySalary", c.monthly.toFixed(2));
+      params.append("workdaysInPeriod", String(workdaysInPeriod));
+      params.append("daysPresent", String(c.days));
+      params.append("dailyRate", c.daily.toFixed(2));
+      params.append("contributionPagibig", c.dPagibig.toFixed(2));
+      params.append("contributionSss", c.dSss.toFixed(2));
+      params.append("contributionPhilhealth", c.dPhilhealth.toFixed(2));
+      params.append("otherDeductions", c.otherDeductions.toFixed(2));
+      params.append("grossPay", c.gross.toFixed(2));
+      params.append("totalDeductions", c.totalDeductions.toFixed(2));
+      params.append("netPay", c.net.toFixed(2));
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       let result: any = null;
@@ -228,6 +241,11 @@ const SalaryDisbursement = () => {
         setBonuses((p) => ({ ...p, [staff.staffId]: "" }));
         setDeductions((p) => ({ ...p, [staff.staffId]: "" }));
         setTechCommissions((p) => ({ ...p, [staff.staffId]: "" }));
+        setDaysPresent((p) => ({ ...p, [staff.staffId]: "" }));
+        setDailyRateOverride((p) => ({ ...p, [staff.staffId]: "" }));
+        setPagibig((p) => ({ ...p, [staff.staffId]: "" }));
+        setSss((p) => ({ ...p, [staff.staffId]: "" }));
+        setPhilhealth((p) => ({ ...p, [staff.staffId]: "" }));
         refetchLogs();
       } else {
         toast({ title: "Error", description: result?.message || "Failed to disburse", variant: "destructive" });
