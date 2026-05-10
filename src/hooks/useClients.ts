@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ClientRecord {
   clientId: string;
@@ -8,9 +8,10 @@ export interface ClientRecord {
   contactNumber: string;
   email: string;
   serviceId: string;
+  address?: string;
 }
 
-interface ClientInquiry {
+export interface ClientInquiry {
   inquiryId: string;
   clientName: string;
   contactNumber: string;
@@ -27,40 +28,60 @@ interface ClientInquiry {
 }
 
 const fetchClients = async (): Promise<ClientRecord[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getClients`);
-  const data = await response.json();
-  if (data.status === "success" && data.clients) {
-    return data.clients;
-  }
-  throw new Error("Failed to load clients");
+  const { data, error } = await supabase
+    .from("clients")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    clientId: r.client_id ?? "",
+    clientName: r.name ?? "",
+    username: r.name ?? "",
+    contactNumber: r.contact_number ?? "",
+    email: r.email ?? "",
+    serviceId: "",
+    address: r.address ?? "",
+  }));
 };
 
 const fetchClientInquiries = async (): Promise<ClientInquiry[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`);
-  const data = await response.json();
-  if (data.status === "success" && data.inquiries) {
-    return data.inquiries;
-  }
-  throw new Error("Failed to load inquiries");
+  const { data, error } = await supabase
+    .from("client_inquiries")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    inquiryId: r.inquiry_id ?? "",
+    clientName: r.client_name ?? "",
+    contactNumber: r.contact_number ?? "",
+    email: r.email ?? "",
+    deviceType: r.device_type ?? "",
+    deviceBrand: r.brand ?? "",
+    deviceModel: r.model ?? "",
+    issueDescription: r.issue_description ?? "",
+    status: r.status ?? "",
+    assignedTo: "",
+    dateSubmitted: r.created_at ?? "",
+    lastUpdated: r.updated_at ?? "",
+    remarks: r.notes ?? "",
+  }));
 };
 
-export const useClients = () => {
-  return useQuery({
-    queryKey: ["clients"],
-    queryFn: fetchClients,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-};
+export const useClients = () => useQuery({
+  queryKey: ["clients"],
+  queryFn: fetchClients,
+  staleTime: 2 * 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+});
 
-export const useClientInquiries = () => {
-  return useQuery({
-    queryKey: ["clientInquiries"],
-    queryFn: fetchClientInquiries,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
-};
+export const useClientInquiries = () => useQuery({
+  queryKey: ["clientInquiries"],
+  queryFn: fetchClientInquiries,
+  staleTime: 60 * 1000,
+  gcTime: 5 * 60 * 1000,
+});
 
 export const useInvalidateClients = () => {
   const queryClient = useQueryClient();

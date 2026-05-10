@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DoneService {
   serviceId: string;
@@ -14,50 +14,32 @@ interface DoneService {
 }
 
 const fetchDoneServices = async (): Promise<DoneService[]> => {
-  const [doneRes, staffRes] = await Promise.all([
-    fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getDoneServices`),
-    fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`),
-  ]);
-  const [doneData, staffData] = await Promise.all([
-    doneRes.json(),
-    staffRes.json(),
-  ]);
-
-  if (doneData.status === "success" && doneData.services) {
-    let servicesWithDept = doneData.services as DoneService[];
-
-    // Enrich missing department from Staff Management
-    if (staffData?.status === "success" && Array.isArray(staffData.data)) {
-      const deptByTech = new Map<string, string>();
-      for (const staff of staffData.data) {
-        const role = (staff.role ?? staff["Role"] ?? "").toString().trim();
-        if (role === "Technician") {
-          const name = staff.name ?? staff["Name"] ?? "";
-          const dept = staff.department ?? staff["Department"] ?? "";
-          if (name) deptByTech.set(name, dept);
-        }
-      }
-      servicesWithDept = servicesWithDept.map((s: any) => {
-        const existing = (s.department || "").toString().trim();
-        const isInvalid = !existing || existing === "N/A" || /^\d+$/.test(existing);
-        const enriched = isInvalid ? deptByTech.get(s.technician) || existing : existing;
-        return { ...s, department: enriched || "" } as DoneService;
-      });
-    }
-
-    return servicesWithDept;
-  }
-  throw new Error("Failed to load done services");
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .eq("status", "Completed")
+    .order("date_completed", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    serviceId: r.service_id ?? "",
+    timestamp: r.date_completed ?? r.last_updated ?? "",
+    technician: Array.isArray(r.technicians) ? r.technicians.join(", ") : "",
+    department: Array.isArray(r.technician_departments) ? r.technician_departments.join(", ") : "",
+    clientName: r.client_name ?? "",
+    service: r.service ?? "",
+    quotedPrice: Number(r.total_cost ?? 0),
+    discount: 0,
+    partsCost: 0,
+  }));
 };
 
-export const useDoneServices = () => {
-  return useQuery({
-    queryKey: ["doneServices"],
-    queryFn: fetchDoneServices,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-};
+export const useDoneServices = () => useQuery({
+  queryKey: ["doneServices"],
+  queryFn: fetchDoneServices,
+  staleTime: 2 * 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+});
 
 export const useInvalidateDoneServices = () => {
   const queryClient = useQueryClient();
