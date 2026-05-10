@@ -335,7 +335,7 @@ const ServiceTracking = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
+                <Button onClick={() => handleSearch()} disabled={isLoading} className="w-full mt-6">
                   {isLoading ? "Searching..." : "Track Service"}
                 </Button>
               </CardContent>
