@@ -619,19 +619,15 @@ const ServiceTracking = () => {
                               {service.serviceCost ? `Php ${service.serviceCost}` : "N/A"}
                             </TableCell>
                             <TableCell>
-                              {service.pdfUrl ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleViewPDF(service.pdfUrl!)}
-                                  className="text-blue-600 hover:text-blue-700"
-                                >
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  View PDF
-                                </Button>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">N/A</span>
-                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewPDF(service.pdfUrl || "", service.serviceId)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                View PDF
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}

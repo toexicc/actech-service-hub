@@ -313,13 +313,9 @@ const CustomerManagement = () => {
                                 <TableCell>{service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "N/A"}</TableCell>
                                 <TableCell className="font-semibold">{service.serviceCost ? `Php ${service.serviceCost}` : "N/A"}</TableCell>
                                 <TableCell>
-                                  {service.pdfUrl ? (
-                                    <Button size="sm" variant="outline" onClick={() => handleViewPDF(service.pdfUrl!)}>
-                                      <FileText className="h-4 w-4 mr-1" /> View PDF
-                                    </Button>
-                                  ) : (
-                                    <span className="text-muted-foreground text-sm">N/A</span>
-                                  )}
+                                  <Button size="sm" variant="outline" onClick={() => handleViewPDF(service.pdfUrl || "", service.serviceId)}>
+                                    <FileText className="h-4 w-4 mr-1" /> View PDF
+                                  </Button>
                                 </TableCell>
                               </TableRow>
                             ))}
