@@ -26,7 +26,7 @@ import {
 import { useMessaging } from '@/hooks/useMessaging';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { parseManilaDate } from '@/lib/timezone';
-import { GOOGLE_SHEETS_SCRIPT_URL } from '@/lib/googleSheets';
+
 import { setTypingStatus, clearTypingStatus, getTypingStatus, markGroupMessageRead, getGroupMessageReadReceipts, ReadReceipt } from '@/lib/notifications';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
