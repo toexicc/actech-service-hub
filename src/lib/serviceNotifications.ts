@@ -124,6 +124,17 @@ const getStatusNotificationMessages = (
   }
 };
 
+// Public helper used by UI (StatusProgressBar) to show a role-aware "what to do next" message.
+export const getStatusGuidance = (
+  newStatus: string,
+  service: ServiceInfo,
+  role: 'admin' | 'management' | 'technician',
+): string => {
+  const messages = getStatusNotificationMessages(newStatus, service, '');
+  if (role === 'technician') return messages.technicianMessage || messages.adminMessage || '';
+  return messages.adminMessage || messages.technicianMessage || '';
+};
+
 // Notify about service status change
 export const notifyServiceStatusChange = async (
   service: ServiceInfo,
