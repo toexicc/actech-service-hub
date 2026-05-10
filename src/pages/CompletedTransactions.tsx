@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { displayDate } from "@/lib/timezone";
@@ -388,9 +388,8 @@ const CompletedTransactions = () => {
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
                       return (
-                        <>
+                        <Fragment key={service.serviceId}>
                         <TableRow
-                          key={service.serviceId}
                           className="cursor-pointer"
                           onClick={() => setExpandedRow(isOpen ? null : service.serviceId)}
                         >
