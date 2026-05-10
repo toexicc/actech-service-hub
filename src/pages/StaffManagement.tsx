@@ -377,14 +377,27 @@ const StaffManagement = () => {
             <CardContent>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="username">Username *</Label>
+                  <Label htmlFor="email">Email (used for sign-in) *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="off"
+                    value={newStaff.email}
+                    onChange={(e) =>
+                      setNewStaff({ ...newStaff, email: e.target.value })
+                    }
+                    placeholder="name@actech.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="username">Display Username (optional)</Label>
                   <Input
                     id="username"
                     value={newStaff.username}
                     onChange={(e) =>
                       setNewStaff({ ...newStaff, username: e.target.value })
                     }
-                    placeholder="Enter username"
+                    placeholder="Defaults to email"
                   />
                 </div>
                 <div>
