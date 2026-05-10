@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InventoryItem {
   partId: string;
@@ -35,63 +35,67 @@ interface InventoryLog {
 }
 
 const fetchInventory = async (): Promise<InventoryItem[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryFull`);
-  const data = await response.json();
-
-  // Support multiple response shapes from Apps Script
-  const items: any[] =
-    (data?.inventory ?? data?.data ?? data?.items ?? (data?.parts ?? null)) || [];
-
-  if (data?.status === "success" && Array.isArray(items)) {
-    return items.map((item) => ({
-      ...item,
-      // Normalize partType key variants
-      partType:
-        item?.partType ??
-        item?.part_type ??
-        item?.PartType ??
-        item?.["Part Type"] ??
-        item?.["part type"] ??
-        "",
-      // Normalize color key variants
-      color:
-        item?.color ??
-        item?.Color ??
-        item?.["Color"] ??
-        "",
-    })) as InventoryItem[];
-  }
-
-  throw new Error("Failed to load inventory");
+  const { data, error } = await supabase
+    .from("inventory_parts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    partId: r.part_id ?? "",
+    partName: r.part_name ?? "",
+    deviceType: r.category ?? "",
+    brand: r.brand ?? "",
+    model: r.device_model ?? "",
+    partType: r.part_type ?? "",
+    color: "",
+    quantity: Number(r.quantity ?? 0),
+    dateOrdered: "",
+    supplier: r.supplier ?? "",
+    costPerUnit: String(r.cost_price ?? 0),
+    status: r.status ?? "In Stock",
+    lastUpdated: r.updated_at ?? "",
+    remarks: r.notes ?? "",
+  }));
 };
 
 const fetchInventoryLogs = async (): Promise<InventoryLog[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getInventoryLogs`);
-  const data = await response.json();
-  if (data.status === "success" && data.logs) {
-    return data.logs;
-  }
-  throw new Error("Failed to load inventory logs");
+  const { data, error } = await supabase
+    .from("part_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    logId: r.id,
+    partId: r.part_id ?? "",
+    partName: "",
+    deviceType: "",
+    transactionType: r.action ?? "",
+    quantityChanged: String(r.quantity ?? 0),
+    previousQuantity: "",
+    newQuantity: "",
+    dateTime: r.created_at ?? "",
+    remarks: r.notes ?? "",
+    username: r.performed_by_name ?? "",
+    role: "",
+  }));
 };
 
-export const useInventory = (enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ["inventory"],
-    queryFn: fetchInventory,
-    enabled,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-};
+export const useInventory = (enabled: boolean = true) => useQuery({
+  queryKey: ["inventory"],
+  queryFn: fetchInventory,
+  enabled,
+  staleTime: 2 * 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+});
 
-export const useInventoryLogs = () => {
-  return useQuery({
-    queryKey: ["inventoryLogs"],
-    queryFn: fetchInventoryLogs,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-};
+export const useInventoryLogs = () => useQuery({
+  queryKey: ["inventoryLogs"],
+  queryFn: fetchInventoryLogs,
+  staleTime: 2 * 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+});
 
 export const useInvalidateInventory = () => {
   const queryClient = useQueryClient();

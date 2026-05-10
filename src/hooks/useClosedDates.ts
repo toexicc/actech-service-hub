@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ClosedDate {
   rowIndex: number;
@@ -15,24 +15,32 @@ export interface ClosedDate {
 }
 
 async function fetchClosedDates(): Promise<ClosedDate[]> {
-  const url = `${GOOGLE_SHEETS_SCRIPT_URL}?action=getClosedDates`;
-  const response = await fetch(url);
-  const data = await response.json();
-  
-  if (data.status === "success") {
-    return data.data || [];
-  }
-  
-  throw new Error(data.message || "Failed to fetch closed dates");
+  const { data, error } = await supabase
+    .from("closed_dates")
+    .select("*")
+    .order("closed_date", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map((r: any, idx: number) => ({
+    rowIndex: idx,
+    id: r.id,
+    startDate: r.closed_date ?? "",
+    endDate: r.closed_date ?? "",
+    type: "Holiday",
+    customType: "",
+    description: r.reason ?? "",
+    createdBy: r.created_by ?? "",
+    createdAt: r.created_at ?? "",
+    lastUpdated: r.created_at ?? "",
+  }));
 }
 
 export function useClosedDates() {
-  const query = useQuery({
+  return useQuery({
     queryKey: ["closedDates"],
     queryFn: fetchClosedDates,
     staleTime: 5 * 60 * 1000,
   });
-  return query;
 }
 
 export function useInvalidateClosedDates() {
