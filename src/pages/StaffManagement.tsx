@@ -86,6 +86,7 @@ const StaffManagement = () => {
   const itemsPerPage = 10;
 
   const [newStaff, setNewStaff] = useState({
+    email: "",
     username: "",
     password: "",
     name: "",
@@ -108,10 +109,19 @@ const StaffManagement = () => {
   const handleAddStaff = async () => {
     if (isAddingStaff) return; // Prevent double-click
     
-    if (!newStaff.username || !newStaff.password || !newStaff.name || !newStaff.role) {
+    if (!newStaff.email || !newStaff.password || !newStaff.name || !newStaff.role) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in email, password, name, and role",
+        variant: "destructive",
+      });
+      return;
+    }
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newStaff.email);
+    if (!emailOk) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address used for sign-in",
         variant: "destructive",
       });
       return;
@@ -152,12 +162,13 @@ const StaffManagement = () => {
       return;
     }
 
-    // Check if username already exists
-    const existingUser = staffList.find((s) => s.username === newStaff.username);
+    // Check if username already exists (only if provided)
+    const usernameToUse = newStaff.username || newStaff.email;
+    const existingUser = staffList.find((s) => s.username === usernameToUse);
     if (existingUser) {
       toast({
-        title: "Username Exists",
-        description: "This username is already taken",
+        title: "Username/Email Exists",
+        description: "This username or email is already in use",
         variant: "destructive",
       });
       return;
@@ -172,7 +183,8 @@ const StaffManagement = () => {
 
       const success = await addUser({
         staffId: staffId,
-        username: newStaff.username,
+        email: newStaff.email,
+        username: usernameToUse,
         password: newStaff.password,
         name: newStaff.name,
         role: newStaff.role,
@@ -191,6 +203,7 @@ const StaffManagement = () => {
         });
         
         setNewStaff({
+          email: "",
           username: "",
           password: "",
           name: "",
@@ -364,14 +377,27 @@ const StaffManagement = () => {
             <CardContent>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="username">Username *</Label>
+                  <Label htmlFor="email">Email (used for sign-in) *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="off"
+                    value={newStaff.email}
+                    onChange={(e) =>
+                      setNewStaff({ ...newStaff, email: e.target.value })
+                    }
+                    placeholder="name@actech.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="username">Display Username (optional)</Label>
                   <Input
                     id="username"
                     value={newStaff.username}
                     onChange={(e) =>
                       setNewStaff({ ...newStaff, username: e.target.value })
                     }
-                    placeholder="Enter username"
+                    placeholder="Defaults to email"
                   />
                 </div>
                 <div>
