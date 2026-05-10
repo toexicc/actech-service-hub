@@ -15,6 +15,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { Search, User, FileText, Image as ImageIcon } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
+import { AiReportCard } from "@/components/AiReportCard";
 
 interface CustomerData {
   clientId: string;
@@ -504,6 +505,13 @@ const ServiceTracking = () => {
                     </div>
                   )}
                 </div>
+              )}
+
+              {serviceData.status === "Done Repair - Advise Client" && serviceData.aiReport && (
+                <>
+                  <Separator />
+                  <AiReportCard report={serviceData.aiReport} />
+                </>
               )}
 
               <Separator />
