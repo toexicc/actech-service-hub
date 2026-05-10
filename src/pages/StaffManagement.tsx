@@ -69,7 +69,7 @@ const StaffManagement = () => {
       department: staff.department,
       status: staff.status?.toLowerCase() as "active" | "inactive",
       salary: staff.salary || "",
-      salaryType: ((staff as any).salaryType as "fixed" | "service-based" | undefined) || (staff.salary ? "fixed" : "service-based"),
+      salaryType: ((staff as any).salaryType as "monthly" | "service-based" | undefined) || (staff.salary ? "monthly" : "service-based"),
     }));
   }, [staffData]);
 
@@ -93,7 +93,7 @@ const StaffManagement = () => {
     role: "" as "admin" | "technician" | "management",
     department: "",
     status: "active" as "active" | "inactive",
-    salaryType: "service-based" as "fixed" | "service-based",
+    salaryType: "service-based" as "monthly" | "service-based",
     salary: "",
   });
 
@@ -136,7 +136,7 @@ const StaffManagement = () => {
       return;
     }
 
-    if (newStaff.salaryType === "fixed") {
+    if (newStaff.salaryType === "monthly") {
       const amt = parseFloat(String(newStaff.salary).replace(/[^0-9.\-]/g, ""));
       if (!amt || amt <= 0) {
         toast({
@@ -177,7 +177,7 @@ const StaffManagement = () => {
     setIsAddingStaff(true);
     
     try {
-      const fixedSalaryAmount = newStaff.salaryType === "fixed"
+      const fixedSalaryAmount = newStaff.salaryType === "monthly"
         ? String(parseFloat(String(newStaff.salary).replace(/[^0-9.\-]/g, "")) || 0)
         : "";
 
@@ -258,16 +258,16 @@ const StaffManagement = () => {
     }
   };
 
-  const [editSalaryType, setEditSalaryType] = useState<"fixed" | "service-based">("service-based");
+  const [editSalaryType, setEditSalaryType] = useState<"monthly" | "service-based">("service-based");
 
   const handleEditStaff = (staff: UserCredential) => {
     setSelectedStaff({ ...staff });
-    const explicitType = (staff as any).salaryType as "fixed" | "service-based" | undefined;
-    if (explicitType === "fixed" || explicitType === "service-based") {
+    const explicitType = (staff as any).salaryType as "monthly" | "service-based" | undefined;
+    if (explicitType === "monthly" || explicitType === "service-based") {
       setEditSalaryType(explicitType);
     } else {
       const hasSalary = !!(staff as any).salary && parseFloat(String((staff as any).salary).replace(/[^0-9.\-]/g, "")) > 0;
-      setEditSalaryType(hasSalary ? "fixed" : "service-based");
+      setEditSalaryType(hasSalary ? "monthly" : "service-based");
     }
     setEditDialogOpen(true);
   };
@@ -293,7 +293,7 @@ const StaffManagement = () => {
       return;
     }
 
-    if (editSalaryType === "fixed") {
+    if (editSalaryType === "monthly") {
       const amt = parseFloat(String((selectedStaff as any).salary || "").replace(/[^0-9.\-]/g, ""));
       if (!amt || amt <= 0) {
         toast({
@@ -307,7 +307,7 @@ const StaffManagement = () => {
 
     setIsUpdatingStaff(true);
     try {
-      const salaryToSave = editSalaryType === "fixed"
+      const salaryToSave = editSalaryType === "monthly"
         ? String(parseFloat(String((selectedStaff as any).salary).replace(/[^0-9.\-]/g, "")) || 0)
         : "";
 
@@ -482,7 +482,7 @@ const StaffManagement = () => {
                   <Label htmlFor="salaryType">Salary Type</Label>
                   <Select
                     value={newStaff.salaryType}
-                    onValueChange={(value: "fixed" | "service-based") =>
+                    onValueChange={(value: "monthly" | "service-based") =>
                       setNewStaff({ ...newStaff, salaryType: value, salary: value === "service-based" ? "" : newStaff.salary })
                     }
                   >
@@ -491,11 +491,11 @@ const StaffManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="service-based">Service Based</SelectItem>
-                      <SelectItem value="fixed">Fixed</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {newStaff.salaryType === "fixed" && (
+                {newStaff.salaryType === "monthly" && (
                   <div>
                     <Label htmlFor="salary">Salary Amount</Label>
                     <Input
@@ -611,7 +611,7 @@ const StaffManagement = () => {
                             </span>
                           </TableCell>
                           <TableCell>{staff.department || "-"}</TableCell>
-                          <TableCell>{((staff as any).salaryType === "fixed" || (!((staff as any).salaryType) && (staff as any).salary)) ? `Php ${parseFloat((staff as any).salary || "0").toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "Service Based"}</TableCell>
+                          <TableCell>{((staff as any).salaryType === "monthly" || (!((staff as any).salaryType) && (staff as any).salary)) ? `Php ${parseFloat((staff as any).salary || "0").toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "Service Based"}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -826,7 +826,7 @@ const StaffManagement = () => {
                     <Label htmlFor="edit-salaryType">Salary Type</Label>
                     <Select
                       value={editSalaryType}
-                      onValueChange={(value: "fixed" | "service-based") => {
+                      onValueChange={(value: "monthly" | "service-based") => {
                         setEditSalaryType(value);
                         if (value === "service-based") {
                           setSelectedStaff({ ...selectedStaff, salary: "" } as any);
@@ -838,11 +838,11 @@ const StaffManagement = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="service-based">Service Based</SelectItem>
-                        <SelectItem value="fixed">Fixed</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  {editSalaryType === "fixed" && (
+                  {editSalaryType === "monthly" && (
                     <div>
                       <Label htmlFor="edit-salary">Salary Amount</Label>
                       <Input
