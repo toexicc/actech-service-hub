@@ -29,8 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { corsSafePost } from "@/lib/corsPostHandler";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
 import { useInvalidateClosedDates, ClosedDate } from "@/hooks/useClosedDates";
 
 interface ClosedDateModalProps {
@@ -113,26 +112,30 @@ export function ClosedDateModal({ open, onOpenChange, editData }: ClosedDateModa
 
     setIsSubmitting(true);
 
-    const formData = new FormData();
-    formData.append("action", isEditing ? "updateClosedDate" : "addClosedDate");
-    
-    if (isEditing && editData) {
-      formData.append("rowIndex", String(editData.rowIndex));
-      formData.append("id", editData.id);
-    }
-
-    formData.append("startDate", formatDateForSheet(startDate));
-    formData.append("endDate", formatDateForSheet(dateMode === "range" && endDate ? endDate : startDate));
-    formData.append("type", closureType);
-    formData.append("customType", closureType === "Others" ? customType.trim() : "");
-    formData.append("description", description.trim());
-    formData.append("createdBy", sessionStorage.getItem("userFullName") || "Unknown");
-
     try {
-      const result = await corsSafePost(formData);
-      
-      // Treat as success - CORS issues often prevent reading the response
-      // but the data is usually posted successfully
+      const reasonText = `${closureType}${closureType === "Others" && customType ? ` (${customType.trim()})` : ""}: ${description.trim()}`;
+      const start = startDate;
+      const end = dateMode === "range" && endDate ? endDate : startDate;
+      const dates: string[] = [];
+      const cur = new Date(start);
+      while (cur <= end) {
+        dates.push(format(cur, "yyyy-MM-dd"));
+        cur.setDate(cur.getDate() + 1);
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (isEditing && editData) {
+        const { error } = await supabase
+          .from("closed_dates")
+          .update({ closed_date: dates[0], reason: reasonText })
+          .eq("id", editData.id);
+        if (error) throw error;
+      } else {
+        const rows = dates.map((d) => ({ closed_date: d, reason: reasonText, created_by: user?.id ?? null }));
+        const { error } = await supabase.from("closed_dates").insert(rows);
+        if (error) throw error;
+      }
+
       toast({
         title: isEditing ? "Closed date updated" : "Closed date added",
         description: isEditing ? "The closure has been updated successfully." : "The closure has been added successfully.",
@@ -140,7 +143,6 @@ export function ClosedDateModal({ open, onOpenChange, editData }: ClosedDateModa
       await invalidateClosedDates();
       onOpenChange(false);
     } catch (error) {
-      // Only show error for true failures, not CORS issues
       console.error("Error saving closed date:", error);
       toast({
         title: "Error",

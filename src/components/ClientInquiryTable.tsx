@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Search, RefreshCw, ExternalLink, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, CalendarIcon } from "lucide-react";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -230,69 +230,42 @@ const ClientInquiryTable = () => {
     
     setIsSaving(true);
     try {
-      const formData = new FormData();
-      formData.append("action", "updateClientInquiry");
-      formData.append("rowIndex", editingInquiry.rowIndex.toString());
-      formData.append("clientId", editForm.clientId || "");
-      formData.append("serviceId", editForm.serviceId || "");
-      formData.append("timestamp", editForm.timestamp || "");
-      formData.append("name", editForm.name || "");
-      formData.append("address", editForm.address || "");
-      formData.append("contactNumber", editForm.contactNumber || "");
-      formData.append("modeOfTransfer", editForm.modeOfTransfer || "");
-      formData.append("device", editForm.device || "");
-      formData.append("initialDiagnosis", editForm.initialDiagnosis || "");
-      formData.append("quotation", editForm.quotation || "");
-      formData.append("pickUpDate", editForm.pickUpDate || "");
-      formData.append("directChatLink", editForm.directChatLink || "");
-      formData.append("preOrder", editForm.preOrder || "");
-      formData.append("initialPayment", editForm.initialPayment || "");
-      formData.append("partId", editForm.partId || "");
-      
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData
-      });
-      
-      let result: any = null;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
-      }
-      
-      const isSuccess =
-        (result && (result.status === "success" || result.result === "success")) ||
-        (response.ok && result === null);
+      const updates: any = {
+        client_name: editForm.name || "",
+        contact_number: editForm.contactNumber || "",
+        mode_of_transfer: editForm.modeOfTransfer || "",
+        issue_description: editForm.initialDiagnosis || "",
+        pre_order: editForm.preOrder || "",
+        initial_payment: Number(editForm.initialPayment) || 0,
+        part_id: editForm.partId || "",
+        service_id: editForm.serviceId || null,
+      };
+      const { error } = await supabase
+        .from("client_inquiries")
+        .update(updates)
+        .eq("id", (editingInquiry as any).id);
+      if (error) throw error;
 
-      if (isSuccess) {
-        // Check if Mode of Transfer changed from TBD/blank to Store Visit or Delivery
-        const oldMode = (editingInquiry.modeOfTransfer || "").trim().toLowerCase();
-        const newMode = (editForm.modeOfTransfer || "").trim().toLowerCase();
-        const wasTBD = oldMode === "" || oldMode === "tbd";
-        const isNowStoreVisitOrDelivery = newMode === "store visit" || newMode === "delivery";
-        
-        if (wasTBD && isNowStoreVisitOrDelivery) {
-          // Send notification to all admin and management users
-          const scheduledDate = editForm.pickUpDate || "Not specified";
-          const modeDisplay = newMode === "store visit" ? "Store Visit" : "Delivery";
-          const diagnosis = editForm.initialDiagnosis || "No diagnosis provided";
-          const directChatLink = editForm.directChatLink || "";
-          
-          // Truncate diagnosis if too long
-          const truncatedDiagnosis = diagnosis.length > 100 
-            ? diagnosis.substring(0, 100) + "..." 
-            : diagnosis;
-          
-          // Get all active admin and management staff members
-          const adminManagementStaff = staffList.filter(
-            (staff) => 
-              (staff.role?.toLowerCase() === "admin" || staff.role?.toLowerCase() === "management") &&
-              staff.status?.toLowerCase() === "active"
-          );
-          
-          // Create notification for each admin/management user
-          const notificationPromises = adminManagementStaff.map((staff) =>
+      const oldMode = (editingInquiry.modeOfTransfer || "").trim().toLowerCase();
+      const newMode = (editForm.modeOfTransfer || "").trim().toLowerCase();
+      const wasTBD = oldMode === "" || oldMode === "tbd";
+      const isNowStoreVisitOrDelivery = newMode === "store visit" || newMode === "delivery";
+
+      if (wasTBD && isNowStoreVisitOrDelivery) {
+        const scheduledDate = editForm.pickUpDate || "Not specified";
+        const modeDisplay = newMode === "store visit" ? "Store Visit" : "Delivery";
+        const diagnosis = editForm.initialDiagnosis || "No diagnosis provided";
+        const directChatLink = editForm.directChatLink || "";
+        const truncatedDiagnosis = diagnosis.length > 100 ? diagnosis.substring(0, 100) + "..." : diagnosis;
+
+        const adminManagementStaff = staffList.filter(
+          (staff) =>
+            (staff.role?.toLowerCase() === "admin" || staff.role?.toLowerCase() === "management") &&
+            staff.status?.toLowerCase() === "active"
+        );
+
+        await Promise.all(
+          adminManagementStaff.map((staff) =>
             createNotification({
               userId: staff.staffId,
               title: "Client Transfer Scheduled",
@@ -300,25 +273,14 @@ const ClientInquiryTable = () => {
               type: "others",
               serviceId: directChatLink ? `chat:${directChatLink}` : undefined,
             })
-          );
-          await Promise.all(notificationPromises);
-        }
-        
-        toast({ title: "Success", description: "Inquiry updated successfully" });
-        setEditDialogOpen(false);
-        await refetch();
-      } else {
-        throw new Error(result?.message || "Update failed");
+          )
+        );
       }
+
+      toast({ title: "Success", description: "Inquiry updated successfully" });
+      setEditDialogOpen(false);
+      await refetch();
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (msg.toLowerCase().includes("failed to fetch")) {
-        console.warn("Update inquiry fetch error (likely CORS after successful POST):", error);
-        toast({ title: "Success", description: "Inquiry updated successfully" });
-        setEditDialogOpen(false);
-        await refetch();
-        return;
-      }
       console.error("Error updating inquiry:", error);
       toast({ title: "Error", description: "Failed to update inquiry", variant: "destructive" });
     } finally {
@@ -333,45 +295,17 @@ const ClientInquiryTable = () => {
 
   const confirmDelete = async () => {
     if (!deletingInquiry || isDeleting) return;
-    
     setIsDeleting(true);
     try {
-      const formData = new FormData();
-      formData.append("action", "deleteClientInquiry");
-      formData.append("rowIndex", deletingInquiry.rowIndex.toString());
-      
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData
-      });
-      
-      let result: any = null;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
-      }
-      
-      const isSuccess =
-        (result && (result.status === "success" || result.result === "success")) ||
-        (response.ok && result === null);
-
-      if (isSuccess) {
-        toast({ title: "Success", description: "Inquiry deleted successfully" });
-        setDeleteDialogOpen(false);
-        fetchInquiries();
-      } else {
-        throw new Error(result?.message || "Delete failed");
-      }
+      const { error } = await supabase
+        .from("client_inquiries")
+        .delete()
+        .eq("id", (deletingInquiry as any).id);
+      if (error) throw error;
+      toast({ title: "Success", description: "Inquiry deleted successfully" });
+      setDeleteDialogOpen(false);
+      fetchInquiries();
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (msg.toLowerCase().includes("failed to fetch")) {
-        console.warn("Delete inquiry fetch error (likely CORS after successful POST):", error);
-        toast({ title: "Success", description: "Inquiry deleted successfully" });
-        setDeleteDialogOpen(false);
-        fetchInquiries();
-        return;
-      }
       console.error("Error deleting inquiry:", error);
       toast({ title: "Error", description: "Failed to delete inquiry", variant: "destructive" });
     } finally {
@@ -381,52 +315,17 @@ const ClientInquiryTable = () => {
 
   const handleToggleAI = async (inquiry: ClientInquiry) => {
     if (togglingAI === inquiry.rowIndex) return;
-    
     setTogglingAI(inquiry.rowIndex);
     const newStatus = inquiry.aiStatus === "ON-AI" ? "OFF-AI" : "ON-AI";
-    
     try {
-      // Use URL-encoded form body (Apps Script reliably reads this via e.parameter)
-      const body = new URLSearchParams({
-        action: "updateClientInquiryAI",
-        rowIndex: inquiry.rowIndex.toString(),
-        aiStatus: newStatus,
-      });
-
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body,
-      });
-      
-      let result: any = null;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.warn("Could not parse response (likely CORS), assuming success:", parseError);
-      }
-      
-      const isSuccess =
-        (result && (result.status === "success" || result.result === "success")) ||
-        (response.ok && result === null);
-
-      if (isSuccess) {
-        // Refetch to get updated data
-        fetchInquiries();
-        toast({ title: "Success", description: `AI ${newStatus === "ON-AI" ? "enabled" : "disabled"}` });
-      } else {
-        throw new Error(result?.message || "Update failed");
-      }
+      const { error } = await supabase
+        .from("client_inquiries")
+        .update({ ai_toggle: newStatus })
+        .eq("id", (inquiry as any).id);
+      if (error) throw error;
+      fetchInquiries();
+      toast({ title: "Success", description: `AI ${newStatus === "ON-AI" ? "enabled" : "disabled"}` });
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (msg.toLowerCase().includes("failed to fetch")) {
-        console.warn("Toggle AI fetch error (likely CORS after successful POST):", error);
-        fetchInquiries();
-        toast({ title: "Success", description: `AI ${newStatus === "ON-AI" ? "enabled" : "disabled"}` });
-        return;
-      }
       console.error("Error toggling AI status:", error);
       toast({ title: "Error", description: "Failed to update AI status", variant: "destructive" });
     } finally {

@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DeviceReportViewerProps {
   folderUrl: string;
@@ -37,35 +37,31 @@ export const DeviceReportViewer = ({ folderUrl, serviceId }: DeviceReportViewerP
 
   useEffect(() => {
     const loadPhotos = async () => {
-      if (!folderUrl) {
+      if (!serviceId) {
         setIsLoading(false);
         return;
       }
-
       try {
-        const folderId = extractFolderIdFromUrl(folderUrl);
-        if (!folderId) {
-          setIsLoading(false);
-          return;
+        const { data: files } = await supabase
+          .from("service_files")
+          .select("storage_path, bucket")
+          .eq("service_id", serviceId)
+          .eq("kind", "device_report" as any);
+        const urls: string[] = [];
+        for (const f of files ?? []) {
+          const { data } = await supabase.storage.from(f.bucket).createSignedUrl(f.storage_path, 60 * 60);
+          if (data?.signedUrl) urls.push(data.signedUrl);
         }
-
-        const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
-        );
-        const data = await response.json();
-
-        if (data.status === "success" && data.photos && data.photos.length > 0) {
-          setPhotoUrls(data.photos);
-        }
-      } catch (error) {
-        // Silently fail - just show folder link
+        setPhotoUrls(urls);
+      } catch {
+        // ignore
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPhotos();
-  }, [folderUrl]);
+  }, [serviceId]);
 
   return (
     <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">

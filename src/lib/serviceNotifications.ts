@@ -1,33 +1,14 @@
 import { createNotification } from './notifications';
-import { GOOGLE_SHEETS_SCRIPT_URL } from './googleSheets';
+import { fetchStaffList, type StaffMember } from './staffList';
 
 interface ServiceInfo {
   serviceId: string;
   clientName: string;
   technician: string;
-  adminRep?: string; // Assigned admin from column C
+  adminRep?: string;
   deviceType?: string;
   device?: string;
 }
-
-interface StaffMember {
-  staffId: string;
-  name: string;
-  role: string;
-  username?: string;
-}
-
-// Fetch staff list to get IDs for notifications
-const fetchStaffList = async (): Promise<StaffMember[]> => {
-  try {
-    const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-    const data = await response.json();
-    return data.staff || data.data || [];
-  } catch (error) {
-    console.error('Error fetching staff list:', error);
-    return [];
-  }
-};
 
 // Normalize staff names like "Kenn Perez - Laptop (Daily Repairs)" -> "Kenn Perez"
 const normalizeStaffName = (name: string): string => {
