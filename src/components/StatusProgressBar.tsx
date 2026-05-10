@@ -47,8 +47,8 @@ export function StatusProgressBar({
   device,
   currentStatus,
 }: StatusProgressBarProps) {
-  const { role } = useAuth();
-  const isTech = role === "technician";
+  const { isTechnician } = useAuth();
+  const isTech = isTechnician;
   const guidance = getStatusGuidance(
     currentStatus,
     { serviceId, clientName, technician: technician ?? "", adminRep, device },
