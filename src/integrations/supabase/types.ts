@@ -768,6 +768,42 @@ export type Database = {
           },
         ]
       }
+      service_breakdowns: {
+        Row: {
+          cost: number
+          created_at: string
+          created_by: string | null
+          id: string
+          service_id: string
+          service_name: string
+          technician_id: string | null
+          technician_name: string
+          updated_at: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          service_id: string
+          service_name?: string
+          technician_id?: string | null
+          technician_name?: string
+          updated_at?: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          service_id?: string
+          service_name?: string
+          technician_id?: string | null
+          technician_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_files: {
         Row: {
           bucket: string
