@@ -17,7 +17,7 @@ const fetchDoneServices = async (): Promise<DoneService[]> => {
   const { data, error } = await supabase
     .from("services")
     .select("*")
-    .eq("status", "Done")
+    .eq("status", "Completed")
     .order("date_completed", { ascending: false })
     .limit(1000);
   if (error) throw error;

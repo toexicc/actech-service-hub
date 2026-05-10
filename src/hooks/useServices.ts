@@ -95,7 +95,7 @@ const fetchAllServices = async (): Promise<ServiceRecord[]> => {
   const { data, error } = await supabase
     .from("services")
     .select("*")
-    .neq("status", "Done")
+    .neq("status", "Completed")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;
