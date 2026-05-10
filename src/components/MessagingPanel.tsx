@@ -123,17 +123,15 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
   useEffect(() => {
     if (!isSheetOpen) return;
 
-    const fetchStaff = async () => {
+    (async () => {
       try {
-        const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getStaffList`);
-        const data = await response.json();
-        const staffData = data.staff || data.data || [];
-        setStaffList(staffData.filter((s: Staff) => s.staffId !== userId && s.username !== username));
+        const { fetchStaffList } = await import('@/lib/staffList');
+        const all = await fetchStaffList();
+        setStaffList(all.filter((s) => s.staffId !== userId && s.username !== username) as any);
       } catch (error) {
         console.error('Error fetching staff:', error);
       }
-    };
-    fetchStaff();
+    })();
   }, [isSheetOpen, userId, username]);
 
   const findStaffById = (id: string) => 

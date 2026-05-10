@@ -10,7 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
+import { mapServiceRow } from "@/hooks/useServices";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { Search, User, FileText, Loader2, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,21 +72,32 @@ const CustomerManagement = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(searchId)}`
-      );
-      const data = await response.json();
-
-      if (data.status === "success" && data.customer) {
-        setCustomerData(data.customer);
-        setServiceRecords(data.services || []);
-        if (!data.services || data.services.length === 0) {
-          toast({ title: "Customer Found", description: "Customer found but no service records available" });
-        }
-      } else {
+      const { data: client } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("client_id", searchId)
+        .maybeSingle();
+      if (!client) {
         toast({ title: "Not Found", description: "No customer found with this Client ID", variant: "destructive" });
         setCustomerData(null);
         setServiceRecords([]);
+        return;
+      }
+      setCustomerData({
+        clientId: client.client_id,
+        clientName: client.name,
+        username: client.name,
+        phone: client.contact_number,
+        email: client.email,
+      } as any);
+      const { data: services } = await supabase
+        .from("services")
+        .select("*")
+        .eq("client_id", searchId)
+        .order("created_at", { ascending: false });
+      setServiceRecords((services ?? []).map(mapServiceRow) as any);
+      if (!services || services.length === 0) {
+        toast({ title: "Customer Found", description: "Customer found but no service records available" });
       }
     } catch {
       toast({ title: "Error", description: "Failed to search for customer", variant: "destructive" });
