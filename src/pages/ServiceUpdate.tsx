@@ -69,6 +69,25 @@ const ServiceUpdate = () => {
   const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [pdfModalTitle, setPdfModalTitle] = useState("Document");
+  const openPdfModal = async (
+    legacy: string | undefined,
+    sid: string | undefined,
+    kind: "intake" | "quotation",
+    title: string,
+  ) => {
+    const signed = sid ? await getServicePdfSignedUrl(sid, kind) : null;
+    const url = signed || (legacy ? normalizeGoogleDrivePdfUrl(legacy, "preview") : null);
+    if (!url) {
+      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
+      return;
+    }
+    setPdfModalUrl(url);
+    setPdfModalTitle(title);
+    setPdfModalOpen(true);
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
