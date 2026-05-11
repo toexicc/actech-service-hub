@@ -527,6 +527,71 @@ const ServiceTracking = () => {
 
               <Separator />
 
+              {/* AI Diagnosis (above forms) */}
+              {showAiDiagnosis && (
+                <>
+                  <AiReportCard report={serviceData.aiDiagnosis} title="AI Diagnosis" />
+
+                  {/* Approve / Decline – only on Waiting to Proceed */}
+                  {isWaitingToProceed && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                      {approvalRecord ? (
+                        <p className="text-sm font-medium text-foreground">
+                          {approvalRecord.decision} by {approvalRecord.by} on{" "}
+                          {(() => { try { return displayDate(approvalRecord.at, "MMM dd, yyyy hh:mm a"); } catch { return approvalRecord.at; } })()}
+                          {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
+                        </p>
+                      ) : declineOpen ? (
+                        <div className="space-y-3">
+                          <Label htmlFor="declineReason">Reason for declining</Label>
+                          <Textarea
+                            id="declineReason"
+                            value={declineReason}
+                            onChange={(e) => setDeclineReason(e.target.value)}
+                            placeholder="Please share why you're declining the diagnosis…"
+                            rows={3}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" onClick={() => { setDeclineOpen(false); setDeclineReason(""); }} disabled={submittingApproval}>
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() => submitApproval(false, declineReason.trim())}
+                              disabled={submittingApproval || !declineReason.trim()}
+                            >
+                              Submit Decline
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Button
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => submitApproval(true)}
+                            disabled={submittingApproval}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Approve Diagnosis
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => setDeclineOpen(true)}
+                            disabled={submittingApproval}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Decline
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Separator />
+                </>
+              )}
+
               {/* PDF Documents Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -561,7 +626,7 @@ const ServiceTracking = () => {
                     <ImageIcon className="h-5 w-5" />
                     Device Report Photos
                   </h3>
-                  
+
                   {loadingPhotos ? (
                     <div className="text-center py-8 text-muted-foreground">
                       Loading photos...
@@ -589,7 +654,7 @@ const ServiceTracking = () => {
                 </div>
               )}
 
-              {serviceData.status === "Done Repair - Advise Client" && serviceData.aiReport && (
+              {showAiReport && (
                 <>
                   <Separator />
                   <AiReportCard report={serviceData.aiReport} />
