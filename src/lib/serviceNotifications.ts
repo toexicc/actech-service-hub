@@ -1,5 +1,28 @@
 import { createNotification } from './notifications';
 import { fetchStaffList, type StaffMember } from './staffList';
+import { supabase } from '@/integrations/supabase/client';
+
+// Sends notifications via the service-role edge function so they reliably
+// land for offline recipients and even when the caller is unauthenticated.
+const sendViaEdge = async (
+  recipients: { userId: string; title: string; message: string; serviceId?: string }[],
+) => {
+  if (!recipients.length) return;
+  try {
+    await supabase.functions.invoke('notify-service-event', { body: { recipients } });
+  } catch {
+    // Fall back to direct insert (best effort)
+    for (const r of recipients) {
+      await createNotification({
+        userId: r.userId,
+        title: r.title,
+        message: r.message,
+        type: 'service_update',
+        serviceId: r.serviceId,
+      });
+    }
+  }
+};
 
 interface ServiceInfo {
   serviceId: string;
