@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS services_updated ON public.services;
