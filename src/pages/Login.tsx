@@ -13,10 +13,8 @@ import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import SplashScreen from "@/components/SplashScreen";
 
 const Login = () => {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
@@ -35,46 +33,13 @@ const Login = () => {
     }
     setIsLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { name: name || email, username: email },
-          },
-        });
-        if (error) {
-          toast({ title: "Sign-up failed", description: error.message, variant: "destructive" });
-        } else {
-          toast({ title: "Account created", description: "You can now sign in." });
-          setMode("signin");
-        }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast({ title: "Sign-in failed", description: error.message, variant: "destructive" });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          toast({ title: "Sign-in failed", description: error.message, variant: "destructive" });
-        } else {
-          navigate("/menu");
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    setIsLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-      if (result.error) {
-        toast({ title: "Google sign-in failed", description: String((result.error as any)?.message ?? result.error), variant: "destructive" });
-        setIsLoading(false);
-      } else if (!result.redirected) {
         navigate("/menu");
       }
-    } catch (e: any) {
-      toast({ title: "Google sign-in failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
       setIsLoading(false);
     }
   };
