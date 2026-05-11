@@ -1675,7 +1675,7 @@ const ManageClient = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
-                          <Label htmlFor="aiReportDisplay">AI Service Report (Column BB):</Label>
+                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
                           <div className="flex gap-2 mb-2">
                             <Button
                               type="button"
