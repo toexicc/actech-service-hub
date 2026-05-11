@@ -51,6 +51,9 @@ const stripMarkdown = (s: string): string =>
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
+  const authResp = await requireAuth(req);
+  if (authResp) return authResp;
+
   try {
     const { rawDiagnosis, customerName, deviceType, model, serviceId } = await req.json();
     if (!rawDiagnosis) {
