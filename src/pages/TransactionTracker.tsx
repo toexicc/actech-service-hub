@@ -398,41 +398,56 @@ const TransactionTracker = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    if (userRole === "admin") {
-      toast({ title: "Pending Request", description: "Delete request sent to management", variant: "default" });
-      setDeleteDialog(false);
+  const handleVoid = async () => {
+    if (!voidTarget) return;
+    if (!voidReason.trim()) {
+      toast({ title: "Reason required", description: "Please enter a reason for voiding this transaction.", variant: "destructive" });
       return;
     }
 
-    setIsDeleting(true);
+    setIsVoiding(true);
     try {
+      const originalAmount = parseCurrency(voidTarget.amount);
+      const voidId = `VOID${Date.now()}`;
       const params = new URLSearchParams();
-      params.append("action", "deleteTransaction");
-      params.append("transactionId", deleteTarget.transactionId);
-      params.append("deletedBy", username);
+      params.append("action", "addTransaction");
+      params.append("transactionId", voidId);
+      params.append("serviceId", voidTarget.serviceId || "");
+      params.append("transactionType", `Void - ${voidTarget.transactionType}`);
+      params.append("modeOfPayment", voidTarget.modeOfPayment || "N/A");
+      params.append("name", voidTarget.name || "");
+      params.append("device", voidTarget.device || "");
+      params.append("amount", (-Math.abs(originalAmount)).toFixed(2));
+      params.append("serviceCost", "0");
+      params.append("attendant", username);
+      params.append("remarks", `Void of ${voidTarget.transactionId}: ${voidReason.trim()}`);
+      params.append("partsCost", "0");
+      params.append("finalCost", "0");
+      params.append("previousPayments", "0");
+      if (voidTarget.fundSource) params.append("fundSource", voidTarget.fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {
-        toast({ title: "Deleted", description: "Transaction removed" });
+        toast({ title: "Voided", description: `Transaction ${voidTarget.transactionId} has been voided.` });
         logActivityAsync({
-          serviceId: deleteTarget.serviceId || "TRACKER",
+          serviceId: voidTarget.serviceId || "TRACKER",
           username,
           role: userRole || "",
-          activity: `Deleted transaction ${deleteTarget.transactionId}`,
+          activity: `Voided transaction ${voidTarget.transactionId} (${voidTarget.transactionType}, ${fmtCurrency(originalAmount)}) — Reason: ${voidReason.trim()}`,
         });
-        setDeleteDialog(false);
+        setVoidDialog(false);
+        setVoidReason("");
+        setVoidTarget(null);
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       } else {
-        toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+        toast({ title: "Error", description: result.message || "Failed to void", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to delete transaction", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to void transaction", variant: "destructive" });
     } finally {
-      setIsDeleting(false);
+      setIsVoiding(false);
     }
   };
 
