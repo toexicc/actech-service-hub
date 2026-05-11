@@ -447,46 +447,47 @@ const SalaryDisbursement = () => {
                       <TableBody>
                         {fixedStaff.map((staff: any) => {
                           const c = computeCalculator(staff);
+                          const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
                           return (
-                            <TableRow key={staff.staffId}>
+                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
                               <TableCell className="font-medium">
                                 <div>{staff.name}</div>
                                 <div className="text-xs text-muted-foreground capitalize">{staff.role}</div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap">{fmtCurrency(c.monthly)}</TableCell>
                               <TableCell>
-                                <Input type="number" step="0.5" placeholder="0" className="w-20"
+                                <Input type="number" step="0.5" placeholder="0" className="w-20" disabled={isDone}
                                   value={daysPresent[staff.staffId] || ""}
                                   onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                                 <div className="text-[10px] text-muted-foreground mt-1">/{workdaysInPeriod}</div>
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24"
+                                <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
                                   value={dailyRateOverride[staff.staffId] || ""}
                                   onChange={(e) => setDailyRateOverride((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={pagibig[staff.staffId] || ""}
                                   onChange={(e) => setPagibig((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={sss[staff.staffId] || ""}
                                   onChange={(e) => setSss((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={philhealth[staff.staffId] || ""}
                                   onChange={(e) => setPhilhealth((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={deductions[staff.staffId] || ""}
                                   onChange={(e) => setDeductions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
@@ -497,10 +498,11 @@ const SalaryDisbursement = () => {
                               <TableCell>
                                 <Button
                                   size="sm"
+                                  variant={isDone ? "secondary" : "default"}
                                   onClick={() => handleDisburse(staff, c.net)}
-                                  disabled={disbursing === staff.staffId || c.net <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
+                                  disabled={disbursing === staff.staffId || c.net <= 0 || isDone}
                                 >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
+                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
                                 </Button>
                               </TableCell>
                             </TableRow>
