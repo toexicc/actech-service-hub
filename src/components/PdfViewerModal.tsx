@@ -35,7 +35,7 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl !flex-col p-0 max-h-[95dvh] gap-0">
+      <DialogContent className="max-w-6xl w-[95vw] !flex-col p-0 h-[95dvh] max-h-[95dvh] gap-0">
         <DialogHeader className="p-4 border-b shrink-0">
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-base">{title}</DialogTitle>
@@ -53,7 +53,7 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
             </div>
           </div>
         </DialogHeader>
-        <div className="relative flex-1 bg-muted overflow-hidden" style={{ minHeight: "70vh" }}>
+        <div className="relative flex-1 min-h-0 bg-muted">
           {!loaded && (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -63,9 +63,9 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
           {url && (
             <iframe
               ref={iframeRef}
-              src={url}
+              src={`${url}${url.includes("#") ? "&" : "#"}toolbar=1&navpanes=0&view=FitH`}
               title={title}
-              className="w-full h-full border-0"
+              className="absolute inset-0 w-full h-full border-0"
               onLoad={() => setLoaded(true)}
             />
           )}
