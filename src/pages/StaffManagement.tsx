@@ -597,6 +597,9 @@ const StaffManagement = () => {
                           <TableCell className="font-medium">
                             {staff.username}
                           </TableCell>
+                          <TableCell className="text-sm">
+                            {(staff as any).email || staff.username || "-"}
+                          </TableCell>
                           <TableCell>{staff.name}</TableCell>
                           <TableCell>
                             <span
