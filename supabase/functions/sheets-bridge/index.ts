@@ -1192,12 +1192,45 @@ async function serve() {
         }
       }
 
+      // Authenticate the caller. Public-tracking actions can run unauthenticated
+      // but their responses are filtered to remove sensitive fields. Everything
+      // else requires a valid JWT, and a few actions also require an admin or
+      // management role.
+      const caller = await authenticateCaller(req);
+      const isPublicAction = PUBLIC_ACTIONS.has(action);
+      if (!caller && !isPublicAction) {
+        return err("Unauthorized", 401);
+      }
+      if (caller && ADMIN_ACTIONS.has(action) && !caller.isAdminOrManagement) {
+        return err("Forbidden", 403);
+      }
+      if (!caller && ADMIN_ACTIONS.has(action)) {
+        return err("Unauthorized", 401);
+      }
+
       switch (action) {
         // GET (read)
-        case "searchService":
-          return await searchService(params.get("serviceId") ?? "");
-        case "searchClient":
-          return await searchClient(params.get("clientId") ?? "");
+        case "searchService": {
+          const resp = await searchService(params.get("serviceId") ?? "");
+          if (caller) return resp;
+          // Public: strip sensitive fields from the JSON body
+          const payload = await resp.json();
+          if (payload?.data) payload.data = stripSensitiveServiceFields(payload.data);
+          return json(payload);
+        }
+        case "searchClient": {
+          const resp = await searchClient(params.get("clientId") ?? "");
+          if (caller) return resp;
+          const payload = await resp.json();
+          if (payload?.customer) {
+            payload.customer = { ...payload.customer, address: "", email: "" };
+            payload.data = payload.customer;
+          }
+          if (Array.isArray(payload?.services)) {
+            payload.services = payload.services.map(stripSensitiveServiceFields);
+          }
+          return json(payload);
+        }
         case "getTransactions":
           return await getTransactions();
         case "getServicePayments":
@@ -1221,6 +1254,7 @@ async function serve() {
           return await formatDiagnosis(params);
         case "formatReport":
           return await formatReport(params);
+
 
         // POST (write)
         case "create":
