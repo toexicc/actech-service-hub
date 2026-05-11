@@ -853,20 +853,34 @@ const TransactionTracker = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Dialog */}
-        <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        {/* Void Dialog */}
+        <Dialog open={voidDialog} onOpenChange={(open) => { setVoidDialog(open); if (!open) { setVoidReason(""); setVoidTarget(null); } }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Transaction</DialogTitle>
+              <DialogTitle className="flex items-center gap-2"><Ban className="h-5 w-5 text-destructive" /> Void Transaction</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this transaction? This action cannot be undone.
+                Voiding posts a reversing entry that cancels this transaction. The original record stays in the books for audit. This cannot be undone.
               </DialogDescription>
             </DialogHeader>
+            {voidTarget && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-sm p-3 rounded-lg bg-muted/50">
+                  <div><span className="text-muted-foreground text-xs">TXN ID:</span> <strong className="font-mono">{voidTarget.transactionId}</strong></div>
+                  <div><span className="text-muted-foreground text-xs">Type:</span> {voidTarget.transactionType}</div>
+                  <div><span className="text-muted-foreground text-xs">Amount:</span> <strong>{fmtCurrency(parseCurrency(voidTarget.amount))}</strong></div>
+                  <div><span className="text-muted-foreground text-xs">MOP:</span> {voidTarget.modeOfPayment}</div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reason for voiding *</Label>
+                  <Textarea value={voidReason} onChange={(e) => setVoidReason(e.target.value)} rows={3} placeholder="e.g. Wrong amount entered, duplicate payment, customer cancellation..." />
+                </div>
+              </div>
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialog(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Delete
+              <Button variant="outline" onClick={() => setVoidDialog(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleVoid} disabled={isVoiding || !voidReason.trim()}>
+                {isVoiding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Ban className="h-4 w-4 mr-1" />}
+                Confirm Void
               </Button>
             </DialogFooter>
           </DialogContent>
