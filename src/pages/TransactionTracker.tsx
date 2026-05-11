@@ -182,7 +182,8 @@ const TransactionTracker = () => {
         case "savings":
           return SAVINGS_TYPES.includes(type) && !isVoid;
         case "logs":
-          return isVoid;
+          // Show ALL transactions (including POS-recorded sales) so admins can audit who processed each
+          return true;
         default:
           return !isVoid;
       }
