@@ -530,7 +530,7 @@ const ServiceTracking = () => {
               {/* AI Diagnosis (above forms) */}
               {showAiDiagnosis && (
                 <>
-                  <AiReportCard report={serviceData.aiDiagnosis} title="AI Diagnosis" />
+                  <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
 
                   {/* Approve / Decline – only on Waiting to Proceed */}
                   {isWaitingToProceed && (
@@ -657,7 +657,7 @@ const ServiceTracking = () => {
               {showAiReport && (
                 <>
                   <Separator />
-                  <AiReportCard report={serviceData.aiReport} />
+                  <AiReportCard report={serviceData.aiReport} title="Service Report" />
                 </>
               )}
 

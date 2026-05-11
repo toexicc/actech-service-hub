@@ -1,100 +1,69 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const ONESIGNAL_APP_ID = "0ba186cc-b8d9-4573-83f1-cc2ea6b9e841";
-const ONESIGNAL_REST_API_KEY = Deno.env.get("ONESIGNAL_REST_API_KEY");
-
+// Sends a OneSignal push to a specific external user id (auth.users.id).
+// Used so assigned techs/admins receive notifications even when offline.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-interface PushNotificationRequest {
-  userId: string;        // The external_user_id set via OneSignal.login()
-  title: string;
-  message: string;
-  url?: string;          // Optional URL to open when notification is clicked
-  data?: Record<string, unknown>; // Optional additional data
-}
+const ONESIGNAL_APP_ID = "0ba186cc-b8d9-4573-83f1-cc2ea6b9e841";
 
-serve(async (req) => {
-  // Handle CORS preflight
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    if (!ONESIGNAL_REST_API_KEY) {
-      console.error("ONESIGNAL_REST_API_KEY is not set");
+    const apiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "ONESIGNAL_REST_API_KEY not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const { userId, title, message, url, data }: PushNotificationRequest = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { userId, userIds, title, message, data, url } = body ?? {};
 
-    if (!userId || !title || !message) {
+    const externalIds: string[] = Array.isArray(userIds)
+      ? userIds.filter((v: unknown) => typeof v === "string" && v.length > 0)
+      : (typeof userId === "string" && userId.length > 0 ? [userId] : []);
+
+    if (externalIds.length === 0 || !title || !message) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: userId, title, message" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "userId(s), title and message are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    console.log(`Sending push notification to user: ${userId}`);
-    console.log(`Title: ${title}`);
-    console.log(`Message: ${message}`);
-
-    // Send push notification via OneSignal REST API
-    const oneSignalPayload: Record<string, unknown> = {
+    const payload: Record<string, unknown> = {
       app_id: ONESIGNAL_APP_ID,
-      include_aliases: {
-        external_id: [userId],
-      },
+      include_aliases: { external_id: externalIds },
       target_channel: "push",
-      headings: { en: title },
-      contents: { en: message },
+      headings: { en: String(title) },
+      contents: { en: String(message) },
+      data: data ?? {},
     };
+    if (url) payload.url = url;
 
-    // Add URL if provided
-    if (url) {
-      oneSignalPayload.url = url;
-    }
-
-    // Add custom data if provided
-    if (data) {
-      oneSignalPayload.data = data;
-    }
-
-    const response = await fetch("https://api.onesignal.com/notifications", {
+    const res = await fetch("https://onesignal.com/api/v1/notifications", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Basic ${ONESIGNAL_REST_API_KEY}`,
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Basic ${apiKey}`,
       },
-      body: JSON.stringify(oneSignalPayload),
+      body: JSON.stringify(payload),
     });
 
-    const responseData = await response.json();
-    console.log("OneSignal API response:", JSON.stringify(responseData));
-
-    if (!response.ok) {
-      console.error("OneSignal API error:", responseData);
-      return new Response(
-        JSON.stringify({ error: "Failed to send push notification", details: responseData }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    const result = await res.json().catch(() => ({}));
+    return new Response(JSON.stringify({ ok: res.ok, result }), {
+      status: res.ok ? 200 : 502,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
     return new Response(
-      JSON.stringify({ success: true, data: responseData }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error: unknown) {
-    console.error("Error in send-push-notification:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: e instanceof Error ? e.message : String(e) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
