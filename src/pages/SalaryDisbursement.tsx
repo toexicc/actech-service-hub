@@ -299,13 +299,13 @@ const SalaryDisbursement = () => {
     try {
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
-      params.append("transactionType", salaryPeriod);
+      params.append("transactionType", "Salary Disbursement");
       params.append("category", "Expenses");
       params.append("amount", totalDisbursed.toFixed(2));
       params.append("description", `${salaryPeriod} - ${disbursedList.length} staff members`);
       params.append("mop", "Bank Transfer");
       params.append("attendant", username);
-      params.append("remarks", disbursedList.map((d) => `${d.staffName}: ${fmtCurrency(d.amount)}`).join("; "));
+      params.append("remarks", `${salaryPeriod}: ` + disbursedList.map((d) => `${d.staffName} (${fmtCurrency(d.amount)})`).join("; "));
       params.append("fundSource", fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
