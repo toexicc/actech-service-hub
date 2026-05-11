@@ -41,7 +41,8 @@ interface DeleteBody {
   action: "delete";
   user_id: string;
 }
-type Body = CreateBody | UpdateBody | DeleteBody;
+interface ListBody { action: "list"; }
+type Body = CreateBody | UpdateBody | DeleteBody | ListBody;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
