@@ -74,6 +74,15 @@ const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
 };
 
 const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Other Banks"];
+const EXPENSE_TYPES = ["Parts Inventory", "Rent", "Miscellaneous Expense", "Salary Disbursement"];
+const REFUND_TYPE = "Refund";
+
+const fetchTransactions = async (): Promise<any[]> => {
+  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTransactions`);
+  const data = await response.json();
+  if (data.status === "success" && data.transactions) return data.transactions;
+  return [];
+};
 
 const SalaryDisbursement = () => {
   const navigate = useNavigate();
@@ -156,6 +165,28 @@ const SalaryDisbursement = () => {
     queryFn: fetchTechnicianServices,
     staleTime: 60 * 1000,
   });
+  const { data: allTransactions = [] } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: fetchTransactions,
+    staleTime: 60 * 1000,
+  });
+
+  // Compute balance per fund from transactions (mirrors TransactionTracker logic)
+  const fundBalances = useMemo(() => {
+    const totals: Record<string, number> = {};
+    FUND_TYPES.forEach((f) => (totals[f] = 0));
+    allTransactions.forEach((t: any) => {
+      const amt = parseCurrency(t.amount);
+      const type = t.transactionType || "";
+      const fundSrc = t.fundSource || "Money In Bank";
+      if (FUND_TYPES.includes(type)) totals[type] = (totals[type] || 0) + amt;
+      if (EXPENSE_TYPES.includes(type) && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
+      if (type === REFUND_TYPE && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
+    });
+    return totals;
+  }, [allTransactions]);
+
+  const selectedFundBalance = fundBalances[fundSource] ?? 0;
 
   // Separate staff
   const fixedStaff = useMemo(() =>
@@ -268,13 +299,13 @@ const SalaryDisbursement = () => {
     try {
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
-      params.append("transactionType", salaryPeriod);
+      params.append("transactionType", "Salary Disbursement");
       params.append("category", "Expenses");
       params.append("amount", totalDisbursed.toFixed(2));
       params.append("description", `${salaryPeriod} - ${disbursedList.length} staff members`);
       params.append("mop", "Bank Transfer");
       params.append("attendant", username);
-      params.append("remarks", disbursedList.map((d) => `${d.staffName}: ${fmtCurrency(d.amount)}`).join("; "));
+      params.append("remarks", `${salaryPeriod}: ` + disbursedList.map((d) => `${d.staffName} (${fmtCurrency(d.amount)})`).join("; "));
       params.append("fundSource", fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
@@ -360,10 +391,21 @@ const SalaryDisbursement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {FUND_TYPES.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f} value={f}>
+                      {f} ({fmtCurrency(fundBalances[f] ?? 0)})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Balance: </span>
+                <span className={cn("font-semibold", selectedFundBalance <= 0 ? "text-destructive" : "text-foreground")}>
+                  {fmtCurrency(selectedFundBalance)}
+                </span>
+                {selectedFundBalance < totalDisbursed && totalDisbursed > 0 && (
+                  <span className="ml-2 text-xs text-amber-600">⚠ Insufficient — will still disburse</span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -405,46 +447,47 @@ const SalaryDisbursement = () => {
                       <TableBody>
                         {fixedStaff.map((staff: any) => {
                           const c = computeCalculator(staff);
+                          const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
                           return (
-                            <TableRow key={staff.staffId}>
+                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
                               <TableCell className="font-medium">
                                 <div>{staff.name}</div>
                                 <div className="text-xs text-muted-foreground capitalize">{staff.role}</div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap">{fmtCurrency(c.monthly)}</TableCell>
                               <TableCell>
-                                <Input type="number" step="0.5" placeholder="0" className="w-20"
+                                <Input type="number" step="0.5" placeholder="0" className="w-20" disabled={isDone}
                                   value={daysPresent[staff.staffId] || ""}
                                   onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                                 <div className="text-[10px] text-muted-foreground mt-1">/{workdaysInPeriod}</div>
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24"
+                                <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
                                   value={dailyRateOverride[staff.staffId] || ""}
                                   onChange={(e) => setDailyRateOverride((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={pagibig[staff.staffId] || ""}
                                   onChange={(e) => setPagibig((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={sss[staff.staffId] || ""}
                                   onChange={(e) => setSss((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={philhealth[staff.staffId] || ""}
                                   onChange={(e) => setPhilhealth((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
-                                <Input type="number" step="0.01" placeholder="0.00" className="w-24"
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
                                   value={deductions[staff.staffId] || ""}
                                   onChange={(e) => setDeductions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
@@ -455,10 +498,11 @@ const SalaryDisbursement = () => {
                               <TableCell>
                                 <Button
                                   size="sm"
+                                  variant={isDone ? "secondary" : "default"}
                                   onClick={() => handleDisburse(staff, c.net)}
-                                  disabled={disbursing === staff.staffId || c.net <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
+                                  disabled={disbursing === staff.staffId || c.net <= 0 || isDone}
                                 >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
+                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -497,8 +541,9 @@ const SalaryDisbursement = () => {
                           const serviceCostTotal = getServiceCostTotal(staff.name);
                           const commPct = parseCurrency(techCommissions[staff.staffId]);
                           const final = serviceCostTotal * (commPct / 100);
+                          const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
                           return (
-                            <TableRow key={staff.staffId}>
+                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
                               <TableCell className="font-medium">{staff.name}</TableCell>
                               <TableCell>{staff.department || "-"}</TableCell>
                               <TableCell>{fmtCurrency(serviceCostTotal)}</TableCell>
@@ -508,6 +553,7 @@ const SalaryDisbursement = () => {
                                   step="0.01"
                                   placeholder="%"
                                   className="w-20"
+                                  disabled={isDone}
                                   value={techCommissions[staff.staffId] || ""}
                                   onChange={(e) => setTechCommissions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
@@ -516,10 +562,11 @@ const SalaryDisbursement = () => {
                               <TableCell>
                                 <Button
                                   size="sm"
+                                  variant={isDone ? "secondary" : "default"}
                                   onClick={() => handleDisburse(staff, final)}
-                                  disabled={disbursing === staff.staffId || final <= 0 || disbursedList.some((d) => d.staffId === staff.staffId)}
+                                  disabled={disbursing === staff.staffId || final <= 0 || isDone}
                                 >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : disbursedList.some((d) => d.staffId === staff.staffId) ? "✓ Done" : "Disburse"}
+                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -563,7 +610,7 @@ const SalaryDisbursement = () => {
                       {isSubmitting ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
                       ) : (
-                        `Submit ${salaryPeriod}`
+                        "Submit Transaction"
                       )}
                     </Button>
                   </div>
