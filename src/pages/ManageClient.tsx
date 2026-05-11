@@ -19,6 +19,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
+import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
@@ -77,6 +78,9 @@ const ManageClient = () => {
   const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [pdfModalTitle, setPdfModalTitle] = useState("Document");
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingClientInfo, setIsUpdatingClientInfo] = useState(false);
   const [isUpdatingForm, setIsUpdatingForm] = useState(false);
@@ -162,7 +166,6 @@ const ManageClient = () => {
   };
 
   const handleViewPDF = async () => {
-    // Prefer the new Supabase-stored PDF; fall back to legacy Drive URL.
     const signed = serviceData?.serviceId
       ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
       : null;
@@ -171,7 +174,9 @@ const ManageClient = () => {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalTitle("Client Intake Form");
+    setPdfModalOpen(true);
   };
   
   useEffect(() => {
@@ -1020,17 +1025,18 @@ const ManageClient = () => {
     }
   };
 
-  const handleViewQuotationPDF = () => {
-    if (!serviceData?.quotationPdfUrl) {
-      toast({
-        title: "No Quotation PDF Available",
-        description: "Quotation PDF has not been generated yet",
-        variant: "destructive",
-      });
+  const handleViewQuotationPDF = async () => {
+    const signed = serviceData?.serviceId
+      ? await getServicePdfSignedUrl(serviceData.serviceId, "quotation")
+      : null;
+    const url = signed || (serviceData?.quotationPdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview") : null);
+    if (!url) {
+      toast({ title: "No Quotation PDF Available", description: "Quotation PDF has not been generated yet", variant: "destructive" });
       return;
     }
-    const url = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview");
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalTitle("Service Quotation Form");
+    setPdfModalOpen(true);
   };
 
   return (
@@ -1951,6 +1957,7 @@ const ManageClient = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">powered by Stack&Scale</div>
       </div>
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} />
     </DashboardLayout>
   );
 };

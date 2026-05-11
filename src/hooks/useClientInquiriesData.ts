@@ -58,6 +58,7 @@ export const useClientInquiriesData = (enabled: boolean = true) => useQuery({
   staleTime: 30 * 1000,
   gcTime: 5 * 60 * 1000,
   refetchInterval: enabled ? 30000 : false,
+  refetchOnMount: "always",
 });
 
 export const useInvalidateClientInquiriesData = () => {

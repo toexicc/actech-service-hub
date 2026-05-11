@@ -15,7 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { FileText, Printer, Package, Camera, Loader2, QrCode } from "lucide-react";
+import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { FileText, Package, Camera, Loader2, QrCode } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
@@ -68,6 +69,25 @@ const ServiceUpdate = () => {
   const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [pdfModalTitle, setPdfModalTitle] = useState("Document");
+  const openPdfModal = async (
+    legacy: string | undefined,
+    sid: string | undefined,
+    kind: "intake" | "quotation",
+    title: string,
+  ) => {
+    const signed = sid ? await getServicePdfSignedUrl(sid, kind) : null;
+    const url = signed || (legacy ? normalizeGoogleDrivePdfUrl(legacy, "preview") : null);
+    if (!url) {
+      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
+      return;
+    }
+    setPdfModalUrl(url);
+    setPdfModalTitle(title);
+    setPdfModalOpen(true);
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
@@ -281,38 +301,9 @@ const ServiceUpdate = () => {
     }
   };
 
-  const handleViewPDF = async () => {
-    const signed = serviceData?.serviceId
-      ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
-      : null;
-    const url = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview") : null);
-    if (!url) {
-      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
-      return;
-    }
-    const win = window.open(url, "_blank");
-    if (win) win.document.title = "Client Intake Form";
-  };
-  const handlePrintPDF = async () => {
-    const signed = serviceData?.serviceId
-      ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
-      : null;
-    const rawUrl = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "download") : null);
-    if (!rawUrl) {
-      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
-      return;
-    }
-    const win = window.open("", "_blank");
-    if (win) {
-      const html = `<!doctype html><html><head><title>Client Intake Form - Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-    } else {
-      window.open(rawUrl, '_blank');
-      toast({ title: "Popup Blocked", description: "Allow popups to auto-print, PDF opened in a new tab.", variant: "destructive" });
-    }
-  };
+  const handleViewPDF = () =>
+    openPdfModal(serviceData?.pdfUrl, serviceData?.serviceId, "intake", "Client Intake Form");
+
   async function searchService(id: string) {
     if (!id) {
       toast({
@@ -754,80 +745,24 @@ const ServiceUpdate = () => {
 
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
-                  <div className="flex gap-2">
-                    <Button onClick={handleViewPDF} variant="outline" className="flex-1">
-                      <FileText className="mr-2 h-4 w-4" />
-                      View PDF
-                    </Button>
-                    <Button onClick={handlePrintPDF} variant="outline" className="flex-1">
-                      <Printer className="mr-2 h-4 w-4" />
-                      Print PDF
-                    </Button>
-                  </div>
+                  <Button onClick={handleViewPDF} variant="outline" className="w-full">
+                    <FileText className="mr-2 h-4 w-4" />
+                    View PDF
+                  </Button>
                 </div>
 
                 <Separator />
 
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => {
-                        if (!serviceData?.quotationPdfUrl) {
-                          toast({
-                            title: "No Quotation PDF Available",
-                            description: "Quotation PDF has not been generated yet",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        const url = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview");
-                        const win = window.open(url, "_blank");
-                        if (win) {
-                          win.document.title = "Service Quotation Form";
-                        }
-                      }} 
-                      variant="outline" 
-                      className="flex-1"
-                      disabled={!serviceData?.quotationPdfUrl}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      View PDF
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        if (!serviceData?.quotationPdfUrl) {
-                          toast({
-                            title: "No Quotation PDF Available",
-                            description: "Quotation PDF has not been generated yet",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        const rawUrl = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "download");
-                        const win = window.open("", "_blank");
-                        if (win) {
-                          const html = `<!doctype html><html><head><title>Service Quotation Form - Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
-                          win.document.open();
-                          win.document.write(html);
-                          win.document.close();
-                        } else {
-                          window.open(rawUrl, '_blank');
-                          toast({
-                            title: "Popup Blocked",
-                            description: "Allow popups to auto-print, PDF opened in a new tab.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      variant="outline" 
-                      className="flex-1"
-                      disabled={!serviceData?.quotationPdfUrl}
-                    >
-                      <Printer className="mr-2 h-4 w-4" />
-                      Print PDF
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => openPdfModal(serviceData?.quotationPdfUrl, serviceData?.serviceId, "quotation", "Service Quotation Form")}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    View PDF
+                  </Button>
                 </div>
 
                 <Separator />
@@ -1637,6 +1572,7 @@ const ServiceUpdate = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">powered by Stack&Scale</div>
       </div>
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} />
     </DashboardLayout>
   );
 };

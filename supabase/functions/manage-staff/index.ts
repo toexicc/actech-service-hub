@@ -41,7 +41,8 @@ interface DeleteBody {
   action: "delete";
   user_id: string;
 }
-type Body = CreateBody | UpdateBody | DeleteBody;
+interface ListBody { action: "list"; }
+type Body = CreateBody | UpdateBody | DeleteBody | ListBody;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -64,6 +65,21 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     const body = (await req.json()) as Body;
+
+    if (body.action === "list") {
+      const emails: Record<string, string> = {};
+      let page = 1;
+      // paginate auth.users
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        for (const u of data.users) emails[u.id] = u.email ?? "";
+        if (data.users.length < 1000) break;
+        page += 1;
+      }
+      return new Response(JSON.stringify({ ok: true, emails }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (body.action === "create") {
       const { data: created, error: cErr } = await admin.auth.admin.createUser({

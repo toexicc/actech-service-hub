@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { displayDate } from "@/lib/timezone";
@@ -45,6 +46,8 @@ const CustomerManagement = () => {
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [activeTab, setActiveTab] = useState("list");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
 
   const { data: clientsList = [], isLoading: isClientsLoading } = useClients();
 
@@ -125,7 +128,8 @@ const CustomerManagement = () => {
       toast({ title: "No PDF Available", description: "PDF link not found for this service", variant: "destructive" });
       return;
     }
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalOpen(true);
   };
 
   return (
@@ -334,6 +338,7 @@ const CustomerManagement = () => {
           powered by Stack&Scale
         </div>
       </div>
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title="Client Intake Form" />
     </DashboardLayout>
   );
 };
