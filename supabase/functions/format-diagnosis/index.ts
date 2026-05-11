@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { rawDiagnosis, customerName, deviceType, model, serviceId, technician, finalCost } = await req.json();
+    const { rawDiagnosis, customerName, deviceType, model, serviceId } = await req.json();
 
     if (!rawDiagnosis) {
       return new Response(
@@ -29,7 +29,62 @@ serve(async (req) => {
       );
     }
 
-    console.log('Formatting diagnosis with OpenAI...');
+    const systemPrompt = `You are a professional technical diagnostician for AC Tech Repair PH.
+
+Format the following information into a customer-friendly diagnosis report.
+
+STRICT FORMAT:
+
+Customer Name: [name]
+Device Type: [type]
+Model: [model]
+Service ID: [id]
+
+AC TECH DEVICE DIAGNOSIS
+
+Findings:
+[Clear explanation of what was found during inspection]
+
+Cause of Issue:
+[Simple explanation of the root cause]
+
+Suggested Solution:
+[Specific repair actions needed]
+
+Recommendations:
+[Professional advice for the customer]
+
+Service Breakdown:
+[List every service item on a separate line.
+Always use this exact price format: Php {Enter Amount}
+
+Example:
+LCD Replacement - Php {Enter Amount}
+Battery Replacement - Php {Enter Amount}]
+
+To proceed with the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions:
+bit.ly/actech-termsnconditions
+
+SUMMARY: [One-line summary of the repair needed]
+
+WRITING RULES:
+- Friendly, professional, and customer-oriented
+- Straight to the point
+- Use simple and easy-to-understand language
+- Formal quotation style
+- Plain text only
+- No markdown formatting (no **, no __, no #)
+- No bullet points
+- No em dashes, use regular hyphens only
+- No quotation marks unless necessary
+- Use clear section labels`;
+
+    const userPrompt = `Customer: ${customerName || ''}
+Device: ${deviceType || ''} (${model || ''})
+Service ID: ${serviceId || ''}
+
+Raw Notes:
+${rawDiagnosis}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -40,56 +95,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-5-mini-2025-08-07',
         messages: [
-          {
-            role: 'system',
-            content: `You are a professional technician at AC Tech Repair PH. Write a clear, concise diagnostic report in a formal quotation style.
-
-Format your report using this EXACT structure:
-
-AC TECH DEVICE DIAGNOSIS
-
-Findings:
-[1-2 sentences - specific technical issues found]
-
-Cause of Issue:
-[1 sentence - why it failed]
-
-Suggested Solution:
-[1-2 sentences - repair needed and outcome]
-
-Recommendations:
-[1 sentence - professional advice]
-
-Service Breakdown:
-[List each service item on a new line. For EVERY item, ALWAYS write the price as "Php {Enter Amount}" literally (do not use real numbers). Example:
-LCD Replacement - Php {Enter Amount}
-Bezel Replacement - Php {Enter Amount}]
-
-Service Cost: Php {Enter Amount}
-
----
-
-To proceed with the service, please reply "PROCEED" to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
-
----
-
-SUMMARY: [One clear sentence that condenses the Suggested Solution - state exactly what repair/service will be done]
-
-IMPORTANT RULES:
-- Be concise, professional, and customer-friendly
-- Maximum 1-2 sentences per section
-- Use technical terms but keep it understandable
-- NO emojis, NO markdown (do NOT use **bold**, __italic__, or # headings) — plain text only
-- Do NOT include customer name, device, model, service ID, or technician
-- Do NOT include "Customer Concern Reported" section
-- Focus on clarity and professionalism
-- The SUMMARY must be a condensed version of the Suggested Solution
-- ALWAYS include the terms/conditions footer and summary exactly as shown above`
-          },
-          {
-            role: 'user',
-            content: `Raw diagnosis from technician:\n\n${rawDiagnosis}`
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
         ],
         max_completion_tokens: 2500,
       }),
@@ -98,31 +105,9 @@ IMPORTANT RULES:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit reached. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (response.status === 401) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid API key' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'API quota exceeded' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
       return new Response(
         JSON.stringify({ error: `OpenAI API error: ${response.status}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -136,23 +121,17 @@ IMPORTANT RULES:
       );
     }
 
-    // Build complete diagnosis with customer info
-    const completeReport = [
-      `Customer Name: ${customerName || ''}`,
-      `Device Type: ${deviceType || ''}`,
-      `Model: ${model || ''}`,
-      `Service ID: ${serviceId || ''}`,
-      '',
-      formattedDiagnosis
-    ].join('\n');
-
-    console.log('Successfully formatted diagnosis');
+    // Strip any stray markdown the model may have produced
+    const clean = String(formattedDiagnosis)
+      .replace(/\*\*/g, "")
+      .replace(/__/g, "")
+      .replace(/^#+\s*/gm, "")
+      .replace(/—/g, "-");
 
     return new Response(
-      JSON.stringify({ formattedDiagnosis: completeReport }),
+      JSON.stringify({ formattedDiagnosis: clean }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('Error in format-diagnosis function:', error);
     return new Response(

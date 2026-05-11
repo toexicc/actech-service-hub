@@ -50,7 +50,7 @@ const getStatusNotificationMessages = (
     
     case 'Waiting to Proceed':
       return {
-        adminMessage: `Diagnosis sent to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for approval.`,
+        adminMessage: `Send the diagnosis to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for approval.`,
         technicianMessage: ''
       };
     
@@ -83,7 +83,7 @@ const getStatusNotificationMessages = (
     case 'Done Repair - Advise Client':
     case 'Done Repair - Advice Client':
       return {
-        adminMessage: `Report sent to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to Completed once payment and pickup are settled.`,
+        adminMessage: `Send the report to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to Completed once payment and pickup are settled.`,
         technicianMessage: ''
       };
     
