@@ -16,12 +16,26 @@ export interface StaffMember {
 }
 
 const fetchStaffList = async (): Promise<StaffMember[]> => {
-  const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+  // Try to read full profiles (works for admin/management). Non-admins only get
+  // their own row from the profiles table due to RLS, so we fall back to the
+  // safe `get_staff_directory` RPC which excludes salary fields.
+  const [profilesResp, { data: roles, error: rErr }] = await Promise.all([
     supabase.from("profiles").select("*").order("name", { ascending: true }),
     supabase.from("user_roles").select("user_id, role"),
   ]);
-  if (pErr) throw pErr;
   if (rErr) throw rErr;
+  let profiles: any[] = profilesResp.data ?? [];
+  // If we got fewer than 2 rows, the caller likely is not admin/management; use directory.
+  if (profiles.length < 2) {
+    const { data: dir } = await supabase.rpc("get_staff_directory");
+    if (dir && Array.isArray(dir)) {
+      const ownRow = profiles[0];
+      profiles = dir.map((d: any) => {
+        if (ownRow && d.id === ownRow.id) return ownRow;
+        return { ...d, salary: null, salary_type: null };
+      });
+    }
+  }
   const roleMap = new Map<string, string>();
   (roles ?? []).forEach((r: any) => {
     const prev = roleMap.get(r.user_id);

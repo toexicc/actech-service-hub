@@ -1,9 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+// Allowlist of host suffixes the webhook may forward notifications to.
+// This prevents SSRF against arbitrary internal/external URLs.
+const ALLOWED_NOTIFICATION_HOSTS = [
+  'script.google.com',
+  'googleusercontent.com',
+];
+
+const isAllowedNotificationsUrl = (raw: string): boolean => {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'https:') return false;
+    return ALLOWED_NOTIFICATION_HOSTS.some(
+      (h) => u.hostname === h || u.hostname.endsWith('.' + h),
+    );
+  } catch {
+    return false;
+  }
+};
+
 
 interface StatusChangePayload {
   serviceId: string;
@@ -152,7 +176,32 @@ serve(async (req) => {
   }
 
   try {
+    // Require an authenticated caller
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (!authHeader.toLowerCase().startsWith('bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const payload: StatusChangePayload = await req.json();
+
+    // SSRF guard: only allow notification forwarding to vetted hosts
+    if (payload.notificationsUrl && !isAllowedNotificationsUrl(payload.notificationsUrl)) {
+      return new Response(JSON.stringify({ error: 'notificationsUrl host not allowed' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     
     console.log('[Webhook] Received status change:', {
       serviceId: payload.serviceId,

@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initOneSignal } from "./lib/onesignal";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import { installBridgeAuthInterceptor } from "@/lib/bridgeFetchInterceptor";
 
 async function cleanupLegacyPwaServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -68,6 +69,7 @@ function installGlobalErrorHandlers() {
 
 (async () => {
   installGlobalErrorHandlers();
+  installBridgeAuthInterceptor();
 
   // If a legacy PWA service worker was previously installed, unregister it.
   // This prevents the browser from repeatedly requesting /sw.js (now removed).
