@@ -14,11 +14,72 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 
 const sb = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { persistSession: false },
 });
+
+// ---------- Auth helpers ----------
+// Actions safe to call without authentication (used by the public /track page)
+const PUBLIC_ACTIONS = new Set<string>([
+  "searchService",
+  "searchClient",
+  "getDeviceReportPhotos",
+  "getServiceLogs",
+  "getServicePayments",
+]);
+
+// Actions that require admin or management role on top of authentication
+const ADMIN_ACTIONS = new Set<string>([
+  "getSalaryLogs",
+  "disburseSalary",
+  "addTransaction",
+  "editTransaction",
+  "deleteTransaction",
+  "deleteClosedDate",
+]);
+
+interface CallerContext {
+  userId: string;
+  isAdminOrManagement: boolean;
+}
+
+async function authenticateCaller(req: Request): Promise<CallerContext | null> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.toLowerCase().startsWith("bearer ")) return null;
+  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data, error } = await userClient.auth.getUser();
+  if (error || !data?.user) return null;
+  const { data: roleRows } = await userClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", data.user.id);
+  const roles = (roleRows ?? []).map((r: any) => r.role);
+  return {
+    userId: data.user.id,
+    isAdminOrManagement: roles.includes("admin") || roles.includes("management"),
+  };
+}
+
+// Strip sensitive fields from a service record for unauthenticated public access.
+const stripSensitiveServiceFields = (svc: any) => {
+  const { internalAdminNotes, internalTechnicianNotes, adminNotesInternal,
+    address, email, contactNumber, ...rest } = svc;
+  return {
+    ...rest,
+    address: "",
+    email: "",
+    contactNumber: contactNumber ? contactNumber.replace(/.(?=.{4})/g, "*") : "",
+    internalAdminNotes: "",
+    internalTechnicianNotes: "",
+    adminNotesInternal: "",
+  };
+};
+
 
 // ---------- Helpers ----------
 const json = (body: unknown, status = 200) =>
