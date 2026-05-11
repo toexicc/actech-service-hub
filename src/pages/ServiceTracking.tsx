@@ -503,16 +503,9 @@ const ServiceTracking = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-2">Client Intake Form:</h3>
-                  <Button 
-                    onClick={() => {
-                      if (serviceData.pdfUrl) {
-                        const url = normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview");
-                        window.open(url, "_blank");
-                      }
-                    }}
-                    disabled={!serviceData.pdfUrl}
+                  <Button
+                    onClick={() => openPdf(serviceData.pdfUrl, serviceData.serviceId, "intake", "Client Intake Form")}
                     className="w-full"
-                    variant={serviceData.pdfUrl ? "default" : "secondary"}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     View PDF
@@ -521,16 +514,9 @@ const ServiceTracking = () => {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-2">Service Quotation Form:</h3>
-                  <Button 
-                    onClick={() => {
-                      if (serviceData.quotationPdfUrl) {
-                        const url = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview");
-                        window.open(url, "_blank");
-                      }
-                    }}
-                    disabled={!serviceData.quotationPdfUrl}
+                  <Button
+                    onClick={() => openPdf(serviceData.quotationPdfUrl, serviceData.serviceId, "quotation", "Service Quotation Form")}
                     className="w-full"
-                    variant={serviceData.quotationPdfUrl ? "default" : "secondary"}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     View PDF
