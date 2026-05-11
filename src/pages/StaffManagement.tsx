@@ -579,6 +579,7 @@ const StaffManagement = () => {
                       <TableRow>
                         <TableHead>Staff ID</TableHead>
                         <TableHead>Username</TableHead>
+                        <TableHead>Email</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Department</TableHead>
