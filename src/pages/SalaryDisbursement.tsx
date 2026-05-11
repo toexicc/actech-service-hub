@@ -74,6 +74,15 @@ const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
 };
 
 const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Other Banks"];
+const EXPENSE_TYPES = ["Parts Inventory", "Rent", "Miscellaneous Expense", "Salary Disbursement"];
+const REFUND_TYPE = "Refund";
+
+const fetchTransactions = async (): Promise<any[]> => {
+  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTransactions`);
+  const data = await response.json();
+  if (data.status === "success" && data.transactions) return data.transactions;
+  return [];
+};
 
 const SalaryDisbursement = () => {
   const navigate = useNavigate();
