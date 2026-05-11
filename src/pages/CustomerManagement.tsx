@@ -338,6 +338,7 @@ const CustomerManagement = () => {
           powered by Stack&Scale
         </div>
       </div>
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title="Client Intake Form" />
     </DashboardLayout>
   );
 };
