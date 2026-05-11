@@ -391,10 +391,21 @@ const SalaryDisbursement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {FUND_TYPES.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f} value={f}>
+                      {f} ({fmtCurrency(fundBalances[f] ?? 0)})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Balance: </span>
+                <span className={cn("font-semibold", selectedFundBalance <= 0 ? "text-destructive" : "text-foreground")}>
+                  {fmtCurrency(selectedFundBalance)}
+                </span>
+                {selectedFundBalance < totalDisbursed && totalDisbursed > 0 && (
+                  <span className="ml-2 text-xs text-amber-600">⚠ Insufficient — will still disburse</span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
