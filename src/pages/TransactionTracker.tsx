@@ -584,6 +584,7 @@ const TransactionTracker = () => {
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="savings">Savings</TabsTrigger>
+            <TabsTrigger value="logs">Transaction Logs</TabsTrigger>
           </TabsList>
         </Tabs>
 
