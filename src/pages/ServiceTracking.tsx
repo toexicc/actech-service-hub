@@ -589,16 +589,20 @@ const ServiceTracking = () => {
                 <>
                   <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
 
-                  {/* Approve / Decline – only on Waiting to Proceed */}
-                  {isWaitingToProceed && (
+                  {/* Persistent approval record (visible after approve/decline too) */}
+                  {approvalRecord && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                      <p className="text-sm font-medium text-foreground">
+                        {approvalRecord.decision} by {approvalRecord.by} on {approvalRecord.at}
+                        {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Approve / Decline – only on Waiting to Proceed and not yet recorded */}
+                  {isWaitingToProceed && !approvalRecord && (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                      {approvalRecord ? (
-                        <p className="text-sm font-medium text-foreground">
-                          {approvalRecord.decision} by {approvalRecord.by} on{" "}
-                          {(() => { try { return displayDate(approvalRecord.at, "MMM dd, yyyy hh:mm a"); } catch { return approvalRecord.at; } })()}
-                          {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
-                        </p>
-                      ) : declineOpen ? (
+                      {declineOpen ? (
                         <div className="space-y-3">
                           <Label htmlFor="declineReason">Reason for declining</Label>
                           <Textarea
@@ -625,7 +629,7 @@ const ServiceTracking = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Button
                             className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={() => submitApproval(true)}
+                            onClick={() => setConfirmApproveOpen(true)}
                             disabled={submittingApproval}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-2" />
