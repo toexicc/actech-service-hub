@@ -1602,40 +1602,19 @@ const ManageClient = () => {
                               type="button"
                               size="sm"
                               onClick={() => {
-                                // Extract the Service Breakdown section and pull only
-                                // the service item names (strip "- Php <amount>" and any
-                                // brief description after a colon). Populate Service/s
-                                // as a comma-separated list.
-                                const text = updateAIDiagnosis || "";
-                                const breakdownMatch = text.match(
-                                  /Service Breakdown:\s*\n([\s\S]*?)(?=\n\s*\n|\n[A-Z][^\n]*:|$)/i
+                                const summaryMatch = (updateAIDiagnosis || "").match(
+                                  /SUMMARY:\s*([\s\S]+?)(?=\n\s*\n|\n[A-Z][A-Z ]+:|$)/i
                                 );
-                                if (breakdownMatch && breakdownMatch[1]) {
-                                  const items = breakdownMatch[1]
-                                    .split(/\r?\n/)
-                                    .map((l) => l.trim())
-                                    .filter(Boolean)
-                                    .map((l) => {
-                                      // Remove price portion: "- Php 1500" or "Php 1500"
-                                      let name = l.replace(/\s*[-–—]?\s*Php\s*[\d,.]+.*$/i, "");
-                                      // Remove brief description after colon
-                                      name = name.split(":")[0];
-                                      // Remove leading list markers
-                                      name = name.replace(/^[\s\-•*\d.)]+/, "");
-                                      return name.trim();
-                                    })
-                                    .filter(Boolean);
-                                  if (items.length > 0) {
-                                    setUpdateServices(items.join(", "));
-                                    toast({ title: "Service breakdown copied to Service/s" });
-                                    return;
-                                  }
+                                if (summaryMatch && summaryMatch[1]) {
+                                  setUpdateServices(summaryMatch[1].trim());
+                                  toast({ title: "Summary copied to Service/s" });
+                                } else {
+                                  toast({
+                                    title: "Error",
+                                    description: "Could not find 'SUMMARY' section in AI diagnosis",
+                                    variant: "destructive",
+                                  });
                                 }
-                                toast({
-                                  title: "Error",
-                                  description: "Could not find 'Service Breakdown' section in AI diagnosis",
-                                  variant: "destructive",
-                                });
                               }}
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
