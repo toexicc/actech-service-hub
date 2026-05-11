@@ -28,19 +28,33 @@ export interface ClientInquiry {
 }
 
 const fetchClients = async (): Promise<ClientRecord[]> => {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1000);
+  const [{ data, error }, { data: svcs }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase
+      .from("services")
+      .select("client_id, service_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000),
+  ]);
   if (error) throw error;
+  const svcMap = new Map<string, string[]>();
+  for (const s of svcs ?? []) {
+    if (!s.client_id || !s.service_id) continue;
+    const arr = svcMap.get(s.client_id) ?? [];
+    arr.push(s.service_id);
+    svcMap.set(s.client_id, arr);
+  }
   return (data ?? []).map((r: any) => ({
     clientId: r.client_id ?? "",
     clientName: r.name ?? "",
     username: r.name ?? "",
     contactNumber: r.contact_number ?? "",
     email: r.email ?? "",
-    serviceId: "",
+    serviceId: (svcMap.get(r.client_id) ?? []).join(", "),
     address: r.address ?? "",
   }));
 };
