@@ -56,6 +56,7 @@ const fetchInventory = async (): Promise<InventoryItem[]> => {
     status: r.status ?? "In Stock",
     lastUpdated: r.updated_at ?? "",
     remarks: r.notes ?? "",
+    qrCode: r.part_id ?? "",
   }));
 };
 
