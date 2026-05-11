@@ -118,9 +118,10 @@ const TransactionTracker = () => {
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [voidDialog, setVoidDialog] = useState(false);
+  const [voidTarget, setVoidTarget] = useState<Transaction | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const [isVoiding, setIsVoiding] = useState(false);
 
   const [logsDialog, setLogsDialog] = useState(false);
   const [logsTarget, setLogsTarget] = useState<Transaction | null>(null);
