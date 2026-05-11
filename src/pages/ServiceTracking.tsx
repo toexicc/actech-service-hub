@@ -657,7 +657,7 @@ const ServiceTracking = () => {
               {showAiReport && (
                 <>
                   <Separator />
-                  <AiReportCard report={serviceData.aiReport} />
+                  <AiReportCard report={serviceData.aiReport} title="Service Report" />
                 </>
               )}
 
