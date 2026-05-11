@@ -473,14 +473,14 @@ const ServiceForm = () => {
         const username = sessionStorage.getItem("username") || (data.adminRep || "").split(", ")[0] || "client-intake";
         const role = sessionStorage.getItem("userRole") || (isPublic ? "client" : "admin");
 
-        // All assigned admins (multi-select supported)
+        // All assigned admins (multi-select supported) — recipient_id MUST be the auth uuid
         const adminNames = (data.adminRep || "").split(", ").map((s) => s.trim()).filter(Boolean);
         const assignedAdminNotifications = adminNames
           .map((name) => staffData.find((s) => s.name?.toLowerCase() === name.toLowerCase()))
-          .filter((s): s is NonNullable<typeof s> => Boolean(s))
+          .filter((s): s is NonNullable<typeof s> => Boolean(s?.userId))
           .map((mgr) =>
             createNotification({
-              userId: mgr.staffId || mgr.username || mgr.name,
+              userId: mgr.userId as string,
               title: "New Service Assigned",
               message: `You have been assigned as Admin Rep for ${data.clientName}'s ${data.deviceType} ${data.brand} ${data.model} (Service ID: ${finalServiceId}).`,
               type: "service_update",
@@ -493,11 +493,11 @@ const ServiceForm = () => {
           ? staffData
               .filter((s) => {
                 const r = s.role?.toLowerCase();
-                return (r === "management" || r === "admin") && s.status?.toLowerCase() !== "inactive";
+                return (r === "management" || r === "admin") && s.status?.toLowerCase() !== "inactive" && Boolean(s.userId);
               })
               .map((mgr) =>
                 createNotification({
-                  userId: mgr.staffId || mgr.username || mgr.name,
+                  userId: mgr.userId as string,
                   title: "New Client Intake — Action Required",
                   message: `${data.clientName} submitted a public intake for ${data.deviceType} ${data.brand} ${data.model}. Assign Admin Rep, Receiving Staff, Technician, Estimated Cost & Time Frame on the Service Tracker.`,
                   type: "new_inquiry",
