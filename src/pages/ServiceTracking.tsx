@@ -301,34 +301,42 @@ const ServiceTracking = () => {
       const tag = approved
         ? `Approved by ${serviceData.clientName} on ${ts}`
         : `Declined by ${serviceData.clientName} on ${ts}: ${reason || ""}`;
-      const newRemarks = [serviceData.remarks, tag].filter(Boolean).join("\n");
-      const { error } = await supabase
-        .from("services")
-        .update({ remarks: newRemarks })
-        .eq("service_id", serviceData.serviceId);
-      if (error) throw error;
+      const newAdminNotes = [serviceData.adminNotes, tag].filter(Boolean).join("\n");
 
-      // Notify all assigned admin reps
-      const adminReps: string[] = (serviceData.adminRep || "").split(",").map((s: string) => s.trim()).filter(Boolean);
-      if (adminReps.length) {
-        const staff = await fetchStaffList();
-        for (const name of adminReps) {
-          const m = staff.find((s) => s.name?.toLowerCase() === name.toLowerCase());
-          if (m?.staffId) {
-            await createNotification({
-              userId: m.staffId,
-              title: approved ? `Service ${serviceData.serviceId} Approved` : `Service ${serviceData.serviceId} Declined`,
-              message: approved
-                ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}.`
-                : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
-              type: "service_update",
-              serviceId: serviceData.serviceId,
-            });
+      // Persist to Google Sheets via updateService action
+      const formData = new FormData();
+      formData.append("action", "updateService");
+      formData.append("serviceId", serviceData.serviceId);
+      formData.append("deviceType", serviceData.deviceType || "");
+      formData.append("adminNotes", newAdminNotes);
+      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
+
+      // Notify all assigned admin reps (best-effort, depends on RLS allowing anon)
+      try {
+        const adminReps: string[] = (serviceData.adminRep || "")
+          .split(",").map((s: string) => s.trim()).filter(Boolean);
+        if (adminReps.length) {
+          const staff = await fetchStaffList();
+          for (const name of adminReps) {
+            const m = staff.find((s) => s.name?.toLowerCase() === name.toLowerCase());
+            if (m?.staffId) {
+              await createNotification({
+                userId: m.staffId,
+                title: approved
+                  ? `Service ${serviceData.serviceId} Approved`
+                  : `Service ${serviceData.serviceId} Declined`,
+                message: approved
+                  ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}.`
+                  : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
+                type: "service_update",
+                serviceId: serviceData.serviceId,
+              });
+            }
           }
         }
-      }
+      } catch {}
 
-      setServiceData({ ...serviceData, remarks: newRemarks });
+      setServiceData({ ...serviceData, adminNotes: newAdminNotes });
       setDeclineOpen(false);
       setDeclineReason("");
       toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
@@ -338,6 +346,26 @@ const ServiceTracking = () => {
       setSubmittingApproval(false);
     }
   };
+
+  // Active progress statuses where AI Diagnosis is shown above the forms
+  const ACTIVE_STATUSES = [
+    "Waiting to Proceed",
+    "Proceed Repair",
+    "Ongoing Service",
+    "Done Repair - Under Observation",
+    "Done Repair - For Release",
+    "Done Repair - Advise Client",
+    "Completed",
+  ];
+  const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
+  const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
+  const isWaitingToProceed = serviceData?.status === "Waiting to Proceed";
+  const approvalRecord = (() => {
+    const notes: string = serviceData?.adminNotes || "";
+    const m = notes.match(/(Approved|Declined) by ([^\n]+?) on ([^\n:]+)(?::\s*(.*))?/);
+    if (!m) return null;
+    return { decision: m[1], by: m[2], at: m[3], reason: m[4] || "" };
+  })();
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -499,6 +527,71 @@ const ServiceTracking = () => {
 
               <Separator />
 
+              {/* AI Diagnosis (above forms) */}
+              {showAiDiagnosis && (
+                <>
+                  <AiReportCard report={serviceData.aiDiagnosis} title="AI Diagnosis" />
+
+                  {/* Approve / Decline – only on Waiting to Proceed */}
+                  {isWaitingToProceed && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                      {approvalRecord ? (
+                        <p className="text-sm font-medium text-foreground">
+                          {approvalRecord.decision} by {approvalRecord.by} on{" "}
+                          {(() => { try { return displayDate(approvalRecord.at, "MMM dd, yyyy hh:mm a"); } catch { return approvalRecord.at; } })()}
+                          {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
+                        </p>
+                      ) : declineOpen ? (
+                        <div className="space-y-3">
+                          <Label htmlFor="declineReason">Reason for declining</Label>
+                          <Textarea
+                            id="declineReason"
+                            value={declineReason}
+                            onChange={(e) => setDeclineReason(e.target.value)}
+                            placeholder="Please share why you're declining the diagnosis…"
+                            rows={3}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" onClick={() => { setDeclineOpen(false); setDeclineReason(""); }} disabled={submittingApproval}>
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() => submitApproval(false, declineReason.trim())}
+                              disabled={submittingApproval || !declineReason.trim()}
+                            >
+                              Submit Decline
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <Button
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => submitApproval(true)}
+                            disabled={submittingApproval}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Approve Diagnosis
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={() => setDeclineOpen(true)}
+                            disabled={submittingApproval}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Decline
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Separator />
+                </>
+              )}
+
               {/* PDF Documents Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -533,7 +626,7 @@ const ServiceTracking = () => {
                     <ImageIcon className="h-5 w-5" />
                     Device Report Photos
                   </h3>
-                  
+
                   {loadingPhotos ? (
                     <div className="text-center py-8 text-muted-foreground">
                       Loading photos...
@@ -561,7 +654,7 @@ const ServiceTracking = () => {
                 </div>
               )}
 
-              {serviceData.status === "Done Repair - Advise Client" && serviceData.aiReport && (
+              {showAiReport && (
                 <>
                   <Separator />
                   <AiReportCard report={serviceData.aiReport} />
