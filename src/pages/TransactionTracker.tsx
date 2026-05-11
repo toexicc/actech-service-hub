@@ -168,9 +168,10 @@ const TransactionTracker = () => {
   const tabFilteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const type = t.transactionType || "";
+      const isVoid = type.toLowerCase().startsWith("void");
       switch (activeTab) {
         case "sales":
-          return SALES_TYPES.includes(type);
+          return SALES_TYPES.includes(type) && !isVoid;
         case "expenses": {
           if (!EXPENSE_TYPES.includes(type)) return false;
           if (expenseSubTab === "all" || expenseSubTab === "opex") return true;
@@ -178,9 +179,11 @@ const TransactionTracker = () => {
           return subDef ? subDef.types.includes(type) : true;
         }
         case "savings":
-          return SAVINGS_TYPES.includes(type);
+          return SAVINGS_TYPES.includes(type) && !isVoid;
+        case "logs":
+          return isVoid;
         default:
-          return true;
+          return !isVoid;
       }
     });
   }, [transactions, activeTab, expenseSubTab]);
