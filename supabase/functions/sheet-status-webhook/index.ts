@@ -1,9 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+// Allowlist of host suffixes the webhook may forward notifications to.
+// This prevents SSRF against arbitrary internal/external URLs.
+const ALLOWED_NOTIFICATION_HOSTS = [
+  'script.google.com',
+  'googleusercontent.com',
+];
+
+const isAllowedNotificationsUrl = (raw: string): boolean => {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'https:') return false;
+    return ALLOWED_NOTIFICATION_HOSTS.some(
+      (h) => u.hostname === h || u.hostname.endsWith('.' + h),
+    );
+  } catch {
+    return false;
+  }
+};
+
 
 interface StatusChangePayload {
   serviceId: string;
