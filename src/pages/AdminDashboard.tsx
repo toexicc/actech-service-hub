@@ -24,9 +24,9 @@ type ViewMode = "dueToday" | "overdue";
 const STATUS_COLUMNS = [
   "Confirmed Diagnosis",
   "Ongoing Service",
-  "For Pickup",
+  "Done Repair - For Release",
+  "Done Repair - Advise Client",
   "On Hold",
-  "RTO"
 ] as const;
 
 const AdminDashboard = () => {
