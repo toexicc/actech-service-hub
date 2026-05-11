@@ -11,6 +11,7 @@ export interface StaffMember {
   status: string;
   salary: string;
   salaryType?: string;
+  email?: string;
   userId?: string;
 }
 
@@ -23,11 +24,20 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
   if (rErr) throw rErr;
   const roleMap = new Map<string, string>();
   (roles ?? []).forEach((r: any) => {
-    // If a user has multiple roles, prefer admin > management > technician
     const prev = roleMap.get(r.user_id);
     const rank = (x: string) => (x === "admin" ? 3 : x === "management" ? 2 : x === "technician" ? 1 : 0);
     if (!prev || rank(r.role) > rank(prev)) roleMap.set(r.user_id, r.role);
   });
+
+  // Try to fetch emails (admin/management only); fall back silently.
+  let emails: Record<string, string> = {};
+  try {
+    const { data } = await supabase.functions.invoke("manage-staff", { body: { action: "list" } });
+    if (data && (data as any).emails) emails = (data as any).emails;
+  } catch {
+    // ignore - non-admin callers
+  }
+
   return (profiles ?? []).map((p: any) => ({
     staffId: p.staff_id ?? p.id,
     username: p.username ?? "",
@@ -38,6 +48,7 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
     status: p.status ?? "active",
     salary: p.salary != null ? String(p.salary) : "",
     salaryType: p.salary_type ?? "monthly",
+    email: emails[p.id] ?? p.username ?? "",
     userId: p.id,
   }));
 };
@@ -48,6 +59,7 @@ export const useStaff = () => {
     queryFn: fetchStaffList,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    refetchOnMount: "always",
   });
 };
 
