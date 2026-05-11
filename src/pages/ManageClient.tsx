@@ -349,6 +349,22 @@ const ManageClient = () => {
     }
   };
 
+  // Fallback: if Sheets didn't return a quotationPdfUrl but Supabase Storage
+  // already has a generated quotation for this service, mark it so the button
+  // shows "Update Form" instead of "Generate PDF".
+  useEffect(() => {
+    let cancelled = false;
+    const sid = serviceData?.serviceId;
+    if (!sid || serviceData?.quotationPdfUrl) return;
+    (async () => {
+      const url = await getServicePdfSignedUrl(sid, "quotation");
+      if (!cancelled && url) {
+        setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, quotationPdfUrl: url } : prev));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [serviceData?.serviceId, serviceData?.quotationPdfUrl]);
+
   const handleFormatWithAI = async () => {
     if (!rawDiagnosis?.trim()) {
       toast({
