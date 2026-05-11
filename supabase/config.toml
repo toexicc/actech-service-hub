@@ -2,3 +2,6 @@ project_id = "zpryngvwbybpshsfeqaz"
 
 [functions.sheets-bridge]
 verify_jwt = false
+
+[functions.notify-service-event]
+verify_jwt = false
