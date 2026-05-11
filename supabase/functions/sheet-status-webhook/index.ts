@@ -176,7 +176,32 @@ serve(async (req) => {
   }
 
   try {
+    // Require an authenticated caller
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (!authHeader.toLowerCase().startsWith('bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const payload: StatusChangePayload = await req.json();
+
+    // SSRF guard: only allow notification forwarding to vetted hosts
+    if (payload.notificationsUrl && !isAllowedNotificationsUrl(payload.notificationsUrl)) {
+      return new Response(JSON.stringify({ error: 'notificationsUrl host not allowed' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     
     console.log('[Webhook] Received status change:', {
       serviceId: payload.serviceId,
