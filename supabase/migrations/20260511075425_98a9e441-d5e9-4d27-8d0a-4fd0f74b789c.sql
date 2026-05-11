@@ -1,0 +1,1 @@
+UPDATE public.notifications SET category = 'service_update' WHERE category = 'service';
