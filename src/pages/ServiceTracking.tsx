@@ -301,34 +301,42 @@ const ServiceTracking = () => {
       const tag = approved
         ? `Approved by ${serviceData.clientName} on ${ts}`
         : `Declined by ${serviceData.clientName} on ${ts}: ${reason || ""}`;
-      const newRemarks = [serviceData.remarks, tag].filter(Boolean).join("\n");
-      const { error } = await supabase
-        .from("services")
-        .update({ remarks: newRemarks })
-        .eq("service_id", serviceData.serviceId);
-      if (error) throw error;
+      const newAdminNotes = [serviceData.adminNotes, tag].filter(Boolean).join("\n");
 
-      // Notify all assigned admin reps
-      const adminReps: string[] = (serviceData.adminRep || "").split(",").map((s: string) => s.trim()).filter(Boolean);
-      if (adminReps.length) {
-        const staff = await fetchStaffList();
-        for (const name of adminReps) {
-          const m = staff.find((s) => s.name?.toLowerCase() === name.toLowerCase());
-          if (m?.staffId) {
-            await createNotification({
-              userId: m.staffId,
-              title: approved ? `Service ${serviceData.serviceId} Approved` : `Service ${serviceData.serviceId} Declined`,
-              message: approved
-                ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}.`
-                : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
-              type: "service_update",
-              serviceId: serviceData.serviceId,
-            });
+      // Persist to Google Sheets via updateService action
+      const formData = new FormData();
+      formData.append("action", "updateService");
+      formData.append("serviceId", serviceData.serviceId);
+      formData.append("deviceType", serviceData.deviceType || "");
+      formData.append("adminNotes", newAdminNotes);
+      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
+
+      // Notify all assigned admin reps (best-effort, depends on RLS allowing anon)
+      try {
+        const adminReps: string[] = (serviceData.adminRep || "")
+          .split(",").map((s: string) => s.trim()).filter(Boolean);
+        if (adminReps.length) {
+          const staff = await fetchStaffList();
+          for (const name of adminReps) {
+            const m = staff.find((s) => s.name?.toLowerCase() === name.toLowerCase());
+            if (m?.staffId) {
+              await createNotification({
+                userId: m.staffId,
+                title: approved
+                  ? `Service ${serviceData.serviceId} Approved`
+                  : `Service ${serviceData.serviceId} Declined`,
+                message: approved
+                  ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}.`
+                  : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
+                type: "service_update",
+                serviceId: serviceData.serviceId,
+              });
+            }
           }
         }
-      }
+      } catch {}
 
-      setServiceData({ ...serviceData, remarks: newRemarks });
+      setServiceData({ ...serviceData, adminNotes: newAdminNotes });
       setDeclineOpen(false);
       setDeclineReason("");
       toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
@@ -338,6 +346,26 @@ const ServiceTracking = () => {
       setSubmittingApproval(false);
     }
   };
+
+  // Active progress statuses where AI Diagnosis is shown above the forms
+  const ACTIVE_STATUSES = [
+    "Waiting to Proceed",
+    "Proceed Repair",
+    "Ongoing Service",
+    "Done Repair - Under Observation",
+    "Done Repair - For Release",
+    "Done Repair - Advise Client",
+    "Completed",
+  ];
+  const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
+  const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
+  const isWaitingToProceed = serviceData?.status === "Waiting to Proceed";
+  const approvalRecord = (() => {
+    const notes: string = serviceData?.adminNotes || "";
+    const m = notes.match(/(Approved|Declined) by ([^\n]+?) on ([^\n:]+)(?::\s*(.*))?/);
+    if (!m) return null;
+    return { decision: m[1], by: m[2], at: m[3], reason: m[4] || "" };
+  })();
 
   return (
     <div className="min-h-screen w-full bg-background">
