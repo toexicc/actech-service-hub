@@ -55,6 +55,8 @@ export const getServicePdfSignedUrl = async (
   kind: ServicePdfKind = "intake",
 ): Promise<string | null> => {
   if (!serviceId) return null;
+
+  // First try the indexed service_files table.
   const { data, error } = await supabase
     .from("service_files")
     .select("storage_path, bucket")
@@ -62,10 +64,30 @@ export const getServicePdfSignedUrl = async (
     .eq("kind", kind as any)
     .order("uploaded_at", { ascending: false })
     .limit(1);
-  if (error || !data || data.length === 0) return null;
-  const f = data[0];
-  const { data: signed } = await supabase.storage
-    .from(f.bucket)
-    .createSignedUrl(f.storage_path, 60 * 60);
-  return signed?.signedUrl ?? null;
+  if (!error && data && data.length > 0) {
+    const f = data[0];
+    const { data: signed } = await supabase.storage
+      .from(f.bucket)
+      .createSignedUrl(f.storage_path, 60 * 60);
+    if (signed?.signedUrl) return signed.signedUrl;
+  }
+
+  // Fallback: directly inspect the storage bucket for any PDF saved
+  // under this service's folder. Quotations may have been generated
+  // before the service_files row existed (legacy uploads).
+  const bucket = BUCKETS[kind];
+  const { data: list } = await supabase.storage
+    .from(bucket)
+    .list(serviceId, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
+  if (list && list.length > 0) {
+    const pdf = list.find((f) => f.name?.toLowerCase().endsWith(".pdf")) ?? list[0];
+    if (pdf?.name) {
+      const { data: signed } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(`${serviceId}/${pdf.name}`, 60 * 60);
+      if (signed?.signedUrl) return signed.signedUrl;
+    }
+  }
+
+  return null;
 };
