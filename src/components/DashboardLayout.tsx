@@ -56,7 +56,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const userRole = sessionStorage.getItem("userRole");
   const userFullName = sessionStorage.getItem("userFullName") || "User";
-  const userId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
+  const userId = sessionStorage.getItem("authUserId") || sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
   const messagingPanelRef = useRef<MessagingPanelRef>(null);
 
   useEffect(() => { 

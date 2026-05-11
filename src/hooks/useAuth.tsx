@@ -54,6 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       sessionStorage.setItem("username", (prof as any)?.username ?? "");
       sessionStorage.setItem("userFullName", (prof as any)?.name ?? "");
       sessionStorage.setItem("staffId", (prof as any)?.staff_id ?? uid);
+      sessionStorage.setItem("authUserId", uid);
     } catch {}
   };
 
