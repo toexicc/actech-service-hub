@@ -128,7 +128,8 @@ const CustomerManagement = () => {
       toast({ title: "No PDF Available", description: "PDF link not found for this service", variant: "destructive" });
       return;
     }
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalOpen(true);
   };
 
   return (
