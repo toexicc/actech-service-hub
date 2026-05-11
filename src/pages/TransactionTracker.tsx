@@ -709,9 +709,11 @@ const TransactionTracker = () => {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(t)}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeleteTarget(t); setDeleteDialog(true); }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {!String(t.transactionType || "").toLowerCase().startsWith("void") && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Void transaction" onClick={() => { setVoidTarget(t); setVoidReason(""); setVoidDialog(true); }}>
+                                <Ban className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
