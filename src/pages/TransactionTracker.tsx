@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { displayDate } from "@/lib/timezone";
 import {
-  Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
+  Search, Loader2, DollarSign, Edit, Ban, Plus, RefreshCw,
   ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
   CalendarIcon, FileText,
 } from "lucide-react";
