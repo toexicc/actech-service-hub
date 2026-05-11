@@ -878,6 +878,28 @@ const ServiceTracking = () => {
         url={pdfModalUrl}
         title={pdfModalTitle}
       />
+
+      <AlertDialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
+            <AlertDialogDescription>
+              By confirming, you agree to proceed with the repair of your device based on the
+              diagnosis above. The status will change to <strong>Proceed Repair</strong> and the
+              assigned admin and technician will be notified.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); submitApproval(true); }}
+              disabled={submittingApproval}
+            >
+              {submittingApproval ? "Submitting…" : "Confirm & Proceed"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
