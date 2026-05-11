@@ -7,6 +7,7 @@ interface QuotationPDFData {
   timestamp: string;
   adminRep: string;
   technician: string;
+  receivingStaff?: string;
   clientType: string;
   priority: string;
   clientName: string;
@@ -165,16 +166,19 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
 
   yPos += 5;
 
-  // Row 2: Admin Rep and Technician
-  doc.setFont("helvetica", "bold");
-  doc.text("Admin Representative:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.adminRep, midCol, yPos);
+  // Multi-line rows for Admin Rep / Receiving Staff / Technician
+  const drawWrappedRow = (label: string, value: string) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(label, leftCol, yPos);
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(value || "", 130);
+    doc.text(lines, midCol, yPos);
+    yPos += Math.max(4, lines.length * 3.5);
+  };
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Technician:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.technician, valueCol, yPos);
+  drawWrappedRow("Admin Representative/s:", data.adminRep);
+  drawWrappedRow("Handling Staff:", (data as any).receivingStaff || "");
+  drawWrappedRow("Technician/s:", data.technician);
 
   // Client Information Section
   yPos += 10;

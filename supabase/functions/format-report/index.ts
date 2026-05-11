@@ -9,28 +9,71 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { technicianReport, customerName, deviceType, model, serviceId, technician, finalCost, serviceCost } = await req.json();
+    const { technicianReport, customerName, deviceType, model, serviceId, finalCost, serviceCost } = await req.json();
 
     if (!technicianReport) {
       return new Response(
         JSON.stringify({ error: 'Technician report is required' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Use finalCost if available, otherwise use serviceCost
     const costToDisplay = finalCost || serviceCost || '0';
 
-    console.log('Formatting service report with OpenAI...');
+    const systemPrompt = `You are formatting a service report for AC Tech Repair PH.
+
+Format the following information into a customer-friendly service report.
+
+STRICT FORMAT:
+
+Customer Name: [name]
+Device Type: [type]
+Model: [model]
+Service ID: [id]
+
+AC TECH SERVICE REPORT
+
+Work Performed:
+[Clear description of repairs and services completed]
+
+Technical Findings:
+[Detailed technical observations and results]
+
+Final Status:
+[Current condition of the device]
+
+Recommendations:
+[Professional advice for device maintenance and care]
+
+Service Cost: Php [serviceCost]
+
+To finalize the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions:
+bit.ly/actech-termsnconditions
+
+WRITING RULES:
+- Friendly, professional, and customer-oriented
+- Straight to the point
+- Use simple and easy-to-understand language
+- Formal service report style
+- Plain text only
+- No markdown formatting (no **, no __, no #)
+- No bullet points
+- No em dashes, use regular hyphens or commas instead
+- No quotation marks unless necessary
+- Use clear section labels`;
+
+    const userPrompt = `Customer: ${customerName}
+Device: ${deviceType} (${model})
+Service ID: ${serviceId}
+Service Cost: Php ${costToDisplay}
+
+Raw Service Report:
+${technicianReport}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -41,50 +84,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-5-mini-2025-08-07',
         messages: [
-          { 
-            role: 'system', 
-            content: `You are a professional technician at AC Tech Repair PH. Write a clear, concise service report for device release.
-
-Format your report using this EXACT structure:
-
-Customer Name: [name]
-Device Type: [type]
-Model: [model]
-Service ID: [id]
-
-AC TECH DEVICE REPORT | READY FOR RELEASE
-
-Service Performed:
-[1-2 sentences - what was done to fix the device]
-
-Recommendation:
-[1 sentence - professional advice for the customer]
-
-Service Cost: Php [cost from data]
-
----
-
-To finalize the service, please reply PROCEED to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
-
-IMPORTANT RULES:
-- Be concise, professional, and customer-friendly
-- Maximum 1-2 sentences per section
-- Use technical terms but keep it understandable
-- NO emojis, NO markdown (do NOT use **bold**, __italic__, or # headings) — plain text only
-- Focus on clarity and professionalism
-- Use the exact Service Cost provided in the data` 
-          },
-          { 
-            role: 'user', 
-            content: `Customer Name: ${customerName}
-Device Type: ${deviceType}
-Model: ${model}
-Service ID: ${serviceId}
-Service Cost: Php ${costToDisplay}
-
-Raw technician report:
-${technicianReport}` 
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
         ],
         max_completion_tokens: 1500,
       }),
@@ -93,34 +94,15 @@ ${technicianReport}`
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'OpenAI rate limit reached. Please wait and try again.' }),
-          { 
-            status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'OpenAI API quota exceeded. Please check your OpenAI account.' }),
-          { 
-            status: 402,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const formattedReport = data.choices[0].message.content;
-
-    console.log('Successfully formatted service report');
+    const formattedReport = String(data.choices[0].message.content || "")
+      .replace(/\*\*/g, "")
+      .replace(/__/g, "")
+      .replace(/^#+\s*/gm, "")
+      .replace(/—/g, "-");
 
     return new Response(
       JSON.stringify({ formattedReport }),
@@ -130,10 +112,7 @@ ${technicianReport}`
     console.error('Error in format-report function:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

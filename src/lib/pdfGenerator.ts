@@ -33,6 +33,7 @@ interface PDFData {
   signatureUrl?: string;
   annotationImageUrl?: string;
   annotationNotes?: string;
+  receivingStaff?: string;
 }
 
 export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
@@ -95,16 +96,22 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
 
   yPos += 6;
 
-  // Row 2: Admin Rep and Technician
-  doc.setFont("helvetica", "bold");
-  doc.text("Admin Representative:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.adminRep, midCol, yPos);
+  // Multi-line rows for Admin Rep / Receiving Staff / Technician so long
+  // comma-separated lists wrap and do not overlap each other.
+  const drawWrappedRow = (label: string, value: string) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(label, leftCol, yPos);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const lines = doc.splitTextToSize(value || "", 130);
+    doc.text(lines, midCol, yPos);
+    yPos += Math.max(5, lines.length * 4);
+    doc.setFontSize(10);
+  };
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Technician:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.technician, valueCol, yPos);
+  drawWrappedRow("Admin Representative/s:", data.adminRep);
+  drawWrappedRow("Handling Staff:", (data as any).receivingStaff || "");
+  drawWrappedRow("Technician/s:", data.technician);
 
   // Client Information Section
   yPos += 12;

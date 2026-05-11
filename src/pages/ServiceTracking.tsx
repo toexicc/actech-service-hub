@@ -14,9 +14,14 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Image as ImageIcon } from "lucide-react";
+import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
+import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { createNotification } from "@/lib/notifications";
+import { fetchStaffList } from "@/lib/staffList";
 
 interface CustomerData {
   clientId: string;
@@ -53,7 +58,17 @@ const ServiceTracking = () => {
   // Device report photos
   const [devicePhotos, setDevicePhotos] = useState<string[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
-  
+
+  // PDF modal viewer
+  const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [pdfModalTitle, setPdfModalTitle] = useState("Document");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+
+  // Approve / Decline flow (Waiting to Proceed)
+  const [declineOpen, setDeclineOpen] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [submittingApproval, setSubmittingApproval] = useState(false);
+
   const { toast } = useToast();
 
   // Fetch photos from Google Drive folder
@@ -259,14 +274,69 @@ const ServiceTracking = () => {
     return "bg-white hover:bg-gray-50";
   };
 
-  const handleViewPDF = async (pdfUrl: string, serviceId?: string) => {
-    const signed = serviceId ? await getServicePdfSignedUrl(serviceId, "intake") : null;
-    const url = signed || (pdfUrl ? normalizeGoogleDrivePdfUrl(pdfUrl, "preview") : null);
+  const openPdf = async (
+    legacyUrl: string | undefined,
+    sid: string | undefined,
+    kind: "intake" | "quotation",
+    title: string,
+  ) => {
+    const signed = sid ? await getServicePdfSignedUrl(sid, kind) : null;
+    const url = signed || (legacyUrl ? normalizeGoogleDrivePdfUrl(legacyUrl, "preview") : null);
     if (!url) {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalTitle(title);
+    setPdfModalOpen(true);
+  };
+
+  const handleViewPDF = (pdfUrl: string, sid?: string) => openPdf(pdfUrl, sid, "intake", "Client Intake Form");
+
+  const submitApproval = async (approved: boolean, reason?: string) => {
+    if (!serviceData?.serviceId) return;
+    setSubmittingApproval(true);
+    try {
+      const ts = new Date().toISOString();
+      const tag = approved
+        ? `Approved by ${serviceData.clientName} on ${ts}`
+        : `Declined by ${serviceData.clientName} on ${ts}: ${reason || ""}`;
+      const newRemarks = [serviceData.remarks, tag].filter(Boolean).join("\n");
+      const { error } = await supabase
+        .from("services")
+        .update({ remarks: newRemarks })
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw error;
+
+      // Notify all assigned admin reps
+      const adminReps: string[] = (serviceData.adminRep || "").split(",").map((s: string) => s.trim()).filter(Boolean);
+      if (adminReps.length) {
+        const staff = await fetchStaffList();
+        for (const name of adminReps) {
+          const m = staff.find((s) => s.name?.toLowerCase() === name.toLowerCase());
+          if (m?.staffId) {
+            await createNotification({
+              userId: m.staffId,
+              title: approved ? `Service ${serviceData.serviceId} Approved` : `Service ${serviceData.serviceId} Declined`,
+              message: approved
+                ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}.`
+                : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
+              type: "service_update",
+              serviceId: serviceData.serviceId,
+            });
+          }
+        }
+      }
+
+      setServiceData({ ...serviceData, remarks: newRemarks });
+      setDeclineOpen(false);
+      setDeclineReason("");
+      toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to submit response.", variant: "destructive" });
+    } finally {
+      setSubmittingApproval(false);
+    }
   };
 
   return (

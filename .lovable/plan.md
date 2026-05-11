@@ -1,64 +1,61 @@
-# Fixes & Update — Implementation Plan
+# Fix & Update Plan
 
-## Fixes
+## 1. Generated PDF formatting (intake & quotation)
+- In `pdfGenerator.ts` and `quotationPdfGenerator.ts`: render Admin Representative/s, Handling Staff, and Technician/s each on their own line. Wrap long comma-separated lists onto continuation lines (indented), shrink font from 9pt → 8pt for these rows so document still fits a single page.
+- Keep all other layout intact; verify still 1 page.
 
-### 1. PDF "No PDF available" on intake & quotation
-- After Supabase migration, intake/quotation submissions stopped uploading the generated PDF to the `intake-forms` / `quotation-forms` storage buckets and inserting into `service_files`.
-- Wire `pdfGenerator.ts` and `quotationPdfGenerator.ts` outputs to upload the PDF blob to the correct bucket on submit, and persist a `service_files` row (kind=intake/quotation, bucket, storage_path).
-- Update the "View PDF" handlers in `ServiceUpdate.tsx`, `ServiceTracking.tsx`, `ManageClient.tsx`, and `CustomerManagement.tsx` to look up the latest matching `service_files` row and create a signed URL instead of relying on legacy Drive URLs.
+## 2. View PDF as modal viewer
+- New component `src/components/PdfViewerModal.tsx`: Dialog with iframe (signed URL), Download button (anchor `download`) and Print button (`iframe.contentWindow.print()`).
+- Replace existing "View PDF" handlers in `ServiceUpdate.tsx`, `ServiceTracking.tsx`, `ManageClient.tsx`, `CustomerManagement.tsx`, `ServiceForm.tsx` (intake page) to open this modal instead of `window.open`.
 
-### 2. Status-change notifications
-- The new `serviceNotifications.ts` only notifies the assigned technician/admin. Restore the broader behaviour: notify every technician in `technicians[]`, every admin rep in `admin_reps[]`, plus the receiving staff, on every status change.
-- Reuse `createNotification` per recipient (resolve user_id by name from `profiles`).
+## 3. View PDF on /track
+- In `ServiceTracking.tsx`: enable buttons whenever `getServicePdfSignedUrl(serviceId, 'intake'|'quotation')` resolves; open in `PdfViewerModal`.
 
-### 3. AI text formatting (`**` markdown showing in UI)
-- The format-diagnosis / format-report edge functions and `serviceNotifications.ts` outputs include `**bold**`. Match the original `googleSheets.ts` style: plain text, sectioned with `Findings:`, `Cause:`, `Solution:`, `Recommendations:`, `Service Breakdown:` and `Performed:` / `Recommendation:` / `Cost:` for the report — no markdown.
-- Strip `**` / `__` / `#` from any rendered AI text in `AiReportCard` as a defensive measure.
+## 4. /intake View PDF disabled
+- After submit in `ServiceForm.tsx`, store generated PDF blob in component state and surface a "View PDF" button that opens the modal even before re-fetching.
 
-### 4. Page scroll
-- `Login.tsx` uses `overflow-hidden` on the root → page can't scroll on short viewports. Replace with `overflow-y-auto` and remove the `h-screen` lock.
-- `ServiceForm.tsx` (intake) — ensure outer container is `min-h-screen overflow-y-auto` (already partly done) and the inner card doesn't pin height. Audit other pages with the same pattern (`Install`, `Menu`).
+## 5. Always show fresh data
+- Add `refetchOnMount: 'always'` and `staleTime: 0` to the React Query hooks used by `ManageClient`, `ServiceUpdate`, `ServiceTracking`, `CustomerManagement` (in `useServices`, `useClients`, `useClientInquiriesData`).
 
-### 5. Reflect previous functionality on the new DB
-- Audit the remaining mismatches carried over from the Sheets era and not yet ported: client_inquiries fields (preOrder, partId), service.aiReport on Done-Repair, request-for-parts auto-link, salary daily-rate calculation source. Fix any field references still pointing at the legacy column names.
+## 6. /track approval flow
+- Add UI block in `ServiceTracking.tsx`:
+  - When `status === 'Waiting to Proceed'` AND no approval recorded: show **AI Diagnosis** card (renamed "Service Diagnosis"), then Intake Form + Quotation PDF buttons, then **Approve** and **Decline** buttons under the diagnosis.
+  - Approve → write `Approved by {clientName} on {ISO ts}` into `services.remarks` (append) and create notification to all `admin_reps[]`.
+  - Decline → text field + Submit → append `Declined by {clientName} on {ts}: {reason}` to `remarks`, notify all `admin_reps[]`.
+  - When `status` is `Done Repair - Advise Client` or `Completed`: show **Service Report** card (renamed) above intake/quotation forms.
+  - Buttons appear only on `/track`, never on `/manage-client`.
 
-## Update — Per-service technician breakdown
+## 7. Drop "AI" prefix on /track
+- In `ServiceTracking.tsx` pass `title="Service Diagnosis"` / `title="Service Report"` to `AiReportCard`.
 
-Goal: when a service is in **Completed Transactions**, expand the row to assign a breakdown so each technician's cost contribution is recorded (for commission/salary).
+## 8. Staff Management — show email
+- `StaffManagement.tsx`: add Email column to staff list (read from `auth.users.email` via existing `manage-staff` edge function — extend it to return email per profile, or store email on `profiles.username` since username == email on signup). Display email column.
 
-### Schema
-New table `service_breakdowns`:
-- `id` uuid PK
-- `service_id` text (FK to services.service_id)
-- `service_name` text          — the line item description
-- `technician_id` uuid          — FK to profiles.id
-- `technician_name` text
-- `cost` numeric                — that technician's portion
-- `created_at`, `updated_at`, `created_by`
+## 9. Notifications to all assigned admins/techs (not just logged-in user)
+- Audit `serviceNotifications.ts`: ensure when service is **created** in `ServiceForm.tsx`, we call `notifyServiceAssignment` (new helper) iterating `admin_reps[]` + `technicians[]` + `receivingStaff` and `createNotification` for each (resolve user_id by name from `profiles`).
+- Verify `notifyStatusChange` similarly loops all recipients.
+- Push notifications (`sendPushNotification`) already runs server-side via OneSignal external user id, so offline users get pushes.
 
-RLS: read for any authenticated user; write for admin/management or the assigned technician.
+## 10. /intake scroll fix
+- `ServiceForm.tsx`: outer wrapper currently uses `min-h-screen` with inner card constraints — change to `min-h-screen overflow-y-auto` on root and remove any `h-screen`/`overflow-hidden` on parents.
 
-### UI (`CompletedTransactions.tsx`)
-- Make each row clickable → expands an inline panel under the row.
-- Panel shows:
-  - Header: `Total Service Cost: ₱{total_cost}` (read-only)
-  - Editable list of breakdown lines: `Service`, `Technician` (dropdown of staff that are technicians), `Cost`
-  - Add/remove line buttons; Save persists to `service_breakdowns`.
-  - Validation: sum of line costs ≤ total_cost; warn if not equal.
-- When a service has multiple technicians in `technicians[]`, pre-seed one empty line per technician on first open.
-- Show a small badge `Breakdown set` if rows exist for the service.
+## 11. Custom helper / notification text
+- In `serviceNotifications.ts` status message map:
+  - `Done Repair - Advise Client` → `Send the report to client for {serviceId} ({clientName}'s {deviceType} {brand} {model}). Please monitor for feedback and update status to Completed once payment and pickup are settled.`
+  - `Waiting to Proceed` → `Send the diagnosis to client for {serviceId} ({clientName}'s {deviceType} {brand} {model}). Please monitor for approval.`
+- Mirror same strings in any in-app helper banner shown on `ServiceUpdate.tsx` for those statuses.
 
-### Why this satisfies the "two technicians" note
-Instead of auto-splitting equally (lossy), the admin assigns each tech's exact contribution at completion time — which is what commissions actually need.
+## 12. AI prompts — strict format
+- Replace system prompts in `supabase/functions/format-diagnosis/index.ts` and `supabase/functions/format-report/index.ts` with the exact templates the user provided (verbatim sections, plain text, no markdown, no em dashes).
 
-## Files touched (technical)
-- `supabase/migrations/<new>.sql` — `service_breakdowns` table + RLS
-- `src/pages/CompletedTransactions.tsx` — expandable rows + form
-- `src/hooks/useServiceBreakdowns.ts` — fetch/mutate
-- `src/lib/pdfGenerator.ts`, `src/lib/quotationPdfGenerator.ts` — upload to storage + insert service_files
-- `src/pages/ServiceForm.tsx` — call new upload after submit
-- `src/pages/{ServiceUpdate,ServiceTracking,ManageClient,CustomerManagement}.tsx` — signed-URL viewer
-- `src/lib/serviceNotifications.ts` — notify all techs + admin reps + receiving staff
-- `supabase/functions/format-diagnosis/index.ts`, `format-report/index.ts` — strip markdown, match googleSheets format
-- `src/components/AiReportCard.tsx` — defensive markdown strip
-- `src/pages/Login.tsx`, `src/pages/ServiceForm.tsx` — fix scroll
+## Files to touch
+- `src/lib/pdfGenerator.ts`, `src/lib/quotationPdfGenerator.ts`
+- `src/components/PdfViewerModal.tsx` (new)
+- `src/pages/ServiceTracking.tsx`, `ServiceUpdate.tsx`, `ManageClient.tsx`, `CustomerManagement.tsx`, `ServiceForm.tsx`, `StaffManagement.tsx`
+- `src/lib/serviceNotifications.ts`
+- `src/components/AiReportCard.tsx` (allow custom title — already supports)
+- `src/hooks/useServices.ts`, `useClients.ts`, `useClientInquiriesData.ts`
+- `supabase/functions/format-diagnosis/index.ts`, `format-report/index.ts`
+- `supabase/functions/manage-staff/index.ts` (return email)
+
+Reply **proceed** to start implementation, or specify which items to skip / change.
