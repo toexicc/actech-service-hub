@@ -301,38 +301,9 @@ const ServiceUpdate = () => {
     }
   };
 
-  const handleViewPDF = async () => {
-    const signed = serviceData?.serviceId
-      ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
-      : null;
-    const url = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview") : null);
-    if (!url) {
-      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
-      return;
-    }
-    const win = window.open(url, "_blank");
-    if (win) win.document.title = "Client Intake Form";
-  };
-  const handlePrintPDF = async () => {
-    const signed = serviceData?.serviceId
-      ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
-      : null;
-    const rawUrl = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "download") : null);
-    if (!rawUrl) {
-      toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
-      return;
-    }
-    const win = window.open("", "_blank");
-    if (win) {
-      const html = `<!doctype html><html><head><title>Client Intake Form - Print</title><meta name="referrer" content="no-referrer"><style>html,body{margin:0;height:100%} iframe{border:0;width:100%;height:100%}</style></head><body><iframe src="${rawUrl}" onload="setTimeout(function(){ window.focus(); window.print(); }, 500)"></iframe></body></html>`;
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-    } else {
-      window.open(rawUrl, '_blank');
-      toast({ title: "Popup Blocked", description: "Allow popups to auto-print, PDF opened in a new tab.", variant: "destructive" });
-    }
-  };
+  const handleViewPDF = () =>
+    openPdfModal(serviceData?.pdfUrl, serviceData?.serviceId, "intake", "Client Intake Form");
+
   async function searchService(id: string) {
     if (!id) {
       toast({
