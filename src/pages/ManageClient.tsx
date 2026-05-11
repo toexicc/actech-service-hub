@@ -166,7 +166,6 @@ const ManageClient = () => {
   };
 
   const handleViewPDF = async () => {
-    // Prefer the new Supabase-stored PDF; fall back to legacy Drive URL.
     const signed = serviceData?.serviceId
       ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
       : null;
@@ -175,7 +174,9 @@ const ManageClient = () => {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalTitle("Client Intake Form");
+    setPdfModalOpen(true);
   };
   
   useEffect(() => {
