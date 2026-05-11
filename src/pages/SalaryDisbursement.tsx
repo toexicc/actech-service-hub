@@ -165,6 +165,28 @@ const SalaryDisbursement = () => {
     queryFn: fetchTechnicianServices,
     staleTime: 60 * 1000,
   });
+  const { data: allTransactions = [] } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: fetchTransactions,
+    staleTime: 60 * 1000,
+  });
+
+  // Compute balance per fund from transactions (mirrors TransactionTracker logic)
+  const fundBalances = useMemo(() => {
+    const totals: Record<string, number> = {};
+    FUND_TYPES.forEach((f) => (totals[f] = 0));
+    allTransactions.forEach((t: any) => {
+      const amt = parseCurrency(t.amount);
+      const type = t.transactionType || "";
+      const fundSrc = t.fundSource || "Money In Bank";
+      if (FUND_TYPES.includes(type)) totals[type] = (totals[type] || 0) + amt;
+      if (EXPENSE_TYPES.includes(type) && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
+      if (type === REFUND_TYPE && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
+    });
+    return totals;
+  }, [allTransactions]);
+
+  const selectedFundBalance = fundBalances[fundSource] ?? 0;
 
   // Separate staff
   const fixedStaff = useMemo(() =>
