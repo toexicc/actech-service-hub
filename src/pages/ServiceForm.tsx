@@ -304,6 +304,7 @@ const ServiceForm = () => {
         serviceId: finalServiceId,
         timestamp,
         adminRep: data.adminRep || "",
+        receivingStaff: data.receivingStaff || "",
         technician: data.technician || "",
         clientType: data.clientType,
         priority: data.priority,
@@ -1394,7 +1395,9 @@ const ServiceForm = () => {
   );
 
   return isPublic ? (
-    <div className="min-h-screen w-full overflow-y-auto bg-background">{content}</div>
+    <div className="min-h-screen w-full overflow-y-auto overscroll-contain bg-background" style={{ WebkitOverflowScrolling: "touch" }}>
+      {content}
+    </div>
   ) : (
     <DashboardLayout>{content}</DashboardLayout>
   );
