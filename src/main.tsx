@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initOneSignal } from "./lib/onesignal";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import { installBridgeAuthInterceptor } from "@/lib/bridgeFetchInterceptor";
 
 async function cleanupLegacyPwaServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
