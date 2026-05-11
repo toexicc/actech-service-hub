@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         recipient_id: r.userId,
         title: r.title,
         message: r.message,
-        category: "service",
+        category: "service_update",
         service_id: r.serviceId ?? null,
       }));
 
