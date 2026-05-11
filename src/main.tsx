@@ -69,6 +69,7 @@ function installGlobalErrorHandlers() {
 
 (async () => {
   installGlobalErrorHandlers();
+  installBridgeAuthInterceptor();
 
   // If a legacy PWA service worker was previously installed, unregister it.
   // This prevents the browser from repeatedly requesting /sw.js (now removed).
