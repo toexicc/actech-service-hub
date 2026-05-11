@@ -96,22 +96,29 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
 
   yPos += 6;
 
-  // Multi-line rows for Admin Rep / Receiving Staff / Technician so long
-  // comma-separated lists wrap and do not overlap each other.
-  const drawWrappedRow = (label: string, value: string) => {
+  // One name per line so multiple selected staff don't overlap. Tight 3.6mm
+  // line height keeps the details block on a single page.
+  const drawStackedRow = (label: string, value: string) => {
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
     doc.text(label, leftCol, yPos);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    const lines = doc.splitTextToSize(value || "", 130);
-    doc.text(lines, midCol, yPos);
-    yPos += Math.max(5, lines.length * 4);
+    const items = (value || "")
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const list = items.length ? items : [""];
+    list.forEach((name, i) => {
+      doc.text(name, midCol, yPos + i * 3.6);
+    });
+    yPos += Math.max(5, list.length * 3.6 + 1.2);
     doc.setFontSize(10);
   };
 
-  drawWrappedRow("Admin Representative/s:", data.adminRep);
-  drawWrappedRow("Handling Staff:", (data as any).receivingStaff || "");
-  drawWrappedRow("Technician/s:", data.technician);
+  drawStackedRow("Admin Representative/s:", data.adminRep);
+  drawStackedRow("Handling Staff:", (data as any).receivingStaff || "");
+  drawStackedRow("Technician/s:", data.technician);
 
   // Client Information Section
   yPos += 12;
