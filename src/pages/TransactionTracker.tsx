@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { displayDate } from "@/lib/timezone";
 import {
-  Search, Loader2, DollarSign, Edit, Trash2, Plus, RefreshCw,
+  Search, Loader2, DollarSign, Edit, Ban, Plus, RefreshCw,
   ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
   CalendarIcon, FileText,
 } from "lucide-react";
@@ -118,9 +118,10 @@ const TransactionTracker = () => {
   });
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [voidDialog, setVoidDialog] = useState(false);
+  const [voidTarget, setVoidTarget] = useState<Transaction | null>(null);
+  const [voidReason, setVoidReason] = useState("");
+  const [isVoiding, setIsVoiding] = useState(false);
 
   const [logsDialog, setLogsDialog] = useState(false);
   const [logsTarget, setLogsTarget] = useState<Transaction | null>(null);
@@ -167,9 +168,10 @@ const TransactionTracker = () => {
   const tabFilteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const type = t.transactionType || "";
+      const isVoid = type.toLowerCase().startsWith("void");
       switch (activeTab) {
         case "sales":
-          return SALES_TYPES.includes(type);
+          return SALES_TYPES.includes(type) && !isVoid;
         case "expenses": {
           if (!EXPENSE_TYPES.includes(type)) return false;
           if (expenseSubTab === "all" || expenseSubTab === "opex") return true;
@@ -177,9 +179,11 @@ const TransactionTracker = () => {
           return subDef ? subDef.types.includes(type) : true;
         }
         case "savings":
-          return SAVINGS_TYPES.includes(type);
+          return SAVINGS_TYPES.includes(type) && !isVoid;
+        case "logs":
+          return isVoid;
         default:
-          return true;
+          return !isVoid;
       }
     });
   }, [transactions, activeTab, expenseSubTab]);
@@ -397,41 +401,56 @@ const TransactionTracker = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    if (userRole === "admin") {
-      toast({ title: "Pending Request", description: "Delete request sent to management", variant: "default" });
-      setDeleteDialog(false);
+  const handleVoid = async () => {
+    if (!voidTarget) return;
+    if (!voidReason.trim()) {
+      toast({ title: "Reason required", description: "Please enter a reason for voiding this transaction.", variant: "destructive" });
       return;
     }
 
-    setIsDeleting(true);
+    setIsVoiding(true);
     try {
+      const originalAmount = parseCurrency(voidTarget.amount);
+      const voidId = `VOID${Date.now()}`;
       const params = new URLSearchParams();
-      params.append("action", "deleteTransaction");
-      params.append("transactionId", deleteTarget.transactionId);
-      params.append("deletedBy", username);
+      params.append("action", "addTransaction");
+      params.append("transactionId", voidId);
+      params.append("serviceId", voidTarget.serviceId || "");
+      params.append("transactionType", `Void - ${voidTarget.transactionType}`);
+      params.append("modeOfPayment", voidTarget.modeOfPayment || "N/A");
+      params.append("name", voidTarget.name || "");
+      params.append("device", voidTarget.device || "");
+      params.append("amount", (-Math.abs(originalAmount)).toFixed(2));
+      params.append("serviceCost", "0");
+      params.append("attendant", username);
+      params.append("remarks", `Void of ${voidTarget.transactionId}: ${voidReason.trim()}`);
+      params.append("partsCost", "0");
+      params.append("finalCost", "0");
+      params.append("previousPayments", "0");
+      if (voidTarget.fundSource) params.append("fundSource", voidTarget.fundSource);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {
-        toast({ title: "Deleted", description: "Transaction removed" });
+        toast({ title: "Voided", description: `Transaction ${voidTarget.transactionId} has been voided.` });
         logActivityAsync({
-          serviceId: deleteTarget.serviceId || "TRACKER",
+          serviceId: voidTarget.serviceId || "TRACKER",
           username,
           role: userRole || "",
-          activity: `Deleted transaction ${deleteTarget.transactionId}`,
+          activity: `Voided transaction ${voidTarget.transactionId} (${voidTarget.transactionType}, ${fmtCurrency(originalAmount)}) — Reason: ${voidReason.trim()}`,
         });
-        setDeleteDialog(false);
+        setVoidDialog(false);
+        setVoidReason("");
+        setVoidTarget(null);
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
       } else {
-        toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+        toast({ title: "Error", description: result.message || "Failed to void", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Error", description: "Failed to delete transaction", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to void transaction", variant: "destructive" });
     } finally {
-      setIsDeleting(false);
+      setIsVoiding(false);
     }
   };
 
@@ -568,6 +587,7 @@ const TransactionTracker = () => {
             <TabsTrigger value="sales">Sales</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="savings">Savings</TabsTrigger>
+            <TabsTrigger value="logs">Transaction Logs</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -693,9 +713,11 @@ const TransactionTracker = () => {
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(t)}>
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setDeleteTarget(t); setDeleteDialog(true); }}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {!String(t.transactionType || "").toLowerCase().startsWith("void") && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Void transaction" onClick={() => { setVoidTarget(t); setVoidReason(""); setVoidDialog(true); }}>
+                                <Ban className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -835,20 +857,34 @@ const TransactionTracker = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Dialog */}
-        <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        {/* Void Dialog */}
+        <Dialog open={voidDialog} onOpenChange={(open) => { setVoidDialog(open); if (!open) { setVoidReason(""); setVoidTarget(null); } }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Transaction</DialogTitle>
+              <DialogTitle className="flex items-center gap-2"><Ban className="h-5 w-5 text-destructive" /> Void Transaction</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this transaction? This action cannot be undone.
+                Voiding posts a reversing entry that cancels this transaction. The original record stays in the books for audit. This cannot be undone.
               </DialogDescription>
             </DialogHeader>
+            {voidTarget && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-sm p-3 rounded-lg bg-muted/50">
+                  <div><span className="text-muted-foreground text-xs">TXN ID:</span> <strong className="font-mono">{voidTarget.transactionId}</strong></div>
+                  <div><span className="text-muted-foreground text-xs">Type:</span> {voidTarget.transactionType}</div>
+                  <div><span className="text-muted-foreground text-xs">Amount:</span> <strong>{fmtCurrency(parseCurrency(voidTarget.amount))}</strong></div>
+                  <div><span className="text-muted-foreground text-xs">MOP:</span> {voidTarget.modeOfPayment}</div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reason for voiding *</Label>
+                  <Textarea value={voidReason} onChange={(e) => setVoidReason(e.target.value)} rows={3} placeholder="e.g. Wrong amount entered, duplicate payment, customer cancellation..." />
+                </div>
+              </div>
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialog(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Delete
+              <Button variant="outline" onClick={() => setVoidDialog(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleVoid} disabled={isVoiding || !voidReason.trim()}>
+                {isVoiding ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Ban className="h-4 w-4 mr-1" />}
+                Confirm Void
               </Button>
             </DialogFooter>
           </DialogContent>

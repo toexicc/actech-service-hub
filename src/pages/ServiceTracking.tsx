@@ -584,6 +584,24 @@ const ServiceTracking = () => {
 
               <Separator />
 
+              {/* Personnel */}
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Representative/s:</h3>
+                  <p className="text-base whitespace-pre-wrap break-words">{serviceData.adminRep || "N/A"}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Handling Staff:</h3>
+                  <p className="text-base whitespace-pre-wrap break-words">{serviceData.receivingStaff || "N/A"}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician/s:</h3>
+                  <p className="text-base whitespace-pre-wrap break-words">{serviceData.technician || "N/A"}</p>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Service Details */}
               <div>
                 <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
