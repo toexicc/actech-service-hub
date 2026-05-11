@@ -1025,17 +1025,18 @@ const ManageClient = () => {
     }
   };
 
-  const handleViewQuotationPDF = () => {
-    if (!serviceData?.quotationPdfUrl) {
-      toast({
-        title: "No Quotation PDF Available",
-        description: "Quotation PDF has not been generated yet",
-        variant: "destructive",
-      });
+  const handleViewQuotationPDF = async () => {
+    const signed = serviceData?.serviceId
+      ? await getServicePdfSignedUrl(serviceData.serviceId, "quotation")
+      : null;
+    const url = signed || (serviceData?.quotationPdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview") : null);
+    if (!url) {
+      toast({ title: "No Quotation PDF Available", description: "Quotation PDF has not been generated yet", variant: "destructive" });
       return;
     }
-    const url = normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview");
-    window.open(url, "_blank");
+    setPdfModalUrl(url);
+    setPdfModalTitle("Service Quotation Form");
+    setPdfModalOpen(true);
   };
 
   return (
