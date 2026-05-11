@@ -1395,7 +1395,7 @@ const ServiceForm = () => {
   );
 
   return isPublic ? (
-    <div className="min-h-screen w-full overflow-y-auto overscroll-contain bg-background" style={{ WebkitOverflowScrolling: "touch" }}>
+    <div className="min-h-screen w-full bg-background">
       {content}
     </div>
   ) : (
