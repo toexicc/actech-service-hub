@@ -1111,6 +1111,17 @@ export type Database = {
     Functions: {
       generate_service_id: { Args: never; Returns: string }
       get_my_name: { Args: never; Returns: string }
+      get_staff_directory: {
+        Args: never
+        Returns: {
+          department: string
+          id: string
+          name: string
+          staff_id: string
+          status: string
+          username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
