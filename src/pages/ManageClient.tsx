@@ -1699,7 +1699,7 @@ const ManageClient = () => {
                           </div>
                           <Textarea
                             id="aiReportDisplay"
-                            placeholder="AI Service Report from Column BB"
+                            placeholder="AI Service Report"
                             value={updateServiceReport}
                             onChange={(e) => setUpdateServiceReport(e.target.value)}
                             disabled={!isEditingServiceReport}
