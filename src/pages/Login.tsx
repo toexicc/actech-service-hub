@@ -64,44 +64,29 @@ const Login = () => {
             <CardHeader className="space-y-1 pb-2 sm:pb-4">
               <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                {mode === "signup" ? "Create Account" : "Sign In"}
+                Sign In
               </CardTitle>
               <CardDescription className="text-sm">
-                {mode === "signup" ? "First account becomes the admin" : "Access the team portal"}
+                Access the team portal
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-                {mode === "signup" && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="h-10 sm:h-11" />
-                  </div>
-                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
                   <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@actech.com" className="h-10 sm:h-11" autoComplete="email" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 sm:h-11" autoComplete={mode === "signup" ? "new-password" : "current-password"} />
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 sm:h-11" autoComplete="current-password" />
                 </div>
                 <Button type="submit" className="w-full h-10 sm:h-11 gradient-primary text-primary-foreground hover:opacity-90" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait...</>) : (mode === "signup" ? "Create Account" : "Sign In")}
+                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait...</>) : "Sign In"}
                 </Button>
-                <button type="button" onClick={() => setMode(mode === "signup" ? "signin" : "signup")} className="w-full text-xs text-muted-foreground hover:text-primary transition-colors">
-                  {mode === "signup" ? "Already have an account? Sign in" : "Need an account? Sign up"}
-                </button>
+                <p className="w-full text-center text-xs text-muted-foreground">
+                  Accounts are created by administrators via Staff Management.
+                </p>
               </form>
-
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-              </div>
-
-              <Button type="button" variant="outline" className="w-full h-10 sm:h-11" onClick={handleGoogle} disabled={isLoading}>
-                Continue with Google
-              </Button>
 
               <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border">
                 <Button variant="outline" className="w-full h-10 sm:h-11 group" onClick={() => navigate("/track")}>
