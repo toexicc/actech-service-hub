@@ -16,7 +16,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { FileText, Printer, Package, Camera, Loader2, QrCode } from "lucide-react";
+import { FileText, Package, Camera, Loader2, QrCode } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
