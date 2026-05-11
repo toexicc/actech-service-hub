@@ -1631,12 +1631,13 @@ const InventoryManagement = () => {
                                   {item.remarks || "N/A"}
                                 </TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
-                                  {item.qrCode ? (
+                                  {item.partId ? (
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => {
-                                        setSelectedQRCode({ partName: item.partName, qrCode: item.qrCode! });
+                                      onClick={async () => {
+                                        const dataUrl = await QRCode.toDataURL(item.partId, { width: 300, margin: 1 });
+                                        setSelectedQRCode({ partName: item.partName, qrCode: dataUrl });
                                         setQrCodeDialogOpen(true);
                                       }}
                                     >

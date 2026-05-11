@@ -103,12 +103,17 @@ const OpenDashboard = () => {
       }
       
       try {
-        const parts = service.targetDate.split(/[-/]/);
-        if (parts.length !== 3) {
+        const parts = service.targetDate.split(/[-/T ]/);
+        if (parts.length < 3) {
           return false;
         }
-        const [month, day, year] = parts;
-        const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        let year: number, month: number, day: number;
+        if (parts[0].length === 4) {
+          year = parseInt(parts[0]); month = parseInt(parts[1]); day = parseInt(parts[2]);
+        } else {
+          month = parseInt(parts[0]); day = parseInt(parts[1]); year = parseInt(parts[2]);
+        }
+        const targetDate = new Date(year, month - 1, day);
         targetDate.setHours(0, 0, 0, 0);
         
         if (isNaN(targetDate.getTime())) {

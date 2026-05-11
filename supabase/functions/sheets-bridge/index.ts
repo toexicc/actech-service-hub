@@ -1095,10 +1095,21 @@ async function cancelFastMovingPart(b: Record<string, any>) {
 // ---- Salary ----
 async function disburseSalary(b: Record<string, any>) {
   if (!b.staffId) return err("staffId required");
+  let staffUuid: string | null = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.staffId) ? b.staffId : null;
+  if (!staffUuid) {
+    // Lookup by staff_id text or by name
+    const { data: prof } = await sb
+      .from("profiles")
+      .select("id")
+      .or(`staff_id.eq.${b.staffId},name.eq.${b.staffName || ""}`)
+      .maybeSingle();
+    if (prof?.id) staffUuid = prof.id;
+  }
+  if (!staffUuid) return err("Could not resolve staff to a user account", 400);
   const amount = num(b.salaryAmount);
   const today = new Date().toISOString().slice(0, 10);
   const { error } = await sb.from("salary_disbursements").insert({
-    staff_id: b.staffId,
+    staff_id: staffUuid,
     staff_name: b.staffName || "",
     period_label: b.periodLabel || b.period || "Manual",
     period_start: today,

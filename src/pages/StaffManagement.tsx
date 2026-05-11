@@ -60,17 +60,23 @@ const StaffManagement = () => {
   
   // Transform staff data to match UserCredential interface
   const staffList = useMemo(() => {
-    return staffData.map((staff) => ({
-      staffId: staff.staffId,
-      username: staff.username,
-      password: staff.password,
-      name: staff.name,
-      role: staff.role?.toLowerCase() as "admin" | "technician" | "management",
-      department: staff.department,
-      status: staff.status?.toLowerCase() as "active" | "inactive",
-      salary: staff.salary || "",
-      salaryType: ((staff as any).salaryType as "monthly" | "service-based" | undefined) || (staff.salary ? "monthly" : "service-based"),
-    }));
+    return staffData
+      .filter((staff) => {
+        const u = (staff.username || "").toLowerCase();
+        const e = ((staff as any).email || "").toLowerCase();
+        return u !== "admin@actech.ph" && e !== "admin@actech.ph";
+      })
+      .map((staff) => ({
+        staffId: staff.staffId,
+        username: staff.username,
+        password: staff.password,
+        name: staff.name,
+        role: staff.role?.toLowerCase() as "admin" | "technician" | "management",
+        department: staff.department,
+        status: staff.status?.toLowerCase() as "active" | "inactive",
+        salary: staff.salary || "",
+        salaryType: ((staff as any).salaryType as "monthly" | "service-based" | undefined) || (staff.salary ? "monthly" : "service-based"),
+      }));
   }, [staffData]);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);

@@ -138,6 +138,7 @@ const TransactionTracker = () => {
     queryFn: fetchTransactions,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
   });
 
   const handleViewLogs = async (t: Transaction) => {
@@ -181,7 +182,8 @@ const TransactionTracker = () => {
         case "savings":
           return SAVINGS_TYPES.includes(type) && !isVoid;
         case "logs":
-          return isVoid;
+          // Show ALL transactions (including POS-recorded sales) so admins can audit who processed each
+          return true;
         default:
           return !isVoid;
       }

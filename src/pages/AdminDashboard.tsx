@@ -24,9 +24,9 @@ type ViewMode = "dueToday" | "overdue";
 const STATUS_COLUMNS = [
   "Confirmed Diagnosis",
   "Ongoing Service",
-  "For Pickup",
+  "Done Repair - For Release",
+  "Done Repair - Advise Client",
   "On Hold",
-  "RTO"
 ] as const;
 
 const AdminDashboard = () => {
@@ -76,12 +76,19 @@ const AdminDashboard = () => {
       }
       
       try {
-        const parts = service.targetDate.split(/[-/]/);
-        if (parts.length !== 3) {
+        const parts = service.targetDate.split(/[-/T ]/);
+        if (parts.length < 3) {
           return false;
         }
-        const [month, day, year] = parts;
-        const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        let year: number, month: number, day: number;
+        if (parts[0].length === 4) {
+          // YYYY-MM-DD
+          year = parseInt(parts[0]); month = parseInt(parts[1]); day = parseInt(parts[2]);
+        } else {
+          // MM/DD/YYYY
+          month = parseInt(parts[0]); day = parseInt(parts[1]); year = parseInt(parts[2]);
+        }
+        const targetDate = new Date(year, month - 1, day);
         targetDate.setHours(0, 0, 0, 0);
         
         if (isNaN(targetDate.getTime())) {

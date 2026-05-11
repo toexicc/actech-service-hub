@@ -208,7 +208,7 @@ const SalaryDisbursement = () => {
       const c = computeCalculator(staff);
       const params = new URLSearchParams();
       params.append("action", "disburseSalary");
-      params.append("staffId", staff.staffId);
+      params.append("staffId", (staff as any).userId || staff.staffId);
       params.append("staffName", staff.name);
       params.append("salaryAmount", finalAmount.toFixed(2));
       params.append("status", "Disbursed");
