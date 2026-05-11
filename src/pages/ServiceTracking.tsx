@@ -68,6 +68,7 @@ const ServiceTracking = () => {
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
+  const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
 
   const { toast } = useToast();
 
