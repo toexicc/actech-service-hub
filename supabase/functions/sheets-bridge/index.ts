@@ -343,7 +343,7 @@ async function getApiKey() {
 }
 
 // AI formatting via Lovable AI Gateway
-async function callLovableAI(messages: any[]) {
+async function callLovableAI(messages: any[], temperature = 0.2) {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -351,7 +351,7 @@ async function callLovableAI(messages: any[]) {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages }),
+    body: JSON.stringify({ model: "google/gemini-2.5-flash", temperature, messages }),
   });
   if (r.status === 429) throw new Error("rate limit exceeded");
   if (r.status === 402)
