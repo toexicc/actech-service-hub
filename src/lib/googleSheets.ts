@@ -3956,18 +3956,18 @@ function getStatusMessages(serviceId, newStatus, clientName, device) {
     case 'Pending Diagnosis':
       return {
         adminMessage: '',
-        technicianMessage: 'You have a device that has pending diagnosis (' + serviceId + ' - ' + clientName + "'s " + deviceInfo + '). When done, update status to Confirmed Diagnosis.'
+        technicianMessage: 'You have a device that has pending diagnosis (' + serviceId + ' - ' + clientName + "'s " + deviceInfo + '). For the assigned technician - when done, update status to Confirmed Diagnosis.'
       };
     
     case 'Confirmed Diagnosis':
       return {
-        adminMessage: 'Technician already has a diagnosis for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please review and generate a service quotation form and update status to Waiting to Proceed.',
+        adminMessage: 'Technician already has a diagnosis for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). For the assigned admin - please review and generate a service quotation form and update status to Waiting to Proceed.',
         technicianMessage: ''
       };
     
     case 'Waiting to Proceed':
       return {
-        adminMessage: 'Diagnosis sent to client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for approval.',
+        adminMessage: 'Send the diagnosis to client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for approval.',
         technicianMessage: ''
       };
     
@@ -3987,19 +3987,19 @@ function getStatusMessages(serviceId, newStatus, clientName, device) {
     case 'Done Repair - Observation':
       return {
         adminMessage: '',
-        technicianMessage: 'After the repair of ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '), make sure to draft a report, upload checklist and photos, and update status to Done Repair - Under Observation.'
+        technicianMessage: 'For the assigned technician, after the repair of ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '), make sure to draft a report, upload checklist and photos, and update status to Done Repair - For Release.'
       };
     
     case 'Done Repair - For Release':
       return {
-        adminMessage: 'Technician is done with the repair for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Kindly review the report and update status to Done Repair - Advise Client.',
+        adminMessage: 'Technician is done with the repair for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). For the assigned admin, kindly review the report and update status to Done Repair - Advise Client.',
         technicianMessage: ''
       };
     
     case 'Done Repair - Advise Client':
     case 'Done Repair - Advice Client':
       return {
-        adminMessage: 'Report sent to client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for feedback and update status to For Payment once okay.',
+        adminMessage: 'For the assigned admin, send the report to client for ' + serviceId + ' (' + clientName + "'s " + deviceInfo + '). Please monitor for feedback and update status to Completed once payment and pickup are settled.',
         technicianMessage: ''
       };
     

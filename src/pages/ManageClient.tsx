@@ -1577,7 +1577,7 @@ const ManageClient = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
-                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis (Column AF):</Label>
+                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <div className="flex gap-2 mb-2">
                             <Button
                               type="button"
@@ -1602,20 +1602,40 @@ const ManageClient = () => {
                               type="button"
                               size="sm"
                               onClick={() => {
-                                const summaryMatch = updateAIDiagnosis.match(
-                                  /SUMMARY:\s*(.+?)(?=\n|$)/i
+                                // Extract the Service Breakdown section and pull only
+                                // the service item names (strip "- Php <amount>" and any
+                                // brief description after a colon). Populate Service/s
+                                // as a comma-separated list.
+                                const text = updateAIDiagnosis || "";
+                                const breakdownMatch = text.match(
+                                  /Service Breakdown:\s*\n([\s\S]*?)(?=\n\s*\n|\n[A-Z][^\n]*:|$)/i
                                 );
-                                
-                                if (summaryMatch && summaryMatch[1]) {
-                                  setUpdateServices(summaryMatch[1].trim());
-                                  toast({ title: "Summary copied to Service/s" });
-                                } else {
-                                  toast({ 
-                                    title: "Error", 
-                                    description: "Could not find 'SUMMARY' section in AI diagnosis",
-                                    variant: "destructive"
-                                  });
+                                if (breakdownMatch && breakdownMatch[1]) {
+                                  const items = breakdownMatch[1]
+                                    .split(/\r?\n/)
+                                    .map((l) => l.trim())
+                                    .filter(Boolean)
+                                    .map((l) => {
+                                      // Remove price portion: "- Php 1500" or "Php 1500"
+                                      let name = l.replace(/\s*[-–—]?\s*Php\s*[\d,.]+.*$/i, "");
+                                      // Remove brief description after colon
+                                      name = name.split(":")[0];
+                                      // Remove leading list markers
+                                      name = name.replace(/^[\s\-•*\d.)]+/, "");
+                                      return name.trim();
+                                    })
+                                    .filter(Boolean);
+                                  if (items.length > 0) {
+                                    setUpdateServices(items.join(", "));
+                                    toast({ title: "Service breakdown copied to Service/s" });
+                                    return;
+                                  }
                                 }
+                                toast({
+                                  title: "Error",
+                                  description: "Could not find 'Service Breakdown' section in AI diagnosis",
+                                  variant: "destructive",
+                                });
                               }}
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
@@ -1624,7 +1644,7 @@ const ManageClient = () => {
                           </div>
                           <Textarea
                             id="aiDiagnosisDisplay"
-                            placeholder="AI Diagnosis from Column AF"
+                            placeholder="AI Diagnosis"
                             value={updateAIDiagnosis}
                             onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
                             disabled={!isEditingAIDiagnosis}
@@ -1655,7 +1675,7 @@ const ManageClient = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
-                          <Label htmlFor="aiReportDisplay">AI Service Report (Column BB):</Label>
+                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
                           <div className="flex gap-2 mb-2">
                             <Button
                               type="button"
@@ -1679,7 +1699,7 @@ const ManageClient = () => {
                           </div>
                           <Textarea
                             id="aiReportDisplay"
-                            placeholder="AI Service Report from Column BB"
+                            placeholder="AI Service Report"
                             value={updateServiceReport}
                             onChange={(e) => setUpdateServiceReport(e.target.value)}
                             disabled={!isEditingServiceReport}

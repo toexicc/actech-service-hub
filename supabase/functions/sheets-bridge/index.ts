@@ -343,7 +343,7 @@ async function getApiKey() {
 }
 
 // AI formatting via Lovable AI Gateway
-async function callLovableAI(messages: any[]) {
+async function callLovableAI(messages: any[], temperature = 0.2) {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -351,7 +351,7 @@ async function callLovableAI(messages: any[]) {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages }),
+    body: JSON.stringify({ model: "google/gemini-2.5-flash", temperature, messages }),
   });
   if (r.status === 429) throw new Error("rate limit exceeded");
   if (r.status === 402)
@@ -361,22 +361,95 @@ async function callLovableAI(messages: any[]) {
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+const stripMarkdown = (s: string): string =>
+  String(s ?? "")
+    .replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, ""))
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/_(.*?)_/g, "$1")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*+•]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/[“”]/g, "")
+    .replace(/[‘’]/g, "'")
+    .replace(/—/g, "-")
+    .replace(/–/g, "-")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
 async function formatDiagnosis(p: URLSearchParams) {
   const raw = p.get("rawDiagnosis") ?? "";
   if (!raw) return err("rawDiagnosis required");
+  const customerName = p.get("customerName") ?? "";
+  const deviceType = p.get("deviceType") ?? "";
+  const model = p.get("model") ?? "";
+  const serviceId = p.get("serviceId") ?? "";
+  const systemPrompt = `You are a professional technical diagnostician for AC Tech Repair PH.
+
+You will reformat raw technician notes into a customer-friendly diagnosis report.
+
+You MUST output the report using EXACTLY the template below, in the same order, with the same labels, and with the same blank lines between sections. Do NOT add any greeting, sign-off, headers, sections, or commentary that are not in the template. Do NOT change the wording of any label.
+
+EXACT OUTPUT TEMPLATE (replace bracketed values, keep everything else verbatim):
+
+Customer Name: <customerName>
+Device Type: <deviceType>
+Model: <model>
+Service ID: <serviceId>
+
+AC TECH DEVICE DIAGNOSIS
+
+Findings:
+<clear explanation of what was found during inspection>
+
+Cause of Issue:
+<simple explanation of the root cause>
+
+Suggested Solution:
+<specific repair actions needed>
+
+Recommendations:
+<professional advice for the customer>
+
+Service Breakdown:
+<Service Item 1> - Php <Amount>
+<Service Item 2> - Php <Amount>
+
+To proceed with the service, PROCEED or APPROVE to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
+
+SUMMARY: <one-line summary of the repair needed>
+
+WRITING RULES:
+Friendly, professional, and customer-oriented.
+Straight to the point.
+Use simple and easy-to-understand language.
+Formal quotation style.
+Plain text only.
+No markdown formatting at all. Never output **, __, ##, backticks, asterisks, or any markdown.
+No bullet points or numbered lists.
+No em dashes. Use regular hyphens only.
+No quotation marks unless necessary.
+Always price as: Php <amount> (example: Php 1500). Use a plain number, no currency symbol other than "Php".
+List every Service Breakdown item on its own line in the format "<Service Name> - Php <Amount>".
+Use the exact section labels and order shown in the template. Do not add or remove sections.`;
+  const userPrompt = `customerName: ${customerName}
+deviceType: ${deviceType}
+model: ${model}
+serviceId: ${serviceId}
+
+Raw technician notes:
+${raw}
+
+Produce the report now using the EXACT template. Do not include this instruction in your output.`;
   try {
     const content = await callLovableAI([
-      {
-        role: "system",
-        content:
-          "You are a senior diagnostics writer for an electronics repair shop. Format the technician's raw notes into a polished diagnosis with sections: Findings, Cause, Solution, Recommendations, Service Breakdown. Use clear bullet points and concise paragraphs. Output in plain text only.",
-      },
-      {
-        role: "user",
-        content: `Customer: ${p.get("customerName")}\nDevice: ${p.get("deviceType")} ${p.get("model")}\nService ID: ${p.get("serviceId")}\nFinal Cost: ${p.get("finalCost")}\n\nRaw notes:\n${raw}`,
-      },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ]);
-    return json({ status: "success", formattedDiagnosis: content });
+    return json({ status: "success", formattedDiagnosis: stripMarkdown(content) });
   } catch (e: any) {
     return json({ error: e.message }, 200);
   }
@@ -385,19 +458,67 @@ async function formatDiagnosis(p: URLSearchParams) {
 async function formatReport(p: URLSearchParams) {
   const raw = p.get("technicianReport") ?? "";
   if (!raw) return err("technicianReport required");
+  const customerName = p.get("customerName") ?? "";
+  const deviceType = p.get("deviceType") ?? "";
+  const model = p.get("model") ?? "";
+  const serviceId = p.get("serviceId") ?? "";
+  const finalCost = p.get("finalCost") ?? "0";
+  const systemPrompt = `You are a professional service report writer for AC Tech Repair PH.
+
+You will reformat the technician's raw report notes into a customer-friendly service report.
+
+You MUST output the report using EXACTLY the template below, in the same order, with the same labels, and with the same blank lines between sections. Do NOT add any greeting, sign-off, headers, sections, or commentary that are not in the template. Do NOT change the wording of any label.
+
+EXACT OUTPUT TEMPLATE (replace bracketed values, keep everything else verbatim):
+
+Customer Name: <customerName>
+Device Type: <deviceType>
+Model: <model>
+Service ID: <serviceId>
+
+AC TECH SERVICE REPORT
+
+Work Performed:
+<clear explanation of the work performed on the device>
+
+Technical Findings:
+<observations made during the service>
+
+Final Status:
+<final condition of the device>
+
+Recommendations:
+<professional advice for device maintenance and care>
+
+Service Cost: Php <serviceCost>
+
+WRITING RULES:
+Friendly, professional, and customer-oriented.
+Straight to the point.
+Use simple and easy-to-understand language.
+Formal service report style.
+Plain text only.
+No markdown formatting at all. Never output **, __, ##, backticks, asterisks, or any markdown.
+No bullet points or numbered lists.
+No em dashes. Use regular hyphens or commas instead.
+No quotation marks unless necessary.
+Use clear section labels exactly as shown in the template.`;
+  const userPrompt = `customerName: ${customerName}
+deviceType: ${deviceType}
+model: ${model}
+serviceId: ${serviceId}
+serviceCost: ${finalCost}
+
+Raw technician report:
+${raw}
+
+Produce the report now using the EXACT template. Do not include this instruction in your output.`;
   try {
     const content = await callLovableAI([
-      {
-        role: "system",
-        content:
-          "You are a senior service report writer. Format the technician report with sections: Performed, Recommendation, Cost. End with a clear PROCEED prompt for the customer. Plain text only.",
-      },
-      {
-        role: "user",
-        content: `Customer: ${p.get("customerName")}\nDevice: ${p.get("deviceType")} ${p.get("model")}\nService ID: ${p.get("serviceId")}\nFinal Cost: ${p.get("finalCost")}\n\nReport:\n${raw}`,
-      },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ]);
-    return json({ status: "success", formattedReport: content });
+    return json({ status: "success", formattedReport: stripMarkdown(content) });
   } catch (e: any) {
     return json({ error: e.message }, 200);
   }

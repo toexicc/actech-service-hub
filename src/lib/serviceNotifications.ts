@@ -62,12 +62,12 @@ const getStatusNotificationMessages = (
     case 'Pending Diagnosis':
       return {
         adminMessage: '',
-        technicianMessage: `You have a device that has pending diagnosis (${service.serviceId} - ${service.clientName}'s ${deviceInfo}). When done, update status to Confirmed Diagnosis.`
+        technicianMessage: `You have a device that has pending diagnosis (${service.serviceId} - ${service.clientName}'s ${deviceInfo}). For the assigned technician - when done, update status to Confirmed Diagnosis.`
       };
     
     case 'Confirmed Diagnosis':
       return {
-        adminMessage: `Technician already has a diagnosis for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please review and generate a service quotation form and update status to Waiting to Proceed.`,
+        adminMessage: `Technician already has a diagnosis for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). For the assigned admin - please review and generate a service quotation form and update status to Waiting to Proceed.`,
         technicianMessage: ''
       };
     
@@ -93,12 +93,12 @@ const getStatusNotificationMessages = (
     case 'Done Repair - Observation':
       return {
         adminMessage: '',
-        technicianMessage: `After the repair of ${service.serviceId} (${service.clientName}'s ${deviceInfo}), make sure to draft a report, upload checklist and photos, and update status to Done Repair - Under Observation.`
+        technicianMessage: `For the assigned technician, after the repair of ${service.serviceId} (${service.clientName}'s ${deviceInfo}), make sure to draft a report, upload checklist and photos, and update status to Done Repair - For Release.`
       };
     
     case 'Done Repair - For Release':
       return {
-        adminMessage: `Technician is done with the repair for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Kindly review the report and update status to Done Repair - Advise Client.`,
+        adminMessage: `Technician is done with the repair for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). For the assigned admin, kindly review the report and update status to Done Repair - Advise Client.`,
         technicianMessage: ''
       };
 
@@ -106,7 +106,7 @@ const getStatusNotificationMessages = (
     case 'Done Repair - Advise Client':
     case 'Done Repair - Advice Client':
       return {
-        adminMessage: `Send the report to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to Completed once payment and pickup are settled.`,
+        adminMessage: `For the assigned admin, send the report to client for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback and update status to Completed once payment and pickup are settled.`,
         technicianMessage: ''
       };
     
