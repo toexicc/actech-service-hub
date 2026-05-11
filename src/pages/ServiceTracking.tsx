@@ -342,7 +342,7 @@ const ServiceTracking = () => {
       formData.append("adminNotes", newAdminNotes);
       if (approved) {
         formData.append("status", "Proceed Repair");
-        if (newServices) formData.append("service", newServices);
+        if (newServices) formData.append("services", newServices);
       }
       await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
 
