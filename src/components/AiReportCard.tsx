@@ -38,7 +38,15 @@ export function AiReportCard({ report, title = "AI Service Report" }: AiReportCa
       </CardHeader>
       <CardContent>
         <pre className="whitespace-pre-wrap text-sm text-foreground/90 font-sans leading-relaxed">
-          {report.replace(/\*\*/g, "").replace(/__/g, "").replace(/^#+\s*/gm, "")}
+          {report
+            .replace(/\*\*(.*?)\*\*/g, "$1")
+            .replace(/__(.*?)__/g, "$1")
+            .replace(/(^|\s)\*(\S(?:.*?\S)?)\*(?=\s|$)/g, "$1$2")
+            .replace(/(^|\s)_(\S(?:.*?\S)?)_(?=\s|$)/g, "$1$2")
+            .replace(/^#{1,6}\s*/gm, "")
+            .replace(/^\s*[-*+]\s+/gm, "")
+            .replace(/`([^`]+)`/g, "$1")
+            .replace(/—/g, "-")}
         </pre>
       </CardContent>
     </Card>

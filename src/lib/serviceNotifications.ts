@@ -1,5 +1,28 @@
 import { createNotification } from './notifications';
 import { fetchStaffList, type StaffMember } from './staffList';
+import { supabase } from '@/integrations/supabase/client';
+
+// Sends notifications via the service-role edge function so they reliably
+// land for offline recipients and even when the caller is unauthenticated.
+const sendViaEdge = async (
+  recipients: { userId: string; title: string; message: string; serviceId?: string }[],
+) => {
+  if (!recipients.length) return;
+  try {
+    await supabase.functions.invoke('notify-service-event', { body: { recipients } });
+  } catch {
+    // Fall back to direct insert (best effort)
+    for (const r of recipients) {
+      await createNotification({
+        userId: r.userId,
+        title: r.title,
+        message: r.message,
+        type: 'service_update',
+        serviceId: r.serviceId,
+      });
+    }
+  }
+};
 
 interface ServiceInfo {
   serviceId: string;
@@ -147,56 +170,43 @@ export const notifyServiceStatusChange = async (
   try {
     const staffList = await fetchStaffList();
     const messages = getStatusNotificationMessages(newStatus, service, changedBy);
-    
-    // Notify ALL ASSIGNED admins (from column C - adminRep, comma-separated)
+    const recipients: { userId: string; title: string; message: string; serviceId?: string }[] = [];
+    const seen = new Set<string>();
+
+    const push = (staff: StaffMember | undefined, msg: string) => {
+      if (!staff?.staffId || !msg) return;
+      const key = `${staff.staffId}::${msg}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      recipients.push({
+        userId: staff.staffId,
+        title: `Service ${service.serviceId}: ${newStatus}`,
+        message: msg,
+        serviceId: service.serviceId,
+      });
+    };
+
     if (messages.adminMessage && service.adminRep) {
       const adminNames = service.adminRep.split(',').map(a => a.trim()).filter(Boolean);
       for (const adminName of adminNames) {
-        const assignedAdmin = findStaffByName(staffList, adminName);
-        if (assignedAdmin?.staffId) {
-          await createNotification({
-            userId: assignedAdmin.staffId,
-            title: `Service ${service.serviceId}: ${newStatus}`,
-            message: messages.adminMessage,
-            type: 'service_update',
-            serviceId: service.serviceId,
-          });
-        }
-      }
-    }
-    
-    // Notify assigned technicians
-    if (messages.technicianMessage && service.technician) {
-      const techNames = service.technician.split(',').map(t => t.trim()).filter(Boolean);
-      for (const techName of techNames) {
-        const tech = findStaffByName(staffList, techName);
-        if (tech?.staffId) {
-          await createNotification({
-            userId: tech.staffId,
-            title: `Service ${service.serviceId}: ${newStatus}`,
-            message: messages.technicianMessage,
-            type: 'service_update',
-            serviceId: service.serviceId,
-          });
-        }
+        push(findStaffByName(staffList, adminName), messages.adminMessage);
       }
     }
 
-    // Also notify the receiving staff (single name) on every status change
-    // so the front desk that intook the device stays in the loop.
+    if (messages.technicianMessage && service.technician) {
+      const techNames = service.technician.split(',').map(t => t.trim()).filter(Boolean);
+      for (const techName of techNames) {
+        push(findStaffByName(staffList, techName), messages.technicianMessage);
+      }
+    }
+
     if (service.receivingStaff) {
       const recv = findStaffByName(staffList, service.receivingStaff);
       const recvMsg = messages.adminMessage || messages.technicianMessage;
-      if (recv?.staffId && recvMsg) {
-        await createNotification({
-          userId: recv.staffId,
-          title: `Service ${service.serviceId}: ${newStatus}`,
-          message: recvMsg,
-          type: 'service_update',
-          serviceId: service.serviceId,
-        });
-      }
+      push(recv, recvMsg);
     }
+
+    await sendViaEdge(recipients);
   } catch (error) {
     console.error('Error sending service notifications:', error);
   }
@@ -206,22 +216,20 @@ export const notifyServiceStatusChange = async (
 export const notifyNewServiceAssignment = async (
   service: ServiceInfo,
   assignedTo: string,
-  assignedBy: string
+  assignedBy: string,
 ): Promise<void> => {
   try {
     const staffList = await fetchStaffList();
-    
-    // Find the assigned technician
     const tech = findStaffByName(staffList, assignedTo);
     if (!tech?.staffId || normalizeStaffName(assignedTo) === normalizeStaffName(assignedBy)) return;
-    
-    await createNotification({
-      userId: tech.staffId,
-      title: `New service assigned: ${service.serviceId}`,
-      message: `You have been assigned to ${service.clientName}'s ${service.device || service.deviceType || 'device'}`,
-      type: 'service_update',
-      serviceId: service.serviceId,
-    });
+    await sendViaEdge([
+      {
+        userId: tech.staffId,
+        title: `New service assigned: ${service.serviceId}`,
+        message: `You have been assigned to ${service.clientName}'s ${service.device || service.deviceType || 'device'}`,
+        serviceId: service.serviceId,
+      },
+    ]);
   } catch (error) {
     console.error('Error sending assignment notification:', error);
   }

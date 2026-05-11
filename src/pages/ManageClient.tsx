@@ -349,6 +349,22 @@ const ManageClient = () => {
     }
   };
 
+  // Fallback: if Sheets didn't return a quotationPdfUrl but Supabase Storage
+  // already has a generated quotation for this service, mark it so the button
+  // shows "Update Form" instead of "Generate PDF".
+  useEffect(() => {
+    let cancelled = false;
+    const sid = serviceData?.serviceId;
+    if (!sid || serviceData?.quotationPdfUrl) return;
+    (async () => {
+      const url = await getServicePdfSignedUrl(sid, "quotation");
+      if (!cancelled && url) {
+        setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, quotationPdfUrl: url } : prev));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [serviceData?.serviceId, serviceData?.quotationPdfUrl]);
+
   const handleFormatWithAI = async () => {
     if (!rawDiagnosis?.trim()) {
       toast({
@@ -1172,69 +1188,7 @@ const ManageClient = () => {
                   </div>
                 </div>
 
-                {/* Approve Repair (Waiting to Proceed only) */}
-                {serviceData?.status === "Waiting to Proceed" && (
-                  <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
-                    <p className="text-sm text-foreground/80">
-                      Please review the service quotation form, then click <span className="font-semibold">Approve</span> once okay.
-                    </p>
-                    <Button
-                      onClick={async () => {
-                        if (isUpdatingClientInfo) return;
-                        const previousStatus = serviceData.status;
-                        setIsUpdatingClientInfo(true);
-                        try {
-                          const formData = new FormData();
-                          formData.append("action", "updateService");
-                          formData.append("serviceId", serviceId);
-                          formData.append("status", "Proceed Repair");
-                          await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
-
-                          setUpdateStatus("Proceed Repair");
-                          setServiceData({ ...serviceData, status: "Proceed Repair" });
-
-                          await logActivity({
-                            serviceId,
-                            activity: `Approved repair (status: ${previousStatus} → Proceed Repair)`,
-                            username: sessionStorage.getItem("name") || "Unknown",
-                            role: sessionStorage.getItem("role") || "admin",
-                          });
-
-                          notifyServiceStatusChange(
-                            {
-                              serviceId,
-                              clientName: serviceData.clientName || "",
-                              technician: serviceData.technician || "",
-                              adminRep: serviceData.adminRep || "",
-                              device: serviceData.device || serviceData.deviceType,
-                            },
-                            previousStatus,
-                            "Proceed Repair",
-                            sessionStorage.getItem("name") || "Unknown",
-                          );
-
-                          toast({ title: "Approved", description: "Service moved to Proceed Repair." });
-                        } catch (err: any) {
-                          toast({
-                            title: "Error",
-                            description: err?.message || "Failed to approve",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setIsUpdatingClientInfo(false);
-                        }
-                      }}
-                      className="w-full"
-                      disabled={isUpdatingClientInfo}
-                    >
-                      {isUpdatingClientInfo ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Approving...</>
-                      ) : (
-                        "Approve"
-                      )}
-                    </Button>
-                  </div>
-                )}
+                {/* Client approval is handled on the public /track page. */}
 
                 <Separator />
 

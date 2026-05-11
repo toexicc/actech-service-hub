@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, formatManilaDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
@@ -20,7 +21,6 @@ import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { createNotification } from "@/lib/notifications";
 import { fetchStaffList } from "@/lib/staffList";
 
 interface CustomerData {
@@ -68,6 +68,7 @@ const ServiceTracking = () => {
   const [declineOpen, setDeclineOpen] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
+  const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
 
   const { toast } = useToast();
 
@@ -293,15 +294,45 @@ const ServiceTracking = () => {
 
   const handleViewPDF = (pdfUrl: string, sid?: string) => openPdf(pdfUrl, sid, "intake", "Client Intake Form");
 
+  // Pull "Service Breakdown" lines from the AI diagnosis text and return
+  // just the service names (everything before " - " on each line).
+  const parseServicesFromDiagnosis = (diagnosis: string): string => {
+    if (!diagnosis) return "";
+    const lines = diagnosis.split(/\r?\n/);
+    const startIdx = lines.findIndex((l) => /service\s*breakdown\s*:?/i.test(l));
+    if (startIdx === -1) return "";
+    const out: string[] = [];
+    for (let i = startIdx + 1; i < lines.length; i++) {
+      const raw = lines[i].trim();
+      if (!raw) {
+        if (out.length) break;
+        continue;
+      }
+      // Stop when we hit another section heading (e.g., "To proceed", "SUMMARY:")
+      if (/^(to proceed|summary|recommendations|writing rules)/i.test(raw)) break;
+      // Strip leading bullet/numbering
+      const cleaned = raw.replace(/^[-*•\d.\s]+/, "");
+      // Take the part before " - " or "—" (price/description separator)
+      const name = cleaned.split(/\s[-—]\s/)[0].trim();
+      if (name && !/^php\b/i.test(name)) out.push(name);
+    }
+    return out.join(", ");
+  };
+
   const submitApproval = async (approved: boolean, reason?: string) => {
     if (!serviceData?.serviceId) return;
     setSubmittingApproval(true);
     try {
-      const ts = new Date().toISOString();
+      const tsDisplay = formatManilaDate(new Date(), "MMM dd, yyyy hh:mm a");
       const tag = approved
-        ? `Approved by ${serviceData.clientName} on ${ts}`
-        : `Declined by ${serviceData.clientName} on ${ts}: ${reason || ""}`;
+        ? `Approved by ${serviceData.clientName} on ${tsDisplay}`
+        : `Declined by ${serviceData.clientName} on ${tsDisplay}: ${reason || ""}`;
       const newAdminNotes = [serviceData.adminNotes, tag].filter(Boolean).join("\n");
+
+      // On approve: also flip status to "Proceed Repair" and populate Service/s
+      // from the AI diagnosis service breakdown.
+      const newServices = approved ? parseServicesFromDiagnosis(serviceData.aiDiagnosis || "") : "";
+      const newStatus = approved ? "Proceed Repair" : serviceData.status;
 
       // Persist to Google Sheets via updateService action
       const formData = new FormData();
@@ -309,36 +340,51 @@ const ServiceTracking = () => {
       formData.append("serviceId", serviceData.serviceId);
       formData.append("deviceType", serviceData.deviceType || "");
       formData.append("adminNotes", newAdminNotes);
+      if (approved) {
+        formData.append("status", "Proceed Repair");
+        if (newServices) formData.append("services", newServices);
+      }
       await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
 
-      // Notify all assigned admin reps (best-effort, depends on RLS allowing anon)
+      // Notify assigned admins + technicians via service-role edge function
+      // (works even when the /track page is anonymous).
       try {
-        const adminReps: string[] = (serviceData.adminRep || "")
+        const adminNames: string[] = (serviceData.adminRep || "")
           .split(",").map((s: string) => s.trim()).filter(Boolean);
-        if (adminReps.length) {
+        const techNames: string[] = (serviceData.technician || "")
+          .split(",").map((s: string) => s.trim()).filter(Boolean);
+        const allNames = Array.from(new Set([...adminNames, ...techNames]));
+        if (allNames.length) {
           const staff = await fetchStaffList();
-          for (const name of adminReps) {
-            const m = staff.find((s) => s.name?.toLowerCase() === name.toLowerCase());
-            if (m?.staffId) {
-              await createNotification({
-                userId: m.staffId,
-                title: approved
-                  ? `Service ${serviceData.serviceId} Approved`
-                  : `Service ${serviceData.serviceId} Declined`,
-                message: approved
-                  ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}.`
-                  : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
-                type: "service_update",
-                serviceId: serviceData.serviceId,
-              });
-            }
+          const norm = (n: string) => n.split(" - ")[0].trim().toLowerCase();
+          const recipients = allNames
+            .map((n) => staff.find((s) => norm(s.name || "") === norm(n)))
+            .filter((s) => s?.staffId)
+            .map((s) => ({
+              userId: s!.staffId,
+              title: approved
+                ? `Service ${serviceData.serviceId}: Proceed Repair`
+                : `Service ${serviceData.serviceId} Declined`,
+              message: approved
+                ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}. Service will proceed to repair.`
+                : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
+              serviceId: serviceData.serviceId,
+            }));
+          if (recipients.length) {
+            await supabase.functions.invoke("notify-service-event", { body: { recipients } });
           }
         }
       } catch {}
 
-      setServiceData({ ...serviceData, adminNotes: newAdminNotes });
+      setServiceData({
+        ...serviceData,
+        adminNotes: newAdminNotes,
+        status: newStatus,
+        service: approved && newServices ? newServices : serviceData.service,
+      });
       setDeclineOpen(false);
       setDeclineReason("");
+      setConfirmApproveOpen(false);
       toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
     } catch (e) {
       toast({ title: "Error", description: "Failed to submit response.", variant: "destructive" });
@@ -362,9 +408,20 @@ const ServiceTracking = () => {
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed";
   const approvalRecord = (() => {
     const notes: string = serviceData?.adminNotes || "";
-    const m = notes.match(/(Approved|Declined) by ([^\n]+?) on ([^\n:]+)(?::\s*(.*))?/);
+    // Match "Approved/Declined by <name> on <date>" where the date may contain colons.
+    const m = notes.match(/(Approved|Declined) by (.+?) on (.+?)(?:\n|$)/);
     if (!m) return null;
-    return { decision: m[1], by: m[2], at: m[3], reason: m[4] || "" };
+    let at = m[3].trim();
+    let reason = "";
+    // For declines we appended ": <reason>" — peel that off.
+    if (m[1] === "Declined") {
+      const idx = at.lastIndexOf(":");
+      if (idx > -1) {
+        reason = at.slice(idx + 1).trim();
+        at = at.slice(0, idx).trim();
+      }
+    }
+    return { decision: m[1], by: m[2].trim(), at, reason };
   })();
 
   return (
@@ -532,16 +589,20 @@ const ServiceTracking = () => {
                 <>
                   <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
 
-                  {/* Approve / Decline – only on Waiting to Proceed */}
-                  {isWaitingToProceed && (
+                  {/* Persistent approval record (visible after approve/decline too) */}
+                  {approvalRecord && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                      <p className="text-sm font-medium text-foreground">
+                        {approvalRecord.decision} by {approvalRecord.by} on {approvalRecord.at}
+                        {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Approve / Decline – only on Waiting to Proceed and not yet recorded */}
+                  {isWaitingToProceed && !approvalRecord && (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                      {approvalRecord ? (
-                        <p className="text-sm font-medium text-foreground">
-                          {approvalRecord.decision} by {approvalRecord.by} on{" "}
-                          {(() => { try { return displayDate(approvalRecord.at, "MMM dd, yyyy hh:mm a"); } catch { return approvalRecord.at; } })()}
-                          {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
-                        </p>
-                      ) : declineOpen ? (
+                      {declineOpen ? (
                         <div className="space-y-3">
                           <Label htmlFor="declineReason">Reason for declining</Label>
                           <Textarea
@@ -568,7 +629,7 @@ const ServiceTracking = () => {
                         <div className="flex flex-col sm:flex-row gap-3">
                           <Button
                             className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={() => submitApproval(true)}
+                            onClick={() => setConfirmApproveOpen(true)}
                             disabled={submittingApproval}
                           >
                             <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -817,6 +878,28 @@ const ServiceTracking = () => {
         url={pdfModalUrl}
         title={pdfModalTitle}
       />
+
+      <AlertDialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
+            <AlertDialogDescription>
+              By confirming, you agree to proceed with the repair of your device based on the
+              diagnosis above. The status will change to <strong>Proceed Repair</strong> and the
+              assigned admin and technician will be notified.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); submitApproval(true); }}
+              disabled={submittingApproval}
+            >
+              {submittingApproval ? "Submitting…" : "Confirm & Proceed"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
