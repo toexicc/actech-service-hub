@@ -46,6 +46,8 @@ const CustomerManagement = () => {
   const [serviceRecords, setServiceRecords] = useState<ServiceRecord[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [activeTab, setActiveTab] = useState("list");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
 
   const { data: clientsList = [], isLoading: isClientsLoading } = useClients();
 
