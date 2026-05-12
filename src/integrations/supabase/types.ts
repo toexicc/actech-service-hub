@@ -47,6 +47,48 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_logs: {
+        Row: {
+          created_at: string
+          id: string
+          is_late: boolean
+          is_overtime: boolean
+          log_date: string
+          notes: string | null
+          staff_id: string
+          staff_name: string
+          time_in: string | null
+          time_out: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_late?: boolean
+          is_overtime?: boolean
+          log_date: string
+          notes?: string | null
+          staff_id: string
+          staff_name: string
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_late?: boolean
+          is_overtime?: boolean
+          log_date?: string
+          notes?: string | null
+          staff_id?: string
+          staff_name?: string
+          time_in?: string | null
+          time_out?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_members: {
         Row: {
           id: string

@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { displayDate } from "@/lib/timezone";
+import { supabase } from "@/integrations/supabase/client";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -126,11 +127,49 @@ const SalaryDisbursement = () => {
     return count;
   }, [salaryPeriod]);
 
+  // Period date range (for attendance auto-fill)
+  const periodRange = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
+    const endDay = salaryPeriod === "15th Salary" ? 15 : new Date(year, month + 1, 0).getDate();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return {
+      start: `${year}-${pad(month + 1)}-${pad(startDay)}`,
+      end: `${year}-${pad(month + 1)}-${pad(endDay)}`,
+    };
+  }, [salaryPeriod]);
+
+  // Pull attendance for the active period and count days present per staff (Time In present).
+  const { data: periodAttendance = [] } = useQuery({
+    queryKey: ["attendance", periodRange.start, periodRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("attendance_logs")
+        .select("staff_id,log_date,time_in")
+        .gte("log_date", periodRange.start)
+        .lte("log_date", periodRange.end);
+      return data || [];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const attendanceByStaffId = useMemo(() => {
+    const m: Record<string, number> = {};
+    periodAttendance.forEach((r: any) => {
+      if (r.time_in) m[r.staff_id] = (m[r.staff_id] || 0) + 1;
+    });
+    return m;
+  }, [periodAttendance]);
+
   const computeCalculator = (staff: any) => {
     const monthly = parseCurrency(staff.salary);
     const autoDaily = workdaysInPeriod > 0 ? monthly / workdaysInPeriod : 0;
     const daily = parseCurrency(dailyRateOverride[staff.staffId]) || autoDaily;
-    const days = parseCurrency(daysPresent[staff.staffId]);
+    const attendanceDays = attendanceByStaffId[staff.userId] ?? 0;
+    const override = daysPresent[staff.staffId];
+    const days = override !== undefined && override !== "" ? parseCurrency(override) : attendanceDays;
     const gross = days * daily;
     const dPagibig = parseCurrency(pagibig[staff.staffId]);
     const dSss = parseCurrency(sss[staff.staffId]);
@@ -386,15 +425,20 @@ const SalaryDisbursement = () => {
             <div className="flex items-center gap-3">
               <Label className="text-sm font-medium whitespace-nowrap">Deduct From:</Label>
               <Select value={fundSource} onValueChange={setFundSource}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[260px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {FUND_TYPES.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f} value={f}>
+                      {f} — {fmtCurrency(fundBalances[f] ?? 0)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <span className={cn("text-xs", selectedFundBalance < 0 ? "text-destructive" : "text-muted-foreground")}>
+                Available: <span className="font-semibold">{fmtCurrency(selectedFundBalance)}</span>
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -445,11 +489,11 @@ const SalaryDisbursement = () => {
                               </TableCell>
                               <TableCell className="whitespace-nowrap">{fmtCurrency(c.monthly)}</TableCell>
                               <TableCell>
-                                <Input type="number" step="0.5" placeholder="0" className="w-20" disabled={isDone}
+                                <Input type="number" step="0.5" placeholder={String(attendanceByStaffId[staff.userId] ?? 0)} className="w-20" disabled={isDone}
                                   value={daysPresent[staff.staffId] || ""}
                                   onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
-                                <div className="text-[10px] text-muted-foreground mt-1">/{workdaysInPeriod}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1">attd: {attendanceByStaffId[staff.userId] ?? 0}/{workdaysInPeriod}</div>
                               </TableCell>
                               <TableCell>
                                 <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
@@ -591,17 +635,24 @@ const SalaryDisbursement = () => {
                       <p className="text-xs text-muted-foreground">Total Disbursed</p>
                       <p className="text-xl font-bold">{fmtCurrency(totalDisbursed)}</p>
                     </div>
-                    <Button
-                      onClick={handleSubmitBatch}
-                      disabled={isSubmitting || disbursedList.length === 0}
-                      className="min-w-[140px]"
-                    >
-                      {isSubmitting ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
-                      ) : (
-                        "Submit Transaction"
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        onClick={handleSubmitBatch}
+                        disabled={isSubmitting || disbursedList.length === 0 || totalDisbursed > selectedFundBalance}
+                        className="min-w-[140px]"
+                      >
+                        {isSubmitting ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
+                        ) : (
+                          "Submit Transaction"
+                        )}
+                      </Button>
+                      {totalDisbursed > selectedFundBalance && disbursedList.length > 0 && (
+                        <p className="text-xs text-destructive">
+                          Insufficient funds in {fundSource} ({fmtCurrency(selectedFundBalance)})
+                        </p>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

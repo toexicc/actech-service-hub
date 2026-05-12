@@ -7,13 +7,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  MessageSquare, Monitor, Menu, ShoppingCart, Loader2,
+  MessageSquare, Monitor, Menu, ShoppingCart, Loader2, Clock,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { MessagingPanel, MessagingPanelRef } from "@/components/MessagingPanel";
 import { logAuthActivity } from "@/lib/activityLogger";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 interface NavItem { title: string; icon: React.ElementType; path: string; roles?: string[]; }
 interface NavSection { title: string; icon: React.ElementType; items: NavItem[]; roles?: string[]; }
 
@@ -30,6 +32,7 @@ const adminSection: NavSection = {
     { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management"] },
     { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"] },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"] },
+    { title: "Attendance Overview", icon: Clock, path: "/attendance-overview", roles: ["management", "admin"] },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"] },
   ],
   roles: ["admin", "management"],
@@ -72,12 +75,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   }, [location.pathname]);
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
-  const handleLogout = () => { 
+  const queryClient = useQueryClient();
+  const handleLogout = async () => {
     const username = sessionStorage.getItem("username") || "Unknown";
     const role = sessionStorage.getItem("userRole") || "unknown";
-    logAuthActivity(username, "User logged out", role);
-    sessionStorage.clear(); 
-    navigate("/"); 
+    try { logAuthActivity(username, "User logged out", role); } catch {}
+    try { await supabase.auth.signOut({ scope: "local" }); } catch {}
+    try { sessionStorage.clear(); } catch {}
+    try { localStorage.removeItem("sb-zpryngvwbybpshsfeqaz-auth-token"); } catch {}
+    try { queryClient.clear(); } catch {}
+    navigate("/", { replace: true });
+    // Hard reload to drop any in-memory state and re-init AuthProvider
+    setTimeout(() => { try { window.location.replace("/"); } catch {} }, 50);
   };
   const canViewSection = (s: NavSection) => !s.roles || s.roles.includes(userRole || "");
   const canViewItem = (i: NavItem) => !i.roles || i.roles.includes(userRole || "");
