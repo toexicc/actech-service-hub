@@ -32,8 +32,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Copy index.html to 404.html
-        run: cp ./dist/index.html ./dist/404.html
+      - name: Ensure 404.html exists (use custom if present, otherwise fallback to index.html)
+        run: |
+          if [ ! -f ./dist/404.html ]; then
+            cp ./dist/index.html ./dist/404.html
+          fi
 
       - name: Ensure .nojekyll exists
         run: touch ./dist/.nojekyll
