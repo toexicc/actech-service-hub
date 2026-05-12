@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.notify-service-event]
 verify_jwt = false
+
+[functions.record-attendance]
+verify_jwt = false
