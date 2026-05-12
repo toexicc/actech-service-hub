@@ -76,17 +76,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
   const queryClient = useQueryClient();
-  const handleLogout = async () => {
+  const handleLogout = () => {
     const username = sessionStorage.getItem("username") || "Unknown";
     const role = sessionStorage.getItem("userRole") || "unknown";
     try { logAuthActivity(username, "User logged out", role); } catch {}
-    try { await supabase.auth.signOut({ scope: "local" }); } catch {}
+    // Tear down local state synchronously so the UI feels instant on mobile.
     try { sessionStorage.clear(); } catch {}
-    try { localStorage.removeItem("sb-zpryngvwbybpshsfeqaz-auth-token"); } catch {}
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i) || "";
+        if (k.startsWith("sb-") && k.endsWith("-auth-token")) localStorage.removeItem(k);
+      }
+    } catch {}
     try { queryClient.clear(); } catch {}
-    navigate("/", { replace: true });
-    // Hard reload to drop any in-memory state and re-init AuthProvider
-    setTimeout(() => { try { window.location.replace("/"); } catch {} }, 50);
+    setMobileMenuOpen(false);
+    // Hard redirect immediately — don't await any network call.
+    window.location.replace("/");
+    // Fire-and-forget the auth signOut so it doesn't block the UI.
+    supabase.auth.signOut({ scope: "local" }).catch(() => {});
   };
   const canViewSection = (s: NavSection) => !s.roles || s.roles.includes(userRole || "");
   const canViewItem = (i: NavItem) => !i.roles || i.roles.includes(userRole || "");

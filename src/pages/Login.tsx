@@ -33,12 +33,20 @@ const Login = () => {
     }
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Sign-in failed", description: error.message, variant: "destructive" });
-      } else {
-        navigate("/menu");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.session) {
+        toast({ title: "Sign-in failed", description: error?.message || "Try again.", variant: "destructive" });
+        setIsLoading(false);
+        return;
       }
+      // Wait briefly for AuthProvider's onAuthStateChange to populate user state
+      // before navigating, otherwise ProtectedRoute may bounce back to "/".
+      for (let i = 0; i < 20; i++) {
+        const { data: s } = await supabase.auth.getSession();
+        if (s.session) break;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      navigate("/menu", { replace: true });
     } finally {
       setIsLoading(false);
     }
