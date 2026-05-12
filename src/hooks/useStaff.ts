@@ -23,6 +23,7 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
     supabase.from("profiles").select("*").order("name", { ascending: true }),
     supabase.from("user_roles").select("user_id, role"),
   ]);
+  if (profilesResp.error) throw profilesResp.error;
   if (rErr) throw rErr;
   let profiles: any[] = profilesResp.data ?? [];
   // If we got fewer than 2 rows, the caller likely is not admin/management; use directory.
