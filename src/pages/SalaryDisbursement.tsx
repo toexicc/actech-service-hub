@@ -167,7 +167,9 @@ const SalaryDisbursement = () => {
     const monthly = parseCurrency(staff.salary);
     const autoDaily = workdaysInPeriod > 0 ? monthly / workdaysInPeriod : 0;
     const daily = parseCurrency(dailyRateOverride[staff.staffId]) || autoDaily;
-    const days = parseCurrency(daysPresent[staff.staffId]);
+    const attendanceDays = attendanceByStaffId[staff.userId] ?? 0;
+    const override = daysPresent[staff.staffId];
+    const days = override !== undefined && override !== "" ? parseCurrency(override) : attendanceDays;
     const gross = days * daily;
     const dPagibig = parseCurrency(pagibig[staff.staffId]);
     const dSss = parseCurrency(sss[staff.staffId]);
@@ -487,11 +489,11 @@ const SalaryDisbursement = () => {
                               </TableCell>
                               <TableCell className="whitespace-nowrap">{fmtCurrency(c.monthly)}</TableCell>
                               <TableCell>
-                                <Input type="number" step="0.5" placeholder="0" className="w-20" disabled={isDone}
+                                <Input type="number" step="0.5" placeholder={String(attendanceByStaffId[staff.userId] ?? 0)} className="w-20" disabled={isDone}
                                   value={daysPresent[staff.staffId] || ""}
                                   onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
-                                <div className="text-[10px] text-muted-foreground mt-1">/{workdaysInPeriod}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1">attd: {attendanceByStaffId[staff.userId] ?? 0}/{workdaysInPeriod}</div>
                               </TableCell>
                               <TableCell>
                                 <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
