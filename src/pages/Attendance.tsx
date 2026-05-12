@@ -46,12 +46,29 @@ const Attendance = () => {
       if (!error && data) {
         setStaff(
           (data as DirectoryEntry[]).filter(
-            (s) => (s.status || "").toLowerCase() === "active" && s.name && s.name !== "admin@actech.ph",
+            (s) =>
+              (s.status || "").toLowerCase() === "active" &&
+              s.name &&
+              s.name !== "admin@actech.ph" &&
+              (s.role || "").toLowerCase() !== "admin",
           ),
         );
       }
     })();
   }, []);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, DirectoryEntry[]>();
+    for (const s of staff) {
+      const key = (s.role || "").toLowerCase();
+      const bucket = ROLE_GROUPS.find((g) => g.key === key) ? key : "";
+      if (!map.has(bucket)) map.set(bucket, []);
+      map.get(bucket)!.push(s);
+    }
+    return ROLE_GROUPS
+      .map((g) => ({ ...g, items: (map.get(g.key) || []).sort((a, b) => a.name.localeCompare(b.name)) }))
+      .filter((g) => g.items.length > 0);
+  }, [staff]);
 
   const selected = useMemo(() => staff.find((s) => s.id === staffId), [staff, staffId]);
 
