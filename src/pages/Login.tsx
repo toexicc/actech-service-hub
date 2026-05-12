@@ -93,10 +93,6 @@ const Login = () => {
                   <Search className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
                   Track Your Service
                 </Button>
-                <Button variant="outline" className="w-full h-10 sm:h-11 group" onClick={() => navigate("/attendance")}>
-                  <Clock className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
-                  Time In / Time Out
-                </Button>
               </div>
             </CardContent>
           </Card>
