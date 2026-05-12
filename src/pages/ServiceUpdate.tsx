@@ -32,6 +32,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
+import { applyPartsDelta } from "@/lib/inventoryDelta";
 
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
@@ -580,6 +581,20 @@ const ServiceUpdate = () => {
 
         // Run all background tasks in parallel, non-blocking
         const backgroundTasks: Promise<any>[] = [];
+
+        // Inventory deduction / restock from parts_used diff
+        const performerId = sessionStorage.getItem("authUserId");
+        backgroundTasks.push(
+          applyPartsDelta({
+            serviceId,
+            prevPartsString: String(serviceData.partsUsed || ""),
+            newParts: [...partsUsedArray, ...unmatchedArray].map((p: any) => ({
+              id: p.id, name: p.name, quantity: p.quantity,
+            })),
+            performerId,
+            performerName: userFullName,
+          }).catch(() => {})
+        );
 
         // AI fields update
         if (updateAIDiagnosis || updateServiceReport) {
