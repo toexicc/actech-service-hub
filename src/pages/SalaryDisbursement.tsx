@@ -386,15 +386,20 @@ const SalaryDisbursement = () => {
             <div className="flex items-center gap-3">
               <Label className="text-sm font-medium whitespace-nowrap">Deduct From:</Label>
               <Select value={fundSource} onValueChange={setFundSource}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[260px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {FUND_TYPES.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f} value={f}>
+                      {f} — {fmtCurrency(fundBalances[f] ?? 0)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <span className={cn("text-xs", selectedFundBalance < 0 ? "text-destructive" : "text-muted-foreground")}>
+                Available: <span className="font-semibold">{fmtCurrency(selectedFundBalance)}</span>
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -591,17 +596,24 @@ const SalaryDisbursement = () => {
                       <p className="text-xs text-muted-foreground">Total Disbursed</p>
                       <p className="text-xl font-bold">{fmtCurrency(totalDisbursed)}</p>
                     </div>
-                    <Button
-                      onClick={handleSubmitBatch}
-                      disabled={isSubmitting || disbursedList.length === 0}
-                      className="min-w-[140px]"
-                    >
-                      {isSubmitting ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
-                      ) : (
-                        "Submit Transaction"
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        onClick={handleSubmitBatch}
+                        disabled={isSubmitting || disbursedList.length === 0 || totalDisbursed > selectedFundBalance}
+                        className="min-w-[140px]"
+                      >
+                        {isSubmitting ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
+                        ) : (
+                          "Submit Transaction"
+                        )}
+                      </Button>
+                      {totalDisbursed > selectedFundBalance && disbursedList.length > 0 && (
+                        <p className="text-xs text-destructive">
+                          Insufficient funds in {fundSource} ({fmtCurrency(selectedFundBalance)})
+                        </p>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

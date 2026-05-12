@@ -14,6 +14,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { MessagingPanel, MessagingPanelRef } from "@/components/MessagingPanel";
 import { logAuthActivity } from "@/lib/activityLogger";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 interface NavItem { title: string; icon: React.ElementType; path: string; roles?: string[]; }
 interface NavSection { title: string; icon: React.ElementType; items: NavItem[]; roles?: string[]; }
 
@@ -72,12 +74,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   }, [location.pathname]);
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
-  const handleLogout = () => { 
+  const queryClient = useQueryClient();
+  const handleLogout = async () => {
     const username = sessionStorage.getItem("username") || "Unknown";
     const role = sessionStorage.getItem("userRole") || "unknown";
-    logAuthActivity(username, "User logged out", role);
-    sessionStorage.clear(); 
-    navigate("/"); 
+    try { logAuthActivity(username, "User logged out", role); } catch {}
+    try { await supabase.auth.signOut({ scope: "local" }); } catch {}
+    try { sessionStorage.clear(); } catch {}
+    try { localStorage.removeItem("sb-zpryngvwbybpshsfeqaz-auth-token"); } catch {}
+    try { queryClient.clear(); } catch {}
+    navigate("/", { replace: true });
+    // Hard reload to drop any in-memory state and re-init AuthProvider
+    setTimeout(() => { try { window.location.replace("/"); } catch {} }, 50);
   };
   const canViewSection = (s: NavSection) => !s.roles || s.roles.includes(userRole || "");
   const canViewItem = (i: NavItem) => !i.roles || i.roles.includes(userRole || "");
