@@ -21,6 +21,7 @@ interface DirectoryEntry {
 }
 
 const ROLE_GROUPS: { key: string; label: string }[] = [
+  { key: "admin", label: "Admin" },
   { key: "management", label: "Management" },
   { key: "technician", label: "Technicians" },
   { key: "", label: "Other" },
@@ -50,8 +51,7 @@ const Attendance = () => {
               (s.status || "").toLowerCase() === "active" &&
               s.name &&
               s.name !== "admin@actech.ph" &&
-              s.name !== "AC Tech Admin" &&
-              (s.role || "").toLowerCase() !== "admin",
+              s.name !== "AC Tech Admin",
           ),
         );
       }
