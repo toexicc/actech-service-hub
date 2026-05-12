@@ -36,7 +36,9 @@
           if (path.length > 1 && path.endsWith('/')) {
             path = path.slice(0, -1);
           }
-          window.history.replaceState(null, null, path + decoded + l.hash);
+          // Avoid double slash when path is '/' and decoded starts with '/'
+          var cleanPath = (path === '/' && decoded.startsWith('/')) ? decoded : path + decoded;
+          window.history.replaceState(null, null, cleanPath + l.hash);
         }
       }(window.location))
     </script>
