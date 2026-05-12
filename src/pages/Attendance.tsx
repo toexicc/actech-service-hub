@@ -17,7 +17,14 @@ interface DirectoryEntry {
   staff_id: string | null;
   department: string | null;
   status: string;
+  role: string | null;
 }
+
+const ROLE_GROUPS: { key: string; label: string }[] = [
+  { key: "management", label: "Management" },
+  { key: "technician", label: "Technicians" },
+  { key: "", label: "Other" },
+];
 
 const Attendance = () => {
   const navigate = useNavigate();
@@ -39,12 +46,29 @@ const Attendance = () => {
       if (!error && data) {
         setStaff(
           (data as DirectoryEntry[]).filter(
-            (s) => (s.status || "").toLowerCase() === "active" && s.name && s.name !== "admin@actech.ph",
+            (s) =>
+              (s.status || "").toLowerCase() === "active" &&
+              s.name &&
+              s.name !== "admin@actech.ph" &&
+              (s.role || "").toLowerCase() !== "admin",
           ),
         );
       }
     })();
   }, []);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, DirectoryEntry[]>();
+    for (const s of staff) {
+      const key = (s.role || "").toLowerCase();
+      const bucket = ROLE_GROUPS.find((g) => g.key === key) ? key : "";
+      if (!map.has(bucket)) map.set(bucket, []);
+      map.get(bucket)!.push(s);
+    }
+    return ROLE_GROUPS
+      .map((g) => ({ ...g, items: (map.get(g.key) || []).sort((a, b) => a.name.localeCompare(b.name)) }))
+      .filter((g) => g.items.length > 0);
+  }, [staff]);
 
   const selected = useMemo(() => staff.find((s) => s.id === staffId), [staff, staffId]);
 
@@ -128,10 +152,17 @@ const Attendance = () => {
               <Select value={staffId} onValueChange={setStaffId}>
                 <SelectTrigger><SelectValue placeholder="Select your name" /></SelectTrigger>
                 <SelectContent className="max-h-[280px]">
-                  {staff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}{s.department ? ` — ${s.department}` : ""}
-                    </SelectItem>
+                  {grouped.map((g) => (
+                    <div key={g.key || "other"}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {g.label}
+                      </div>
+                      {g.items.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>

@@ -1159,6 +1159,7 @@ export type Database = {
           department: string
           id: string
           name: string
+          role: string
           staff_id: string
           status: string
           username: string
