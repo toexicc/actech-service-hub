@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { displayDate } from "@/lib/timezone";
+import { supabase } from "@/integrations/supabase/client";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -125,6 +126,42 @@ const SalaryDisbursement = () => {
     }
     return count;
   }, [salaryPeriod]);
+
+  // Period date range (for attendance auto-fill)
+  const periodRange = useMemo(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
+    const endDay = salaryPeriod === "15th Salary" ? 15 : new Date(year, month + 1, 0).getDate();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return {
+      start: `${year}-${pad(month + 1)}-${pad(startDay)}`,
+      end: `${year}-${pad(month + 1)}-${pad(endDay)}`,
+    };
+  }, [salaryPeriod]);
+
+  // Pull attendance for the active period and count days present per staff (Time In present).
+  const { data: periodAttendance = [] } = useQuery({
+    queryKey: ["attendance", periodRange.start, periodRange.end],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("attendance_logs")
+        .select("staff_id,log_date,time_in")
+        .gte("log_date", periodRange.start)
+        .lte("log_date", periodRange.end);
+      return data || [];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const attendanceByStaffId = useMemo(() => {
+    const m: Record<string, number> = {};
+    periodAttendance.forEach((r: any) => {
+      if (r.time_in) m[r.staff_id] = (m[r.staff_id] || 0) + 1;
+    });
+    return m;
+  }, [periodAttendance]);
 
   const computeCalculator = (staff: any) => {
     const monthly = parseCurrency(staff.salary);
