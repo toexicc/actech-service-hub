@@ -50,6 +50,7 @@ const Attendance = () => {
               (s.status || "").toLowerCase() === "active" &&
               s.name &&
               s.name !== "admin@actech.ph" &&
+              s.name !== "AC Tech Admin" &&
               (s.role || "").toLowerCase() !== "admin",
           ),
         );
