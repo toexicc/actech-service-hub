@@ -56,7 +56,7 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
     staffId: p.staff_id ?? p.id,
     username: p.username ?? "",
     password: "",
-    name: p.name ?? "",
+    name: p.name || p.username || p.staff_id || "Unknown",
     role: roleMap.get(p.id) ?? "",
     department: p.department ?? "",
     status: p.status ?? "active",
