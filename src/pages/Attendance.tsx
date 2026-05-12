@@ -152,10 +152,17 @@ const Attendance = () => {
               <Select value={staffId} onValueChange={setStaffId}>
                 <SelectTrigger><SelectValue placeholder="Select your name" /></SelectTrigger>
                 <SelectContent className="max-h-[280px]">
-                  {staff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}{s.department ? ` — ${s.department}` : ""}
-                    </SelectItem>
+                  {grouped.map((g) => (
+                    <div key={g.key || "other"}>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {g.label}
+                      </div>
+                      {g.items.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
