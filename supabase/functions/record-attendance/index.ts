@@ -31,13 +31,27 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const body = await req.json();
-    const { staffId, email, password, action } = body ?? {};
-    if (!staffId || !email || !password || !["in", "out"].includes(action)) {
+    const { staffId, password, action } = body ?? {};
+    if (!staffId || !password || !["in", "out"].includes(action)) {
       return new Response(JSON.stringify({ error: "invalid_input" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const admin0 = createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    // Resolve the real auth email for this staff via service role.
+    const { data: userResp, error: userErr } = await admin0.auth.admin.getUserById(staffId);
+    if (userErr || !userResp?.user?.email) {
+      return new Response(JSON.stringify({ error: "credential_mismatch" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const email = userResp.user.email;
 
     // Verify password using a transient client (no persistence).
     const verifier = createClient(SUPABASE_URL, ANON_KEY, {
