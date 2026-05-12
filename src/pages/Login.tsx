@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, Wrench, Shield, Clock } from "lucide-react";
+import { Search, Loader2, Wrench, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -92,10 +92,6 @@ const Login = () => {
                 <Button variant="outline" className="w-full h-10 sm:h-11 group" onClick={() => navigate("/track")}>
                   <Search className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
                   Track Your Service
-                </Button>
-                <Button variant="outline" className="w-full h-10 sm:h-11 group" onClick={() => navigate("/attendance")}>
-                  <Clock className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
-                  Time In / Time Out
                 </Button>
               </div>
             </CardContent>
