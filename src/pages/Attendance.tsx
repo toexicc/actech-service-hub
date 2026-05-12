@@ -17,7 +17,14 @@ interface DirectoryEntry {
   staff_id: string | null;
   department: string | null;
   status: string;
+  role: string | null;
 }
+
+const ROLE_GROUPS: { key: string; label: string }[] = [
+  { key: "management", label: "Management" },
+  { key: "technician", label: "Technicians" },
+  { key: "", label: "Other" },
+];
 
 const Attendance = () => {
   const navigate = useNavigate();
