@@ -590,6 +590,11 @@ const ServiceTracking = () => {
                 <>
                   <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
 
+                  {/* Diagnosis Photos shown below Service Diagnosis from Advise Client onward */}
+                  {["Done Repair - Advise Client", "Done Repair - Advice Client", "Done Repair - For Release", "Released", "Completed"].includes(serviceData.status) && serviceData.serviceId && (
+                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Diagnosis Photos" />
+                  )}
+
                   {/* Persistent approval record (visible after approve/decline too) */}
                   {approvalRecord && (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
