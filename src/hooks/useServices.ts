@@ -56,6 +56,7 @@ export interface ServiceRecord {
   finalCost?: string;
   partsCost?: string;
   estimatedCost?: string;
+  discount?: string;
   clientType?: string;
   priority?: string;
   conditions?: Record<string, boolean>;
@@ -118,6 +119,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   finalCost: String(r.final_cost ?? 0),
   partsCost: String(r.parts_cost ?? 0),
   estimatedCost: String(r.estimated_cost ?? 0),
+  discount: String(r.discount ?? 0),
   clientType: r.client_type ?? "",
   priority: r.priority ?? "",
   conditions: (r.conditions && typeof r.conditions === "object") ? r.conditions : {},
