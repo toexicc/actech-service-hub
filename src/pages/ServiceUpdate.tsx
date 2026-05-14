@@ -360,6 +360,33 @@ const ServiceUpdate = () => {
           }
         }
         
+        try {
+          const { data: row } = await supabase.from("services").select("*").eq("service_id", id).maybeSingle();
+          if (row) {
+            const sb = mapServiceRow(row);
+            const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+            data.data = {
+              ...data.data,
+              username: pick(sb.username, data.data.username),
+              devicePassword: pick(sb.devicePassword, data.data.devicePassword),
+              colorMemory: pick(sb.colorMemory, data.data.colorMemory),
+              color: pick(sb.color, data.data.color),
+              memory: pick(sb.memory, data.data.memory),
+              email: pick(sb.email, data.data.email),
+              phone: pick(sb.contactNumber, data.data.phone),
+              contactNumber: pick(sb.contactNumber, data.data.contactNumber),
+              chiefComplaint: pick(sb.chiefComplaint, data.data.chiefComplaint),
+              deviceNotes: pick(sb.deviceNotes, data.data.deviceNotes),
+              technicianReport: pick(sb.technicianReport, data.data.technicianReport),
+              finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, data.data.finalCost),
+              partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, data.data.partsCost),
+              estimatedCost: pick(sb.estimatedCost, data.data.estimatedCost),
+              clientType: pick(sb.clientType, data.data.clientType),
+              priority: pick(sb.priority, data.data.priority),
+              conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : data.data.conditions,
+            };
+          }
+        } catch { /* ignore */ }
         setServiceData(data.data);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
