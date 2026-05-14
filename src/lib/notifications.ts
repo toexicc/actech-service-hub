@@ -250,13 +250,16 @@ export const fetchGroupMessages = async (groupId: string): Promise<Message[]> =>
 
 export const sendGroupMessage = async (
   groupId: string,
-  senderId: string,
+  _senderId: string,
   senderName: string,
   content: string
 ): Promise<boolean> => {
+  const { data: userResp } = await supabase.auth.getUser();
+  const authUid = userResp?.user?.id;
+  if (!authUid) return false;
   const { error } = await supabase.from("messages").insert({
     thread_id: groupId,
-    sender_id: senderId,
+    sender_id: authUid,
     sender_name: senderName,
     body: content,
   });
