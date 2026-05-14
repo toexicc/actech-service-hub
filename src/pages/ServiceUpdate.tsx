@@ -560,6 +560,21 @@ const ServiceUpdate = () => {
       await Promise.all(photoPromises);
       formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
 
+      // Mirror critical updates to Supabase so ManageClient & dashboards see them
+      supabase.from("services").update({
+        status: updateStatus as any,
+        technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
+        technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
+        diagnosis: updateTechnicianDiagnosis,
+        ai_report: updateServiceReport,
+        internal_technician_notes: updateTechnicianNotesInternal,
+        technician_report: updateTechnicianReport,
+        parts_used: partsUsedArray.map((p: any) => p.partId || p.partName || p),
+        parts_cost: actualCost,
+        final_cost: finalCost,
+        last_updated: new Date().toISOString(),
+      }).eq("service_id", serviceId).then(() => {});
+
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
