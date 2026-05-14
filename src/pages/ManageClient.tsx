@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
+import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
@@ -71,6 +73,44 @@ const buildFallbackDiagnosis = (raw: string): string => {
     "Service Report:",
     `- Technician notes: ${trimmed}`,
   ].join("\n");
+};
+
+// Merge Supabase service row into the Sheets payload so new fields
+// (username, devicePassword, color, memory, chiefComplaint, deviceNotes,
+// technicianReport, finalCost, partsCost, etc.) appear in the UI.
+const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
+  try {
+    const { data: row } = await supabase
+      .from("services")
+      .select("*")
+      .eq("service_id", serviceId)
+      .maybeSingle();
+    if (!row) return sheetData;
+    const sb = mapServiceRow(row);
+    const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+    return {
+      ...sheetData,
+      username: pick(sb.username, sheetData.username),
+      devicePassword: pick(sb.devicePassword, sheetData.devicePassword),
+      colorMemory: pick(sb.colorMemory, sheetData.colorMemory),
+      color: pick(sb.color, sheetData.color),
+      memory: pick(sb.memory, sheetData.memory),
+      email: pick(sb.email, sheetData.email),
+      phone: pick(sb.contactNumber, sheetData.phone),
+      contactNumber: pick(sb.contactNumber, sheetData.contactNumber),
+      chiefComplaint: pick(sb.chiefComplaint, sheetData.chiefComplaint),
+      deviceNotes: pick(sb.deviceNotes, sheetData.deviceNotes),
+      technicianReport: pick(sb.technicianReport, sheetData.technicianReport),
+      finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, sheetData.finalCost),
+      partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
+      estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
+      clientType: pick(sb.clientType, sheetData.clientType),
+      priority: pick(sb.priority, sheetData.priority),
+      conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+    };
+  } catch {
+    return sheetData;
+  }
 };
 
 const ManageClient = () => {
@@ -200,7 +240,8 @@ const ManageClient = () => {
           const data = await response.json();
 
           if (data.status === "found") {
-            setServiceData(data.data);
+            const merged = await mergeWithSupabase(urlServiceId, data.data);
+            setServiceData(merged);
             setUpdateStatus(data.data.status || "");
             setUpdateAdminRep(data.data.adminRep || "");
             setUpdateTechnician(data.data.technician || "");
@@ -281,7 +322,10 @@ const ManageClient = () => {
       const data = await response.json();
 
       if (data.status === "found") {
-        setServiceData(data.data);
+        const data2 = await mergeWithSupabase(serviceId, data.data);
+        setServiceData(data2);
+        // re-alias for original variable
+        data.data = data2;
         // Service data loaded successfully
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
@@ -598,6 +642,26 @@ const ManageClient = () => {
       formData.append("Serial", serviceData.serialNumber || "");
       formData.append("Client Name", serviceData.clientName || "");
       formData.append("Device Type", updateDeviceType || "");
+
+      // Mirror to Supabase so dashboards / search reflect the change immediately
+      supabase.from("services").update({
+        status: updateStatus as any,
+        admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
+        technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
+        technician_departments: techDept.split(",").map(s => s.trim()).filter(Boolean),
+        device_type: updateDeviceType,
+        client_type: updateClientType,
+        priority: updatePriority,
+        diagnosis: updateAIDiagnosis,
+        ai_report: updateServiceReport,
+        service: updateServices,
+        service_cost: Number(updateServiceCost) || 0,
+        final_cost: finalCost,
+        target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
+        internal_admin_notes: updateAdminNotesInternal,
+        remarks: updateAdminNotes,
+        last_updated: new Date().toISOString(),
+      }).eq("service_id", serviceId).then(() => {});
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout

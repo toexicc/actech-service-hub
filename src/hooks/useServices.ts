@@ -44,6 +44,24 @@ export interface ServiceRecord {
   aiToggle?: string;
   preOrder?: string;
   partId?: string;
+  // Phase 1: full intake fields
+  username?: string;
+  devicePassword?: string;
+  color?: string;
+  memory?: string;
+  colorMemory?: string;
+  chiefComplaint?: string;
+  deviceNotes?: string;
+  technicianReport?: string;
+  finalCost?: string;
+  partsCost?: string;
+  estimatedCost?: string;
+  clientType?: string;
+  priority?: string;
+  conditions?: Record<string, boolean>;
+  signaturePath?: string;
+  deviceAnnotationPath?: string;
+  source?: string;
 }
 
 export const mapServiceRow = (r: any): ServiceRecord => ({
@@ -89,6 +107,23 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   aiToggle: r.ai_toggle ?? "",
   preOrder: r.pre_order ?? "",
   partId: r.part_id ?? "",
+  username: r.username ?? "",
+  devicePassword: r.device_password ?? "",
+  color: r.color ?? "",
+  memory: r.memory ?? "",
+  colorMemory: [r.color, r.memory].filter(Boolean).join(" | "),
+  chiefComplaint: r.chief_complaint ?? "",
+  deviceNotes: r.device_notes ?? "",
+  technicianReport: r.technician_report ?? "",
+  finalCost: String(r.final_cost ?? 0),
+  partsCost: String(r.parts_cost ?? 0),
+  estimatedCost: String(r.estimated_cost ?? 0),
+  clientType: r.client_type ?? "",
+  priority: r.priority ?? "",
+  conditions: (r.conditions && typeof r.conditions === "object") ? r.conditions : {},
+  signaturePath: r.signature_path ?? "",
+  deviceAnnotationPath: r.device_annotation_path ?? "",
+  source: r.source ?? "",
 });
 
 const fetchAllServices = async (): Promise<ServiceRecord[]> => {

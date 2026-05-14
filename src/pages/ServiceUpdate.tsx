@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
+import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
@@ -358,6 +360,33 @@ const ServiceUpdate = () => {
           }
         }
         
+        try {
+          const { data: row } = await supabase.from("services").select("*").eq("service_id", id).maybeSingle();
+          if (row) {
+            const sb = mapServiceRow(row);
+            const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+            data.data = {
+              ...data.data,
+              username: pick(sb.username, data.data.username),
+              devicePassword: pick(sb.devicePassword, data.data.devicePassword),
+              colorMemory: pick(sb.colorMemory, data.data.colorMemory),
+              color: pick(sb.color, data.data.color),
+              memory: pick(sb.memory, data.data.memory),
+              email: pick(sb.email, data.data.email),
+              phone: pick(sb.contactNumber, data.data.phone),
+              contactNumber: pick(sb.contactNumber, data.data.contactNumber),
+              chiefComplaint: pick(sb.chiefComplaint, data.data.chiefComplaint),
+              deviceNotes: pick(sb.deviceNotes, data.data.deviceNotes),
+              technicianReport: pick(sb.technicianReport, data.data.technicianReport),
+              finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, data.data.finalCost),
+              partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, data.data.partsCost),
+              estimatedCost: pick(sb.estimatedCost, data.data.estimatedCost),
+              clientType: pick(sb.clientType, data.data.clientType),
+              priority: pick(sb.priority, data.data.priority),
+              conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : data.data.conditions,
+            };
+          }
+        } catch { /* ignore */ }
         setServiceData(data.data);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
@@ -530,6 +559,21 @@ const ServiceUpdate = () => {
       
       await Promise.all(photoPromises);
       formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
+
+      // Mirror critical updates to Supabase so ManageClient & dashboards see them
+      supabase.from("services").update({
+        status: updateStatus as any,
+        technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
+        technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
+        diagnosis: updateTechnicianDiagnosis,
+        ai_report: updateServiceReport,
+        internal_technician_notes: updateTechnicianNotesInternal,
+        technician_report: updateTechnicianReport,
+        parts_used: partsUsedArray.map((p: any) => p.partId || p.partName || p),
+        parts_cost: actualCost,
+        final_cost: finalCost,
+        last_updated: new Date().toISOString(),
+      }).eq("service_id", serviceId).then(() => {});
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
