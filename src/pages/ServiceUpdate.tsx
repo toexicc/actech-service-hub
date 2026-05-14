@@ -1106,10 +1106,7 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis */}
-                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable />
-                )}
+                {/* (Diagnosis photos uploader moved below AI Diagnosis Formatter) */}
 
                 {/* Diagnosis Toggle - Based on actual sheet status */}
                 {serviceData?.status === "Pending Diagnosis" && (
