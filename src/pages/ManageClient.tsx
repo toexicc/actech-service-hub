@@ -108,6 +108,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+      technicianNotesInternal: pick(sb.internalTechnicianNotes, sheetData.technicianNotesInternal),
+      adminNotesInternal: pick(sb.internalAdminNotes, sheetData.adminNotesInternal),
     };
   } catch {
     return sheetData;
@@ -1330,7 +1332,14 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
-                    <p className="text-lg">{serviceData.colorMemory}</p>
+                    <p className="text-lg break-words whitespace-normal">
+                      {(() => {
+                        const mem = (serviceData.memory || "").trim();
+                        const col = (serviceData.color || "").trim();
+                        const combined = [mem, col].filter(Boolean).join(" | ");
+                        return combined || (serviceData.colorMemory || "N/A");
+                      })()}
+                    </p>
                   </div>
 
                   {serviceData.devicePassword && (
