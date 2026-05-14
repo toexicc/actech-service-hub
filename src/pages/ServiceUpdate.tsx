@@ -387,6 +387,9 @@ const ServiceUpdate = () => {
               clientType: pick(sb.clientType, data.data.clientType),
               priority: pick(sb.priority, data.data.priority),
               conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : data.data.conditions,
+              technicianNotesInternal: pick(sb.internalTechnicianNotes, data.data.technicianNotesInternal),
+              adminNotesInternal: pick(sb.internalAdminNotes, data.data.adminNotesInternal),
+              targetDate: pick(sb.targetDate, data.data.targetDate),
             };
           }
         } catch { /* ignore */ }
