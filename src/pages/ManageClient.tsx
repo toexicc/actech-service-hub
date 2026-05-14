@@ -1230,7 +1230,7 @@ const ManageClient = () => {
                         </>
                       )}
                     </Button>
-                    <Button onClick={handleViewPDF} variant="outline" className="flex-1">
+                    <Button onClick={handleViewPDF} variant="outline" className="flex-1" disabled={!serviceData?.pdfUrl}>
                       <FileText className="mr-2 h-4 w-4" />
                       View PDF
                     </Button>
