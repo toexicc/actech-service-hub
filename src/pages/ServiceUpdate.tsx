@@ -1106,6 +1106,11 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
+                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis */}
+                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable />
+                )}
+
                 {/* Diagnosis Toggle - Based on actual sheet status */}
                 {serviceData?.status === "Pending Diagnosis" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
