@@ -198,7 +198,8 @@ export const fetchGroupChats = async (userId: string): Promise<GroupChat[]> => {
   const { data: threads } = await supabase
     .from("chat_threads")
     .select("*")
-    .in("id", threadIds);
+    .in("id", threadIds)
+    .eq("is_group", true);
   const { data: allMembers } = await supabase
     .from("chat_members")
     .select("thread_id, user_id")
