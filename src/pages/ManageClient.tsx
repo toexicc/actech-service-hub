@@ -284,7 +284,10 @@ const ManageClient = () => {
       const data = await response.json();
 
       if (data.status === "found") {
-        setServiceData(data.data);
+        const data2 = await mergeWithSupabase(serviceId, data.data);
+        setServiceData(data2);
+        // re-alias for original variable
+        data.data = data2;
         // Service data loaded successfully
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
