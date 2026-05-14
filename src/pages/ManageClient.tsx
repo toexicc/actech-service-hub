@@ -25,7 +25,7 @@ import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
-import { DeviceReportViewer } from "@/components/DeviceReportViewer";
+import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
@@ -976,7 +976,7 @@ const ManageClient = () => {
         serial: serviceData.serialNumber || "",
         brand: serviceData.brand || "",
         color: color?.trim() || "",
-        model: serviceData.device || "",
+        model: serviceData.deviceModel || serviceData.model || "",
         memory: memory?.trim() || "",
         technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
         serviceSummary: updateServices || serviceData.service || "N/A",
@@ -1752,14 +1752,6 @@ const ManageClient = () => {
                   <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
                 )}
 
-                {/* Device Report Photos - shown only on Done Repair - For Release, ABOVE AI Report */}
-                {serviceData?.status === "Done Repair - For Release" && serviceData?.deviceReportFolderUrl && (
-                  <DeviceReportViewer
-                    folderUrl={serviceData.deviceReportFolderUrl}
-                    serviceId={serviceId}
-                  />
-                )}
-
                 {/* Report Display - Only visible when status is "Done Repair - For Release" */}
                 {serviceData?.status === "Done Repair - For Release" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -1813,6 +1805,11 @@ const ManageClient = () => {
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
+                )}
+
+                {/* Device Report Photos - shown only on Done Repair - For Release, BELOW AI Report */}
+                {serviceData?.status === "Done Repair - For Release" && serviceData?.serviceId && (
+                  <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
                 )}
 
                 <div className="space-y-2">
