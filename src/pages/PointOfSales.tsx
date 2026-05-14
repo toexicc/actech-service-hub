@@ -83,6 +83,10 @@ const PointOfSales = () => {
   // Remaining balance from previous payments
   const [previousPayments, setPreviousPayments] = useState(0);
 
+  // Refund → technician deduction
+  const [deductionAmount, setDeductionAmount] = useState("");
+  const [deductionReason, setDeductionReason] = useState("");
+
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) navigate("/");
     if (userRole !== "management" && userRole !== "admin") navigate("/menu");
