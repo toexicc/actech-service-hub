@@ -199,12 +199,12 @@ const ServiceTracker = () => {
         const adminNames = (service.adminRep || "").split(",").map(s => s.trim()).filter(Boolean);
         for (const adminName of adminNames) {
           const adminStaff = findStaffByName(adminName);
-          if (adminStaff?.staffId) {
+          if (adminStaff?.userId) {
             notifiedSomeone = true;
             const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
-                userId: adminStaff.staffId,
+                userId: adminStaff.userId,
                 title: `Reminder: Check on ${service.serviceId}`,
                 message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
@@ -218,12 +218,12 @@ const ServiceTracker = () => {
         const techNames = service.technician?.split(",").map(t => t.trim()).filter(Boolean) || [];
         for (const techName of techNames) {
           const tech = findStaffByName(techName);
-          if (tech?.staffId) {
+          if (tech?.userId) {
             notifiedSomeone = true;
             const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
-                userId: tech.staffId,
+                userId: tech.userId,
                 title: `Reminder: Check on ${service.serviceId}`,
                 message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
@@ -248,12 +248,12 @@ const ServiceTracker = () => {
         
         for (const techName of techNames) {
           const tech = findStaffByName(techName);
-          if (tech?.staffId) {
+          if (tech?.userId) {
             notifiedSomeone = true;
             const baseMessage = `Admin is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
-                userId: tech.staffId,
+                userId: tech.userId,
                 title: `Reminder: Check on ${service.serviceId}`,
                 message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
@@ -278,11 +278,11 @@ const ServiceTracker = () => {
         const promises: Promise<boolean>[] = [];
         for (const adminName of adminNames) {
           const adminStaff = findStaffByName(adminName);
-          if (adminStaff?.staffId) {
+          if (adminStaff?.userId) {
             notifiedAny = true;
             const baseMessage = `Technician ${userFullName} is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             promises.push(createNotification({
-              userId: adminStaff.staffId,
+              userId: adminStaff.userId,
               title: `Reminder: Check on ${service.serviceId}`,
               message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
               type: "service_update",
@@ -318,11 +318,11 @@ const ServiceTracker = () => {
     
     setForwardSending(true);
     try {
-      const userId = sessionStorage.getItem("staffId") || "";
+      const userId = sessionStorage.getItem("userId") || sessionStorage.getItem("staffId") || "";
       const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
       
       // Find recipient staff
-      const recipient = staffList.find(s => s.staffId === forwardRecipient);
+      const recipient = staffList.find(s => (s.userId === forwardRecipient || s.staffId === forwardRecipient));
       if (!recipient) {
         toast({ title: "Error", description: "Recipient not found.", variant: "destructive" });
         return;
@@ -355,7 +355,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       const success = await sendMessage({
         senderId: userId,
         senderName: userFullName,
-        receiverId: recipient.staffId,
+        receiverId: recipient.userId || recipient.staffId,
         receiverName: recipient.name,
         content: messageContent,
       });
@@ -375,9 +375,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   // Get available staff for forwarding (exclude current user)
   const forwardableStaff = useMemo(() => {
-    const currentUserId = sessionStorage.getItem("staffId");
+    const currentUserId = sessionStorage.getItem("userId") || sessionStorage.getItem("staffId");
     return staffList.filter(s => 
-      s.staffId !== currentUserId && 
+      (s.userId || s.staffId) !== currentUserId && 
       s.status?.toLowerCase() === "active" &&
       ["technician", "admin", "management"].includes(s.role?.toLowerCase() || "")
     );
