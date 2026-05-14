@@ -19,7 +19,6 @@ import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle } fro
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
