@@ -804,9 +804,9 @@ const ServiceUpdate = () => {
 
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
-                  <Button onClick={handleViewPDF} variant="outline" className="w-full">
+                  <Button onClick={handleViewPDF} variant="outline" className="w-full" disabled={!serviceData?.pdfUrl}>
                     <FileText className="mr-2 h-4 w-4" />
-                    View PDF
+                    {serviceData?.pdfUrl ? "View PDF" : "Not Available"}
                   </Button>
                 </div>
 
@@ -818,9 +818,10 @@ const ServiceUpdate = () => {
                     onClick={() => openPdfModal(serviceData?.quotationPdfUrl, serviceData?.serviceId, "quotation", "Service Quotation Form")}
                     variant="outline"
                     className="w-full"
+                    disabled={!serviceData?.quotationPdfUrl}
                   >
                     <FileText className="mr-2 h-4 w-4" />
-                    View PDF
+                    {serviceData?.quotationPdfUrl ? "View PDF" : "Not Available"}
                   </Button>
                 </div>
 
