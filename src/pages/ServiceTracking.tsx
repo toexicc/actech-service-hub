@@ -327,15 +327,6 @@ const ServiceTracking = () => {
       // private buckets/tables aren't readable from the client. Resolve
       // through the public edge function instead.
       try {
-        const resp = await supabase.functions.invoke("get-service-pdf", {
-          body: null,
-          method: "GET",
-          headers: {},
-          // @ts-expect-error - supabase-js supports query via path
-          ...({}),
-        });
-        // Fallback to direct fetch with query params (functions.invoke
-        // doesn't expose query strings cleanly across versions).
         const base = (import.meta as any).env?.VITE_SUPABASE_URL || "";
         const anon = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
         const r = await fetch(
