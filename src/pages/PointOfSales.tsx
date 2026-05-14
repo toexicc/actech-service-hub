@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchStaffList } from "@/lib/staffList";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
