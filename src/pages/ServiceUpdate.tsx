@@ -1377,6 +1377,24 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
+                {serviceData?.serviceId && (
+                  serviceData?.status === "Done Repair - Under Observation" ||
+                  serviceData?.status === "Done Repair - Observation" ||
+                  serviceData?.status === "Done Repair - For Release" ||
+                  serviceData?.status === "Done Repair - Advise Client" ||
+                  serviceData?.status === "Released" ||
+                  serviceData?.status === "Completed"
+                ) && (
+                  <DeviceReportPhotos
+                    serviceId={serviceData.serviceId}
+                    editable={
+                      serviceData?.status === "Done Repair - Under Observation" ||
+                      serviceData?.status === "Done Repair - Observation"
+                    }
+                  />
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
                   <Textarea
@@ -1387,8 +1405,6 @@ const ServiceUpdate = () => {
                     rows={4}
                   />
                 </div>
-
-                {/* (Device Report Photo Upload moved above AI Report Formatter) */}
 
                 <Separator />
 
