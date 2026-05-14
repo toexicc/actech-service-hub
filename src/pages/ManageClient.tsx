@@ -410,6 +410,21 @@ const ManageClient = () => {
     return () => { cancelled = true; };
   }, [serviceData?.serviceId, serviceData?.quotationPdfUrl]);
 
+  // Fallback: resolve the intake PDF from Supabase Storage when Sheets
+  // didn't return a pdfUrl, so the "View PDF" button is enabled.
+  useEffect(() => {
+    let cancelled = false;
+    const sid = serviceData?.serviceId;
+    if (!sid || serviceData?.pdfUrl) return;
+    (async () => {
+      const url = await getServicePdfSignedUrl(sid, "intake");
+      if (!cancelled && url) {
+        setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, pdfUrl: url } : prev));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [serviceData?.serviceId, serviceData?.pdfUrl]);
+
   const handleFormatWithAI = async () => {
     if (!rawDiagnosis?.trim()) {
       toast({
