@@ -463,6 +463,36 @@ const PointOfSales = () => {
                       </div>
                     )}
 
+                    {/* Refund → Technician Deduction */}
+                    {transactionType === "Refund" && (
+                      <div className="space-y-3 p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                        <p className="text-sm font-semibold text-destructive">Technician Salary Deduction</p>
+                        <p className="text-xs text-muted-foreground">
+                          Defaults to the refund amount and is split evenly across assigned technicians for the current cutoff period (1st-15th or 16th-EoM). Edit to override.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Deduction Amount (Php)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder={amount || "0.00"}
+                              value={deductionAmount}
+                              onChange={(e) => setDeductionAmount(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Reason (optional)</Label>
+                            <Input
+                              placeholder="e.g. Refund for incomplete repair"
+                              value={deductionReason}
+                              onChange={(e) => setDeductionReason(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Remarks */}
                     <div className="space-y-2">
                       <Label>Remarks (optional)</Label>
