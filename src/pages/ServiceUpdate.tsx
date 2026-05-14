@@ -1259,6 +1259,52 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {/* Device Report Photo Upload - shown ABOVE AI Report Formatter, when in observation */}
+                {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
+                  <>
+                    <Separator />
+                    <DeviceReportUpload
+                      photos={deviceReportPhotos}
+                      onPhotosChange={setDeviceReportPhotos}
+                      existingPhotoUrls={existingDeviceReportPhotoUrls}
+                      onRemoveExistingPhoto={async (index) => {
+                        const photoUrl = existingDeviceReportPhotoUrls[index];
+                        try {
+                          const idMatch =
+                            photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                            photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                          if (idMatch && serviceId) {
+                            const fileId = idMatch[1];
+                            const formData = new FormData();
+                            formData.append("action", "deleteDeviceReportPhoto");
+                            formData.append("serviceId", serviceId);
+                            formData.append("fileId", fileId);
+                            const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+                              method: "POST",
+                              body: formData,
+                            });
+                            if (!response.ok) {
+                              throw new Error("Failed to delete photo");
+                            }
+                          }
+                          setExistingDeviceReportPhotoUrls((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          );
+                          await logActivity({
+                            serviceId: serviceId,
+                            username: username,
+                            role: userRole,
+                            activity: "Device report photo removed"
+                          });
+                          toast({ title: "Photo Deleted", description: "Photo removed successfully" });
+                        } catch (error) {
+                          toast({ title: "Error", description: "Failed to delete photo", variant: "destructive" });
+                        }
+                      }}
+                    />
+                  </>
+                )}
+
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
                 {serviceData?.status === "Done Repair - Under Observation" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
