@@ -475,9 +475,8 @@ const ServiceForm = () => {
           noPower: data.noPower, repairHistory: data.repairHistory,
         },
         acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
-      }, { onConflict: "service_id" }).then(({ error }) => {
-        if (error) console.error("Supabase service insert failed:", error.message);
-      });
+      }, { onConflict: "service_id" }).then(() => {});
+
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
