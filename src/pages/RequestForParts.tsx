@@ -270,7 +270,7 @@ const RequestForParts = () => {
         description: "Request submitted successfully.",
       });
 
-      fetchRequests();
+      invalidateParts();
 
       setIsDialogOpen(false);
       setFormData({
@@ -363,7 +363,7 @@ const RequestForParts = () => {
         });
         setIsEditDialogOpen(false);
         setEditingRequest(null);
-        fetchRequests();
+        invalidateParts();
       } else {
         throw new Error(result?.message || "Failed to update");
       }
@@ -376,7 +376,7 @@ const RequestForParts = () => {
         toast({ title: "Updated", description: "Request updated and management notified." });
         setIsEditDialogOpen(false);
         setEditingRequest(null);
-        fetchRequests();
+        invalidateParts();
         return;
       }
 
@@ -431,7 +431,7 @@ const RequestForParts = () => {
         });
         setIsCancelDialogOpen(false);
         setCancellingRequest(null);
-        fetchRequests();
+        invalidateParts();
       } else {
         throw new Error(result?.message || "Failed to cancel");
       }
@@ -444,7 +444,7 @@ const RequestForParts = () => {
         toast({ title: "Cancelled", description: "Request cancelled and management notified." });
         setIsCancelDialogOpen(false);
         setCancellingRequest(null);
-        fetchRequests();
+        invalidateParts();
         return;
       }
 

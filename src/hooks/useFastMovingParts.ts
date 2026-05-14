@@ -21,37 +21,50 @@ interface FastMovingPart {
   remarks: string;
 }
 
-const fetchFastMovingParts = async (): Promise<FastMovingPart[]> => {
+const parseNotes = (notes: string) => {
+  const out: Record<string, string> = {};
+  (notes || "").split("|").forEach((p) => {
+    const [k, ...rest] = p.split(":");
+    if (k && rest.length) out[k.trim()] = rest.join(":").trim();
+  });
+  return out;
+};
+
+const fetchPartRequests = async (): Promise<FastMovingPart[]> => {
+  // Read from part_requests (the canonical Pre-Ordered Parts source)
   const { data, error } = await supabase
-    .from("fast_moving_parts")
+    .from("part_requests")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
-    partId: r.part_id ?? "",
-    requestedBy: "",
-    serviceId: "",
-    partName: r.part_name ?? "",
-    deviceType: r.category ?? "",
-    brand: r.brand ?? "",
-    model: r.device_model ?? "",
-    partType: "",
-    quantity: String(r.quantity ?? 0),
-    dateNeeded: "",
-    dateOrdered: "",
-    dateReceived: "",
-    supplier: "",
-    cost: String(r.cost_price ?? 0),
-    status: r.status ?? "In Stock",
-    lastUpdated: r.updated_at ?? "",
-    remarks: r.notes ?? "",
-  }));
+  return (data ?? []).map((r: any) => {
+    const meta = parseNotes(r.notes ?? "");
+    return {
+      partId: r.request_id ?? r.id ?? "",
+      requestedBy: r.requested_by_name ?? "",
+      serviceId: r.service_id ?? "",
+      partName: r.part_name ?? "",
+      deviceType: meta["Device Type"] ?? "",
+      brand: r.brand ?? "",
+      model: r.device_model ?? "",
+      partType: meta["Part Type"] ?? "",
+      quantity: String(r.quantity ?? 0),
+      dateNeeded: meta["Date Needed"] ?? "",
+      dateOrdered: "",
+      dateReceived: "",
+      supplier: "",
+      cost: "",
+      status: r.status ?? "For Ordering",
+      lastUpdated: r.updated_at ?? "",
+      remarks: r.notes ?? "",
+    };
+  });
 };
 
 export const useFastMovingParts = (enabled: boolean = true) => useQuery({
   queryKey: ["fastMovingParts"],
-  queryFn: fetchFastMovingParts,
+  queryFn: fetchPartRequests,
   enabled,
   staleTime: 60 * 1000,
   gcTime: 5 * 60 * 1000,
