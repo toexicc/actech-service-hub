@@ -563,6 +563,19 @@ const ServiceUpdate = () => {
       await Promise.all(photoPromises);
       formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
 
+      // When transitioning into "Done Repair - For Release" the AI Report is
+      // promoted into the persisted Technician Report field so it stays visible
+      // through release/completion.
+      const promotingToForRelease =
+        updateStatus === "Done Repair - For Release" &&
+        serviceData?.status !== "Done Repair - For Release";
+      const technicianReportToPersist = promotingToForRelease && (updateServiceReport || "").trim()
+        ? updateServiceReport
+        : updateTechnicianReport;
+      if (promotingToForRelease) {
+        setUpdateTechnicianReport(technicianReportToPersist);
+      }
+
       // Mirror critical updates to Supabase (source of truth)
       const { error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
@@ -571,7 +584,7 @@ const ServiceUpdate = () => {
         diagnosis: updateTechnicianDiagnosis,
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
-        technician_report: updateTechnicianReport,
+        technician_report: technicianReportToPersist,
         parts_used: partsUsedArray.map((p: any) => p.partId || p.partName || p),
         parts_cost: actualCost,
         discount: discountAmount,
