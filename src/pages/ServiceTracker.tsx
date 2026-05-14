@@ -318,7 +318,7 @@ const ServiceTracker = () => {
     
     setForwardSending(true);
     try {
-      const userId = sessionStorage.getItem("userId") || sessionStorage.getItem("staffId") || "";
+      const userId = sessionStorage.getItem("authUserId") || sessionStorage.getItem("staffId") || "";
       const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
       
       // Find recipient staff
@@ -375,7 +375,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   // Get available staff for forwarding (exclude current user)
   const forwardableStaff = useMemo(() => {
-    const currentUserId = sessionStorage.getItem("userId") || sessionStorage.getItem("staffId");
+    const currentUserId = sessionStorage.getItem("authUserId") || sessionStorage.getItem("staffId");
     return staffList.filter(s => 
       (s.userId || s.staffId) !== currentUserId && 
       s.status?.toLowerCase() === "active" &&
