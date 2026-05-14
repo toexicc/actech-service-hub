@@ -1265,12 +1265,12 @@ const ManageClient = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Time Frame:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Time Frame:</h3>
                     <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
                     <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
                   </div>
 
@@ -1829,7 +1829,7 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="timeFrame">Time Frame:</Label>
+                  <Label htmlFor="timeFrame">Estimated Time Frame:</Label>
                   <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select time frame" />
@@ -1843,7 +1843,7 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="targetDate">Target Date:</Label>
+                  <Label htmlFor="targetDate">Estimated Target Date:</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
