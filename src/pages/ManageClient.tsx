@@ -75,6 +75,44 @@ const buildFallbackDiagnosis = (raw: string): string => {
   ].join("\n");
 };
 
+// Merge Supabase service row into the Sheets payload so new fields
+// (username, devicePassword, color, memory, chiefComplaint, deviceNotes,
+// technicianReport, finalCost, partsCost, etc.) appear in the UI.
+const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
+  try {
+    const { data: row } = await supabase
+      .from("services")
+      .select("*")
+      .eq("service_id", serviceId)
+      .maybeSingle();
+    if (!row) return sheetData;
+    const sb = mapServiceRow(row);
+    const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+    return {
+      ...sheetData,
+      username: pick(sb.username, sheetData.username),
+      devicePassword: pick(sb.devicePassword, sheetData.devicePassword),
+      colorMemory: pick(sb.colorMemory, sheetData.colorMemory),
+      color: pick(sb.color, sheetData.color),
+      memory: pick(sb.memory, sheetData.memory),
+      email: pick(sb.email, sheetData.email),
+      phone: pick(sb.contactNumber, sheetData.phone),
+      contactNumber: pick(sb.contactNumber, sheetData.contactNumber),
+      chiefComplaint: pick(sb.chiefComplaint, sheetData.chiefComplaint),
+      deviceNotes: pick(sb.deviceNotes, sheetData.deviceNotes),
+      technicianReport: pick(sb.technicianReport, sheetData.technicianReport),
+      finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, sheetData.finalCost),
+      partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
+      estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
+      clientType: pick(sb.clientType, sheetData.clientType),
+      priority: pick(sb.priority, sheetData.priority),
+      conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+    };
+  } catch {
+    return sheetData;
+  }
+};
+
 const ManageClient = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
