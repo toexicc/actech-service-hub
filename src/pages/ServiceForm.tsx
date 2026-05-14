@@ -57,8 +57,8 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   noPower: z.boolean().default(false),
   repairHistory: z.boolean().default(false),
   physicalSignature: z.boolean().default(false),
-  estimatedCost: isPublic ? z.number().optional() : z.number().min(1, "Estimated Cost is required"),
-  timeFrame: isPublic ? z.string().optional() : z.string().min(1, "Time Frame is required"),
+  estimatedCost: z.number().optional(),
+  timeFrame: isPublic ? z.string().optional() : z.string().min(1, "Estimated Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
@@ -1184,7 +1184,7 @@ const ServiceForm = () => {
                 name="estimatedCost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Estimated Cost:</FormLabel>
+                    <FormLabel>Estimated Cost (optional):</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -1203,11 +1203,11 @@ const ServiceForm = () => {
                 name="timeFrame"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Time Frame:</FormLabel>
+                    <FormLabel>Estimated Time Frame:</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select Time Frame" />
+                          <SelectValue placeholder="Select Estimated Time Frame" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

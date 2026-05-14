@@ -577,7 +577,7 @@ const ServiceTracking = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
                   <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
                 </div>
               </div>
@@ -721,24 +721,6 @@ const ServiceTracking = () => {
                   <AiReportCard report={serviceData.aiReport} title="Service Report" />
                 </>
               )}
-
-              <Separator />
-
-              {/* Personnel */}
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Representative/s:</h3>
-                  <p className="text-base whitespace-pre-wrap break-words">{serviceData.adminRep || "N/A"}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Handling Staff:</h3>
-                  <p className="text-base whitespace-pre-wrap break-words">{serviceData.receivingStaff || "N/A"}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician/s:</h3>
-                  <p className="text-base whitespace-pre-wrap break-words">{serviceData.technician || "N/A"}</p>
-                </div>
-              </div>
 
               <Separator />
 

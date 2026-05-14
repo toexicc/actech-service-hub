@@ -859,12 +859,12 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Time Frame:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Time Frame:</h3>
                     <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Target Date:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
                     <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
                   </div>
 

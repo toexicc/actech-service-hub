@@ -258,7 +258,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
 
   yPos += 6;
   doc.setFont("helvetica", "bold");
-  doc.text("Time Frame:", leftCol, yPos);
+  doc.text("Estimated Time Frame:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
   doc.text(data.timeFrame, midCol, yPos);
 
