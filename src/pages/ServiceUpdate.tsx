@@ -1106,10 +1106,7 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis */}
-                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable />
-                )}
+                {/* (Diagnosis photos uploader moved below AI Diagnosis Formatter) */}
 
                 {/* Diagnosis Toggle - Based on actual sheet status */}
                 {serviceData?.status === "Pending Diagnosis" && (
@@ -1232,6 +1229,11 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis, BELOW AI Diagnosis Formatter */}
+                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
+                )}
+
                 {(() => {
                   const reportVisibleStatuses = [
                     "Done Repair - Under Observation",
@@ -1255,6 +1257,52 @@ const ServiceUpdate = () => {
                       className="min-h-[80px] resize-none"
                     />
                   </div>
+                )}
+
+                {/* Device Report Photo Upload - shown ABOVE AI Report Formatter, when in observation */}
+                {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
+                  <>
+                    <Separator />
+                    <DeviceReportUpload
+                      photos={deviceReportPhotos}
+                      onPhotosChange={setDeviceReportPhotos}
+                      existingPhotoUrls={existingDeviceReportPhotoUrls}
+                      onRemoveExistingPhoto={async (index) => {
+                        const photoUrl = existingDeviceReportPhotoUrls[index];
+                        try {
+                          const idMatch =
+                            photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                            photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                          if (idMatch && serviceId) {
+                            const fileId = idMatch[1];
+                            const formData = new FormData();
+                            formData.append("action", "deleteDeviceReportPhoto");
+                            formData.append("serviceId", serviceId);
+                            formData.append("fileId", fileId);
+                            const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+                              method: "POST",
+                              body: formData,
+                            });
+                            if (!response.ok) {
+                              throw new Error("Failed to delete photo");
+                            }
+                          }
+                          setExistingDeviceReportPhotoUrls((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          );
+                          await logActivity({
+                            serviceId: serviceId,
+                            username: username,
+                            role: userRole,
+                            activity: "Device report photo removed"
+                          });
+                          toast({ title: "Photo Deleted", description: "Photo removed successfully" });
+                        } catch (error) {
+                          toast({ title: "Error", description: "Failed to delete photo", variant: "destructive" });
+                        }
+                      }}
+                    />
+                  </>
                 )}
 
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
@@ -1389,67 +1437,7 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {/* Device Report Photo Upload - Only visible when status is "Done Repair - Under Observation" */}
-                {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
-                  <>
-                    <Separator />
-
-                    <DeviceReportUpload
-                      photos={deviceReportPhotos}
-                      onPhotosChange={setDeviceReportPhotos}
-                      existingPhotoUrls={existingDeviceReportPhotoUrls}
-                      onRemoveExistingPhoto={async (index) => {
-                        const photoUrl = existingDeviceReportPhotoUrls[index];
-                        try {
-                          // Extract file ID from Google Drive URL
-                          const idMatch =
-                            photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
-                            photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                          if (idMatch && serviceId) {
-                            const fileId = idMatch[1];
-                            const formData = new FormData();
-                            formData.append("action", "deleteDeviceReportPhoto");
-                            formData.append("serviceId", serviceId);
-                            formData.append("fileId", fileId);
-
-                            const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-                              method: "POST",
-                              body: formData,
-                            });
-
-                            if (!response.ok) {
-                              throw new Error("Failed to delete photo");
-                            }
-                          }
-                          // Remove from local state
-                          setExistingDeviceReportPhotoUrls((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          );
-                          
-                          // Log photo removal activity
-                          await logActivity({
-                            serviceId: serviceId,
-                            username: username,
-                            role: userRole,
-                            activity: "Device report photo removed"
-                          });
-                          
-                          toast({
-                            title: "Photo Deleted",
-                            description: "Photo removed successfully",
-                          });
-                        } catch (error) {
-                          // Failed to delete photo
-                          toast({
-                            title: "Error",
-                            description: "Failed to delete photo",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    />
-                  </>
-                )}
+                {/* (Device Report Photo Upload moved above AI Report Formatter) */}
 
                 <Separator />
 

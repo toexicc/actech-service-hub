@@ -108,6 +108,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+      technicianNotesInternal: pick(sb.internalTechnicianNotes, sheetData.technicianNotesInternal),
+      adminNotesInternal: pick(sb.internalAdminNotes, sheetData.adminNotesInternal),
     };
   } catch {
     return sheetData;
@@ -1330,7 +1332,14 @@ const ManageClient = () => {
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
-                    <p className="text-lg">{serviceData.colorMemory}</p>
+                    <p className="text-lg break-words whitespace-normal">
+                      {(() => {
+                        const mem = (serviceData.memory || "").trim();
+                        const col = (serviceData.color || "").trim();
+                        const combined = [mem, col].filter(Boolean).join(" | ");
+                        return combined || (serviceData.colorMemory || "N/A");
+                      })()}
+                    </p>
                   </div>
 
                   {serviceData.devicePassword && (
@@ -1660,14 +1669,7 @@ const ManageClient = () => {
                   />
                 </div>
 
-                {/* Device Diagnosis Photos viewer - from Confirmed Diagnosis onward */}
-                {serviceData?.serviceId && ![
-                  "Pending Diagnosis",
-                  "Cancelled",
-                  "RTO",
-                ].includes(serviceData?.status ?? "") && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} />
-                )}
+                {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
                 {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
                 {serviceData?.status === "Confirmed Diagnosis" && (
@@ -1750,6 +1752,19 @@ const ManageClient = () => {
                   </div>
                 )}
 
+                {/* Device Diagnosis Photos - shown only on Confirmed Diagnosis, BELOW AI Diagnosis */}
+                {serviceData?.status === "Confirmed Diagnosis" && serviceData?.serviceId && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
+                )}
+
+                {/* Device Report Photos - shown only on Done Repair - For Release, ABOVE AI Report */}
+                {serviceData?.status === "Done Repair - For Release" && serviceData?.deviceReportFolderUrl && (
+                  <DeviceReportViewer
+                    folderUrl={serviceData.deviceReportFolderUrl}
+                    serviceId={serviceId}
+                  />
+                )}
+
                 {/* Report Display - Only visible when status is "Done Repair - For Release" */}
                 {serviceData?.status === "Done Repair - For Release" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -1803,22 +1818,6 @@ const ManageClient = () => {
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
-                )}
-
-                {/* Device Report - Proof (Google Drive Folder with photo previews) */}
-                {serviceData?.status === "Done Repair - For Release" && serviceData?.deviceReportFolderUrl && (
-                  <DeviceReportViewer 
-                    folderUrl={serviceData.deviceReportFolderUrl}
-                    serviceId={serviceId}
-                  />
-                )}
-
-                {/* AI Service Report shown below photos when client is being advised */}
-                {serviceData?.status === "Done Repair - Advise Client" && serviceData?.deviceReportFolderUrl && (
-                  <DeviceReportViewer
-                    folderUrl={serviceData.deviceReportFolderUrl}
-                    serviceId={serviceId}
-                  />
                 )}
 
                 <div className="space-y-2">
