@@ -1669,14 +1669,7 @@ const ManageClient = () => {
                   />
                 </div>
 
-                {/* Device Diagnosis Photos viewer - from Confirmed Diagnosis onward */}
-                {serviceData?.serviceId && ![
-                  "Pending Diagnosis",
-                  "Cancelled",
-                  "RTO",
-                ].includes(serviceData?.status ?? "") && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} />
-                )}
+                {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
                 {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
                 {serviceData?.status === "Confirmed Diagnosis" && (
