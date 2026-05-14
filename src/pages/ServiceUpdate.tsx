@@ -1078,14 +1078,18 @@ const ServiceUpdate = () => {
                               variant="outline"
                               size="sm"
                               onClick={async () => {
-                                if (!rawDiagnosis?.trim()) {
-                                  toast({
-                                    title: "No Raw Diagnosis",
-                                    description: "No raw diagnosis data found from the technician (Column AE)",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
+                                 if (!rawDiagnosis?.trim()) {
+                                   toast({
+                                     title: "No Raw Diagnosis",
+                                     description: "No raw diagnosis data found from the technician (Column AE)",
+                                     variant: "destructive",
+                                   });
+                                   return;
+                                 }
+                                 const ok = window.confirm(
+                                   "AI Diagnosis Formatter\n\nThis uses AI to reformat your raw diagnosis. AI output may contain mistakes — review every section (especially Service Breakdown costs) before saving or sharing with the client.\n\nProceed?"
+                                 );
+                                 if (!ok) return;
 
                                 setIsFormattingAI(true);
                                 try {
@@ -1177,17 +1181,30 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="technicianReport">Technician Report:</Label>
-                  <Textarea
-                    id="technicianReport"
-                    placeholder="Enter technician report"
-                    value={updateTechnicianReport}
-                    onChange={(e) => setUpdateTechnicianReport(e.target.value)}
-                    rows={4}
-                    className="min-h-[80px] resize-none"
-                  />
-                </div>
+                {(() => {
+                  const reportVisibleStatuses = [
+                    "Done Repair - Under Observation",
+                    "Done Repair - Observation",
+                    "Done Repair - Advise Client",
+                    "Completed",
+                    "Backjob",
+                    "RTO",
+                    "Released",
+                  ];
+                  return reportVisibleStatuses.includes(serviceData?.status);
+                })() && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianReport">Technician Report:</Label>
+                    <Textarea
+                      id="technicianReport"
+                      placeholder="Enter technician report"
+                      value={updateTechnicianReport}
+                      onChange={(e) => setUpdateTechnicianReport(e.target.value)}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
 
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
                 {serviceData?.status === "Done Repair - Under Observation" && (
@@ -1207,14 +1224,18 @@ const ServiceUpdate = () => {
                               variant="outline"
                               size="sm"
                               onClick={async () => {
-                                if (!updateTechnicianReport?.trim()) {
-                                  toast({
-                                    title: "No Technician Report",
-                                    description: "No technician report data found (Column BA)",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
+                                 if (!updateTechnicianReport?.trim()) {
+                                   toast({
+                                     title: "No Technician Report",
+                                     description: "No technician report data found (Column BA)",
+                                     variant: "destructive",
+                                   });
+                                   return;
+                                 }
+                                 const ok = window.confirm(
+                                   "AI Report Formatter\n\nThis uses AI to reformat your technician report. AI output may contain mistakes — review the generated report carefully before saving.\n\nProceed?"
+                                 );
+                                 if (!ok) return;
 
                                 setIsFormattingReport(true);
                                 try {
