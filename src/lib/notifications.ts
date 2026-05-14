@@ -107,19 +107,31 @@ export const createNotification = async (
 
 export const fetchMessages = async (userId: string): Promise<Message[]> => {
   if (!userId) return [];
-  const { data: memberships } = await supabase
+
+  // Only fetch DM threads (non-group) this user belongs to
+  const { data: dmMemberships } = await supabase
     .from("chat_members")
     .select("thread_id")
     .eq("user_id", userId);
-  const threadIds = (memberships ?? []).map((m: any) => m.thread_id);
-  if (threadIds.length === 0) return [];
+  const dmThreadIds = (dmMemberships ?? []).map((m: any) => m.thread_id);
+  if (dmThreadIds.length === 0) return [];
+
+  const { data: dmThreads } = await supabase
+    .from("chat_threads")
+    .select("id")
+    .in("id", dmThreadIds)
+    .eq("is_group", false);
+  const nonGroupThreadIds = (dmThreads ?? []).map((t: any) => t.id);
+  if (nonGroupThreadIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("messages")
     .select("*")
-    .in("thread_id", threadIds)
+    .in("thread_id", nonGroupThreadIds)
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) return [];
+
   return (data ?? []).map((r: any) => ({
     id: r.id,
     senderId: r.sender_id,
@@ -129,7 +141,6 @@ export const fetchMessages = async (userId: string): Promise<Message[]> => {
     content: r.body ?? "",
     read: false,
     createdAt: r.created_at,
-    groupId: r.thread_id,
   }));
 };
 
@@ -187,7 +198,8 @@ export const fetchGroupChats = async (userId: string): Promise<GroupChat[]> => {
   const { data: threads } = await supabase
     .from("chat_threads")
     .select("*")
-    .in("id", threadIds);
+    .in("id", threadIds)
+    .eq("is_group", true);
   const { data: allMembers } = await supabase
     .from("chat_members")
     .select("thread_id, user_id")
