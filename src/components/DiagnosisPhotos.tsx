@@ -1,0 +1,244 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+
+interface DiagnosisPhotosProps {
+  serviceId: string;
+  editable?: boolean;
+  title?: string;
+}
+
+const BUCKET = "diagnosis-photos";
+const MAX_PHOTOS = 10;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+interface PhotoEntry {
+  id: string;
+  storagePath: string;
+  signedUrl: string;
+}
+
+const compressImage = (file: File): Promise<File> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        const maxDim = 1920;
+        if (width > height && width > maxDim) {
+          height = (height * maxDim) / width;
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = (width * maxDim) / height;
+          height = maxDim;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("blank canvas"));
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            }));
+          },
+          "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+
+export const DiagnosisPhotos = ({
+  serviceId,
+  editable = false,
+  title = "Device Diagnosis - Photos",
+}: DiagnosisPhotosProps) => {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!serviceId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: rows } = await supabase
+        .from("service_files")
+        .select("id, storage_path, bucket")
+        .eq("service_id", serviceId)
+        .eq("kind", "diagnosis_photo" as any)
+        .order("uploaded_at", { ascending: true });
+      const entries: PhotoEntry[] = [];
+      for (const r of rows ?? []) {
+        const { data } = await supabase.storage
+          .from(r.bucket)
+          .createSignedUrl(r.storage_path, 60 * 60);
+        if (data?.signedUrl) {
+          entries.push({ id: r.id, storagePath: r.storage_path, signedUrl: data.signedUrl });
+        }
+      }
+      setPhotos(entries);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, [serviceId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || !editable) return;
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      toast({ title: "Limit reached", description: `Max ${MAX_PHOTOS} photos`, variant: "destructive" });
+      return;
+    }
+    const list = Array.from(files).slice(0, remaining);
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      for (const file of list) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > MAX_FILE_SIZE) {
+          toast({ title: "Too large", description: `${file.name} exceeds 5MB`, variant: "destructive" });
+          continue;
+        }
+        const compressed = await compressImage(file);
+        const path = `${serviceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, compressed, { contentType: "image/jpeg", upsert: false });
+        if (upErr) throw upErr;
+        const { error: insErr } = await supabase.from("service_files").insert({
+          service_id: serviceId,
+          kind: "diagnosis_photo" as any,
+          bucket: BUCKET,
+          storage_path: path,
+          filename: compressed.name,
+          mime_type: "image/jpeg",
+          size_bytes: compressed.size,
+          uploaded_by: user?.id ?? null,
+        });
+        if (insErr) throw insErr;
+      }
+      await refresh();
+      toast({ title: "Uploaded", description: "Diagnosis photo(s) saved" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err?.message ?? "Try again", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+    }
+  };
+
+  const remove = async (entry: PhotoEntry) => {
+    if (!editable) return;
+    if (!window.confirm("Remove this photo?")) return;
+    try {
+      await supabase.storage.from(BUCKET).remove([entry.storagePath]);
+      await supabase.from("service_files").delete().eq("id", entry.id);
+      setPhotos((p) => p.filter((x) => x.id !== entry.id));
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err?.message ?? "Try again", variant: "destructive" });
+    }
+  };
+
+  if (!editable && !loading && photos.length === 0) return null;
+
+  return (
+    <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="h-5 w-5" />
+          <Label className="text-lg font-semibold">{title}</Label>
+        </div>
+        <span className="text-sm text-muted-foreground">{photos.length}{editable ? `/${MAX_PHOTOS}` : ""} photos</span>
+      </div>
+
+      {editable && (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Upload photos taken during initial device diagnosis (visible to admins from Confirmed Diagnosis onward).
+          </p>
+          <div className="flex gap-2">
+            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files)} className="hidden" />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleFiles(e.target.files)} className="hidden" />
+            <Button type="button" variant="outline" disabled={uploading || photos.length >= MAX_PHOTOS} onClick={() => fileInputRef.current?.click()} className="flex-1">
+              {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              Upload Photos
+            </Button>
+            <Button type="button" variant="outline" disabled={uploading || photos.length >= MAX_PHOTOS} onClick={() => cameraInputRef.current?.click()} className="flex-1">
+              <Camera className="h-4 w-4 mr-2" />
+              Take Photo
+            </Button>
+          </div>
+        </>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : photos.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {photos.map((p) => (
+            <div key={p.id} className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setPreviewUrl(p.signedUrl)}>
+              <img src={p.signedUrl} alt="Diagnosis" loading="lazy" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
+              {editable && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); remove(p); }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : editable ? (
+        <p className="text-sm text-muted-foreground">No diagnosis photos yet.</p>
+      ) : null}
+
+      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Photo Preview</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <img src={previewUrl} alt="Preview" className="max-w-full max-h-[70vh] object-contain mx-auto rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
