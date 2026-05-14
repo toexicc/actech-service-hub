@@ -1078,14 +1078,18 @@ const ServiceUpdate = () => {
                               variant="outline"
                               size="sm"
                               onClick={async () => {
-                                if (!rawDiagnosis?.trim()) {
-                                  toast({
-                                    title: "No Raw Diagnosis",
-                                    description: "No raw diagnosis data found from the technician (Column AE)",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
+                                 if (!rawDiagnosis?.trim()) {
+                                   toast({
+                                     title: "No Raw Diagnosis",
+                                     description: "No raw diagnosis data found from the technician (Column AE)",
+                                     variant: "destructive",
+                                   });
+                                   return;
+                                 }
+                                 const ok = window.confirm(
+                                   "AI Diagnosis Formatter\n\nThis uses AI to reformat your raw diagnosis. AI output may contain mistakes — review every section (especially Service Breakdown costs) before saving or sharing with the client.\n\nProceed?"
+                                 );
+                                 if (!ok) return;
 
                                 setIsFormattingAI(true);
                                 try {
