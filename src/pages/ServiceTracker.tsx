@@ -560,6 +560,13 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         }
       }
 
+      // Tab filter (Ongoing / Completed / Closed=Cancelled+RTO+OnHold)
+      const completed = isCompletedStatus(service.status);
+      const closed = isClosedStatus(service.status);
+      if (activeTab === "ongoing" && (completed || closed)) return false;
+      if (activeTab === "completed" && !completed) return false;
+      if (activeTab === "closed" && !closed) return false;
+
       // Status filter
       if (statusFilter !== "all" && service.status !== statusFilter) {
         return false;
@@ -670,7 +677,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter]);
+  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
