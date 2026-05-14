@@ -437,6 +437,48 @@ const ServiceForm = () => {
         formData.append("AnnotationNotes", data.annotationNotes);
       }
 
+      // Persist to Supabase (primary source of truth) — non-blocking, captures all new intake fields
+      const techNamesArr = (data.technician || "").split(",").map(s => s.trim()).filter(Boolean);
+      const adminRepsArr = (data.adminRep || "").split(",").map(s => s.trim()).filter(Boolean);
+      const techDepartmentsArr = [...new Set(
+        techNamesArr.map(n => technicianList.find(t => t.name === n)?.department).filter(Boolean) as string[]
+      )];
+      supabase.from("services").upsert({
+        service_id: finalServiceId,
+        client_id: data.clientId || null,
+        client_name: data.clientName,
+        contact_number: data.phone,
+        email: data.email || null,
+        username: data.username || null,
+        device_type: data.deviceType,
+        brand: data.brand,
+        model: data.model,
+        color: data.color,
+        memory: data.memory,
+        serial_number: data.serial,
+        device_password: data.devicePassword || null,
+        chief_complaint: data.chiefComplaint,
+        issue_description: data.chiefComplaint,
+        device_notes: data.annotationNotes || null,
+        estimated_cost: data.estimatedCost ?? 0,
+        estimated_completion: data.timeFrame || null,
+        client_type: data.clientType,
+        priority: data.priority,
+        receiving_staff: data.receivingStaff || null,
+        technicians: techNamesArr,
+        admin_reps: adminRepsArr,
+        technician_departments: techDepartmentsArr,
+        source: isPublic ? "Public Intake" : "Staff Intake",
+        conditions: {
+          dents: data.dents, scratches: data.scratches, missingParts: data.missingParts,
+          physicalDamage: data.physicalDamage, importantFiles: data.importantFiles,
+          noPower: data.noPower, repairHistory: data.repairHistory,
+        },
+        acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
+      }, { onConflict: "service_id" }).then(({ error }) => {
+        if (error) console.error("Supabase service insert failed:", error.message);
+      });
+
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
         body: formData,
