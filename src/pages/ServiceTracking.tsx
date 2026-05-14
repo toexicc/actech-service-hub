@@ -628,9 +628,20 @@ const ServiceTracking = () => {
                 <>
                   <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
 
-                  {/* Diagnosis Photos shown below Service Diagnosis from Advise Client onward */}
-                  {["Done Repair - Advise Client", "Done Repair - Advice Client", "Done Repair - For Release", "Released", "Completed"].includes(serviceData.status) && serviceData.serviceId && (
-                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Diagnosis Photos" />
+                  {/* Diagnosis Photos shown below Service Diagnosis from Waiting to Proceed onward */}
+                  {[
+                    "Waiting to Proceed",
+                    "Proceed Repair",
+                    "Ongoing Service",
+                    "Done Repair - Under Observation",
+                    "Done Repair - Observation",
+                    "Done Repair - Advise Client",
+                    "Done Repair - Advice Client",
+                    "Done Repair - For Release",
+                    "Released",
+                    "Completed",
+                  ].includes(serviceData.status) && serviceData.serviceId && (
+                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
                   )}
 
                   {/* Persistent approval record (visible after approve/decline too) */}
