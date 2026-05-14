@@ -983,14 +983,29 @@ const ManageClient = () => {
         (response.ok && result === null);
 
       if (isSuccess) {
-        // Show success immediately
+        // Immediately swap the button to "Update Form" without waiting for reload
+        const wasUpdate = !!serviceData.quotationPdfUrl;
+        try {
+          const signed = await getServicePdfSignedUrl(serviceId, "quotation");
+          setServiceData((prev: any) =>
+            prev && prev.serviceId === serviceId
+              ? { ...prev, quotationPdfUrl: signed || prev.quotationPdfUrl || "generated" }
+              : prev
+          );
+        } catch {
+          setServiceData((prev: any) =>
+            prev && prev.serviceId === serviceId
+              ? { ...prev, quotationPdfUrl: prev.quotationPdfUrl || "generated" }
+              : prev
+          );
+        }
         toast({
           title: "Success",
-          description: serviceData.quotationPdfUrl 
-            ? "Service quotation form updated successfully" 
+          description: wasUpdate
+            ? "Service quotation form updated successfully"
             : "Service quotation form generated successfully",
         });
-        // Refresh the data
+        // Refresh the data in the background
         handleSearch();
 
         // Fire-and-forget: log activity without blocking
