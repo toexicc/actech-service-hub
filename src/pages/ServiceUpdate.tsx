@@ -19,7 +19,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { FileText, Package, Camera, Loader2, QrCode } from "lucide-react";
-import { DeviceReportUpload } from "@/components/DeviceReportUpload";
+import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
@@ -563,6 +563,19 @@ const ServiceUpdate = () => {
       await Promise.all(photoPromises);
       formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
 
+      // When transitioning into "Done Repair - For Release" the AI Report is
+      // promoted into the persisted Technician Report field so it stays visible
+      // through release/completion.
+      const promotingToForRelease =
+        updateStatus === "Done Repair - For Release" &&
+        serviceData?.status !== "Done Repair - For Release";
+      const technicianReportToPersist = promotingToForRelease && (updateServiceReport || "").trim()
+        ? updateServiceReport
+        : updateTechnicianReport;
+      if (promotingToForRelease) {
+        setUpdateTechnicianReport(technicianReportToPersist);
+      }
+
       // Mirror critical updates to Supabase (source of truth)
       const { error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
@@ -571,7 +584,7 @@ const ServiceUpdate = () => {
         diagnosis: updateTechnicianDiagnosis,
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
-        technician_report: updateTechnicianReport,
+        technician_report: technicianReportToPersist,
         parts_used: partsUsedArray.map((p: any) => p.partId || p.partName || p),
         parts_cost: actualCost,
         discount: discountAmount,
@@ -1233,6 +1246,7 @@ const ServiceUpdate = () => {
                   const reportVisibleStatuses = [
                     "Done Repair - Under Observation",
                     "Done Repair - Observation",
+                    "Done Repair - For Release",
                     "Done Repair - Advise Client",
                     "Completed",
                     "Backjob",
@@ -1254,51 +1268,6 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
-                {/* Device Report Photo Upload - shown ABOVE AI Report Formatter, when in observation */}
-                {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
-                  <>
-                    <Separator />
-                    <DeviceReportUpload
-                      photos={deviceReportPhotos}
-                      onPhotosChange={setDeviceReportPhotos}
-                      existingPhotoUrls={existingDeviceReportPhotoUrls}
-                      onRemoveExistingPhoto={async (index) => {
-                        const photoUrl = existingDeviceReportPhotoUrls[index];
-                        try {
-                          const idMatch =
-                            photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
-                            photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                          if (idMatch && serviceId) {
-                            const fileId = idMatch[1];
-                            const formData = new FormData();
-                            formData.append("action", "deleteDeviceReportPhoto");
-                            formData.append("serviceId", serviceId);
-                            formData.append("fileId", fileId);
-                            const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-                              method: "POST",
-                              body: formData,
-                            });
-                            if (!response.ok) {
-                              throw new Error("Failed to delete photo");
-                            }
-                          }
-                          setExistingDeviceReportPhotoUrls((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          );
-                          await logActivity({
-                            serviceId: serviceId,
-                            username: username,
-                            role: userRole,
-                            activity: "Device report photo removed"
-                          });
-                          toast({ title: "Photo Deleted", description: "Photo removed successfully" });
-                        } catch (error) {
-                          toast({ title: "Error", description: "Failed to delete photo", variant: "destructive" });
-                        }
-                      }}
-                    />
-                  </>
-                )}
 
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
                 {serviceData?.status === "Done Repair - Under Observation" && (
@@ -1421,6 +1390,24 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
+                {serviceData?.serviceId && (
+                  serviceData?.status === "Done Repair - Under Observation" ||
+                  serviceData?.status === "Done Repair - Observation" ||
+                  serviceData?.status === "Done Repair - For Release" ||
+                  serviceData?.status === "Done Repair - Advise Client" ||
+                  serviceData?.status === "Released" ||
+                  serviceData?.status === "Completed"
+                ) && (
+                  <DeviceReportPhotos
+                    serviceId={serviceData.serviceId}
+                    editable={
+                      serviceData?.status === "Done Repair - Under Observation" ||
+                      serviceData?.status === "Done Repair - Observation"
+                    }
+                  />
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
                   <Textarea
@@ -1431,8 +1418,6 @@ const ServiceUpdate = () => {
                     rows={4}
                   />
                 </div>
-
-                {/* (Device Report Photo Upload moved above AI Report Formatter) */}
 
                 <Separator />
 

@@ -20,6 +20,7 @@ import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
+import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
@@ -383,7 +384,21 @@ const ServiceTracking = () => {
         formData.append("status", "Proceed Repair");
         if (newServices) formData.append("services", newServices);
       }
-      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
+      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
+
+      // Mirror status change into Supabase so /manage-client and /service-update reflect it.
+      if (approved) {
+        try {
+          await supabase
+            .from("services")
+            .update({
+              status: "Proceed Repair" as any,
+              service: newServices || serviceData.service || "",
+              last_updated: new Date().toISOString(),
+            })
+            .eq("service_id", serviceData.serviceId);
+        } catch { /* ignore */ }
+      }
 
       // Notify assigned admins + technicians via service-role edge function
       // (works even when the /track page is anonymous).
@@ -743,39 +758,14 @@ const ServiceTracking = () => {
                   <AiReportCard report={serviceData.aiReport} title="Service Report" />
 
                   {/* Device Report Photos shown BELOW Service Report from Done Repair - Advise Client onward */}
-                  {serviceData.deviceReportFolderUrl && [
+                  {serviceData?.serviceId && [
                     "Done Repair - Advise Client",
                     "Done Repair - Advice Client",
                     "Done Repair - For Release",
                     "Released",
                     "Completed",
                   ].includes(serviceData.status) && (
-                    <div>
-                      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                        <ImageIcon className="h-5 w-5" />
-                        Device Report Photos
-                      </h3>
-                      {loadingPhotos ? (
-                        <div className="text-center py-8 text-muted-foreground">Loading photos...</div>
-                      ) : devicePhotos.length > 0 ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                          {devicePhotos.map((photoUrl, index) => (
-                            <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
-                              <img
-                                src={getDisplayPhotoUrl(photoUrl)}
-                                alt={`Device report ${index + 1}`}
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                                className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => window.open(getDisplayPhotoUrl(photoUrl), '_blank')}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground border rounded-lg">No photos available</div>
-                      )}
-                    </div>
+                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
                   )}
                 </>
               )}

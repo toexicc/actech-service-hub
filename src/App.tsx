@@ -58,7 +58,7 @@ const App = () => (
             <Route path="/track/:serviceId" element={<ServiceTracking />} />
             <Route path="/install" element={<Install />} />
             <Route path="/attendance" element={<Attendance />} />
-            <Route path="/attendance-overview" element={<ProtectedRoute roles={["admin","management"]}><AttendanceOverview /></ProtectedRoute>} />
+            <Route path="/attendance-overview" element={<ProtectedRoute roles={["management"]}><AttendanceOverview /></ProtectedRoute>} />
             <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
             <Route path="/pos" element={<ProtectedRoute><PointOfSales /></ProtectedRoute>} />
             <Route path="/service-form" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
