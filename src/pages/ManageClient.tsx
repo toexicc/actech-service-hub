@@ -376,78 +376,66 @@ const ManageClient = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
-      );
-      const data = await response.json();
+      let sheetData: any = {};
+      let foundFromSheets = false;
+      try {
+        const response = await fetch(
+          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+        );
+        const data = await response.json();
+        if (data.status === "found") {
+          sheetData = data.data || {};
+          foundFromSheets = true;
+        }
+      } catch {}
 
-      if (data.status === "found") {
-        const data2 = await mergeWithSupabase(serviceId, data.data);
-        setServiceData(data2);
-        // re-alias for original variable
-        data.data = data2;
-        // Service data loaded successfully
-        // Initialize update fields with current values
-        setUpdateStatus(data.data.status || "");
-        setUpdateAdminRep(data.data.adminRep || "");
-        setUpdateTechnician(data.data.technician || "");
-        setUpdateClientType(data.data.clientType || "");
-        setUpdatePriority(data.data.priority || "");
-        setUpdateChiefComplaint(data.data.chiefComplaint || "");
-        setUpdateAIDiagnosis(data.data.aiDiagnosis || "");
-        setUpdateServices(data.data.service || "");
-        setUpdateServiceCost(data.data.serviceCost || "");
-        setUpdateTimeFrame(data.data.timeFrame || "");
-        setUpdateTargetDate(parseDateMMDDYYYY(data.data.targetDate));
-        setUpdateAdminNotes(data.data.adminNotes || "");
-        setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
-        setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
-        setUpdateDeviceType(data.data.deviceType || "");
-        // Store original custom device type if it's not in the predefined list
-        const deviceType = data.data.deviceType || "";
-        if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
-          setOriginalCustomDeviceType(deviceType);
-        } else {
-          setOriginalCustomDeviceType("");
-        }
-        setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
-        setTechnicianReport(data.data.technicianReport || ""); // Column BA - technician report
-        setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
-        setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
-        setIsEditingServiceReport(false);
-        
-        // Load discount and final cost data from sheet (values may be formatted like 25,000.00)
-        const serviceCostNum = sanitizeNumber(String(data.data.serviceCost ?? "0"));
-        const savedDiscountNum = sanitizeNumber(String(data.data.discount ?? "0"));
-        const savedFinalCost = sanitizeNumber(String(data.data.finalCost ?? "0"));
-        
-        // Cost values parsed successfully
-        
-        // Set discount values
-        setDiscountAmount(savedDiscountNum);
-        setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
-        setDiscountType("amount");
-        
-        // Use final cost from sheet if available, otherwise calculate
-        if (savedFinalCost > 0) {
-          setFinalCost(savedFinalCost);
-        } else {
-          setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
-        }
-      } else {
-        toast({
-          title: "Not Found",
-          description: "No service found with the provided details",
-          variant: "destructive",
-        });
+      const merged = await mergeWithSupabase(serviceId, sheetData);
+      if (!foundFromSheets && (!merged || !merged.serviceId)) {
+        toast({ title: "Not Found", description: "No service found with the provided details", variant: "destructive" });
         setServiceData(null);
+        return;
+      }
+      setServiceData(merged);
+      setUpdateStatus(merged.status || "");
+      setUpdateAdminRep(merged.adminRep || "");
+      setUpdateTechnician(merged.technician || "");
+      setUpdateClientType(merged.clientType || "");
+      setUpdatePriority(merged.priority || "");
+      setUpdateChiefComplaint(merged.chiefComplaint || "");
+      setUpdateAIDiagnosis(merged.aiDiagnosis || "");
+      setUpdateServices(merged.service || "");
+      setUpdateServiceCost(merged.serviceCost || "");
+      setUpdateTimeFrame(merged.timeFrame || "");
+      setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
+      setUpdateAdminNotes(merged.adminNotes || "");
+      setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
+      setUpdateTechDiagnosis(merged.technicianDiagnosis || "");
+      setUpdateDeviceType(merged.deviceType || "");
+      const deviceType = merged.deviceType || "";
+      if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
+        setOriginalCustomDeviceType(deviceType);
+      } else {
+        setOriginalCustomDeviceType("");
+      }
+      setRawDiagnosis(merged.technicianDiagnosis || "");
+      setTechnicianReport(merged.technicianReport || "");
+      setUpdateServiceReport(merged.aiReport || "");
+      setIsEditingAIDiagnosis(false);
+      setIsEditingServiceReport(false);
+
+      const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
+      const savedDiscountNum = sanitizeNumber(String(merged.discount ?? "0"));
+      const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
+      setDiscountAmount(savedDiscountNum);
+      setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
+      setDiscountType("amount");
+      if (savedFinalCost > 0) {
+        setFinalCost(savedFinalCost);
+      } else {
+        setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch service data",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to fetch service data", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
