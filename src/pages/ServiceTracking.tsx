@@ -737,45 +737,46 @@ const ServiceTracking = () => {
 
               <Separator />
 
-              {/* Device Report Gallery */}
-              {serviceData.deviceReportFolderUrl && (
-                <div>
-                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" />
-                    Device Report Photos
-                  </h3>
-
-                  {loadingPhotos ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Loading photos...
-                    </div>
-                  ) : devicePhotos.length > 0 ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                      {devicePhotos.map((photoUrl, index) => (
-                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
-                          <img
-                            src={getDisplayPhotoUrl(photoUrl)}
-                            alt={`Device report ${index + 1}`}
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => window.open(getDisplayPhotoUrl(photoUrl), '_blank')}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground border rounded-lg">
-                      No photos available
-                    </div>
-                  )}
-                </div>
-              )}
-
               {showAiReport && (
                 <>
                   <Separator />
                   <AiReportCard report={serviceData.aiReport} title="Service Report" />
+
+                  {/* Device Report Photos shown BELOW Service Report from Done Repair - Advise Client onward */}
+                  {serviceData.deviceReportFolderUrl && [
+                    "Done Repair - Advise Client",
+                    "Done Repair - Advice Client",
+                    "Done Repair - For Release",
+                    "Released",
+                    "Completed",
+                  ].includes(serviceData.status) && (
+                    <div>
+                      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5" />
+                        Device Report Photos
+                      </h3>
+                      {loadingPhotos ? (
+                        <div className="text-center py-8 text-muted-foreground">Loading photos...</div>
+                      ) : devicePhotos.length > 0 ? (
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                          {devicePhotos.map((photoUrl, index) => (
+                            <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border">
+                              <img
+                                src={getDisplayPhotoUrl(photoUrl)}
+                                alt={`Device report ${index + 1}`}
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => window.open(getDisplayPhotoUrl(photoUrl), '_blank')}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground border rounded-lg">No photos available</div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 
