@@ -20,6 +20,7 @@ import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
+import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
@@ -383,7 +384,21 @@ const ServiceTracking = () => {
         formData.append("status", "Proceed Repair");
         if (newServices) formData.append("services", newServices);
       }
-      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData });
+      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
+
+      // Mirror status change into Supabase so /manage-client and /service-update reflect it.
+      if (approved) {
+        try {
+          await supabase
+            .from("services")
+            .update({
+              status: "Proceed Repair" as any,
+              service: newServices || serviceData.service || "",
+              last_updated: new Date().toISOString(),
+            })
+            .eq("service_id", serviceData.serviceId);
+        } catch { /* ignore */ }
+      }
 
       // Notify assigned admins + technicians via service-role edge function
       // (works even when the /track page is anonymous).
@@ -750,7 +765,7 @@ const ServiceTracking = () => {
                     "Released",
                     "Completed",
                   ].includes(serviceData.status) && (
-                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
                   )}
                 </>
               )}
