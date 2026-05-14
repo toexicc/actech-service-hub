@@ -1256,6 +1256,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_or_create_dm_thread: {
+        Args: { _other_user_id: string }
+        Returns: string
+      }
       generate_service_id: { Args: never; Returns: string }
       get_my_name: { Args: never; Returns: string }
       get_staff_directory: {
