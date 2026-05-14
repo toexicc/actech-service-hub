@@ -639,28 +639,38 @@ async function createIntake(b: Record<string, any>) {
     b["DeviceAnnotation_MimeType"] ?? "image/png",
   );
 
-  const { error } = await sb.from("services").insert({
-    service_id: serviceId,
-    client_id: clientId,
-    client_name: clientName,
-    contact_number: b["Phone"] || "",
-    email: b["Email"] || "",
-    device_type: b["Device Type"] || "",
-    brand: b["Brand"] || "",
-    model: b["Model"] || "",
-    serial_number: b["Serial"] || "",
-    issue_description: b["Chief Complaint"] || "",
-    technicians,
-    technician_departments: techDepts,
-    admin_reps: adminReps,
-    receiving_staff: b["Receiving Staff"] || null,
-    estimated_completion: b["Time Frame"] || "",
-    service_cost: num(b["Estimated Cost"]),
-    priority: b["Priority"] || "",
-    remarks: b["AnnotationNotes"] || null,
-    status: "Pending Diagnosis",
-  });
-  if (error) return err(error.message, 500);
+  let insertError: any = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await sb.from("services").insert({
+      service_id: serviceId,
+      client_id: clientId,
+      client_name: clientName,
+      contact_number: b["Phone"] || "",
+      email: b["Email"] || "",
+      device_type: b["Device Type"] || "",
+      brand: b["Brand"] || "",
+      model: b["Model"] || "",
+      serial_number: b["Serial"] || "",
+      issue_description: b["Chief Complaint"] || "",
+      technicians,
+      technician_departments: techDepts,
+      admin_reps: adminReps,
+      receiving_staff: b["Receiving Staff"] || null,
+      estimated_completion: b["Time Frame"] || "",
+      service_cost: num(b["Estimated Cost"]),
+      priority: b["Priority"] || "",
+      remarks: b["AnnotationNotes"] || null,
+      status: "Pending Diagnosis",
+    });
+    if (!error) { insertError = null; break; }
+    insertError = error;
+    if (String(error.message || "").includes("duplicate key")) {
+      serviceId = genId("AC");
+      continue;
+    }
+    break;
+  }
+  if (insertError) return err(insertError.message, 500);
 
   // Track files
   const files: any[] = [];
