@@ -260,51 +260,6 @@ const ServiceUpdate = () => {
     };
     run();
   }, [serviceData, serviceId, inventory]);
-                {/* Device Report Photo Upload - shown above AI Report Formatter, when in observation */}
-                {(serviceData?.status === "Done Repair - Under Observation" || serviceData?.status === "Done Repair - Observation") && (
-                  <>
-                    <Separator />
-                    <DeviceReportUpload
-                      photos={deviceReportPhotos}
-                      onPhotosChange={setDeviceReportPhotos}
-                      existingPhotoUrls={existingDeviceReportPhotoUrls}
-                      onRemoveExistingPhoto={async (index) => {
-                        const photoUrl = existingDeviceReportPhotoUrls[index];
-                        try {
-                          const idMatch =
-                            photoUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
-                            photoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                          if (idMatch && serviceId) {
-                            const fileId = idMatch[1];
-                            const formData = new FormData();
-                            formData.append("action", "deleteDeviceReportPhoto");
-                            formData.append("serviceId", serviceId);
-                            formData.append("fileId", fileId);
-                            const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-                              method: "POST",
-                              body: formData,
-                            });
-                            if (!response.ok) {
-                              throw new Error("Failed to delete photo");
-                            }
-                          }
-                          setExistingDeviceReportPhotoUrls((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          );
-                          await logActivity({
-                            serviceId: serviceId,
-                            username: username,
-                            role: userRole,
-                            activity: "Device report photo removed"
-                          });
-                          toast({ title: "Photo Deleted", description: "Photo removed successfully" });
-                        } catch (error) {
-                          toast({ title: "Error", description: "Failed to delete photo", variant: "destructive" });
-                        }
-                      }}
-                    />
-                  </>
-                )}
 
 
   const calculateActualCost = () => {
