@@ -1177,17 +1177,30 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="technicianReport">Technician Report:</Label>
-                  <Textarea
-                    id="technicianReport"
-                    placeholder="Enter technician report"
-                    value={updateTechnicianReport}
-                    onChange={(e) => setUpdateTechnicianReport(e.target.value)}
-                    rows={4}
-                    className="min-h-[80px] resize-none"
-                  />
-                </div>
+                {(() => {
+                  const reportVisibleStatuses = [
+                    "Done Repair - Under Observation",
+                    "Done Repair - Observation",
+                    "Done Repair - Advise Client",
+                    "Completed",
+                    "Backjob",
+                    "RTO",
+                    "Released",
+                  ];
+                  return reportVisibleStatuses.includes(serviceData?.status);
+                })() && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianReport">Technician Report:</Label>
+                    <Textarea
+                      id="technicianReport"
+                      placeholder="Enter technician report"
+                      value={updateTechnicianReport}
+                      onChange={(e) => setUpdateTechnicianReport(e.target.value)}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
 
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
                 {serviceData?.status === "Done Repair - Under Observation" && (
