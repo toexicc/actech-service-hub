@@ -382,6 +382,8 @@ const ServiceUpdate = () => {
               finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, data.data.finalCost),
               partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, data.data.partsCost),
               estimatedCost: pick(sb.estimatedCost, data.data.estimatedCost),
+              discount: pick(Number(sb.discount) > 0 ? sb.discount : null, data.data.discount),
+              serviceCost: pick(Number(sb.serviceCost) > 0 ? sb.serviceCost : null, data.data.serviceCost),
               clientType: pick(sb.clientType, data.data.clientType),
               priority: pick(sb.priority, data.data.priority),
               conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : data.data.conditions,
@@ -561,8 +563,8 @@ const ServiceUpdate = () => {
       await Promise.all(photoPromises);
       formData.append("DeviceReportPhotoCount", deviceReportPhotos.length.toString());
 
-      // Mirror critical updates to Supabase so ManageClient & dashboards see them
-      supabase.from("services").update({
+      // Mirror critical updates to Supabase (source of truth)
+      const { error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
         technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
@@ -572,25 +574,18 @@ const ServiceUpdate = () => {
         technician_report: updateTechnicianReport,
         parts_used: partsUsedArray.map((p: any) => p.partId || p.partName || p),
         parts_cost: actualCost,
+        discount: discountAmount,
         final_cost: finalCost,
         last_updated: new Date().toISOString(),
-      }).eq("service_id", serviceId).then(() => {});
+      }).eq("service_id", serviceId);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-      });
+      // Fire-and-forget Sheets sync (non-blocking)
+      try {
+        fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
+      } catch { /* ignore */ }
 
       let result: any = null;
-      try {
-        result = await response.json();
-      } catch {
-        // Could not parse response (likely CORS), assuming success
-      }
-
-      const isSuccess =
-        (result && (result.result === "success" || result.status === "success")) ||
-        (response.ok && result === null);
+      const isSuccess = !sbUpdateError;
 
       if (isSuccess) {
         // Show success immediately - don't wait for background tasks
