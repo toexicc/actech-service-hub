@@ -443,7 +443,7 @@ const ServiceForm = () => {
       const techDepartmentsArr = [...new Set(
         techNamesArr.map(n => technicianList.find(t => t.name === n)?.department).filter(Boolean) as string[]
       )];
-      supabase.from("services").upsert({
+      const { error: upsertError } = await supabase.from("services").upsert({
         service_id: finalServiceId,
         client_id: data.clientId || null,
         client_name: data.clientName,
@@ -475,16 +475,11 @@ const ServiceForm = () => {
           noPower: data.noPower, repairHistory: data.repairHistory,
         },
         acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
-      }, { onConflict: "service_id" }).then(() => {});
+      }, { onConflict: "service_id" });
+      if (upsertError) throw new Error(upsertError.message);
 
-
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-      });
-
-      // Always upload the generated PDF to Supabase Storage so the
-      // "View PDF" buttons can resolve a signed URL on the new backend.
+      // Upload the generated PDF to Supabase Storage so the
+      // "View PDF" buttons can resolve a signed URL.
       uploadServicePdf({
         serviceId: finalServiceId,
         clientName: data.clientName,
@@ -492,8 +487,21 @@ const ServiceForm = () => {
         blob: pdfBlob,
       }).catch(() => {});
 
-      // CORS can block reading response even on success
-      const isResponseOk = response.ok;
+      // Upload signature & device annotation if present
+      if (data.physicalSignature && signatureUrl) {
+        const sigBlob = await (await fetch(signatureUrl)).blob();
+        supabase.storage.from("signatures").upload(`${finalServiceId}/${finalServiceId}_sig.png`, sigBlob, {
+          upsert: true, contentType: "image/png",
+        }).catch(() => {});
+      }
+      if (data.enablePhotoAnnotation && annotationImageUrl) {
+        const annBlob = await (await fetch(annotationImageUrl)).blob();
+        supabase.storage.from("annotations").upload(`${finalServiceId}/${finalServiceId}_ann.png`, annBlob, {
+          upsert: true, contentType: "image/png",
+        }).catch(() => {});
+      }
+
+      const isResponseOk = true;
 
       if (isResponseOk) {
         // Show success immediately - don't wait for notifications/logging
