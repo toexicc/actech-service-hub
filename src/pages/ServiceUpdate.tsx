@@ -1229,6 +1229,11 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis, BELOW AI Diagnosis Formatter */}
+                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
+                )}
+
                 {(() => {
                   const reportVisibleStatuses = [
                     "Done Repair - Under Observation",
