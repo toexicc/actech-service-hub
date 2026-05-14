@@ -133,12 +133,66 @@ export const fetchMessages = async (userId: string): Promise<Message[]> => {
   }));
 };
 
+// Find an existing 1:1 DM thread between two users, or create one.
+export const findOrCreateDmThread = async (
+  myUserId: string,
+  otherUserId: string,
+): Promise<string | null> => {
+  if (!myUserId || !otherUserId || myUserId === otherUserId) return null;
+  // Find shared 1:1 threads
+  const { data: myMemberships } = await supabase
+    .from("chat_members")
+    .select("thread_id")
+    .eq("user_id", myUserId);
+  const myThreadIds = (myMemberships ?? []).map((m: any) => m.thread_id);
+  if (myThreadIds.length) {
+    const { data: otherInThreads } = await supabase
+      .from("chat_members")
+      .select("thread_id")
+      .eq("user_id", otherUserId)
+      .in("thread_id", myThreadIds);
+    const candidateIds = (otherInThreads ?? []).map((m: any) => m.thread_id);
+    if (candidateIds.length) {
+      // Confirm one is non-group with exactly 2 members
+      const { data: threads } = await supabase
+        .from("chat_threads")
+        .select("id, is_group")
+        .in("id", candidateIds)
+        .eq("is_group", false);
+      for (const t of threads ?? []) {
+        const { count } = await supabase
+          .from("chat_members")
+          .select("*", { count: "exact", head: true })
+          .eq("thread_id", t.id);
+        if (count === 2) return t.id;
+      }
+    }
+  }
+  // Create new DM thread
+  const { data: newThread, error } = await supabase
+    .from("chat_threads")
+    .insert({ created_by: myUserId, is_group: false })
+    .select("id")
+    .single();
+  if (error || !newThread) return null;
+  await supabase.from("chat_members").insert([
+    { thread_id: newThread.id, user_id: myUserId },
+    { thread_id: newThread.id, user_id: otherUserId },
+  ]);
+  return newThread.id;
+};
+
 export const sendMessage = async (
   message: Omit<Message, "id" | "createdAt" | "read">
 ): Promise<boolean> => {
-  if (!message.groupId) return false;
+  let threadId = message.groupId;
+  // Auto-resolve a 1:1 thread when caller only knows receiverId (no groupId)
+  if (!threadId && message.receiverId && message.senderId) {
+    threadId = await findOrCreateDmThread(message.senderId, message.receiverId) ?? undefined;
+  }
+  if (!threadId) return false;
   const { error } = await supabase.from("messages").insert({
-    thread_id: message.groupId,
+    thread_id: threadId,
     sender_id: message.senderId,
     sender_name: message.senderName,
     body: message.content,

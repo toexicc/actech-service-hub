@@ -1908,7 +1908,7 @@ const ManageClient = () => {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-muted-foreground">powered by Stack&Scale</div>
+        <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
       <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} />
     </DashboardLayout>

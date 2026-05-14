@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +79,17 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
+  const [activeTab, setActiveTab] = useState<"ongoing" | "completed" | "closed">("ongoing");
   const itemsPerPage = 15;
+
+  const isClosedStatus = (status: string) => {
+    const s = (status || "").toLowerCase();
+    return s.includes("cancel") || s === "rto" || s.includes("on hold") || s.includes("on-hold") || s.includes("hold");
+  };
+  const isCompletedStatus = (status: string) => {
+    const s = (status || "").toLowerCase();
+    return s.includes("completed");
+  };
 
   // Derive technicians with departments from staff data
   const techniciansWithDept = useMemo(() => {
@@ -199,12 +210,12 @@ const ServiceTracker = () => {
         const adminNames = (service.adminRep || "").split(",").map(s => s.trim()).filter(Boolean);
         for (const adminName of adminNames) {
           const adminStaff = findStaffByName(adminName);
-          if (adminStaff?.staffId) {
+          if (adminStaff?.userId) {
             notifiedSomeone = true;
             const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
-                userId: adminStaff.staffId,
+                userId: adminStaff.userId,
                 title: `Reminder: Check on ${service.serviceId}`,
                 message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
@@ -218,12 +229,12 @@ const ServiceTracker = () => {
         const techNames = service.technician?.split(",").map(t => t.trim()).filter(Boolean) || [];
         for (const techName of techNames) {
           const tech = findStaffByName(techName);
-          if (tech?.staffId) {
+          if (tech?.userId) {
             notifiedSomeone = true;
             const baseMessage = `Management is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
-                userId: tech.staffId,
+                userId: tech.userId,
                 title: `Reminder: Check on ${service.serviceId}`,
                 message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
@@ -248,12 +259,12 @@ const ServiceTracker = () => {
         
         for (const techName of techNames) {
           const tech = findStaffByName(techName);
-          if (tech?.staffId) {
+          if (tech?.userId) {
             notifiedSomeone = true;
             const baseMessage = `Admin is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             notifyPromises.push(
               createNotification({
-                userId: tech.staffId,
+                userId: tech.userId,
                 title: `Reminder: Check on ${service.serviceId}`,
                 message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
                 type: "service_update",
@@ -278,11 +289,11 @@ const ServiceTracker = () => {
         const promises: Promise<boolean>[] = [];
         for (const adminName of adminNames) {
           const adminStaff = findStaffByName(adminName);
-          if (adminStaff?.staffId) {
+          if (adminStaff?.userId) {
             notifiedAny = true;
             const baseMessage = `Technician ${userFullName} is asking you to check on the repair for ${service.clientName}'s ${deviceInfo}.`;
             promises.push(createNotification({
-              userId: adminStaff.staffId,
+              userId: adminStaff.userId,
               title: `Reminder: Check on ${service.serviceId}`,
               message: customMsg ? `${baseMessage}\n\n💬 ${customMsg}` : baseMessage,
               type: "service_update",
@@ -318,11 +329,11 @@ const ServiceTracker = () => {
     
     setForwardSending(true);
     try {
-      const userId = sessionStorage.getItem("staffId") || "";
+      const userId = sessionStorage.getItem("authUserId") || sessionStorage.getItem("staffId") || "";
       const userFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "System";
       
       // Find recipient staff
-      const recipient = staffList.find(s => s.staffId === forwardRecipient);
+      const recipient = staffList.find(s => (s.userId === forwardRecipient || s.staffId === forwardRecipient));
       if (!recipient) {
         toast({ title: "Error", description: "Recipient not found.", variant: "destructive" });
         return;
@@ -355,7 +366,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       const success = await sendMessage({
         senderId: userId,
         senderName: userFullName,
-        receiverId: recipient.staffId,
+        receiverId: recipient.userId || recipient.staffId,
         receiverName: recipient.name,
         content: messageContent,
       });
@@ -375,9 +386,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   // Get available staff for forwarding (exclude current user)
   const forwardableStaff = useMemo(() => {
-    const currentUserId = sessionStorage.getItem("staffId");
+    const currentUserId = sessionStorage.getItem("authUserId") || sessionStorage.getItem("staffId");
     return staffList.filter(s => 
-      s.staffId !== currentUserId && 
+      (s.userId || s.staffId) !== currentUserId && 
       s.status?.toLowerCase() === "active" &&
       ["technician", "admin", "management"].includes(s.role?.toLowerCase() || "")
     );
@@ -549,6 +560,13 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         }
       }
 
+      // Tab filter (Ongoing / Completed / Closed=Cancelled+RTO+OnHold)
+      const completed = isCompletedStatus(service.status);
+      const closed = isClosedStatus(service.status);
+      if (activeTab === "ongoing" && (completed || closed)) return false;
+      if (activeTab === "completed" && !completed) return false;
+      if (activeTab === "closed" && !closed) return false;
+
       // Status filter
       if (statusFilter !== "all" && service.status !== statusFilter) {
         return false;
@@ -641,7 +659,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isLoading]);
 
   const departments = useMemo(() => {
     const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
@@ -659,7 +677,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter]);
+  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -1029,7 +1047,16 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         {/* Services Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Ongoing Services</CardTitle>
+            <CardTitle>
+              {activeTab === "completed" ? "Completed Services" : activeTab === "closed" ? "Cancelled / RTO / On Hold" : "Ongoing Services"}
+            </CardTitle>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
+              <TabsList>
+                <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="closed">Cancelled / RTO / On Hold</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -1274,7 +1301,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          powered by Stack&Scale
+          
         </div>
       </div>
 

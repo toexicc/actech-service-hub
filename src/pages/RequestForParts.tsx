@@ -157,53 +157,37 @@ const RequestForParts = () => {
 
     setIsSubmitting(true);
     try {
-      // Apps Script doPost reads URL-encoded bodies reliably via e.parameter
-      // Part Type - use partTypeOther if "Others" is selected
       const partTypeValue = formData.partType === "Others" ? formData.partTypeOther : formData.partType;
-      const body = new URLSearchParams({
-        action: "addFastMovingPart",
-        requestedBy: userFullName,
-        serviceId: formData.serviceId,
-        partName: formData.partName,
-        deviceType: formData.deviceType,
+      const requestId = `RQ${Date.now().toString().slice(-9)}`;
+
+      // Resolve current auth user id (UUID) for requested_by
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: userRes } = await supabase.auth.getUser();
+      const requestedByUuid = userRes?.user?.id ?? null;
+
+      const { error: insertErr } = await supabase.from("part_requests").insert({
+        request_id: requestId,
+        part_name: formData.partName,
         brand: formData.brand,
-        model: formData.model,
-        partType: partTypeValue,
-        quantity: formData.quantity,
-        dateNeeded: format(dateNeeded, "MM/dd/yyyy"),
+        device_model: formData.model,
+        quantity: parseInt(formData.quantity) || 1,
         status: "For Ordering",
-        remarks: formData.remarks,
+        service_id: formData.serviceId || null,
+        requested_by: requestedByUuid,
+        requested_by_name: userFullName,
+        notes: [
+          partTypeValue ? `Part Type: ${partTypeValue}` : "",
+          formData.deviceType ? `Device Type: ${formData.deviceType}` : "",
+          dateNeeded ? `Date Needed: ${format(dateNeeded, "MM/dd/yyyy")}` : "",
+          formData.remarks,
+        ].filter(Boolean).join(" | "),
       });
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body,
-      });
-
-      const rawText = await response.text();
-      let result: any;
-      try {
-        result = rawText ? JSON.parse(rawText) : null;
-      } catch {
-        // CORS may block reading response - assume success if response.ok
-        if (response.ok) {
-          console.warn("Could not parse response (likely CORS), assuming success");
-          result = { result: "success" };
-        } else {
-          throw new Error(
-            `Non-JSON response from Apps Script (status ${response.status}): ${rawText?.slice(0, 200)}`
-          );
-        }
+      if (insertErr) {
+        throw new Error(insertErr.message || "Failed to insert part request");
       }
 
-      if (result?.result !== "success" && !response.ok) {
-        throw new Error(result?.message || "Request not accepted by Apps Script");
-      }
-
-      // Get the Part ID from the result
+      const result: any = { result: "success", partId: requestId };
       const partId = result.partId;
 
       // Update Inquiry Database Part ID if Service ID matches
@@ -286,7 +270,7 @@ const RequestForParts = () => {
         description: "Request submitted successfully.",
       });
 
-      fetchRequests();
+      invalidateParts();
 
       setIsDialogOpen(false);
       setFormData({
@@ -379,7 +363,7 @@ const RequestForParts = () => {
         });
         setIsEditDialogOpen(false);
         setEditingRequest(null);
-        fetchRequests();
+        invalidateParts();
       } else {
         throw new Error(result?.message || "Failed to update");
       }
@@ -392,7 +376,7 @@ const RequestForParts = () => {
         toast({ title: "Updated", description: "Request updated and management notified." });
         setIsEditDialogOpen(false);
         setEditingRequest(null);
-        fetchRequests();
+        invalidateParts();
         return;
       }
 
@@ -447,7 +431,7 @@ const RequestForParts = () => {
         });
         setIsCancelDialogOpen(false);
         setCancellingRequest(null);
-        fetchRequests();
+        invalidateParts();
       } else {
         throw new Error(result?.message || "Failed to cancel");
       }
@@ -460,7 +444,7 @@ const RequestForParts = () => {
         toast({ title: "Cancelled", description: "Request cancelled and management notified." });
         setIsCancelDialogOpen(false);
         setCancellingRequest(null);
-        fetchRequests();
+        invalidateParts();
         return;
       }
 
