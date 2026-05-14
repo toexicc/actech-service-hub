@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +79,17 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
+  const [activeTab, setActiveTab] = useState<"ongoing" | "completed" | "closed">("ongoing");
   const itemsPerPage = 15;
+
+  const isClosedStatus = (status: string) => {
+    const s = (status || "").toLowerCase();
+    return s.includes("cancel") || s === "rto" || s.includes("on hold") || s.includes("on-hold") || s.includes("hold");
+  };
+  const isCompletedStatus = (status: string) => {
+    const s = (status || "").toLowerCase();
+    return s.includes("completed");
+  };
 
   // Derive technicians with departments from staff data
   const techniciansWithDept = useMemo(() => {
