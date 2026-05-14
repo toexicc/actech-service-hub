@@ -111,7 +111,7 @@ const Login = () => {
             <div className="text-center p-2 sm:p-3"><div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-1 sm:mb-2"><Shield className="h-4 w-4 sm:h-5 sm:w-5 text-success" /></div><p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Secure Access</p></div>
           </div>
         </div>
-        <footer className="mt-4 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground relative z-10">Powered by Stack&Scale</footer>
+        <footer className="mt-4 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground relative z-10"></footer>
       </div>
     </>
   );

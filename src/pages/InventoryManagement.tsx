@@ -2406,7 +2406,7 @@ const InventoryManagement = () => {
         </Dialog>
 
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          Powered by Stack&Scale
+          
         </div>
       </div>
     </DashboardLayout>
