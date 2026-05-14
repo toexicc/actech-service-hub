@@ -93,12 +93,14 @@ export const DiagnosisPhotos = ({
         .order("uploaded_at", { ascending: true });
       const entries: PhotoEntry[] = [];
       for (const r of rows ?? []) {
-        const { data } = await supabase.storage
-          .from(r.bucket)
-          .createSignedUrl(r.storage_path, 60 * 60);
-        if (data?.signedUrl) {
-          entries.push({ id: r.id, storagePath: r.storage_path, signedUrl: data.signedUrl });
+        // Bucket is public — use a stable public URL so anonymous /track visitors can view
+        const { data: pub } = supabase.storage.from(r.bucket).getPublicUrl(r.storage_path);
+        let url = pub?.publicUrl ?? "";
+        if (!url) {
+          const { data: signed } = await supabase.storage.from(r.bucket).createSignedUrl(r.storage_path, 60 * 60);
+          url = signed?.signedUrl ?? "";
         }
+        if (url) entries.push({ id: r.id, storagePath: r.storage_path, signedUrl: url });
       }
       setPhotos(entries);
     } catch {
