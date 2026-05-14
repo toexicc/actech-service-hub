@@ -1617,6 +1617,10 @@ const ManageClient = () => {
                               type="button"
                               size="sm"
                               onClick={() => {
+                                const ok = window.confirm(
+                                  "Approve this AI Diagnosis?\n\nThe SUMMARY section will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
+                                );
+                                if (!ok) return;
                                 const summaryMatch = (updateAIDiagnosis || "").match(
                                   /SUMMARY:\s*([\s\S]+?)(?=\n\s*\n|\n[A-Z][A-Z ]+:|$)/i
                                 );
