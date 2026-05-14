@@ -76,9 +76,58 @@ const buildFallbackDiagnosis = (raw: string): string => {
   ].join("\n");
 };
 
-// Merge Supabase service row into the Sheets payload so new fields
-// (username, devicePassword, color, memory, chiefComplaint, deviceNotes,
-// technicianReport, finalCost, partsCost, etc.) appear in the UI.
+// Build a sheet-shaped payload directly from a Supabase service row so the
+// page works even when the Google Sheets endpoint is unavailable.
+const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) => ({
+  serviceId: sb.serviceId,
+  clientId: sb.clientId,
+  clientName: sb.clientName,
+  contactNumber: sb.contactNumber,
+  phone: sb.contactNumber,
+  email: sb.email,
+  address: sb.address,
+  deviceType: sb.deviceType,
+  brand: sb.brand,
+  device: sb.deviceModel || sb.deviceType,
+  serialNumber: sb.serialNumber,
+  issueDescription: sb.issueDescription,
+  status: sb.status,
+  technician: sb.technician,
+  adminRep: sb.adminRep,
+  receivingStaff: sb.receivingStaff,
+  dateReceived: sb.dateReceived,
+  targetDate: sb.targetDate ? format(new Date(sb.targetDate), "MM-dd-yyyy") : "",
+  service: sb.service,
+  serviceCost: sb.serviceCost,
+  finalCost: sb.finalCost,
+  partsCost: sb.partsCost,
+  estimatedCost: sb.estimatedCost,
+  discount: sb.discount,
+  modeOfTransfer: sb.modeOfTransfer,
+  initialPayment: sb.initialPayment,
+  aiReport: sb.aiReport,
+  aiDiagnosis: sb.diagnosis,
+  technicianDiagnosis: sb.diagnosis,
+  technicianReport: sb.technicianReport,
+  username: sb.username,
+  devicePassword: sb.devicePassword,
+  color: sb.color,
+  memory: sb.memory,
+  colorMemory: sb.colorMemory,
+  chiefComplaint: sb.chiefComplaint,
+  deviceNotes: sb.deviceNotes,
+  clientType: sb.clientType,
+  priority: sb.priority,
+  conditions: sb.conditions,
+  adminNotes: sb.remarks,
+  adminNotesInternal: sb.internalAdminNotes,
+  technicianNotesInternal: sb.internalTechnicianNotes,
+  preOrder: sb.preOrder,
+  partId: sb.partId,
+  signaturePath: sb.signaturePath,
+  deviceAnnotationPath: sb.deviceAnnotationPath,
+});
+
 const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
   try {
     const { data: row } = await supabase
@@ -88,6 +137,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       .maybeSingle();
     if (!row) return sheetData;
     const sb = mapServiceRow(row);
+    // If we don't have sheet data, fully synthesize from Supabase.
+    if (!sheetData || Object.keys(sheetData).length === 0) {
+      return supabaseRowToSheetShape(sb);
+    }
     const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
     return {
       ...sheetData,
@@ -106,7 +159,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
       estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
       discount: pick(Number(sb.discount) > 0 ? sb.discount : null, sheetData.discount),
-      targetDate: pick(sb.targetDate, sheetData.targetDate),
+      targetDate: pick(
+        sb.targetDate ? format(new Date(sb.targetDate), "MM-dd-yyyy") : "",
+        sheetData.targetDate,
+      ),
       serviceCost: pick(Number(sb.serviceCost) > 0 ? sb.serviceCost : null, sheetData.serviceCost),
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
