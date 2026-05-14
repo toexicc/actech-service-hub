@@ -730,10 +730,10 @@ const ServiceTracking = () => {
                   <Button
                     onClick={() => openPdf(serviceData.pdfUrl, serviceData.serviceId, "intake", "Client Intake Form")}
                     className="w-full"
-                    disabled={!serviceData.pdfUrl}
+                    disabled={!serviceData.serviceId}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    {serviceData.pdfUrl ? "View PDF" : "Not Available"}
+                    View PDF
                   </Button>
                 </div>
 
@@ -742,10 +742,10 @@ const ServiceTracking = () => {
                   <Button
                     onClick={() => openPdf(serviceData.quotationPdfUrl, serviceData.serviceId, "quotation", "Service Quotation Form")}
                     className="w-full"
-                    disabled={!serviceData.quotationPdfUrl}
+                    disabled={!serviceData.serviceId}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    {serviceData.quotationPdfUrl ? "View PDF" : "Not Available"}
+                    View PDF
                   </Button>
                 </div>
               </div>

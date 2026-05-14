@@ -76,9 +76,58 @@ const buildFallbackDiagnosis = (raw: string): string => {
   ].join("\n");
 };
 
-// Merge Supabase service row into the Sheets payload so new fields
-// (username, devicePassword, color, memory, chiefComplaint, deviceNotes,
-// technicianReport, finalCost, partsCost, etc.) appear in the UI.
+// Build a sheet-shaped payload directly from a Supabase service row so the
+// page works even when the Google Sheets endpoint is unavailable.
+const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) => ({
+  serviceId: sb.serviceId,
+  clientId: sb.clientId,
+  clientName: sb.clientName,
+  contactNumber: sb.contactNumber,
+  phone: sb.contactNumber,
+  email: sb.email,
+  address: sb.address,
+  deviceType: sb.deviceType,
+  brand: sb.brand,
+  device: sb.deviceModel || sb.deviceType,
+  serialNumber: sb.serialNumber,
+  issueDescription: sb.issueDescription,
+  status: sb.status,
+  technician: sb.technician,
+  adminRep: sb.adminRep,
+  receivingStaff: sb.receivingStaff,
+  dateReceived: sb.dateReceived,
+  targetDate: sb.targetDate ? format(new Date(sb.targetDate), "MM-dd-yyyy") : "",
+  service: sb.service,
+  serviceCost: sb.serviceCost,
+  finalCost: sb.finalCost,
+  partsCost: sb.partsCost,
+  estimatedCost: sb.estimatedCost,
+  discount: sb.discount,
+  modeOfTransfer: sb.modeOfTransfer,
+  initialPayment: sb.initialPayment,
+  aiReport: sb.aiReport,
+  aiDiagnosis: sb.diagnosis,
+  technicianDiagnosis: sb.diagnosis,
+  technicianReport: sb.technicianReport,
+  username: sb.username,
+  devicePassword: sb.devicePassword,
+  color: sb.color,
+  memory: sb.memory,
+  colorMemory: sb.colorMemory,
+  chiefComplaint: sb.chiefComplaint,
+  deviceNotes: sb.deviceNotes,
+  clientType: sb.clientType,
+  priority: sb.priority,
+  conditions: sb.conditions,
+  adminNotes: sb.remarks,
+  adminNotesInternal: sb.internalAdminNotes,
+  technicianNotesInternal: sb.internalTechnicianNotes,
+  preOrder: sb.preOrder,
+  partId: sb.partId,
+  signaturePath: sb.signaturePath,
+  deviceAnnotationPath: sb.deviceAnnotationPath,
+});
+
 const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
   try {
     const { data: row } = await supabase
@@ -88,6 +137,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       .maybeSingle();
     if (!row) return sheetData;
     const sb = mapServiceRow(row);
+    // If we don't have sheet data, fully synthesize from Supabase.
+    if (!sheetData || Object.keys(sheetData).length === 0) {
+      return supabaseRowToSheetShape(sb);
+    }
     const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
     return {
       ...sheetData,
@@ -106,7 +159,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
       estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
       discount: pick(Number(sb.discount) > 0 ? sb.discount : null, sheetData.discount),
-      targetDate: pick(sb.targetDate, sheetData.targetDate),
+      targetDate: pick(
+        sb.targetDate ? format(new Date(sb.targetDate), "MM-dd-yyyy") : "",
+        sheetData.targetDate,
+      ),
       serviceCost: pick(Number(sb.serviceCost) > 0 ? sb.serviceCost : null, sheetData.serviceCost),
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
@@ -240,66 +296,64 @@ const ManageClient = () => {
       const autoSearch = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch(
-            `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${urlServiceId}`,
-          );
-          const data = await response.json();
+          let sheetData: any = {};
+          let foundFromSheets = false;
+          try {
+            const response = await fetch(
+              `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${urlServiceId}`,
+            );
+            const data = await response.json();
+            if (data.status === "found") {
+              sheetData = data.data || {};
+              foundFromSheets = true;
+            }
+          } catch {}
 
-          if (data.status === "found") {
-            const merged = await mergeWithSupabase(urlServiceId, data.data);
-            setServiceData(merged);
-            setUpdateStatus(data.data.status || "");
-            setUpdateAdminRep(data.data.adminRep || "");
-            setUpdateTechnician(data.data.technician || "");
-            setUpdateClientType(data.data.clientType || "");
-            setUpdatePriority(data.data.priority || "");
-            setUpdateChiefComplaint(data.data.chiefComplaint || "");
-            setUpdateAIDiagnosis(data.data.aiDiagnosis || "");
-            setUpdateServices(data.data.service || "");
-            setUpdateServiceCost(data.data.serviceCost || "");
-            setUpdateTimeFrame(data.data.timeFrame || "");
-            setUpdateTargetDate(parseDateMMDDYYYY(data.data.targetDate));
-            setUpdateAdminNotes(data.data.adminNotes || "");
-            setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
-            setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
-            setUpdateDeviceType(data.data.deviceType || "");
-            const deviceType = data.data.deviceType || "";
-            if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
-              setOriginalCustomDeviceType(deviceType);
-            } else {
-              setOriginalCustomDeviceType("");
-            }
-            setRawDiagnosis(data.data.technicianDiagnosis || "");
-            setTechnicianReport(data.data.technicianReport || "");
-            setUpdateServiceReport(data.data.aiReport || "");
-            setIsEditingAIDiagnosis(false);
-            setIsEditingServiceReport(false);
-            
-            const serviceCostNum = sanitizeNumber(String(data.data.serviceCost ?? "0"));
-            const savedDiscountNum = sanitizeNumber(String(data.data.discount ?? "0"));
-            const savedFinalCost = sanitizeNumber(String(data.data.finalCost ?? "0"));
-            
-            setDiscountAmount(savedDiscountNum);
-            setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
-            setDiscountType("amount");
-            
-            if (savedFinalCost > 0) {
-              setFinalCost(savedFinalCost);
-            } else {
-              setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
-            }
-            
-            toast({
-              title: "Service Loaded",
-              description: `Service ${urlServiceId} loaded successfully`,
-            });
-          } else {
-            toast({
-              title: "Not Found",
-              description: "No service found with the provided ID",
-              variant: "destructive",
-            });
+          const merged = await mergeWithSupabase(urlServiceId, sheetData);
+          if (!foundFromSheets && (!merged || !merged.serviceId)) {
+            toast({ title: "Not Found", description: "No service found with the provided ID", variant: "destructive" });
+            return;
           }
+          setServiceData(merged);
+          setUpdateStatus(merged.status || "");
+          setUpdateAdminRep(merged.adminRep || "");
+          setUpdateTechnician(merged.technician || "");
+          setUpdateClientType(merged.clientType || "");
+          setUpdatePriority(merged.priority || "");
+          setUpdateChiefComplaint(merged.chiefComplaint || "");
+          setUpdateAIDiagnosis(merged.aiDiagnosis || "");
+          setUpdateServices(merged.service || "");
+          setUpdateServiceCost(merged.serviceCost || "");
+          setUpdateTimeFrame(merged.timeFrame || "");
+          setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
+          setUpdateAdminNotes(merged.adminNotes || "");
+          setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
+          setUpdateTechDiagnosis(merged.technicianDiagnosis || "");
+          setUpdateDeviceType(merged.deviceType || "");
+          const deviceType = merged.deviceType || "";
+          if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
+            setOriginalCustomDeviceType(deviceType);
+          } else {
+            setOriginalCustomDeviceType("");
+          }
+          setRawDiagnosis(merged.technicianDiagnosis || "");
+          setTechnicianReport(merged.technicianReport || "");
+          setUpdateServiceReport(merged.aiReport || "");
+          setIsEditingAIDiagnosis(false);
+          setIsEditingServiceReport(false);
+
+          const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
+          const savedDiscountNum = sanitizeNumber(String(merged.discount ?? "0"));
+          const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
+          setDiscountAmount(savedDiscountNum);
+          setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
+          setDiscountType("amount");
+          if (savedFinalCost > 0) {
+            setFinalCost(savedFinalCost);
+          } else {
+            setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
+          }
+          toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
         } catch {
           // Error auto-searching service
         } finally {
@@ -322,78 +376,66 @@ const ManageClient = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
-      );
-      const data = await response.json();
+      let sheetData: any = {};
+      let foundFromSheets = false;
+      try {
+        const response = await fetch(
+          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+        );
+        const data = await response.json();
+        if (data.status === "found") {
+          sheetData = data.data || {};
+          foundFromSheets = true;
+        }
+      } catch {}
 
-      if (data.status === "found") {
-        const data2 = await mergeWithSupabase(serviceId, data.data);
-        setServiceData(data2);
-        // re-alias for original variable
-        data.data = data2;
-        // Service data loaded successfully
-        // Initialize update fields with current values
-        setUpdateStatus(data.data.status || "");
-        setUpdateAdminRep(data.data.adminRep || "");
-        setUpdateTechnician(data.data.technician || "");
-        setUpdateClientType(data.data.clientType || "");
-        setUpdatePriority(data.data.priority || "");
-        setUpdateChiefComplaint(data.data.chiefComplaint || "");
-        setUpdateAIDiagnosis(data.data.aiDiagnosis || "");
-        setUpdateServices(data.data.service || "");
-        setUpdateServiceCost(data.data.serviceCost || "");
-        setUpdateTimeFrame(data.data.timeFrame || "");
-        setUpdateTargetDate(parseDateMMDDYYYY(data.data.targetDate));
-        setUpdateAdminNotes(data.data.adminNotes || "");
-        setUpdateAdminNotesInternal(data.data.adminNotesInternal || "");
-        setUpdateTechDiagnosis(data.data.technicianDiagnosis || "");
-        setUpdateDeviceType(data.data.deviceType || "");
-        // Store original custom device type if it's not in the predefined list
-        const deviceType = data.data.deviceType || "";
-        if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
-          setOriginalCustomDeviceType(deviceType);
-        } else {
-          setOriginalCustomDeviceType("");
-        }
-        setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
-        setTechnicianReport(data.data.technicianReport || ""); // Column BA - technician report
-        setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
-        setIsEditingAIDiagnosis(false); // Reset edit mode when loading new service
-        setIsEditingServiceReport(false);
-        
-        // Load discount and final cost data from sheet (values may be formatted like 25,000.00)
-        const serviceCostNum = sanitizeNumber(String(data.data.serviceCost ?? "0"));
-        const savedDiscountNum = sanitizeNumber(String(data.data.discount ?? "0"));
-        const savedFinalCost = sanitizeNumber(String(data.data.finalCost ?? "0"));
-        
-        // Cost values parsed successfully
-        
-        // Set discount values
-        setDiscountAmount(savedDiscountNum);
-        setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
-        setDiscountType("amount");
-        
-        // Use final cost from sheet if available, otherwise calculate
-        if (savedFinalCost > 0) {
-          setFinalCost(savedFinalCost);
-        } else {
-          setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
-        }
-      } else {
-        toast({
-          title: "Not Found",
-          description: "No service found with the provided details",
-          variant: "destructive",
-        });
+      const merged = await mergeWithSupabase(serviceId, sheetData);
+      if (!foundFromSheets && (!merged || !merged.serviceId)) {
+        toast({ title: "Not Found", description: "No service found with the provided details", variant: "destructive" });
         setServiceData(null);
+        return;
+      }
+      setServiceData(merged);
+      setUpdateStatus(merged.status || "");
+      setUpdateAdminRep(merged.adminRep || "");
+      setUpdateTechnician(merged.technician || "");
+      setUpdateClientType(merged.clientType || "");
+      setUpdatePriority(merged.priority || "");
+      setUpdateChiefComplaint(merged.chiefComplaint || "");
+      setUpdateAIDiagnosis(merged.aiDiagnosis || "");
+      setUpdateServices(merged.service || "");
+      setUpdateServiceCost(merged.serviceCost || "");
+      setUpdateTimeFrame(merged.timeFrame || "");
+      setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
+      setUpdateAdminNotes(merged.adminNotes || "");
+      setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
+      setUpdateTechDiagnosis(merged.technicianDiagnosis || "");
+      setUpdateDeviceType(merged.deviceType || "");
+      const deviceType = merged.deviceType || "";
+      if (deviceType && !(DEVICE_TYPES as readonly string[]).includes(deviceType)) {
+        setOriginalCustomDeviceType(deviceType);
+      } else {
+        setOriginalCustomDeviceType("");
+      }
+      setRawDiagnosis(merged.technicianDiagnosis || "");
+      setTechnicianReport(merged.technicianReport || "");
+      setUpdateServiceReport(merged.aiReport || "");
+      setIsEditingAIDiagnosis(false);
+      setIsEditingServiceReport(false);
+
+      const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
+      const savedDiscountNum = sanitizeNumber(String(merged.discount ?? "0"));
+      const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
+      setDiscountAmount(savedDiscountNum);
+      setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
+      setDiscountType("amount");
+      if (savedFinalCost > 0) {
+        setFinalCost(savedFinalCost);
+      } else {
+        setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch service data",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to fetch service data", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
