@@ -23,6 +23,43 @@ import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
+import { mapServiceRow } from "@/hooks/useServices";
+
+// Merge Supabase migrated fields over sheet data so public tracking shows
+// up-to-date info even when fields were updated post-migration.
+const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
+  try {
+    const { data: row } = await supabase
+      .from("services")
+      .select("*")
+      .eq("service_id", serviceId)
+      .maybeSingle();
+    if (!row) return sheetData;
+    const sb: any = mapServiceRow(row);
+    const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+    return {
+      ...sheetData,
+      username: pick(sb.username, sheetData.username),
+      colorMemory: pick(sb.colorMemory, sheetData.colorMemory),
+      color: pick(sb.color, sheetData.color),
+      memory: pick(sb.memory, sheetData.memory),
+      email: pick(sb.email, sheetData.email),
+      phone: pick(sb.contactNumber, sheetData.phone),
+      contactNumber: pick(sb.contactNumber, sheetData.contactNumber),
+      chiefComplaint: pick(sb.chiefComplaint, sheetData.chiefComplaint),
+      deviceNotes: pick(sb.deviceNotes, sheetData.deviceNotes),
+      technicianReport: pick(sb.technicianReport, sheetData.technicianReport),
+      finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, sheetData.finalCost),
+      partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
+      estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
+      clientType: pick(sb.clientType, sheetData.clientType),
+      priority: pick(sb.priority, sheetData.priority),
+      conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+    };
+  } catch {
+    return sheetData;
+  }
+};
 
 interface CustomerData {
   clientId: string;
@@ -157,7 +194,8 @@ const ServiceTracking = () => {
       const data = await response.json();
 
       if (data.status === "found") {
-        setServiceData(data.data);
+        const merged = await mergeWithSupabase(targetId, data.data);
+        setServiceData(merged);
         // Sync URL so the result is shareable
         if (routeServiceId !== targetId) {
           navigate(`/track/${encodeURIComponent(targetId)}`, { replace: true });
