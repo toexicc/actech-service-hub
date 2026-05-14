@@ -724,6 +724,54 @@ export type Database = {
           },
         ]
       }
+      salary_deductions: {
+        Row: {
+          amount: number
+          applied_to_period: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          reason: string
+          service_id: string | null
+          staff_id: string
+          staff_name: string
+          status: string
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          applied_to_period?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          reason: string
+          service_id?: string | null
+          staff_id: string
+          staff_name: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          applied_to_period?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          reason?: string
+          service_id?: string | null
+          staff_id?: string
+          staff_name?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       salary_disbursements: {
         Row: {
           contribution_pagibig: number
@@ -895,23 +943,34 @@ export type Database = {
       }
       services: {
         Row: {
+          acknowledgements: Json
           address: string | null
           admin_reps: string[]
           ai_report: string | null
           ai_toggle: string | null
           brand: string | null
+          chief_complaint: string | null
           client_id: string | null
           client_name: string
+          client_type: string | null
+          color: string | null
+          conditions: Json
           contact_number: string | null
           created_at: string
           date_completed: string | null
           date_received: string
+          device_annotation_notes: string | null
+          device_annotation_path: string | null
+          device_notes: string | null
+          device_password: string | null
           device_report_folder_url: string | null
           device_type: string | null
           diagnosis: string | null
           drive_folder_url: string | null
           email: string | null
           estimated_completion: string | null
+          estimated_cost: number
+          final_cost: number
           id: string
           initial_payment: number
           internal_admin_notes: string | null
@@ -919,9 +978,11 @@ export type Database = {
           issue_description: string | null
           labor_cost: number
           last_updated: string
+          memory: string | null
           mode_of_transfer: string | null
           model: string | null
           part_id: string | null
+          parts_cost: number
           parts_used: string[]
           payment_status: string | null
           pre_order: string | null
@@ -931,31 +992,47 @@ export type Database = {
           serial_number: string | null
           service: string | null
           service_cost: number
+          service_date: string | null
           service_id: string
+          signature_path: string | null
+          source: string | null
           status: Database["public"]["Enums"]["service_status"]
           target_date: string | null
           technician_departments: string[]
+          technician_report: string | null
           technicians: string[]
           total_cost: number
+          username: string | null
         }
         Insert: {
+          acknowledgements?: Json
           address?: string | null
           admin_reps?: string[]
           ai_report?: string | null
           ai_toggle?: string | null
           brand?: string | null
+          chief_complaint?: string | null
           client_id?: string | null
           client_name: string
+          client_type?: string | null
+          color?: string | null
+          conditions?: Json
           contact_number?: string | null
           created_at?: string
           date_completed?: string | null
           date_received?: string
+          device_annotation_notes?: string | null
+          device_annotation_path?: string | null
+          device_notes?: string | null
+          device_password?: string | null
           device_report_folder_url?: string | null
           device_type?: string | null
           diagnosis?: string | null
           drive_folder_url?: string | null
           email?: string | null
           estimated_completion?: string | null
+          estimated_cost?: number
+          final_cost?: number
           id?: string
           initial_payment?: number
           internal_admin_notes?: string | null
@@ -963,9 +1040,11 @@ export type Database = {
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
+          memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
           part_id?: string | null
+          parts_cost?: number
           parts_used?: string[]
           payment_status?: string | null
           pre_order?: string | null
@@ -975,31 +1054,47 @@ export type Database = {
           serial_number?: string | null
           service?: string | null
           service_cost?: number
+          service_date?: string | null
           service_id: string
+          signature_path?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
           technician_departments?: string[]
+          technician_report?: string | null
           technicians?: string[]
           total_cost?: number
+          username?: string | null
         }
         Update: {
+          acknowledgements?: Json
           address?: string | null
           admin_reps?: string[]
           ai_report?: string | null
           ai_toggle?: string | null
           brand?: string | null
+          chief_complaint?: string | null
           client_id?: string | null
           client_name?: string
+          client_type?: string | null
+          color?: string | null
+          conditions?: Json
           contact_number?: string | null
           created_at?: string
           date_completed?: string | null
           date_received?: string
+          device_annotation_notes?: string | null
+          device_annotation_path?: string | null
+          device_notes?: string | null
+          device_password?: string | null
           device_report_folder_url?: string | null
           device_type?: string | null
           diagnosis?: string | null
           drive_folder_url?: string | null
           email?: string | null
           estimated_completion?: string | null
+          estimated_cost?: number
+          final_cost?: number
           id?: string
           initial_payment?: number
           internal_admin_notes?: string | null
@@ -1007,9 +1102,11 @@ export type Database = {
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
+          memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
           part_id?: string | null
+          parts_cost?: number
           parts_used?: string[]
           payment_status?: string | null
           pre_order?: string | null
@@ -1019,12 +1116,17 @@ export type Database = {
           serial_number?: string | null
           service?: string | null
           service_cost?: number
+          service_date?: string | null
           service_id?: string
+          signature_path?: string | null
+          source?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
           technician_departments?: string[]
+          technician_report?: string | null
           technicians?: string[]
           total_cost?: number
+          username?: string | null
         }
         Relationships: []
       }
