@@ -598,10 +598,11 @@ const ServiceForm = () => {
         return;
       }
 
-      // Error submitting form
+      // Error submitting form — surface the real cause so we can debug
+      console.error("[ServiceForm] submit failed:", error);
       toast({
         title: "Error",
-        description: "Failed to submit form. Please try again.",
+        description: `Failed to submit form: ${msg}`,
         variant: "destructive",
       });
     } finally {
