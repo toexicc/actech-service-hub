@@ -1288,6 +1288,7 @@ export type Database = {
         | "signature"
         | "annotation"
         | "device_report"
+        | "diagnosis_photo"
       service_status:
         | "Pending Diagnosis"
         | "Confirmed Diagnosis"
@@ -1436,6 +1437,7 @@ export const Constants = {
         "signature",
         "annotation",
         "device_report",
+        "diagnosis_photo",
       ],
       service_status: [
         "Pending Diagnosis",
