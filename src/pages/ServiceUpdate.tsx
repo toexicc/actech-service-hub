@@ -20,6 +20,7 @@ import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { FileText, Package, Camera, Loader2, QrCode } from "lucide-react";
 import { DeviceReportUpload } from "@/components/DeviceReportUpload";
+import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
@@ -1104,6 +1105,11 @@ const ServiceUpdate = () => {
                     className="min-h-[80px] resize-none"
                   />
                 </div>
+
+                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis */}
+                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable />
+                )}
 
                 {/* Diagnosis Toggle - Based on actual sheet status */}
                 {serviceData?.status === "Pending Diagnosis" && (

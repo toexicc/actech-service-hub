@@ -26,6 +26,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportViewer } from "@/components/DeviceReportViewer";
+import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
@@ -1643,6 +1644,15 @@ const ManageClient = () => {
                     rows={3}
                   />
                 </div>
+
+                {/* Device Diagnosis Photos viewer - from Confirmed Diagnosis onward */}
+                {serviceData?.serviceId && ![
+                  "Pending Diagnosis",
+                  "Cancelled",
+                  "RTO",
+                ].includes(serviceData?.status ?? "") && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} />
+                )}
 
                 {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
                 {serviceData?.status === "Confirmed Diagnosis" && (
