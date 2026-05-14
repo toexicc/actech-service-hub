@@ -194,7 +194,8 @@ const ServiceTracking = () => {
       const data = await response.json();
 
       if (data.status === "found") {
-        setServiceData(data.data);
+        const merged = await mergeWithSupabase(targetId, data.data);
+        setServiceData(merged);
         // Sync URL so the result is shareable
         if (routeServiceId !== targetId) {
           navigate(`/track/${encodeURIComponent(targetId)}`, { replace: true });
