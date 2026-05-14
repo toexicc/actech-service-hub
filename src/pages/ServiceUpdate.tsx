@@ -1224,14 +1224,18 @@ const ServiceUpdate = () => {
                               variant="outline"
                               size="sm"
                               onClick={async () => {
-                                if (!updateTechnicianReport?.trim()) {
-                                  toast({
-                                    title: "No Technician Report",
-                                    description: "No technician report data found (Column BA)",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
+                                 if (!updateTechnicianReport?.trim()) {
+                                   toast({
+                                     title: "No Technician Report",
+                                     description: "No technician report data found (Column BA)",
+                                     variant: "destructive",
+                                   });
+                                   return;
+                                 }
+                                 const ok = window.confirm(
+                                   "AI Report Formatter\n\nThis uses AI to reformat your technician report. AI output may contain mistakes — review the generated report carefully before saving.\n\nProceed?"
+                                 );
+                                 if (!ok) return;
 
                                 setIsFormattingReport(true);
                                 try {
