@@ -44,6 +44,24 @@ export interface ServiceRecord {
   aiToggle?: string;
   preOrder?: string;
   partId?: string;
+  // Phase 1: full intake fields
+  username?: string;
+  devicePassword?: string;
+  color?: string;
+  memory?: string;
+  colorMemory?: string;
+  chiefComplaint?: string;
+  deviceNotes?: string;
+  technicianReport?: string;
+  finalCost?: string;
+  partsCost?: string;
+  estimatedCost?: string;
+  clientType?: string;
+  priority?: string;
+  conditions?: Record<string, boolean>;
+  signaturePath?: string;
+  deviceAnnotationPath?: string;
+  source?: string;
 }
 
 export const mapServiceRow = (r: any): ServiceRecord => ({
