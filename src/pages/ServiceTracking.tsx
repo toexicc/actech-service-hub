@@ -321,7 +321,35 @@ const ServiceTracking = () => {
     kind: "intake" | "quotation",
     title: string,
   ) => {
-    const signed = sid ? await getServicePdfSignedUrl(sid, kind) : null;
+    let signed: string | null = null;
+    if (sid) {
+      // /track is a public page — visitors aren't authenticated, so the
+      // private buckets/tables aren't readable from the client. Resolve
+      // through the public edge function instead.
+      try {
+        const resp = await supabase.functions.invoke("get-service-pdf", {
+          body: null,
+          method: "GET",
+          headers: {},
+          // @ts-expect-error - supabase-js supports query via path
+          ...({}),
+        });
+        // Fallback to direct fetch with query params (functions.invoke
+        // doesn't expose query strings cleanly across versions).
+        const base = (import.meta as any).env?.VITE_SUPABASE_URL || "";
+        const anon = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+        const r = await fetch(
+          `${base}/functions/v1/get-service-pdf?serviceId=${encodeURIComponent(sid)}&kind=${kind}`,
+          { headers: { apikey: anon, Authorization: `Bearer ${anon}` } },
+        );
+        if (r.ok) {
+          const j = await r.json();
+          signed = j?.url ?? null;
+        }
+      } catch {
+        signed = null;
+      }
+    }
     const url = signed || (legacyUrl ? normalizeGoogleDrivePdfUrl(legacyUrl, "preview") : null);
     if (!url) {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
