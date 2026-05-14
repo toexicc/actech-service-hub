@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { supabase } from "@/integrations/supabase/client";
+import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
