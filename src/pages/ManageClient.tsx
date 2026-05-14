@@ -202,7 +202,8 @@ const ManageClient = () => {
           const data = await response.json();
 
           if (data.status === "found") {
-            setServiceData(data.data);
+            const merged = await mergeWithSupabase(urlServiceId, data.data);
+            setServiceData(merged);
             setUpdateStatus(data.data.status || "");
             setUpdateAdminRep(data.data.adminRep || "");
             setUpdateTechnician(data.data.technician || "");
