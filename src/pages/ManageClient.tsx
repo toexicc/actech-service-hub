@@ -105,6 +105,9 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, sheetData.finalCost),
       partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
       estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
+      discount: pick(Number(sb.discount) > 0 ? sb.discount : null, sheetData.discount),
+      targetDate: pick(sb.targetDate, sheetData.targetDate),
+      serviceCost: pick(Number(sb.serviceCost) > 0 ? sb.serviceCost : null, sheetData.serviceCost),
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
@@ -662,7 +665,7 @@ const ManageClient = () => {
       formData.append("Device Type", updateDeviceType || "");
 
       // Mirror to Supabase so dashboards / search reflect the change immediately
-      supabase.from("services").update({
+      const { error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
         admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
@@ -674,34 +677,26 @@ const ManageClient = () => {
         ai_report: updateServiceReport,
         service: updateServices,
         service_cost: Number(updateServiceCost) || 0,
+        discount: discountAmount,
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
         last_updated: new Date().toISOString(),
-      }).eq("service_id", serviceId).then(() => {});
+      }).eq("service_id", serviceId);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      
-      let result: any = null;
+      // Fire-and-forget: keep Sheets in sync if still configured (non-blocking, ignore failures)
       try {
-        result = await response.json();
-      } catch {
-        // Could not parse response (likely CORS), assuming success
-      }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData, signal: controller.signal })
+          .catch(() => {})
+          .finally(() => clearTimeout(timeoutId));
+      } catch { /* ignore */ }
 
-      const isSuccess =
-        (result && (result.result === "success" || result.status === "success")) ||
-        (response.ok && result === null);
+      let result: any = null;
+      // Success is now determined by Supabase, the source of truth
+      const isSuccess = !sbUpdateError;
 
       if (isSuccess) {
         // Log only the fields that actually changed
