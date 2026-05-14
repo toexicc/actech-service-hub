@@ -587,7 +587,17 @@ Produce the report now using the EXACT template. Do not include this instruction
 
 // ---------- WRITE handlers ----------
 async function createIntake(b: Record<string, any>) {
-  const serviceId = b["Service ID"] || genId("AC");
+  let serviceId = b["Service ID"] || genId("AC");
+  // Ensure uniqueness — regenerate if the ID already exists
+  for (let i = 0; i < 5; i++) {
+    const { data: existing } = await sb
+      .from("services")
+      .select("service_id")
+      .eq("service_id", serviceId)
+      .maybeSingle();
+    if (!existing) break;
+    serviceId = genId("AC");
+  }
   const clientId = b["Client ID"] || `CL${Date.now()}`;
   const clientName = b["Client Name"] || "";
   const technicians = splitList(b["Technician"]);
