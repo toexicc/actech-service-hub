@@ -1047,7 +1047,16 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         {/* Services Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Ongoing Services</CardTitle>
+            <CardTitle>
+              {activeTab === "completed" ? "Completed Services" : activeTab === "closed" ? "Cancelled / RTO / On Hold" : "Ongoing Services"}
+            </CardTitle>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
+              <TabsList>
+                <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="closed">Cancelled / RTO / On Hold</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
             {isLoading ? (
