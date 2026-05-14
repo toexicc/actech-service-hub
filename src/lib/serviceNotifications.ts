@@ -212,7 +212,7 @@ export const notifyServiceStatusChange = async (
   }
 };
 
-// Notify about new service assignment
+// Notify about new service assignment (handles comma-separated multi-technician strings)
 export const notifyNewServiceAssignment = async (
   service: ServiceInfo,
   assignedTo: string,
@@ -220,16 +220,17 @@ export const notifyNewServiceAssignment = async (
 ): Promise<void> => {
   try {
     const staffList = await fetchStaffList();
-    const tech = findStaffByName(staffList, assignedTo);
-    if (!tech?.staffId || normalizeStaffName(assignedTo) === normalizeStaffName(assignedBy)) return;
-    await sendViaEdge([
-      {
-        userId: tech.staffId,
+    const techNames = (assignedTo || '').split(',').map(t => t.trim()).filter(Boolean);
+    const recipients = techNames
+      .map(name => ({ name, staff: findStaffByName(staffList, name) }))
+      .filter(r => r.staff?.staffId && normalizeStaffName(r.name) !== normalizeStaffName(assignedBy))
+      .map(r => ({
+        userId: r.staff!.staffId,
         title: `New service assigned: ${service.serviceId}`,
         message: `You have been assigned to ${service.clientName}'s ${service.device || service.deviceType || 'device'}`,
         serviceId: service.serviceId,
-      },
-    ]);
+      }));
+    if (recipients.length) await sendViaEdge(recipients);
   } catch (error) {
     console.error('Error sending assignment notification:', error);
   }
