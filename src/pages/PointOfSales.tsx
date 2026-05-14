@@ -208,6 +208,65 @@ const PointOfSales = () => {
           activity: `POS: Recorded ${finalTransactionType} of Php ${amountClean} via ${finalMOP} (${transactionId})`,
         });
 
+        // Refund → create technician salary deduction(s)
+        if (isRefund && serviceId && serviceId !== "MANUAL") {
+          const dedAmount = parseCurrency(deductionAmount || amount);
+          if (dedAmount > 0) {
+            try {
+              const { data: svc } = await supabase
+                .from("services")
+                .select("technicians")
+                .eq("service_id", serviceId)
+                .maybeSingle();
+              const techNames: string[] = Array.isArray(svc?.technicians) ? svc!.technicians as string[] : [];
+              if (techNames.length) {
+                const staffList = await fetchStaffList();
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                const half = now.getDate() <= 15 ? "1st" : "2nd";
+                const period = `${yyyy}-${mm}-${half}`;
+                const { data: { user } } = await supabase.auth.getUser();
+                const splitAmount = +(dedAmount / techNames.length).toFixed(2);
+                const rows = techNames
+                  .map((tName) => {
+                    const stripped = tName.split(" - ")[0].trim().toLowerCase();
+                    const match = staffList.find(
+                      (s) => s.name.split(" - ")[0].trim().toLowerCase() === stripped,
+                    );
+                    if (!match?.staffId) return null;
+                    return {
+                      staff_id: match.staffId,
+                      staff_name: match.name,
+                      service_id: serviceId,
+                      transaction_id: transactionId,
+                      amount: splitAmount,
+                      reason: deductionReason.trim() || `Refund deduction for ${serviceId}`,
+                      applied_to_period: period,
+                      created_by: user?.id ?? null,
+                      created_by_name: username,
+                      status: "pending",
+                    };
+                  })
+                  .filter(Boolean) as any[];
+                if (rows.length) {
+                  await supabase.from("salary_deductions").insert(rows);
+                  toast({
+                    title: "Deduction Recorded",
+                    description: `Php ${dedAmount.toFixed(2)} split across ${rows.length} technician(s) for period ${period}`,
+                  });
+                }
+              }
+            } catch (err: any) {
+              toast({
+                title: "Deduction Warning",
+                description: err?.message ?? "Could not create technician deduction",
+                variant: "destructive",
+              });
+            }
+          }
+        }
+
         // Reset form
         setTransactionType("");
         setOtherTransactionType("");
@@ -222,6 +281,8 @@ const PointOfSales = () => {
         setManualServiceCost("");
         setPreviousPayments(0);
         setFundSource("Money In Bank");
+        setDeductionAmount("");
+        setDeductionReason("");
       } else {
         toast({ title: "Error", description: result.message || "Failed to record transaction", variant: "destructive" });
       }
