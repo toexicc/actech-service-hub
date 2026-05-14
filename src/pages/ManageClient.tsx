@@ -643,6 +643,26 @@ const ManageClient = () => {
       formData.append("Client Name", serviceData.clientName || "");
       formData.append("Device Type", updateDeviceType || "");
 
+      // Mirror to Supabase so dashboards / search reflect the change immediately
+      supabase.from("services").update({
+        status: updateStatus as any,
+        admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
+        technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
+        technician_departments: techDept.split(",").map(s => s.trim()).filter(Boolean),
+        device_type: updateDeviceType,
+        client_type: updateClientType,
+        priority: updatePriority,
+        diagnosis: updateAIDiagnosis,
+        ai_report: updateServiceReport,
+        service: updateServices,
+        service_cost: Number(updateServiceCost) || 0,
+        final_cost: finalCost,
+        target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
+        internal_admin_notes: updateAdminNotesInternal,
+        remarks: updateAdminNotes,
+        last_updated: new Date().toISOString(),
+      }).eq("service_id", serviceId).then(() => {});
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
