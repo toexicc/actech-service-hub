@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchStaffList } from "@/lib/staffList";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -80,6 +82,10 @@ const PointOfSales = () => {
 
   // Remaining balance from previous payments
   const [previousPayments, setPreviousPayments] = useState(0);
+
+  // Refund → technician deduction
+  const [deductionAmount, setDeductionAmount] = useState("");
+  const [deductionReason, setDeductionReason] = useState("");
 
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) navigate("/");
@@ -202,6 +208,65 @@ const PointOfSales = () => {
           activity: `POS: Recorded ${finalTransactionType} of Php ${amountClean} via ${finalMOP} (${transactionId})`,
         });
 
+        // Refund → create technician salary deduction(s)
+        if (isRefund && serviceId && serviceId !== "MANUAL") {
+          const dedAmount = parseCurrency(deductionAmount || amount);
+          if (dedAmount > 0) {
+            try {
+              const { data: svc } = await supabase
+                .from("services")
+                .select("technicians")
+                .eq("service_id", serviceId)
+                .maybeSingle();
+              const techNames: string[] = Array.isArray(svc?.technicians) ? svc!.technicians as string[] : [];
+              if (techNames.length) {
+                const staffList = await fetchStaffList();
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                const half = now.getDate() <= 15 ? "1st" : "2nd";
+                const period = `${yyyy}-${mm}-${half}`;
+                const { data: { user } } = await supabase.auth.getUser();
+                const splitAmount = +(dedAmount / techNames.length).toFixed(2);
+                const rows = techNames
+                  .map((tName) => {
+                    const stripped = tName.split(" - ")[0].trim().toLowerCase();
+                    const match = staffList.find(
+                      (s) => s.name.split(" - ")[0].trim().toLowerCase() === stripped,
+                    );
+                    if (!match?.staffId) return null;
+                    return {
+                      staff_id: match.staffId,
+                      staff_name: match.name,
+                      service_id: serviceId,
+                      transaction_id: transactionId,
+                      amount: splitAmount,
+                      reason: deductionReason.trim() || `Refund deduction for ${serviceId}`,
+                      applied_to_period: period,
+                      created_by: user?.id ?? null,
+                      created_by_name: username,
+                      status: "pending",
+                    };
+                  })
+                  .filter(Boolean) as any[];
+                if (rows.length) {
+                  await supabase.from("salary_deductions").insert(rows);
+                  toast({
+                    title: "Deduction Recorded",
+                    description: `Php ${dedAmount.toFixed(2)} split across ${rows.length} technician(s) for period ${period}`,
+                  });
+                }
+              }
+            } catch (err: any) {
+              toast({
+                title: "Deduction Warning",
+                description: err?.message ?? "Could not create technician deduction",
+                variant: "destructive",
+              });
+            }
+          }
+        }
+
         // Reset form
         setTransactionType("");
         setOtherTransactionType("");
@@ -216,6 +281,8 @@ const PointOfSales = () => {
         setManualServiceCost("");
         setPreviousPayments(0);
         setFundSource("Money In Bank");
+        setDeductionAmount("");
+        setDeductionReason("");
       } else {
         toast({ title: "Error", description: result.message || "Failed to record transaction", variant: "destructive" });
       }
@@ -392,6 +459,36 @@ const PointOfSales = () => {
                           <p className={`text-lg font-bold ${remaining <= 0 ? "text-green-600" : "text-destructive"}`}>
                             {fmtPeso(remaining)}
                           </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Refund → Technician Deduction */}
+                    {transactionType === "Refund" && (
+                      <div className="space-y-3 p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                        <p className="text-sm font-semibold text-destructive">Technician Salary Deduction</p>
+                        <p className="text-xs text-muted-foreground">
+                          Defaults to the refund amount and is split evenly across assigned technicians for the current cutoff period (1st-15th or 16th-EoM). Edit to override.
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Deduction Amount (Php)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder={amount || "0.00"}
+                              value={deductionAmount}
+                              onChange={(e) => setDeductionAmount(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Reason (optional)</Label>
+                            <Input
+                              placeholder="e.g. Refund for incomplete repair"
+                              value={deductionReason}
+                              onChange={(e) => setDeductionReason(e.target.value)}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

@@ -19,6 +19,7 @@ import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle } fro
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
@@ -588,6 +589,11 @@ const ServiceTracking = () => {
               {showAiDiagnosis && (
                 <>
                   <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
+
+                  {/* Diagnosis Photos shown below Service Diagnosis from Advise Client onward */}
+                  {["Done Repair - Advise Client", "Done Repair - Advice Client", "Done Repair - For Release", "Released", "Completed"].includes(serviceData.status) && serviceData.serviceId && (
+                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Diagnosis Photos" />
+                  )}
 
                   {/* Persistent approval record (visible after approve/decline too) */}
                   {approvalRecord && (
