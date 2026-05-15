@@ -308,6 +308,28 @@ const ServiceUpdate = () => {
   const handleViewPDF = () =>
     openPdfModal(serviceData?.pdfUrl, serviceData?.serviceId, "intake", "Client Intake Form");
 
+  // Fallback: resolve intake & quotation PDFs from Supabase Storage so the View PDF buttons enable
+  useEffect(() => {
+    let cancelled = false;
+    const sid = serviceData?.serviceId;
+    if (!sid) return;
+    (async () => {
+      if (!serviceData?.pdfUrl) {
+        const url = await getServicePdfSignedUrl(sid, "intake");
+        if (!cancelled && url) {
+          setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, pdfUrl: url } : prev));
+        }
+      }
+      if (!serviceData?.quotationPdfUrl) {
+        const url = await getServicePdfSignedUrl(sid, "quotation");
+        if (!cancelled && url) {
+          setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, quotationPdfUrl: url } : prev));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [serviceData?.serviceId, serviceData?.pdfUrl, serviceData?.quotationPdfUrl]);
+
   async function searchService(id: string) {
     if (!id) {
       toast({
