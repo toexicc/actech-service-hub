@@ -18,7 +18,7 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { FileText, Package, Camera, Loader2, QrCode } from "lucide-react";
+import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff } from "lucide-react";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
