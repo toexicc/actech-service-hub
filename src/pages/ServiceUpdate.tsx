@@ -898,6 +898,27 @@ const ServiceUpdate = () => {
                     <p className="text-lg">{serviceData.colorMemory}</p>
                   </div>
 
+                  {serviceData.devicePassword && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Password:</h3>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={serviceData.devicePassword}
+                          readOnly
+                          className="max-w-xs"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {serviceData.annotationImageUrl && (
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Annotation Photo:</h3>
