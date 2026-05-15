@@ -670,6 +670,16 @@ const ManageClient = () => {
     // Prevent multiple simultaneous updates
     if (isUpdatingClientInfo) return;
 
+    // Guard: when on Confirmed Diagnosis, require a generated Service Quotation Form
+    if (updateStatus === "Confirmed Diagnosis" && !serviceData.quotationPdfUrl) {
+      toast({
+        title: "Service Quotation Form Required",
+        description: "Please generate the Service Quotation Form before updating this service.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdatingClientInfo(true);
     try {
       const formData = new FormData();
