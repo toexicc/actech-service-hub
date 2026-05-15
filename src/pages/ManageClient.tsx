@@ -670,6 +670,16 @@ const ManageClient = () => {
     // Prevent multiple simultaneous updates
     if (isUpdatingClientInfo) return;
 
+    // Guard: when on Confirmed Diagnosis, require a generated Service Quotation Form
+    if (updateStatus === "Confirmed Diagnosis" && !serviceData.quotationPdfUrl) {
+      toast({
+        title: "Service Quotation Form Required",
+        description: "Please generate the Service Quotation Form before updating this service.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdatingClientInfo(true);
     try {
       const formData = new FormData();
@@ -1410,10 +1420,12 @@ const ManageClient = () => {
                     <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
-                    <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
-                  </div>
+                  {serviceData.status !== "Pending Diagnosis" && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
+                      <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
+                    </div>
+                  )}
 
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Notes:</h3>
@@ -1443,20 +1455,28 @@ const ManageClient = () => {
                     <p className="text-lg whitespace-pre-line">{serviceData.service}</p>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Cost:</h3>
-                    <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
-                  </div>
+                  {serviceData.status === "Confirmed Diagnosis" && (
+                    <>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Cost:</h3>
+                        <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
+                      </div>
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
-                    <p className="text-lg font-semibold">Php {serviceData.discount || "0.00"}</p>
-                  </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
+                        <p className="text-lg font-semibold">Php {discountAmount.toFixed(2)}</p>
+                      </div>
+                    </>
+                  )}
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost:</h3>
-                    <p className="text-lg font-semibold text-primary">Php {serviceData.finalCost || serviceData.serviceCost || "0.00"}</p>
-                  </div>
+                  {serviceData.status !== "Pending Diagnosis" && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost:</h3>
+                      <p className="text-lg font-semibold text-primary">
+                        Php {(finalCost > 0 ? finalCost : sanitizeNumber(String(serviceData.serviceCost ?? "0"))).toFixed(2)}
+                      </p>
+                    </div>
+                  )}
 
                   {serviceData.technician && (
                     <div>

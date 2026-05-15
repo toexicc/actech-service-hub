@@ -18,7 +18,7 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { FileText, Package, Camera, Loader2, QrCode } from "lucide-react";
+import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff } from "lucide-react";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
@@ -99,6 +99,7 @@ const ServiceUpdate = () => {
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   // Use React Query for staff and inventory
@@ -307,6 +308,28 @@ const ServiceUpdate = () => {
 
   const handleViewPDF = () =>
     openPdfModal(serviceData?.pdfUrl, serviceData?.serviceId, "intake", "Client Intake Form");
+
+  // Fallback: resolve intake & quotation PDFs from Supabase Storage so the View PDF buttons enable
+  useEffect(() => {
+    let cancelled = false;
+    const sid = serviceData?.serviceId;
+    if (!sid) return;
+    (async () => {
+      if (!serviceData?.pdfUrl) {
+        const url = await getServicePdfSignedUrl(sid, "intake");
+        if (!cancelled && url) {
+          setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, pdfUrl: url } : prev));
+        }
+      }
+      if (!serviceData?.quotationPdfUrl) {
+        const url = await getServicePdfSignedUrl(sid, "quotation");
+        if (!cancelled && url) {
+          setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, quotationPdfUrl: url } : prev));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [serviceData?.serviceId, serviceData?.pdfUrl, serviceData?.quotationPdfUrl]);
 
   async function searchService(id: string) {
     if (!id) {
@@ -874,6 +897,27 @@ const ServiceUpdate = () => {
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
                     <p className="text-lg">{serviceData.colorMemory}</p>
                   </div>
+
+                  {serviceData.devicePassword && (
+                    <div>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Password:</h3>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={serviceData.devicePassword}
+                          readOnly
+                          className="max-w-xs"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {serviceData.annotationImageUrl && (
                     <div>
