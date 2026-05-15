@@ -99,6 +99,7 @@ const ServiceUpdate = () => {
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   // Use React Query for staff and inventory
