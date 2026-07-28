@@ -1,8 +1,6 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_OPTIONS } from "@/lib/constants";
-import { getStatusGuidance } from "@/lib/serviceNotifications";
-import { useAuth } from "@/hooks/useAuth";
 
 interface StatusProgressBarProps {
   serviceId: string;
@@ -47,14 +45,6 @@ export function StatusProgressBar({
   device,
   currentStatus,
 }: StatusProgressBarProps) {
-  const { isTechnician } = useAuth();
-  const isTech = isTechnician;
-  const guidance = getStatusGuidance(
-    currentStatus,
-    { serviceId, clientName, technician: technician ?? "", adminRep, device },
-    isTech ? "technician" : "admin",
-  );
-
   const currentIdx = PROGRESS_STEPS.indexOf(currentStatus as typeof PROGRESS_STEPS[number]);
   const isOffPath = currentIdx === -1 && STATUS_OPTIONS.includes(currentStatus as any);
 
@@ -114,11 +104,6 @@ export function StatusProgressBar({
         })}
       </div>
 
-      {guidance && (
-        <p className="mt-3 text-sm text-foreground/80 border-l-2 border-primary/40 pl-3">
-          {guidance}
-        </p>
-      )}
     </div>
   );
 }

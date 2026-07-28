@@ -41,6 +41,7 @@ import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
 import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
+import { getStatusGuidance } from "@/lib/serviceNotifications";
 
 
 
@@ -1271,6 +1272,17 @@ const ManageClient = () => {
           />
           <TicketOverviewRow
             status={serviceData.status}
+            guidance={getStatusGuidance(
+              serviceData.status || "",
+              {
+                serviceId: serviceData.serviceId || "",
+                clientName: serviceData.clientName || "",
+                technician: serviceData.technician ?? "",
+                adminRep: serviceData.adminRep,
+                device: serviceData.device || serviceData.deviceType,
+              },
+              "admin",
+            )}
             technician={serviceData.technician}
             adminRep={serviceData.adminRep}
             receivingStaff={(serviceData as any).receivingStaff}

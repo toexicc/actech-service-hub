@@ -43,6 +43,7 @@ export interface TicketOverviewRowProps {
   showPayment?: boolean;
   actions?: ReactNode;
   extraNote?: ReactNode;
+  guidance?: string;
   className?: string;
 }
 
@@ -63,9 +64,11 @@ export function TicketOverviewRow({
   showPayment = true,
   actions,
   extraNote,
+  guidance,
   className,
 }: TicketOverviewRowProps) {
   const info = STAGE_MAP[status || ""] || STAGE_MAP["Pending Diagnosis"];
+  const nextText = (guidance && guidance.trim()) || info.next;
 
   const sc = num(serviceCost);
   const dc = num(discount);
@@ -103,7 +106,7 @@ export function TicketOverviewRow({
                 {info.stage}
               </span>
             </div>
-            <p className="text-sm sm:text-base font-semibold text-foreground mt-1">{info.next}</p>
+            <p className="text-sm sm:text-base font-semibold text-foreground mt-1">{nextText}</p>
             {extraNote && <div className="mt-1 text-xs text-muted-foreground">{extraNote}</div>}
           </div>
         </div>
