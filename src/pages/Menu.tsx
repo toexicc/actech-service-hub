@@ -24,6 +24,9 @@ import {
   ChevronRight,
   ClipboardList,
   Monitor,
+  ShoppingCart,
+  CalendarCheck,
+  LayoutDashboard,
 } from "lucide-react";
 import { DueDateCalendar } from "@/components/DueDateCalendar";
 
@@ -308,6 +311,12 @@ const Menu = () => {
           icon: Monitor,
           path: "/tech-dashboard",
         },
+        {
+          title: "Point of Sales",
+          description: "Record a sale",
+          icon: ShoppingCart,
+          path: "/pos",
+        },
       ];
     }
 
@@ -330,11 +339,35 @@ const Menu = () => {
         icon: TrendingUp,
         path: "/manage-client",
       },
+      {
+        title: "Point of Sales",
+        description: "Record a sale",
+        icon: ShoppingCart,
+        path: "/pos",
+      },
+      {
+        title: "Admin Dashboard",
+        description: "Admin overview",
+        icon: LayoutDashboard,
+        path: "/admin-dashboard",
+      },
+      {
+        title: "Tech Dashboard",
+        description: "Department overview",
+        icon: Monitor,
+        path: "/tech-dashboard",
+      },
     ];
 
     if (userRole === "management") {
       return [
         ...baseActions,
+        {
+          title: "Attendance Overview",
+          description: "Track staff attendance",
+          icon: CalendarCheck,
+          path: "/attendance-overview",
+        },
         {
           title: "Inventory",
           description: "Track parts & materials",
