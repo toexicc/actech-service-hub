@@ -636,18 +636,17 @@ const ServiceTracking = () => {
 
         {/* Service Details */}
         {serviceData && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">Service Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Status */}
+          <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] rounded-2xl overflow-hidden">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/50 bg-gradient-to-r from-primary/5 via-transparent to-primary-glow/5">
               <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                  Ticket · {serviceData.serviceId || serviceId}
+                </p>
+                <CardTitle className="text-2xl mt-0.5">Service Details</CardTitle>
               </div>
-
-              <Separator />
+              <StatusChip status={serviceData.status || "Pending Diagnosis"} className="text-sm px-3 py-1.5" />
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
 
               {/* Client and Device Info */}
               <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
