@@ -25,6 +25,7 @@ import {
   ClipboardList,
   Monitor,
 } from "lucide-react";
+import { WhereTicketsAreNow } from "@/components/WhereTicketsAreNow";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
