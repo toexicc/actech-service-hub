@@ -300,7 +300,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
-      <div className="origin-top-left scale-80 h-[125vh] w-[125vw] overflow-hidden">
+      <div className="origin-top-left h-[125vh] w-[125vw] overflow-hidden [transform:scale(0.8)]">
         <aside
           className={cn(
             "fixed left-3 top-3 bottom-3 z-40 glass-sidebar rounded-2xl transition-all",
