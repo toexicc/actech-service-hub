@@ -724,8 +724,8 @@ const ServiceTracking = () => {
                       </div>
                     </div>
 
-                    {/* Step chips */}
-                    <div className="flex flex-wrap md:flex-nowrap gap-2 items-center md:overflow-x-auto md:pb-1">
+                    {/* Step chips — two rows of 4 */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {STEPS.map((s, i) => {
                         const n = i + 1;
                         const done = n < stepIdx;
@@ -735,7 +735,7 @@ const ServiceTracking = () => {
                             key={s.key}
                             title={s.full}
                             className={
-                              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border " +
+                              "flex items-center justify-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium border text-center " +
                               (current
                                 ? "bg-primary text-primary-foreground border-primary shadow-[var(--shadow-elegant)]"
                                 : done
@@ -748,16 +748,16 @@ const ServiceTracking = () => {
                           </div>
                         );
                       })}
-                      {offPath && (
-                        <div
-                          title={currentStatus}
-                          className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                          {offPath.label}
-                        </div>
-                      )}
                     </div>
+                    {offPath && (
+                      <div
+                        title={currentStatus}
+                        className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                        {offPath.label}
+                      </div>
+                    )}
 
                     <Separator />
 
