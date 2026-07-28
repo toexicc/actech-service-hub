@@ -130,10 +130,16 @@ Deno.serve(async (req) => {
 
     if (body.action === "delete") {
       await admin.from("user_roles").delete().eq("user_id", body.user_id);
-      await admin.from("profiles").delete().eq("id", body.user_id);
+      const { error: profErr } = await admin.from("profiles").delete().eq("id", body.user_id);
+      if (profErr) {
+        // Likely FK references (services, expenses, etc.) — soft-delete instead
+        await admin.from("profiles").update({ status: "inactive" }).eq("id", body.user_id);
+      }
       const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
-      if (delErr) throw delErr;
-      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (delErr) {
+        return new Response(JSON.stringify({ error: delErr.message || String(delErr) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ ok: true, soft: !!profErr }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
