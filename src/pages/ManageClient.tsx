@@ -2095,7 +2095,7 @@ const ManageClient = () => {
           </div>
 
           <ActivityTimeline serviceId={serviceData.serviceId} />
-          </>
+          </div>
         )}
 
 
