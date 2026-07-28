@@ -498,100 +498,132 @@ const ServiceTracking = () => {
   })();
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="container mx-auto p-4 sm:p-6 max-w-4xl w-full min-h-full">
-        {/* Header */}
-        <div className="flex items-center justify-center mb-8">
-          <img src={logo} alt="AC Tech Repair PH" className="h-16 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold">AC Tech Repair PH</h1>
-            <p className="text-muted-foreground">Service - Track your Device</p>
+    <div className="min-h-screen w-full">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl w-full min-h-full">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] mb-6 sm:mb-8">
+          <div
+            className="absolute inset-0 opacity-90 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse 60% 80% at 0% 0%, hsl(var(--primary) / 0.10) 0%, transparent 60%), radial-gradient(ellipse 50% 70% at 100% 0%, hsl(var(--primary-glow) / 0.12) 0%, transparent 60%)",
+            }}
+          />
+          <div className="relative flex flex-col sm:flex-row items-center gap-4 sm:gap-6 p-6 sm:p-8">
+            <div className="relative">
+              <div className="absolute inset-0 -m-2 rounded-2xl bg-primary/10 blur-xl" />
+              <img
+                src={logo}
+                alt="AC Tech Repair PH"
+                className="relative h-16 w-16 rounded-2xl object-contain bg-white/70 p-1.5 border border-border/50 shadow-[var(--shadow-soft)]"
+              />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                Service Tracker
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                AC Tech Repair PH
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Track your device repair in real time — enter a Service or Client ID.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Tabs for Search Modes */}
-        <Tabs 
-          value={searchMode} 
+        {/* Search */}
+        <Tabs
+          value={searchMode}
           onValueChange={(value) => {
             setSearchMode(value as "service" | "client");
-            // Clear ALL results and inputs when switching modes
             setServiceId("");
             setClientId("");
             setServiceData(null);
             setCustomerData(null);
             setServiceRecords([]);
             setDevicePhotos([]);
-          }} 
+          }}
           className="mb-8"
         >
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
-            <TabsTrigger value="service">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 rounded-full bg-muted/60 p-1 h-11">
+            <TabsTrigger value="service" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-soft)]">
               <Search className="h-4 w-4 mr-2" />
               Service ID
             </TabsTrigger>
-            <TabsTrigger value="client">
+            <TabsTrigger value="client" className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-soft)]">
               <User className="h-4 w-4 mr-2" />
               Client ID
             </TabsTrigger>
           </TabsList>
 
           {/* Service ID Search Tab */}
-          <TabsContent value="service">
-            <Card>
+          <TabsContent value="service" className="mt-6">
+            <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
               <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="serviceId">Enter Service ID:</Label>
-                    <Input
-                      id="serviceId"
-                      placeholder="Enter service ID"
-                      value={serviceId}
-                      onChange={(e) => setServiceId(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSearch();
-                        }
-                      }}
-                      onFocus={(e) => {
-                        if (!e.target.value) {
-                          setServiceId("AC");
-                          setTimeout(() => e.target.setSelectionRange(2, 2), 0);
-                        }
-                      }}
-                    />
+                <div className="space-y-2">
+                  <Label htmlFor="serviceId" className="text-sm font-medium">
+                    Service ID
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="serviceId"
+                        placeholder="e.g. AC12345"
+                        value={serviceId}
+                        onChange={(e) => setServiceId(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSearch();
+                        }}
+                        onFocus={(e) => {
+                          if (!e.target.value) {
+                            setServiceId("AC");
+                            setTimeout(() => e.target.setSelectionRange(2, 2), 0);
+                          }
+                        }}
+                        className="pl-9 h-11 rounded-xl bg-background"
+                      />
+                    </div>
+                    <Button
+                      onClick={() => handleSearch()}
+                      disabled={isLoading}
+                      className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow shadow-[var(--shadow-elegant)]"
+                    >
+                      {isLoading ? "Searching..." : "Track Service"}
+                    </Button>
                   </div>
                 </div>
-
-                <Button onClick={() => handleSearch()} disabled={isLoading} className="w-full mt-6">
-                  {isLoading ? "Searching..." : "Track Service"}
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* Client ID Search Tab */}
-          <TabsContent value="client">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  Search by Client ID
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4">
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="clientId">Client ID</Label>
-                    <Input
-                      id="clientId"
-                      placeholder="Enter Client ID (e.g., CL1234567890)"
-                      value={clientId}
-                      onChange={(e) => setClientId(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleClientSearch} disabled={isLoadingClient} className="bg-blue-600 hover:bg-blue-700">
+          <TabsContent value="client" className="mt-6">
+            <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="clientId" className="text-sm font-medium">
+                    Client ID
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="clientId"
+                        placeholder="e.g. CL1234567890"
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="pl-9 h-11 rounded-xl bg-background"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleClientSearch}
+                      disabled={isLoadingClient}
+                      className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow shadow-[var(--shadow-elegant)]"
+                    >
                       <Search className="h-4 w-4 mr-2" />
                       {isLoadingClient ? "Searching..." : "Search"}
                     </Button>
