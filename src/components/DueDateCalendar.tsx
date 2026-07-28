@@ -97,8 +97,8 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           {services.length} active {services.length === 1 ? "ticket" : "tickets"}
         </span>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-4 glass-panel rounded-2xl p-4">
-        <div className="flex justify-center lg:justify-start">
+      <div className="grid grid-cols-1 md:grid-cols-[60%,40%] lg:grid-cols-[70%,30%] gap-4 glass-panel rounded-2xl p-4">
+        <div className="flex justify-center md:justify-start w-full min-w-0">
           <Calendar
             mode="single"
             selected={selected}
@@ -107,7 +107,7 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
             modifiersClassNames={{
               due: "relative after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-primary",
             }}
-            className="pointer-events-auto rounded-xl border bg-card"
+            className="pointer-events-auto rounded-xl border bg-card w-full"
           />
         </div>
         <div className="min-w-0">
