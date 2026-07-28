@@ -89,6 +89,7 @@ export const updateUser = async (
     });
     return true;
   } catch (e) {
+    captureErr(e);
     return false;
   }
 };
