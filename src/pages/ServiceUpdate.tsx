@@ -37,10 +37,9 @@ import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
-import { TicketWorkspaceShell } from "@/components/workspace/TicketWorkspaceShell";
-import { WhatsNextBanner } from "@/components/workspace/WhatsNextBanner";
-import { ChargesBreakdown } from "@/components/workspace/ChargesBreakdown";
+import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
+
 import { applyPartsDelta } from "@/lib/inventoryDelta";
 
 
