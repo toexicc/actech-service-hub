@@ -20,6 +20,7 @@ import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
