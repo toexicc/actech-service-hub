@@ -500,7 +500,7 @@ const ServiceTracking = () => {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl w-full min-h-full">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl w-full min-h-full">
         {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] mb-6 sm:mb-8">
           <div
