@@ -439,10 +439,12 @@ const Menu = () => {
           </div>
         </section>
 
-
-
-
-
+        {/* Service calendar with due-date sidebar */}
+        {!isLoading && (
+          <div className="mb-8">
+            <DueDateCalendar role={userRole} userFullName={userFullName} />
+          </div>
+        )}
 
 
         {/* Summary Sections with Tables */}
