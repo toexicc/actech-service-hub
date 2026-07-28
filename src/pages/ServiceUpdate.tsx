@@ -849,7 +849,7 @@ const ServiceUpdate = () => {
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
 
-          <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+          <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
             {/* Client Information */}
             <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
