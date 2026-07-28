@@ -317,7 +317,7 @@ const StaffManagement = () => {
         ? String(parseFloat(String((selectedStaff as any).salary).replace(/[^0-9.\-]/g, "")) || 0)
         : "";
 
-      const success = await updateUser(selectedStaff.username, {
+      const success = await updateUser((selectedStaff as any).userId || selectedStaff.username, {
         name: selectedStaff.name,
         role: selectedStaff.role,
         department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
