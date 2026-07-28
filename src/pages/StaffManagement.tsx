@@ -396,17 +396,7 @@ const StaffManagement = () => {
                     placeholder="name@actech.com"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="username">Display Username (optional)</Label>
-                  <Input
-                    id="username"
-                    value={newStaff.username}
-                    onChange={(e) =>
-                      setNewStaff({ ...newStaff, username: e.target.value })
-                    }
-                    placeholder="Defaults to email"
-                  />
-                </div>
+                {/* Username field intentionally removed — email is used for sign-in */}
                 <div>
                   <Label htmlFor="password">Password *</Label>
                   <div className="relative">
@@ -585,7 +575,6 @@ const StaffManagement = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Staff ID</TableHead>
-                        <TableHead>Username</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
@@ -597,15 +586,12 @@ const StaffManagement = () => {
                     </TableHeader>
                     <TableBody>
                       {paginatedStaff.map((staff) => (
-                        <TableRow key={staff.username}>
+                        <TableRow key={(staff as any).userId || staff.staffId}>
                           <TableCell className="font-medium">
                             {staff.staffId}
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {staff.username}
-                          </TableCell>
                           <TableCell className="text-sm">
-                            {(staff as any).email || staff.username || "-"}
+                            {(staff as any).email || "-"}
                           </TableCell>
                           <TableCell>{staff.name}</TableCell>
                           <TableCell>
@@ -730,15 +716,17 @@ const StaffManagement = () => {
                       className="bg-gray-100"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="edit-username">Username</Label>
-                    <Input
-                      id="edit-username"
-                      value={selectedStaff.username}
-                      disabled
-                      className="bg-gray-100"
-                    />
-                  </div>
+                  {(selectedStaff as any).email && (
+                    <div>
+                      <Label htmlFor="edit-email">Email</Label>
+                      <Input
+                        id="edit-email"
+                        value={(selectedStaff as any).email}
+                        disabled
+                        className="bg-gray-100"
+                      />
+                    </div>
+                  )}
                   <div>
                     <Label htmlFor="edit-password">New Password (optional)</Label>
                     <div className="relative">

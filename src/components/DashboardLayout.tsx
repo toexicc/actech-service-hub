@@ -292,7 +292,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <div className="px-2"><TabBar /></div>
       </div>
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain pt-[104px]" style={{ WebkitOverflowScrolling: "touch" }}>
-        {children}
+        <div className="w-full">{children}</div>
       </main>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
@@ -332,7 +332,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain pt-[76px] px-3 pb-3">
-          <div className="min-h-full">{children}</div>
+          <div className="min-h-full mx-auto w-full md:max-w-[80%]">{children}</div>
         </div>
       </main>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
