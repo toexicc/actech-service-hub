@@ -1259,7 +1259,7 @@ const ManageClient = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
-          <>
+          <div className="space-y-8">
           <TicketWorkspaceHero service={serviceData} />
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
@@ -1285,7 +1285,7 @@ const ManageClient = () => {
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
 
-          <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+          <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
 
             {/* Client Information */}
@@ -2095,7 +2095,7 @@ const ManageClient = () => {
           </div>
 
           <ActivityTimeline serviceId={serviceData.serviceId} />
-          </>
+          </div>
         )}
 
 

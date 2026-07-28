@@ -147,6 +147,28 @@ const ServiceTracker = () => {
     }
   };
 
+  const getStatusCardBg = (status: string) => {
+    switch (status) {
+      case "Confirmed Diagnosis": return "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200/60 dark:border-yellow-900/40";
+      case "Waiting to Proceed": return "bg-orange-50 dark:bg-orange-950/20 border-orange-200/60 dark:border-orange-900/40";
+      case "Proceed Repair": return "bg-orange-100/70 dark:bg-orange-900/25 border-orange-300/60 dark:border-orange-800/40";
+      case "Ongoing Service": return "bg-blue-50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/40";
+      case "Done Repair - Under Observation":
+      case "Done Repair - Observation": return "bg-cyan-50 dark:bg-cyan-950/20 border-cyan-200/60 dark:border-cyan-900/40";
+      case "Done Repair - For Release":
+      case "Done Repair - Advise Client":
+      case "For Pickup": return "bg-green-50 dark:bg-green-950/20 border-green-200/60 dark:border-green-900/40";
+      case "Completed": return "bg-green-100/70 dark:bg-green-900/25 border-green-300/60 dark:border-green-800/40";
+      case "Backjob": return "bg-slate-100 dark:bg-slate-800/40 border-slate-300/60 dark:border-slate-700/50";
+      case "RTO": return "bg-purple-50 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-900/40";
+      case "On Hold":
+      case "Cancelled": return "bg-gray-100 dark:bg-gray-800/40 border-gray-300/60 dark:border-gray-700/50";
+      default: return "bg-[hsl(var(--surface-glass))] border-border/60";
+    }
+  };
+
+
+
   const handleEditService = (serviceId: string) => {
     if (isTechnician) {
       navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
@@ -1111,8 +1133,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                         key={service.serviceId}
                         onClick={() => handleEditService(service.serviceId)}
                         className={cn(
-                          "group relative cursor-pointer rounded-2xl border bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur p-4 hover:border-primary/40 hover:shadow-lg transition-all",
-                          overdueStatus ? "border-destructive/40" : "border-border/60",
+                          "group relative cursor-pointer rounded-2xl border shadow-[var(--shadow-float)] backdrop-blur p-4 hover:border-primary/40 hover:shadow-lg transition-all",
+                          getStatusCardBg(service.status || ""),
+                          overdueStatus && "border-destructive/40 ring-1 ring-destructive/20",
                         )}
                       >
                         <div className="flex items-start justify-between gap-2 mb-3">
