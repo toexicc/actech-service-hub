@@ -25,7 +25,7 @@ import {
   ClipboardList,
   Monitor,
 } from "lucide-react";
-import { DueDateCalendar } from "@/components/DueDateCalendar";
+
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
