@@ -5,6 +5,7 @@ import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
