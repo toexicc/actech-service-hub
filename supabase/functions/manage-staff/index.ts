@@ -129,7 +129,10 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "delete") {
-      await admin.auth.admin.deleteUser(body.user_id);
+      await admin.from("user_roles").delete().eq("user_id", body.user_id);
+      await admin.from("profiles").delete().eq("id", body.user_id);
+      const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
+      if (delErr) throw delErr;
       return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
