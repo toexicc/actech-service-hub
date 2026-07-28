@@ -31,22 +31,14 @@ const Login = () => {
       return;
     }
     setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error || !data.session) {
-        toast({ title: "Sign-in failed", description: error?.message || "Try again.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
-      for (let i = 0; i < 20; i++) {
-        const { data: s } = await supabase.auth.getSession();
-        if (s.session) break;
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      navigate("/menu", { replace: true });
-    } finally {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast({ title: "Sign-in failed", description: error.message || "Try again.", variant: "destructive" });
       setIsLoading(false);
+      return;
     }
+    // The useEffect above handles navigation once useAuth hydrates user+roles,
+    // so we intentionally don't navigate here to avoid a redirect race.
   };
 
   return (

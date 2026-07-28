@@ -59,14 +59,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        setTimeout(() => loadProfileAndRoles(sess.user.id), 0);
+        // Keep loading=true while we hydrate profile/roles to prevent
+        // ProtectedRoute from bouncing to "/" between sign-in and hydration.
+        setLoading(true);
+        setTimeout(() => {
+          loadProfileAndRoles(sess.user.id).finally(() => setLoading(false));
+        }, 0);
       } else {
         setProfile(null);
         setRoles([]);
+        if (event === "SIGNED_OUT") setLoading(false);
       }
     });
 
