@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
+import { StatusChip } from "@/components/ui/status-chip";
 
 // Merge Supabase migrated fields over sheet data so public tracking shows
 // up-to-date info even when fields were updated post-migration.
