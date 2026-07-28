@@ -80,6 +80,7 @@ const App = () => (
             <Route path="/salary-disbursement" element={<ProtectedRoute roles={["admin","management"]}><SalaryDisbursement /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </WorkbenchProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
