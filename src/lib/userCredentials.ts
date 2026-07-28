@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface UserCredential {
   staffId: string;
+  email?: string;
   username: string;
   password: string;
   name: string;

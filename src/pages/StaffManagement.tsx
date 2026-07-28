@@ -69,6 +69,8 @@ const StaffManagement = () => {
       })
       .map((staff) => ({
         staffId: staff.staffId,
+        email: (staff as any).email || staff.username || "",
+        userId: (staff as any).userId,
         username: staff.username,
         password: staff.password,
         name: staff.name,
