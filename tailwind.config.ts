@@ -131,6 +131,12 @@ export default {
       boxShadow: {
         "glow": "0 0 20px -5px hsl(var(--primary) / 0.3)",
         "glow-lg": "0 0 40px -10px hsl(var(--primary) / 0.4)",
+        "float": "0 20px 40px -20px hsl(221 60% 40% / 0.18), 0 4px 12px -4px hsl(221 60% 40% / 0.08)",
+        "elegant": "0 10px 30px -12px hsl(221 60% 40% / 0.15)",
+        "soft": "0 2px 8px -2px hsl(220 40% 30% / 0.06)",
+      },
+      backdropBlur: {
+        "2xl": "40px",
       },
     },
   },
