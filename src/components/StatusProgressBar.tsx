@@ -1,8 +1,6 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_OPTIONS } from "@/lib/constants";
-import { getStatusGuidance } from "@/lib/serviceNotifications";
-import { useAuth } from "@/hooks/useAuth";
 
 interface StatusProgressBarProps {
   serviceId: string;
