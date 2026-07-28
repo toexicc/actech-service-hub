@@ -21,6 +21,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
@@ -693,24 +695,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Service Tracker</h1>
-            <p className="text-muted-foreground">Monitor all ongoing services</p>
-          </div>
-          {(userRole === "admin" || userRole === "management") && (
-            <Button 
-              onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")} 
-              variant="outline"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Sheet
-            </Button>
-          )}
-        </div>
+        <PageHeader
+          icon={<Clock className="h-5 w-5" />}
+          title="Service Tracker"
+          subtitle="Monitor all ongoing services in real time"
+          actions={
+            (userRole === "admin" || userRole === "management") ? (
+              <Button
+                onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")}
+                variant="outline"
+                className="rounded-xl"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Sheet
+              </Button>
+            ) : undefined
+          }
+        />
 
         {/* Search Bar */}
-        <Card className="mb-6">
+        <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
           <CardContent className="pt-6">
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -726,21 +730,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       e.target.setSelectionRange(2, 2);
                     }
                   }}
-                  className="pl-10"
+                  className="pl-10 h-11 rounded-xl bg-background"
                 />
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setSearchInput("")}
+                className="h-11 rounded-xl"
               >
                 Clear
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => invalidateServices()}
                 disabled={isLoading}
                 title="Refresh data"
+                className="h-11 w-11 rounded-xl"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
@@ -749,7 +755,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         </Card>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
@@ -989,63 +995,39 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         </Card>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Ongoing</p>
-                  <p className="text-2xl font-bold">
-                    {filteredAndSortedServices.filter(s => {
-                      const status = s.status?.toLowerCase() || "";
-                      return !status.includes("completed") && !status.includes("cancelled");
-                    }).length}
-                  </p>
-                </div>
-                <Clock className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Overdue</p>
-                  <p className="text-2xl font-bold text-destructive">
-                    {filteredAndSortedServices.filter(s => {
-                      const status = s.status?.toLowerCase() || "";
-                      const isOngoing = !status.includes("completed") && !status.includes("cancelled");
-                      return isOngoing && isOverdue(s.targetDate, s.status);
-                    }).length}
-                  </p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-destructive" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">On Track</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {filteredAndSortedServices.filter(s => {
-                      const status = s.status?.toLowerCase() || "";
-                      const isOngoing = !status.includes("completed") && !status.includes("cancelled");
-                      return isOngoing && !isOverdue(s.targetDate, s.status) && s.targetDate;
-                    }).length}
-                  </p>
-                </div>
-                <Calendar className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {(() => {
+          const ongoing = filteredAndSortedServices.filter(s => {
+            const status = s.status?.toLowerCase() || "";
+            return !status.includes("completed") && !status.includes("cancelled");
+          });
+          const overdueCount = ongoing.filter(s => isOverdue(s.targetDate, s.status)).length;
+          const onTrackCount = ongoing.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          return (
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+              <StatCard
+                label="Total Ongoing"
+                value={ongoing.length}
+                tone="primary"
+                icon={<Clock className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Overdue"
+                value={overdueCount}
+                tone="destructive"
+                icon={<AlertCircle className="h-5 w-5" />}
+              />
+              <StatCard
+                label="On Track"
+                value={onTrackCount}
+                tone="success"
+                icon={<Calendar className="h-5 w-5" />}
+              />
+            </div>
+          );
+        })()}
 
         {/* Services Table */}
-        <Card>
+        <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
           <CardHeader>
             <CardTitle>
               {activeTab === "completed" ? "Completed Services" : activeTab === "closed" ? "Cancelled / RTO / On Hold" : "Ongoing Services"}
