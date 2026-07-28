@@ -17,11 +17,18 @@ export interface UserCredential {
   userId?: string;
 }
 
+let _lastStaffError: string | null = null;
+export const getLastStaffError = () => _lastStaffError;
+
 const invokeManageStaff = async (body: Record<string, unknown>) => {
   const { data, error } = await supabase.functions.invoke("manage-staff", { body });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
   return data;
+};
+
+const captureErr = (e: unknown) => {
+  _lastStaffError = e instanceof Error ? e.message : String(e);
 };
 
 const toNumberSalary = (s: string | undefined) => {
@@ -47,7 +54,8 @@ export const addUser = async (user: UserCredential & { email?: string }) => {
       status: user.status,
     });
     return true;
-  } catch {
+  } catch (e) {
+    captureErr(e);
     return false;
   }
 };
@@ -58,11 +66,14 @@ export const updateUser = async (
 ) => {
   try {
     let userId = updates.userId || updates.user_id;
+    if (!userId && /^[0-9a-f-]{36}$/i.test(usernameOrUserId)) {
+      userId = usernameOrUserId;
+    }
     if (!userId) {
       const { data } = await supabase.from("profiles").select("id").eq("username", usernameOrUserId).maybeSingle();
       userId = data?.id;
     }
-    if (!userId) return false;
+    if (!userId) throw new Error("User not found");
     await invokeManageStaff({
       action: "update",
       user_id: userId,
@@ -77,7 +88,8 @@ export const updateUser = async (
       password: updates.password || undefined,
     });
     return true;
-  } catch {
+  } catch (e) {
+    captureErr(e);
     return false;
   }
 };
@@ -96,7 +108,8 @@ export const removeUser = async (usernameOrUserId: string) => {
     }
     await invokeManageStaff({ action: "delete", user_id: userId });
     return true;
-  } catch {
+  } catch (e) {
+    captureErr(e);
     return false;
   }
 };

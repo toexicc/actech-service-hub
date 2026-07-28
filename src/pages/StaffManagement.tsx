@@ -33,6 +33,7 @@ import {
   addUser,
   updateUser,
   removeUser,
+  getLastStaffError,
   UserCredential,
 } from "@/lib/userCredentials";
 import { DEPARTMENTS } from "@/lib/constants";
@@ -224,7 +225,7 @@ const StaffManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to add staff member",
+          description: getLastStaffError() || "Failed to add staff member",
           variant: "destructive",
         });
       }
@@ -255,7 +256,7 @@ const StaffManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to remove staff member",
+          description: getLastStaffError() || "Failed to remove staff member",
           variant: "destructive",
         });
       }
@@ -317,7 +318,7 @@ const StaffManagement = () => {
         ? String(parseFloat(String((selectedStaff as any).salary).replace(/[^0-9.\-]/g, "")) || 0)
         : "";
 
-      const success = await updateUser(selectedStaff.username, {
+      const success = await updateUser((selectedStaff as any).userId || selectedStaff.username, {
         name: selectedStaff.name,
         role: selectedStaff.role,
         department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
@@ -340,7 +341,7 @@ const StaffManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to update staff member",
+          description: getLastStaffError() || "Failed to update staff member",
           variant: "destructive",
         });
       }
@@ -646,11 +647,11 @@ const StaffManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveStaff(staff.username, staff.name)}
-                                disabled={isDeletingStaff === staff.username}
+                                onClick={() => handleRemoveStaff((staff as any).userId || staff.username, staff.name)}
+                                disabled={isDeletingStaff === ((staff as any).userId || staff.username)}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
-                                {isDeletingStaff === staff.username ? (
+                                {isDeletingStaff === ((staff as any).userId || staff.username) ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
