@@ -17,11 +17,18 @@ export interface UserCredential {
   userId?: string;
 }
 
+let _lastStaffError: string | null = null;
+export const getLastStaffError = () => _lastStaffError;
+
 const invokeManageStaff = async (body: Record<string, unknown>) => {
   const { data, error } = await supabase.functions.invoke("manage-staff", { body });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
   return data;
+};
+
+const captureErr = (e: unknown) => {
+  _lastStaffError = e instanceof Error ? e.message : String(e);
 };
 
 const toNumberSalary = (s: string | undefined) => {
