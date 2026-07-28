@@ -341,7 +341,7 @@ const StaffManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to update staff member",
+          description: getLastStaffError() || "Failed to update staff member",
           variant: "destructive",
         });
       }
