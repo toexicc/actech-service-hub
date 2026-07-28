@@ -2096,6 +2096,9 @@ const ManageClient = () => {
               </CardContent>
             </Card>
           </div>
+              </>
+            }
+          />
           </>
         )}
 
