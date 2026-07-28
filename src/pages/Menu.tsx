@@ -25,6 +25,7 @@ import {
   ClipboardList,
   Monitor,
 } from "lucide-react";
+import { DueDateCalendar } from "@/components/DueDateCalendar";
 
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
@@ -438,10 +439,12 @@ const Menu = () => {
           </div>
         </section>
 
-
-
-
-
+        {/* Service calendar with due-date sidebar */}
+        {!isLoading && (
+          <div className="mb-8">
+            <DueDateCalendar role={userRole} userFullName={userFullName} />
+          </div>
+        )}
 
 
         {/* Summary Sections with Tables */}
