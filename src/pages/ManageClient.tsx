@@ -1203,48 +1203,52 @@ const ManageClient = () => {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Manage Client</h1>
-          <p className="text-muted-foreground">View and update client information</p>
-        </div>
-
-        <div className="flex gap-3 mb-6">
-          <Button 
-            onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")} 
-            variant="outline"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View Sheet
-          </Button>
-        </div>
+        <PageHeader
+          title="Manage Client"
+          subtitle="View and update client information"
+          icon={<UserCog className="h-5 w-5" />}
+          actions={
+            <Button
+              onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")}
+              variant="outline"
+              className="rounded-xl"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View Sheet
+            </Button>
+          }
+        />
 
         {/* Search Form */}
-        <Card className="mb-8">
+        <Card className="mb-8 rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <Label htmlFor="serviceId">Enter Service ID:</Label>
-              <Input
-                id="serviceId"
-                placeholder="Enter service ID"
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
-                onFocus={(e) => {
-                  if (!e.target.value) {
-                    setServiceId("AC");
-                    setTimeout(() => e.target.setSelectionRange(2, 2), 0);
-                  }
-                }}
-              />
+              <Label htmlFor="serviceId" className="text-sm font-medium">Service ID</Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="serviceId"
+                  placeholder="Enter service ID (e.g. AC1234)"
+                  value={serviceId}
+                  onChange={(e) => setServiceId(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
+                  onFocus={(e) => {
+                    if (!e.target.value) {
+                      setServiceId("AC");
+                      setTimeout(() => e.target.setSelectionRange(2, 2), 0);
+                    }
+                  }}
+                  className="pl-9 h-11 rounded-xl bg-background/60"
+                />
+              </div>
             </div>
 
-            <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
-              {isLoading ? "Searching..." : "Search Client"}
+            <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6 h-11 rounded-xl">
+              {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching...</>) : "Search Client"}
             </Button>
           </CardContent>
         </Card>
