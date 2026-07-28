@@ -106,7 +106,7 @@ export function TicketOverviewRow({
                 {info.stage}
               </span>
             </div>
-            <p className="text-sm sm:text-base font-semibold text-foreground mt-1">{info.next}</p>
+            <p className="text-sm sm:text-base font-semibold text-foreground mt-1">{nextText}</p>
             {extraNote && <div className="mt-1 text-xs text-muted-foreground">{extraNote}</div>}
           </div>
         </div>
