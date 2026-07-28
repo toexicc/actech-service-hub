@@ -53,6 +53,7 @@ const App = () => (
       <BrowserFlags />
       <BrowserRouter>
         <AuthProvider>
+          <WorkbenchProvider>
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
