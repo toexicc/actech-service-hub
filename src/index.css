@@ -128,7 +128,7 @@
     min-height: 100%;
   }
 
-  body {
+  html {
     margin: 0;
     @apply text-foreground antialiased;
     background: var(--gradient-app);
@@ -252,7 +252,7 @@
 
 /* Global 80% zoom for tablet/desktop viewports (mobile stays 100%) */
 @media (min-width: 768px) {
-  body {
+  html {
     zoom: 0.8;
   }
 }
