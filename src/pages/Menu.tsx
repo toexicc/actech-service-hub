@@ -355,90 +355,89 @@ const Menu = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 animate-fade-in">
-        {/* Header with Clock */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
-          {/* User Greeting - Enlarged */}
-          <div className="flex-1">
-            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2">
-              Hello, {userFullName}!
-            </h1>
-            <p className="text-xl text-muted-foreground capitalize">
-              Role: {userRole}
-            </p>
-          </div>
-          
-          {/* Dynamic Clock - Right Side */}
-          <div className="flex flex-col items-end bg-card border border-border rounded-xl p-5 shadow-sm min-w-[280px]">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <Calendar className="h-5 w-5" />
-              <span className="text-base font-medium">
-                {format(currentTime, "EEEE, MMMM d, yyyy")}
-              </span>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        {/* Hero */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-muted-foreground font-medium">
+                {format(currentTime, "EEEE, MMMM d")}
+              </p>
+              <h1 className="mt-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+                Hello, <span className="text-gradient">{userFullName.split(" ")[0]}</span>
+              </h1>
+              <p className="mt-2 text-base text-muted-foreground">
+                Here's what's happening in your <span className="capitalize font-medium text-foreground">{userRole}</span> workspace today.
+              </p>
             </div>
-            <div className="text-5xl font-bold text-primary font-mono tracking-wider">
-              {format(currentTime, "hh:mm:ss")}
-              <span className="text-2xl ml-2 text-muted-foreground">
-                {format(currentTime, "a")}
-              </span>
+            <div className="glass-panel rounded-2xl px-5 py-4 min-w-[240px] flex items-center gap-4">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Local time</p>
+                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
+                  {format(currentTime, "hh:mm")}
+                  <span className="text-sm ml-1.5 text-muted-foreground font-sans font-medium">{format(currentTime, "a")}</span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${isTechnician ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 mb-8`}>
-          {statCards.map((stat, index) => (
-            <Card
-              key={index}
-              className="stat-card cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
-              onClick={stat.onClick}
+        {/* Today's numbers */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Today's numbers</h2>
+            <button
+              onClick={() => navigate("/service-tracker")}
+              className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
             >
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className={`text-3xl font-bold ${stat.color}`}>
-                      {isLoading ? "..." : stat.value}
-                    </p>
-                  </div>
-                  <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              View all <ExternalLink className="h-3 w-3" />
+            </button>
+          </div>
+          <div className={`grid grid-cols-2 ${isTechnician ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 sm:gap-4`}>
+            {statCards.map((stat, index) => (
+              <StatCard
+                key={index}
+                label={stat.title}
+                value={isLoading ? "…" : stat.value}
+                icon={<stat.icon className="h-5 w-5" />}
+                tone={
+                  stat.color.includes("destructive") ? "destructive" :
+                  stat.color.includes("success") ? "success" :
+                  stat.color.includes("warning") ? "warning" : "primary"
+                }
+                onClick={stat.onClick}
+              />
+            ))}
+          </div>
+        </section>
 
-        {/* Quick Actions */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${!isTechnician && userRole === 'management' ? 'xl:grid-cols-5' : ''} gap-4`}>
-              {quickActions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    if ('path' in action && action.path) {
-                      navigate(action.path);
-                    }
-                  }}
-                  className="flex flex-col items-center p-4 rounded-xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 group"
-                >
-                  <div className="p-3 rounded-xl bg-primary/10 mb-3 group-hover:bg-primary/20 transition-colors">
-                    <action.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <span className="font-medium text-sm text-foreground">{action.title}</span>
-                  <span className="text-xs text-muted-foreground text-center mt-1">
-                    {action.description}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick actions */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Quick actions</h2>
+          </div>
+          <div className={`grid grid-cols-2 md:grid-cols-3 ${!isTechnician && userRole === "management" ? "xl:grid-cols-5" : ""} gap-3 sm:gap-4`}>
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
+                className="card-elevated group text-left p-4 flex flex-col items-start gap-3 hover:border-primary/40 transition-all"
+              >
+                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <action.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold tracking-tight text-foreground truncate">{action.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{action.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
 
         {/* Summary Sections with Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
