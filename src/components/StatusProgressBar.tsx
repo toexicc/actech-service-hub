@@ -104,11 +104,6 @@ export function StatusProgressBar({
         })}
       </div>
 
-      {guidance && (
-        <p className="mt-3 text-sm text-foreground/80 border-l-2 border-primary/40 pl-3">
-          {guidance}
-        </p>
-      )}
     </div>
   );
 }
