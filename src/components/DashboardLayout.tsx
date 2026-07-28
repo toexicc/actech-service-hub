@@ -16,7 +16,7 @@ import { MessagingPanel, MessagingPanelRef } from "@/components/MessagingPanel";
 import { logAuthActivity } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { WorkbenchProvider, useWorkbench } from "@/components/workbench/WorkbenchContext";
+import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { TabBar } from "@/components/workbench/TabBar";
 import { CommandPalette } from "@/components/CommandPalette";
 
@@ -341,9 +341,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 }
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
-  <WorkbenchProvider>
-    <ShellInner>{children}</ShellInner>
-  </WorkbenchProvider>
+  <ShellInner>{children}</ShellInner>
 );
 
 export default DashboardLayout;

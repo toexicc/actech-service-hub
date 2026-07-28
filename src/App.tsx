@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BrowserFlags from "@/components/BrowserFlags";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { WorkbenchProvider } from "@/components/workbench/WorkbenchContext";
 
 import Login from "./pages/Login";
 import Menu from "./pages/Menu";
@@ -52,6 +53,7 @@ const App = () => (
       <BrowserFlags />
       <BrowserRouter>
         <AuthProvider>
+          <WorkbenchProvider>
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
@@ -78,6 +80,7 @@ const App = () => (
             <Route path="/salary-disbursement" element={<ProtectedRoute roles={["admin","management"]}><SalaryDisbursement /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </WorkbenchProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
