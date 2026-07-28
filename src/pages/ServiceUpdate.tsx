@@ -823,7 +823,7 @@ const ServiceUpdate = () => {
 
         {/* Service Details and Update Form */}
         {serviceData && (
-          <>
+          <div className="space-y-8">
           <TicketWorkspaceHero service={serviceData} />
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
