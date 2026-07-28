@@ -1039,9 +1039,9 @@ const ServiceUpdate = () => {
             </Card>
 
             {/* Service Update */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Service Update</CardTitle>
+            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-2xl tracking-tight">Service Update</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
