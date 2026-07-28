@@ -165,6 +165,9 @@ const ServiceTracker = () => {
       case "Cancelled": return "bg-gray-100 dark:bg-gray-800/40 border-gray-300/60 dark:border-gray-700/50";
       default: return "bg-[hsl(var(--surface-glass))] border-border/60";
     }
+  };
+
+
 
   const handleEditService = (serviceId: string) => {
     if (isTechnician) {
