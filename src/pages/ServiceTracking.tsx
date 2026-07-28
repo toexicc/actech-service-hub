@@ -638,24 +638,31 @@ const ServiceTracking = () => {
         {/* Service Details – Fixy two-column layout */}
         {serviceData && (() => {
           const STEPS = [
-            { key: "received", label: "Received" },
-            { key: "diagnosed", label: "Diagnosed" },
-            { key: "waiting", label: "Waiting" },
-            { key: "repair", label: "Repair" },
-            { key: "qa", label: "QA" },
-            { key: "ready", label: "Ready" },
+            { key: "pending", label: "Pending", full: "Pending Diagnosis" },
+            { key: "confirmed", label: "Confirmed", full: "Confirmed Diagnosis" },
+            { key: "waiting", label: "Waiting", full: "Waiting to Proceed" },
+            { key: "repair", label: "Repair", full: "Proceed Repair" },
+            { key: "observation", label: "Observation", full: "Done Repair - Under Observation" },
+            { key: "release", label: "For Release", full: "Done Repair - For Release" },
+            { key: "advise", label: "Advise Client", full: "Done Repair - Advise Client" },
+            { key: "completed", label: "Completed", full: "Completed" },
           ];
-          const statusToStep = (s: string): number => {
-            const u = (s || "").toLowerCase();
-            if (u.includes("pending")) return 1;
-            if (u.includes("confirmed diagnosis")) return 2;
-            if (u.includes("waiting to proceed")) return 3;
-            if (u.includes("proceed repair") || u.includes("ongoing")) return 4;
-            if (u.includes("observation")) return 5;
-            if (u.includes("advise") || u.includes("advice") || u.includes("for release") || u.includes("for pickup") || u.includes("released") || u.includes("completed")) return 6;
-            return 1;
+          const OFF_PATH: Record<string, { label: string; tone: string }> = {
+            "Backjob": { label: "Backjob", tone: "bg-destructive/15 text-destructive border-destructive/30" },
+            "RTO": { label: "RTO", tone: "bg-muted text-muted-foreground border-border" },
+            "On Hold": { label: "On Hold", tone: "bg-warning/15 text-warning border-warning/30" },
+            "Cancelled": { label: "Cancelled", tone: "bg-destructive/15 text-destructive border-destructive/30" },
           };
-          const stepIdx = statusToStep(serviceData.status || "");
+          const currentStatus = serviceData.status || "";
+          const offPath = OFF_PATH[currentStatus];
+          const statusToStep = (s: string): number => {
+            if (!s) return 1;
+            // Merge Ongoing Service into Proceed Repair step
+            if (s === "Ongoing Service") return 4;
+            const idx = STEPS.findIndex((x) => x.full === s);
+            return idx >= 0 ? idx + 1 : 1;
+          };
+          const stepIdx = statusToStep(currentStatus);
           const totalCost = Number(serviceData.finalCost || serviceData.serviceCost || 0);
           const deposit = Number(serviceData.initialPayment || 0);
           const balance = Math.max(0, totalCost - deposit);
@@ -718,14 +725,15 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Step chips */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 items-center">
                       {STEPS.map((s, i) => {
                         const n = i + 1;
                         const done = n < stepIdx;
-                        const current = n === stepIdx;
+                        const current = n === stepIdx && !offPath;
                         return (
                           <div
                             key={s.key}
+                            title={s.full}
                             className={
                               "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border " +
                               (current
@@ -740,6 +748,15 @@ const ServiceTracking = () => {
                           </div>
                         );
                       })}
+                      {offPath && (
+                        <div
+                          title={currentStatus}
+                          className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                          {offPath.label}
+                        </div>
+                      )}
                     </div>
 
                     <Separator />
