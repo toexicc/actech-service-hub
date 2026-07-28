@@ -54,7 +54,8 @@ export const addUser = async (user: UserCredential & { email?: string }) => {
       status: user.status,
     });
     return true;
-  } catch {
+  } catch (e) {
+    captureErr(e);
     return false;
   }
 };
