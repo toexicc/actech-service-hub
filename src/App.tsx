@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BrowserFlags from "@/components/BrowserFlags";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { WorkbenchProvider } from "@/components/workbench/WorkbenchContext";
 
 import Login from "./pages/Login";
 import Menu from "./pages/Menu";
