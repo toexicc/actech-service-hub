@@ -1696,11 +1696,11 @@ const ServiceUpdate = () => {
               </CardContent>
             </Card>
           </div>
-              </>
-            }
-          />
+
+          <ActivityTimeline serviceId={serviceData.serviceId} />
           </>
         )}
+
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
