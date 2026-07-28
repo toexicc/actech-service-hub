@@ -99,8 +99,8 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           {services.length} active {services.length === 1 ? "ticket" : "tickets"}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(520px,2fr)_minmax(260px,1fr)] lg:grid-cols-[minmax(640px,3fr)_minmax(280px,1fr)] gap-4 glass-panel rounded-2xl p-4">
-        <div className="flex justify-center md:justify-start min-w-0 overflow-x-auto pb-1">
+      <div className="grid grid-cols-1 md:grid-cols-[70%_30%] gap-4 glass-panel rounded-2xl p-4">
+        <div className="w-full min-w-0">
           <Calendar
             mode="single"
             selected={selected}
@@ -110,24 +110,24 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
               due: "relative after:content-[''] after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1.5 after:w-1.5 after:rounded-full after:bg-primary",
             }}
             classNames={{
-              months: "flex flex-col space-y-4",
-              month: "space-y-4",
+              months: "flex flex-col space-y-4 w-full",
+              month: "space-y-4 w-full",
               caption: "flex justify-center pt-1 relative items-center h-9",
               caption_label: "text-lg font-semibold",
               nav_button: cn(buttonVariants({ variant: "outline" }), "h-8 w-8 bg-transparent p-0 opacity-60 hover:opacity-100 rounded-full"),
               nav_button_previous: "absolute left-1",
               nav_button_next: "absolute right-1",
-              table: "w-fit border-collapse",
-              head_row: "flex w-fit",
-              row: "flex w-fit mt-2",
-              head_cell: "text-muted-foreground rounded-md h-9 w-12 lg:w-14 font-normal text-sm flex items-center justify-center",
-              cell: "h-10 w-12 lg:h-11 lg:w-14 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-              day: cn(buttonVariants({ variant: "ghost" }), "h-10 w-12 lg:h-11 lg:w-14 p-0 text-sm font-normal aria-selected:opacity-100 rounded-xl"),
+              table: "w-full border-collapse",
+              head_row: "flex w-full",
+              row: "flex w-full mt-2",
+              head_cell: "text-muted-foreground rounded-md h-9 flex-1 font-normal text-sm flex items-center justify-center",
+              cell: "h-10 lg:h-11 flex-1 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: cn(buttonVariants({ variant: "ghost" }), "h-10 lg:h-11 w-full p-0 text-sm font-normal aria-selected:opacity-100 rounded-xl"),
             }}
-            className="pointer-events-auto w-fit rounded-xl border bg-card p-4"
+            className="pointer-events-auto w-full rounded-xl border bg-card p-4"
           />
         </div>
-        <div className="min-w-0 flex flex-col">
+        <div className="min-w-0 flex flex-col h-full">
           <div className="flex items-baseline justify-between mb-3">
             <h3 className="text-sm font-semibold text-foreground">
               {format(selected, "EEEE, MMMM d")}
@@ -137,7 +137,7 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
             </span>
           </div>
           {dueOnSelected.length === 0 ? (
-            <div className="flex-1 min-h-[200px] rounded-xl border border-dashed p-6 flex items-center justify-center text-center text-sm text-muted-foreground">
+            <div className="flex-1 min-h-[220px] rounded-xl border border-dashed p-6 flex items-center justify-center text-center text-sm text-muted-foreground">
               No services due on this day.
             </div>
           ) : (
