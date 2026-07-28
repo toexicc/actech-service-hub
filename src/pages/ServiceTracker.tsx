@@ -755,7 +755,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         </Card>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
