@@ -90,15 +90,15 @@ export function CommandPalette({ open, onOpenChange }: Props) {
           .select("service_id,client_name,device_type,device_brand,device_model,status")
           .or(`service_id.ilike.${like},client_name.ilike.${like},device_model.ilike.${like},device_brand.ilike.${like}`)
           .limit(6),
-        supabase.from("clients")
+        (supabase.from("clients" as any) as any)
           .select("id,client_id,name,phone,email")
           .or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like},client_id.ilike.${like}`)
           .limit(6),
-        supabase.from("parts_inventory" as any)
+        (supabase.from("parts_inventory" as any) as any)
           .select("id,part_id,part_name,brand,model")
           .or(`part_id.ilike.${like},part_name.ilike.${like},brand.ilike.${like},model.ilike.${like}`)
           .limit(6),
-        supabase.from("staff")
+        (supabase.from("staff" as any) as any)
           .select("id,staff_id,full_name,role,department")
           .or(`full_name.ilike.${like},staff_id.ilike.${like},department.ilike.${like}`)
           .limit(6),
