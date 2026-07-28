@@ -1346,7 +1346,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
+
 
             {!isLoading && filteredAndSortedServices.length > 0 && (
               <div className="mt-6">
