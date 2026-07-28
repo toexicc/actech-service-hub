@@ -985,6 +985,34 @@ const ServiceTracking = () => {
                   </CardContent>
                 </Card>
 
+                {/* Device Photo Gallery - Diagnosis & Report */}
+                {serviceData.serviceId && [
+                  "Waiting to Proceed",
+                  "Proceed Repair",
+                  "Ongoing Service",
+                  "Done Repair - Under Observation",
+                  "Done Repair - Observation",
+                  "Done Repair - Advise Client",
+                  "Done Repair - Advice Client",
+                  "Done Repair - For Release",
+                  "Released",
+                  "Completed",
+                ].includes(serviceData.status) && (
+                  <div className="space-y-6">
+                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
+                    {[
+                      "Done Repair - Advise Client",
+                      "Done Repair - Advice Client",
+                      "Done Repair - For Release",
+                      "Released",
+                      "Completed",
+                    ].includes(serviceData.status) && (
+                      <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                    )}
+                  </div>
+                )}
+
+
                 {/* Stay updated */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
                   <CardContent className="p-6">
