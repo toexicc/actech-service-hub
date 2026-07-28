@@ -3,8 +3,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { useServices, type ServiceRecord } from "@/hooks/useServices";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { useNavigate } from "react-router-dom";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { CalendarDays, ExternalLink } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const parseTargetDate = (raw: string | undefined): Date | null => {
   if (!raw) return null;
