@@ -43,6 +43,7 @@ export interface TicketOverviewRowProps {
   showPayment?: boolean;
   actions?: ReactNode;
   extraNote?: ReactNode;
+  guidance?: string;
   className?: string;
 }
 
