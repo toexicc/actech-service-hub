@@ -108,7 +108,8 @@ export const removeUser = async (usernameOrUserId: string) => {
     }
     await invokeManageStaff({ action: "delete", user_id: userId });
     return true;
-  } catch {
+  } catch (e) {
+    captureErr(e);
     return false;
   }
 };
