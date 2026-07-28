@@ -1,85 +1,116 @@
-# Fix & Restore Plan
 
-This is a large scope, so I'll deliver it in phases. Each phase is independently shippable so you can verify as we go. Tell me if you want to reorder or drop anything before I start.
+# Premium Redesign — Fixy-inspired
+
+Turn the entire app into an Apple/Fixy-style workspace: soft light-blue background, floating glass sidebar, top workbench with real multi-tabs, functional ⌘K command palette, and a modern classy public /track page. Scope covers the app shell + all pages.
+
+## 1. Design system refresh (`src/index.css`, `tailwind.config.ts`)
+
+New light-first tokens (HSL) matching the Fixy Light Blue palette:
+
+- `--background` = very light blue-white `220 60% 98%` (#F5F8FF)
+- `--card` = pure white with subtle border
+- `--primary` = vivid blue `221 83% 53%` (#2563EB), `--primary-foreground` white
+- `--accent` = soft blue tint `220 70% 94%` (#E8EEFB) for hovers, active nav rows
+- `--sidebar-*` = translucent white with blue tint, blur, active row = primary blue with white text
+- New tokens: `--surface-glass` (white/70), `--ring-glow`, `--shadow-elegant`, `--shadow-float`, `--radius` = `1rem`
+- Typography: Inter-tight for UI, tighter tracking on headings, `font-feature-settings: "cv11","ss01"`
+- Global utilities: `.glass-panel`, `.glass-sidebar`, `.card-elevated`, `.chip`, `.kbd`
+
+Dark mode kept but tuned to match (deep navy + same blue accent).
+
+## 2. App shell rewrite (`src/components/DashboardLayout.tsx`)
+
+Replace the current fixed sidebar + header with a **floating shell**:
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│  ░░ glass background ░░                                       │
+│  ┌──────────┐  ┌───────── Tab bar ─────────┐  [🔍 ⌘K] [🔔] [👤]│
+│  │  logo    │  │ 🏠 Dashboard │ 📄 MAA-1192 ✕│               │
+│  │──────────│  └───────────────────────────┘                 │
+│  │ Nav      │  ┌───────────────────────────────────────────┐ │
+│  │ groups   │  │  Page content (rounded, elevated card)    │ │
+│  │ …        │  │                                           │ │
+│  │          │  │                                           │ │
+│  │ user     │  │                                           │ │
+│  └──────────┘  └───────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────┘
+```
+
+- Sidebar: `fixed`, `m-3`, `rounded-2xl`, `bg-sidebar/80 backdrop-blur-xl`, `border`, `shadow-float`. Nav rows use pill highlight (blue tint bg, primary text). Groups (Admin/Tech portals) styled as sections with tiny uppercase labels + chevron.
+- Collapsed rail keeps icons only, width 68px, tooltips on hover.
+- Header: floating pill on top-right containing search trigger (`⌘K` chip), notification bell, messaging, and user avatar.
+- Main content wrapped in a rounded elevated surface with generous padding.
+- Mobile: sheet sidebar stays, but restyled to same glass look; header becomes glass pill.
+
+## 3. Multi-tab workbench (new `src/components/workbench/`)
+
+- `WorkbenchProvider` (React context) — stores `tabs: {id, kind, title, subtitle, icon, path, state}[]` and `activeTabId`. Persisted to `sessionStorage`.
+- `TabBar` renders horizontally under the header. Dashboard tab is pinned (non-closable). Other tabs closable, draggable (dnd-kit) later — v1 just close + click to switch.
+- Navigation: opening a service from Manage Client / Service Tracker / Service Update / Menu opens a tab with the record's ID as title (e.g. `MAA-1192 · Regil Badilles`). Same record reuses existing tab.
+- Router: keep `react-router` but tabs map to routes; switching a tab does `navigate(tab.path)`. Closing active tab falls back to previous.
+- Keyboard: `Cmd/Ctrl+W` closes tab, `Cmd/Ctrl+K` opens palette, `Cmd/Ctrl+1..9` jumps tabs.
+- Counter chip like Fixy's `2/10`.
+
+## 4. Functional command palette (⌘K) — new `src/components/CommandPalette.tsx`
+
+Built on `cmdk` (shadcn's `Command` primitive is already available).
+
+- Trigger: header pill or `Cmd/Ctrl+K`.
+- Sections (async-searched, debounced 200ms):
+  - **Services** — Supabase `services` search by service_id, client_name, device (uses existing `useServices` cache, then falls back to a lightweight `.ilike` query).
+  - **Customers** — from `clients` table.
+  - **Parts** — from `parts_inventory` / fast-moving parts.
+  - **Staff** — from staff directory.
+  - **Pages** — hard-coded route list (all nav items, filtered by role).
+- Result rows: icon + primary label + subtle secondary. Enter opens the item (services/customers → open as workbench tab; pages → navigate).
+- Empty-state and hint chips like Fixy screenshot (`Tip: type MAA-1192 to jump to a ticket`).
+
+## 5. Public /track redesign (`src/pages/ServiceTracking.tsx`)
+
+Match the elegant right-column card layout from the reference:
+
+- Sticky top brand bar (logo, shop name, share button).
+- Two-column responsive grid:
+  - Left: repair ticket card with status chip, headline (`Your device is ready to collect` etc. driven by status), deposit / step / balance stat trio, horizontal step tracker (Received → Diagnosed → In Repair → Ready → Done), device summary, quote card with itemized services + total, payment methods chips.
+  - Right: `Visit us` card (map/address/call/directions), `Stay updated` toggle (email opt-in), `Documents` list with Image / PDF actions (already wired), diagnosis photos gallery, report photos gallery.
+- All copy driven by service status; keep existing data hydration logic.
+- Fully rounded cards, soft shadows, `bg-background` blue tint.
+
+## 6. Page-level polish (all pages)
+
+Apply new design tokens + components across:
+
+- **Menu / Dashboard** — Fixy-style hero ("Today's numbers") with live stat cards, quick-action row (Tickets/Employees/Clients/Approvals), "Where tickets are now" grouped cards. Reuse existing metrics from `useServices`.
+- **Manage Client / Service Update** — restyled forms with section cards, sticky right rail for status + actions, tab-aware header (record ID chip + status pill).
+- **Service Tracker** — table restyled to Fixy tickets list: status color chips, priority tag, hover row, right-side filter drawer.
+- **POS, Inventory, Salary, Staff, Attendance Overview, Admin Dashboard, Customer Management, RequestForParts** — swap raw shadcn cards for the new `.card-elevated`, unify spacing (`p-6 space-y-6`), consistent page header component `<PageHeader title subtitle actions/>`.
+- **Login** — glass card centered on soft blue gradient, matches new palette.
+
+Business logic, data hooks, edge functions, and Supabase schema are untouched.
+
+## 7. Reusable primitives (new)
+
+- `src/components/ui/page-header.tsx` — title / subtitle / actions row used on every page.
+- `src/components/ui/section-card.tsx` — elevated white card with header slot.
+- `src/components/ui/stat-card.tsx` — Fixy-style number card with live dot, delta, comparison.
+- `src/components/ui/status-chip.tsx` — colored pill mapping to the 15 service statuses.
 
 ---
 
-## Phase 1 — Data integrity (highest priority)
-Many issues below stem from intake fields not being persisted/displayed. Fix the pipeline first.
+## Rollout order (single build pass)
 
-- Audit Client Intake Form → DB → `/manage-client` → `/service-update` → PDFs for every field:
-  phone, email, username, password, memory, color, service date, device notes, plus any other intake fields.
-- Ensure each field is:
-  1. Saved to `services` (add columns via migration if missing),
-  2. Read back into manage-client + service-update forms,
-  3. Rendered in Client Intake PDF and Service Quotation PDF.
-- Fix **Technician Notes (internal)** — verify write path on service-update and read on manage-client.
-- Make **Estimated Cost** optional on intake form (remove `required`, allow null in DB).
-- Rename **Time Frame → Estimated Time Frame** (form label + PDF).
-- Rename **Target Date → Estimated Target Date** on /manage-client (UI + PDF).
+1. Tokens + Tailwind + global utilities.
+2. New primitives (PageHeader, SectionCard, StatCard, StatusChip).
+3. Workbench provider + TabBar + refactor DashboardLayout shell.
+4. Command palette + wire ⌘K.
+5. /track redesign.
+6. Menu/Dashboard redesign.
+7. Sweep remaining pages with new primitives (no logic changes).
 
-## Phase 2 — AI Diagnosis & Formatter UX
-- Update `format-diagnosis` edge function prompt: in **Service Breakdown**, output `[Enter Amount]` instead of any Php value. Never guess prices.
-- On `/manage-client` AI Diagnosis **Approve** → confirmation modal ("Confirm the generated diagnosis is correct?").
-- On `/service-update`, when AI Diagnosis or AI Formatter buttons appear, show a notice modal reminding user to use them; block save until acknowledged.
+## Out of scope
 
-## Phase 3 — Device Report Photos
-- New **Device Diagnosis – Photos** uploader on `/service-update` shown at status **Pending Diagnosis** (technicians).
-- Display the same photos on `/manage-client` at status **Confirmed Diagnosis**.
-- On `/track`, render below **Service Diagnosis** starting at **Advise Client** status (mirror Service Diagnosis rules).
-- Verify existing Service Report photos appear on `/track` below Service Report at **Done - Advise Client**.
-
-## Phase 4 — /track cleanup
-- Remove **Admin Rep**, **Technician Name**, and **Handling Staff** from `/track`.
-
-## Phase 5 — /service-update conditional UI
-- **Technician Report** field only visible from **Done Repair – Under Observation** onward.
-- Greyed-out/disabled state for any file slot (intake PDF, quotation PDF, device report, service report) when the file is not yet in DB on `/track`, `/manage-client`, `/service-update`.
-
-## Phase 6 — Service Quotation PDF button
-- Replace reload-dependent state: after `Generate PDF` succeeds, immediately swap to `Update Form` by invalidating the file query / updating local state from the upload response.
-
-## Phase 7 — /service-tracker tabs
-- Convert the current Ongoing list into a **Tabs** layout:
-  - Tab 1: **Ongoing**
-  - Tab 2: **Completed**
-  - Tab 3: **Cancelled / RTO / On Hold** (combined)
-- Fix **Forward** and **Notify** actions (will diagnose root cause — likely missing recipient resolution or broken edge call).
-
-## Phase 8 — Chat feature
-- Diagnose current breakage (likely thread membership or RLS-related after the Sheets→Cloud migration). Restore send/receive, read receipts, typing.
-
-## Phase 9 — Request for Parts
-- Fix the request flow so it writes a row to `part_requests` with status **For Ordering** and surfaces in `/inventory-management` Pre-Ordered tab.
-- Verify auto-link to inquiry / service IDs still works.
-
-## Phase 10 — POS refund → technician deduction
-- When a refund is processed against a service ID in POS:
-  - Show a **Deduction** field (default to refund amount, editable).
-  - Create/append a deduction record tied to the service's assigned technician for the current cutoff (15th / EoM).
-  - Surface it under that technician's `other_deductions` in `salary_disbursements` for the active period.
-
-## Phase 11 — Branding
-- Remove **"Powered by Stack&Scale"** wherever it appears (footer, login, splash, etc.).
-
-## Phase 12 — Regression sweep ("missing data after migration")
-After Phase 1, walk every page that reads `services` / `client_inquiries` and confirm no field is silently dropped vs. the old Sheets schema. I'll list anything I find missing and add it.
-
----
-
-## Technical Notes
-
-- **Migrations needed (Phase 1):** likely add columns on `services` for any intake fields not yet stored (e.g. `username`, `password`, `memory`, `color`, `service_date`, `device_notes`). I'll inventory before writing the migration.
-- **Edge functions touched:** `format-diagnosis` (prompt), possibly `notify-service-event` (forward/notify fixes).
-- **No schema-destructive changes.** All migrations additive.
-- **Auth/RLS:** chat fix may require revisiting `is_thread_member` usage; no policy weakening.
-
----
-
-## Questions before I start
-
-1. **Order of execution** — Phase 1 → 12 as listed, or do you want chat (Phase 8) and tracker tabs (Phase 7) bumped earlier since they're user-visible blockers?
-2. **POS refund deduction** — should the deduction be **automatic** (created the moment refund posts) or **prompted** (admin confirms amount in a modal first)?
-3. **Service Quotation "Update Form"** — when user clicks Update Form after generating, should it regenerate the PDF from current form values, or open an edit dialog first?
-
-If you just say "go", I'll proceed in the order above with sensible defaults (auto-deduction with editable amount; Update Form regenerates from current values).
+- Any backend/schema changes.
+- Real-time collaborative cursors, drag-reorder tabs (v2).
+- Full dark-mode retheming beyond token parity.
+- Behavior changes to forms, notifications, PDFs — visuals only.
