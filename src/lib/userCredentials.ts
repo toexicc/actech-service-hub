@@ -58,11 +58,14 @@ export const updateUser = async (
 ) => {
   try {
     let userId = updates.userId || updates.user_id;
+    if (!userId && /^[0-9a-f-]{36}$/i.test(usernameOrUserId)) {
+      userId = usernameOrUserId;
+    }
     if (!userId) {
       const { data } = await supabase.from("profiles").select("id").eq("username", usernameOrUserId).maybeSingle();
       userId = data?.id;
     }
-    if (!userId) return false;
+    if (!userId) throw new Error("User not found");
     await invokeManageStaff({
       action: "update",
       user_id: userId,
@@ -77,7 +80,7 @@ export const updateUser = async (
       password: updates.password || undefined,
     });
     return true;
-  } catch {
+  } catch (e) {
     return false;
   }
 };
