@@ -64,9 +64,11 @@ export function TicketOverviewRow({
   showPayment = true,
   actions,
   extraNote,
+  guidance,
   className,
 }: TicketOverviewRowProps) {
   const info = STAGE_MAP[status || ""] || STAGE_MAP["Pending Diagnosis"];
+  const nextText = (guidance && guidance.trim()) || info.next;
 
   const sc = num(serviceCost);
   const dc = num(discount);
