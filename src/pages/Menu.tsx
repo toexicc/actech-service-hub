@@ -8,6 +8,7 @@ import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { useInventory } from "@/hooks/useInventory";
 import { useClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import DashboardLayout from "@/components/DashboardLayout";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   MessageSquare,
   Wrench,
