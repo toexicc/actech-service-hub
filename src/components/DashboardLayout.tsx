@@ -332,7 +332,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain pt-[76px] px-3 pb-3">
-          <div className="min-h-full mx-auto w-full md:max-w-[80%]">{children}</div>
+          <div className="min-h-full w-full">{children}</div>
         </div>
       </main>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
