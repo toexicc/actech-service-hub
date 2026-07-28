@@ -1499,9 +1499,9 @@ const ManageClient = () => {
             </Card>
 
             {/* Update Client Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Update Client Information</CardTitle>
+            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-2xl tracking-tight">Update Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
