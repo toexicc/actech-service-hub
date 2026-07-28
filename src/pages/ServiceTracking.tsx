@@ -795,20 +795,6 @@ const ServiceTracking = () => {
                   <div className="space-y-6">
                     <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
 
-                    {[
-                      "Waiting to Proceed",
-                      "Proceed Repair",
-                      "Ongoing Service",
-                      "Done Repair - Under Observation",
-                      "Done Repair - Observation",
-                      "Done Repair - Advise Client",
-                      "Done Repair - Advice Client",
-                      "Done Repair - For Release",
-                      "Released",
-                      "Completed",
-                    ].includes(serviceData.status) && serviceData.serviceId && (
-                      <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
-                    )}
 
                     {approvalRecord && (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
@@ -874,15 +860,6 @@ const ServiceTracking = () => {
                 {showAiReport && (
                   <div className="space-y-6">
                     <AiReportCard report={serviceData.aiReport} title="Service Report" />
-                    {serviceData?.serviceId && [
-                      "Done Repair - Advise Client",
-                      "Done Repair - Advice Client",
-                      "Done Repair - For Release",
-                      "Released",
-                      "Completed",
-                    ].includes(serviceData.status) && (
-                      <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
-                    )}
                   </div>
                 )}
 
@@ -1007,6 +984,34 @@ const ServiceTracking = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Device Photo Gallery - Diagnosis & Report */}
+                {serviceData.serviceId && [
+                  "Waiting to Proceed",
+                  "Proceed Repair",
+                  "Ongoing Service",
+                  "Done Repair - Under Observation",
+                  "Done Repair - Observation",
+                  "Done Repair - Advise Client",
+                  "Done Repair - Advice Client",
+                  "Done Repair - For Release",
+                  "Released",
+                  "Completed",
+                ].includes(serviceData.status) && (
+                  <div className="space-y-6">
+                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
+                    {[
+                      "Done Repair - Advise Client",
+                      "Done Repair - Advice Client",
+                      "Done Repair - For Release",
+                      "Released",
+                      "Completed",
+                    ].includes(serviceData.status) && (
+                      <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                    )}
+                  </div>
+                )}
+
 
                 {/* Stay updated */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
