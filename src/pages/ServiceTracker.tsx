@@ -82,7 +82,9 @@ const ServiceTracker = () => {
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
   const [activeTab, setActiveTab] = useState<"ongoing" | "completed" | "closed">("ongoing");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const itemsPerPage = 15;
+
 
   const isClosedStatus = (status: string) => {
     const s = (status || "").toLowerCase();
