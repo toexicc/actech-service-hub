@@ -725,7 +725,7 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Step chips */}
-                    <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex flex-wrap md:flex-nowrap gap-2 items-center md:overflow-x-auto md:pb-1">
                       {STEPS.map((s, i) => {
                         const n = i + 1;
                         const done = n < stepIdx;
