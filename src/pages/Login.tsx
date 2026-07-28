@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, Wrench, Shield } from "lucide-react";
+import { Search, Loader2, Wrench, Shield, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -39,8 +38,6 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
-      // Wait briefly for AuthProvider's onAuthStateChange to populate user state
-      // before navigating, otherwise ProtectedRoute may bounce back to "/".
       for (let i = 0; i < 20; i++) {
         const { data: s } = await supabase.auth.getSession();
         if (s.session) break;
@@ -56,62 +53,73 @@ const Login = () => {
     <>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       <div className="min-h-screen min-h-[100dvh] gradient-bg flex flex-col items-center justify-center p-4 py-6 sm:py-4 relative overflow-y-auto">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
+        {/* Ambient orbs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-info/15 blur-3xl" />
+        </div>
+
         <div className="w-full max-w-md relative z-10">
-          <div className="text-center mb-4 sm:mb-8">
-            <div className="flex justify-center mb-2 sm:mb-4">
-              <div className="p-3 sm:p-4 rounded-2xl bg-card shadow-lg border border-border/50">
-                <img src={acTechLogo} alt="AC Tech Repair" className="h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg" />
+          <div className="text-center mb-6">
+            <div className="flex justify-center mb-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary-glow shadow-float">
+                <div className="bg-card rounded-xl p-2">
+                  <img src={acTechLogo} alt="AC Tech Repair" className="h-14 w-14 object-contain" />
+                </div>
               </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-0.5 sm:mb-1">AC Tech Repair</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Internal Team Portal</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">AC Tech Repair</h1>
+            <p className="text-sm text-muted-foreground mt-1">Internal Team Portal</p>
           </div>
 
-          <Card className="shadow-xl border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardHeader className="space-y-1 pb-2 sm:pb-4">
-              <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                Sign In
-              </CardTitle>
-              <CardDescription className="text-sm">
-                Access the team portal
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@actech.com" className="h-10 sm:h-11" autoComplete="email" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 sm:h-11" autoComplete="current-password" />
-                </div>
-                <Button type="submit" className="w-full h-10 sm:h-11 gradient-primary text-primary-foreground hover:opacity-90" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait...</>) : "Sign In"}
-                </Button>
-                <p className="w-full text-center text-xs text-muted-foreground">
-                  Accounts are created by administrators via Staff Management.
-                </p>
-              </form>
-
-              <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border space-y-2">
-                <Button variant="outline" className="w-full h-10 sm:h-11 group" onClick={() => navigate("/track")}>
-                  <Search className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
-                  Track Your Service
-                </Button>
+          <div className="glass-panel rounded-2xl p-6 sm:p-7 shadow-elegant">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-primary" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <h2 className="text-base font-semibold tracking-tight">Sign in</h2>
+                <p className="text-xs text-muted-foreground">Access your team portal</p>
+              </div>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-medium">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@actech.com" className="h-11 bg-background/60" autoComplete="email" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs font-medium">Password</Label>
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-11 bg-background/60" autoComplete="current-password" />
+              </div>
+              <Button type="submit" className="w-full h-11 gradient-primary text-primary-foreground hover:opacity-95 shadow-glow" disabled={isLoading}>
+                {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait...</>) : (<>Sign in <ArrowRight className="ml-2 h-4 w-4" /></>)}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground pt-1">Accounts are created by administrators via Staff Management.</p>
+            </form>
 
-          <div className="mt-4 sm:mt-8 grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="text-center p-2 sm:p-3"><div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-1 sm:mb-2"><Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /></div><p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Service Management</p></div>
-            <div className="text-center p-2 sm:p-3"><div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-info/10 flex items-center justify-center mx-auto mb-1 sm:mb-2"><Search className="h-4 w-4 sm:h-5 sm:w-5 text-info" /></div><p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Real-time Tracking</p></div>
-            <div className="text-center p-2 sm:p-3"><div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-success/10 flex items-center justify-center mx-auto mb-1 sm:mb-2"><Shield className="h-4 w-4 sm:h-5 sm:w-5 text-success" /></div><p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Secure Access</p></div>
+            <div className="mt-5 pt-5 border-t border-border/60">
+              <Button variant="outline" className="w-full h-11 bg-card/50" onClick={() => navigate("/track")}>
+                <Search className="mr-2 h-4 w-4 text-primary" />
+                Track your service
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            {[
+              { icon: Wrench, label: "Service Management", tone: "bg-primary/10 text-primary" },
+              { icon: Search, label: "Real-time Tracking", tone: "bg-info/10 text-info" },
+              { icon: Shield, label: "Secure Access", tone: "bg-success/10 text-success" },
+            ].map((f) => (
+              <div key={f.label} className="text-center p-3 rounded-xl glass-panel">
+                <div className={`w-9 h-9 rounded-xl ${f.tone} flex items-center justify-center mx-auto mb-1.5`}>
+                  <f.icon className="h-4 w-4" />
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-tight">{f.label}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <footer className="mt-4 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground relative z-10"></footer>
       </div>
     </>
   );
