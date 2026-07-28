@@ -39,10 +39,9 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
-import { TicketWorkspaceShell } from "@/components/workspace/TicketWorkspaceShell";
-import { WhatsNextBanner } from "@/components/workspace/WhatsNextBanner";
-import { ChargesBreakdown } from "@/components/workspace/ChargesBreakdown";
+import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
+
 
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
@@ -1270,26 +1269,24 @@ const ManageClient = () => {
             device={serviceData.device || serviceData.deviceType}
             currentStatus={serviceData.status || ""}
           />
-          <TicketWorkspaceShell
-            leftRail={
-              <>
-                <WhatsNextBanner status={serviceData.status} />
-                <ChargesBreakdown
-                  serviceCost={serviceData.serviceCost}
-                  discount={serviceData.discount}
-                  finalCost={serviceData.finalCost}
-                  initialPayment={serviceData.initialPayment}
-                  paymentStatus={serviceData.paymentStatus}
-                  showServiceCost={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.finalCost ?? "0").replace(/[^0-9.-]/g, "")) > 0}
-                  showDiscount={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.discount ?? "0").replace(/[^0-9.-]/g, "")) > 0}
-                  showFinal={serviceData.status !== "Pending Diagnosis"}
-                />
-                <ActivityTimeline serviceId={serviceData.serviceId} />
-              </>
-            }
-            main={
-              <>
-          <div className="grid gap-4 sm:gap-8 grid-cols-1 xl:grid-cols-2">
+          <TicketOverviewRow
+            status={serviceData.status}
+            technician={serviceData.technician}
+            adminRep={serviceData.adminRep}
+            receivingStaff={(serviceData as any).receivingStaff}
+            serviceCost={serviceData.serviceCost}
+            discount={serviceData.discount}
+            finalCost={serviceData.finalCost}
+            initialPayment={serviceData.initialPayment}
+            paymentStatus={serviceData.paymentStatus}
+            showCharges={serviceData.status !== "Pending Diagnosis"}
+            showServiceCost={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.finalCost ?? "0").replace(/[^0-9.-]/g, "")) > 0}
+            showDiscount={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.discount ?? "0").replace(/[^0-9.-]/g, "")) > 0}
+            showFinal={serviceData.status !== "Pending Diagnosis"}
+          />
+
+          <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+
 
             {/* Client Information */}
             <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
@@ -2096,11 +2093,11 @@ const ManageClient = () => {
               </CardContent>
             </Card>
           </div>
-              </>
-            }
-          />
+
+          <ActivityTimeline serviceId={serviceData.serviceId} />
           </>
         )}
+
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
