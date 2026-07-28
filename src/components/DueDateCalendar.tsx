@@ -99,8 +99,8 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           {services.length} active {services.length === 1 ? "ticket" : "tickets"}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] lg:grid-cols-[3fr_1fr] gap-4 glass-panel rounded-2xl p-4">
-        <div className="flex justify-center md:justify-start min-w-0">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(520px,2fr)_minmax(260px,1fr)] lg:grid-cols-[minmax(640px,3fr)_minmax(280px,1fr)] gap-4 glass-panel rounded-2xl p-4">
+        <div className="flex justify-center md:justify-start min-w-0 overflow-x-auto pb-1">
           <Calendar
             mode="single"
             selected={selected}
@@ -110,12 +110,21 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
               due: "relative after:content-[''] after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1.5 after:w-1.5 after:rounded-full after:bg-primary",
             }}
             classNames={{
-              caption_label: "text-base font-medium",
-              head_cell: "text-muted-foreground rounded-md w-11 h-8 font-normal text-[0.85rem] flex items-center justify-center",
-              cell: "h-11 w-11 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-              day: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-normal aria-selected:opacity-100"),
+              months: "flex flex-col space-y-4",
+              month: "space-y-5",
+              caption: "flex justify-center pt-1 relative items-center h-10",
+              caption_label: "text-xl font-semibold",
+              nav_button: cn(buttonVariants({ variant: "outline" }), "h-10 w-10 bg-transparent p-0 opacity-60 hover:opacity-100 rounded-full"),
+              nav_button_previous: "absolute left-1",
+              nav_button_next: "absolute right-1",
+              table: "w-fit border-collapse",
+              head_row: "flex w-fit",
+              row: "flex w-fit mt-3",
+              head_cell: "text-muted-foreground rounded-md h-10 w-14 lg:w-16 font-normal text-sm flex items-center justify-center",
+              cell: "h-14 w-14 lg:h-16 lg:w-16 text-center text-base p-0 relative focus-within:relative focus-within:z-20",
+              day: cn(buttonVariants({ variant: "ghost" }), "h-14 w-14 lg:h-16 lg:w-16 p-0 text-base font-normal aria-selected:opacity-100 rounded-2xl"),
             }}
-            className="pointer-events-auto rounded-xl border bg-card p-4"
+            className="pointer-events-auto w-fit rounded-xl border bg-card p-5 lg:p-6"
           />
         </div>
         <div className="min-w-0">
