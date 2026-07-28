@@ -25,7 +25,7 @@ import {
   ClipboardList,
   Monitor,
 } from "lucide-react";
-import { WhereTicketsAreNow } from "@/components/WhereTicketsAreNow";
+import { DueDateCalendar } from "@/components/DueDateCalendar";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
@@ -358,6 +358,27 @@ const Menu = () => {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        {/* Quick actions — compact single row at top */}
+        <section className="mb-6">
+          <div className="glass-panel rounded-2xl px-3 py-2 flex flex-wrap md:flex-nowrap items-center gap-2 overflow-x-auto">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 shrink-0">
+              Quick actions
+            </span>
+            <div className="h-4 w-px bg-border/60 hidden md:block" />
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
+                className="h-9 px-3 rounded-full inline-flex items-center gap-2 text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap shrink-0"
+                title={action.description}
+              >
+                <action.icon className="h-4 w-4" />
+                <span>{action.title}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Hero */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
@@ -416,35 +437,12 @@ const Menu = () => {
           </div>
         </section>
 
-        {/* Where tickets are now */}
+        {/* Service calendar with due-date sidebar */}
         {!isLoading && (
-          <WhereTicketsAreNow services={allServices} role={userRole} />
+          <DueDateCalendar role={userRole} userFullName={userFullName} />
         )}
 
-        {/* Quick actions */}
 
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Quick actions</h2>
-          </div>
-          <div className={`grid grid-cols-2 md:grid-cols-3 ${!isTechnician && userRole === "management" ? "xl:grid-cols-5" : ""} gap-3 sm:gap-4`}>
-            {quickActions.map((action, index) => (
-              <button
-                key={index}
-                onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
-                className="card-elevated group text-left p-4 flex flex-col items-start gap-3 hover:border-primary/40 transition-all"
-              >
-                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <action.icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold tracking-tight text-foreground truncate">{action.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{action.description}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
 
 
         {/* Summary Sections with Tables */}
