@@ -820,6 +820,7 @@ const ServiceUpdate = () => {
         {/* Service Details and Update Form */}
         {serviceData && (
           <>
+          <TicketWorkspaceHero service={serviceData} />
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
             clientName={serviceData.clientName || ""}
