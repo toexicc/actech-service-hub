@@ -225,7 +225,7 @@ const StaffManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: "Failed to add staff member",
+          description: getLastStaffError() || "Failed to add staff member",
           variant: "destructive",
         });
       }
