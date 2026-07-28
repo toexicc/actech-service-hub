@@ -725,14 +725,15 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Step chips */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 items-center">
                       {STEPS.map((s, i) => {
                         const n = i + 1;
                         const done = n < stepIdx;
-                        const current = n === stepIdx;
+                        const current = n === stepIdx && !offPath;
                         return (
                           <div
                             key={s.key}
+                            title={s.full}
                             className={
                               "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border " +
                               (current
@@ -747,6 +748,15 @@ const ServiceTracking = () => {
                           </div>
                         );
                       })}
+                      {offPath && (
+                        <div
+                          title={currentStatus}
+                          className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                          {offPath.label}
+                        </div>
+                      )}
                     </div>
 
                     <Separator />
