@@ -695,24 +695,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
         {/* Header */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Service Tracker</h1>
-            <p className="text-muted-foreground">Monitor all ongoing services</p>
-          </div>
-          {(userRole === "admin" || userRole === "management") && (
-            <Button 
-              onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")} 
-              variant="outline"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Sheet
-            </Button>
-          )}
-        </div>
+        <PageHeader
+          icon={<Clock className="h-5 w-5" />}
+          title="Service Tracker"
+          subtitle="Monitor all ongoing services in real time"
+          actions={
+            (userRole === "admin" || userRole === "management") ? (
+              <Button
+                onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")}
+                variant="outline"
+                className="rounded-xl"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Sheet
+              </Button>
+            ) : undefined
+          }
+        />
 
         {/* Search Bar */}
-        <Card className="mb-6">
+        <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
           <CardContent className="pt-6">
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -728,21 +730,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       e.target.setSelectionRange(2, 2);
                     }
                   }}
-                  className="pl-10"
+                  className="pl-10 h-11 rounded-xl bg-background"
                 />
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setSearchInput("")}
+                className="h-11 rounded-xl"
               >
                 Clear
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="icon"
                 onClick={() => invalidateServices()}
                 disabled={isLoading}
                 title="Refresh data"
+                className="h-11 w-11 rounded-xl"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
