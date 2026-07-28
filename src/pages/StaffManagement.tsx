@@ -646,11 +646,11 @@ const StaffManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveStaff(staff.username, staff.name)}
-                                disabled={isDeletingStaff === staff.username}
+                                onClick={() => handleRemoveStaff((staff as any).userId || staff.username, staff.name)}
+                                disabled={isDeletingStaff === ((staff as any).userId || staff.username)}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
-                                {isDeletingStaff === staff.username ? (
+                                {isDeletingStaff === ((staff as any).userId || staff.username) ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
