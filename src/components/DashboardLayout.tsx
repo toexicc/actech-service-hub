@@ -341,9 +341,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 }
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
-  <WorkbenchProvider>
-    <ShellInner>{children}</ShellInner>
-  </WorkbenchProvider>
+  <ShellInner>{children}</ShellInner>
 );
 
 export default DashboardLayout;
