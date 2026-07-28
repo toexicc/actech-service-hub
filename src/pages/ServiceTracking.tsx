@@ -860,15 +860,6 @@ const ServiceTracking = () => {
                 {showAiReport && (
                   <div className="space-y-6">
                     <AiReportCard report={serviceData.aiReport} title="Service Report" />
-                    {serviceData?.serviceId && [
-                      "Done Repair - Advise Client",
-                      "Done Repair - Advice Client",
-                      "Done Repair - For Release",
-                      "Released",
-                      "Completed",
-                    ].includes(serviceData.status) && (
-                      <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
-                    )}
                   </div>
                 )}
 
