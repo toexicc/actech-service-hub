@@ -1697,7 +1697,7 @@ const ServiceUpdate = () => {
           </div>
 
           <ActivityTimeline serviceId={serviceData.serviceId} />
-          </>
+          </div>
         )}
 
 
