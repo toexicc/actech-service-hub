@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
+import { fetchStaffList } from "@/lib/staffList";
 
 interface Result {
   id: string;
@@ -59,6 +60,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 200);
   const [remote, setRemote] = useState<Result[]>([]);
+  const [searching, setSearching] = useState(false);
   const navigate = useNavigate();
   const { openTab } = useWorkbench();
   const userRole = (typeof window !== "undefined" && sessionStorage.getItem("userRole")) || "";
@@ -79,62 +81,108 @@ export function CommandPalette({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (!open || !debounced || debounced.length < 2) {
       setRemote([]);
+      setSearching(false);
       return;
     }
     let cancelled = false;
     const q = debounced.trim();
+    const like = `%${q}%`;
+    setSearching(true);
+
+    const runServices = async (): Promise<Result[]> => {
+      try {
+        const { data } = await supabase.from("services")
+          .select("service_id,client_name,device_type,brand,model,status,contact_number")
+          .or(`service_id.ilike.${like},client_name.ilike.${like},model.ilike.${like},brand.ilike.${like},device_type.ilike.${like},contact_number.ilike.${like}`)
+          .limit(8);
+        return (data || []).map((s: any) => ({
+          id: `svc-${s.service_id}`,
+          label: s.service_id,
+          sub: `${s.client_name || ""} · ${[s.brand, s.model].filter(Boolean).join(" ") || s.device_type || ""}${s.status ? " · " + s.status : ""}`,
+          kind: "service",
+          path: `/manage-client?serviceId=${encodeURIComponent(s.service_id)}`,
+        }));
+      } catch { return []; }
+    };
+
+    const runCustomers = async (): Promise<Result[]> => {
+      try {
+        const { data } = await supabase.from("clients")
+          .select("id,client_id,name,contact_number,email")
+          .or(`name.ilike.${like},contact_number.ilike.${like},email.ilike.${like},client_id.ilike.${like}`)
+          .limit(6);
+        return (data || []).map((c: any) => ({
+          id: `cus-${c.id}`,
+          label: c.name || c.client_id,
+          sub: `${c.client_id || ""}${c.contact_number ? " · " + c.contact_number : ""}`,
+          kind: "customer",
+          path: `/customer-management?clientId=${encodeURIComponent(c.client_id || c.id)}`,
+        }));
+      } catch { return []; }
+    };
+
+    const runParts = async (): Promise<Result[]> => {
+      const results: Result[] = [];
+      try {
+        const { data } = await supabase.from("inventory_parts")
+          .select("id,part_id,part_name,brand,device_model")
+          .or(`part_id.ilike.${like},part_name.ilike.${like},brand.ilike.${like},device_model.ilike.${like}`)
+          .limit(6);
+        (data || []).forEach((p: any) => results.push({
+          id: `part-${p.id}`,
+          label: p.part_name || p.part_id,
+          sub: `${p.part_id || ""}${p.brand ? " · " + p.brand : ""}${p.device_model ? " · " + p.device_model : ""}`,
+          kind: "part",
+          path: `/inventory-management?partId=${encodeURIComponent(p.part_id || "")}`,
+        }));
+      } catch {}
+      try {
+        const { data } = await supabase.from("fast_moving_parts")
+          .select("id,part_id,part_name,brand,device_model")
+          .or(`part_id.ilike.${like},part_name.ilike.${like},brand.ilike.${like},device_model.ilike.${like}`)
+          .limit(6);
+        (data || []).forEach((p: any) => results.push({
+          id: `fmp-${p.id}`,
+          label: p.part_name || p.part_id,
+          sub: `${p.part_id || ""}${p.brand ? " · " + p.brand : ""}${p.device_model ? " · " + p.device_model : ""} · Fast-Moving`,
+          kind: "part",
+          path: `/inventory-management?tab=fast-moving&partId=${encodeURIComponent(p.part_id || "")}`,
+        }));
+      } catch {}
+      return results;
+    };
+
+    const runStaff = async (): Promise<Result[]> => {
+      try {
+        const all = await fetchStaffList();
+        const ql = q.toLowerCase();
+        return all
+          .filter((s) =>
+            (s.name || "").toLowerCase().includes(ql) ||
+            (s.staffId || "").toLowerCase().includes(ql) ||
+            (s.department || "").toLowerCase().includes(ql) ||
+            (s.role || "").toLowerCase().includes(ql)
+          )
+          .slice(0, 6)
+          .map((s) => ({
+            id: `staff-${s.id}`,
+            label: s.name || s.staffId,
+            sub: `${s.role || ""}${s.department ? " · " + s.department : ""}`,
+            kind: "staff" as const,
+            path: `/staff-management?staffId=${encodeURIComponent(s.staffId || s.id)}`,
+          }));
+      } catch { return []; }
+    };
+
     (async () => {
-      const like = `%${q}%`;
-      const [services, customers, parts, staff] = await Promise.all([
-        supabase.from("services")
-          .select("service_id,client_name,device_type,device_brand,device_model,status")
-          .or(`service_id.ilike.${like},client_name.ilike.${like},device_model.ilike.${like},device_brand.ilike.${like}`)
-          .limit(6),
-        (supabase.from("clients" as any) as any)
-          .select("id,client_id,name,phone,email")
-          .or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like},client_id.ilike.${like}`)
-          .limit(6),
-        (supabase.from("parts_inventory" as any) as any)
-          .select("id,part_id,part_name,brand,model")
-          .or(`part_id.ilike.${like},part_name.ilike.${like},brand.ilike.${like},model.ilike.${like}`)
-          .limit(6),
-        (supabase.from("staff" as any) as any)
-          .select("id,staff_id,full_name,role,department")
-          .or(`full_name.ilike.${like},staff_id.ilike.${like},department.ilike.${like}`)
-          .limit(6),
+      const [svcs, custs, parts, staffs] = await Promise.all([
+        runServices(), runCustomers(), runParts(), runStaff(),
       ]);
       if (cancelled) return;
-      const results: Result[] = [];
-      (services.data || []).forEach((s: any) => results.push({
-        id: `svc-${s.service_id}`,
-        label: s.service_id,
-        sub: `${s.client_name || ""} · ${[s.device_brand, s.device_model].filter(Boolean).join(" ") || s.device_type || ""}${s.status ? " · " + s.status : ""}`,
-        kind: "service",
-        path: `/manage-client?serviceId=${encodeURIComponent(s.service_id)}`,
-      }));
-      (customers.data || []).forEach((c: any) => results.push({
-        id: `cus-${c.id}`,
-        label: c.name || c.client_id,
-        sub: `${c.client_id || ""}${c.phone ? " · " + c.phone : ""}`,
-        kind: "customer",
-        path: `/customer-management?clientId=${encodeURIComponent(c.client_id || c.id)}`,
-      }));
-      (parts.data || []).forEach((p: any) => results.push({
-        id: `part-${p.id}`,
-        label: p.part_name || p.part_id,
-        sub: `${p.part_id || ""}${p.brand ? " · " + p.brand : ""}${p.model ? " · " + p.model : ""}`,
-        kind: "part",
-        path: `/inventory-management?partId=${encodeURIComponent(p.part_id || "")}`,
-      }));
-      (staff.data || []).forEach((s: any) => results.push({
-        id: `staff-${s.id}`,
-        label: s.full_name || s.staff_id,
-        sub: `${s.role || ""}${s.department ? " · " + s.department : ""}`,
-        kind: "staff",
-        path: `/staff-management?staffId=${encodeURIComponent(s.staff_id || s.id)}`,
-      }));
-      setRemote(results);
-    })().catch(() => setRemote([]));
+      setRemote([...svcs, ...custs, ...parts, ...staffs]);
+      setSearching(false);
+    })();
+
     return () => { cancelled = true; };
   }, [debounced, open]);
 
@@ -184,7 +232,9 @@ export function CommandPalette({ open, onOpenChange }: Props) {
         <CommandEmpty>
           <div className="py-6 text-center">
             <Search className="mx-auto h-6 w-6 text-muted-foreground/50 mb-2" />
-            <p className="text-sm text-muted-foreground">No matches. Try a service ID like <span className="kbd">MAA-1192</span></p>
+            <p className="text-sm text-muted-foreground">
+              {searching ? "Searching…" : <>No matches. Try a service ID like <span className="kbd">AC240726008</span></>}
+            </p>
           </div>
         </CommandEmpty>
         {groups.map((g, i) => g.items.length > 0 && (
