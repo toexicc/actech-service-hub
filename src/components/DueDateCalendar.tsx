@@ -3,8 +3,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { useServices, type ServiceRecord } from "@/hooks/useServices";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { useNavigate } from "react-router-dom";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { CalendarDays, ExternalLink } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const parseTargetDate = (raw: string | undefined): Date | null => {
   if (!raw) return null;
@@ -97,7 +99,7 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           {services.length} active {services.length === 1 ? "ticket" : "tickets"}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[auto,1fr] gap-4 glass-panel rounded-2xl p-4">
+      <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] lg:grid-cols-[3fr_1fr] gap-4 glass-panel rounded-2xl p-4">
         <div className="flex justify-center md:justify-start min-w-0">
           <Calendar
             mode="single"
@@ -105,9 +107,15 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
             onSelect={(d) => d && setSelected(startOfDay(d))}
             modifiers={{ due: dueDates }}
             modifiersClassNames={{
-              due: "relative after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-primary",
+              due: "relative after:content-[''] after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1.5 after:w-1.5 after:rounded-full after:bg-primary",
             }}
-            className="pointer-events-auto rounded-xl border bg-card"
+            classNames={{
+              caption_label: "text-base font-medium",
+              head_cell: "text-muted-foreground rounded-md w-11 h-8 font-normal text-[0.85rem] flex items-center justify-center",
+              cell: "h-11 w-11 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+              day: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-normal aria-selected:opacity-100"),
+            }}
+            className="pointer-events-auto rounded-xl border bg-card p-4"
           />
         </div>
         <div className="min-w-0">
