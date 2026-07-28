@@ -995,63 +995,39 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         </Card>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Ongoing</p>
-                  <p className="text-2xl font-bold">
-                    {filteredAndSortedServices.filter(s => {
-                      const status = s.status?.toLowerCase() || "";
-                      return !status.includes("completed") && !status.includes("cancelled");
-                    }).length}
-                  </p>
-                </div>
-                <Clock className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Overdue</p>
-                  <p className="text-2xl font-bold text-destructive">
-                    {filteredAndSortedServices.filter(s => {
-                      const status = s.status?.toLowerCase() || "";
-                      const isOngoing = !status.includes("completed") && !status.includes("cancelled");
-                      return isOngoing && isOverdue(s.targetDate, s.status);
-                    }).length}
-                  </p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-destructive" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">On Track</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {filteredAndSortedServices.filter(s => {
-                      const status = s.status?.toLowerCase() || "";
-                      const isOngoing = !status.includes("completed") && !status.includes("cancelled");
-                      return isOngoing && !isOverdue(s.targetDate, s.status) && s.targetDate;
-                    }).length}
-                  </p>
-                </div>
-                <Calendar className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {(() => {
+          const ongoing = filteredAndSortedServices.filter(s => {
+            const status = s.status?.toLowerCase() || "";
+            return !status.includes("completed") && !status.includes("cancelled");
+          });
+          const overdueCount = ongoing.filter(s => isOverdue(s.targetDate, s.status)).length;
+          const onTrackCount = ongoing.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          return (
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+              <StatCard
+                label="Total Ongoing"
+                value={ongoing.length}
+                tone="primary"
+                icon={<Clock className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Overdue"
+                value={overdueCount}
+                tone="destructive"
+                icon={<AlertCircle className="h-5 w-5" />}
+              />
+              <StatCard
+                label="On Track"
+                value={onTrackCount}
+                tone="success"
+                icon={<Calendar className="h-5 w-5" />}
+              />
+            </div>
+          );
+        })()}
 
         {/* Services Table */}
-        <Card>
+        <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
           <CardHeader>
             <CardTitle>
               {activeTab === "completed" ? "Completed Services" : activeTab === "closed" ? "Cancelled / RTO / On Hold" : "Ongoing Services"}
