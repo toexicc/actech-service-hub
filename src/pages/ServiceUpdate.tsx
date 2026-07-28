@@ -836,6 +836,17 @@ const ServiceUpdate = () => {
           />
           <TicketOverviewRow
             status={serviceData.status}
+            guidance={getStatusGuidance(
+              serviceData.status || "",
+              {
+                serviceId: serviceData.serviceId || "",
+                clientName: serviceData.clientName || "",
+                technician: serviceData.technician ?? "",
+                adminRep: serviceData.adminRep,
+                device: serviceData.device || serviceData.deviceType,
+              },
+              "technician",
+            )}
             technician={serviceData.technician}
             adminRep={serviceData.adminRep}
             receivingStaff={(serviceData as any).receivingStaff}
