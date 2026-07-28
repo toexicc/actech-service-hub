@@ -45,14 +45,6 @@ export function StatusProgressBar({
   device,
   currentStatus,
 }: StatusProgressBarProps) {
-  const { isTechnician } = useAuth();
-  const isTech = isTechnician;
-  const guidance = getStatusGuidance(
-    currentStatus,
-    { serviceId, clientName, technician: technician ?? "", adminRep, device },
-    isTech ? "technician" : "admin",
-  );
-
   const currentIdx = PROGRESS_STEPS.indexOf(currentStatus as typeof PROGRESS_STEPS[number]);
   const isOffPath = currentIdx === -1 && STATUS_OPTIONS.includes(currentStatus as any);
 
