@@ -18,7 +18,8 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff } from "lucide-react";
+import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
@@ -776,38 +777,42 @@ const ServiceUpdate = () => {
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 animate-fade-in">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Service Update</h1>
-          <p className="text-muted-foreground">Update service status and progress</p>
-        </div>
+        <PageHeader
+          title="Service Update"
+          subtitle="Update service status and progress"
+          icon={<Wrench className="h-5 w-5" />}
+        />
 
         {/* Search Form */}
-        <Card className="mb-8">
+        <Card className="mb-8 rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <Label htmlFor="serviceId">Enter Service ID:</Label>
-              <Input
-                id="serviceId"
-                placeholder="Enter service ID"
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
-                onFocus={(e) => {
-                  if (!e.target.value) {
-                    setServiceId("AC");
-                    setTimeout(() => e.target.setSelectionRange(2, 2), 0);
-                  }
-                }}
-              />
+              <Label htmlFor="serviceId" className="text-sm font-medium">Service ID</Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="serviceId"
+                  placeholder="Enter service ID (e.g. AC1234)"
+                  value={serviceId}
+                  onChange={(e) => setServiceId(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
+                  onFocus={(e) => {
+                    if (!e.target.value) {
+                      setServiceId("AC");
+                      setTimeout(() => e.target.setSelectionRange(2, 2), 0);
+                    }
+                  }}
+                  className="pl-9 h-11 rounded-xl bg-background/60"
+                />
+              </div>
             </div>
 
-            <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6">
-              {isLoading ? "Searching..." : "Search Service"}
+            <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6 h-11 rounded-xl">
+              {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching...</>) : "Search Service"}
             </Button>
           </CardContent>
         </Card>
@@ -825,9 +830,9 @@ const ServiceUpdate = () => {
           />
           <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Client Information</CardTitle>
+            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -1034,9 +1039,9 @@ const ServiceUpdate = () => {
             </Card>
 
             {/* Service Update */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Service Update</CardTitle>
+            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-2xl tracking-tight">Service Update</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
