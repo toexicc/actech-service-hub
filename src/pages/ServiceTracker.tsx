@@ -82,7 +82,9 @@ const ServiceTracker = () => {
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
   const [activeTab, setActiveTab] = useState<"ongoing" | "completed" | "closed">("ongoing");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const itemsPerPage = 15;
+
 
   const isClosedStatus = (status: string) => {
     const s = (status || "").toLowerCase();
@@ -1085,7 +1087,126 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               </div>
             ) : filteredAndSortedServices.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No ongoing services found</div>
+            ) : viewMode === "cards" ? (
+              <>
+                <div className="flex items-center justify-end mb-4">
+                  <div className="inline-flex rounded-full border border-border/60 bg-muted/40 p-1 text-xs">
+                    <button
+                      onClick={() => setViewMode("cards")}
+                      className={cn("px-3 py-1.5 rounded-full transition-colors", viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
+                    >Cards</button>
+                    <button
+                      onClick={() => setViewMode("table")}
+                      className={cn("px-3 py-1.5 rounded-full transition-colors", (viewMode as string) === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
+                    >Table</button>
+                  </div>
+                </div>
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                  {paginatedServices.map((service) => {
+                    const inServiceDays = calculateInServiceDays(service.timestamp, service.status);
+                    const overdueStatus = isOverdue(service.targetDate, service.status);
+                    const isCompleted = (service.status || "").toLowerCase().includes("completed");
+                    return (
+                      <div
+                        key={service.serviceId}
+                        onClick={() => handleEditService(service.serviceId)}
+                        className={cn(
+                          "group relative cursor-pointer rounded-2xl border bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur p-4 hover:border-primary/40 hover:shadow-lg transition-all",
+                          overdueStatus ? "border-destructive/40" : "border-border/60",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-mono text-muted-foreground">{service.serviceId}</span>
+                              {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
+                            </div>
+                            <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
+                          </div>
+                          <span className={cn("text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border font-medium whitespace-nowrap", getStatusTextColor(service.status || ""), "border-current/30")}>
+                            {service.status || "N/A"}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Device</span>
+                            <span className="text-foreground truncate max-w-[60%] text-right">
+                              {[service.deviceType, service.brand, service.device].filter(Boolean).join(" · ") || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Service</span>
+                            <span className="text-foreground truncate max-w-[60%] text-right">{service.service || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Technician</span>
+                            <span className="text-foreground truncate max-w-[60%] text-right">{service.technician || "Unassigned"}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Admin</span>
+                            <span className="text-foreground truncate max-w-[60%] text-right">{service.adminRep || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Cost</span>
+                            <span className="text-foreground tabular-nums">{service.serviceCost || "—"}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground">Target</span>
+                            <span className={cn("font-medium", overdueStatus && "text-destructive")}>
+                              {service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "—"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col text-right">
+                            <span className="text-muted-foreground">In service</span>
+                            <span className={cn("font-semibold", inServiceDays > 7 && !isCompleted && "text-orange-600")}>
+                              {isCompleted ? "—" : `${inServiceDays} ${inServiceDays === 1 ? "day" : "days"}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); openNotifyDialog(service as ServiceRecord); }}
+                              title="Notify"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Bell className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleForward(service as ServiceRecord); }}
+                              title="Forward"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Forward className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
+              <>
+                <div className="flex items-center justify-end mb-4">
+                  <div className="inline-flex rounded-full border border-border/60 bg-muted/40 p-1 text-xs">
+                    <button
+                      onClick={() => setViewMode("cards")}
+                      className={cn("px-3 py-1.5 rounded-full transition-colors", (viewMode as string) === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
+                    >Cards</button>
+                    <button
+                      onClick={() => setViewMode("table")}
+                      className={cn("px-3 py-1.5 rounded-full transition-colors", viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
+                    >Table</button>
+                  </div>
+                </div>
+
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -1225,7 +1346,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
+
 
             {!isLoading && filteredAndSortedServices.length > 0 && (
               <div className="mt-6">
