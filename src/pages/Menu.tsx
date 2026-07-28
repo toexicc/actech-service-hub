@@ -24,6 +24,9 @@ import {
   ChevronRight,
   ClipboardList,
   Monitor,
+  ShoppingCart,
+  CalendarCheck,
+  LayoutDashboard,
 } from "lucide-react";
 import { DueDateCalendar } from "@/components/DueDateCalendar";
 
