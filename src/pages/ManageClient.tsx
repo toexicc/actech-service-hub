@@ -39,10 +39,9 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { useStaff, useTechnicians } from "@/hooks/useStaff";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
-import { TicketWorkspaceShell } from "@/components/workspace/TicketWorkspaceShell";
-import { WhatsNextBanner } from "@/components/workspace/WhatsNextBanner";
-import { ChargesBreakdown } from "@/components/workspace/ChargesBreakdown";
+import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
+
 
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
