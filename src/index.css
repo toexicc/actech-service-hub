@@ -249,3 +249,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+
+/* Global 80% zoom for tablet/desktop viewports (mobile stays 100%) */
+@media (min-width: 768px) {
+  body {
+    zoom: 0.8;
+  }
+}
