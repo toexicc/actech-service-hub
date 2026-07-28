@@ -438,10 +438,8 @@ const Menu = () => {
           </div>
         </section>
 
-        {/* Service calendar with due-date sidebar */}
-        {!isLoading && (
-          <DueDateCalendar role={userRole} userFullName={userFullName} />
-        )}
+
+
 
 
 
