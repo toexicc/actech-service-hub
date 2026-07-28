@@ -1133,8 +1133,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                         key={service.serviceId}
                         onClick={() => handleEditService(service.serviceId)}
                         className={cn(
-                          "group relative cursor-pointer rounded-2xl border bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur p-4 hover:border-primary/40 hover:shadow-lg transition-all",
-                          overdueStatus ? "border-destructive/40" : "border-border/60",
+                          "group relative cursor-pointer rounded-2xl border shadow-[var(--shadow-float)] backdrop-blur p-4 hover:border-primary/40 hover:shadow-lg transition-all",
+                          getStatusCardBg(service.status || ""),
+                          overdueStatus && "border-destructive/40 ring-1 ring-destructive/20",
                         )}
                       >
                         <div className="flex items-start justify-between gap-2 mb-3">
