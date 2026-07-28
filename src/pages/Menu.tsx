@@ -25,6 +25,7 @@ import {
   ClipboardList,
   Monitor,
 } from "lucide-react";
+import { WhereTicketsAreNow } from "@/components/WhereTicketsAreNow";
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
 interface DashboardStats {
@@ -415,7 +416,13 @@ const Menu = () => {
           </div>
         </section>
 
+        {/* Where tickets are now */}
+        {!isLoading && (
+          <WhereTicketsAreNow services={allServices} role={userRole} />
+        )}
+
         {/* Quick actions */}
+
         <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Quick actions</h2>
