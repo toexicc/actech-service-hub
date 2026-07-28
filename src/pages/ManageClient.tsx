@@ -1266,9 +1266,9 @@ const ManageClient = () => {
           />
           <div className="grid gap-4 sm:gap-8 grid-cols-1 lg:grid-cols-2">
             {/* Client Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Client Information</CardTitle>
+            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
