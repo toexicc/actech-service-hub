@@ -10,9 +10,13 @@ export function TabBar() {
   const { tabs, activeId, setActive, closeTab } = useWorkbench();
   if (tabs.length === 0) return null;
 
+  const visibleTabs = tabs.filter((tab, index, all) => (
+    all.findIndex((candidate) => candidate.path === tab.path) === index
+  ));
+
   return (
     <div className="flex items-center gap-1 min-w-0 overflow-x-auto scrollbar-none py-1 px-1">
-      {tabs.map((tab) => {
+      {visibleTabs.map((tab) => {
         const Icon = tab.iconName ? ICONS[tab.iconName] : null;
         const active = tab.id === activeId;
         return (
