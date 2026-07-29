@@ -99,7 +99,8 @@ const Tile = ({
 );
 
 const QueueAdmin = () => {
-  const { entries, loading } = useQueueEntries({ activeOnly: true });
+  const { entries, loading, error, refetch, realtimeState, realtimeMessage } =
+    useQueueEntries({ activeOnly: true });
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
