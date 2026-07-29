@@ -1085,9 +1085,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             </Tabs>
           </CardHeader>
           <CardContent>
-            {activeTab === "intake" ? (
-              <IntakeQueuePanel />
-            ) : (
+            {activeTab === "intake" && <IntakeQueuePanel />}
+            {activeTab !== "intake" && isLoading ? (
             {isLoading ? (
               <div className="overflow-x-auto">
                 <Table>
@@ -1446,8 +1445,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   Page {currentPage} of {totalPages} • Showing {paginatedServices.length} of {filteredAndSortedServices.length} services
                 </div>
               </div>
-            )}
-              </>
             )}
           </CardContent>
         </Card>
