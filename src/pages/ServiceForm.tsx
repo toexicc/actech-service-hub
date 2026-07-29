@@ -882,6 +882,7 @@ const ServiceForm = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="Within The Day">Within The Day</SelectItem>
                           <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
                           <SelectItem value="Loyalty">Loyalty</SelectItem>
                           <SelectItem value="Normal">Normal</SelectItem>
