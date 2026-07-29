@@ -343,8 +343,18 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
-  <ShellInner>{children}</ShellInner>
-);
+// Context flag so nested <DashboardLayout> instances (rendered inside individual
+// page files) become passthrough when the workbench shell already wraps them.
+const ShellMountedContext = createContext(false);
+
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const alreadyMounted = useContext(ShellMountedContext);
+  if (alreadyMounted) return <>{children}</>;
+  return (
+    <ShellMountedContext.Provider value={true}>
+      <ShellInner>{children}</ShellInner>
+    </ShellMountedContext.Provider>
+  );
+};
 
 export default DashboardLayout;
