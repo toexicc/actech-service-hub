@@ -778,12 +778,13 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         // If this admin submission is completing a queue entry, mark it done
         // so it drops off /queue and /queueing automatically.
         if (queueId) {
-          supabase
+          await supabase
             .from("queue_entries")
             .update({ status: "completed", service_id: finalServiceId })
-            .eq("id", queueId)
-            .then(() => {});
+            .eq("id", queueId);
         }
+        onCompleted?.(finalServiceId);
+
       } else {
         throw new Error("Failed to submit form");
       }
