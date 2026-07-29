@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
+import { CompleteIntakeModal } from "@/components/CompleteIntakeModal";
 import {
   Clock,
   ArrowRight,
@@ -106,6 +107,7 @@ const QueueAdmin = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
+  const [completing, setCompleting] = useState<QueueEntry | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -138,9 +140,9 @@ const QueueAdmin = () => {
     }
   };
 
-  const doComplete = (id: string) => {
-    // Send admin to the internal Client Intake Form pre-filled from the queue payload.
-    navigate(`/service-form?queueId=${id}`);
+  const doComplete = (entry: QueueEntry) => {
+    // Finish the intake in a modal so the admin never leaves the console.
+    setCompleting(entry);
   };
 
   return (
@@ -216,7 +218,7 @@ const QueueAdmin = () => {
                           entry={e}
                           tone="waiting"
                           onMove={() => doMove(e.id, "proceed")}
-                          onComplete={() => doComplete(e.id)}
+                          onComplete={() => doComplete(e)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}
@@ -245,7 +247,7 @@ const QueueAdmin = () => {
                           entry={e}
                           tone="proceed"
                           onMove={() => doMove(e.id, "waiting")}
-                          onComplete={() => doComplete(e.id)}
+                          onComplete={() => doComplete(e)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}
