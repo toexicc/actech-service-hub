@@ -1,134 +1,283 @@
-import { useNavigate } from "react-router-dom";
-import { useQueueEntries, moveQueueEntry } from "@/hooks/useQueueEntries";
+import { useMemo, useState } from "react";
+import { useQueueEntries, moveQueueEntry, type QueueEntry } from "@/hooks/useQueueEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, ArrowRight, ExternalLink, Clock } from "lucide-react";
+import { CompleteIntakeModal } from "@/components/CompleteIntakeModal";
+import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, Search } from "lucide-react";
+
+const PAGE_SIZE = 10;
+
+const statusMeta: Record<string, { label: string; className: string }> = {
+  waiting: { label: "Waiting", className: "border-blue-400 text-blue-700" },
+  proceed: { label: "Proceed", className: "border-emerald-400 text-emerald-700" },
+  completed: { label: "Completed", className: "border-slate-400 text-slate-600" },
+  cancelled: { label: "Cancelled", className: "border-destructive/50 text-destructive" },
+};
+
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${mm}/${dd}/${d.getFullYear()} ${d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+};
+
+const inRange = (iso: string, range: string) => {
+  if (range === "all") return true;
+  const d = new Date(iso);
+  const now = new Date();
+  const start = new Date(now);
+  if (range === "today") start.setHours(0, 0, 0, 0);
+  else if (range === "7d") start.setDate(now.getDate() - 7);
+  else if (range === "month") {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+  }
+  return d >= start;
+};
 
 /**
- * Inline queue panel used inside the Service Tracker's "Intake" tab.
- * Public /intake submissions land here first — front-desk admins turn them
- * into real services from the Queue Console or by clicking "Complete Intake".
+ * Intake tracker — table view of every public /intake submission (pending and
+ * completed) with date/status filters, search, and inline actions.
  */
 export const IntakeQueuePanel = () => {
-  const { entries, loading } = useQueueEntries({ activeOnly: true });
+  const { entries, loading } = useQueueEntries({ activeOnly: false });
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [range, setRange] = useState("all");
+  const [page, setPage] = useState(1);
+  const [active, setActive] = useState<QueueEntry | null>(null);
 
-  const move = async (id: string, status: "waiting" | "proceed" | "cancelled") => {
-    const { error } = await moveQueueEntry(id, status);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return entries
+      .filter((e) => (status === "all" ? true : e.status === status))
+      .filter((e) => inRange(e.created_at, range))
+      .filter((e) =>
+        !q
+          ? true
+          : [e.display_code, e.client_name, e.contact_number, e.service_id]
+              .filter(Boolean)
+              .some((v) => String(v).toLowerCase().includes(q)),
+      )
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  }, [entries, search, status, range]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const rows = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+
+  const move = async (id: string, next: "waiting" | "proceed" | "cancelled") => {
+    const { error } = await moveQueueEntry(id, next);
     if (error) toast({ title: "Failed", description: error.message, variant: "destructive" });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-blue-200/60 bg-blue-50/40 p-4">
-        <div>
-          <div className="text-sm font-semibold text-blue-700">Public Intake Queue</div>
-          <p className="text-xs text-muted-foreground">
-            New submissions from the customer-facing /intake page appear here. Click
-            "Complete Intake" to turn a queue entry into a full service — it will then
-            move into the tracker.
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => navigate("/queueing")}>
-          <ExternalLink className="h-4 w-4 mr-1" /> Open Queue Console
-        </Button>
+      <div className="rounded-2xl border border-blue-200/60 bg-blue-50/40 p-4">
+        <div className="text-sm font-semibold text-blue-700">Intake Tracker</div>
+        <p className="text-xs text-muted-foreground">
+          Every submission from the customer-facing /intake page. Click "Complete
+          Intake" to finish it into a full service without leaving this page.
+        </p>
       </div>
 
-      {loading ? (
-        <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-          Loading queue…
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search queue #, name, phone, service ID"
+            className="pl-8 w-72"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
         </div>
-      ) : entries.length === 0 ? (
-        <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-          No customers in the queue.
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {entries.map((e) => (
-            <div
-              key={e.id}
-              className={`rounded-2xl border p-4 ${
-                e.status === "proceed"
-                  ? "border-emerald-200 bg-emerald-50/50"
-                  : "border-blue-200 bg-blue-50/50"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div
-                    className={`text-2xl font-black ${
-                      e.status === "proceed" ? "text-emerald-600" : "text-blue-600"
-                    }`}
-                  >
-                    {e.display_code}
-                  </div>
-                  <div className="text-sm font-medium">{e.client_name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {[e.device_type, e.brand, e.model].filter(Boolean).join(" • ") || "—"}
-                  </div>
-                  {e.contact_number && (
-                    <div className="text-xs text-muted-foreground">
-                      📞 {e.contact_number}
-                    </div>
-                  )}
-                  {e.chief_complaint && (
-                    <div className="mt-2 text-xs text-foreground/70 line-clamp-2">
-                      "{e.chief_complaint}"
-                    </div>
-                  )}
-                </div>
-                <Badge
-                  variant="outline"
-                  className={
-                    e.status === "proceed"
-                      ? "border-emerald-400 text-emerald-700"
-                      : "border-blue-400 text-blue-700"
-                  }
-                >
-                  <Clock className="h-3 w-3 mr-1" />
-                  {e.status === "proceed" ? "Proceed" : "Waiting"}
-                </Badge>
-              </div>
+        <Select
+          value={status}
+          onValueChange={(v) => {
+            setStatus(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="waiting">Waiting</SelectItem>
+            <SelectItem value="proceed">Proceed</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={range}
+          onValueChange={(v) => {
+            setRange(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All dates</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="month">This month</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">{filtered.length} record(s)</span>
+      </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/service-form?queueId=${e.id}`)}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Complete Intake
-                </Button>
-                {e.status === "waiting" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => move(e.id, "proceed")}
-                  >
-                    <ArrowRight className="h-3.5 w-3.5 mr-1" /> Proceed
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => move(e.id, "waiting")}
-                  >
-                    Back to Waiting
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => move(e.id, "cancelled")}
-                >
-                  <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
-                </Button>
-              </div>
-            </div>
-          ))}
+      <div className="rounded-2xl border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Queue #</TableHead>
+              <TableHead>Submitted</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Device</TableHead>
+              <TableHead>Complaint</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Service ID</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                  Loading intake records…
+                </TableCell>
+              </TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                  No intake submissions match these filters.
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((e) => {
+                const meta = statusMeta[e.status] ?? statusMeta.waiting;
+                const open = e.status === "waiting" || e.status === "proceed";
+                return (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-semibold text-blue-600">{e.display_code}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {fmtDate(e.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">{e.client_name}</div>
+                      <div className="text-xs text-muted-foreground">{e.contact_number || "—"}</div>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {[e.device_type, e.brand, e.model].filter(Boolean).join(" • ") || "—"}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] truncate text-xs text-foreground/70">
+                      {e.chief_complaint || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={meta.className}>
+                        {meta.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">{e.service_id || "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        {open && (
+                          <>
+                            <Button size="sm" onClick={() => setActive(e)}>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Complete
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                move(e.id, e.status === "waiting" ? "proceed" : "waiting")
+                              }
+                            >
+                              {e.status === "waiting" ? (
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => move(e.id, "cancelled")}
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-end gap-2 text-sm">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={current === 1}
+            onClick={() => setPage(current - 1)}
+          >
+            Previous
+          </Button>
+          <span className="text-muted-foreground">
+            Page {current} of {pageCount}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={current === pageCount}
+            onClick={() => setPage(current + 1)}
+          >
+            Next
+          </Button>
         </div>
       )}
+
+      <CompleteIntakeModal
+        queueId={active?.id ?? null}
+        displayCode={active?.display_code}
+        onOpenChange={(open) => !open && setActive(null)}
+        onCompleted={() =>
+          toast({ title: "Intake completed", description: "Service created from the queue entry." })
+        }
+      />
     </div>
   );
 };
