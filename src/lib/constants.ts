@@ -83,6 +83,7 @@ export const DEVICE_TYPES_BY_DEPARTMENT: Record<string, string[]> = {
 };
 
 export const PRIORITY_OPTIONS = [
+  "Within The Day",
   "Rush (with 10% Rush Fee)",
   "Loyalty",
   "Normal"
