@@ -46,7 +46,7 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   email: z.string().optional(),
   phone: z.string().min(1, "Phone is required"),
   deviceType: z.string().min(1, "Device Type is required"),
-  serial: z.string().min(1, "Serial is required"),
+  serial: isPublic ? z.string().optional() : z.string().min(1, "Serial is required"),
   brand: z.string().min(1, "Brand is required"),
   color: z.string().min(1, "Color is required"),
   model: z.string().min(1, "Model is required"),
