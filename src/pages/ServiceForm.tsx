@@ -91,6 +91,7 @@ const ServiceForm = () => {
   const [signatureUrl, setSignatureUrl] = useState("");
   const signatureRef = useRef<SignatureCanvasRef>(null);
   const [annotationImageUrl, setAnnotationImageUrl] = useState("");
+  const [isFormattingComplaint, setIsFormattingComplaint] = useState(false);
 
   // Use React Query for staff data
   const { data: staffData = [] } = useStaff();
