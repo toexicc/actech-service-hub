@@ -257,6 +257,17 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
     })();
   }, [queueId, isPublic, prefilledQueueId, form, toast]);
 
+  // Kiosk confirmation countdown — returns the station to a blank /intake form.
+  useEffect(() => {
+    if (!kioskCode) return;
+    const tick = setInterval(() => setKioskCountdown((c) => c - 1), 1000);
+    const done = setTimeout(() => setKioskCode(null), 5000);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(done);
+    };
+  }, [kioskCode]);
+
 
   const generateServiceId = () => {
     const now = new Date();
