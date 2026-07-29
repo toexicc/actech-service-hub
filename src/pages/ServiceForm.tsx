@@ -247,7 +247,7 @@ const ServiceForm = () => {
         form.setValue("username", customer.username || "");
         form.setValue("phone", customer.phone || "");
         form.setValue("email", customer.email || "");
-        form.setValue("clientType", "Returning Client");
+        form.setValue("clientType", "Returning Client - Walk In");
         form.setValue("priority", "Loyalty");
         toast({
           title: "Success",
