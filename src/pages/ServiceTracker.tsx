@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
+import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
 import { useServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
 
