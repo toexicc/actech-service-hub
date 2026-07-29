@@ -22,6 +22,7 @@ import { DEVICE_TYPES, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
+import QRCode from "qrcode";
 import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
@@ -46,7 +47,7 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   email: z.string().optional(),
   phone: z.string().min(1, "Phone is required"),
   deviceType: z.string().min(1, "Device Type is required"),
-  serial: z.string().min(1, "Serial is required"),
+  serial: isPublic ? z.string().optional() : z.string().min(1, "Serial is required"),
   brand: z.string().min(1, "Brand is required"),
   color: z.string().min(1, "Color is required"),
   model: z.string().min(1, "Model is required"),
@@ -108,7 +109,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const [isFormattingComplaint, setIsFormattingComplaint] = useState(false);
   // Kiosk confirmation overlay (public /intake only)
   const [kioskCode, setKioskCode] = useState<string | null>(null);
-  const [kioskCountdown, setKioskCountdown] = useState(5);
+  const [kioskCountdown, setKioskCountdown] = useState(10);
+  const [kioskQr, setKioskQr] = useState<string | null>(null);
 
 
   // Use React Query for staff data
@@ -259,9 +261,18 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
   // Kiosk confirmation countdown — returns the station to a blank /intake form.
   useEffect(() => {
-    if (!kioskCode) return;
+    if (!kioskCode) {
+      setKioskQr(null);
+      return;
+    }
+    QRCode.toDataURL(
+      `https://actechrepair-service.com/queue?entry=${encodeURIComponent(kioskCode)}`,
+      { width: 420, margin: 1 },
+    )
+      .then(setKioskQr)
+      .catch(() => setKioskQr(null));
     const tick = setInterval(() => setKioskCountdown((c) => c - 1), 1000);
-    const done = setTimeout(() => setKioskCode(null), 5000);
+    const done = setTimeout(() => setKioskCode(null), 10000);
     return () => {
       clearInterval(tick);
       clearTimeout(done);
@@ -395,7 +406,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         setAnnotationImageUrl("");
         signatureRef.current?.clear();
         // Kiosk mode: show only the queue number for a few seconds, then reset.
-        setKioskCountdown(5);
+        setKioskCountdown(10);
         setKioskCode(inserted.display_code);
 
       } catch (e) {
@@ -1245,6 +1256,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>Chief Complaint:</FormLabel>
+                    {!isPublic && (
                     <Button
                       type="button"
                       size="sm"
@@ -1284,6 +1296,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                         "Format with AI"
                       )}
                     </Button>
+                    )}
                   </div>
                   <FormControl>
                     <Textarea {...field} rows={4} />
@@ -1428,6 +1441,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   )}
                 />
 
+                {!isPublic && (
                 <FormField
                   control={form.control}
                   name="enablePhotoAnnotation"
@@ -1440,9 +1454,10 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     </FormItem>
                   )}
                 />
+                )}
               </div>
 
-              {form.watch("enablePhotoAnnotation") && (
+              {!isPublic && form.watch("enablePhotoAnnotation") && (
                 <div className="mt-4 space-y-4">
                   <FormField
                     control={form.control}
@@ -1735,13 +1750,25 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           <p className="text-lg font-medium uppercase tracking-[0.3em] text-muted-foreground">
             Your queue number
           </p>
-          <div className="mt-4 text-[8rem] font-black leading-none text-blue-600 md:text-[12rem]">
+          <div className="mt-4 text-[7rem] font-black leading-none text-blue-600 md:text-[10rem]">
             {kioskCode}
           </div>
           <p className="mt-6 max-w-xl text-xl text-foreground/80">
             Please take a seat and watch the queue screen. Your number will be
             called shortly — approach the front desk when it appears.
           </p>
+          {kioskQr && (
+            <div className="mt-6 flex flex-col items-center">
+              <img
+                src={kioskQr}
+                alt={`QR code to view the live queue for ${kioskCode}`}
+                className="h-44 w-44 rounded-2xl border bg-white p-2 md:h-52 md:w-52"
+              />
+              <p className="mt-3 max-w-sm text-sm text-muted-foreground">
+                Scan to watch the live queue on your phone.
+              </p>
+            </div>
+          )}
           <p className="mt-8 text-sm text-muted-foreground">
             Returning to the form in {Math.max(kioskCountdown, 0)}s
           </p>
