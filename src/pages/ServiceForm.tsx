@@ -1285,6 +1285,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                         "Format with AI"
                       )}
                     </Button>
+                    )}
                   </div>
                   <FormControl>
                     <Textarea {...field} rows={4} />
