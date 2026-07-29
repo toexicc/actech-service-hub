@@ -406,7 +406,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         setAnnotationImageUrl("");
         signatureRef.current?.clear();
         // Kiosk mode: show only the queue number for a few seconds, then reset.
-        setKioskCountdown(5);
+        setKioskCountdown(10);
         setKioskCode(inserted.display_code);
 
       } catch (e) {
