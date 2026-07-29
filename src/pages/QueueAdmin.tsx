@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
 import {
   Clock,
   ArrowRight,
@@ -101,6 +103,7 @@ const QueueAdmin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("queue");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -146,20 +149,10 @@ const QueueAdmin = () => {
             <div>
               <CardTitle className="text-2xl font-bold">Queue Console</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Manage the customer queue. Move numbers to "Proceed" when it's their turn,
-                then complete their intake into a full service.
+                Manage the customer queue and turn public intake submissions into full services.
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search name, number, phone"
-                  className="pl-8 w-64"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
               <Button
                 variant="outline"
                 onClick={() => window.open("/queue", "_blank")}
@@ -170,64 +163,89 @@ const QueueAdmin = () => {
           </CardHeader>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Clock className="h-5 w-5 text-blue-600" /> Waiting ({waiting.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {waiting.length === 0 ? (
-                <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-                  {loading ? "Loading…" : "No one is waiting."}
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {waiting.map((e) => (
-                    <Tile
-                      key={e.id}
-                      entry={e}
-                      tone="waiting"
-                      onMove={() => doMove(e.id, "proceed")}
-                      onComplete={() => doComplete(e.id)}
-                      onCancel={() => doCancel(e.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
+          <TabsList className="flex flex-wrap gap-1">
+            <TabsTrigger value="queue">Queue</TabsTrigger>
+            <TabsTrigger value="intake">Intake</TabsTrigger>
+          </TabsList>
 
-          <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <ArrowRight className="h-5 w-5 text-emerald-600" /> Proceed to Front (
-                {proceed.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {proceed.length === 0 ? (
-                <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
-                  {loading ? "Loading…" : "No one called yet."}
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {proceed.map((e) => (
-                    <Tile
-                      key={e.id}
-                      entry={e}
-                      tone="proceed"
-                      onMove={() => doMove(e.id, "waiting")}
-                      onComplete={() => doComplete(e.id)}
-                      onCancel={() => doCancel(e.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="queue" className="space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search name, number, phone"
+                  className="pl-8 w-64"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Clock className="h-5 w-5 text-blue-600" /> Waiting ({waiting.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {waiting.length === 0 ? (
+                    <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+                      {loading ? "Loading…" : "No one is waiting."}
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      {waiting.map((e) => (
+                        <Tile
+                          key={e.id}
+                          entry={e}
+                          tone="waiting"
+                          onMove={() => doMove(e.id, "proceed")}
+                          onComplete={() => doComplete(e.id)}
+                          onCancel={() => doCancel(e.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ArrowRight className="h-5 w-5 text-emerald-600" /> Proceed to Front (
+                    {proceed.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {proceed.length === 0 ? (
+                    <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+                      {loading ? "Loading…" : "No one called yet."}
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      {proceed.map((e) => (
+                        <Tile
+                          key={e.id}
+                          entry={e}
+                          tone="proceed"
+                          onMove={() => doMove(e.id, "waiting")}
+                          onComplete={() => doComplete(e.id)}
+                          onCancel={() => doCancel(e.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="intake">
+            <IntakeQueuePanel />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
