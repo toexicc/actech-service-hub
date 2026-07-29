@@ -1625,6 +1625,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   )}
                 />
 
+                {!isPublic && (
                 <FormField
                   control={form.control}
                   name="physicalSignature"
@@ -1642,9 +1643,10 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     </FormItem>
                   )}
                 />
+                )}
               </div>
 
-              {form.watch("physicalSignature") && (
+              {!isPublic && form.watch("physicalSignature") && (
                 <div className="mt-4">
                   <FormLabel>Client Signature:</FormLabel>
                   <p className="text-sm text-muted-foreground mb-2">
@@ -1665,6 +1667,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   )}
                 </div>
               )}
+
             </div>
 
             {/* Submit Button */}
