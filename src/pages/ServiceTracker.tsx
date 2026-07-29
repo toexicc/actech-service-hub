@@ -81,7 +81,7 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"ongoing" | "completed" | "closed">("ongoing");
+  const [activeTab, setActiveTab] = useState<"all" | "within" | "walkin" | "intake" | "ongoing" | "completed" | "closed">("ongoing");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const itemsPerPage = 15;
 
