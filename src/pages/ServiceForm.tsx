@@ -141,6 +141,7 @@ const ServiceForm = () => {
       adminRep: "",
       receivingStaff: "",
       technician: "",
+      technicianDepartments: "",
       clientType: "",
       priority: "",
       clientName: "",
