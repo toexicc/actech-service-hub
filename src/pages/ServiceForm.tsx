@@ -357,6 +357,13 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
     if (isPublic) {
       setIsSubmitting(true);
       try {
+        const payload: Record<string, any> = {
+          ...(data as unknown as Record<string, any>),
+          // Public users can't write to storage, so images ride along as data URLs.
+          annotationImageUrl: annotationImageUrl || undefined,
+          physicalSignature: false,
+          signatureUrl: undefined,
+        };
         const { data: inserted, error } = await supabase
           .from("queue_entries")
           .insert({
@@ -366,21 +373,20 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
             brand: data.brand,
             model: data.model,
             chief_complaint: data.chiefComplaint,
-            form_payload: data as unknown as Record<string, any>,
+            form_payload: payload,
           })
           .select()
           .single();
         if (error) throw error;
-        toast({
-          title: "You're in the queue!",
-          description: `Your number is ${inserted.display_code}. Please watch the board.`,
-        });
         form.reset();
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
         signatureRef.current?.clear();
-        navigate(`/queue?entry=${encodeURIComponent(inserted.display_code)}`);
+        // Kiosk mode: show only the queue number for a few seconds, then reset.
+        setKioskCountdown(5);
+        setKioskCode(inserted.display_code);
+
       } catch (e) {
         toast({
           title: "Submission failed",
