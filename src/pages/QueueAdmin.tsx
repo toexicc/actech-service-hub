@@ -262,6 +262,17 @@ const QueueAdmin = () => {
             <IntakeQueuePanel />
           </TabsContent>
         </Tabs>
+
+        <CompleteIntakeModal
+          queueId={completing?.id ?? null}
+          displayCode={completing?.display_code}
+          onOpenChange={(open) => !open && setCompleting(null)}
+          onCompleted={() => {
+            toast({ title: "Intake completed", description: "Service created and queue cleared." });
+            refetch();
+          }}
+        />
+
       </div>
     </div>
   );
