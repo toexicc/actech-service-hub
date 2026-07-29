@@ -1385,9 +1385,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                      })}
                   </TableBody>
                 </Table>
-              </div>
+               </div>
               </>
-            ))}
+            )}
 
 
             {!isLoading && filteredAndSortedServices.length > 0 && (
