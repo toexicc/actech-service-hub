@@ -1058,10 +1058,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
           <CardHeader>
             <CardTitle>
-              {activeTab === "completed" ? "Completed Services" : activeTab === "closed" ? "Cancelled / RTO / On Hold" : "Ongoing Services"}
+              {activeTab === "completed"
+                ? "Completed Services"
+                : activeTab === "closed"
+                ? "Cancelled / RTO / On Hold"
+                : activeTab === "all"
+                ? "All Services"
+                : activeTab === "within"
+                ? "Within The Day"
+                : activeTab === "walkin"
+                ? "Walk-In Services"
+                : activeTab === "intake"
+                ? "Public Intake Submissions"
+                : "Ongoing Services"}
             </CardTitle>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
-              <TabsList>
+              <TabsList className="flex flex-wrap gap-1">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="within">Within the Day</TabsTrigger>
+                <TabsTrigger value="walkin">Walk In</TabsTrigger>
+                <TabsTrigger value="intake">Intake</TabsTrigger>
                 <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
                 <TabsTrigger value="closed">Cancelled / RTO / On Hold</TabsTrigger>
