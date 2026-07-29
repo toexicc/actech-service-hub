@@ -219,16 +219,29 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         .maybeSingle();
       if (!entry) return;
       const payload = (entry.form_payload || {}) as Record<string, any>;
+      // Restore EVERY known form field from the payload (booleans included).
       const fields: (keyof FormValues)[] = [
-        "clientName", "phone", "email", "username", "deviceType", "brand", "model",
-        "color", "memory", "serial", "chiefComplaint", "devicePassword",
+        "clientId", "clientName", "phone", "email", "username", "deviceType", "brand", "model",
+        "color", "memory", "serial", "chiefComplaint", "devicePassword", "timeFrame",
         "dents", "scratches", "missingParts", "physicalDamage", "importantFiles",
-        "noPower", "repairHistory", "physicalSignature", "annotationNotes",
+        "noPower", "repairHistory", "physicalSignature",
+        "ack1", "ack2", "ack3",
+        "enablePhotoAnnotation", "annotationDeviceType", "annotationNotes",
       ];
       fields.forEach((k) => {
         const v = payload[k as string];
-        if (v !== undefined && v !== null && v !== "") form.setValue(k as any, v);
+        if (v === undefined || v === null) return;
+        if (typeof v === "boolean") form.setValue(k as any, v);
+        else if (v !== "") form.setValue(k as any, v);
       });
+      if (payload.ack1 && payload.ack2 && payload.ack3) setTermsRead(true);
+      // Rehydrate captured images (stored as data URLs in the queue payload).
+      if (payload.annotationImageUrl) setAnnotationImageUrl(payload.annotationImageUrl);
+      if (payload.signatureUrl) {
+        setSignatureUrl(payload.signatureUrl);
+        form.setValue("physicalSignature", true);
+      }
+
       // Prefer the direct columns as source of truth when available.
       if (entry.client_name) form.setValue("clientName", entry.client_name);
       if (entry.contact_number) form.setValue("phone", entry.contact_number);
