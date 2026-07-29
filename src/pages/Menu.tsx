@@ -357,6 +357,12 @@ const Menu = () => {
         icon: Monitor,
         path: "/tech-dashboard",
       },
+      {
+        title: "Queue Console",
+        description: "Manage the customer intake queue",
+        icon: Clock,
+        path: "/queueing",
+      },
     ];
 
     if (userRole === "management") {

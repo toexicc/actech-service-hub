@@ -1,50 +1,129 @@
-## 1. Duplicate "Dashboard" tab in the Workbench tab bar
 
-Root cause (verified in code):
-- `WorkbenchContext.tsx` seeds a pinned Home tab with `id: "home"`, `path: "/menu"`.
-- The sidebar Dashboard button in `DashboardLayout.tsx` opens it as `id: "page:/menu"`. `openTab` dedupes by `id`, so a second tab is appended.
+## Goal
 
-Fix:
-- In `DashboardLayout.tsx`, when a nav item's path equals `/menu`, open it with `id: "home"` so it reuses the pinned Home tab.
-- Harden `WorkbenchContext.openTab`: before appending, if any existing tab has the same `path`, activate that tab instead of creating a new one. This also stops future duplicates from any other call site.
+Replace the current "public intake → service" direct flow with an intake → queue → admin verification → service pipeline, plus two new pages (`/queue` public display, `/queueing` admin console).
 
-## 2. Every workbench tab "reloads" on switch (app-wide)
+```text
+/intake (customer)  ──►  queue #  ──►  /queue (public display)
+                                       │
+                                       └──►  /queueing (admin) ──► Completion Modal (prefilled Client Intake Form) ──► /service-tracker
+```
 
-Root cause (verified): the workbench uses one shared `<Routes>` outlet in `App.tsx`. Switching a workbench tab calls `navigate(tab.path)`, which unmounts the previous page component and mounts the new one from scratch. React Query keeps data cached, but component state (scroll, form drafts, expanded rows, filters, search text, `activeTab` in nested pages) is lost every time — this is what feels like a reload.
+---
 
-Fix — real IDE-style keep-alive:
-- Extract the current per-page route table (`/menu`, `/pos`, `/service-form`, `/manage-client`, `/service-update`, `/service-tracker`, `/service-tracking` (internal), `/inventory-management`, `/customer-management`, `/staff-management`, `/completed-transactions`, `/transaction-tracker`, `/tech-dashboard`, `/admin-dashboard`, `/request-for-parts`, `/salary-disbursement`, `/attendance-overview`) into a shared `workbenchRoutes` array of `{ pattern, element, roles? }`.
-- Add a new `WorkbenchOutlet` component rendered inside `DashboardLayout` (replacing the single `<Outlet />`-like slot for authenticated pages). For every currently open tab in `WorkbenchContext`, it renders that tab's page element inside its own div, wrapped so that:
-  - The active tab's div is visible.
-  - Inactive tabs' divs stay mounted but hidden (`hidden` attribute + `aria-hidden`), preserving their component tree, refs, scroll position, and internal state.
-  - Each tab wrapper uses a stable `key={tab.id}` so React never reconciles two different pages into the same instance.
-- Matching: for each tab.path, find the first route in `workbenchRoutes` whose pattern matches (support `:serviceId`-style params via `matchPath` from `react-router-dom`). The matched element is rendered inside a lightweight `<MemoryRouter>`-free context: the URL used for `useLocation`/`useSearchParams` inside the page needs to reflect that tab's own path, not the global URL. To keep this simple and avoid nested router complexity, tabs will render against the browser URL only when they are active; inactive tabs render against their last-known path via a small `TabLocationProvider` that overrides `useLocation`/`useSearchParams` for hidden tabs. Pages that only read `useLocation()` for the current pathname will continue to work because that value is captured on mount and stays stable while hidden.
-- Public/unauth routes (`/`, `/track`, `/track/:serviceId`, `/install`, `/attendance`, `/intake`) stay on the ordinary `<Routes>` path and are NOT part of the workbench keep-alive. They will remount normally, since they're not part of the tabbed shell.
-- When a tab is closed via `closeTab`, its wrapper is unmounted and its state is discarded — expected.
-- Memory guardrail: cap simultaneously mounted tabs at 12. When opening a 13th, close-and-unmount the least-recently-active non-pinned tab. Home is always pinned.
+## 1. `/intake` (public client-facing form)
 
-Secondary cleanup enabled by this change:
-- The `ServiceTracker` internal `activeTab` state will now survive tab switches naturally, so no URL-param workaround is needed. The existing "reset `currentPage` to 1 when `activeTab` changes" effect can stay as-is.
+Edit `src/pages/ServiceForm.tsx` when `isPublic === true`:
 
-## 3. Improve the AI Chief Complaint formatter
+- **Hide** Client Type and Priority fields (server-side default them to `"New Client - Walk In"` / `"Normal"` on the queue payload so nothing breaks downstream).
+- **AI Formatter button** on the Chief Complaint textarea. Reuse the existing `format-complaint` edge function but pass a `mode: "brief"` flag. Server prompt becomes: *"Rewrite the customer's complaint into 1–2 concise sentences. No diagnosis, no suggestions."* Existing internal form keeps the 3-sentence mode.
+- **On submit (public only)**: do NOT insert into `services`. Instead insert one row into a new `queue_entries` table with the full form payload as JSONB and get back a queue number. Redirect to `/queue?number=<n>` and show a large confirmation card ("Your queue number is A-042").
 
-Update the `supabase/functions/format-complaint/index.ts` system prompt to a short but useful intake note:
-- Sentence 1: concise professional restatement of the complaint.
-- Sentence 2: brief likely context/cause, hedged with "Likely" or "Possibly".
-- Sentence 3 (optional, only when clearly applicable): a first troubleshooting or repair direction as "Suggested check: …".
-- Hard cap 3 sentences, plain text, no markdown/headers, no invented model numbers, part numbers, or prices.
-- Keep temperature low (0.3) and preserve the existing "no em dashes" rules.
+---
 
-No client-side change needed.
+## 2. New table `queue_entries`
+
+```sql
+create table public.queue_entries (
+  id uuid primary key default gen_random_uuid(),
+  queue_number int generated by default as identity,       -- sequential, resets via admin action
+  display_code text,                                        -- e.g. "A-042"
+  status text not null default 'waiting',                   -- waiting | proceed | completed | cancelled
+  client_name text not null,
+  contact_number text,
+  device_type text,
+  brand text,
+  model text,
+  chief_complaint text,
+  form_payload jsonb not null,                              -- full intake form snapshot
+  service_id text,                                          -- set when converted
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+- GRANTs: `anon` gets `INSERT` (public submissions) + `SELECT` (public display), `authenticated`/`service_role` full access.
+- RLS: anon can insert; anon can select only non-completed/non-cancelled rows; authenticated (admin/management) full access via `is_admin_or_management`.
+- Enable Realtime on the table for live /queue and /queueing updates.
+- Trigger to set `display_code` (e.g. daily prefix + padded number) and bump `updated_at`.
+
+---
+
+## 3. `/queue` — public display page
+
+New `src/pages/QueueDisplay.tsx`, unauthenticated route in `App.tsx`.
+
+Two-column glass layout:
+
+| Waiting / Pending          | Proceed to Front           |
+|----------------------------|----------------------------|
+| Large queue-number tiles   | Large queue-number tiles   |
+| status = `waiting`         | status = `proceed`         |
+
+- Subscribe to `queue_entries` via Supabase Realtime; newest at top.
+- Highlight animation when a number moves to "Proceed to Front".
+- Optional `?number=X` param shows a "You are number X" hero at the top for the customer that just submitted.
+
+---
+
+## 4. `/queueing` — admin queue console
+
+New `src/pages/QueueAdmin.tsx`, protected + admin/management only, registered in the workbench route table.
+
+- Same two-column layout but each tile has actions:
+  - **Move → Proceed to Front** (status `waiting` → `proceed`)
+  - **Move → Waiting** (undo)
+  - **Complete Intake** → opens Completion Modal (below)
+  - **Cancel** (soft close; disappears from public /queue)
+- Search/filter by name or number.
+- Header shows counts and a "Reset day" action for admins.
+
+---
+
+## 5. Completion Modal (admin verification of intake)
+
+New `src/components/queue/CompleteIntakeModal.tsx`. Reuses the existing internal Client Intake Form fields from `ServiceForm.tsx` by extracting the field JSX into a shared `<IntakeFormFields />` component so both `/intake` (public), `/service-form` (staff), and the modal share one source of truth.
+
+Behavior:
+
+- Prefilled from `queue_entries.form_payload`.
+- Admin fills the fields hidden from the public form (Client Type, Priority, Technician Department for auto-assignment, Admin Rep, Receiving Staff, Estimated Cost, Target Date, etc.).
+- On confirm:
+  1. Run the existing "create service" path (same code that non-public submission uses today) — this writes to `services`, runs auto-assign, notifications, activity log, generates `service_id`.
+  2. Update the `queue_entries` row: `status = 'completed'`, `service_id = <new id>`.
+  3. Close modal, toast success, remove tile from queue.
+
+---
+
+## 6. Service Tracker "Intake" tab
+
+Edit `src/pages/ServiceTracker.tsx`:
+
+- Replace the current filter (services where `source` contains "Public Intake") with a query against `queue_entries` where `status in ('waiting','proceed')`.
+- Render intake rows as cards with a "Complete Intake" button that opens the same Completion Modal. After completion the row disappears (it's now a real service in the other tabs).
+- Count badge on the tab reflects pending queue entries.
+
+---
+
+## 7. Sidebar / Command Palette / Menu
+
+- Add "Queue Display" (`/queue`, external-open-friendly) and "Queue Console" (`/queueing`) to `DashboardLayout.tsx` sidebar and `CommandPalette.tsx`.
+- Add a "Queue Console" quick action card on `Menu.tsx` for admin/management roles.
+
+---
 
 ## Technical notes
 
-- Files touched:
-  - `src/App.tsx` — split public routes from workbench routes; render `DashboardLayout` with the workbench outlet for the authenticated route group.
-  - `src/components/workbench/workbenchRoutes.ts` (new) — shared route table + role guards.
-  - `src/components/workbench/WorkbenchOutlet.tsx` (new) — keep-alive renderer.
-  - `src/components/workbench/WorkbenchContext.tsx` — path-based dedupe in `openTab`; expose LRU order for the mount cap.
-  - `src/components/DashboardLayout.tsx` — nav Dashboard button uses `id: "home"`; embeds `WorkbenchOutlet`.
-  - `supabase/functions/format-complaint/index.ts` — new prompt; requires redeploy.
-- No schema, RLS, data model, or auth changes.
-- Risks: pages that call `useNavigate()` from inside a hidden tab could still fire (e.g., a background timer). Mitigation: pages already gate side effects on visibility/focus where relevant; if any regressions surface, we can add a `useIsTabActive()` hook to short-circuit background work in inactive tabs.
+- **AI formatter mode**: `supabase/functions/format-complaint/index.ts` accepts `{ text, mode: "brief" | "detailed" }`. Default remains detailed for the internal form; public form sends `"brief"`.
+- **Sequential queue numbers**: identity column on `queue_entries` gives monotonically increasing numbers. `display_code` computed in trigger as `to_char(created_at, 'YYYYMMDD') || '-' || lpad(seq_of_day, 3, '0')` so numbers restart visually per day while keeping unique ids.
+- **Shared intake fields component**: extract `<IntakeFormFields formMode="public" | "staff" | "complete" />` from `ServiceForm.tsx`. Mode controls which fields render (public hides ClientType/Priority; complete shows everything). Keeps validation logic in one place.
+- **Realtime**: enable on `queue_entries` via `alter publication supabase_realtime add table public.queue_entries` in the migration.
+- **Public `/intake` protection**: currently `/intake` is behind `ProtectedRoute` in `App.tsx`. Confirm with customer flow that it should be public — plan removes the `ProtectedRoute` wrapper for `/intake` and `/queue`.
+- No changes to `services` table schema; conversion just uses the existing insert path.
+
+---
+
+## Files touched
+
+- New: `src/pages/QueueDisplay.tsx`, `src/pages/QueueAdmin.tsx`, `src/components/queue/CompleteIntakeModal.tsx`, `src/components/intake/IntakeFormFields.tsx`, `src/hooks/useQueueEntries.ts`, migration for `queue_entries`.
+- Edited: `src/App.tsx`, `src/pages/ServiceForm.tsx`, `src/pages/ServiceTracker.tsx`, `src/components/DashboardLayout.tsx`, `src/components/CommandPalette.tsx`, `src/pages/Menu.tsx`, `src/components/workbench/workbenchRoutes.tsx`, `supabase/functions/format-complaint/index.ts`.

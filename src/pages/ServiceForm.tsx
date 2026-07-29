@@ -39,8 +39,8 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   technicianDepartments: isPublic
     ? z.string().optional()
     : z.string().min(1, "Select at least one Technician Department"),
-  clientType: z.string().min(1, "Client Type is required"),
-  priority: z.string().min(1, "Priority is required"),
+  clientType: isPublic ? z.string().optional() : z.string().min(1, "Client Type is required"),
+  priority: isPublic ? z.string().optional() : z.string().min(1, "Priority is required"),
   clientName: z.string().min(1, "Client Name is required"),
   username: z.string().optional(),
   email: z.string().optional(),
@@ -79,6 +79,7 @@ const ServiceForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isPublic = location.pathname === "/intake";
+  const queueId = useMemo(() => new URLSearchParams(location.search).get("queueId"), [location.search]);
   const activeSchema = useMemo(() => buildFormSchema(isPublic), [isPublic]);
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
@@ -189,6 +190,44 @@ const ServiceForm = () => {
     }
   }, [loggedInUserRole, loggedInUserFullName, adminList, form]);
 
+  // Prefill from a queue entry when admin completes a public intake into a real service.
+  const [prefilledQueueId, setPrefilledQueueId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!queueId || isPublic || prefilledQueueId === queueId) return;
+    (async () => {
+      const { data: entry } = await supabase
+        .from("queue_entries")
+        .select("*")
+        .eq("id", queueId)
+        .maybeSingle();
+      if (!entry) return;
+      const payload = (entry.form_payload || {}) as Record<string, any>;
+      const fields: (keyof FormValues)[] = [
+        "clientName", "phone", "email", "username", "deviceType", "brand", "model",
+        "color", "memory", "serial", "chiefComplaint", "devicePassword",
+        "dents", "scratches", "missingParts", "physicalDamage", "importantFiles",
+        "noPower", "repairHistory", "physicalSignature", "annotationNotes",
+      ];
+      fields.forEach((k) => {
+        const v = payload[k as string];
+        if (v !== undefined && v !== null && v !== "") form.setValue(k as any, v);
+      });
+      // Prefer the direct columns as source of truth when available.
+      if (entry.client_name) form.setValue("clientName", entry.client_name);
+      if (entry.contact_number) form.setValue("phone", entry.contact_number);
+      if (entry.device_type) form.setValue("deviceType", entry.device_type);
+      if (entry.brand) form.setValue("brand", entry.brand);
+      if (entry.model) form.setValue("model", entry.model);
+      if (entry.chief_complaint) form.setValue("chiefComplaint", entry.chief_complaint);
+      setPrefilledQueueId(queueId);
+      toast({
+        title: `Completing ${entry.display_code}`,
+        description: "Customer's details are pre-filled. Add staff, priority, and diagnostic info.",
+      });
+    })();
+  }, [queueId, isPublic, prefilledQueueId, form, toast]);
+
+
   const generateServiceId = () => {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
@@ -283,6 +322,47 @@ const ServiceForm = () => {
   });
 
   const onSubmit = async (data: FormValues) => {
+    // Public /intake path: submit into the queue instead of creating a full service.
+    // Front-desk staff will complete it into a real service from /queueing.
+    if (isPublic) {
+      setIsSubmitting(true);
+      try {
+        const { data: inserted, error } = await supabase
+          .from("queue_entries")
+          .insert({
+            client_name: data.clientName,
+            contact_number: data.phone,
+            device_type: data.deviceType,
+            brand: data.brand,
+            model: data.model,
+            chief_complaint: data.chiefComplaint,
+            form_payload: data as unknown as Record<string, any>,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        toast({
+          title: "You're in the queue!",
+          description: `Your number is ${inserted.display_code}. Please watch the board.`,
+        });
+        form.reset();
+        setTermsRead(false);
+        setSignatureUrl("");
+        setAnnotationImageUrl("");
+        signatureRef.current?.clear();
+        navigate(`/queue?entry=${encodeURIComponent(inserted.display_code)}`);
+      } catch (e) {
+        toast({
+          title: "Submission failed",
+          description: e instanceof Error ? e.message : "Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     // Validate signature if required
     if (data.physicalSignature && (!signatureUrl || (signatureRef.current?.isEmpty() ?? true))) {
       toast({
@@ -647,6 +727,16 @@ const ServiceForm = () => {
             activity: `${isPublic ? "Public client intake submitted" : "New service created"} - Client: ${data.clientName}, Device: ${data.deviceType} ${data.brand} ${data.model}, Technician: ${data.technician || "TBD"}, Priority: ${data.priority}`,
           }),
         ]).catch(() => {});
+
+        // If this admin submission is completing a queue entry, mark it done
+        // so it drops off /queue and /queueing automatically.
+        if (queueId) {
+          supabase
+            .from("queue_entries")
+            .update({ status: "completed", service_id: finalServiceId })
+            .eq("id", queueId)
+            .then(() => {});
+        }
       } else {
         throw new Error("Failed to submit form");
       }
@@ -845,54 +935,58 @@ const ServiceForm = () => {
             <div>
               <h2 className="text-xl font-semibold text-blue-600 mb-4">Contact Information</h2>
               <div className="grid md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="clientType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Client Type:</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="New Client - Walk In">New Client - Walk In</SelectItem>
-                          <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
-                          <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
-                          <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
-                          <SelectItem value="Backjob">Backjob</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!isPublic && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="clientType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Client Type:</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="New Client - Walk In">New Client - Walk In</SelectItem>
+                              <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
+                              <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
+                              <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
+                              <SelectItem value="Backjob">Backjob</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority:</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Priority" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Within The Day">Within The Day</SelectItem>
-                          <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
-                          <SelectItem value="Loyalty">Loyalty</SelectItem>
-                          <SelectItem value="Normal">Normal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Priority:</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Priority" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Within The Day">Within The Day</SelectItem>
+                              <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
+                              <SelectItem value="Loyalty">Loyalty</SelectItem>
+                              <SelectItem value="Normal">Normal</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
 
                 <FormField
                   control={form.control}
@@ -1103,47 +1197,45 @@ const ServiceForm = () => {
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>Chief Complaint:</FormLabel>
-                    {!isPublic && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={isFormattingComplaint || !field.value?.trim()}
-                        onClick={async () => {
-                          const raw = field.value?.trim();
-                          if (!raw) return;
-                          setIsFormattingComplaint(true);
-                          try {
-                            const { data: resp, error } = await supabase.functions.invoke(
-                              "format-complaint",
-                              { body: { rawComplaint: raw } },
-                            );
-                            if (error) throw error;
-                            const formatted = (resp as any)?.formattedComplaint;
-                            if (formatted) {
-                              form.setValue("chiefComplaint", formatted, { shouldDirty: true, shouldValidate: true });
-                              toast({ title: "Formatted", description: "Chief complaint rewritten." });
-                            } else {
-                              throw new Error("No formatted text returned");
-                            }
-                          } catch (e) {
-                            toast({
-                              title: "Formatter failed",
-                              description: e instanceof Error ? e.message : "Try again.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsFormattingComplaint(false);
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={isFormattingComplaint || !field.value?.trim()}
+                      onClick={async () => {
+                        const raw = field.value?.trim();
+                        if (!raw) return;
+                        setIsFormattingComplaint(true);
+                        try {
+                          const { data: resp, error } = await supabase.functions.invoke(
+                            "format-complaint",
+                            { body: { rawComplaint: raw, mode: isPublic ? "brief" : "detailed" } },
+                          );
+                          if (error) throw error;
+                          const formatted = (resp as any)?.formattedComplaint;
+                          if (formatted) {
+                            form.setValue("chiefComplaint", formatted, { shouldDirty: true, shouldValidate: true });
+                            toast({ title: "Formatted", description: "Chief complaint rewritten." });
+                          } else {
+                            throw new Error("No formatted text returned");
                           }
-                        }}
-                      >
-                        {isFormattingComplaint ? (
-                          <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Formatting…</>
-                        ) : (
-                          "Format with AI"
-                        )}
-                      </Button>
-                    )}
+                        } catch (e) {
+                          toast({
+                            title: "Formatter failed",
+                            description: e instanceof Error ? e.message : "Try again.",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsFormattingComplaint(false);
+                        }
+                      }}
+                    >
+                      {isFormattingComplaint ? (
+                        <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Formatting…</>
+                      ) : (
+                        "Format with AI"
+                      )}
+                    </Button>
                   </div>
                   <FormControl>
                     <Textarea {...field} rows={4} />

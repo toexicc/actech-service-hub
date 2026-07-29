@@ -695,6 +695,57 @@ export type Database = {
         }
         Relationships: []
       }
+      queue_entries: {
+        Row: {
+          brand: string | null
+          chief_complaint: string | null
+          client_name: string
+          contact_number: string | null
+          created_at: string
+          device_type: string | null
+          display_code: string | null
+          form_payload: Json
+          id: string
+          model: string | null
+          queue_number: number
+          service_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          chief_complaint?: string | null
+          client_name: string
+          contact_number?: string | null
+          created_at?: string
+          device_type?: string | null
+          display_code?: string | null
+          form_payload?: Json
+          id?: string
+          model?: string | null
+          queue_number?: number
+          service_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          chief_complaint?: string | null
+          client_name?: string
+          contact_number?: string | null
+          created_at?: string
+          device_type?: string | null
+          display_code?: string | null
+          form_payload?: Json
+          id?: string
+          model?: string | null
+          queue_number?: number
+          service_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       read_receipts: {
         Row: {
           id: string
