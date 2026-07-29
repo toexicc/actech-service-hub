@@ -1726,13 +1726,37 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       </div>
   );
 
+  if (embedded) return <div className="animate-fade-in">{content}</div>;
+
   return isPublic ? (
     <div className="min-h-screen w-full bg-background">
-      {content}
+      {kioskCode ? (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-6 text-center">
+          <p className="text-lg font-medium uppercase tracking-[0.3em] text-muted-foreground">
+            Your queue number
+          </p>
+          <div className="mt-4 text-[8rem] font-black leading-none text-blue-600 md:text-[12rem]">
+            {kioskCode}
+          </div>
+          <p className="mt-6 max-w-xl text-xl text-foreground/80">
+            Please take a seat and watch the queue screen. Your number will be
+            called shortly — approach the front desk when it appears.
+          </p>
+          <p className="mt-8 text-sm text-muted-foreground">
+            Returning to the form in {Math.max(kioskCountdown, 0)}s
+          </p>
+          <Button className="mt-4" variant="outline" onClick={() => setKioskCode(null)}>
+            Done
+          </Button>
+        </div>
+      ) : (
+        content
+      )}
     </div>
   ) : (
     <DashboardLayout>{content}</DashboardLayout>
   );
+
 };
 
 export default ServiceForm;
