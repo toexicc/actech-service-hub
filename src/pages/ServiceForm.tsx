@@ -1245,6 +1245,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>Chief Complaint:</FormLabel>
+                    {!isPublic && (
                     <Button
                       type="button"
                       size="sm"
