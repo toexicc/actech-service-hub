@@ -586,12 +586,16 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         }
       }
 
-      // Tab filter (Ongoing / Completed / Closed=Cancelled+RTO+OnHold)
+      // Tab filter
       const completed = isCompletedStatus(service.status);
       const closed = isClosedStatus(service.status);
       if (activeTab === "ongoing" && (completed || closed)) return false;
       if (activeTab === "completed" && !completed) return false;
       if (activeTab === "closed" && !closed) return false;
+      if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
+      if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
+      if (activeTab === "intake" && !String(service.source || "").toLowerCase().includes("public intake")) return false;
+      // "all" — no additional filter
 
       // Status filter
       if (statusFilter !== "all" && service.status !== statusFilter) {
