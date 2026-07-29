@@ -48,11 +48,11 @@ const stripMarkdown = (s: string): string =>
     .replace(/\s{2,}/g, " ")
     .trim();
 
-// Clamp to at most 2 sentences.
-const clampToTwoSentences = (s: string): string => {
+// Clamp to at most 3 sentences.
+const clampToThreeSentences = (s: string): string => {
   const matches = s.match(/[^.!?]+[.!?]+/g);
   if (!matches || matches.length === 0) return s;
-  return matches.slice(0, 2).join(" ").trim();
+  return matches.slice(0, 3).join(" ").trim();
 };
 
 serve(async (req) => {
@@ -76,16 +76,21 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are a brief formatter for a device repair intake form.
+    const systemPrompt = `You are an intake-note formatter for a device repair shop.
 
-Rewrite the customer's chief complaint into a concise, professional description.
+Rewrite the customer's chief complaint into a short, professional intake note that also helps the technician.
 
-RULES (strict):
-- Output ONLY the rewritten complaint. No greeting, sign-off, headers, labels, or commentary.
-- Maximum 2 sentences. Prefer 1 sentence if the input is simple.
-- Plain text only. No markdown, no bullets, no numbering, no quotes.
-- Keep the original meaning. Do not invent new symptoms or diagnoses.
-- Use simple, clear language. Third person or neutral phrasing.
+STRUCTURE (in order, plain text, one paragraph):
+- Sentence 1: concise professional restatement of the complaint (no greeting, no labels).
+- Sentence 2: brief likely context or probable cause, hedged with "Likely" or "Possibly". Do not diagnose with certainty.
+- Sentence 3 (optional, only when clearly applicable): a first troubleshooting or repair direction, phrased as "Suggested check: ...".
+
+STRICT RULES:
+- Output ONLY the note. No headings, labels, bullets, numbering, greeting, or sign-off.
+- Maximum 3 sentences total. Skip sentence 3 if not clearly helpful.
+- Plain text only. No markdown, no quotes, no emoji.
+- Do not invent model numbers, part numbers, prices, or symptoms the customer did not mention.
+- Keep the original meaning. Neutral third-person phrasing.
 - No em dashes; use regular hyphens.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -96,7 +101,7 @@ RULES (strict):
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        temperature: 0.2,
+        temperature: 0.3,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Raw complaint:\n${rawComplaint}\n\nRewrite it now following the rules exactly.` },
@@ -119,7 +124,7 @@ RULES (strict):
       });
     }
 
-    const formatted = clampToTwoSentences(stripMarkdown(raw));
+    const formatted = clampToThreeSentences(stripMarkdown(raw));
 
     return new Response(JSON.stringify({ formattedComplaint: formatted }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
