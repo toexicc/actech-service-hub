@@ -294,6 +294,67 @@ const ServiceForm = () => {
 
     setIsSubmitting(true);
 
+    // Auto-assign technicians (internal form only) via round-robin across
+    // the technicians of each selected department. Fair rotation is achieved
+    // by picking the technician with the fewest active services (excluding
+    // Completed / Cancelled / RTO), tie-breaking alphabetically for determinism.
+    if (!isPublic) {
+      const depts = (data.technicianDepartments || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (depts.length > 0) {
+        try {
+          const { data: rows } = await supabase
+            .from("services")
+            .select("technicians,status")
+            .not("status", "in", "(Completed,Cancelled,RTO)");
+          const loadCount = new Map<string, number>();
+          (rows ?? []).forEach((r: any) => {
+            (r.technicians ?? []).forEach((t: string) => {
+              const key = String(t).trim();
+              if (!key) return;
+              loadCount.set(key, (loadCount.get(key) ?? 0) + 1);
+            });
+          });
+          const assigned: string[] = [];
+          for (const dept of depts) {
+            const pool = technicianList.filter((t) => t.department === dept);
+            if (pool.length === 0) continue;
+            const sorted = [...pool].sort((a, b) => {
+              const la = loadCount.get(a.name) ?? 0;
+              const lb = loadCount.get(b.name) ?? 0;
+              if (la !== lb) return la - lb;
+              return a.name.localeCompare(b.name);
+            });
+            const pick = sorted[0].name;
+            if (!assigned.includes(pick)) assigned.push(pick);
+            // Optimistically bump their load so a second dept doesn't pick the same tech.
+            loadCount.set(pick, (loadCount.get(pick) ?? 0) + 1);
+          }
+          if (assigned.length === 0) {
+            toast({
+              title: "No technicians available",
+              description: "None of the selected departments have active technicians.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          data.technician = assigned.join(", ");
+        } catch (e) {
+          toast({
+            title: "Auto-assign failed",
+            description: e instanceof Error ? e.message : "Could not assign a technician.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
+
+
     try {
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, "0");
