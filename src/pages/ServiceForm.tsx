@@ -1430,6 +1430,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   )}
                 />
 
+                {!isPublic && (
                 <FormField
                   control={form.control}
                   name="enablePhotoAnnotation"
@@ -1442,9 +1443,10 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     </FormItem>
                   )}
                 />
+                )}
               </div>
 
-              {form.watch("enablePhotoAnnotation") && (
+              {!isPublic && form.watch("enablePhotoAnnotation") && (
                 <div className="mt-4 space-y-4">
                   <FormField
                     control={form.control}
