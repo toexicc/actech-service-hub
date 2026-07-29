@@ -22,6 +22,7 @@ import { DEVICE_TYPES, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
+import QRCode from "qrcode";
 import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
