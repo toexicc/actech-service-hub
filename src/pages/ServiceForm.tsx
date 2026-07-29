@@ -35,7 +35,10 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   clientId: z.string().optional(),
   adminRep: isPublic ? z.string().optional() : z.string().min(1, "Admin Representative is required"),
   receivingStaff: isPublic ? z.string().optional() : z.string().min(1, "Receiving Staff is required"),
-  technician: isPublic ? z.string().optional() : z.string().min(1, "Technician is required"),
+  technician: z.string().optional(),
+  technicianDepartments: isPublic
+    ? z.string().optional()
+    : z.string().min(1, "Select at least one Technician Department"),
   clientType: z.string().min(1, "Client Type is required"),
   priority: z.string().min(1, "Priority is required"),
   clientName: z.string().min(1, "Client Name is required"),
