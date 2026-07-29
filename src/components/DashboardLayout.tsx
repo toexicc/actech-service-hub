@@ -119,9 +119,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const handleOpenMessaging = () => { messagingPanelRef.current?.openPanel(); };
 
   const handleNavClick = (item: NavItem) => {
-    // Open as a workbench tab so users can jump between pages
+    // Open as a workbench tab so users can jump between pages.
+    // Dashboard reuses the pinned "home" tab id to avoid duplicates.
     openTab({
-      id: `page:${item.path}`,
+      id: item.path === "/menu" ? "home" : `page:${item.path}`,
       title: item.title,
       path: item.path,
       pinned: item.path === "/menu",
