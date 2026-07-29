@@ -62,16 +62,23 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, location.search, tabs, activeId]);
 
   const openTab = useCallback((tab: WorkbenchTab) => {
+    let resolvedId = tab.id;
     setTabs((prev) => {
-      const idx = prev.findIndex((t) => t.id === tab.id);
+      // Prefer matching by id
+      let idx = prev.findIndex((t) => t.id === tab.id);
+      // Fall back to matching by path so different call sites can't create duplicates
+      if (idx < 0 && tab.path) {
+        idx = prev.findIndex((t) => t.path === tab.path);
+      }
       if (idx >= 0) {
+        resolvedId = prev[idx].id;
         const next = [...prev];
-        next[idx] = { ...prev[idx], ...tab };
+        next[idx] = { ...prev[idx], ...tab, id: prev[idx].id };
         return next;
       }
       return [...prev, tab];
     });
-    setActiveId(tab.id);
+    setActiveId(resolvedId);
     if (tab.path && tab.path !== location.pathname + location.search) navigate(tab.path);
   }, [navigate, location.pathname, location.search]);
 

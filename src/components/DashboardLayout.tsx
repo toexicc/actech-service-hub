@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -119,9 +119,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const handleOpenMessaging = () => { messagingPanelRef.current?.openPanel(); };
 
   const handleNavClick = (item: NavItem) => {
-    // Open as a workbench tab so users can jump between pages
+    // Open as a workbench tab so users can jump between pages.
+    // Dashboard reuses the pinned "home" tab id to avoid duplicates.
     openTab({
-      id: `page:${item.path}`,
+      id: item.path === "/menu" ? "home" : `page:${item.path}`,
       title: item.title,
       path: item.path,
       pinned: item.path === "/menu",
@@ -342,8 +343,18 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
-  <ShellInner>{children}</ShellInner>
-);
+// Context flag so nested <DashboardLayout> instances (rendered inside individual
+// page files) become passthrough when the workbench shell already wraps them.
+const ShellMountedContext = createContext(false);
+
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const alreadyMounted = useContext(ShellMountedContext);
+  if (alreadyMounted) return <>{children}</>;
+  return (
+    <ShellMountedContext.Provider value={true}>
+      <ShellInner>{children}</ShellInner>
+    </ShellMountedContext.Provider>
+  );
+};
 
 export default DashboardLayout;

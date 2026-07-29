@@ -1,50 +1,50 @@
-## Scope note
-All intake-form changes apply **only to the internal `/service-form`**. The public `/intake` form is left exactly as it is today.
+## 1. Duplicate "Dashboard" tab in the Workbench tab bar
 
-## Client Intake Form (`/service-form` only)
+Root cause (verified in code):
+- `WorkbenchContext.tsx` seeds a pinned Home tab with `id: "home"`, `path: "/menu"`.
+- The sidebar Dashboard button in `DashboardLayout.tsx` opens it as `id: "page:/menu"`. `openTab` dedupes by `id`, so a second tab is appended.
 
-**1. Chief Complaint — AI Formatter button**
-- Add a small "Format with AI" button beside the Chief Complaint label (rendered only when `!isPublic`).
-- Calls the existing `format-diagnosis` edge function (or a new brief mode) with a strict system prompt: "Rewrite the following into a concise 1–2 sentence chief complaint. No headings, no bullets, plain prose, max 2 sentences."
-- Replaces the textarea value with the returned text. Loading spinner + toast on error.
+Fix:
+- In `DashboardLayout.tsx`, when a nav item's path equals `/menu`, open it with `id: "home"` so it reuses the pinned Home tab.
+- Harden `WorkbenchContext.openTab`: before appending, if any existing tab has the same `path`, activate that tab instead of creating a new one. This also stops future duplicates from any other call site.
 
-**2. Technician assignment — auto round-robin by department**
-- Remove the technician `MultiSelect` from the internal form.
-- Replace it with a `MultiSelect` of **Technician Departments** (from `DEPARTMENTS` in `src/lib/constants.ts`, filtered by the departments that handle the selected device type — same rule already used to filter techs).
-- On submit, for each selected department:
-  - Fetch active technicians in that department.
-  - Count each tech's active-service load from `services` (excluding Completed / Cancelled / RTO) where `technicians` array contains their name.
-  - Pick the tech with the **lowest** count; tie-break alphabetically for determinism → fair sequential rotation across submissions.
-- Store the resolved technician names in `services.technicians` and their departments in `services.technician_departments` exactly as today, so downstream code is unchanged.
-- Show a read-only preview under the department picker: "Will be assigned to: {tech name}" that updates live.
-- Public `/intake` form keeps its current behavior (no technician field there today either).
+## 2. Every workbench tab "reloads" on switch (app-wide)
 
-**3. Priority — add "Within The Day"** (internal form only)
-- Add `"Within The Day"` to `PRIORITY_OPTIONS` in `src/lib/constants.ts` and to the Priority `<Select>` in `/service-form`. Placed at the top.
-- Public `/intake` priority UI unchanged.
+Root cause (verified): the workbench uses one shared `<Routes>` outlet in `App.tsx`. Switching a workbench tab calls `navigate(tab.path)`, which unmounts the previous page component and mounts the new one from scratch. React Query keeps data cached, but component state (scroll, form drafts, expanded rows, filters, search text, `activeTab` in nested pages) is lost every time — this is what feels like a reload.
 
-**4. Client Type — new options** (internal form only)
-- On `/service-form`, replace the current three options with:
-  - New Client - Walk In
-  - New Client - Pickup
-  - Returning Client - Walk In
-  - Returning Client - Pickup
-  - Backjob
-- Update the existing "Returning Client" auto-set on client lookup (line 246) to default to `Returning Client - Walk In`.
-- Public `/intake` client-type UI unchanged.
+Fix — real IDE-style keep-alive:
+- Extract the current per-page route table (`/menu`, `/pos`, `/service-form`, `/manage-client`, `/service-update`, `/service-tracker`, `/service-tracking` (internal), `/inventory-management`, `/customer-management`, `/staff-management`, `/completed-transactions`, `/transaction-tracker`, `/tech-dashboard`, `/admin-dashboard`, `/request-for-parts`, `/salary-disbursement`, `/attendance-overview`) into a shared `workbenchRoutes` array of `{ pattern, element, roles? }`.
+- Add a new `WorkbenchOutlet` component rendered inside `DashboardLayout` (replacing the single `<Outlet />`-like slot for authenticated pages). For every currently open tab in `WorkbenchContext`, it renders that tab's page element inside its own div, wrapped so that:
+  - The active tab's div is visible.
+  - Inactive tabs' divs stay mounted but hidden (`hidden` attribute + `aria-hidden`), preserving their component tree, refs, scroll position, and internal state.
+  - Each tab wrapper uses a stable `key={tab.id}` so React never reconciles two different pages into the same instance.
+- Matching: for each tab.path, find the first route in `workbenchRoutes` whose pattern matches (support `:serviceId`-style params via `matchPath` from `react-router-dom`). The matched element is rendered inside a lightweight `<MemoryRouter>`-free context: the URL used for `useLocation`/`useSearchParams` inside the page needs to reflect that tab's own path, not the global URL. To keep this simple and avoid nested router complexity, tabs will render against the browser URL only when they are active; inactive tabs render against their last-known path via a small `TabLocationProvider` that overrides `useLocation`/`useSearchParams` for hidden tabs. Pages that only read `useLocation()` for the current pathname will continue to work because that value is captured on mount and stays stable while hidden.
+- Public/unauth routes (`/`, `/track`, `/track/:serviceId`, `/install`, `/attendance`, `/intake`) stay on the ordinary `<Routes>` path and are NOT part of the workbench keep-alive. They will remount normally, since they're not part of the tabbed shell.
+- When a tab is closed via `closeTab`, its wrapper is unmounted and its state is discarded — expected.
+- Memory guardrail: cap simultaneously mounted tabs at 12. When opening a 13th, close-and-unmount the least-recently-active non-pinned tab. Home is always pinned.
 
-## Service Tracker (`/service-tracker`) — new tabs
+Secondary cleanup enabled by this change:
+- The `ServiceTracker` internal `activeTab` state will now survive tab switches naturally, so no URL-param workaround is needed. The existing "reset `currentPage` to 1 when `activeTab` changes" effect can stay as-is.
 
-Add new tabs to the top strip (kept alongside existing Ongoing / Completed / Cancelled-RTO-On Hold):
-- **All** — every service.
-- **Within the Day** — `priority === "Within The Day"`.
-- **Walk In** — `clientType` contains `"Walk In"` (matches both New and Returning walk-ins).
-- **Intake** — services created via the public `/intake` form (`source === "intake"`; column already exists).
+## 3. Improve the AI Chief Complaint formatter
 
-Filtering hooks into the current in-memory filter pipeline; no data model changes.
+Update the `supabase/functions/format-complaint/index.ts` system prompt to a short but useful intake note:
+- Sentence 1: concise professional restatement of the complaint.
+- Sentence 2: brief likely context/cause, hedged with "Likely" or "Possibly".
+- Sentence 3 (optional, only when clearly applicable): a first troubleshooting or repair direction as "Suggested check: …".
+- Hard cap 3 sentences, plain text, no markdown/headers, no invented model numbers, part numbers, or prices.
+- Keep temperature low (0.3) and preserve the existing "no em dashes" rules.
+
+No client-side change needed.
 
 ## Technical notes
-- No schema migration required; `source`, `priority`, `client_type`, `technicians`, `technician_departments` already exist.
-- Auto-assign load query: single `supabase.from("services").select("technicians,status").not("status","in","(Completed,Cancelled,RTO)")` at submit time, counted client-side.
-- AI formatter uses the existing Lovable AI gateway via an edge function; no new secret.
-- Frontend-only + one edge function tweak.
+
+- Files touched:
+  - `src/App.tsx` — split public routes from workbench routes; render `DashboardLayout` with the workbench outlet for the authenticated route group.
+  - `src/components/workbench/workbenchRoutes.ts` (new) — shared route table + role guards.
+  - `src/components/workbench/WorkbenchOutlet.tsx` (new) — keep-alive renderer.
+  - `src/components/workbench/WorkbenchContext.tsx` — path-based dedupe in `openTab`; expose LRU order for the mount cap.
+  - `src/components/DashboardLayout.tsx` — nav Dashboard button uses `id: "home"`; embeds `WorkbenchOutlet`.
+  - `supabase/functions/format-complaint/index.ts` — new prompt; requires redeploy.
+- No schema, RLS, data model, or auth changes.
+- Risks: pages that call `useNavigate()` from inside a hidden tab could still fire (e.g., a background timer). Mitigation: pages already gate side effects on visibility/focus where relevant; if any regressions surface, we can add a `useIsTabActive()` hook to short-circuit background work in inactive tabs.
