@@ -99,7 +99,8 @@ const Tile = ({
 );
 
 const QueueAdmin = () => {
-  const { entries, loading } = useQueueEntries({ activeOnly: true });
+  const { entries, loading, error, refetch, realtimeState, realtimeMessage } =
+    useQueueEntries({ activeOnly: true });
   const { toast } = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -161,7 +162,19 @@ const QueueAdmin = () => {
               </Button>
             </div>
           </CardHeader>
+          {(realtimeMessage || error) && (
+            <CardContent className="pt-0">
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300/60 bg-amber-50/70 px-3 py-2 text-sm text-amber-900">
+                <span>{error ?? realtimeMessage}</span>
+                <Button size="sm" variant="outline" onClick={() => refetch()}>
+                  Refresh now
+                </Button>
+              </div>
+            </CardContent>
+          )}
         </Card>
+
+
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
