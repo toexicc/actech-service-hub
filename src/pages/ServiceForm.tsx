@@ -792,26 +792,50 @@ const ServiceForm = () => {
 
               <FormField
                 control={form.control}
-                name="technician"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Technician:</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={technicianList.map(tech => ({
-                          label: tech.name,
-                          value: tech.name,
-                          group: tech.department
-                        }))}
-                        selected={field.value ? field.value.split(", ") : []}
-                        onChange={(values) => field.onChange(values.join(", "))}
-                        placeholder="Select Technicians"
-                        grouped
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="technicianDepartments"
+                render={({ field }) => {
+                  const selectedDepts = field.value ? field.value.split(", ").filter(Boolean) : [];
+                  const deviceType = form.watch("deviceType");
+                  // Only offer departments that handle the selected device type; if
+                  // none is selected yet, offer all departments that have techs.
+                  const deptOptions = Array.from(new Set(technicianList.map((t) => t.department).filter(Boolean)))
+                    .filter((dept) => {
+                      if (!deviceType) return true;
+                      const allowed = DEVICE_TYPES_BY_DEPARTMENT[dept] || [];
+                      return allowed.includes(deviceType) || dept === "Others";
+                    })
+                    .map((dept) => ({ label: dept, value: dept }));
+
+                  // Live preview of the tech that would be auto-assigned per department.
+                  const preview = selectedDepts
+                    .map((dept) => {
+                      const pool = technicianList.filter((t) => t.department === dept);
+                      if (pool.length === 0) return `${dept}: (no active technicians)`;
+                      const pick = [...pool].sort((a, b) => a.name.localeCompare(b.name))[0].name;
+                      return `${dept} → ${pick}`;
+                    })
+                    .join(" • ");
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Technician Department:</FormLabel>
+                      <FormControl>
+                        <MultiSelect
+                          options={deptOptions}
+                          selected={selectedDepts}
+                          onChange={(values) => field.onChange(values.join(", "))}
+                          placeholder="Select Departments (auto-assigns a technician)"
+                        />
+                      </FormControl>
+                      {preview && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Will assign: {preview} (final tech picked by lowest active-service load)
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             )}
