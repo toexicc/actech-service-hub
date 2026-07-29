@@ -75,11 +75,24 @@ const formSchema = buildFormSchema(false);
 
 type FormValues = z.infer<typeof formSchema>;
 
-const ServiceForm = () => {
+export interface ServiceFormProps {
+  /** When set, the form renders embedded (e.g. inside the Complete Intake modal). */
+  embeddedQueueId?: string;
+  /** Render without the dashboard chrome (used by the modal). */
+  embedded?: boolean;
+  /** Called after an embedded submission succeeds. */
+  onCompleted?: (serviceId: string) => void;
+}
+
+const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProps = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isPublic = location.pathname === "/intake";
-  const queueId = useMemo(() => new URLSearchParams(location.search).get("queueId"), [location.search]);
+  const isPublic = !embedded && location.pathname === "/intake";
+  const searchQueueId = useMemo(
+    () => new URLSearchParams(location.search).get("queueId"),
+    [location.search],
+  );
+  const queueId = embeddedQueueId ?? searchQueueId;
   const activeSchema = useMemo(() => buildFormSchema(isPublic), [isPublic]);
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
@@ -93,6 +106,10 @@ const ServiceForm = () => {
   const signatureRef = useRef<SignatureCanvasRef>(null);
   const [annotationImageUrl, setAnnotationImageUrl] = useState("");
   const [isFormattingComplaint, setIsFormattingComplaint] = useState(false);
+  // Kiosk confirmation overlay (public /intake only)
+  const [kioskCode, setKioskCode] = useState<string | null>(null);
+  const [kioskCountdown, setKioskCountdown] = useState(5);
+
 
   // Use React Query for staff data
   const { data: staffData = [] } = useStaff();
@@ -202,16 +219,29 @@ const ServiceForm = () => {
         .maybeSingle();
       if (!entry) return;
       const payload = (entry.form_payload || {}) as Record<string, any>;
+      // Restore EVERY known form field from the payload (booleans included).
       const fields: (keyof FormValues)[] = [
-        "clientName", "phone", "email", "username", "deviceType", "brand", "model",
-        "color", "memory", "serial", "chiefComplaint", "devicePassword",
+        "clientId", "clientName", "phone", "email", "username", "deviceType", "brand", "model",
+        "color", "memory", "serial", "chiefComplaint", "devicePassword", "timeFrame",
         "dents", "scratches", "missingParts", "physicalDamage", "importantFiles",
-        "noPower", "repairHistory", "physicalSignature", "annotationNotes",
+        "noPower", "repairHistory", "physicalSignature",
+        "ack1", "ack2", "ack3",
+        "enablePhotoAnnotation", "annotationDeviceType", "annotationNotes",
       ];
       fields.forEach((k) => {
         const v = payload[k as string];
-        if (v !== undefined && v !== null && v !== "") form.setValue(k as any, v);
+        if (v === undefined || v === null) return;
+        if (typeof v === "boolean") form.setValue(k as any, v);
+        else if (v !== "") form.setValue(k as any, v);
       });
+      if (payload.ack1 && payload.ack2 && payload.ack3) setTermsRead(true);
+      // Rehydrate captured images (stored as data URLs in the queue payload).
+      if (payload.annotationImageUrl) setAnnotationImageUrl(payload.annotationImageUrl);
+      if (payload.signatureUrl) {
+        setSignatureUrl(payload.signatureUrl);
+        form.setValue("physicalSignature", true);
+      }
+
       // Prefer the direct columns as source of truth when available.
       if (entry.client_name) form.setValue("clientName", entry.client_name);
       if (entry.contact_number) form.setValue("phone", entry.contact_number);
@@ -226,6 +256,17 @@ const ServiceForm = () => {
       });
     })();
   }, [queueId, isPublic, prefilledQueueId, form, toast]);
+
+  // Kiosk confirmation countdown — returns the station to a blank /intake form.
+  useEffect(() => {
+    if (!kioskCode) return;
+    const tick = setInterval(() => setKioskCountdown((c) => c - 1), 1000);
+    const done = setTimeout(() => setKioskCode(null), 5000);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(done);
+    };
+  }, [kioskCode]);
 
 
   const generateServiceId = () => {
@@ -327,6 +368,13 @@ const ServiceForm = () => {
     if (isPublic) {
       setIsSubmitting(true);
       try {
+        const payload: Record<string, any> = {
+          ...(data as unknown as Record<string, any>),
+          // Public users can't write to storage, so images ride along as data URLs.
+          annotationImageUrl: annotationImageUrl || undefined,
+          physicalSignature: false,
+          signatureUrl: undefined,
+        };
         const { data: inserted, error } = await supabase
           .from("queue_entries")
           .insert({
@@ -336,21 +384,20 @@ const ServiceForm = () => {
             brand: data.brand,
             model: data.model,
             chief_complaint: data.chiefComplaint,
-            form_payload: data as unknown as Record<string, any>,
+            form_payload: payload,
           })
           .select()
           .single();
         if (error) throw error;
-        toast({
-          title: "You're in the queue!",
-          description: `Your number is ${inserted.display_code}. Please watch the board.`,
-        });
         form.reset();
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
         signatureRef.current?.clear();
-        navigate(`/queue?entry=${encodeURIComponent(inserted.display_code)}`);
+        // Kiosk mode: show only the queue number for a few seconds, then reset.
+        setKioskCountdown(5);
+        setKioskCode(inserted.display_code);
+
       } catch (e) {
         toast({
           title: "Submission failed",
@@ -731,12 +778,13 @@ const ServiceForm = () => {
         // If this admin submission is completing a queue entry, mark it done
         // so it drops off /queue and /queueing automatically.
         if (queueId) {
-          supabase
+          await supabase
             .from("queue_entries")
             .update({ status: "completed", service_id: finalServiceId })
-            .eq("id", queueId)
-            .then(() => {});
+            .eq("id", queueId);
         }
+        onCompleted?.(finalServiceId);
+
       } else {
         throw new Error("Failed to submit form");
       }
@@ -1578,6 +1626,7 @@ const ServiceForm = () => {
                   )}
                 />
 
+                {!isPublic && (
                 <FormField
                   control={form.control}
                   name="physicalSignature"
@@ -1595,9 +1644,10 @@ const ServiceForm = () => {
                     </FormItem>
                   )}
                 />
+                )}
               </div>
 
-              {form.watch("physicalSignature") && (
+              {!isPublic && form.watch("physicalSignature") && (
                 <div className="mt-4">
                   <FormLabel>Client Signature:</FormLabel>
                   <p className="text-sm text-muted-foreground mb-2">
@@ -1618,6 +1668,7 @@ const ServiceForm = () => {
                   )}
                 </div>
               )}
+
             </div>
 
             {/* Submit Button */}
@@ -1675,13 +1726,37 @@ const ServiceForm = () => {
       </div>
   );
 
+  if (embedded) return <div className="animate-fade-in">{content}</div>;
+
   return isPublic ? (
     <div className="min-h-screen w-full bg-background">
-      {content}
+      {kioskCode ? (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-6 text-center">
+          <p className="text-lg font-medium uppercase tracking-[0.3em] text-muted-foreground">
+            Your queue number
+          </p>
+          <div className="mt-4 text-[8rem] font-black leading-none text-blue-600 md:text-[12rem]">
+            {kioskCode}
+          </div>
+          <p className="mt-6 max-w-xl text-xl text-foreground/80">
+            Please take a seat and watch the queue screen. Your number will be
+            called shortly — approach the front desk when it appears.
+          </p>
+          <p className="mt-8 text-sm text-muted-foreground">
+            Returning to the form in {Math.max(kioskCountdown, 0)}s
+          </p>
+          <Button className="mt-4" variant="outline" onClick={() => setKioskCode(null)}>
+            Done
+          </Button>
+        </div>
+      ) : (
+        content
+      )}
     </div>
   ) : (
     <DashboardLayout>{content}</DashboardLayout>
   );
+
 };
 
 export default ServiceForm;
