@@ -1447,6 +1447,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 </div>
               </div>
             )}
+              </>
+            )}
           </CardContent>
         </Card>
 
