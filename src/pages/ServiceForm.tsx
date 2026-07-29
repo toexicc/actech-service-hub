@@ -1750,13 +1750,25 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           <p className="text-lg font-medium uppercase tracking-[0.3em] text-muted-foreground">
             Your queue number
           </p>
-          <div className="mt-4 text-[8rem] font-black leading-none text-blue-600 md:text-[12rem]">
+          <div className="mt-4 text-[7rem] font-black leading-none text-blue-600 md:text-[10rem]">
             {kioskCode}
           </div>
           <p className="mt-6 max-w-xl text-xl text-foreground/80">
             Please take a seat and watch the queue screen. Your number will be
             called shortly — approach the front desk when it appears.
           </p>
+          {kioskQr && (
+            <div className="mt-6 flex flex-col items-center">
+              <img
+                src={kioskQr}
+                alt={`QR code to view the live queue for ${kioskCode}`}
+                className="h-44 w-44 rounded-2xl border bg-white p-2 md:h-52 md:w-52"
+              />
+              <p className="mt-3 max-w-sm text-sm text-muted-foreground">
+                Scan to watch the live queue on your phone.
+              </p>
+            </div>
+          )}
           <p className="mt-8 text-sm text-muted-foreground">
             Returning to the form in {Math.max(kioskCountdown, 0)}s
           </p>
