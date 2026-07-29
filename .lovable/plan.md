@@ -1,30 +1,50 @@
-## Goal
-Make the Service Calendar section a strict 70/30 split: calendar card takes 70% width, "services due" card takes 30%. Fix the UI so the calendar actually fills its 70% column instead of shrinking to `w-fit`.
+## Scope note
+All intake-form changes apply **only to the internal `/service-form`**. The public `/intake` form is left exactly as it is today.
 
-## Why it's been failing
-`src/components/DueDateCalendar.tsx` sets the Calendar wrapper to `w-fit` and each day cell to a fixed pixel width. Even when the grid column is 70%, the calendar renders at its intrinsic width and leaves whitespace, so visually it doesn't look 70/30.
+## Client Intake Form (`/service-form` only)
 
-## Changes (single file: `src/components/DueDateCalendar.tsx`)
+**1. Chief Complaint — AI Formatter button**
+- Add a small "Format with AI" button beside the Chief Complaint label (rendered only when `!isPublic`).
+- Calls the existing `format-diagnosis` edge function (or a new brief mode) with a strict system prompt: "Rewrite the following into a concise 1–2 sentence chief complaint. No headings, no bullets, plain prose, max 2 sentences."
+- Replaces the textarea value with the returned text. Loading spinner + toast on error.
 
-1. **Grid split — hard 70/30**
-   - Replace the current `md:grid-cols-[minmax(520px,2fr)_minmax(260px,1fr)] lg:grid-cols-[minmax(640px,3fr)_minmax(280px,1fr)]` with `md:grid-cols-[70%_30%]`.
-   - Keep mobile as single column stack.
+**2. Technician assignment — auto round-robin by department**
+- Remove the technician `MultiSelect` from the internal form.
+- Replace it with a `MultiSelect` of **Technician Departments** (from `DEPARTMENTS` in `src/lib/constants.ts`, filtered by the departments that handle the selected device type — same rule already used to filter techs).
+- On submit, for each selected department:
+  - Fetch active technicians in that department.
+  - Count each tech's active-service load from `services` (excluding Completed / Cancelled / RTO) where `technicians` array contains their name.
+  - Pick the tech with the **lowest** count; tie-break alphabetically for determinism → fair sequential rotation across submissions.
+- Store the resolved technician names in `services.technicians` and their departments in `services.technician_departments` exactly as today, so downstream code is unchanged.
+- Show a read-only preview under the department picker: "Will be assigned to: {tech name}" that updates live.
+- Public `/intake` form keeps its current behavior (no technician field there today either).
 
-2. **Calendar fills its column**
-   - Change calendar wrapper from `w-fit` + `overflow-x-auto` to `w-full`.
-   - Change Calendar root `className` from `w-fit` to `w-full`.
-   - Change `table` classNames from `w-fit` to `w-full`.
-   - Change `head_row` and `row` from `flex w-fit` to `flex w-full justify-between`.
-   - Change `head_cell`, `cell`, `day` widths from fixed `w-12/w-14` to `flex-1` so the 7 columns evenly divide the available width.
-   - Keep the compact row height (`h-10 lg:h-11`) so the calendar doesn't get taller — only wider.
+**3. Priority — add "Within The Day"** (internal form only)
+- Add `"Within The Day"` to `PRIORITY_OPTIONS` in `src/lib/constants.ts` and to the Priority `<Select>` in `/service-form`. Placed at the top.
+- Public `/intake` priority UI unchanged.
 
-3. **Right card — 30% column, centered empty state**
-   - Keep `flex flex-col` with the empty state `flex-1 items-center justify-center` so "No services due on this day." stays vertically centered.
-   - Ensure the card has `h-full` so its height matches the calendar card.
+**4. Client Type — new options** (internal form only)
+- On `/service-form`, replace the current three options with:
+  - New Client - Walk In
+  - New Client - Pickup
+  - Returning Client - Walk In
+  - Returning Client - Pickup
+  - Backjob
+- Update the existing "Returning Client" auto-set on client lookup (line 246) to default to `Returning Client - Walk In`.
+- Public `/intake` client-type UI unchanged.
 
-## What stays the same
-- Section header, "X active tickets" label, date heading, due count, list rendering, and click-through behavior are unchanged.
-- No changes to any other file, hook, or business logic.
+## Service Tracker (`/service-tracker`) — new tabs
 
-## Result
-Calendar visibly occupies ~70% of the row and stretches its day cells to fill; the due-services card occupies ~30% with its empty-state text vertically and horizontally centered. Row height stays compact.
+Add new tabs to the top strip (kept alongside existing Ongoing / Completed / Cancelled-RTO-On Hold):
+- **All** — every service.
+- **Within the Day** — `priority === "Within The Day"`.
+- **Walk In** — `clientType` contains `"Walk In"` (matches both New and Returning walk-ins).
+- **Intake** — services created via the public `/intake` form (`source === "intake"`; column already exists).
+
+Filtering hooks into the current in-memory filter pipeline; no data model changes.
+
+## Technical notes
+- No schema migration required; `source`, `priority`, `client_type`, `technicians`, `technician_departments` already exist.
+- Auto-assign load query: single `supabase.from("services").select("technicians,status").not("status","in","(Completed,Cancelled,RTO)")` at submit time, counted client-side.
+- AI formatter uses the existing Lovable AI gateway via an edge function; no new secret.
+- Frontend-only + one edge function tweak.

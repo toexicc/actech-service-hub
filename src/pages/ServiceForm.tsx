@@ -35,7 +35,10 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   clientId: z.string().optional(),
   adminRep: isPublic ? z.string().optional() : z.string().min(1, "Admin Representative is required"),
   receivingStaff: isPublic ? z.string().optional() : z.string().min(1, "Receiving Staff is required"),
-  technician: isPublic ? z.string().optional() : z.string().min(1, "Technician is required"),
+  technician: z.string().optional(),
+  technicianDepartments: isPublic
+    ? z.string().optional()
+    : z.string().min(1, "Select at least one Technician Department"),
   clientType: z.string().min(1, "Client Type is required"),
   priority: z.string().min(1, "Priority is required"),
   clientName: z.string().min(1, "Client Name is required"),
@@ -88,6 +91,7 @@ const ServiceForm = () => {
   const [signatureUrl, setSignatureUrl] = useState("");
   const signatureRef = useRef<SignatureCanvasRef>(null);
   const [annotationImageUrl, setAnnotationImageUrl] = useState("");
+  const [isFormattingComplaint, setIsFormattingComplaint] = useState(false);
 
   // Use React Query for staff data
   const { data: staffData = [] } = useStaff();
@@ -138,6 +142,7 @@ const ServiceForm = () => {
       adminRep: "",
       receivingStaff: "",
       technician: "",
+      technicianDepartments: "",
       clientType: "",
       priority: "",
       clientName: "",
@@ -243,7 +248,7 @@ const ServiceForm = () => {
         form.setValue("username", customer.username || "");
         form.setValue("phone", customer.phone || "");
         form.setValue("email", customer.email || "");
-        form.setValue("clientType", "Returning Client");
+        form.setValue("clientType", "Returning Client - Walk In");
         form.setValue("priority", "Loyalty");
         toast({
           title: "Success",
@@ -289,6 +294,67 @@ const ServiceForm = () => {
     }
 
     setIsSubmitting(true);
+
+    // Auto-assign technicians (internal form only) via round-robin across
+    // the technicians of each selected department. Fair rotation is achieved
+    // by picking the technician with the fewest active services (excluding
+    // Completed / Cancelled / RTO), tie-breaking alphabetically for determinism.
+    if (!isPublic) {
+      const depts = (data.technicianDepartments || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (depts.length > 0) {
+        try {
+          const { data: rows } = await supabase
+            .from("services")
+            .select("technicians,status")
+            .not("status", "in", "(Completed,Cancelled,RTO)");
+          const loadCount = new Map<string, number>();
+          (rows ?? []).forEach((r: any) => {
+            (r.technicians ?? []).forEach((t: string) => {
+              const key = String(t).trim();
+              if (!key) return;
+              loadCount.set(key, (loadCount.get(key) ?? 0) + 1);
+            });
+          });
+          const assigned: string[] = [];
+          for (const dept of depts) {
+            const pool = technicianList.filter((t) => t.department === dept);
+            if (pool.length === 0) continue;
+            const sorted = [...pool].sort((a, b) => {
+              const la = loadCount.get(a.name) ?? 0;
+              const lb = loadCount.get(b.name) ?? 0;
+              if (la !== lb) return la - lb;
+              return a.name.localeCompare(b.name);
+            });
+            const pick = sorted[0].name;
+            if (!assigned.includes(pick)) assigned.push(pick);
+            // Optimistically bump their load so a second dept doesn't pick the same tech.
+            loadCount.set(pick, (loadCount.get(pick) ?? 0) + 1);
+          }
+          if (assigned.length === 0) {
+            toast({
+              title: "No technicians available",
+              description: "None of the selected departments have active technicians.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          data.technician = assigned.join(", ");
+        } catch (e) {
+          toast({
+            title: "Auto-assign failed",
+            description: e instanceof Error ? e.message : "Could not assign a technician.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
+
 
     try {
       const now = new Date();
@@ -727,26 +793,50 @@ const ServiceForm = () => {
 
               <FormField
                 control={form.control}
-                name="technician"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Technician:</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        options={technicianList.map(tech => ({
-                          label: tech.name,
-                          value: tech.name,
-                          group: tech.department
-                        }))}
-                        selected={field.value ? field.value.split(", ") : []}
-                        onChange={(values) => field.onChange(values.join(", "))}
-                        placeholder="Select Technicians"
-                        grouped
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="technicianDepartments"
+                render={({ field }) => {
+                  const selectedDepts = field.value ? field.value.split(", ").filter(Boolean) : [];
+                  const deviceType = form.watch("deviceType");
+                  // Only offer departments that handle the selected device type; if
+                  // none is selected yet, offer all departments that have techs.
+                  const deptOptions = Array.from(new Set(technicianList.map((t) => t.department).filter(Boolean)))
+                    .filter((dept) => {
+                      if (!deviceType) return true;
+                      const allowed = DEVICE_TYPES_BY_DEPARTMENT[dept] || [];
+                      return allowed.includes(deviceType) || dept === "Others";
+                    })
+                    .map((dept) => ({ label: dept, value: dept }));
+
+                  // Live preview of the tech that would be auto-assigned per department.
+                  const preview = selectedDepts
+                    .map((dept) => {
+                      const pool = technicianList.filter((t) => t.department === dept);
+                      if (pool.length === 0) return `${dept}: (no active technicians)`;
+                      const pick = [...pool].sort((a, b) => a.name.localeCompare(b.name))[0].name;
+                      return `${dept} → ${pick}`;
+                    })
+                    .join(" • ");
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Technician Department:</FormLabel>
+                      <FormControl>
+                        <MultiSelect
+                          options={deptOptions}
+                          selected={selectedDepts}
+                          onChange={(values) => field.onChange(values.join(", "))}
+                          placeholder="Select Departments (auto-assigns a technician)"
+                        />
+                      </FormControl>
+                      {preview && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Will assign: {preview} (final tech picked by lowest active-service load)
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             )}
@@ -768,8 +858,10 @@ const ServiceForm = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="New Client">New Client</SelectItem>
-                          <SelectItem value="Returning Client">Returning Client</SelectItem>
+                          <SelectItem value="New Client - Walk In">New Client - Walk In</SelectItem>
+                          <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
+                          <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
+                          <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
                           <SelectItem value="Backjob">Backjob</SelectItem>
                         </SelectContent>
                       </Select>
@@ -791,6 +883,7 @@ const ServiceForm = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="Within The Day">Within The Day</SelectItem>
                           <SelectItem value="Rush (with 10% Rush Fee)">Rush (with 10% Rush Fee)</SelectItem>
                           <SelectItem value="Loyalty">Loyalty</SelectItem>
                           <SelectItem value="Normal">Normal</SelectItem>
@@ -867,20 +960,21 @@ const ServiceForm = () => {
                   control={form.control}
                   name="deviceType"
                   render={({ field }) => {
-                    // Get selected technicians' departments
-                    const selectedTechNames = form.watch("technician")?.split(", ").filter(Boolean) || [];
-                    const selectedTechDepartments = selectedTechNames
-                      .map(name => technicianList.find(t => t.name === name)?.department)
-                      .filter(Boolean) as string[];
-                    
-                    // Get available device types based on selected departments
+                    // Device types available are constrained by selected technician
+                    // departments (internal form) — public intake keeps all types.
+                    const selectedTechDepartments = (form.watch("technicianDepartments") || "")
+                      .split(", ")
+                      .filter(Boolean);
+
                     const availableDeviceTypes = selectedTechDepartments.length > 0
                       ? Array.from(new Set(
-                          selectedTechDepartments.flatMap(dept => 
+                          selectedTechDepartments.flatMap(dept =>
                             DEVICE_TYPES_BY_DEPARTMENT[dept] || []
                           )
                         ))
                       : DEVICE_TYPES;
+                    
+
                     
                     return (
                       <FormItem>
@@ -1007,7 +1101,50 @@ const ServiceForm = () => {
               name="chiefComplaint"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Chief Complaint:</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Chief Complaint:</FormLabel>
+                    {!isPublic && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isFormattingComplaint || !field.value?.trim()}
+                        onClick={async () => {
+                          const raw = field.value?.trim();
+                          if (!raw) return;
+                          setIsFormattingComplaint(true);
+                          try {
+                            const { data: resp, error } = await supabase.functions.invoke(
+                              "format-complaint",
+                              { body: { rawComplaint: raw } },
+                            );
+                            if (error) throw error;
+                            const formatted = (resp as any)?.formattedComplaint;
+                            if (formatted) {
+                              form.setValue("chiefComplaint", formatted, { shouldDirty: true, shouldValidate: true });
+                              toast({ title: "Formatted", description: "Chief complaint rewritten." });
+                            } else {
+                              throw new Error("No formatted text returned");
+                            }
+                          } catch (e) {
+                            toast({
+                              title: "Formatter failed",
+                              description: e instanceof Error ? e.message : "Try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsFormattingComplaint(false);
+                          }
+                        }}
+                      >
+                        {isFormattingComplaint ? (
+                          <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Formatting…</>
+                        ) : (
+                          "Format with AI"
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   <FormControl>
                     <Textarea {...field} rows={4} />
                   </FormControl>
@@ -1015,6 +1152,7 @@ const ServiceForm = () => {
                 </FormItem>
               )}
             />
+
 
             {/* Device Password */}
             <FormField

@@ -81,7 +81,7 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"ongoing" | "completed" | "closed">("ongoing");
+  const [activeTab, setActiveTab] = useState<"all" | "within" | "walkin" | "intake" | "ongoing" | "completed" | "closed">("ongoing");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const itemsPerPage = 15;
 
@@ -586,12 +586,16 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         }
       }
 
-      // Tab filter (Ongoing / Completed / Closed=Cancelled+RTO+OnHold)
+      // Tab filter
       const completed = isCompletedStatus(service.status);
       const closed = isClosedStatus(service.status);
       if (activeTab === "ongoing" && (completed || closed)) return false;
       if (activeTab === "completed" && !completed) return false;
       if (activeTab === "closed" && !closed) return false;
+      if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
+      if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
+      if (activeTab === "intake" && !String(service.source || "").toLowerCase().includes("public intake")) return false;
+      // "all" — no additional filter
 
       // Status filter
       if (statusFilter !== "all" && service.status !== statusFilter) {
@@ -1054,10 +1058,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
           <CardHeader>
             <CardTitle>
-              {activeTab === "completed" ? "Completed Services" : activeTab === "closed" ? "Cancelled / RTO / On Hold" : "Ongoing Services"}
+              {activeTab === "completed"
+                ? "Completed Services"
+                : activeTab === "closed"
+                ? "Cancelled / RTO / On Hold"
+                : activeTab === "all"
+                ? "All Services"
+                : activeTab === "within"
+                ? "Within The Day"
+                : activeTab === "walkin"
+                ? "Walk-In Services"
+                : activeTab === "intake"
+                ? "Public Intake Submissions"
+                : "Ongoing Services"}
             </CardTitle>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
-              <TabsList>
+              <TabsList className="flex flex-wrap gap-1">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="within">Within the Day</TabsTrigger>
+                <TabsTrigger value="walkin">Walk In</TabsTrigger>
+                <TabsTrigger value="intake">Intake</TabsTrigger>
                 <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
                 <TabsTrigger value="closed">Cancelled / RTO / On Hold</TabsTrigger>
