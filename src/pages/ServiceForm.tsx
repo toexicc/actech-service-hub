@@ -260,9 +260,18 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
   // Kiosk confirmation countdown — returns the station to a blank /intake form.
   useEffect(() => {
-    if (!kioskCode) return;
+    if (!kioskCode) {
+      setKioskQr(null);
+      return;
+    }
+    QRCode.toDataURL(
+      `https://actechrepair-service.com/queue?entry=${encodeURIComponent(kioskCode)}`,
+      { width: 420, margin: 1 },
+    )
+      .then(setKioskQr)
+      .catch(() => setKioskQr(null));
     const tick = setInterval(() => setKioskCountdown((c) => c - 1), 1000);
-    const done = setTimeout(() => setKioskCode(null), 5000);
+    const done = setTimeout(() => setKioskCode(null), 10000);
     return () => {
       clearInterval(tick);
       clearTimeout(done);
