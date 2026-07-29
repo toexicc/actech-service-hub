@@ -51,7 +51,7 @@ export function useQueueEntries(opts: { activeOnly?: boolean } = {}) {
   useEffect(() => {
     refetch();
     const channel = supabase
-      .channel("queue_entries_changes")
+      .channel(`queue_entries_changes_${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "queue_entries" },
