@@ -33,70 +33,71 @@ const Tile = ({
   onCancel: () => void;
 }) => (
   <div
-    className={`rounded-2xl border p-4 backdrop-blur-md ${
+    className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
       tone === "proceed"
         ? "border-emerald-200 bg-emerald-50/60"
         : "border-blue-200 bg-blue-50/60"
     }`}
   >
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <div
-          className={`text-2xl font-black leading-none ${
-            tone === "proceed" ? "text-emerald-600" : "text-blue-600"
-          }`}
-        >
-          {entry.display_code}
-        </div>
-        <div className="mt-1 text-sm font-medium">{entry.client_name}</div>
-        <div className="text-xs text-muted-foreground">
-          {[entry.device_type, entry.brand, entry.model].filter(Boolean).join(" • ") || "—"}
-        </div>
-        {entry.contact_number && (
-          <div className="text-xs text-muted-foreground">📞 {entry.contact_number}</div>
-        )}
-        {entry.chief_complaint && (
-          <div className="text-xs text-foreground/70 mt-2 line-clamp-2">
-            "{entry.chief_complaint}"
-          </div>
-        )}
-      </div>
-      <Badge
-        variant="outline"
-        className={
-          tone === "proceed"
-            ? "border-emerald-400 text-emerald-700"
-            : "border-blue-400 text-blue-700"
-        }
-      >
-        {tone === "proceed" ? "Proceed" : "Waiting"}
-      </Badge>
+    <div
+      className={`shrink-0 rounded-md px-2 py-1 text-sm font-black tabular-nums ${
+        tone === "proceed"
+          ? "bg-emerald-600/10 text-emerald-700"
+          : "bg-blue-600/10 text-blue-700"
+      }`}
+    >
+      {entry.display_code}
     </div>
 
-    <div className="mt-3 grid grid-cols-2 gap-2">
-      {tone === "waiting" ? (
-        <Button size="sm" onClick={onMove} className="bg-emerald-600 hover:bg-emerald-700">
-          <ArrowRight className="h-3.5 w-3.5 mr-1" /> Proceed
-        </Button>
-      ) : (
-        <Button size="sm" variant="outline" onClick={onMove}>
-          <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to Waiting
-        </Button>
-      )}
-      <Button size="sm" variant="secondary" onClick={onComplete}>
-        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Complete Intake
+    <div className="min-w-0 flex-1">
+      <div className="truncate text-sm font-medium leading-tight">
+        {entry.client_name}
+        <span className="ml-2 text-xs font-normal text-muted-foreground">
+          {[entry.device_type, entry.brand, entry.model].filter(Boolean).join(" • ")}
+        </span>
+      </div>
+      <div className="truncate text-xs text-muted-foreground">
+        {entry.contact_number ? `📞 ${entry.contact_number}` : ""}
+        {entry.chief_complaint ? `${entry.contact_number ? " — " : ""}${entry.chief_complaint}` : ""}
+      </div>
+    </div>
+
+    <div className="flex shrink-0 items-center gap-1">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 w-7 p-0"
+        title={tone === "waiting" ? "Proceed to front" : "Back to waiting"}
+        onClick={onMove}
+      >
+        {tone === "waiting" ? (
+          <ArrowRight className="h-4 w-4 text-emerald-600" />
+        ) : (
+          <ArrowLeft className="h-4 w-4" />
+        )}
       </Button>
       <Button
         size="sm"
         variant="ghost"
-        onClick={onCancel}
-        className="col-span-2 text-destructive hover:text-destructive"
+        className="h-7 w-7 p-0"
+        title="Complete intake"
+        onClick={onComplete}
       >
-        <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
+        <CheckCircle2 className="h-4 w-4 text-blue-600" />
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+        title="Cancel"
+        onClick={onCancel}
+      >
+        <XCircle className="h-4 w-4" />
       </Button>
     </div>
   </div>
 );
+
 
 const QueueAdmin = () => {
   const { entries, loading, error, refetch, realtimeState, realtimeMessage } =
