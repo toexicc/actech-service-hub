@@ -108,7 +108,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const [isFormattingComplaint, setIsFormattingComplaint] = useState(false);
   // Kiosk confirmation overlay (public /intake only)
   const [kioskCode, setKioskCode] = useState<string | null>(null);
-  const [kioskCountdown, setKioskCountdown] = useState(5);
+  const [kioskCountdown, setKioskCountdown] = useState(10);
+  const [kioskQr, setKioskQr] = useState<string | null>(null);
 
 
   // Use React Query for staff data
