@@ -168,10 +168,10 @@ export function useQueueEntries(opts: { activeOnly?: boolean } = {}) {
     return unsubscribe;
   }, []);
 
-  // Fallback polling while realtime is degraded so the UI still updates.
+  // Fallback polling: fast while realtime is degraded, slow safety net when live.
   useEffect(() => {
-    if (realtimeState === "live") return;
-    const id = setInterval(() => refetchRef.current(), 15000);
+    const delay = realtimeState === "live" ? 30000 : 15000;
+    const id = setInterval(() => refetchRef.current(), delay);
     return () => clearInterval(id);
   }, [realtimeState]);
 
