@@ -75,11 +75,24 @@ const formSchema = buildFormSchema(false);
 
 type FormValues = z.infer<typeof formSchema>;
 
-const ServiceForm = () => {
+export interface ServiceFormProps {
+  /** When set, the form renders embedded (e.g. inside the Complete Intake modal). */
+  embeddedQueueId?: string;
+  /** Render without the dashboard chrome (used by the modal). */
+  embedded?: boolean;
+  /** Called after an embedded submission succeeds. */
+  onCompleted?: (serviceId: string) => void;
+}
+
+const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProps = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isPublic = location.pathname === "/intake";
-  const queueId = useMemo(() => new URLSearchParams(location.search).get("queueId"), [location.search]);
+  const isPublic = !embedded && location.pathname === "/intake";
+  const searchQueueId = useMemo(
+    () => new URLSearchParams(location.search).get("queueId"),
+    [location.search],
+  );
+  const queueId = embeddedQueueId ?? searchQueueId;
   const activeSchema = useMemo(() => buildFormSchema(isPublic), [isPublic]);
   const { toast } = useToast();
   const [termsRead, setTermsRead] = useState(false);
@@ -93,6 +106,10 @@ const ServiceForm = () => {
   const signatureRef = useRef<SignatureCanvasRef>(null);
   const [annotationImageUrl, setAnnotationImageUrl] = useState("");
   const [isFormattingComplaint, setIsFormattingComplaint] = useState(false);
+  // Kiosk confirmation overlay (public /intake only)
+  const [kioskCode, setKioskCode] = useState<string | null>(null);
+  const [kioskCountdown, setKioskCountdown] = useState(5);
+
 
   // Use React Query for staff data
   const { data: staffData = [] } = useStaff();
