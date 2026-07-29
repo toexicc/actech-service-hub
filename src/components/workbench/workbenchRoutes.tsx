@@ -17,6 +17,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import RequestForParts from "@/pages/RequestForParts";
 import SalaryDisbursement from "@/pages/SalaryDisbursement";
 import AttendanceOverview from "@/pages/AttendanceOverview";
+import QueueAdmin from "@/pages/QueueAdmin";
 
 export interface WorkbenchRouteDef {
   path: string;
@@ -43,6 +44,7 @@ export const workbenchRoutes: WorkbenchRouteDef[] = [
   { path: "/request-for-parts", element: <ProtectedRoute><RequestForParts /></ProtectedRoute> },
   { path: "/salary-disbursement", element: <ProtectedRoute roles={["admin", "management"]}><SalaryDisbursement /></ProtectedRoute> },
   { path: "/attendance-overview", element: <ProtectedRoute roles={["management"]}><AttendanceOverview /></ProtectedRoute> },
+  { path: "/queueing", element: <ProtectedRoute><QueueAdmin /></ProtectedRoute> },
 ];
 
 export function findWorkbenchRoute(pathname: string): WorkbenchRouteDef | undefined {

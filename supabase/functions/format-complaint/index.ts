@@ -48,21 +48,34 @@ const stripMarkdown = (s: string): string =>
     .replace(/\s{2,}/g, " ")
     .trim();
 
-// Clamp to at most 3 sentences.
-const clampToThreeSentences = (s: string): string => {
+// Clamp to at most N sentences.
+const clampSentences = (s: string, n: number): string => {
   const matches = s.match(/[^.!?]+[.!?]+/g);
   if (!matches || matches.length === 0) return s;
-  return matches.slice(0, 3).join(" ").trim();
+  return matches.slice(0, n).join(" ").trim();
 };
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  const authResp = await requireAuth(req);
-  if (authResp) return authResp;
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const { rawComplaint, mode } = body ?? {};
+  const isBrief = mode === 'brief';
+
+  // Brief mode is used from the public /intake page and does not require auth.
+  if (!isBrief) {
+    const authResp = await requireAuth(req);
+    if (authResp) return authResp;
+  }
 
   try {
-    const { rawComplaint } = await req.json();
     if (!rawComplaint || typeof rawComplaint !== 'string') {
       return new Response(JSON.stringify({ error: 'rawComplaint is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -76,7 +89,18 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are an intake-note formatter for a device repair shop.
+    const briefPrompt = `You are an intake-note formatter for a device repair shop.
+
+Rewrite the customer's chief complaint as ONE OR TWO short professional sentences.
+
+STRICT RULES:
+- Output ONLY the note. No headings, labels, bullets, numbering, greeting, or sign-off.
+- Maximum 2 sentences. Prefer 1 clear sentence.
+- Plain text only. No markdown, no quotes, no emoji, no em dashes.
+- Do not invent model numbers, parts, prices, or symptoms not mentioned.
+- Neutral third-person phrasing.`;
+
+    const detailedPrompt = `You are an intake-note formatter for a device repair shop.
 
 Rewrite the customer's chief complaint into a short, professional intake note that also helps the technician.
 
@@ -92,6 +116,8 @@ STRICT RULES:
 - Do not invent model numbers, part numbers, prices, or symptoms the customer did not mention.
 - Keep the original meaning. Neutral third-person phrasing.
 - No em dashes; use regular hyphens.`;
+
+    const systemPrompt = isBrief ? briefPrompt : detailedPrompt;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -124,7 +150,7 @@ STRICT RULES:
       });
     }
 
-    const formatted = clampToThreeSentences(stripMarkdown(raw));
+    const formatted = clampSentences(stripMarkdown(raw), isBrief ? 2 : 3);
 
     return new Response(JSON.stringify({ formattedComplaint: formatted }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

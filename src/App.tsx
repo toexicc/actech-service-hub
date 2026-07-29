@@ -17,6 +17,7 @@ import ServiceForm from "./pages/ServiceForm";
 import Install from "./pages/Install";
 import Attendance from "./pages/Attendance";
 import NotFound from "./pages/NotFound";
+import QueueDisplay from "./pages/QueueDisplay";
 
 // Configure QueryClient with caching settings for fast navigation
 const queryClient = new QueryClient({
@@ -56,7 +57,8 @@ const App = () => (
               <Route path="/track/:serviceId" element={<ServiceTracking />} />
               <Route path="/install" element={<Install />} />
               <Route path="/attendance" element={<Attendance />} />
-              <Route path="/intake" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
+              <Route path="/intake" element={<ServiceForm />} />
+              <Route path="/queue" element={<QueueDisplay />} />
 
               {/* All authenticated workbench pages render through a single
                   keep-alive shell so switching tabs no longer remounts pages. */}
@@ -77,6 +79,7 @@ const App = () => (
               <Route path="/request-for-parts" element={<WorkbenchShell />} />
               <Route path="/salary-disbursement" element={<WorkbenchShell />} />
               <Route path="/attendance-overview" element={<WorkbenchShell />} />
+              <Route path="/queueing" element={<WorkbenchShell />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

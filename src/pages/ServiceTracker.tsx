@@ -1085,6 +1085,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             </Tabs>
           </CardHeader>
           <CardContent>
+            {activeTab === "intake" ? (
+              <IntakeQueuePanel />
+            ) : (
             {isLoading ? (
               <div className="overflow-x-auto">
                 <Table>
