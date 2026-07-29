@@ -959,20 +959,21 @@ const ServiceForm = () => {
                   control={form.control}
                   name="deviceType"
                   render={({ field }) => {
-                    // Get selected technicians' departments
-                    const selectedTechNames = form.watch("technician")?.split(", ").filter(Boolean) || [];
-                    const selectedTechDepartments = selectedTechNames
-                      .map(name => technicianList.find(t => t.name === name)?.department)
-                      .filter(Boolean) as string[];
-                    
-                    // Get available device types based on selected departments
+                    // Device types available are constrained by selected technician
+                    // departments (internal form) — public intake keeps all types.
+                    const selectedTechDepartments = (form.watch("technicianDepartments") || "")
+                      .split(", ")
+                      .filter(Boolean);
+
                     const availableDeviceTypes = selectedTechDepartments.length > 0
                       ? Array.from(new Set(
-                          selectedTechDepartments.flatMap(dept => 
+                          selectedTechDepartments.flatMap(dept =>
                             DEVICE_TYPES_BY_DEPARTMENT[dept] || []
                           )
                         ))
                       : DEVICE_TYPES;
+                    
+
                     
                     return (
                       <FormItem>
