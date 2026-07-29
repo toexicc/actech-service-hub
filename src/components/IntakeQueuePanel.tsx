@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueueEntries, moveQueueEntry, type QueueEntry } from "@/hooks/useQueueEntries";
+import { useQueueEntries, type QueueEntry } from "@/hooks/useQueueEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { CompleteIntakeModal } from "@/components/CompleteIntakeModal";
-import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 const PAGE_SIZE = 10;
+
+const DEVICE_TYPES = [
+  "Laptop/Macbook",
+  "IPad/Tablet",
+  "IPhone/Mobile",
+  "Apple Watch",
+  "Computer/IMac",
+];
 
 const statusMeta: Record<string, { label: string; className: string }> = {
   waiting: { label: "Waiting", className: "border-blue-400 text-blue-700" },
@@ -41,19 +47,19 @@ const fmtDate = (iso: string) => {
   })}`;
 };
 
-const inRange = (iso: string, range: string) => {
-  if (range === "all") return true;
+const inDateRange = (iso: string, from: string, to: string) => {
   const d = new Date(iso);
-  const now = new Date();
-  const start = new Date(now);
-  if (range === "today") start.setHours(0, 0, 0, 0);
-  else if (range === "7d") start.setDate(now.getDate() - 7);
-  else if (range === "month") {
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
+  if (from) {
+    const start = new Date(`${from}T00:00:00`);
+    if (d < start) return false;
   }
-  return d >= start;
+  if (to) {
+    const end = new Date(`${to}T23:59:59.999`);
+    if (d > end) return false;
+  }
+  return true;
 };
+
 
 /**
  * Intake tracker — table view of every public /intake submission (pending and
