@@ -34,12 +34,13 @@ const Tile = ({
   onCancel: () => void;
 }) => (
   <div
-    className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
+    className={`flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg border px-3 py-2 ${
       tone === "proceed"
         ? "border-emerald-200 bg-emerald-50/60"
         : "border-blue-200 bg-blue-50/60"
     }`}
   >
+
     <div
       className={`shrink-0 rounded-md px-2 py-1 text-sm font-black tabular-nums ${
         tone === "proceed"
@@ -198,20 +199,20 @@ const QueueAdmin = () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
               <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Clock className="h-5 w-5 text-blue-600" /> Waiting ({waiting.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-w-0 overflow-hidden">
                   {waiting.length === 0 ? (
                     <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
                       {loading ? "Loading…" : "No one is waiting."}
                     </div>
                   ) : (
-                    <div className="grid gap-3">
+                    <div className="grid min-w-0 gap-3">
                       {waiting.map((e) => (
                         <Tile
                           key={e.id}
@@ -234,13 +235,13 @@ const QueueAdmin = () => {
                     {proceed.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-w-0 overflow-hidden">
                   {proceed.length === 0 ? (
                     <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
                       {loading ? "Loading…" : "No one called yet."}
                     </div>
                   ) : (
-                    <div className="grid gap-3">
+                    <div className="grid min-w-0 gap-3">
                       {proceed.map((e) => (
                         <Tile
                           key={e.id}
