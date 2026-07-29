@@ -1100,7 +1100,50 @@ const ServiceForm = () => {
               name="chiefComplaint"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Chief Complaint:</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Chief Complaint:</FormLabel>
+                    {!isPublic && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isFormattingComplaint || !field.value?.trim()}
+                        onClick={async () => {
+                          const raw = field.value?.trim();
+                          if (!raw) return;
+                          setIsFormattingComplaint(true);
+                          try {
+                            const { data: resp, error } = await supabase.functions.invoke(
+                              "format-complaint",
+                              { body: { rawComplaint: raw } },
+                            );
+                            if (error) throw error;
+                            const formatted = (resp as any)?.formattedComplaint;
+                            if (formatted) {
+                              form.setValue("chiefComplaint", formatted, { shouldDirty: true, shouldValidate: true });
+                              toast({ title: "Formatted", description: "Chief complaint rewritten." });
+                            } else {
+                              throw new Error("No formatted text returned");
+                            }
+                          } catch (e) {
+                            toast({
+                              title: "Formatter failed",
+                              description: e instanceof Error ? e.message : "Try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsFormattingComplaint(false);
+                          }
+                        }}
+                      >
+                        {isFormattingComplaint ? (
+                          <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Formatting…</>
+                        ) : (
+                          "Format with AI"
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   <FormControl>
                     <Textarea {...field} rows={4} />
                   </FormControl>
@@ -1108,6 +1151,7 @@ const ServiceForm = () => {
                 </FormItem>
               )}
             />
+
 
             {/* Device Password */}
             <FormField
