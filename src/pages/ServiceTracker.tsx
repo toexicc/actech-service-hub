@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
-import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
+
 import { useServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
 
@@ -82,7 +82,7 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "within" | "walkin" | "intake" | "ongoing" | "completed" | "closed">("ongoing");
+  const [activeTab, setActiveTab] = useState<"all" | "within" | "walkin" | "ongoing" | "completed" | "closed">("ongoing");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const itemsPerPage = 15;
 
@@ -595,7 +595,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       if (activeTab === "closed" && !closed) return false;
       if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
       if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
-      if (activeTab === "intake" && !String(service.source || "").toLowerCase().includes("public intake")) return false;
       // "all" — no additional filter
 
       // Status filter
@@ -1069,8 +1068,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 ? "Within The Day"
                 : activeTab === "walkin"
                 ? "Walk-In Services"
-                : activeTab === "intake"
-                ? "Public Intake Submissions"
                 : "Ongoing Services"}
             </CardTitle>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
@@ -1078,7 +1075,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="within">Within the Day</TabsTrigger>
                 <TabsTrigger value="walkin">Walk In</TabsTrigger>
-                <TabsTrigger value="intake">Intake</TabsTrigger>
                 <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
                 <TabsTrigger value="closed">Cancelled / RTO / On Hold</TabsTrigger>
@@ -1086,8 +1082,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             </Tabs>
           </CardHeader>
           <CardContent>
-            {activeTab === "intake" && <IntakeQueuePanel />}
-            {activeTab !== "intake" && (isLoading ? (
+            {isLoading ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -1390,9 +1385,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                      })}
                   </TableBody>
                 </Table>
-              </div>
+               </div>
               </>
-            ))}
+            )}
 
 
             {!isLoading && filteredAndSortedServices.length > 0 && (
