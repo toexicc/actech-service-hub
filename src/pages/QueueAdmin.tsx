@@ -34,12 +34,13 @@ const Tile = ({
   onCancel: () => void;
 }) => (
   <div
-    className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
+    className={`flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg border px-3 py-2 ${
       tone === "proceed"
         ? "border-emerald-200 bg-emerald-50/60"
         : "border-blue-200 bg-blue-50/60"
     }`}
   >
+
     <div
       className={`shrink-0 rounded-md px-2 py-1 text-sm font-black tabular-nums ${
         tone === "proceed"
