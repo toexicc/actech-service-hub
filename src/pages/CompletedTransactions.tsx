@@ -385,21 +385,25 @@ const CompletedTransactions = () => {
                       const discount = service.discount || 0;
                       let profit = (service.quotedPrice || 0) - discount - adjustedCost;
                       let commission = 0;
-                      
+                      const allocated = hasAllocation(service.serviceId);
+
                       if (service.department === "Laptop (Daily Repairs)") {
                         adjustedCost = adjustedCost * 1.1;
                         profit = (service.quotedPrice || 0) - discount - adjustedCost;
+                      }
+
+                      if (allocated) {
+                        commission = allocatedFor(service.serviceId);
+                      } else if (service.department === "Laptop (Daily Repairs)") {
                         commission = profit * 0.3;
                       } else if (service.department === "Laptop (Screens)") {
                         commission = screenCommissions[service.serviceId] || 0;
                       } else if (service.department === "Mobile (Logic Board)") {
-                        // Net profit is gross sales - discount - parts cost for this department
-                        profit = (service.quotedPrice || 0) - discount - adjustedCost;
-                        // Commission is 50% of net profit
                         commission = profit * 0.5;
                       } else {
                         commission = (profit * commissionRate) / 100;
                       }
+
                       
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
