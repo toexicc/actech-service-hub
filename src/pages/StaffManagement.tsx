@@ -528,8 +528,11 @@ const StaffManagement = () => {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+
 
           <Card>
             <CardHeader>
