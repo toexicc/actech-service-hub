@@ -724,7 +724,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
         // Fire-and-forget: notifications and logging (don't block UI)
         const adminName = sessionStorage.getItem("userFullName") || (data.adminRep || "").split(", ")[0] || "Client";
-        const username = sessionStorage.getItem("username") || (data.adminRep || "").split(", ")[0] || "client-intake";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || (data.adminRep || "").split(", ")[0] || "client-intake";
         const role = sessionStorage.getItem("userRole") || (isPublic ? "client" : "admin");
 
         // All assigned admins (multi-select supported) — recipient_id MUST be the auth uuid

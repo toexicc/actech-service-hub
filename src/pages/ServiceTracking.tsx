@@ -26,6 +26,40 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
 import { StatusChip } from "@/components/ui/status-chip";
+import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+
+// Accepted modes of payment shown on the public tracking page.
+const MODES_OF_PAYMENT = [
+  "Cash",
+  "GCash",
+  "Maya",
+  "Bank Transfer",
+  "Credit Card",
+  "Debit Card",
+  "GCash QR",
+  "Installment",
+];
+
+// Pull the "SUMMARY:" section out of the AI diagnosis text.
+const parseSummaryFromDiagnosis = (diagnosis: string): string => {
+  if (!diagnosis) return "";
+  const lines = diagnosis.split(/\r?\n/);
+  const startIdx = lines.findIndex((l) => /^\s*summary\s*:?/i.test(l));
+  if (startIdx === -1) return "";
+  const first = lines[startIdx].replace(/^\s*summary\s*:?/i, "").trim();
+  const out: string[] = first ? [first] : [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const raw = lines[i].trim();
+    if (!raw) {
+      if (out.length) break;
+      continue;
+    }
+    if (/^(to proceed|service breakdown|recommendations|writing rules)/i.test(raw)) break;
+    out.push(raw);
+  }
+  return out.join("\n");
+};
+
 
 // Merge Supabase migrated fields over sheet data so public tracking shows
 // up-to-date info even when fields were updated post-migration.
@@ -56,7 +90,15 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
+      // Intake / scheduling fields must come from the record itself
+      serialNumber: pick(sb.serialNumber, sheetData.serialNumber),
+      targetDate: pick(sb.targetDate, sheetData.targetDate),
+      initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
+      discount: pick(sb.discount, sheetData.discount),
+      serviceDate: pick((row as any).service_date, sheetData.serviceDate),
+      dateCompleted: pick(sb.dateCompleted, sheetData.dateCompleted),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+
     };
   } catch {
     return sheetData;
@@ -111,6 +153,10 @@ const ServiceTracking = () => {
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
 
   const { toast } = useToast();
+
+  // Actual money received (POS ledger) for accurate deposit/balance display.
+  const { data: paymentsSummary } = usePublicServicePayments(serviceData?.serviceId || undefined);
+
 
   // Fetch photos from Google Drive folder
   useEffect(() => {
@@ -664,8 +710,21 @@ const ServiceTracking = () => {
           };
           const stepIdx = statusToStep(currentStatus);
           const totalCost = Number(serviceData.finalCost || serviceData.serviceCost || 0);
-          const deposit = Number(serviceData.initialPayment || 0);
-          const balance = Math.max(0, totalCost - deposit);
+          const totals = derivePaymentTotals(
+            totalCost,
+            Number(serviceData.initialPayment || 0),
+            paymentsSummary?.transactionsPaid || 0,
+          );
+          const deposit = totals.paid;
+          const balance = totals.balance;
+          const quoteSummary = parseSummaryFromDiagnosis(serviceData.aiDiagnosis || "");
+          // Service date = when the client approved the diagnosis.
+          const serviceDateDisplay = approvalRecord?.decision === "Approved"
+            ? approvalRecord.at
+            : serviceData.serviceDate
+            ? displayDate(serviceData.serviceDate, "MMM dd, yyyy")
+            : "N/A";
+
           const shopAddress = "Unit 103, 1st Flr, FBR Arcade Katipunan, Quezon City";
           const shopMapEmbed = `https://www.google.com/maps?q=${encodeURIComponent(shopAddress)}&output=embed`;
           const shopDirections = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(shopAddress)}`;
@@ -711,7 +770,7 @@ const ServiceTracking = () => {
                     {/* Mini stats */}
                     <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Deposit</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Paid</p>
                         <p className="text-lg font-semibold mt-0.5">₱{deposit.toLocaleString()}</p>
                       </div>
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3">
@@ -770,8 +829,8 @@ const ServiceTracking = () => {
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Serial</p>
-                        <p className="text-base font-medium mt-0.5">
-                          {serviceData.serialNumber ? serviceData.serialNumber.slice(0, -5) + "*****" : "N/A"}
+                        <p className="text-base font-medium mt-0.5 break-all">
+                          {serviceData.serialNumber || "N/A"}
                         </p>
                       </div>
                       <div className="sm:col-span-2">
@@ -780,7 +839,8 @@ const ServiceTracking = () => {
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Service Date</p>
-                        <p className="text-sm mt-0.5">{serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy · hh:mm a") : "N/A"}</p>
+                        <p className="text-sm mt-0.5">{serviceDateDisplay}</p>
+
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Target</p>
@@ -876,12 +936,20 @@ const ServiceTracking = () => {
                       </span>
                     </div>
 
+                    {quoteSummary && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm whitespace-pre-wrap">
+                        {quoteSummary}
+                      </div>
+                    )}
+
                     {serviceData.service ? (
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3 text-sm whitespace-pre-wrap">
                         {serviceData.service}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">The line items will appear here once we finalize the diagnosis.</p>
+                      !quoteSummary && (
+                        <p className="text-sm text-muted-foreground">The line items will appear here once we finalize the diagnosis.</p>
+                      )
                     )}
 
                     <Separator />
@@ -890,22 +958,39 @@ const ServiceTracking = () => {
                       <span className="text-muted-foreground">Total</span>
                       <span className="font-semibold">₱{totalCost.toLocaleString()}</span>
                     </div>
+                    {Number(serviceData.initialPayment || 0) > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Deposit</span>
+                        <span>₱{Number(serviceData.initialPayment || 0).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {(paymentsSummary?.payments?.length ?? 0) > 0 && (
+                      <div className="space-y-1">
+                        {paymentsSummary!.payments.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{p.type}{p.paymentMethod ? ` · ${p.paymentMethod}` : ""}</span>
+                            <span>₱{p.amount.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Deposit</span>
-                      <span>₱{deposit.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Total Paid</span>
+                      <span className="font-medium">₱{deposit.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between text-base font-semibold text-primary">
-                      <span>Balance (pay on pickup)</span>
+                      <span>Balance</span>
                       <span>₱{balance.toLocaleString()}</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {["Cash", "GCash", "Maya"].map((m) => (
+                      {MODES_OF_PAYMENT.map((m) => (
                         <span key={m} className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium">
                           {m}
                         </span>
                       ))}
                     </div>
+
                     <p className="text-xs text-muted-foreground">Settle in person on pickup. No online payments are required through this page.</p>
                   </CardContent>
                 </Card>

@@ -758,7 +758,7 @@ const ManageClient = () => {
 
       if (isSuccess) {
         // Log only the fields that actually changed
-        const username = sessionStorage.getItem("username") || "Admin";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
         const changes: string[] = [];
 
@@ -973,7 +973,7 @@ const ManageClient = () => {
         (response.ok && result === null);
 
       if (isSuccess) {
-        const username = sessionStorage.getItem("username") || "Admin";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
 
         await logActivity({
@@ -1144,7 +1144,7 @@ const ManageClient = () => {
         handleSearch();
 
         // Fire-and-forget: log activity without blocking
-        const username = sessionStorage.getItem("username") || "Admin";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
         logActivity({
           serviceId: serviceId,

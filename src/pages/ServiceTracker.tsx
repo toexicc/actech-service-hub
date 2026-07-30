@@ -28,7 +28,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
 
-import { useServices, useInvalidateServices } from "@/hooks/useServices";
+import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
@@ -57,7 +57,7 @@ const ServiceTracker = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { data: services = [], isLoading } = useServices();
+  const { data: services = [], isLoading } = useAllServices();
   const invalidateServices = useInvalidateServices();
   const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
@@ -124,7 +124,7 @@ const ServiceTracker = () => {
 
   // Check if user is a technician with locked filters
   const userRole = sessionStorage.getItem("userRole");
-  const username = sessionStorage.getItem("username");
+  const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username"));
   const isTechnician = userRole === "technician";
   const [technicianName, setTechnicianName] = useState("");
   const [technicianDepartment, setTechnicianDepartment] = useState("");

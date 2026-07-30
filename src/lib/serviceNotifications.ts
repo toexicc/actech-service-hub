@@ -8,19 +8,23 @@ const sendViaEdge = async (
   recipients: { userId: string; title: string; message: string; serviceId?: string }[],
 ) => {
   if (!recipients.length) return;
+  let delivered = false;
   try {
-    await supabase.functions.invoke('notify-service-event', { body: { recipients } });
+    const { error } = await supabase.functions.invoke('notify-service-event', { body: { recipients } });
+    delivered = !error;
   } catch {
-    // Fall back to direct insert (best effort)
-    for (const r of recipients) {
-      await createNotification({
-        userId: r.userId,
-        title: r.title,
-        message: r.message,
-        type: 'service_update',
-        serviceId: r.serviceId,
-      });
-    }
+    delivered = false;
+  }
+  if (delivered) return;
+  // Fall back to direct inserts so the alert still lands.
+  for (const r of recipients) {
+    await createNotification({
+      userId: r.userId,
+      title: r.title,
+      message: r.message,
+      type: 'service_update',
+      serviceId: r.serviceId,
+    });
   }
 };
 
@@ -39,11 +43,23 @@ const normalizeStaffName = (name: string): string => {
   return name.split(' - ')[0].trim();
 };
 
-// Get staff member by name
+// Get staff member by name — exact match first, then tolerant partial matching so
+// slightly different spellings/formats still resolve to a real recipient.
 const findStaffByName = (staffList: StaffMember[], name: string): StaffMember | undefined => {
   const needle = normalizeStaffName(name).toLowerCase();
-  return staffList.find(s => normalizeStaffName(s.name).toLowerCase() === needle);
+  if (!needle) return undefined;
+  const exact = staffList.find(s => normalizeStaffName(s.name).toLowerCase() === needle);
+  if (exact) return exact;
+  const contains = staffList.find(s => {
+    const n = normalizeStaffName(s.name).toLowerCase();
+    return n.includes(needle) || needle.includes(n);
+  });
+  if (contains) return contains;
+  // Last resort: first-name match
+  const first = needle.split(/\s+/)[0];
+  return staffList.find(s => normalizeStaffName(s.name).toLowerCase().split(/\s+/)[0] === first);
 };
+
 
 // Get all management staff
 const getManagementStaff = (staffList: StaffMember[]): StaffMember[] => {
@@ -204,6 +220,14 @@ export const notifyServiceStatusChange = async (
       const recv = findStaffByName(staffList, service.receivingStaff);
       const recvMsg = messages.adminMessage || messages.technicianMessage;
       push(recv, recvMsg);
+    }
+
+    // Safety net: never let a status change go unannounced. If no assignee could
+    // be resolved, notify management so someone always sees it.
+    if (recipients.length === 0) {
+      const fallbackMsg = messages.adminMessage || messages.technicianMessage ||
+        `Service ${service.serviceId} status changed to "${newStatus}".`;
+      for (const m of getManagementStaff(staffList)) push(m, fallbackMsg);
     }
 
     await sendViaEdge(recipients);

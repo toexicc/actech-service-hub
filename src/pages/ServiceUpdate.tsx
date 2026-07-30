@@ -114,7 +114,7 @@ const ServiceUpdate = () => {
   const { data: inventoryData = [] } = useInventory();
   const { data: fastMovingData = [] } = useFastMovingParts();
 
-  const username = sessionStorage.getItem("username") || "Unknown";
+  const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Unknown";
   const userRole = sessionStorage.getItem("userRole") || "Unknown";
   
   // Get current user's full name if they're a technician
