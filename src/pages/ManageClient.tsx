@@ -676,15 +676,23 @@ const ManageClient = () => {
     // Prevent multiple simultaneous updates
     if (isUpdatingClientInfo) return;
 
-    // Guard: when on Confirmed Diagnosis, require a generated Service Quotation Form
-    if (updateStatus === "Confirmed Diagnosis" && !serviceData.quotationPdfUrl) {
+    // Guard: fields can be saved freely while on Confirmed Diagnosis, but the
+    // ticket cannot move to another status until the Service Quotation Form exists.
+    if (
+      serviceData.status === "Confirmed Diagnosis" &&
+      updateStatus &&
+      updateStatus !== "Confirmed Diagnosis" &&
+      !serviceData.quotationPdfUrl
+    ) {
       toast({
         title: "Service Quotation Form Required",
-        description: "Please generate the Service Quotation Form before updating this service.",
+        description:
+          "Save your service cost and diagnosis first, generate the Service Quotation Form, then change the status.",
         variant: "destructive",
       });
       return;
     }
+
 
     setIsUpdatingClientInfo(true);
     try {
