@@ -26,6 +26,40 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
 import { StatusChip } from "@/components/ui/status-chip";
+import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+
+// Accepted modes of payment shown on the public tracking page.
+const MODES_OF_PAYMENT = [
+  "Cash",
+  "GCash",
+  "Maya",
+  "Bank Transfer",
+  "Credit Card",
+  "Debit Card",
+  "GCash QR",
+  "Installment",
+];
+
+// Pull the "SUMMARY:" section out of the AI diagnosis text.
+const parseSummaryFromDiagnosis = (diagnosis: string): string => {
+  if (!diagnosis) return "";
+  const lines = diagnosis.split(/\r?\n/);
+  const startIdx = lines.findIndex((l) => /^\s*summary\s*:?/i.test(l));
+  if (startIdx === -1) return "";
+  const first = lines[startIdx].replace(/^\s*summary\s*:?/i, "").trim();
+  const out: string[] = first ? [first] : [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const raw = lines[i].trim();
+    if (!raw) {
+      if (out.length) break;
+      continue;
+    }
+    if (/^(to proceed|service breakdown|recommendations|writing rules)/i.test(raw)) break;
+    out.push(raw);
+  }
+  return out.join("\n");
+};
+
 
 // Merge Supabase migrated fields over sheet data so public tracking shows
 // up-to-date info even when fields were updated post-migration.
