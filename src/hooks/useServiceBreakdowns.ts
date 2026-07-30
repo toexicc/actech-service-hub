@@ -65,3 +65,37 @@ export const useSaveServiceBreakdowns = () => {
       queryClient.invalidateQueries({ queryKey: ["serviceBreakdowns", vars.serviceId] }),
   });
 };
+
+/**
+ * Fetch breakdown allocations for many services at once.
+ * Returns a map of serviceId -> rows, plus helpers for totals.
+ */
+export const useAllServiceBreakdowns = (serviceIds: string[]) => {
+  const key = [...serviceIds].sort().join("|");
+  return useQuery({
+    queryKey: ["allServiceBreakdowns", key],
+    queryFn: async (): Promise<Record<string, ServiceBreakdown[]>> => {
+      if (serviceIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("service_breakdowns")
+        .select("*")
+        .in("service_id", serviceIds);
+      if (error) throw error;
+      const map: Record<string, ServiceBreakdown[]> = {};
+      (data ?? []).forEach((r: any) => {
+        const row: ServiceBreakdown = {
+          id: r.id,
+          serviceId: r.service_id,
+          serviceName: r.service_name ?? "",
+          technicianId: r.technician_id ?? null,
+          technicianName: r.technician_name ?? "",
+          cost: Number(r.cost ?? 0),
+        };
+        (map[row.serviceId] ||= []).push(row);
+      });
+      return map;
+    },
+    enabled: serviceIds.length > 0,
+    staleTime: 30 * 1000,
+  });
+};
