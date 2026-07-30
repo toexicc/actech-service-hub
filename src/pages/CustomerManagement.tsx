@@ -308,12 +308,16 @@ const CustomerManagement = () => {
             {customerData && (
               <div className="grid gap-8 lg:grid-cols-3">
                 <Card className="lg:col-span-1">
-                  <CardHeader>
+                  <CardHeader className="flex-row items-center justify-between space-y-0">
                     <CardTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
                       Customer Information
                     </CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(customerData)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Edit
+                    </Button>
                   </CardHeader>
+
                   <CardContent className="space-y-4">
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client ID:</h3>
