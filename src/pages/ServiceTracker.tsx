@@ -609,11 +609,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       // Date range filter - filter by TARGET DATE
       if (startDate || endDate) {
         try {
-          const targetParts = service.targetDate.split(/[-/]/);
-          if (targetParts.length === 3) {
-            const [month, day, year] = targetParts;
-            const targetDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          const targetDate = parseTargetDate(service.targetDate);
+          if (targetDate) {
             targetDate.setHours(0, 0, 0, 0);
+
             
             if (startDate) {
               const start = new Date(startDate);
