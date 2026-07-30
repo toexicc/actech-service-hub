@@ -770,7 +770,7 @@ const ServiceTracking = () => {
                     {/* Mini stats */}
                     <div className="grid grid-cols-3 gap-3">
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Deposit</p>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Paid</p>
                         <p className="text-lg font-semibold mt-0.5">₱{deposit.toLocaleString()}</p>
                       </div>
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3">
