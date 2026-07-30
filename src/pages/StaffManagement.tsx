@@ -533,7 +533,14 @@ const StaffManagement = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Staff Members</CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle>Staff Members</CardTitle>
+                <Button onClick={() => setAddDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Register Staff
+                </Button>
+              </div>
+
               <div className="flex gap-4 mt-4">
                 <div className="flex-1">
                   <Label htmlFor="roleFilter">Filter by Role</Label>
