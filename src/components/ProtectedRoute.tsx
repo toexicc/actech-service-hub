@@ -25,15 +25,17 @@ const ProtectedRoute = ({ children, roles }: Props) => {
   const { user, roles: userRoles, loading } = useAuth();
   const location = useLocation();
 
-  // Wait for auth init, and also wait if a stored session exists but user
-  // hasn't hydrated yet — prevents bouncing to "/" right after login.
-  if (loading || (!user && hasStoredSupabaseToken())) {
+  // Only gate on loading during *initial* auth resolution. Once a user is
+  // present we keep rendering children even if loading briefly flips, so a
+  // token refresh can never tear down (and visually "reload") the app tree.
+  if (!user && (loading || hasStoredSupabaseToken())) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
+
 
   if (!user) {
     return <Navigate to="/" state={{ from: location }} replace />;
