@@ -127,7 +127,7 @@ export const ServiceBreakdownPanel = ({ serviceId, totalCost, defaultTechnicians
       <div className="flex justify-end">
         <Button
           size="sm"
-          disabled={save.isPending}
+          disabled={save.isPending || !isDirty}
           onClick={async () => {
             try {
               await save.mutateAsync({
