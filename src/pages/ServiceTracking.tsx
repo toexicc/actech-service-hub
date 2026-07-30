@@ -154,6 +154,10 @@ const ServiceTracking = () => {
 
   const { toast } = useToast();
 
+  // Actual money received (POS ledger) for accurate deposit/balance display.
+  const { data: paymentsSummary } = usePublicServicePayments(serviceData?.serviceId || undefined);
+
+
   // Fetch photos from Google Drive folder
   useEffect(() => {
     const fetchDevicePhotos = async () => {
