@@ -50,40 +50,58 @@ const stripMarkdown = (s: string): string =>
 
 // Deterministically strip any monetary amount the model invents inside the
 // Service Breakdown section and replace it with the fill-in placeholder.
+const stripDecor = (s: string) => s.replace(/[*_#>`]/g, "").trim();
+
+const OTHER_SECTION =
+  /^(to proceed|summary|recommendations?|findings?|cause of issue|cause|suggested solutions?|solution|note|notes|disclaimer)\b/i;
+
 const enforceAmountPlaceholders = (text: string): string => {
   const lines = String(text ?? "").split("\n");
   let inBreakdown = false;
+
   return lines
     .map((line) => {
-      const trimmed = line.trim();
-      if (/^service breakdown\s*:?$/i.test(trimmed)) {
+      const bare = stripDecor(line);
+
+      // Enter the breakdown section on any heading mentioning it
+      if (/^service breakdown\b/i.test(bare)) {
         inBreakdown = true;
+        // Heading may carry the first item inline
+        return line.replace(
+          /(?:php|₱|p)?\s*\[?\{?\s*[\d,]+(?:\.\d{1,2})?\s*\}?\]?\s*$/i,
+          "Php {Enter Amount}",
+        );
+      }
+
+      if (!inBreakdown) return line;
+
+      if (bare === "") return line; // keep blank lines, stay in section
+      if (OTHER_SECTION.test(bare)) {
+        inBreakdown = false;
         return line;
       }
-      if (inBreakdown) {
-        // Section ends at the next label-like line or the closing prompt
-        if (
-          trimmed === "" ||
-          /^(to proceed|summary\s*:|recommendations\s*:|findings\s*:|cause of issue\s*:|suggested solution\s*:)/i.test(trimmed)
-        ) {
-          if (trimmed !== "") inBreakdown = false;
-          return line;
-        }
-        // Normalize any price on this item line to the placeholder
-        let out = line.replace(
-          /(?:-\s*)?(?:php|₱|p)\s*\[?\s*[\d,]+(?:\.\d+)?\s*\]?/gi,
-          "- Php {Enter Amount}",
-        );
-        out = out.replace(/Php\s*\[\s*Enter Amount\s*\]/gi, "Php {Enter Amount}");
-        if (!/Php \{Enter Amount\}/.test(out)) {
-          out = `${out.replace(/[\s-]+$/, "")} - Php {Enter Amount}`;
-        }
-        return out;
+
+      let out = line;
+      // Any currency-tagged amount -> placeholder
+      out = out.replace(
+        /(?:php|₱|p)\s*\[?\{?\s*[\d,]+(?:\.\d{1,2})?\s*\}?\]?/gi,
+        "Php {Enter Amount}",
+      );
+      // Bare trailing number (e.g. "Screen replacement - 5,000")
+      out = out.replace(/([-–:]\s*)[\d,]+(?:\.\d{1,2})?\s*(?:php|pesos)?\s*$/i, "$1Php {Enter Amount}");
+      // Bracketed placeholder variants
+      out = out.replace(/php\s*[\[\(]\s*enter amount\s*[\]\)]/gi, "Php {Enter Amount}");
+      out = out.replace(/\{?\s*enter amount\s*\}?/gi, "{Enter Amount}");
+      out = out.replace(/(?<!Php )\{Enter Amount\}/g, "Php {Enter Amount}");
+
+      if (!/Php \{Enter Amount\}/.test(out)) {
+        out = `${out.replace(/[\s\-–:]+$/, "")} - Php {Enter Amount}`;
       }
-      return line;
+      return out;
     })
     .join("\n");
 };
+
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
