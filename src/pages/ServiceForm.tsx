@@ -31,6 +31,7 @@ import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureClient } from "@/hooks/useClients";
 
 const buildFormSchema = (isPublic: boolean) => z.object({
   clientId: z.string().optional(),
