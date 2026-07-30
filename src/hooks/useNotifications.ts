@@ -106,12 +106,32 @@ export const useNotifications = (userId: string | null, _enabled: boolean = true
       return data;
     },
     enabled: !!userId && enabled,
-    staleTime: 30 * 1000, // 30 seconds - notifications stay fresh
+    staleTime: 10 * 1000,
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
-    refetchInterval: enabled ? 30000 : false, // Poll every 30 seconds when enabled
+    refetchInterval: enabled ? 60000 : false, // Safety-net poll; realtime does the heavy lifting
     refetchOnWindowFocus: true, // Refetch when user returns to app
     refetchOnMount: false, // Don't refetch on every mount - use cached data
   });
+
+  // Realtime: instant delivery of new/updated notifications for this user.
+  useEffect(() => {
+    if (!userId || !enabled) return;
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${userId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, enabled, queryClient]);
+
 
   // Clean and process notifications
   const notifications = rawNotifications.map(n => ({
