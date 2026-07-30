@@ -156,7 +156,7 @@ export function TicketOverviewRow({
               <div className="px-4 py-3">
                 <p className="text-2xl font-bold text-primary tabular-nums">{peso(fc)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {peso(ip)} paid · <span className={balance > 0 ? "text-destructive font-medium" : "text-success font-medium"}>{peso(balance)} {balance > 0 ? "due" : "settled"}</span>
+                  {peso(paid)} paid · <span className={balance > 0 ? "text-destructive font-medium" : "text-success font-medium"}>{peso(balance)} {balance > 0 ? "due" : "settled"}</span>
                 </p>
               </div>
               <div className="px-4 py-2 space-y-1.5 text-sm">
@@ -178,6 +178,33 @@ export function TicketOverviewRow({
                     <span className="tabular-nums text-foreground">{peso(fc)}</span>
                   </div>
                 )}
+                {showPayment && (
+                  <>
+                    {ip > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Initial Payment</span>
+                        <span className="tabular-nums">{peso(ip)}</span>
+                      </div>
+                    )}
+                    {paymentRows.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between">
+                        <span className="text-muted-foreground truncate">
+                          {p.type}{p.paymentMethod ? ` · ${p.paymentMethod}` : ""}
+                        </span>
+                        <span className="tabular-nums">{peso(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Total Paid</span>
+                      <span className="tabular-nums">{peso(paid)}</span>
+                    </div>
+                    <div className="flex items-center justify-between font-semibold">
+                      <span className="text-foreground">Balance</span>
+                      <span className="tabular-nums text-foreground">{peso(balance)}</span>
+                    </div>
+                  </>
+                )}
+
               </div>
               {paymentStatus && (
                 <div className="flex items-center justify-between px-4 py-2 bg-muted/40">
