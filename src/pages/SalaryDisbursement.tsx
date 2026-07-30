@@ -247,6 +247,26 @@ const SalaryDisbursement = () => {
     return getServicesForStaff(name).reduce((sum, s) => sum + parseCurrency(s.finalCost), 0);
   };
 
+  // Allocated commissions saved in the Completed Transactions breakdown panel
+  const doneServiceIds = useMemo(
+    () =>
+      allServices
+        .filter((s) => s.status?.toLowerCase() === "done" || s.status?.toLowerCase() === "completed")
+        .map((s) => s.serviceId)
+        .filter(Boolean),
+    [allServices],
+  );
+  const { data: breakdownMap = {} } = useAllServiceBreakdowns(doneServiceIds);
+  const getAllocatedCommission = (name: string) => {
+    const target = (name || "").trim().toLowerCase();
+    if (!target) return 0;
+    return Object.values(breakdownMap)
+      .flat()
+      .filter((r) => (r.technicianName || "").trim().toLowerCase() === target)
+      .reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+  };
+
+
   const computeFixedFinal = (staff: any) => {
     const salary = parseCurrency(staff.salary) / 2; // Divided by 2 (15th and end of month)
     const commission = parseCurrency(commissions[staff.staffId]);
