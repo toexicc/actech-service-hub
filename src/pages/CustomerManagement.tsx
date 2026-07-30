@@ -51,8 +51,57 @@ const CustomerManagement = () => {
   const [activeTab, setActiveTab] = useState("list");
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<CustomerData | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", username: "", contactNumber: "", email: "", address: "" });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const { data: clientsList = [], isLoading: isClientsLoading } = useClients();
+  const { invalidateClients } = useInvalidateClients();
+
+  const openEdit = (c: { clientId: string; clientName?: string; username?: string; contactNumber?: string; phone?: string; email?: string; address?: string }) => {
+    setEditTarget({
+      clientId: c.clientId,
+      clientName: c.clientName ?? "",
+      username: c.username ?? "",
+      phone: c.contactNumber ?? c.phone ?? "",
+      email: c.email ?? "",
+      address: c.address ?? "",
+      serviceIds: [],
+    });
+    setEditForm({
+      name: c.clientName ?? "",
+      username: c.username ?? "",
+      contactNumber: c.contactNumber ?? c.phone ?? "",
+      email: c.email ?? "",
+      address: c.address ?? "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    setIsSavingEdit(true);
+    try {
+      await updateClient({ clientId: editTarget.clientId, ...editForm });
+      invalidateClients();
+      if (customerData?.clientId === editTarget.clientId) {
+        setCustomerData({
+          ...customerData,
+          clientName: editForm.name,
+          username: editForm.username,
+          phone: editForm.contactNumber,
+          email: editForm.email,
+          address: editForm.address,
+        });
+      }
+      toast({ title: "Customer updated" });
+      setEditTarget(null);
+    } catch (e: any) {
+      toast({ title: "Failed to update", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
 
   const filteredClients = useMemo(() => {
     if (!customerSearch) return clientsList;
