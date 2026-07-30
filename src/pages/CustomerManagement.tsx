@@ -398,6 +398,43 @@ const CustomerManagement = () => {
           </TabsContent>
         </Tabs>
 
+        <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+          <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-md">
+            <DialogHeader className="shrink-0">
+              <DialogTitle>Edit Customer{editTarget ? ` — ${editTarget.clientId}` : ""}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-3 py-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-name">Client Name</Label>
+                <Input id="edit-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-username">Username</Label>
+                <Input id="edit-username" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact">Contact Number</Label>
+                <Input id="edit-contact" value={editForm.contactNumber} onChange={(e) => setEditForm({ ...editForm, contactNumber: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input id="edit-email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-address">Address</Label>
+                <Input id="edit-address" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter className="shrink-0">
+              <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+              <Button onClick={saveEdit} disabled={isSavingEdit || !editForm.name.trim()}>
+                {isSavingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
         <div className="text-center mt-8 text-sm text-muted-foreground">
           
         </div>
