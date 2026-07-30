@@ -83,6 +83,8 @@ const StaffManagement = () => {
   }, [staffData]);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
   const [selectedStaff, setSelectedStaff] = useState<UserCredential | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -223,7 +225,9 @@ const StaffManagement = () => {
           salary: "",
         });
         
+        setAddDialogOpen(false);
         loadStaffList();
+
       } else {
         toast({
           title: "Error",
@@ -376,15 +380,18 @@ const StaffManagement = () => {
         </div>
 
         <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Add New Staff Member
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogContent className="bg-background max-h-[95dvh] w-[calc(100%-2rem)] overflow-hidden !flex !flex-col !p-0 sm:max-w-xl">
+              <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Register New Staff Member
+                </DialogTitle>
+                <DialogDescription>Create a sign-in account and staff profile.</DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+              <div className="grid md:grid-cols-2 gap-4">
+
                 <div>
                   <Label htmlFor="email">Email (used for sign-in) *</Label>
                   <Input
@@ -524,12 +531,22 @@ const StaffManagement = () => {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+
 
           <Card>
             <CardHeader>
-              <CardTitle>Staff Members</CardTitle>
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle>Staff Members</CardTitle>
+                <Button onClick={() => setAddDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Register Staff
+                </Button>
+              </div>
+
               <div className="flex gap-4 mt-4">
                 <div className="flex-1">
                   <Label htmlFor="roleFilter">Filter by Role</Label>
