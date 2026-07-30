@@ -110,6 +110,8 @@ export const useInvalidateClients = () => {
 export interface EnsureClientInput {
   clientId?: string | null;
   name: string;
+  /** Device/account username captured on the intake form. */
+  username?: string | null;
   contactNumber?: string | null;
   email?: string | null;
   address?: string | null;
@@ -123,41 +125,51 @@ export const ensureClient = async (input: EnsureClientInput): Promise<string> =>
   const name = (input.name || "").trim();
   const phone = (input.contactNumber || "").trim();
   const email = (input.email || "").trim();
+  const username = (input.username || "").trim();
+
+  // Keeps the username fresh on records created before it was captured.
+  const backfill = async (clientId: string, existingUsername?: string | null) => {
+    if (username && !(existingUsername || "").trim()) {
+      await supabase.from("clients").update({ username }).eq("client_id", clientId);
+    }
+    return clientId;
+  };
 
   if (input.clientId) {
     const { data } = await supabase
       .from("clients")
-      .select("client_id")
+      .select("client_id, username")
       .eq("client_id", input.clientId)
       .maybeSingle();
-    if (data?.client_id) return data.client_id;
+    if (data?.client_id) return backfill(data.client_id, data.username);
   }
 
   if (phone) {
     const { data } = await supabase
       .from("clients")
-      .select("client_id")
+      .select("client_id, username")
       .eq("contact_number", phone)
       .limit(1)
       .maybeSingle();
-    if (data?.client_id) return data.client_id;
+    if (data?.client_id) return backfill(data.client_id, data.username);
   }
 
   if (!phone && name && email) {
     const { data } = await supabase
       .from("clients")
-      .select("client_id")
+      .select("client_id, username")
       .eq("name", name)
       .eq("email", email)
       .limit(1)
       .maybeSingle();
-    if (data?.client_id) return data.client_id;
+    if (data?.client_id) return backfill(data.client_id, data.username);
   }
 
   const newId = input.clientId || `CL${Date.now()}`;
   const { error } = await supabase.from("clients").insert({
     client_id: newId,
     name: name || "Unknown",
+    username: username || null,
     contact_number: phone || null,
     email: email || null,
     address: input.address || null,
@@ -165,4 +177,28 @@ export const ensureClient = async (input: EnsureClientInput): Promise<string> =>
   if (error) throw error;
   return newId;
 };
+
+export interface UpdateClientInput {
+  clientId: string;
+  name: string;
+  username?: string | null;
+  contactNumber?: string | null;
+  email?: string | null;
+  address?: string | null;
+}
+
+export const updateClient = async (input: UpdateClientInput) => {
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      name: input.name,
+      username: input.username || null,
+      contact_number: input.contactNumber || null,
+      email: input.email || null,
+      address: input.address || null,
+    })
+    .eq("client_id", input.clientId);
+  if (error) throw error;
+};
+
 
