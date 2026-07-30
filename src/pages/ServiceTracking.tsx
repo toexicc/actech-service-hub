@@ -710,8 +710,21 @@ const ServiceTracking = () => {
           };
           const stepIdx = statusToStep(currentStatus);
           const totalCost = Number(serviceData.finalCost || serviceData.serviceCost || 0);
-          const deposit = Number(serviceData.initialPayment || 0);
-          const balance = Math.max(0, totalCost - deposit);
+          const totals = derivePaymentTotals(
+            totalCost,
+            Number(serviceData.initialPayment || 0),
+            paymentsSummary?.transactionsPaid || 0,
+          );
+          const deposit = totals.paid;
+          const balance = totals.balance;
+          const quoteSummary = parseSummaryFromDiagnosis(serviceData.aiDiagnosis || "");
+          // Service date = when the client approved the diagnosis.
+          const serviceDateDisplay = approvalRecord?.decision === "Approved"
+            ? approvalRecord.at
+            : serviceData.serviceDate
+            ? displayDate(serviceData.serviceDate, "MMM dd, yyyy")
+            : "N/A";
+
           const shopAddress = "Unit 103, 1st Flr, FBR Arcade Katipunan, Quezon City";
           const shopMapEmbed = `https://www.google.com/maps?q=${encodeURIComponent(shopAddress)}&output=embed`;
           const shopDirections = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(shopAddress)}`;
