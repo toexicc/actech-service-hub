@@ -59,21 +59,21 @@ const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
 };
 
 const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`);
-  const data = await response.json();
-  if (data.status === "success" && data.services) {
-    return data.services.map((s: any) => ({
-      serviceId: s.serviceId,
-      clientName: s.clientName,
-      device: s.device || s.deviceType || "",
-      deviceType: s.deviceType || "",
-      finalCost: s.serviceCost || "0",
-      partsCost: "0",
-      technician: s.technician || "",
-      status: s.status || "",
-    }));
-  }
-  return [];
+  const { data, error } = await supabase
+    .from("services")
+    .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status")
+    .limit(2000);
+  if (error) return [];
+  return (data ?? []).map((s: any) => ({
+    serviceId: s.service_id ?? "",
+    clientName: s.client_name ?? "",
+    device: s.device_type ?? "",
+    deviceType: s.device_type ?? "",
+    finalCost: String(s.final_cost || s.total_cost || 0),
+    partsCost: String(s.parts_cost ?? 0),
+    technician: Array.isArray(s.technicians) ? s.technicians.join(", ") : (s.technicians ?? ""),
+    status: s.status ?? "",
+  }));
 };
 
 const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Other Banks"];
@@ -81,11 +81,18 @@ const EXPENSE_TYPES = ["Parts Inventory", "Rent", "Miscellaneous Expense", "Sala
 const REFUND_TYPE = "Refund";
 
 const fetchTransactions = async (): Promise<any[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTransactions`);
-  const data = await response.json();
-  if (data.status === "success" && data.transactions) return data.transactions;
-  return [];
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("amount, type, fund_name")
+    .limit(5000);
+  if (error) return [];
+  return (data ?? []).map((t: any) => ({
+    amount: t.amount,
+    transactionType: t.type ?? "",
+    fundSource: t.fund_name || "Money In Bank",
+  }));
 };
+
 
 const SalaryDisbursement = () => {
   const navigate = useNavigate();
