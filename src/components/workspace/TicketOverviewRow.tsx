@@ -28,6 +28,8 @@ const peso = (n: number) =>
 
 export interface TicketOverviewRowProps {
   status?: string;
+  /** Ticket ID — enables actual POS payment totals in the Payment card. */
+  serviceId?: string;
   technician?: string;
   adminRep?: string;
   receivingStaff?: string;
@@ -49,6 +51,7 @@ export interface TicketOverviewRowProps {
 
 export function TicketOverviewRow({
   status,
+  serviceId,
   technician,
   adminRep,
   receivingStaff,
@@ -70,13 +73,18 @@ export function TicketOverviewRow({
   const info = STAGE_MAP[status || ""] || STAGE_MAP["Pending Diagnosis"];
   const nextText = (guidance && guidance.trim()) || info.next;
 
+  const { data: paymentsSummary } = useServicePayments(serviceId);
   const sc = num(serviceCost);
   const dc = num(discount);
   const fc = finalCost !== undefined && finalCost !== null && String(finalCost) !== ""
     ? num(finalCost)
     : Math.max(0, sc - dc);
   const ip = num(initialPayment);
-  const balance = Math.max(0, fc - ip);
+  const totals = derivePaymentTotals(fc, ip, paymentsSummary?.transactionsPaid || 0);
+  const paid = totals.paid;
+  const balance = totals.balance;
+  const paymentRows = paymentsSummary?.payments ?? [];
+
 
   const assignees = [
     { role: "Technician", name: technician },
