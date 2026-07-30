@@ -17,6 +17,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useDoneServices } from "@/hooks/useDoneServices";
 import { ChevronRight } from "lucide-react";
 import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
+import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
+
 
 const CompletedTransactions = () => {
   const navigate = useNavigate();
