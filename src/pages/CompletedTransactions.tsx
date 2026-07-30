@@ -73,6 +73,15 @@ const CompletedTransactions = () => {
     });
   }, [services, technicianFilter, departmentFilter, startDate, endDate]);
 
+  // Actual allocations saved in the breakdown panel drive commissions.
+  const { data: breakdownMap = {} } = useAllServiceBreakdowns(
+    useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
+  );
+  const allocatedFor = (serviceId: string) =>
+    (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
+  const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
+
+
   const financialSummary = useMemo(() => {
     let totalCommission = 0;
     let adjustedTotalCosts = 0;
