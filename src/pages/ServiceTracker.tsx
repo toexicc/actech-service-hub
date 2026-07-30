@@ -494,19 +494,25 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     }
   };
 
+  // Accepts both MM/dd/yyyy (legacy) and yyyy-MM-dd (database) target dates.
+  const parseTargetDate = (targetDate: string): Date | null => {
+    const parts = (targetDate || "").split(/[-/]/);
+    if (parts.length !== 3) return null;
+    const [month, day, year] = parts[0].length === 4
+      ? [parts[1], parts[2], parts[0]]
+      : [parts[0], parts[1], parts[2]];
+    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const isOverdue = (targetDate: string, status: string): boolean => {
     if (!targetDate) return false;
     if (status === "Completed") return false;
     try {
-      const parts = targetDate.split(/[-/]/);
-      if (parts.length !== 3) return false;
-      
-      const [month, day, year] = parts;
-      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const target = parseTargetDate(targetDate);
+      if (!target) return false;
       target.setHours(23, 59, 59, 999);
-      
-      if (isNaN(target.getTime())) return false;
-      
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -519,12 +525,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   const getDaysUntilDue = (targetDate: string): number => {
     if (!targetDate) return 999;
     try {
-      const parts = targetDate.split(/[-/]/);
-      if (parts.length !== 3) return 999;
-      
-      const [month, day, year] = parts;
-      const target = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const target = parseTargetDate(targetDate);
+      if (!target) return 999;
       target.setHours(23, 59, 59, 999);
+
       
       if (isNaN(target.getTime())) return 999;
       
