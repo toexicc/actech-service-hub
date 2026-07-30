@@ -564,6 +564,7 @@ const SalaryDisbursement = () => {
                           <TableHead>Staff Name</TableHead>
                           <TableHead>Department</TableHead>
                           <TableHead>Service Cost (Total)</TableHead>
+                          <TableHead>Allocated Commission</TableHead>
                           <TableHead>Commission %</TableHead>
                           <TableHead>Final Amount</TableHead>
                           <TableHead>Action</TableHead>
@@ -572,26 +573,31 @@ const SalaryDisbursement = () => {
                       <TableBody>
                         {serviceBasedStaff.map((staff: any) => {
                           const serviceCostTotal = getServiceCostTotal(staff.name);
+                          const allocated = getAllocatedCommission(staff.name);
                           const commPct = parseCurrency(techCommissions[staff.staffId]);
-                          const final = serviceCostTotal * (commPct / 100);
+                          const final = allocated > 0 ? allocated : serviceCostTotal * (commPct / 100);
                           const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
                           return (
                             <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
                               <TableCell className="font-medium">{staff.name}</TableCell>
                               <TableCell>{staff.department || "-"}</TableCell>
                               <TableCell>{fmtCurrency(serviceCostTotal)}</TableCell>
+                              <TableCell className={cn(allocated > 0 && "font-semibold text-orange-600")}>
+                                {fmtCurrency(allocated)}
+                              </TableCell>
                               <TableCell>
                                 <Input
                                   type="number"
                                   step="0.01"
                                   placeholder="%"
                                   className="w-20"
-                                  disabled={isDone}
+                                  disabled={isDone || allocated > 0}
                                   value={techCommissions[staff.staffId] || ""}
                                   onChange={(e) => setTechCommissions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell className="font-bold">{fmtCurrency(final)}</TableCell>
+
                               <TableCell>
                                 <Button
                                   size="sm"
