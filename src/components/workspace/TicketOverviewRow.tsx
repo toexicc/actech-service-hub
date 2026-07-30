@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { Sparkles, Users, Wallet, Zap } from "lucide-react";
 import { WorkspacePanel } from "./WorkspacePanel";
 import { cn } from "@/lib/utils";
+import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+
 
 const STAGE_MAP: Record<string, { stage: string; next: string; tone: string }> = {
   "Pending Diagnosis": { stage: "Intake", tone: "border-warning/30 bg-warning/5", next: "Run the diagnostic and generate the intake form." },
