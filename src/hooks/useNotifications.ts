@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Notification as AppNotification, fetchNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/notifications';
+
 
 // Create a simple notification sound using Web Audio API
 const playNotificationSound = () => {
