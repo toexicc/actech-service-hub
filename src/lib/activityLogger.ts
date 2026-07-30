@@ -9,6 +9,18 @@ export interface ActivityLog {
   activity: string;
 }
 
+const actorName = (): string => {
+  try {
+    return (
+      sessionStorage.getItem("userFullName") ||
+      sessionStorage.getItem("username") ||
+      "System"
+    );
+  } catch {
+    return "System";
+  }
+};
+
 const sendLog = async (log: Omit<ActivityLog, "logId" | "timestamp">) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -32,7 +44,7 @@ export const logActivityAsync = (log: Omit<ActivityLog, "logId" | "timestamp">) 
 };
 
 export const logSystemActivity = (activity: string) => {
-  const username = sessionStorage.getItem("username") || "System";
+  const username = actorName();
   const role = sessionStorage.getItem("userRole") || "system";
   logActivityAsync({ serviceId: "SYSTEM", username, role, activity });
 };
@@ -42,7 +54,7 @@ export const logAuthActivity = (username: string, activity: string, role: string
 };
 
 export const logStaffActivity = (activity: string, targetStaffName?: string) => {
-  const username = sessionStorage.getItem("username") || "System";
+  const username = actorName();
   const role = sessionStorage.getItem("userRole") || "system";
   logActivityAsync({
     serviceId: "STAFF",
@@ -53,13 +65,13 @@ export const logStaffActivity = (activity: string, targetStaffName?: string) => 
 };
 
 export const logInventoryActivity = (partId: string, activity: string) => {
-  const username = sessionStorage.getItem("username") || "System";
+  const username = actorName();
   const role = sessionStorage.getItem("userRole") || "system";
   logActivityAsync({ serviceId: `INV-${partId}`, username, role, activity });
 };
 
 export const logInquiryActivity = (inquiryId: string, activity: string) => {
-  const username = sessionStorage.getItem("username") || "System";
+  const username = actorName();
   const role = sessionStorage.getItem("userRole") || "system";
   logActivityAsync({ serviceId: `INQ-${inquiryId}`, username, role, activity });
 };
