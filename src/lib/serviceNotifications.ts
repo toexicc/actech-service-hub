@@ -222,6 +222,14 @@ export const notifyServiceStatusChange = async (
       push(recv, recvMsg);
     }
 
+    // Safety net: never let a status change go unannounced. If no assignee could
+    // be resolved, notify management so someone always sees it.
+    if (recipients.length === 0) {
+      const fallbackMsg = messages.adminMessage || messages.technicianMessage ||
+        `Service ${service.serviceId} status changed to "${newStatus}".`;
+      for (const m of getManagementStaff(staffList)) push(m, fallbackMsg);
+    }
+
     await sendViaEdge(recipients);
   } catch (error) {
     console.error('Error sending service notifications:', error);
