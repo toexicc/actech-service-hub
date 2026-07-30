@@ -829,8 +829,8 @@ const ServiceTracking = () => {
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Serial</p>
-                        <p className="text-base font-medium mt-0.5">
-                          {serviceData.serialNumber ? serviceData.serialNumber.slice(0, -5) + "*****" : "N/A"}
+                        <p className="text-base font-medium mt-0.5 break-all">
+                          {serviceData.serialNumber || "N/A"}
                         </p>
                       </div>
                       <div className="sm:col-span-2">
@@ -839,7 +839,8 @@ const ServiceTracking = () => {
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Service Date</p>
-                        <p className="text-sm mt-0.5">{serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy · hh:mm a") : "N/A"}</p>
+                        <p className="text-sm mt-0.5">{serviceDateDisplay}</p>
+
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Target</p>
