@@ -142,10 +142,12 @@ const CustomerManagement = () => {
       setCustomerData({
         clientId: client.client_id,
         clientName: client.name,
-        username: client.name,
+        username: (client as any).username ?? "",
         phone: client.contact_number,
         email: client.email,
+        address: client.address ?? "",
       } as any);
+
       const { data: services } = await supabase
         .from("services")
         .select("*")
