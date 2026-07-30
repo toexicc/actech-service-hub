@@ -428,26 +428,34 @@ const CompletedTransactions = () => {
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            {service.department === "Laptop (Screens)" ? (
-                              <Input
-                                type="number"
-                                className="w-32 text-right"
-                                value={screenCommissions[service.serviceId] || 0}
-                                onChange={(e) => {
-                                  setScreenCommissions(prev => ({
-                                    ...prev,
-                                    [service.serviceId]: parseFloat(e.target.value) || 0
-                                  }));
-                                }}
-                                min="0"
-                                step="100"
-                              />
+                            {allocated ? (
+                              <span className="text-orange-600 font-medium" title="Total allocated in the service breakdown">
+                                ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            ) : service.department === "Laptop (Screens)" ? (
+                              <div className="relative w-32 ml-auto">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
+                                <Input
+                                  className="pl-5 text-right"
+                                  inputMode="decimal"
+                                  placeholder="0.00"
+                                  value={screenCommissions[service.serviceId] ? String(screenCommissions[service.serviceId]) : ""}
+                                  onChange={(e) => {
+                                    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
+                                    setScreenCommissions((prev) => ({
+                                      ...prev,
+                                      [service.serviceId]: parseFloat(cleaned) || 0,
+                                    }));
+                                  }}
+                                />
+                              </div>
                             ) : service.department === "Mobile (Logic Board)" ? (
                               <span className="text-muted-foreground">-</span>
                             ) : (
                               <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             )}
                           </TableCell>
+
                         </TableRow>
                         {isOpen && (
                           <TableRow key={`${service.serviceId}-expand`}>
