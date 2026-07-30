@@ -48,6 +48,43 @@ const stripMarkdown = (s: string): string =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
+// Deterministically strip any monetary amount the model invents inside the
+// Service Breakdown section and replace it with the fill-in placeholder.
+const enforceAmountPlaceholders = (text: string): string => {
+  const lines = String(text ?? "").split("\n");
+  let inBreakdown = false;
+  return lines
+    .map((line) => {
+      const trimmed = line.trim();
+      if (/^service breakdown\s*:?$/i.test(trimmed)) {
+        inBreakdown = true;
+        return line;
+      }
+      if (inBreakdown) {
+        // Section ends at the next label-like line or the closing prompt
+        if (
+          trimmed === "" ||
+          /^(to proceed|summary\s*:|recommendations\s*:|findings\s*:|cause of issue\s*:|suggested solution\s*:)/i.test(trimmed)
+        ) {
+          if (trimmed !== "") inBreakdown = false;
+          return line;
+        }
+        // Normalize any price on this item line to the placeholder
+        let out = line.replace(
+          /(?:-\s*)?(?:php|₱|p)\s*\[?\s*[\d,]+(?:\.\d+)?\s*\]?/gi,
+          "- Php {Enter Amount}",
+        );
+        out = out.replace(/Php\s*\[\s*Enter Amount\s*\]/gi, "Php {Enter Amount}");
+        if (!/Php \{Enter Amount\}/.test(out)) {
+          out = `${out.replace(/[\s-]+$/, "")} - Php {Enter Amount}`;
+        }
+        return out;
+      }
+      return line;
+    })
+    .join("\n");
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -97,8 +134,8 @@ Recommendations:
 <professional advice for the customer>
 
 Service Breakdown:
-<Service Item 1> - Php [Enter Amount]
-<Service Item 2> - Php [Enter Amount]
+<Service Item 1> - Php {Enter Amount}
+<Service Item 2> - Php {Enter Amount}
 
 To proceed with the service, PROCEED or APPROVE to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
 
@@ -114,8 +151,8 @@ No markdown formatting at all. Never output **, __, ##, backticks, asterisks, or
 No bullet points or numbered lists.
 No em dashes. Use regular hyphens only.
 No quotation marks unless necessary.
-CRITICAL PRICING RULE: Never invent, estimate, or guess any monetary amount. For every Service Breakdown line item the price MUST be the literal placeholder "Php [Enter Amount]" so the technician fills it in. Do NOT output any numeric peso amount under any circumstance.
-List every Service Breakdown item on its own line in the format "<Service Name> - Php [Enter Amount]".
+CRITICAL PRICING RULE: Never invent, estimate, or guess any monetary amount. For every Service Breakdown line item the price MUST be the literal placeholder "Php {Enter Amount}" so the technician fills it in. Do NOT output any numeric peso amount under any circumstance.
+List every Service Breakdown item on its own line in the format "<Service Name> - Php {Enter Amount}".
 Use the exact section labels and order shown in the template. Do not add or remove sections.`;
 
     const userPrompt = `customerName: ${customerName || ''}
@@ -159,7 +196,8 @@ Produce the report now using the EXACT template. Do not include this instruction
       });
     }
 
-    const formattedDiagnosis = stripMarkdown(raw);
+    let formattedDiagnosis = stripMarkdown(raw);
+    formattedDiagnosis = enforceAmountPlaceholders(formattedDiagnosis);
 
     return new Response(JSON.stringify({ formattedDiagnosis }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
