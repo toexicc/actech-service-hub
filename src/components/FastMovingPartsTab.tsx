@@ -192,7 +192,7 @@ export const FastMovingPartsTab = ({
          );
 
         // Log activity
-        const username = sessionStorage.getItem("username") || "System";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "System";
         const role = sessionStorage.getItem("userRole") || "management";
         logActivityAsync({
           serviceId: `FMP-${selectedPart.partId}`,
@@ -278,7 +278,7 @@ export const FastMovingPartsTab = ({
         await notifyPartReceived(part.serviceId, part.partName);
 
         // Log activity
-        const username = sessionStorage.getItem("username") || "System";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "System";
         const role = sessionStorage.getItem("userRole") || "management";
         logActivityAsync({
           serviceId: `FMP-${part.partId}`,
@@ -352,7 +352,7 @@ export const FastMovingPartsTab = ({
 
       if (isSuccess) {
         // Log activity
-        const username = sessionStorage.getItem("username") || "System";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "System";
         const role = sessionStorage.getItem("userRole") || "management";
         logActivityAsync({
           serviceId: `FMP-${editForm.partId}`,
@@ -434,7 +434,7 @@ export const FastMovingPartsTab = ({
         );
 
         // Log activity
-        const username = sessionStorage.getItem("username") || "System";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "System";
         const role = sessionStorage.getItem("userRole") || "management";
         logActivityAsync({
           serviceId: `FMP-${selectedPart.partId}`,
@@ -542,7 +542,7 @@ export const FastMovingPartsTab = ({
 
       if (isSuccess) {
         // Log activity
-        const username = sessionStorage.getItem("username") || "System";
+        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "System";
         const role = sessionStorage.getItem("userRole") || "management";
         logActivityAsync({
           serviceId: `FMP-NEW`,

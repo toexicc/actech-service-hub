@@ -98,7 +98,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const queryClient = useQueryClient();
   const handleLogout = () => {
-    const username = sessionStorage.getItem("username") || "Unknown";
+    const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Unknown";
     const role = sessionStorage.getItem("userRole") || "unknown";
     try { logAuthActivity(username, "User logged out", role); } catch {}
     try { sessionStorage.clear(); } catch {}

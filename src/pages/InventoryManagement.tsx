@@ -221,7 +221,7 @@ const InventoryManagement = () => {
       formData.append("status", newPart.status);
       formData.append("remarks", remarksWithOrder);
       formData.append("qrCode", qrCodeDataUrl);
-      formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("addedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("color", newPart.color);
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -378,7 +378,7 @@ const InventoryManagement = () => {
         formData.append("status", part.status);
         formData.append("remarks", isOnOrder ? `Ordered: ${part.quantity} units` : "");
         formData.append("qrCode", qrCodeDataUrl);
-        formData.append("addedBy", sessionStorage.getItem("username") || "Admin");
+        formData.append("addedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
         formData.append("color", part.color || "");
 
         try {
@@ -499,7 +499,7 @@ const InventoryManagement = () => {
         formData.append("previousQuantity", selectedPart.quantity.toString());
       }
       
-      formData.append("adjustedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("adjustedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("userRole", sessionStorage.getItem("userRole") || "Management");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -611,7 +611,7 @@ const InventoryManagement = () => {
       formData.append("supplier", editingPart.supplier || "");
       formData.append("costPerUnit", editingPart.costPerUnit || "");
       formData.append("remarks", editingPart.remarks || "");
-      formData.append("updatedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("updatedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("color", editingPart.color || "");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
@@ -682,7 +682,7 @@ const InventoryManagement = () => {
       const formData = new FormData();
       formData.append("action", "deleteInventoryItem");
       formData.append("partId", selectedPart.partId);
-      formData.append("deletedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("deletedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
 
       const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: "POST",
@@ -753,7 +753,7 @@ const InventoryManagement = () => {
       const formData = new FormData();
       formData.append("action", "receiveOrder");
       formData.append("partId", item.partId);
-      formData.append("receivedBy", sessionStorage.getItem("username") || "Admin");
+      formData.append("receivedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("userRole", sessionStorage.getItem("userRole") || "Management");
       formData.append("remarks", "Order received and confirmed");
 

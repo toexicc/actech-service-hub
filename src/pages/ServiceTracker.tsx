@@ -124,7 +124,7 @@ const ServiceTracker = () => {
 
   // Check if user is a technician with locked filters
   const userRole = sessionStorage.getItem("userRole");
-  const username = sessionStorage.getItem("username");
+  const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username"));
   const isTechnician = userRole === "technician";
   const [technicianName, setTechnicianName] = useState("");
   const [technicianDepartment, setTechnicianDepartment] = useState("");
