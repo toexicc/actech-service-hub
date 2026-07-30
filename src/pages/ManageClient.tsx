@@ -1272,6 +1272,8 @@ const ManageClient = () => {
           />
           <TicketOverviewRow
             status={serviceData.status}
+            serviceId={serviceData.serviceId}
+
             guidance={getStatusGuidance(
               serviceData.status || "",
               {
