@@ -37,6 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  // Id of the user whose profile/roles are already hydrated in state.
+  const hydratedUserIdRef = useRef<string | null>(null);
 
   const loadProfileAndRoles = async (uid: string) => {
     const [{ data: prof }, { data: roleRows }] = await Promise.all([
@@ -46,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(prof as AuthProfile | null);
     const r = (roleRows ?? []).map((x: any) => x.role as AppRole);
     setRoles(r);
+    hydratedUserIdRef.current = uid;
     // Compatibility shim for legacy pages reading sessionStorage
     try {
       const primaryRole = r.includes("admin") ? "admin" : r.includes("management") ? "management" : r.includes("technician") ? "technician" : "";
@@ -60,16 +63,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
+      // Always keep session/user fresh so tokens stay valid.
       setSession(sess);
       setUser(sess?.user ?? null);
+
       if (sess?.user) {
-        // Keep loading=true while we hydrate profile/roles to prevent
-        // ProtectedRoute from bouncing to "/" between sign-in and hydration.
+        // TOKEN_REFRESHED (and repeat SIGNED_IN on tab refocus) fire for the
+        // same user we already hydrated. Re-hydrating there would flip
+        // loading=true and unmount the whole authenticated tree, which looks
+        // exactly like a page reload. Ignore those events.
+        if (hydratedUserIdRef.current === sess.user.id) return;
+
+        const uid = sess.user.id;
         setLoading(true);
         setTimeout(() => {
-          loadProfileAndRoles(sess.user.id).finally(() => setLoading(false));
+          loadProfileAndRoles(uid).finally(() => setLoading(false));
         }, 0);
       } else {
+        hydratedUserIdRef.current = null;
         setProfile(null);
         setRoles([]);
         if (event === "SIGNED_OUT") setLoading(false);
@@ -80,6 +91,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
+        // The subscription may have already hydrated this user.
+        if (hydratedUserIdRef.current === sess.user.id) {
+          setLoading(false);
+          return;
+        }
         loadProfileAndRoles(sess.user.id).finally(() => setLoading(false));
       } else {
         setLoading(false);
@@ -88,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => sub.subscription.unsubscribe();
   }, []);
+
 
   const signOut = async () => {
     try { sessionStorage.clear(); } catch {}
