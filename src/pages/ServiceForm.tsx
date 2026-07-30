@@ -303,43 +303,52 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
     setIsSearchingClient(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(searchClientId)}`,
-      );
+      const term = searchClientId.trim();
+      const { data: client } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("client_id", term)
+        .maybeSingle();
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      let customer: { clientId?: string; clientName?: string; username?: string; phone?: string; email?: string; address?: string } | null = null;
+
+      if (client) {
+        customer = {
+          clientId: client.client_id,
+          clientName: client.name ?? "",
+          username: (client as any).username ?? "",
+          phone: client.contact_number ?? "",
+          email: client.email ?? "",
+          address: (client as any).address ?? "",
+        };
+      } else {
+        // Fallback: resolve from an existing service ticket carrying this client id
+        const { data: svc } = await supabase
+          .from("services")
+          .select("client_id, client_name, username, contact_number, email, address")
+          .eq("client_id", term)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (svc) {
+          customer = {
+            clientId: svc.client_id ?? term,
+            clientName: svc.client_name ?? "",
+            username: (svc as any).username ?? "",
+            phone: svc.contact_number ?? "",
+            email: svc.email ?? "",
+            address: (svc as any).address ?? "",
+          };
+        }
       }
 
-      const result = await response.json();
-      // Support both legacy and new response shapes
-      let found = false;
-      let customer: { clientName?: string; username?: string; phone?: string; email?: string } = {};
-
-      if (result && result.found && result.data) {
-        found = true;
-        customer = {
-          clientName: result.data.clientName,
-          username: result.data.username,
-          phone: result.data.contactNumber, // legacy key
-          email: result.data.email,
-        };
-      } else if (result && result.status === "success" && result.customer) {
-        found = true;
-        customer = {
-          clientName: result.customer.clientName,
-          username: result.customer.username,
-          phone: result.customer.phone, // new key
-          email: result.customer.email,
-        };
-      }
-
-      if (found) {
-        form.setValue("clientId", searchClientId);
+      if (customer) {
+        form.setValue("clientId", customer.clientId || term);
         form.setValue("clientName", customer.clientName || "");
         form.setValue("username", customer.username || "");
         form.setValue("phone", customer.phone || "");
         form.setValue("email", customer.email || "");
+        if (customer.address) form.setValue("address" as any, customer.address);
         form.setValue("clientType", "Returning Client - Walk In");
         form.setValue("priority", "Loyalty");
         toast({
@@ -353,6 +362,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           variant: "destructive",
         });
       }
+
     } catch {
       // Error searching client ID
       toast({
