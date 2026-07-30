@@ -51,7 +51,7 @@ const fetchClients = async (): Promise<ClientRecord[]> => {
   return (data ?? []).map((r: any) => ({
     clientId: r.client_id ?? "",
     clientName: r.name ?? "",
-    username: r.name ?? "",
+    username: r.username ?? "",
     contactNumber: r.contact_number ?? "",
     email: r.email ?? "",
     serviceId: (svcMap.get(r.client_id) ?? []).join(", "),
