@@ -648,9 +648,17 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const techDepartmentsArr = [...new Set(
         techNamesArr.map(n => technicianList.find(t => t.name === n)?.department).filter(Boolean) as string[]
       )];
+      // Create or reuse the customer record so Customer Management always has
+      // an entry and the service carries a real Client ID.
+      const resolvedClientId = await ensureClient({
+        clientId: data.clientId || null,
+        name: data.clientName,
+        contactNumber: data.phone,
+        email: data.email,
+      }).catch(() => data.clientId || null);
       const { error: upsertError } = await supabase.from("services").upsert({
         service_id: finalServiceId,
-        client_id: data.clientId || null,
+        client_id: resolvedClientId || null,
         client_name: data.clientName,
         contact_number: data.phone,
         email: data.email || null,
