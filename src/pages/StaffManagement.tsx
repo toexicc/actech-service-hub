@@ -380,15 +380,18 @@ const StaffManagement = () => {
         </div>
 
         <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                Add New Staff Member
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogContent className="bg-background max-h-[95dvh] w-[calc(100%-2rem)] overflow-hidden !flex !flex-col !p-0 sm:max-w-xl">
+              <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Register New Staff Member
+                </DialogTitle>
+                <DialogDescription>Create a sign-in account and staff profile.</DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+              <div className="grid md:grid-cols-2 gap-4">
+
                 <div>
                   <Label htmlFor="email">Email (used for sign-in) *</Label>
                   <Input
