@@ -226,11 +226,11 @@ const SalaryDisbursement = () => {
     allTransactions.forEach((t: any) => {
       const amt = parseCurrency(t.amount);
       const type = t.transactionType || "";
-      const fundSrc = t.fundSource || "Money In Bank";
-      if (FUND_TYPES.includes(type)) totals[type] = (totals[type] || 0) + amt;
-      if (EXPENSE_TYPES.includes(type) && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
-      if (type === REFUND_TYPE && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
+      const fundSrc = totals[t.fundSource] !== undefined ? t.fundSource : "Money In Bank";
+      const isOutflow = EXPENSE_TYPES.includes(type) || type === REFUND_TYPE || /refund|expense|disbursement/i.test(type);
+      totals[fundSrc] = (totals[fundSrc] || 0) + (isOutflow ? -amt : amt);
     });
+
     return totals;
   }, [allTransactions]);
 
