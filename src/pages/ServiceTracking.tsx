@@ -936,12 +936,20 @@ const ServiceTracking = () => {
                       </span>
                     </div>
 
+                    {quoteSummary && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm whitespace-pre-wrap">
+                        {quoteSummary}
+                      </div>
+                    )}
+
                     {serviceData.service ? (
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3 text-sm whitespace-pre-wrap">
                         {serviceData.service}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">The line items will appear here once we finalize the diagnosis.</p>
+                      !quoteSummary && (
+                        <p className="text-sm text-muted-foreground">The line items will appear here once we finalize the diagnosis.</p>
+                      )
                     )}
 
                     <Separator />
@@ -950,22 +958,39 @@ const ServiceTracking = () => {
                       <span className="text-muted-foreground">Total</span>
                       <span className="font-semibold">₱{totalCost.toLocaleString()}</span>
                     </div>
+                    {Number(serviceData.initialPayment || 0) > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Deposit</span>
+                        <span>₱{Number(serviceData.initialPayment || 0).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {(paymentsSummary?.payments?.length ?? 0) > 0 && (
+                      <div className="space-y-1">
+                        {paymentsSummary!.payments.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{p.type}{p.paymentMethod ? ` · ${p.paymentMethod}` : ""}</span>
+                            <span>₱{p.amount.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Deposit</span>
-                      <span>₱{deposit.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Total Paid</span>
+                      <span className="font-medium">₱{deposit.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between text-base font-semibold text-primary">
-                      <span>Balance (pay on pickup)</span>
+                      <span>Balance</span>
                       <span>₱{balance.toLocaleString()}</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {["Cash", "GCash", "Maya"].map((m) => (
+                      {MODES_OF_PAYMENT.map((m) => (
                         <span key={m} className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-xs font-medium">
                           {m}
                         </span>
                       ))}
                     </div>
+
                     <p className="text-xs text-muted-foreground">Settle in person on pickup. No online payments are required through this page.</p>
                   </CardContent>
                 </Card>
