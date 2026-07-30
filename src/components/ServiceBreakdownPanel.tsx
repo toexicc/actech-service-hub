@@ -44,8 +44,18 @@ export const ServiceBreakdownPanel = ({ serviceId, totalCost, defaultTechnicians
 
   const sum = draft.reduce((s, r) => s + (Number(r.cost) || 0), 0);
 
+  // Dirty check against the persisted rows so Save only activates on real changes.
+  const serialize = (list: { serviceName: string; technicianName: string; cost: number }[]) =>
+    JSON.stringify(
+      list
+        .filter((r) => r.serviceName || r.technicianName || Number(r.cost))
+        .map((r) => [r.serviceName?.trim() ?? "", r.technicianName?.trim() ?? "", Number(r.cost) || 0]),
+    );
+  const isDirty = serialize(draft as any) !== serialize(rows as any);
+
   const update = (i: number, patch: Partial<BreakdownInput>) =>
     setDraft((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+
 
   return (
     <div className="bg-muted/30 p-4 rounded-md border space-y-3">
