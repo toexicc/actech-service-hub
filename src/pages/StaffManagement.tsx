@@ -223,7 +223,9 @@ const StaffManagement = () => {
           salary: "",
         });
         
+        setAddDialogOpen(false);
         loadStaffList();
+
       } else {
         toast({
           title: "Error",
