@@ -262,10 +262,11 @@ const SalaryDisbursement = () => {
   const getAllocatedCommission = (name: string) => {
     const target = (name || "").trim().toLowerCase();
     if (!target) return 0;
-    return Object.values(breakdownMap)
+    return (Object.values(breakdownMap) as ServiceBreakdown[][])
       .flat()
       .filter((r) => (r.technicianName || "").trim().toLowerCase() === target)
       .reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+
   };
 
 
