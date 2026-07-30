@@ -56,7 +56,15 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
       clientType: pick(sb.clientType, sheetData.clientType),
       priority: pick(sb.priority, sheetData.priority),
+      // Intake / scheduling fields must come from the record itself
+      serialNumber: pick(sb.serialNumber, sheetData.serialNumber),
+      targetDate: pick(sb.targetDate, sheetData.targetDate),
+      initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
+      discount: pick(sb.discount, sheetData.discount),
+      serviceDate: pick((row as any).service_date, sheetData.serviceDate),
+      dateCompleted: pick(sb.dateCompleted, sheetData.dateCompleted),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+
     };
   } catch {
     return sheetData;
