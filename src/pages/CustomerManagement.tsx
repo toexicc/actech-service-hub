@@ -15,9 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Loader2, Users } from "lucide-react";
+import { Search, User, FileText, Loader2, Users, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useClients } from "@/hooks/useClients";
+import { useClients, updateClient, useInvalidateClients } from "@/hooks/useClients";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface CustomerData {
   clientId: string;
@@ -25,8 +26,10 @@ interface CustomerData {
   username: string;
   phone: string;
   email: string;
+  address?: string;
   serviceIds: string[];
 }
+
 
 interface ServiceRecord {
   serviceId: string;
