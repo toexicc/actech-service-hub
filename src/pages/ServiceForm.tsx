@@ -653,9 +653,12 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const resolvedClientId = await ensureClient({
         clientId: data.clientId || null,
         name: data.clientName,
+        username: (data as any).username || null,
         contactNumber: data.phone,
         email: data.email,
+        address: (data as any).address || null,
       }).catch(() => data.clientId || null);
+
       const { error: upsertError } = await supabase.from("services").upsert({
         service_id: finalServiceId,
         client_id: resolvedClientId || null,

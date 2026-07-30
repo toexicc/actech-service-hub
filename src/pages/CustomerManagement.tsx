@@ -15,9 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Loader2, Users } from "lucide-react";
+import { Search, User, FileText, Loader2, Users, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useClients } from "@/hooks/useClients";
+import { useClients, updateClient, useInvalidateClients } from "@/hooks/useClients";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface CustomerData {
   clientId: string;
@@ -25,8 +26,10 @@ interface CustomerData {
   username: string;
   phone: string;
   email: string;
+  address?: string;
   serviceIds: string[];
 }
+
 
 interface ServiceRecord {
   serviceId: string;
@@ -48,8 +51,57 @@ const CustomerManagement = () => {
   const [activeTab, setActiveTab] = useState("list");
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<CustomerData | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", username: "", contactNumber: "", email: "", address: "" });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const { data: clientsList = [], isLoading: isClientsLoading } = useClients();
+  const { invalidateClients } = useInvalidateClients();
+
+  const openEdit = (c: { clientId: string; clientName?: string; username?: string; contactNumber?: string; phone?: string; email?: string; address?: string }) => {
+    setEditTarget({
+      clientId: c.clientId,
+      clientName: c.clientName ?? "",
+      username: c.username ?? "",
+      phone: c.contactNumber ?? c.phone ?? "",
+      email: c.email ?? "",
+      address: c.address ?? "",
+      serviceIds: [],
+    });
+    setEditForm({
+      name: c.clientName ?? "",
+      username: c.username ?? "",
+      contactNumber: c.contactNumber ?? c.phone ?? "",
+      email: c.email ?? "",
+      address: c.address ?? "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    setIsSavingEdit(true);
+    try {
+      await updateClient({ clientId: editTarget.clientId, ...editForm });
+      invalidateClients();
+      if (customerData?.clientId === editTarget.clientId) {
+        setCustomerData({
+          ...customerData,
+          clientName: editForm.name,
+          username: editForm.username,
+          phone: editForm.contactNumber,
+          email: editForm.email,
+          address: editForm.address,
+        });
+      }
+      toast({ title: "Customer updated" });
+      setEditTarget(null);
+    } catch (e: any) {
+      toast({ title: "Failed to update", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
 
   const filteredClients = useMemo(() => {
     if (!customerSearch) return clientsList;
@@ -90,10 +142,12 @@ const CustomerManagement = () => {
       setCustomerData({
         clientId: client.client_id,
         clientName: client.name,
-        username: client.name,
+        username: (client as any).username ?? "",
         phone: client.contact_number,
         email: client.email,
+        address: client.address ?? "",
       } as any);
+
       const { data: services } = await supabase
         .from("services")
         .select("*")
@@ -196,10 +250,16 @@ const CustomerManagement = () => {
                             <TableCell className="max-w-[200px] truncate">{client.email || "N/A"}</TableCell>
                             <TableCell>{client.serviceId || "N/A"}</TableCell>
                             <TableCell>
-                              <Button variant="outline" size="sm" onClick={() => handleSearch(client.clientId)}>
-                                <Search className="h-3 w-3 mr-1" /> View
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleSearch(client.clientId)}>
+                                  <Search className="h-3 w-3 mr-1" /> View
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => openEdit(client)}>
+                                  <Pencil className="h-3 w-3 mr-1" /> Edit
+                                </Button>
+                              </div>
                             </TableCell>
+
                           </TableRow>
                         ))}
                       </TableBody>
@@ -248,12 +308,16 @@ const CustomerManagement = () => {
             {customerData && (
               <div className="grid gap-8 lg:grid-cols-3">
                 <Card className="lg:col-span-1">
-                  <CardHeader>
+                  <CardHeader className="flex-row items-center justify-between space-y-0">
                     <CardTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
                       Customer Information
                     </CardTitle>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(customerData)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Edit
+                    </Button>
                   </CardHeader>
+
                   <CardContent className="space-y-4">
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client ID:</h3>
@@ -333,6 +397,43 @@ const CustomerManagement = () => {
             )}
           </TabsContent>
         </Tabs>
+
+        <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+          <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-md">
+            <DialogHeader className="shrink-0">
+              <DialogTitle>Edit Customer{editTarget ? ` — ${editTarget.clientId}` : ""}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-3 py-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-name">Client Name</Label>
+                <Input id="edit-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-username">Username</Label>
+                <Input id="edit-username" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-contact">Contact Number</Label>
+                <Input id="edit-contact" value={editForm.contactNumber} onChange={(e) => setEditForm({ ...editForm, contactNumber: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input id="edit-email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-address">Address</Label>
+                <Input id="edit-address" value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter className="shrink-0">
+              <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
+              <Button onClick={saveEdit} disabled={isSavingEdit || !editForm.name.trim()}>
+                {isSavingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
 
         <div className="text-center mt-8 text-sm text-muted-foreground">
           
