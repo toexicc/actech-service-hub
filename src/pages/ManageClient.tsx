@@ -1048,8 +1048,18 @@ const ManageClient = () => {
         serviceSummary: updateServices || serviceData.service || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
-        discount: serviceData.discount || "0.00",
-        totalCost: serviceData.finalCost || serviceData.serviceCost || "0.00",
+        discount: (discountAmount > 0
+          ? discountAmount.toFixed(2)
+          : String(serviceData.discount ?? "0.00")),
+        totalCost: (() => {
+          const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
+          const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
+          const computed = costNum - disc;
+          return computed > 0 || costNum > 0
+            ? computed.toFixed(2)
+            : String(serviceData.finalCost || serviceData.serviceCost || "0.00");
+        })(),
+
         isUpdated: !!serviceData.quotationPdfUrl,
       };
       
