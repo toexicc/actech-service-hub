@@ -250,10 +250,16 @@ const CustomerManagement = () => {
                             <TableCell className="max-w-[200px] truncate">{client.email || "N/A"}</TableCell>
                             <TableCell>{client.serviceId || "N/A"}</TableCell>
                             <TableCell>
-                              <Button variant="outline" size="sm" onClick={() => handleSearch(client.clientId)}>
-                                <Search className="h-3 w-3 mr-1" /> View
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleSearch(client.clientId)}>
+                                  <Search className="h-3 w-3 mr-1" /> View
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => openEdit(client)}>
+                                  <Pencil className="h-3 w-3 mr-1" /> Edit
+                                </Button>
+                              </div>
                             </TableCell>
+
                           </TableRow>
                         ))}
                       </TableBody>
