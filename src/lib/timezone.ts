@@ -119,6 +119,13 @@ export function displayDate(dateStr: string, formatStr: string = "MMM dd, yyyy")
       return formatInTimeZone(parseISO(dateStr), TIMEZONE, formatStr);
     }
     
+    // Handle ISO calendar dates (yyyy-MM-dd) stored by the database
+    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+      const [, y, m, d] = isoMatch;
+      return format(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)), formatStr);
+    }
+
     // Handle MM/dd/yyyy or MM-dd-yyyy format (with optional time)
     if (dateStr.includes('/') || dateStr.includes('-')) {
       // Split off time portion if present (format: "MM-dd-yyyy, HH:mm" or "MM/dd/yyyy HH:mm")
@@ -126,7 +133,12 @@ export function displayDate(dateStr: string, formatStr: string = "MMM dd, yyyy")
       const parts = datePart.split(/[-/]/);
       
       if (parts.length === 3) {
-        const [month, day, year] = parts;
+        // yyyy-MM-dd with a trailing time component
+        const isYearFirst = parts[0].length === 4;
+        const [month, day, year] = isYearFirst
+          ? [parts[1], parts[2], parts[0]]
+          : [parts[0], parts[1], parts[2]];
+
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         
         // If there's a time part, parse it
