@@ -139,6 +139,17 @@ const fetchAllServices = async (): Promise<ServiceRecord[]> => {
   return (data ?? []).map(mapServiceRow);
 };
 
+const fetchCompletedServices = async (): Promise<ServiceRecord[]> => {
+  const { data, error } = await supabase
+    .from("services")
+    .select("*")
+    .eq("status", "Completed")
+    .order("date_completed", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []).map(mapServiceRow);
+};
+
 export const useServices = () => {
   return useQuery({
     queryKey: ["services"],
@@ -149,7 +160,30 @@ export const useServices = () => {
   });
 };
 
+export const useCompletedServices = () => {
+  return useQuery({
+    queryKey: ["services", "completed"],
+    queryFn: fetchCompletedServices,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+};
+
+/** Active + completed services combined (used by the Service Tracker tabs). */
+export const useAllServices = () => {
+  const active = useServices();
+  const completed = useCompletedServices();
+  const data = [...(active.data ?? []), ...(completed.data ?? [])];
+  return {
+    data,
+    isLoading: active.isLoading || completed.isLoading,
+    isFetching: active.isFetching || completed.isFetching,
+    error: active.error ?? completed.error,
+  };
+};
+
 export const useInvalidateServices = () => {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: ["services"] });
 };
+
