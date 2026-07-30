@@ -1735,8 +1735,12 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select client type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="New Client">New Client</SelectItem>
-                      <SelectItem value="Returning Client">Returning Client</SelectItem>
+                      <SelectItem value="New Client - Walk In">New Client - Walk In</SelectItem>
+                      <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
+                      <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
+                      <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
+                      <SelectItem value="Backjob">Backjob</SelectItem>
+
                     </SelectContent>
                   </Select>
                 </div>
