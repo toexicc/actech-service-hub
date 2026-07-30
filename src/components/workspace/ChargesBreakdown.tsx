@@ -1,6 +1,7 @@
 import { Wallet } from "lucide-react";
 import { WorkspacePanel } from "./WorkspacePanel";
 import { cn } from "@/lib/utils";
+import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 
 interface ChargesBreakdownProps {
   serviceCost?: number | string;
@@ -8,6 +9,8 @@ interface ChargesBreakdownProps {
   finalCost?: number | string;
   initialPayment?: number | string;
   paymentStatus?: string;
+  /** When provided, actual POS payments for this ticket are included. */
+  serviceId?: string;
   showServiceCost?: boolean;
   showDiscount?: boolean;
   showFinal?: boolean;
@@ -30,6 +33,7 @@ export function ChargesBreakdown({
   finalCost,
   initialPayment,
   paymentStatus,
+  serviceId,
   showServiceCost = true,
   showDiscount = true,
   showFinal = true,
@@ -37,20 +41,30 @@ export function ChargesBreakdown({
   title = "Charges",
   className,
 }: ChargesBreakdownProps) {
+  const { data: paymentsSummary } = useServicePayments(serviceId);
   const sc = num(serviceCost);
   const dc = num(discount);
   const fc = finalCost !== undefined ? num(finalCost) : Math.max(0, sc - dc);
   const ip = num(initialPayment);
-  const balance = Math.max(0, fc - ip);
+  const totals = derivePaymentTotals(fc, ip, paymentsSummary?.transactionsPaid || 0);
+  const balance = totals.balance;
 
   const rows: { label: string; value: string; strong?: boolean; muted?: boolean }[] = [];
   if (showServiceCost) rows.push({ label: "Service Cost", value: peso(sc) });
   if (showDiscount) rows.push({ label: "Discount", value: dc > 0 ? `- ${peso(dc)}` : peso(0), muted: dc === 0 });
   if (showFinal) rows.push({ label: "Final Cost", value: peso(fc), strong: true });
   if (showPayment) {
-    rows.push({ label: "Initial Payment", value: peso(ip) });
+    if (ip > 0) rows.push({ label: "Initial Payment", value: peso(ip) });
+    for (const p of paymentsSummary?.payments ?? []) {
+      rows.push({
+        label: `${p.type}${p.paymentMethod ? ` · ${p.paymentMethod}` : ""}`,
+        value: peso(p.amount),
+      });
+    }
+    rows.push({ label: "Total Paid", value: peso(totals.paid) });
     rows.push({ label: "Balance", value: peso(balance), strong: true });
   }
+
 
   return (
     <WorkspacePanel

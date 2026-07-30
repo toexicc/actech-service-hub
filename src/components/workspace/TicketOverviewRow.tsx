@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { Sparkles, Users, Wallet, Zap } from "lucide-react";
 import { WorkspacePanel } from "./WorkspacePanel";
 import { cn } from "@/lib/utils";
+import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+
 
 const STAGE_MAP: Record<string, { stage: string; next: string; tone: string }> = {
   "Pending Diagnosis": { stage: "Intake", tone: "border-warning/30 bg-warning/5", next: "Run the diagnostic and generate the intake form." },
@@ -28,6 +30,8 @@ const peso = (n: number) =>
 
 export interface TicketOverviewRowProps {
   status?: string;
+  /** Ticket ID — enables actual POS payment totals in the Payment card. */
+  serviceId?: string;
   technician?: string;
   adminRep?: string;
   receivingStaff?: string;
@@ -49,6 +53,7 @@ export interface TicketOverviewRowProps {
 
 export function TicketOverviewRow({
   status,
+  serviceId,
   technician,
   adminRep,
   receivingStaff,
@@ -70,13 +75,18 @@ export function TicketOverviewRow({
   const info = STAGE_MAP[status || ""] || STAGE_MAP["Pending Diagnosis"];
   const nextText = (guidance && guidance.trim()) || info.next;
 
+  const { data: paymentsSummary } = useServicePayments(serviceId);
   const sc = num(serviceCost);
   const dc = num(discount);
   const fc = finalCost !== undefined && finalCost !== null && String(finalCost) !== ""
     ? num(finalCost)
     : Math.max(0, sc - dc);
   const ip = num(initialPayment);
-  const balance = Math.max(0, fc - ip);
+  const totals = derivePaymentTotals(fc, ip, paymentsSummary?.transactionsPaid || 0);
+  const paid = totals.paid;
+  const balance = totals.balance;
+  const paymentRows = paymentsSummary?.payments ?? [];
+
 
   const assignees = [
     { role: "Technician", name: technician },
@@ -146,7 +156,7 @@ export function TicketOverviewRow({
               <div className="px-4 py-3">
                 <p className="text-2xl font-bold text-primary tabular-nums">{peso(fc)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {peso(ip)} paid · <span className={balance > 0 ? "text-destructive font-medium" : "text-success font-medium"}>{peso(balance)} {balance > 0 ? "due" : "settled"}</span>
+                  {peso(paid)} paid · <span className={balance > 0 ? "text-destructive font-medium" : "text-success font-medium"}>{peso(balance)} {balance > 0 ? "due" : "settled"}</span>
                 </p>
               </div>
               <div className="px-4 py-2 space-y-1.5 text-sm">
@@ -168,6 +178,33 @@ export function TicketOverviewRow({
                     <span className="tabular-nums text-foreground">{peso(fc)}</span>
                   </div>
                 )}
+                {showPayment && (
+                  <>
+                    {ip > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Initial Payment</span>
+                        <span className="tabular-nums">{peso(ip)}</span>
+                      </div>
+                    )}
+                    {paymentRows.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between">
+                        <span className="text-muted-foreground truncate">
+                          {p.type}{p.paymentMethod ? ` · ${p.paymentMethod}` : ""}
+                        </span>
+                        <span className="tabular-nums">{peso(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Total Paid</span>
+                      <span className="tabular-nums">{peso(paid)}</span>
+                    </div>
+                    <div className="flex items-center justify-between font-semibold">
+                      <span className="text-foreground">Balance</span>
+                      <span className="tabular-nums text-foreground">{peso(balance)}</span>
+                    </div>
+                  </>
+                )}
+
               </div>
               {paymentStatus && (
                 <div className="flex items-center justify-between px-4 py-2 bg-muted/40">

@@ -17,6 +17,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useDoneServices } from "@/hooks/useDoneServices";
 import { ChevronRight } from "lucide-react";
 import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
+import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
+
 
 const CompletedTransactions = () => {
   const navigate = useNavigate();
@@ -71,6 +73,15 @@ const CompletedTransactions = () => {
     });
   }, [services, technicianFilter, departmentFilter, startDate, endDate]);
 
+  // Actual allocations saved in the breakdown panel drive commissions.
+  const { data: breakdownMap = {} } = useAllServiceBreakdowns(
+    useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
+  );
+  const allocatedFor = (serviceId: string) =>
+    (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
+  const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
+
+
   const financialSummary = useMemo(() => {
     let totalCommission = 0;
     let adjustedTotalCosts = 0;
@@ -87,6 +98,7 @@ const CompletedTransactions = () => {
       departmentFilter === "Mobile (Logic Board)";
 
     // Calculate costs and commissions based on department
+    let anyAllocation = false;
     filteredServices.forEach((service) => {
       let adjustedCost = service.partsCost || 0;
       let serviceCommission = 0;
@@ -94,6 +106,13 @@ const CompletedTransactions = () => {
       if (service.department === "Laptop (Daily Repairs)") {
         // Add 10% to part cost
         adjustedCost = adjustedCost * 1.1;
+      }
+
+      if (hasAllocation(service.serviceId)) {
+        // Actual allocated amounts from the service breakdown win over formulas.
+        anyAllocation = true;
+        serviceCommission = allocatedFor(service.serviceId);
+      } else if (service.department === "Laptop (Daily Repairs)") {
         // Commission is 30% on net sales for this service
         const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
         serviceCommission = netSales * 0.3;
@@ -119,15 +138,11 @@ const CompletedTransactions = () => {
     let commissionTotal = totalCommission;
     let profitAfterCommission = netProfit - commissionTotal;
 
-    if (isMobileLogicBoardOnly) {
+    if (isMobileLogicBoardOnly && !anyAllocation) {
       // For Mobile (Logic Board), apply special sharing logic:
-      // 1) Compute overall net profit after costs
       const netAfterCosts = grossSales - totalDiscounts - adjustedTotalCosts;
-      // 2) Displayed net profit is 50% of that amount
       netProfit = netAfterCosts * 0.5;
-      // 3) Commission is 50% of displayed net profit
       commissionTotal = netProfit * 0.5;
-      // 4) Final profit is the remaining 50% of displayed net profit
       profitAfterCommission = netProfit - commissionTotal;
     }
 
@@ -139,7 +154,8 @@ const CompletedTransactions = () => {
       commission: commissionTotal,
       profitAfterCommission,
     };
-  }, [filteredServices, commissionRate, screenCommissions, departmentFilter]);
+  }, [filteredServices, commissionRate, screenCommissions, departmentFilter, breakdownMap]);
+
 
   const uniqueTechnicians = useMemo(() => {
     return Array.from(new Set(services.map((s) => s.technician))).filter(Boolean);
@@ -369,21 +385,25 @@ const CompletedTransactions = () => {
                       const discount = service.discount || 0;
                       let profit = (service.quotedPrice || 0) - discount - adjustedCost;
                       let commission = 0;
-                      
+                      const allocated = hasAllocation(service.serviceId);
+
                       if (service.department === "Laptop (Daily Repairs)") {
                         adjustedCost = adjustedCost * 1.1;
                         profit = (service.quotedPrice || 0) - discount - adjustedCost;
+                      }
+
+                      if (allocated) {
+                        commission = allocatedFor(service.serviceId);
+                      } else if (service.department === "Laptop (Daily Repairs)") {
                         commission = profit * 0.3;
                       } else if (service.department === "Laptop (Screens)") {
                         commission = screenCommissions[service.serviceId] || 0;
                       } else if (service.department === "Mobile (Logic Board)") {
-                        // Net profit is gross sales - discount - parts cost for this department
-                        profit = (service.quotedPrice || 0) - discount - adjustedCost;
-                        // Commission is 50% of net profit
                         commission = profit * 0.5;
                       } else {
                         commission = (profit * commissionRate) / 100;
                       }
+
                       
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -408,26 +428,34 @@ const CompletedTransactions = () => {
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            {service.department === "Laptop (Screens)" ? (
-                              <Input
-                                type="number"
-                                className="w-32 text-right"
-                                value={screenCommissions[service.serviceId] || 0}
-                                onChange={(e) => {
-                                  setScreenCommissions(prev => ({
-                                    ...prev,
-                                    [service.serviceId]: parseFloat(e.target.value) || 0
-                                  }));
-                                }}
-                                min="0"
-                                step="100"
-                              />
+                            {allocated ? (
+                              <span className="text-orange-600 font-medium" title="Total allocated in the service breakdown">
+                                ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
+                            ) : service.department === "Laptop (Screens)" ? (
+                              <div className="relative w-32 ml-auto">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
+                                <Input
+                                  className="pl-5 text-right"
+                                  inputMode="decimal"
+                                  placeholder="0.00"
+                                  value={screenCommissions[service.serviceId] ? String(screenCommissions[service.serviceId]) : ""}
+                                  onChange={(e) => {
+                                    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
+                                    setScreenCommissions((prev) => ({
+                                      ...prev,
+                                      [service.serviceId]: parseFloat(cleaned) || 0,
+                                    }));
+                                  }}
+                                />
+                              </div>
                             ) : service.department === "Mobile (Logic Board)" ? (
                               <span className="text-muted-foreground">-</span>
                             ) : (
                               <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             )}
                           </TableCell>
+
                         </TableRow>
                         {isOpen && (
                           <TableRow key={`${service.serviceId}-expand`}>

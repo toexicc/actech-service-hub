@@ -44,8 +44,18 @@ export const ServiceBreakdownPanel = ({ serviceId, totalCost, defaultTechnicians
 
   const sum = draft.reduce((s, r) => s + (Number(r.cost) || 0), 0);
 
+  // Dirty check against the persisted rows so Save only activates on real changes.
+  const serialize = (list: { serviceName: string; technicianName: string; cost: number }[]) =>
+    JSON.stringify(
+      list
+        .filter((r) => r.serviceName || r.technicianName || Number(r.cost))
+        .map((r) => [r.serviceName?.trim() ?? "", r.technicianName?.trim() ?? "", Number(r.cost) || 0]),
+    );
+  const isDirty = serialize(draft as any) !== serialize(rows as any);
+
   const update = (i: number, patch: Partial<BreakdownInput>) =>
     setDraft((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+
 
   return (
     <div className="bg-muted/30 p-4 rounded-md border space-y-3">
@@ -87,14 +97,20 @@ export const ServiceBreakdownPanel = ({ serviceId, totalCost, defaultTechnicians
                   ))}
                 </SelectContent>
               </Select>
-              <Input
-                className="col-span-2 text-right"
-                type="number"
-                min="0"
-                step="100"
-                value={r.cost}
-                onChange={(e) => update(i, { cost: parseFloat(e.target.value) || 0 })}
-              />
+              <div className="col-span-2 relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
+                <Input
+                  className="pl-5 text-right"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={r.cost ? String(r.cost) : ""}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
+                    update(i, { cost: parseFloat(cleaned) || 0 });
+                  }}
+                />
+              </div>
+
               <Button
                 size="icon"
                 variant="ghost"
@@ -111,7 +127,7 @@ export const ServiceBreakdownPanel = ({ serviceId, totalCost, defaultTechnicians
       <div className="flex justify-end">
         <Button
           size="sm"
-          disabled={save.isPending}
+          disabled={save.isPending || !isDirty}
           onClick={async () => {
             try {
               await save.mutateAsync({
