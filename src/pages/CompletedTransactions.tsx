@@ -98,6 +98,7 @@ const CompletedTransactions = () => {
       departmentFilter === "Mobile (Logic Board)";
 
     // Calculate costs and commissions based on department
+    let anyAllocation = false;
     filteredServices.forEach((service) => {
       let adjustedCost = service.partsCost || 0;
       let serviceCommission = 0;
@@ -105,6 +106,13 @@ const CompletedTransactions = () => {
       if (service.department === "Laptop (Daily Repairs)") {
         // Add 10% to part cost
         adjustedCost = adjustedCost * 1.1;
+      }
+
+      if (hasAllocation(service.serviceId)) {
+        // Actual allocated amounts from the service breakdown win over formulas.
+        anyAllocation = true;
+        serviceCommission = allocatedFor(service.serviceId);
+      } else if (service.department === "Laptop (Daily Repairs)") {
         // Commission is 30% on net sales for this service
         const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
         serviceCommission = netSales * 0.3;
@@ -130,15 +138,11 @@ const CompletedTransactions = () => {
     let commissionTotal = totalCommission;
     let profitAfterCommission = netProfit - commissionTotal;
 
-    if (isMobileLogicBoardOnly) {
+    if (isMobileLogicBoardOnly && !anyAllocation) {
       // For Mobile (Logic Board), apply special sharing logic:
-      // 1) Compute overall net profit after costs
       const netAfterCosts = grossSales - totalDiscounts - adjustedTotalCosts;
-      // 2) Displayed net profit is 50% of that amount
       netProfit = netAfterCosts * 0.5;
-      // 3) Commission is 50% of displayed net profit
       commissionTotal = netProfit * 0.5;
-      // 4) Final profit is the remaining 50% of displayed net profit
       profitAfterCommission = netProfit - commissionTotal;
     }
 
@@ -150,7 +154,8 @@ const CompletedTransactions = () => {
       commission: commissionTotal,
       profitAfterCommission,
     };
-  }, [filteredServices, commissionRate, screenCommissions, departmentFilter]);
+  }, [filteredServices, commissionRate, screenCommissions, departmentFilter, breakdownMap]);
+
 
   const uniqueTechnicians = useMemo(() => {
     return Array.from(new Set(services.map((s) => s.technician))).filter(Boolean);
