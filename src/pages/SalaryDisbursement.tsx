@@ -247,10 +247,21 @@ const SalaryDisbursement = () => {
     [staffData]
   );
 
-  // Get services per technician
-  const getServicesForStaff = (name: string) => {
-    return allServices.filter((s) => s.technician?.toLowerCase() === name.toLowerCase() && (s.status?.toLowerCase() === "done" || s.status?.toLowerCase() === "completed"));
+  // Get services per technician (technician field may hold several names)
+  const isAssignedTo = (technicianField: string | undefined, name: string) =>
+    (technicianField || "")
+      .split(",")
+      .map((n) => n.trim().toLowerCase())
+      .filter(Boolean)
+      .includes((name || "").trim().toLowerCase());
+
+  const isDoneStatus = (status?: string) => {
+    const s = (status || "").toLowerCase();
+    return s === "done" || s.includes("completed");
   };
+
+  const getServicesForStaff = (name: string) =>
+    allServices.filter((s) => isAssignedTo(s.technician, name) && isDoneStatus(s.status));
 
   const getServiceCostTotal = (name: string) => {
     return getServicesForStaff(name).reduce((sum, s) => sum + parseCurrency(s.finalCost), 0);
@@ -258,11 +269,7 @@ const SalaryDisbursement = () => {
 
   // Allocated commissions saved in the Completed Transactions breakdown panel
   const doneServiceIds = useMemo(
-    () =>
-      allServices
-        .filter((s) => s.status?.toLowerCase() === "done" || s.status?.toLowerCase() === "completed")
-        .map((s) => s.serviceId)
-        .filter(Boolean),
+    () => allServices.filter((s) => isDoneStatus(s.status)).map((s) => s.serviceId).filter(Boolean),
     [allServices],
   );
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(doneServiceIds);
@@ -286,13 +293,14 @@ const SalaryDisbursement = () => {
   };
 
   const computeServiceFinal = (staff: any) => {
+    // Manual allocations win; otherwise fall back to the commission percentage.
+    const allocated = getAllocatedCommission(staff.name);
+    if (allocated > 0) return allocated;
     const serviceCost = getServiceCostTotal(staff.name);
     const commission = parseCurrency(techCommissions[staff.staffId]);
-    // 10% markup from parts cost for Laptop Daily Repairs is auto-computed
-    // Commission % is applied to service cost
-    const commissionAmount = serviceCost * (commission / 100);
-    return commissionAmount;
+    return serviceCost * (commission / 100);
   };
+
 
   const handleDisburse = async (staff: any, finalAmount: number) => {
     if (finalAmount <= 0) {
