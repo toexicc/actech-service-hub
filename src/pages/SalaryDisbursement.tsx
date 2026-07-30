@@ -59,21 +59,21 @@ const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
 };
 
 const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getAllOngoingServices`);
-  const data = await response.json();
-  if (data.status === "success" && data.services) {
-    return data.services.map((s: any) => ({
-      serviceId: s.serviceId,
-      clientName: s.clientName,
-      device: s.device || s.deviceType || "",
-      deviceType: s.deviceType || "",
-      finalCost: s.serviceCost || "0",
-      partsCost: "0",
-      technician: s.technician || "",
-      status: s.status || "",
-    }));
-  }
-  return [];
+  const { data, error } = await supabase
+    .from("services")
+    .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status")
+    .limit(2000);
+  if (error) return [];
+  return (data ?? []).map((s: any) => ({
+    serviceId: s.service_id ?? "",
+    clientName: s.client_name ?? "",
+    device: s.device_type ?? "",
+    deviceType: s.device_type ?? "",
+    finalCost: String(s.final_cost || s.total_cost || 0),
+    partsCost: String(s.parts_cost ?? 0),
+    technician: Array.isArray(s.technicians) ? s.technicians.join(", ") : (s.technicians ?? ""),
+    status: s.status ?? "",
+  }));
 };
 
 const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Other Banks"];
@@ -81,11 +81,18 @@ const EXPENSE_TYPES = ["Parts Inventory", "Rent", "Miscellaneous Expense", "Sala
 const REFUND_TYPE = "Refund";
 
 const fetchTransactions = async (): Promise<any[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTransactions`);
-  const data = await response.json();
-  if (data.status === "success" && data.transactions) return data.transactions;
-  return [];
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("amount, type, fund_name")
+    .limit(5000);
+  if (error) return [];
+  return (data ?? []).map((t: any) => ({
+    amount: t.amount,
+    transactionType: t.type ?? "",
+    fundSource: t.fund_name || "Money In Bank",
+  }));
 };
+
 
 const SalaryDisbursement = () => {
   const navigate = useNavigate();
@@ -219,11 +226,11 @@ const SalaryDisbursement = () => {
     allTransactions.forEach((t: any) => {
       const amt = parseCurrency(t.amount);
       const type = t.transactionType || "";
-      const fundSrc = t.fundSource || "Money In Bank";
-      if (FUND_TYPES.includes(type)) totals[type] = (totals[type] || 0) + amt;
-      if (EXPENSE_TYPES.includes(type) && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
-      if (type === REFUND_TYPE && totals[fundSrc] !== undefined) totals[fundSrc] -= amt;
+      const fundSrc = totals[t.fundSource] !== undefined ? t.fundSource : "Money In Bank";
+      const isOutflow = EXPENSE_TYPES.includes(type) || type === REFUND_TYPE || /refund|expense|disbursement/i.test(type);
+      totals[fundSrc] = (totals[fundSrc] || 0) + (isOutflow ? -amt : amt);
     });
+
     return totals;
   }, [allTransactions]);
 
@@ -240,10 +247,21 @@ const SalaryDisbursement = () => {
     [staffData]
   );
 
-  // Get services per technician
-  const getServicesForStaff = (name: string) => {
-    return allServices.filter((s) => s.technician?.toLowerCase() === name.toLowerCase() && (s.status?.toLowerCase() === "done" || s.status?.toLowerCase() === "completed"));
+  // Get services per technician (technician field may hold several names)
+  const isAssignedTo = (technicianField: string | undefined, name: string) =>
+    (technicianField || "")
+      .split(",")
+      .map((n) => n.trim().toLowerCase())
+      .filter(Boolean)
+      .includes((name || "").trim().toLowerCase());
+
+  const isDoneStatus = (status?: string) => {
+    const s = (status || "").toLowerCase();
+    return s === "done" || s.includes("completed");
   };
+
+  const getServicesForStaff = (name: string) =>
+    allServices.filter((s) => isAssignedTo(s.technician, name) && isDoneStatus(s.status));
 
   const getServiceCostTotal = (name: string) => {
     return getServicesForStaff(name).reduce((sum, s) => sum + parseCurrency(s.finalCost), 0);
@@ -251,11 +269,7 @@ const SalaryDisbursement = () => {
 
   // Allocated commissions saved in the Completed Transactions breakdown panel
   const doneServiceIds = useMemo(
-    () =>
-      allServices
-        .filter((s) => s.status?.toLowerCase() === "done" || s.status?.toLowerCase() === "completed")
-        .map((s) => s.serviceId)
-        .filter(Boolean),
+    () => allServices.filter((s) => isDoneStatus(s.status)).map((s) => s.serviceId).filter(Boolean),
     [allServices],
   );
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(doneServiceIds);
@@ -279,13 +293,14 @@ const SalaryDisbursement = () => {
   };
 
   const computeServiceFinal = (staff: any) => {
+    // Manual allocations win; otherwise fall back to the commission percentage.
+    const allocated = getAllocatedCommission(staff.name);
+    if (allocated > 0) return allocated;
     const serviceCost = getServiceCostTotal(staff.name);
     const commission = parseCurrency(techCommissions[staff.staffId]);
-    // 10% markup from parts cost for Laptop Daily Repairs is auto-computed
-    // Commission % is applied to service cost
-    const commissionAmount = serviceCost * (commission / 100);
-    return commissionAmount;
+    return serviceCost * (commission / 100);
   };
+
 
   const handleDisburse = async (staff: any, finalAmount: number) => {
     if (finalAmount <= 0) {
