@@ -836,6 +836,8 @@ const ServiceUpdate = () => {
           />
           <TicketOverviewRow
             status={serviceData.status}
+            serviceId={serviceData.serviceId}
+
             guidance={getStatusGuidance(
               serviceData.status || "",
               {
