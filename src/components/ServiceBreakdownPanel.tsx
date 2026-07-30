@@ -97,14 +97,20 @@ export const ServiceBreakdownPanel = ({ serviceId, totalCost, defaultTechnicians
                   ))}
                 </SelectContent>
               </Select>
-              <Input
-                className="col-span-2 text-right"
-                type="number"
-                min="0"
-                step="100"
-                value={r.cost}
-                onChange={(e) => update(i, { cost: parseFloat(e.target.value) || 0 })}
-              />
+              <div className="col-span-2 relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
+                <Input
+                  className="pl-5 text-right"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={r.cost ? String(r.cost) : ""}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
+                    update(i, { cost: parseFloat(cleaned) || 0 });
+                  }}
+                />
+              </div>
+
               <Button
                 size="icon"
                 variant="ghost"
