@@ -106,3 +106,63 @@ export const useInvalidateClients = () => {
     invalidateInquiries: () => queryClient.invalidateQueries({ queryKey: ["clientInquiries"] }),
   };
 };
+
+export interface EnsureClientInput {
+  clientId?: string | null;
+  name: string;
+  contactNumber?: string | null;
+  email?: string | null;
+  address?: string | null;
+}
+
+/**
+ * Finds an existing customer record (by client ID, then contact number, then
+ * name+email) or creates one, returning the client ID to stamp on the service.
+ */
+export const ensureClient = async (input: EnsureClientInput): Promise<string> => {
+  const name = (input.name || "").trim();
+  const phone = (input.contactNumber || "").trim();
+  const email = (input.email || "").trim();
+
+  if (input.clientId) {
+    const { data } = await supabase
+      .from("clients")
+      .select("client_id")
+      .eq("client_id", input.clientId)
+      .maybeSingle();
+    if (data?.client_id) return data.client_id;
+  }
+
+  if (phone) {
+    const { data } = await supabase
+      .from("clients")
+      .select("client_id")
+      .eq("contact_number", phone)
+      .limit(1)
+      .maybeSingle();
+    if (data?.client_id) return data.client_id;
+  }
+
+  if (!phone && name && email) {
+    const { data } = await supabase
+      .from("clients")
+      .select("client_id")
+      .eq("name", name)
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle();
+    if (data?.client_id) return data.client_id;
+  }
+
+  const newId = input.clientId || `CL${Date.now()}`;
+  const { error } = await supabase.from("clients").insert({
+    client_id: newId,
+    name: name || "Unknown",
+    contact_number: phone || null,
+    email: email || null,
+    address: input.address || null,
+  });
+  if (error) throw error;
+  return newId;
+};
+
