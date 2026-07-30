@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { displayDate } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
+import { useAllServiceBreakdowns, type ServiceBreakdown } from "@/hooks/useServiceBreakdowns";
+
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
