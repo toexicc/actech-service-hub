@@ -1,9 +1,5 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
-import { initOneSignal } from "./lib/onesignal";
-import AppErrorBoundary from "@/components/AppErrorBoundary";
-import { installBridgeAuthInterceptor } from "@/lib/bridgeFetchInterceptor";
 
 async function cleanupLegacyPwaServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -69,16 +65,38 @@ function installGlobalErrorHandlers() {
 
 (async () => {
   installGlobalErrorHandlers();
-  installBridgeAuthInterceptor();
+
+  const rootElement = document.getElementById("root");
+  if (!rootElement) return;
+
+  // Keep the public TV board isolated from the authenticated application and
+  // its heavier browser APIs. This is important for older Tizen/webOS engines.
+  if (window.location.pathname.replace(/\/$/, "") === "/queue") {
+    const { default: QueueRoot } = await import("./QueueRoot.tsx");
+    createRoot(rootElement).render(<QueueRoot />);
+    return;
+  }
+
+  const [appModule, errorBoundaryModule, oneSignalModule, bridgeModule] =
+    await Promise.all([
+      import("./App.tsx"),
+      import("@/components/AppErrorBoundary"),
+      import("./lib/onesignal"),
+      import("@/lib/bridgeFetchInterceptor"),
+    ]);
+
+  const App = appModule.default;
+  const AppErrorBoundary = errorBoundaryModule.default;
+  bridgeModule.installBridgeAuthInterceptor();
 
   // If a legacy PWA service worker was previously installed, unregister it.
   // This prevents the browser from repeatedly requesting /sw.js (now removed).
   await cleanupLegacyPwaServiceWorker();
 
   // Initialize OneSignal for push notifications
-  initOneSignal();
+  oneSignalModule.initOneSignal();
 
-  createRoot(document.getElementById("root")!).render(
+  createRoot(rootElement).render(
     <AppErrorBoundary>
       <App />
     </AppErrorBoundary>,
