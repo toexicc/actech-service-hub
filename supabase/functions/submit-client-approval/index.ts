@@ -55,6 +55,9 @@ serve(async (req) => {
     const serviceId = typeof body?.serviceId === "string" ? body.serviceId.trim() : "";
     const approved = body?.approved;
     const reason = typeof body?.reason === "string" ? body.reason.slice(0, 1000) : "";
+    // Ownership challenge: the client must prove they hold the phone number on
+    // file. /track is a public page, so the service ID alone is not a secret.
+    const verification = typeof body?.verification === "string" ? body.verification.slice(0, 32) : "";
 
     if (!serviceId || serviceId.length > 64 || typeof approved !== "boolean") {
       return json({ error: "serviceId (string) and approved (boolean) are required" }, 400);
@@ -72,6 +75,29 @@ serve(async (req) => {
 
     if (fetchError) return json({ error: fetchError.message }, 500);
     if (!row) return json({ error: "Service not found" }, 404);
+
+    // --- Verify the requester actually owns this ticket ---------------------
+    const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+    const onFile = digits(row.contact_number);
+    if (onFile.length < 4) {
+      return json(
+        {
+          error:
+            "We do not have a contact number on file for this ticket, so approval cannot be confirmed online. Please contact the shop.",
+        },
+        403,
+      );
+    }
+    const supplied = digits(verification);
+    if (!supplied) {
+      return json({ error: "Enter the last 4 digits of the contact number on file to confirm." }, 400);
+    }
+    const matches = supplied.length >= onFile.length
+      ? supplied.endsWith(onFile) || onFile.endsWith(supplied)
+      : onFile.endsWith(supplied) && supplied.length >= 4;
+    if (!matches) {
+      return json({ error: "The digits entered do not match the contact number on file." }, 403);
+    }
 
     const status = String(row.status ?? "");
     if (status !== "Waiting to Proceed") {
