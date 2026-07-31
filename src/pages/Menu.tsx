@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useServices } from "@/hooks/useServices";
+import { useServices, useCompletedServices } from "@/hooks/useServices";
+import { filterAssigned } from "@/lib/technicianMatch";
+import { parseManilaDate } from "@/lib/timezone";
+
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { useInventory } from "@/hooks/useInventory";
 import { useClientInquiriesData } from "@/hooks/useClientInquiriesData";
@@ -81,6 +84,8 @@ const Menu = () => {
 
   // Use React Query hooks for cached data
   const { data: allServices = [], isLoading: isServicesLoading } = useServices();
+  const { data: completedServices = [] } = useCompletedServices();
+
   const { data: fastMovingParts = [], isLoading: isPartsLoading } = useFastMovingParts(isManagement);
   const { data: inventoryItems = [], isLoading: isInventoryLoading } = useInventory(isManagement);
   const { data: inquiriesData = [], isLoading: isInquiriesLoading } = useClientInquiriesData(!isTechnician);
@@ -111,27 +116,23 @@ const Menu = () => {
     try {
       const today = startOfDay(new Date());
 
-      // Filter services based on role
+      // Active + completed, scoped to the technician's own assignments
+      const everything = [...(allServices as any[]), ...(completedServices as any[])];
       const services = isTechnician
-        ? allServices.filter((s: any) => s.technician === userFullName)
-        : allServices;
+        ? filterAssigned(everything, userFullName, sessionStorage.getItem("username"))
+        : everything;
 
       const ongoing = services.filter((s: any) => {
         const status = s.status?.toLowerCase() || "";
         return !status.includes("completed") && !status.includes("cancelled");
       }).length;
 
-      // Helper to safely parse target date
+      // Accepts ISO (YYYY-MM-DD) and MM/DD/YYYY target dates
       const parseTarget = (targetDate: string | undefined) => {
         if (!targetDate) return null;
-        const parts = targetDate.split(/[-/]/);
-        if (parts.length !== 3) return null;
-        const [month, day, year] = parts;
-        const m = parseInt(month, 10);
-        const d = parseInt(day, 10);
-        const y = parseInt(year, 10);
-        if (isNaN(m) || isNaN(d) || isNaN(y)) return null;
-        const date = new Date(y, m - 1, d);
+        const parsed = parseManilaDate(targetDate);
+        if (!parsed || isNaN(parsed.getTime())) return null;
+        const date = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
         date.setHours(0, 0, 0, 0);
         return date;
       };
@@ -156,6 +157,7 @@ const Menu = () => {
         const status = s.status?.toLowerCase() || "";
         return status.includes("completed");
       }).length;
+
 
       // Pending inquiries
       const pendingInquiries =
@@ -183,7 +185,7 @@ const Menu = () => {
         servicesOverdue: [],
       };
     }
-  }, [allServices, inquiriesData, isTechnician, userFullName]);
+  }, [allServices, completedServices, inquiriesData, isTechnician, userFullName]);
 
   // Parts for ordering (management only)
   const partsForOrdering = useMemo(() => {

@@ -138,7 +138,7 @@ const TransactionTracker = () => {
     queryFn: fetchTransactions,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchOnMount: "always",
+
   });
 
   const handleViewLogs = async (t: Transaction) => {

@@ -60,7 +60,10 @@ const OpenDashboard = () => {
   // Get technicians with departments
   const techniciansWithDept = useMemo(() => {
     return staffList
-      .filter((staff: any) => staff.role === "Technician" && staff.status === "Active")
+      .filter((staff: any) =>
+        (staff.role || "").toLowerCase() === "technician" &&
+        (staff.status || "active").toLowerCase() === "active")
+
       .map((staff: any) => ({
         name: staff.name,
         department: staff.department || "",

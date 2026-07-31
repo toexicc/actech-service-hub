@@ -1104,7 +1104,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     <FormItem>
                       <FormLabel>Email:</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="text" inputMode="email" maxLength={255} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

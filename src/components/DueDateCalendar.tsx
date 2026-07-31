@@ -7,6 +7,8 @@ import { format, startOfDay } from "date-fns";
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { filterAssigned } from "@/lib/technicianMatch";
+
 
 const parseTargetDate = (raw: string | undefined): Date | null => {
   if (!raw) return null;
@@ -45,9 +47,10 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
       const st = (s.status || "").toLowerCase();
       return !st.includes("completed") && !st.includes("cancelled");
     });
-    return isTechnician && userFullName
-      ? active.filter((s) => s.technician === userFullName)
+    return isTechnician
+      ? filterAssigned(active as any[], userFullName, sessionStorage.getItem("username")) as ServiceRecord[]
       : active;
+
   }, [allServices, isTechnician, userFullName]);
 
   // Map date -> services list

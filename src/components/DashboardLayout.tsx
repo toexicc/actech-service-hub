@@ -19,6 +19,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { TabBar } from "@/components/workbench/TabBar";
 import { CommandPalette } from "@/components/CommandPalette";
+import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+
 
 interface NavItem { title: string; icon: React.ElementType; path: string; roles?: string[]; iconName?: string; }
 interface NavSection { title: string; icon: React.ElementType; items: NavItem[]; roles?: string[]; }
@@ -57,6 +59,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  // Live-refresh cached data when other staff change records.
+  useRealtimeInvalidate(true);
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(true);

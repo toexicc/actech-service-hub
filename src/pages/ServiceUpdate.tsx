@@ -615,7 +615,7 @@ const ServiceUpdate = () => {
       }
 
       // Mirror critical updates to Supabase (source of truth)
-      const { error: sbUpdateError } = await supabase.from("services").update({
+      const { data: updatedRows, error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
         technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
@@ -631,15 +631,30 @@ const ServiceUpdate = () => {
         discount: discountAmount,
         final_cost: finalCost,
         last_updated: new Date().toISOString(),
-      }).eq("service_id", serviceId);
+      }).eq("service_id", serviceId).select("service_id");
 
-      // Fire-and-forget Sheets sync (non-blocking)
+      // A policy mismatch returns no error but affects zero rows — treat as failure.
+      const noRowsUpdated = !sbUpdateError && (updatedRows?.length ?? 0) === 0;
+
+      if (sbUpdateError || noRowsUpdated) {
+        toast({
+          title: "Update failed",
+          description: sbUpdateError
+            ? sbUpdateError.message
+            : "You don't have permission to update this service, or it no longer exists. Ask an admin to confirm you're assigned to it.",
+          variant: "destructive",
+        });
+        setIsUpdating(false);
+        return;
+      }
+
+      // Fire-and-forget Sheets sync (non-blocking) — only after a confirmed save
       try {
         fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
       } catch { /* ignore */ }
 
-      let result: any = null;
-      const isSuccess = !sbUpdateError;
+      const isSuccess = true;
+
 
       if (isSuccess) {
         // Show success immediately - don't wait for background tasks
@@ -755,35 +770,17 @@ const ServiceUpdate = () => {
 
         // Execute all background tasks without blocking
         Promise.allSettled(backgroundTasks).catch(() => {});
-      } else {
-        toast({
-          title: "Error",
-          description: result?.message || "Failed to update service information",
-          variant: "destructive",
-        });
       }
+
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
-
-      if (isCorsFetchError) {
-        // Service update fetch error (likely CORS after successful POST)
-        toast({
-          title: "Success",
-          description: "Service information updated successfully",
-        });
-        setSelectedParts({});
-        setDeviceReportPhotos([]);
-        handleSearch();
-        return;
-      }
-
       toast({
-        title: "Error",
-        description: "Failed to update service information",
+        title: "Update failed",
+        description: msg || "Failed to update service information",
         variant: "destructive",
       });
     } finally {
+
       setIsUpdating(false);
     }
   };

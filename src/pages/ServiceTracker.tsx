@@ -474,14 +474,16 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     }
   }, [isTechnician, username, staffList, profile?.id, profile?.username]);
 
-  // Optimized polling: refresh every 60 seconds
+  // Realtime keeps the services cache fresh (see useRealtimeInvalidate); a slow
+  // safety-net poll covers dropped websocket connections without visible reloads.
   useEffect(() => {
     const intervalId = setInterval(() => {
       invalidateServices();
-    }, 60000);
-    
+    }, 5 * 60 * 1000);
+
     return () => clearInterval(intervalId);
   }, [invalidateServices]);
+
 
   const calculateInServiceDays = (timestamp: string, status?: string): number => {
     if (status && status.toLowerCase().includes("completed")) {
