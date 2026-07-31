@@ -7,6 +7,8 @@ import { format, startOfDay } from "date-fns";
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { filterAssigned } from "@/lib/technicianMatch";
+
 
 const parseTargetDate = (raw: string | undefined): Date | null => {
   if (!raw) return null;
