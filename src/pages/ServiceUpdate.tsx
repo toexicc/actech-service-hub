@@ -273,8 +273,9 @@ const ServiceUpdate = () => {
   // stage), not the saved status, so picking the next status is always step 1
   // and the matching work fields appear before saving.
   const savedStatus = serviceData?.status || "";
-  const stageStatus = updateStatus || savedStatus;
   const statusChanged = !!updateStatus && updateStatus !== savedStatus;
+  // Nothing is revealed until the technician picks a NEW status.
+  const stageStatus = statusChanged ? updateStatus : "";
 
   const DONE_REPAIR_STAGES = [
     "Done Repair - Under Observation",
