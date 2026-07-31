@@ -315,13 +315,14 @@ const ServiceUpdate = () => {
   }, [serviceData, serviceId, inventory]);
 
   // ---- Status-first flow ----------------------------------------------------
-  // Fields are revealed based on the status the technician SELECTS (the next
-  // stage), not the saved status, so picking the next status is always step 1
-  // and the matching work fields appear before saving.
+  // Picking a new status is always step 1 (nothing is revealed before that), but
+  // the fields that appear belong to the ticket's CURRENT (saved) stage — the
+  // work for a stage is recorded while the ticket is actually in that stage.
   const savedStatus = serviceData?.status || "";
   const statusChanged = !!updateStatus && updateStatus !== savedStatus;
   // Nothing is revealed until the technician picks a NEW status.
-  const stageStatus = statusChanged ? updateStatus : "";
+  const stageStatus = statusChanged ? savedStatus : "";
+
 
   const DONE_REPAIR_STAGES = [
     "Done Repair - Under Observation",
