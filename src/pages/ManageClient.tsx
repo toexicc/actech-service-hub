@@ -113,7 +113,7 @@ const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) => ({
   initialPayment: sb.initialPayment,
   aiReport: sb.aiReport,
   aiDiagnosis: sb.diagnosis,
-  technicianDiagnosis: sb.diagnosis,
+  technicianDiagnosis: sb.technicianDiagnosis || sb.diagnosis,
   technicianReport: sb.technicianReport,
   username: sb.username,
   devicePassword: sb.devicePassword,
