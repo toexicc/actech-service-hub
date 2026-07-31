@@ -772,19 +772,23 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Mini stats */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-xl border border-border/60 bg-background/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Paid</p>
-                        <p className="text-lg font-semibold mt-0.5">₱{deposit.toLocaleString()}</p>
-                      </div>
+                    <div className={showMoney ? "grid grid-cols-3 gap-3" : "grid grid-cols-1 gap-3"}>
+                      {showMoney && (
+                        <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Paid</p>
+                          <p className="text-lg font-semibold mt-0.5">₱{deposit.toLocaleString()}</p>
+                        </div>
+                      )}
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Progress</p>
                         <p className="text-lg font-semibold mt-0.5">{stepIdx}/{STEPS.length}</p>
                       </div>
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-primary/80">Balance</p>
-                        <p className="text-lg font-semibold mt-0.5 text-primary">₱{balance.toLocaleString()}</p>
-                      </div>
+                      {showMoney && (
+                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-primary/80">Balance</p>
+                          <p className="text-lg font-semibold mt-0.5 text-primary">₱{balance.toLocaleString()}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Step chips — two rows of 4 */}
