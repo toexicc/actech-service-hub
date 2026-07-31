@@ -619,7 +619,10 @@ const ServiceUpdate = () => {
         status: updateStatus as any,
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
         technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
-        diagnosis: updateTechnicianDiagnosis,
+        // Raw technician notes stay separate from the AI-formatted diagnosis,
+        // which shares the `diagnosis` field with /manage-client and /track.
+        technician_diagnosis: updateTechnicianDiagnosis,
+        diagnosis: (updateAIDiagnosis || "").trim() ? updateAIDiagnosis : updateTechnicianDiagnosis,
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,
