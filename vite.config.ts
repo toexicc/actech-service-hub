@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import legacy from "@vitejs/plugin-legacy";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
@@ -12,6 +13,11 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    legacy({
+      targets: ["Chrome >= 49", "Safari >= 10", "Samsung >= 4"],
+      modernPolyfills: true,
+      renderLegacyChunks: true,
+    }),
     mode === "development" && componentTagger(),
     // PWA plugin disabled to prioritize OneSignal push notifications
     // OneSignal's service worker (OneSignalSDKWorker.js) now controls the site
