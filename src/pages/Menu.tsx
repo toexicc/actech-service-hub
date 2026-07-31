@@ -383,8 +383,9 @@ const Menu = () => {
           path: "/inventory-management",
         },
         {
-          title: "Transactions",
-          description: "View financial reports",
+          title: "Completed Services",
+          description: "View completed service reports",
+
           icon: DollarSign,
           path: "/completed-transactions",
         },
