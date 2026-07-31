@@ -594,10 +594,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       }
 
       // Technician filter - if a specific technician is selected, show services where they are assigned
-      // Supports multiple technicians (comma-separated in the technician field)
+      // Supports multiple technicians (comma-separated) and tolerates spacing/casing differences.
       if (technicianFilter !== "all") {
-        const assignedTechnicians = service.technician?.split(",").map(t => t.trim()) || [];
-        if (!assignedTechnicians.includes(technicianFilter)) {
+        const normName = (v?: string) => (v || "").trim().toLowerCase();
+        const assignedTechnicians = (service.technician || "").split(",").map((t) => normName(t));
+        if (!assignedTechnicians.includes(normName(technicianFilter))) {
           return false;
         }
       } else if (departmentFilter !== "all") {
