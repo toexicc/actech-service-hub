@@ -1243,24 +1243,26 @@ const ServiceTracking = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="approveVerify">
-              To confirm it's you, enter the last 4 digits of the contact number on file
-            </Label>
+            <Label htmlFor="approveVerify">To confirm it's you: {verifyLabel.toLowerCase()}</Label>
             <Input
               id="approveVerify"
-              inputMode="numeric"
-              maxLength={4}
+              inputMode={hasPhoneOnFile ? "numeric" : "text"}
+              maxLength={hasPhoneOnFile ? 4 : 60}
               value={verifyDigits}
-              onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="••••"
-              className="w-32 tracking-widest"
+              onChange={(e) =>
+                setVerifyDigits(
+                  hasPhoneOnFile ? e.target.value.replace(/\D/g, "").slice(0, 4) : e.target.value,
+                )
+              }
+              placeholder={hasPhoneOnFile ? "••••" : "Your full name"}
+              className={hasPhoneOnFile ? "w-32 tracking-widest" : "w-full"}
             />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval} onClick={() => setVerifyDigits("")}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); submitApproval(true); }}
-              disabled={submittingApproval || verifyDigits.length < 4}
+              disabled={submittingApproval || !verifyReady}
             >
               {submittingApproval ? "Submitting…" : "Confirm & Proceed"}
             </AlertDialogAction>
