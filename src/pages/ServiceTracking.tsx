@@ -1246,20 +1246,25 @@ const ServiceTracking = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="approveVerify">To confirm it's you: {verifyLabel.toLowerCase()}</Label>
-            <Input
-              id="approveVerify"
-              inputMode={hasPhoneOnFile ? "numeric" : "text"}
-              maxLength={hasPhoneOnFile ? 4 : 60}
-              value={verifyDigits}
-              onChange={(e) =>
-                setVerifyDigits(
-                  hasPhoneOnFile ? e.target.value.replace(/\D/g, "").slice(0, 4) : e.target.value,
-                )
-              }
-              placeholder={hasPhoneOnFile ? "••••" : "Your full name"}
-              className={hasPhoneOnFile ? "w-32 tracking-widest" : "w-full"}
-            />
+            {hasPhoneOnFile ? (
+              <>
+                <Label htmlFor="approveVerify">To confirm it's you: {verifyLabel.toLowerCase()}</Label>
+                <Input
+                  id="approveVerify"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={verifyDigits}
+                  onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="••••"
+                  className="w-32 tracking-widest"
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No contact number is on file for this ticket, so we can't confirm your identity
+                online. Please contact the shop to approve.
+              </p>
+            )}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval} onClick={() => setVerifyDigits("")}>Cancel</AlertDialogCancel>
