@@ -770,13 +770,8 @@ const ServiceUpdate = () => {
 
         // Execute all background tasks without blocking
         Promise.allSettled(backgroundTasks).catch(() => {});
-      } else {
-        toast({
-          title: "Error",
-          description: result?.message || "Failed to update service information",
-          variant: "destructive",
-        });
       }
+
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
