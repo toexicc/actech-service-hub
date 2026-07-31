@@ -941,7 +941,7 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Storage & Color:</h3>
                     <p className="text-lg">{serviceData.colorMemory}</p>
                   </div>
 
