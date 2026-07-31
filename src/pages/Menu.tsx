@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useServices } from "@/hooks/useServices";
+import { useServices, useCompletedServices } from "@/hooks/useServices";
+import { filterAssigned } from "@/lib/technicianMatch";
+import { parseManilaDate } from "@/lib/timezone";
+
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { useInventory } from "@/hooks/useInventory";
 import { useClientInquiriesData } from "@/hooks/useClientInquiriesData";
