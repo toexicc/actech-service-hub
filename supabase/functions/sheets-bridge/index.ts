@@ -902,6 +902,7 @@ async function addInventoryItem(b: Record<string, any>) {
     brand: b.brand,
     device_model: b.model,
     part_type: b.partType,
+    color: b.color || null,
     quantity: parseInt(b.quantity || "0"),
     cost_price: num(b.costPerUnit),
     supplier: b.supplier || null,
