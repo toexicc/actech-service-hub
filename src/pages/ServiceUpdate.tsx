@@ -774,26 +774,13 @@ const ServiceUpdate = () => {
 
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
-
-      if (isCorsFetchError) {
-        // Service update fetch error (likely CORS after successful POST)
-        toast({
-          title: "Success",
-          description: "Service information updated successfully",
-        });
-        setSelectedParts({});
-        setDeviceReportPhotos([]);
-        handleSearch();
-        return;
-      }
-
       toast({
-        title: "Error",
-        description: "Failed to update service information",
+        title: "Update failed",
+        description: msg || "Failed to update service information",
         variant: "destructive",
       });
     } finally {
+
       setIsUpdating(false);
     }
   };
