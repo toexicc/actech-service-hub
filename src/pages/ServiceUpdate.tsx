@@ -1380,24 +1380,12 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
-                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis, BELOW AI Diagnosis Formatter */}
-                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
+                {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
+                {showDiagnosisStage && serviceData?.serviceId && (
                   <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
                 )}
 
-                {(() => {
-                  const reportVisibleStatuses = [
-                    "Done Repair - Under Observation",
-                    "Done Repair - Observation",
-                    "Done Repair - For Release",
-                    "Done Repair - Advise Client",
-                    "Completed",
-                    "Backjob",
-                    "RTO",
-                    "Released",
-                  ];
-                  return reportVisibleStatuses.includes(serviceData?.status);
-                })() && (
+                {showReportStage && (
                   <div className="space-y-2">
                     <Label htmlFor="technicianReport">Technician Report:</Label>
                     <Textarea
