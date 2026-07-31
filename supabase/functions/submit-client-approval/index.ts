@@ -55,9 +55,6 @@ serve(async (req) => {
     const serviceId = typeof body?.serviceId === "string" ? body.serviceId.trim() : "";
     const approved = body?.approved;
     const reason = typeof body?.reason === "string" ? body.reason.slice(0, 1000) : "";
-    // Ownership challenge: the client must prove they hold the phone number on
-    // file. /track is a public page, so the service ID alone is not a secret.
-    const verification = typeof body?.verification === "string" ? body.verification.slice(0, 32) : "";
 
     if (!serviceId || serviceId.length > 64 || typeof approved !== "boolean") {
       return json({ error: "serviceId (string) and approved (boolean) are required" }, 400);
@@ -76,34 +73,7 @@ serve(async (req) => {
     if (fetchError) return json({ error: fetchError.message }, 500);
     if (!row) return json({ error: "Service not found" }, 404);
 
-    // --- Verify the requester actually owns this ticket ---------------------
-    // The only accepted proof is the last 4 digits of the contact number on
-    // file. The client name is printed on the public /track page, so it can
-    // never serve as proof of identity.
-    const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
-    const phoneOnFile = digits(row.contact_number);
 
-    if (phoneOnFile.length < 4) {
-      return json(
-        {
-          error:
-            "No contact number is on file for this ticket, so we cannot confirm your identity online. Please contact the shop to approve.",
-        },
-        403,
-      );
-    }
-    if (!verification.trim()) {
-      return json({ error: "Enter the last 4 digits of your contact number to confirm." }, 400);
-    }
-
-    const suppliedDigits = digits(verification);
-    const phoneMatch =
-      suppliedDigits.length >= 4 &&
-      (suppliedDigits.endsWith(phoneOnFile.slice(-4)) || phoneOnFile.endsWith(suppliedDigits));
-
-    if (!phoneMatch) {
-      return json({ error: "The digits entered do not match the contact number on file." }, 403);
-    }
 
 
     const status = String(row.status ?? "");
