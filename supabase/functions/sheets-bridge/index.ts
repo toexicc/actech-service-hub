@@ -122,7 +122,7 @@ const mapServiceForLegacy = (r: any) => ({
   chiefComplaint: r.issue_description ?? "",
   issueDescription: r.issue_description ?? "",
   diagnosis: r.diagnosis ?? "",
-  technicianDiagnosis: r.diagnosis ?? "",
+  technicianDiagnosis: r.technician_diagnosis ?? "",
   aiDiagnosis: r.diagnosis ?? "",
   technicianReport: r.ai_report ?? "",
   aiReport: r.ai_report ?? "",
@@ -724,7 +724,7 @@ async function updateService(b: Record<string, any>) {
     }
   }
   if ("priority" in b) patch.priority = b.priority;
-  if ("aiDiagnosis" in b) patch.diagnosis = b.aiDiagnosis;
+  if ("aiDiagnosis" in b && String(b.aiDiagnosis ?? "").trim()) patch.diagnosis = b.aiDiagnosis;
   if ("aiReport" in b) patch.ai_report = b.aiReport;
   if ("services" in b) patch.service = b.services;
   if ("serviceCost" in b) patch.service_cost = num(b.serviceCost);
@@ -737,7 +737,13 @@ async function updateService(b: Record<string, any>) {
   if ("adminNotes" in b) patch.remarks = b.adminNotes;
   if ("adminNotesInternal" in b)
     patch.internal_admin_notes = b.adminNotesInternal;
-  if ("technicianDiagnosis" in b) patch.diagnosis = b.technicianDiagnosis;
+  if ("technicianDiagnosis" in b) {
+    patch.technician_diagnosis = b.technicianDiagnosis;
+    // Only fall back to the raw notes when no AI-formatted diagnosis exists.
+    if (!String(b.aiDiagnosis ?? "").trim() && !String(patch.diagnosis ?? "").trim()) {
+      patch.diagnosis = b.technicianDiagnosis;
+    }
+  }
   if ("internalTechnicianNotes" in b)
     patch.internal_technician_notes = b.internalTechnicianNotes;
   if ("partsUsed" in b) patch.parts_used = splitList(b.partsUsed);
