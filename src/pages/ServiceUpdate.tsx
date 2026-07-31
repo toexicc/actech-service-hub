@@ -70,9 +70,40 @@ interface InventoryItem {
   name: string;
   deviceType?: string;
   model?: string;
+  brand?: string;
+  partType?: string;
+  color?: string;
+  supplier?: string;
   cost: number;
   quantity: number;
 }
+
+/** Token-based match across every useful part field. */
+const matchesPartSearch = (item: InventoryItem, search: string) => {
+  const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const haystack = [
+    item.id,
+    item.name,
+    item.brand,
+    item.deviceType,
+    item.model,
+    item.partType,
+    item.color,
+    item.supplier,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return tokens.every((t) => haystack.includes(t));
+};
+
+/** Compact label with the identifying attributes of a part. */
+const partLabel = (item: InventoryItem) =>
+  [item.brand, item.deviceType, item.model, item.color, item.partType]
+    .filter(Boolean)
+    .join(" • ");
+
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
