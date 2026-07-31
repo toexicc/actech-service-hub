@@ -434,14 +434,12 @@ const ServiceTracking = () => {
     return out.join(", ");
   };
 
-  // Ownership proof shown before a decision: last 4 digits of the contact
-  // number, or the full name when no number was captured at intake.
+  // Ownership proof shown before a decision: the last 4 digits of the contact
+  // number on file. The client name is public on this page, so it is not proof.
   const hasPhoneOnFile =
     (serviceData?.contactNumber || "").replace(/\D/g, "").length >= 4;
-  const verifyLabel = hasPhoneOnFile
-    ? "Last 4 digits of your contact number"
-    : "Your full name (as recorded on this ticket)";
-  const verifyReady = hasPhoneOnFile ? verifyDigits.length >= 4 : verifyDigits.trim().length > 2;
+  const verifyLabel = "Last 4 digits of your contact number";
+  const verifyReady = hasPhoneOnFile && verifyDigits.length >= 4;
 
   const submitApproval = async (approved: boolean, reason?: string) => {
     if (!serviceData?.serviceId) return;
