@@ -1242,25 +1242,25 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                  <Textarea
-                    id="technicianDiagnosis"
-                    placeholder="Enter technician diagnosis"
-                    value={updateTechnicianDiagnosis}
-                    onChange={(e) => {
-                      setUpdateTechnicianDiagnosis(e.target.value);
-                      setRawDiagnosis(e.target.value);
-                    }}
-                    rows={4}
-                    className="min-h-[80px] resize-none"
-                  />
-                </div>
+                {showDiagnosisStage && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                    <Textarea
+                      id="technicianDiagnosis"
+                      placeholder="Enter technician diagnosis"
+                      value={updateTechnicianDiagnosis}
+                      onChange={(e) => {
+                        setUpdateTechnicianDiagnosis(e.target.value);
+                        setRawDiagnosis(e.target.value);
+                      }}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
 
-                {/* (Diagnosis photos uploader moved below AI Diagnosis Formatter) */}
-
-                {/* Diagnosis Toggle - Based on actual sheet status */}
-                {serviceData?.status === "Pending Diagnosis" && (
+                {/* Diagnosis Toggle - based on the selected (next) status */}
+                {showDiagnosisStage && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
