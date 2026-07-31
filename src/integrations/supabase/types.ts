@@ -1004,6 +1004,7 @@ export type Database = {
           ai_toggle: string | null
           brand: string | null
           chief_complaint: string | null
+          client_approved_at: string | null
           client_id: string | null
           client_name: string
           client_type: string | null
@@ -1054,6 +1055,7 @@ export type Database = {
           status: Database["public"]["Enums"]["service_status"]
           target_date: string | null
           technician_departments: string[]
+          technician_diagnosis: string | null
           technician_report: string | null
           technicians: string[]
           total_cost: number
@@ -1067,6 +1069,7 @@ export type Database = {
           ai_toggle?: string | null
           brand?: string | null
           chief_complaint?: string | null
+          client_approved_at?: string | null
           client_id?: string | null
           client_name: string
           client_type?: string | null
@@ -1117,6 +1120,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
           technician_departments?: string[]
+          technician_diagnosis?: string | null
           technician_report?: string | null
           technicians?: string[]
           total_cost?: number
@@ -1130,6 +1134,7 @@ export type Database = {
           ai_toggle?: string | null
           brand?: string | null
           chief_complaint?: string | null
+          client_approved_at?: string | null
           client_id?: string | null
           client_name?: string
           client_type?: string | null
@@ -1180,6 +1185,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
           technician_departments?: string[]
+          technician_diagnosis?: string | null
           technician_report?: string | null
           technicians?: string[]
           total_cost?: number
