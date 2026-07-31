@@ -1231,11 +1231,25 @@ const ServiceTracking = () => {
               assigned admin and technician will be notified.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="approveVerify">
+              To confirm it's you, enter the last 4 digits of the contact number on file
+            </Label>
+            <Input
+              id="approveVerify"
+              inputMode="numeric"
+              maxLength={4}
+              value={verifyDigits}
+              onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="••••"
+              className="w-32 tracking-widest"
+            />
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submittingApproval} onClick={() => setVerifyDigits("")}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); submitApproval(true); }}
-              disabled={submittingApproval}
+              disabled={submittingApproval || verifyDigits.length < 4}
             >
               {submittingApproval ? "Submitting…" : "Confirm & Proceed"}
             </AlertDialogAction>
