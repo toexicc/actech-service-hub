@@ -185,7 +185,7 @@ const Menu = () => {
         servicesOverdue: [],
       };
     }
-  }, [allServices, inquiriesData, isTechnician, userFullName]);
+  }, [allServices, completedServices, inquiriesData, isTechnician, userFullName]);
 
   // Parts for ordering (management only)
   const partsForOrdering = useMemo(() => {
