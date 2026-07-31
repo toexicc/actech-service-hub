@@ -1091,8 +1091,9 @@ const ServiceUpdate = () => {
                   <Select 
                     value={updateStatus} 
                     onValueChange={(value) => {
+                      const allowRevertToPending = serviceData?.status === "Confirmed Diagnosis";
                       const restrictedStatuses = [
-                        "Pending Diagnosis",
+                        ...(allowRevertToPending ? [] : ["Pending Diagnosis"]),
                         "Waiting to Proceed",
                         "Proceed Repair",
                         "Done Repair - Advise Client",
@@ -1120,8 +1121,9 @@ const ServiceUpdate = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map(status => {
+                        const allowRevertToPending = serviceData?.status === "Confirmed Diagnosis";
                         const restrictedStatuses = [
-                          "Pending Diagnosis",
+                          ...(allowRevertToPending ? [] : ["Pending Diagnosis"]),
                           "Waiting to Proceed",
                           "Proceed Repair",
                           "Done Repair - Advise Client",

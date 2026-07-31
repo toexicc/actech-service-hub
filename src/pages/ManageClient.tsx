@@ -677,11 +677,13 @@ const ManageClient = () => {
     if (isUpdatingClientInfo) return;
 
     // Guard: fields can be saved freely while on Confirmed Diagnosis, but the
-    // ticket cannot move to another status until the Service Quotation Form exists.
+    // ticket cannot move forward until the Service Quotation Form exists.
+    // Moving back to Pending Diagnosis is always allowed (re-diagnosis).
     if (
       serviceData.status === "Confirmed Diagnosis" &&
       updateStatus &&
       updateStatus !== "Confirmed Diagnosis" &&
+      updateStatus !== "Pending Diagnosis" &&
       !serviceData.quotationPdfUrl
     ) {
       toast({
