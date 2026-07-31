@@ -1534,20 +1534,10 @@ const ServiceUpdate = () => {
                 )}
 
                 {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
-                {serviceData?.serviceId && (
-                  serviceData?.status === "Done Repair - Under Observation" ||
-                  serviceData?.status === "Done Repair - Observation" ||
-                  serviceData?.status === "Done Repair - For Release" ||
-                  serviceData?.status === "Done Repair - Advise Client" ||
-                  serviceData?.status === "Released" ||
-                  serviceData?.status === "Completed"
-                ) && (
+                {serviceData?.serviceId && showReportStage && (
                   <DeviceReportPhotos
                     serviceId={serviceData.serviceId}
-                    editable={
-                      serviceData?.status === "Done Repair - Under Observation" ||
-                      serviceData?.status === "Done Repair - Observation"
-                    }
+                    editable={showReportEditors}
                   />
                 )}
 
