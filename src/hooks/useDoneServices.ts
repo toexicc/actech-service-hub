@@ -29,8 +29,9 @@ const fetchDoneServices = async (): Promise<DoneService[]> => {
     clientName: r.client_name ?? "",
     service: r.service ?? "",
     quotedPrice: Number(r.total_cost ?? 0),
-    discount: 0,
-    partsCost: 0,
+    discount: Number(r.discount ?? 0),
+    partsCost: Number(r.parts_cost ?? 0),
+
   }));
 };
 
