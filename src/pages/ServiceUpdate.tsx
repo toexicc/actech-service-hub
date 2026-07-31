@@ -171,23 +171,38 @@ const ServiceUpdate = () => {
       name: item.partName,
       deviceType: item.deviceType || "",
       model: item.model || "",
+      brand: item.brand || "",
+      partType: item.partType || "",
+      color: item.color || "",
+      supplier: item.supplier || "",
       cost: typeof item.costPerUnit === 'string' ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
       quantity: item.quantity || 0
     }));
 
-    const receivedParts = fastMovingData
+    const receivedParts: InventoryItem[] = fastMovingData
       .filter((part) => part.status === "Received")
       .map((part) => ({
         id: part.partId,
         name: part.partName,
         deviceType: part.deviceType || "",
         model: part.model || "",
+        brand: part.brand || "",
+        partType: part.partType || "",
+        color: "",
+        supplier: part.supplier || "",
         cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
         quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0
       }));
 
     return [...allInventory, ...receivedParts];
   }, [inventoryData, fastMovingData]);
+
+  const [partSearch, setPartSearch] = useState("");
+  const filteredInventory = useMemo(
+    () => inventory.filter((item) => matchesPartSearch(item, partSearch)),
+    [inventory, partSearch],
+  );
+
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
