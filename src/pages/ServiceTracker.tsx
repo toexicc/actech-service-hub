@@ -454,17 +454,25 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   };
 
   useEffect(() => {
-    // Set technician filters if user is a technician
-    if (isTechnician && username && staffList.length > 0) {
-      const techInfo = staffList.find((staff) => staff.username === username);
-      if (techInfo) {
-        setTechnicianName(techInfo.name);
-        setTechnicianDepartment(techInfo.department || "");
-        setTechnicianFilter(techInfo.name);
-        setDepartmentFilter(techInfo.department || "all");
-      }
+    // Lock the filters to the signed-in technician. Match on the profile id
+    // first, then fall back to a normalized name comparison.
+    if (!isTechnician) return;
+    const norm = (v?: string | null) => (v || "").trim().toLowerCase();
+    const techInfo =
+      staffList.find((staff) => staff.userId && profile?.id && staff.userId === profile.id) ||
+      staffList.find((staff) => norm(staff.name) === norm(username)) ||
+      staffList.find((staff) => norm(staff.username) === norm(profile?.username));
+    if (techInfo) {
+      setTechnicianName(techInfo.name);
+      setTechnicianDepartment(techInfo.department || "");
+      setTechnicianFilter(techInfo.name);
+      setDepartmentFilter(techInfo.department || "all");
+    } else if (username) {
+      // Identity could not be resolved in the staff list — still scope by name.
+      setTechnicianName(username);
+      setTechnicianFilter(username);
     }
-  }, [isTechnician, username, staffList]);
+  }, [isTechnician, username, staffList, profile?.id, profile?.username]);
 
   // Optimized polling: refresh every 60 seconds
   useEffect(() => {
