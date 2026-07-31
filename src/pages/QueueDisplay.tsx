@@ -21,7 +21,7 @@ const Column = ({
   highlightId?: string | null;
 }) => (
   <Card
-    className={`rounded-3xl border p-6 backdrop-blur-xl bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-elegant)] ${
+    className={`rounded-3xl border p-6 bg-white/90 shadow-[var(--shadow-elegant)] ${
       tone === "proceed" ? "border-emerald-300/50" : "border-blue-300/50"
     }`}
   >
@@ -86,7 +86,7 @@ const Column = ({
 const QueueDisplay = () => {
   const [params] = useSearchParams();
   const mine = params.get("entry");
-  const { entries, loading } = useQueueEntries({ activeOnly: true });
+  const { entries, loading, error } = useQueueEntries({ activeOnly: true });
 
   const { waiting, proceed, myEntry } = useMemo(() => {
     const w = entries.filter((e) => e.status === "waiting");
@@ -98,8 +98,13 @@ const QueueDisplay = () => {
   }, [entries, mine]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F8FF] via-white to-[#E8EEFB] p-4 md:p-10">
+    <div className="min-h-screen bg-[#F5F8FF] p-4 md:p-10">
       <div className="max-w-7xl mx-auto">
+        {error && (
+          <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {error}
+          </div>
+        )}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <img src={acTechLogo} alt="AC Tech Repair" className="h-12 object-contain" />
@@ -122,7 +127,7 @@ const QueueDisplay = () => {
         </div>
 
         {myEntry && (
-          <Card className="mb-6 rounded-3xl border-blue-300 bg-blue-500/10 backdrop-blur-xl p-6">
+          <Card className="mb-6 rounded-3xl border-blue-300 bg-blue-500/10 p-6">
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 rounded-2xl bg-blue-600 text-white grid place-items-center">
                 <CheckCircle2 className="h-7 w-7" />
