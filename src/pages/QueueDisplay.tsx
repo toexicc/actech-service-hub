@@ -21,7 +21,7 @@ const Column = ({
   highlightId?: string | null;
 }) => (
   <Card
-    className={`rounded-3xl border p-6 backdrop-blur-xl bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-elegant)] ${
+    className={`rounded-3xl border p-6 bg-white/90 shadow-[var(--shadow-elegant)] ${
       tone === "proceed" ? "border-emerald-300/50" : "border-blue-300/50"
     }`}
   >
