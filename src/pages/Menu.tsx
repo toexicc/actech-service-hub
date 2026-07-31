@@ -113,7 +113,7 @@ const Menu = () => {
 
       // Filter services based on role
       const services = isTechnician
-        ? allServices.filter((s: any) => s.technician === userFullName)
+        ? filterAssigned(allServices as any[], userFullName, sessionStorage.getItem("username"))
         : allServices;
 
       const ongoing = services.filter((s: any) => {
