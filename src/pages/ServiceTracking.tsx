@@ -717,6 +717,10 @@ const ServiceTracking = () => {
           );
           const deposit = totals.paid;
           const balance = totals.balance;
+          // Money figures only become meaningful once a quotation exists, i.e.
+          // from "Waiting to Proceed" onward.
+          const PRE_QUOTE_STATUSES = ["Pending Diagnosis", "Confirmed Diagnosis"];
+          const showMoney = !PRE_QUOTE_STATUSES.includes(currentStatus);
           const quoteSummary = parseSummaryFromDiagnosis(serviceData.aiDiagnosis || "");
           // Service date = when the client approved the diagnosis.
           const serviceDateDisplay = approvalRecord?.decision === "Approved"
