@@ -14,6 +14,8 @@ export interface ServiceRecord {
   serialNumber: string;
   issueDescription: string;
   diagnosis: string;
+  technicianDiagnosis?: string;
+  clientApprovedAt?: string;
   status: string;
   technician: string;
   technicianAssigned: string;
