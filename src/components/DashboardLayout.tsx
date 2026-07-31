@@ -35,7 +35,7 @@ const adminSection: NavSection = {
     { title: "Service Tracker", icon: ClipboardList, path: "/service-tracker", iconName: "ClipboardList" },
     { title: "Queue Console", icon: Monitor, path: "/queueing", iconName: "Monitor" },
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
-    { title: "Completed Transactions", icon: DollarSign, path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
+    { title: "Completed Services", icon: DollarSign, path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
     { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management"], iconName: "DollarSign" },
     { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"], iconName: "Settings" },
