@@ -127,7 +127,7 @@ const QueueDisplay = () => {
         </div>
 
         {myEntry && (
-          <Card className="mb-6 rounded-3xl border-blue-300 bg-blue-500/10 backdrop-blur-xl p-6">
+          <Card className="mb-6 rounded-3xl border-blue-300 bg-blue-500/10 p-6">
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 rounded-2xl bg-blue-600 text-white grid place-items-center">
                 <CheckCircle2 className="h-7 w-7" />
