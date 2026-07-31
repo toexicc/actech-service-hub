@@ -70,9 +70,40 @@ interface InventoryItem {
   name: string;
   deviceType?: string;
   model?: string;
+  brand?: string;
+  partType?: string;
+  color?: string;
+  supplier?: string;
   cost: number;
   quantity: number;
 }
+
+/** Token-based match across every useful part field. */
+const matchesPartSearch = (item: InventoryItem, search: string) => {
+  const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const haystack = [
+    item.id,
+    item.name,
+    item.brand,
+    item.deviceType,
+    item.model,
+    item.partType,
+    item.color,
+    item.supplier,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return tokens.every((t) => haystack.includes(t));
+};
+
+/** Compact label with the identifying attributes of a part. */
+const partLabel = (item: InventoryItem) =>
+  [item.brand, item.deviceType, item.model, item.color, item.partType]
+    .filter(Boolean)
+    .join(" • ");
+
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
@@ -140,23 +171,38 @@ const ServiceUpdate = () => {
       name: item.partName,
       deviceType: item.deviceType || "",
       model: item.model || "",
+      brand: item.brand || "",
+      partType: item.partType || "",
+      color: item.color || "",
+      supplier: item.supplier || "",
       cost: typeof item.costPerUnit === 'string' ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
       quantity: item.quantity || 0
     }));
 
-    const receivedParts = fastMovingData
+    const receivedParts: InventoryItem[] = fastMovingData
       .filter((part) => part.status === "Received")
       .map((part) => ({
         id: part.partId,
         name: part.partName,
         deviceType: part.deviceType || "",
         model: part.model || "",
+        brand: part.brand || "",
+        partType: part.partType || "",
+        color: "",
+        supplier: part.supplier || "",
         cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
         quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0
       }));
 
     return [...allInventory, ...receivedParts];
   }, [inventoryData, fastMovingData]);
+
+  const [partSearch, setPartSearch] = useState("");
+  const filteredInventory = useMemo(
+    () => inventory.filter((item) => matchesPartSearch(item, partSearch)),
+    [inventory, partSearch],
+  );
+
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
@@ -269,13 +315,14 @@ const ServiceUpdate = () => {
   }, [serviceData, serviceId, inventory]);
 
   // ---- Status-first flow ----------------------------------------------------
-  // Fields are revealed based on the status the technician SELECTS (the next
-  // stage), not the saved status, so picking the next status is always step 1
-  // and the matching work fields appear before saving.
+  // Picking a new status is always step 1 (nothing is revealed before that), but
+  // the fields that appear belong to the ticket's CURRENT (saved) stage — the
+  // work for a stage is recorded while the ticket is actually in that stage.
   const savedStatus = serviceData?.status || "";
   const statusChanged = !!updateStatus && updateStatus !== savedStatus;
   // Nothing is revealed until the technician picks a NEW status.
-  const stageStatus = statusChanged ? updateStatus : "";
+  const stageStatus = statusChanged ? savedStatus : "";
+
 
   const DONE_REPAIR_STAGES = [
     "Done Repair - Under Observation",
@@ -1581,17 +1628,47 @@ const ServiceUpdate = () => {
                     <div className="space-y-3">
                       <Input
                         type="text"
-                        placeholder="Search by Part ID or Name..."
+                        placeholder="Search by Part ID, name, brand, device type, model, color, supplier..."
                         className="w-full"
-                        onChange={(e) => {
-                          const search = e.target.value.toLowerCase();
-                          const filtered = inventory.filter(item => 
-                            item.id.toLowerCase().includes(search) || 
-                            item.name.toLowerCase().includes(search)
-                          );
-                          // Just update display - we'll filter in the map below
-                        }}
+                        value={partSearch}
+                        onChange={(e) => setPartSearch(e.target.value)}
                       />
+
+                      {partSearch.trim() !== "" && (
+                        <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
+                          {filteredInventory.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              No parts match "{partSearch}"
+                            </p>
+                          ) : (
+                            filteredInventory.map((item) => (
+                              <div key={`search-${item.id}`} className="flex items-center justify-between gap-2 p-2 rounded border">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{item.name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    ID: {item.id}
+                                    {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!!selectedParts[item.id]}
+                                  onClick={() =>
+                                    setSelectedParts((prev) => ({
+                                      ...prev,
+                                      [item.id]: (prev[item.id] || 0) + 1,
+                                    }))
+                                  }
+                                >
+                                  {selectedParts[item.id] ? "Added" : "Add"}
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
                         {inventory.map((item) => {
                           const qty = selectedParts[item.id] || 0;
@@ -1599,13 +1676,13 @@ const ServiceUpdate = () => {
                           return (
                             <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
                                <div className="flex-1 min-w-0">
-                                 <p className="font-medium truncate">
-                                   {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
-                                 </p>
+                                 <p className="font-medium truncate">{item.name}</p>
                                  <p className="text-xs text-muted-foreground truncate">
-                                   ID: {item.id} • Stock: {item.quantity}
+                                   ID: {item.id}
+                                   {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
                                  </p>
                                </div>
+
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
@@ -1680,8 +1757,9 @@ const ServiceUpdate = () => {
                                     <SelectContent className="bg-background z-50">
                                       {inventory.map((item) => (
                                         <SelectItem key={item.id} value={item.id}>
-                                          {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
+                                          {item.name}{partLabel(item) ? ` [${partLabel(item)}]` : ''} (Stock: {item.quantity})
                                         </SelectItem>
+
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -1718,11 +1796,15 @@ const ServiceUpdate = () => {
                                 <SelectValue placeholder="Select part to add..." />
                               </SelectTrigger>
                               <SelectContent className="bg-background z-50">
-                                {inventory.map((item) => (
+                                {filteredInventory.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.id} - {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
+                                    {item.id} - {item.name}{partLabel(item) ? ` [${partLabel(item)}]` : ''} (Stock: {item.quantity})
                                   </SelectItem>
                                 ))}
+                                {filteredInventory.length === 0 && (
+                                  <div className="px-2 py-2 text-sm text-muted-foreground">No parts match the search</div>
+                                )}
+
                               </SelectContent>
                             </Select>
                           </div>
