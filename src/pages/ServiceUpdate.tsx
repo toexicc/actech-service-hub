@@ -1795,11 +1795,15 @@ const ServiceUpdate = () => {
                                 <SelectValue placeholder="Select part to add..." />
                               </SelectTrigger>
                               <SelectContent className="bg-background z-50">
-                                {inventory.map((item) => (
+                                {filteredInventory.map((item) => (
                                   <SelectItem key={item.id} value={item.id}>
-                                    {item.id} - {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
+                                    {item.id} - {item.name}{partLabel(item) ? ` [${partLabel(item)}]` : ''} (Stock: {item.quantity})
                                   </SelectItem>
                                 ))}
+                                {filteredInventory.length === 0 && (
+                                  <div className="px-2 py-2 text-sm text-muted-foreground">No parts match the search</div>
+                                )}
+
                               </SelectContent>
                             </Select>
                           </div>
