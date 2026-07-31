@@ -114,27 +114,23 @@ const Menu = () => {
     try {
       const today = startOfDay(new Date());
 
-      // Filter services based on role
+      // Active + completed, scoped to the technician's own assignments
+      const everything = [...(allServices as any[]), ...(completedServices as any[])];
       const services = isTechnician
-        ? filterAssigned(allServices as any[], userFullName, sessionStorage.getItem("username"))
-        : allServices;
+        ? filterAssigned(everything, userFullName, sessionStorage.getItem("username"))
+        : everything;
 
       const ongoing = services.filter((s: any) => {
         const status = s.status?.toLowerCase() || "";
         return !status.includes("completed") && !status.includes("cancelled");
       }).length;
 
-      // Helper to safely parse target date
+      // Accepts ISO (YYYY-MM-DD) and MM/DD/YYYY target dates
       const parseTarget = (targetDate: string | undefined) => {
         if (!targetDate) return null;
-        const parts = targetDate.split(/[-/]/);
-        if (parts.length !== 3) return null;
-        const [month, day, year] = parts;
-        const m = parseInt(month, 10);
-        const d = parseInt(day, 10);
-        const y = parseInt(year, 10);
-        if (isNaN(m) || isNaN(d) || isNaN(y)) return null;
-        const date = new Date(y, m - 1, d);
+        const parsed = parseManilaDate(targetDate);
+        if (!parsed || isNaN(parsed.getTime())) return null;
+        const date = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
         date.setHours(0, 0, 0, 0);
         return date;
       };
@@ -159,6 +155,7 @@ const Menu = () => {
         const status = s.status?.toLowerCase() || "";
         return status.includes("completed");
       }).length;
+
 
       // Pending inquiries
       const pendingInquiries =
