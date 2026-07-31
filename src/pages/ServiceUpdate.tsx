@@ -1202,6 +1202,14 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                    Step 2 — {stageStatus || "Update"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{stageHint}</p>
+                </div>
+
+
                 <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician:</Label>
                   <MultiSelect
