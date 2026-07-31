@@ -419,6 +419,12 @@ const ServiceUpdate = () => {
               technicianNotesInternal: pick(sb.internalTechnicianNotes, data.data.technicianNotesInternal),
               adminNotesInternal: pick(sb.internalAdminNotes, data.data.adminNotesInternal),
               targetDate: pick(sb.targetDate, data.data.targetDate),
+              status: pick(sb.status, data.data.status),
+              // Raw technician notes and the AI-formatted diagnosis are stored
+              // in separate columns so they no longer overwrite each other.
+              technicianDiagnosis: pick(sb.technicianDiagnosis, data.data.technicianDiagnosis),
+              aiDiagnosis: pick(sb.diagnosis, data.data.aiDiagnosis),
+              aiReport: pick(sb.aiReport, data.data.aiReport),
             };
           }
         } catch { /* ignore */ }
