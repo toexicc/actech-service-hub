@@ -268,6 +268,53 @@ const ServiceUpdate = () => {
     run();
   }, [serviceData, serviceId, inventory]);
 
+  // ---- Status-first flow ----------------------------------------------------
+  // Fields are revealed based on the status the technician SELECTS (the next
+  // stage), not the saved status, so picking the next status is always step 1
+  // and the matching work fields appear before saving.
+  const savedStatus = serviceData?.status || "";
+  const stageStatus = updateStatus || savedStatus;
+  const statusChanged = !!updateStatus && updateStatus !== savedStatus;
+
+  const DONE_REPAIR_STAGES = [
+    "Done Repair - Under Observation",
+    "Done Repair - Observation",
+    "Done Repair - For Release",
+    "Done Repair - Advise Client",
+    "Released",
+    "Completed",
+    "Backjob",
+    "RTO",
+  ];
+
+  const showDiagnosisStage =
+    stageStatus === "Pending Diagnosis" || stageStatus === "Confirmed Diagnosis";
+  const showReportStage = DONE_REPAIR_STAGES.includes(stageStatus);
+  const showReportEditors =
+    stageStatus === "Done Repair - Under Observation" ||
+    stageStatus === "Done Repair - Observation" ||
+    stageStatus === "Done Repair - For Release";
+  const showPartsStage = stageStatus === "Ongoing Service";
+
+  const stageHint = (() => {
+    if (showDiagnosisStage)
+      return "Enter the technician diagnosis and run the AI formatter, then click Update to save it with this status.";
+    if (showPartsStage) return "Select the parts used from inventory, then click Update.";
+    if (showReportStage)
+      return "Enter the technician report and run the AI formatter, then click Update.";
+    return "Add any remarks or notes for this stage, then click Update.";
+  })();
+
+  const NEXT_STATUS: Record<string, string> = {
+    "Pending Diagnosis": "Confirmed Diagnosis",
+    "Confirmed Diagnosis": "Ongoing Service",
+    "Proceed Repair": "Ongoing Service",
+    "Waiting to Proceed": "Ongoing Service",
+    "Ongoing Service": "Done Repair - Under Observation",
+    "Done Repair - Under Observation": "Done Repair - For Release",
+  };
+  const suggestedNext = NEXT_STATUS[savedStatus];
+
 
   const calculateActualCost = () => {
     return Object.entries(selectedParts).reduce((total, [itemId, qty]) => {
