@@ -1259,7 +1259,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   name="memory"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Memory:</FormLabel>
+                      <FormLabel>Storage:</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
