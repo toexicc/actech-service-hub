@@ -1628,17 +1628,47 @@ const ServiceUpdate = () => {
                     <div className="space-y-3">
                       <Input
                         type="text"
-                        placeholder="Search by Part ID or Name..."
+                        placeholder="Search by Part ID, name, brand, device type, model, color, supplier..."
                         className="w-full"
-                        onChange={(e) => {
-                          const search = e.target.value.toLowerCase();
-                          const filtered = inventory.filter(item => 
-                            item.id.toLowerCase().includes(search) || 
-                            item.name.toLowerCase().includes(search)
-                          );
-                          // Just update display - we'll filter in the map below
-                        }}
+                        value={partSearch}
+                        onChange={(e) => setPartSearch(e.target.value)}
                       />
+
+                      {partSearch.trim() !== "" && (
+                        <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
+                          {filteredInventory.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              No parts match "{partSearch}"
+                            </p>
+                          ) : (
+                            filteredInventory.map((item) => (
+                              <div key={`search-${item.id}`} className="flex items-center justify-between gap-2 p-2 rounded border">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{item.name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    ID: {item.id}
+                                    {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!!selectedParts[item.id]}
+                                  onClick={() =>
+                                    setSelectedParts((prev) => ({
+                                      ...prev,
+                                      [item.id]: (prev[item.id] || 0) + 1,
+                                    }))
+                                  }
+                                >
+                                  {selectedParts[item.id] ? "Added" : "Add"}
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
                         {inventory.map((item) => {
                           const qty = selectedParts[item.id] || 0;
@@ -1646,13 +1676,13 @@ const ServiceUpdate = () => {
                           return (
                             <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
                                <div className="flex-1 min-w-0">
-                                 <p className="font-medium truncate">
-                                   {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''}
-                                 </p>
+                                 <p className="font-medium truncate">{item.name}</p>
                                  <p className="text-xs text-muted-foreground truncate">
-                                   ID: {item.id} • Stock: {item.quantity}
+                                   ID: {item.id}
+                                   {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
                                  </p>
                                </div>
+
                               <div className="flex items-center gap-2">
                                 <Input
                                   type="number"
