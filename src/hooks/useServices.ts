@@ -14,6 +14,8 @@ export interface ServiceRecord {
   serialNumber: string;
   issueDescription: string;
   diagnosis: string;
+  technicianDiagnosis?: string;
+  clientApprovedAt?: string;
   status: string;
   technician: string;
   technicianAssigned: string;
@@ -78,6 +80,8 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   serialNumber: r.serial_number ?? "",
   issueDescription: r.issue_description ?? "",
   diagnosis: r.diagnosis ?? "",
+  technicianDiagnosis: r.technician_diagnosis ?? "",
+  clientApprovedAt: r.client_approved_at ?? "",
   status: r.status ?? "",
   technician: Array.isArray(r.technicians) ? r.technicians.join(", ") : (r.technicians ?? ""),
   technicianAssigned: Array.isArray(r.technicians) ? r.technicians.join(", ") : "",

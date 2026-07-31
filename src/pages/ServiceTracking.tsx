@@ -95,9 +95,15 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       targetDate: pick(sb.targetDate, sheetData.targetDate),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
-      serviceDate: pick((row as any).service_date, sheetData.serviceDate),
+      serviceDate: pick((row as any).client_approved_at, pick((row as any).service_date, sheetData.serviceDate)),
       dateCompleted: pick(sb.dateCompleted, sheetData.dateCompleted),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+      // Status, AI diagnosis and the approval trail live in the database.
+      status: pick(sb.status, sheetData.status),
+      service: pick(sb.service, sheetData.service),
+      aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
+      adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
+
 
     };
   } catch {
@@ -429,78 +435,31 @@ const ServiceTracking = () => {
     if (!serviceData?.serviceId) return;
     setSubmittingApproval(true);
     try {
-      const tsDisplay = formatManilaDate(new Date(), "MMM dd, yyyy hh:mm a");
-      const tag = approved
-        ? `Approved by ${serviceData.clientName} on ${tsDisplay}`
-        : `Declined by ${serviceData.clientName} on ${tsDisplay}: ${reason || ""}`;
-      const newAdminNotes = [serviceData.adminNotes, tag].filter(Boolean).join("\n");
+      // The /track page is anonymous, so the decision is persisted by a
+      // service-role edge function (direct writes are blocked by access rules).
+      const { data, error } = await supabase.functions.invoke("submit-client-approval", {
+        body: {
+          serviceId: serviceData.serviceId,
+          approved,
+          reason: reason || "",
+        },
+      });
 
-      // On approve: also flip status to "Proceed Repair" and populate Service/s
-      // from the AI diagnosis service breakdown.
-      const newServices = approved ? parseServicesFromDiagnosis(serviceData.aiDiagnosis || "") : "";
-      const newStatus = approved ? "Proceed Repair" : serviceData.status;
-
-      // Persist to Google Sheets via updateService action
-      const formData = new FormData();
-      formData.append("action", "updateService");
-      formData.append("serviceId", serviceData.serviceId);
-      formData.append("deviceType", serviceData.deviceType || "");
-      formData.append("adminNotes", newAdminNotes);
-      if (approved) {
-        formData.append("status", "Proceed Repair");
-        if (newServices) formData.append("services", newServices);
+      const payloadError = (data as any)?.error;
+      if (error || payloadError) {
+        toast({
+          title: "Could not submit response",
+          description: payloadError || error?.message || "Please try again or contact the shop.",
+          variant: "destructive",
+        });
+        return;
       }
-      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
-
-      // Mirror status change into Supabase so /manage-client and /service-update reflect it.
-      if (approved) {
-        try {
-          await supabase
-            .from("services")
-            .update({
-              status: "Proceed Repair" as any,
-              service: newServices || serviceData.service || "",
-              last_updated: new Date().toISOString(),
-            })
-            .eq("service_id", serviceData.serviceId);
-        } catch { /* ignore */ }
-      }
-
-      // Notify assigned admins + technicians via service-role edge function
-      // (works even when the /track page is anonymous).
-      try {
-        const adminNames: string[] = (serviceData.adminRep || "")
-          .split(",").map((s: string) => s.trim()).filter(Boolean);
-        const techNames: string[] = (serviceData.technician || "")
-          .split(",").map((s: string) => s.trim()).filter(Boolean);
-        const allNames = Array.from(new Set([...adminNames, ...techNames]));
-        if (allNames.length) {
-          const staff = await fetchStaffList();
-          const norm = (n: string) => n.split(" - ")[0].trim().toLowerCase();
-          const recipients = allNames
-            .map((n) => staff.find((s) => norm(s.name || "") === norm(n)))
-            .filter((s) => s?.staffId)
-            .map((s) => ({
-              userId: s!.staffId,
-              title: approved
-                ? `Service ${serviceData.serviceId}: Proceed Repair`
-                : `Service ${serviceData.serviceId} Declined`,
-              message: approved
-                ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}. Service will proceed to repair.`
-                : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
-              serviceId: serviceData.serviceId,
-            }));
-          if (recipients.length) {
-            await supabase.functions.invoke("notify-service-event", { body: { recipients } });
-          }
-        }
-      } catch {}
 
       setServiceData({
         ...serviceData,
-        adminNotes: newAdminNotes,
-        status: newStatus,
-        service: approved && newServices ? newServices : serviceData.service,
+        adminNotes: (data as any)?.adminNotes ?? serviceData.adminNotes,
+        status: (data as any)?.status ?? serviceData.status,
+        service: (data as any)?.service || serviceData.service,
       });
       setDeclineOpen(false);
       setDeclineReason("");
@@ -512,6 +471,7 @@ const ServiceTracking = () => {
       setSubmittingApproval(false);
     }
   };
+
 
   // Active progress statuses where AI Diagnosis is shown above the forms
   const ACTIVE_STATUSES = [
@@ -717,6 +677,10 @@ const ServiceTracking = () => {
           );
           const deposit = totals.paid;
           const balance = totals.balance;
+          // Money figures only become meaningful once a quotation exists, i.e.
+          // from "Waiting to Proceed" onward.
+          const PRE_QUOTE_STATUSES = ["Pending Diagnosis", "Confirmed Diagnosis"];
+          const showMoney = !PRE_QUOTE_STATUSES.includes(currentStatus);
           const quoteSummary = parseSummaryFromDiagnosis(serviceData.aiDiagnosis || "");
           // Service date = when the client approved the diagnosis.
           const serviceDateDisplay = approvalRecord?.decision === "Approved"
@@ -768,19 +732,23 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Mini stats */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-xl border border-border/60 bg-background/60 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Paid</p>
-                        <p className="text-lg font-semibold mt-0.5">₱{deposit.toLocaleString()}</p>
-                      </div>
+                    <div className={showMoney ? "grid grid-cols-3 gap-3" : "grid grid-cols-1 gap-3"}>
+                      {showMoney && (
+                        <div className="rounded-xl border border-border/60 bg-background/60 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Paid</p>
+                          <p className="text-lg font-semibold mt-0.5">₱{deposit.toLocaleString()}</p>
+                        </div>
+                      )}
                       <div className="rounded-xl border border-border/60 bg-background/60 p-3">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Progress</p>
                         <p className="text-lg font-semibold mt-0.5">{stepIdx}/{STEPS.length}</p>
                       </div>
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-primary/80">Balance</p>
-                        <p className="text-lg font-semibold mt-0.5 text-primary">₱{balance.toLocaleString()}</p>
-                      </div>
+                      {showMoney && (
+                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-primary/80">Balance</p>
+                          <p className="text-lg font-semibold mt-0.5 text-primary">₱{balance.toLocaleString()}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Step chips — two rows of 4 */}
@@ -958,13 +926,13 @@ const ServiceTracking = () => {
                       <span className="text-muted-foreground">Total</span>
                       <span className="font-semibold">₱{totalCost.toLocaleString()}</span>
                     </div>
-                    {Number(serviceData.initialPayment || 0) > 0 && (
+                    {showMoney && Number(serviceData.initialPayment || 0) > 0 && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Deposit</span>
                         <span>₱{Number(serviceData.initialPayment || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {(paymentsSummary?.payments?.length ?? 0) > 0 && (
+                    {showMoney && (paymentsSummary?.payments?.length ?? 0) > 0 && (
                       <div className="space-y-1">
                         {paymentsSummary!.payments.map((p) => (
                           <div key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
@@ -974,14 +942,18 @@ const ServiceTracking = () => {
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Total Paid</span>
-                      <span className="font-medium">₱{deposit.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-semibold text-primary">
-                      <span>Balance</span>
-                      <span>₱{balance.toLocaleString()}</span>
-                    </div>
+                    {showMoney && (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total Paid</span>
+                          <span className="font-medium">₱{deposit.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-base font-semibold text-primary">
+                          <span>Balance</span>
+                          <span>₱{balance.toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       {MODES_OF_PAYMENT.map((m) => (

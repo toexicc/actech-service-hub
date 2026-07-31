@@ -419,6 +419,12 @@ const ServiceUpdate = () => {
               technicianNotesInternal: pick(sb.internalTechnicianNotes, data.data.technicianNotesInternal),
               adminNotesInternal: pick(sb.internalAdminNotes, data.data.adminNotesInternal),
               targetDate: pick(sb.targetDate, data.data.targetDate),
+              status: pick(sb.status, data.data.status),
+              // Raw technician notes and the AI-formatted diagnosis are stored
+              // in separate columns so they no longer overwrite each other.
+              technicianDiagnosis: pick(sb.technicianDiagnosis, data.data.technicianDiagnosis),
+              aiDiagnosis: pick(sb.diagnosis, data.data.aiDiagnosis),
+              aiReport: pick(sb.aiReport, data.data.aiReport),
             };
           }
         } catch { /* ignore */ }
@@ -613,7 +619,10 @@ const ServiceUpdate = () => {
         status: updateStatus as any,
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
         technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
-        diagnosis: updateTechnicianDiagnosis,
+        // Raw technician notes stay separate from the AI-formatted diagnosis,
+        // which shares the `diagnosis` field with /manage-client and /track.
+        technician_diagnosis: updateTechnicianDiagnosis,
+        diagnosis: (updateAIDiagnosis || "").trim() ? updateAIDiagnosis : updateTechnicianDiagnosis,
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,

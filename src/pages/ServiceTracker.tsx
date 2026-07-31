@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
+import { useAuth } from "@/hooks/useAuth";
 
 import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
@@ -122,9 +123,17 @@ const ServiceTracker = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Check if user is a technician with locked filters
-  const userRole = sessionStorage.getItem("userRole");
-  const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username"));
+  // Identify the logged-in technician from the authenticated profile (the old
+  // sessionStorage lookup compared a full name against an email and never matched).
+  const { profile, roles } = useAuth();
+  const userRole = roles.includes("admin")
+    ? "admin"
+    : roles.includes("management")
+    ? "management"
+    : roles.includes("technician")
+    ? "technician"
+    : sessionStorage.getItem("userRole") || "";
+  const username = profile?.name || sessionStorage.getItem("userFullName") || sessionStorage.getItem("username");
   const isTechnician = userRole === "technician";
   const [technicianName, setTechnicianName] = useState("");
   const [technicianDepartment, setTechnicianDepartment] = useState("");
@@ -445,17 +454,25 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   };
 
   useEffect(() => {
-    // Set technician filters if user is a technician
-    if (isTechnician && username && staffList.length > 0) {
-      const techInfo = staffList.find((staff) => staff.username === username);
-      if (techInfo) {
-        setTechnicianName(techInfo.name);
-        setTechnicianDepartment(techInfo.department || "");
-        setTechnicianFilter(techInfo.name);
-        setDepartmentFilter(techInfo.department || "all");
-      }
+    // Lock the filters to the signed-in technician. Match on the profile id
+    // first, then fall back to a normalized name comparison.
+    if (!isTechnician) return;
+    const norm = (v?: string | null) => (v || "").trim().toLowerCase();
+    const techInfo =
+      staffList.find((staff) => staff.userId && profile?.id && staff.userId === profile.id) ||
+      staffList.find((staff) => norm(staff.name) === norm(username)) ||
+      staffList.find((staff) => norm(staff.username) === norm(profile?.username));
+    if (techInfo) {
+      setTechnicianName(techInfo.name);
+      setTechnicianDepartment(techInfo.department || "");
+      setTechnicianFilter(techInfo.name);
+      setDepartmentFilter(techInfo.department || "all");
+    } else if (username) {
+      // Identity could not be resolved in the staff list — still scope by name.
+      setTechnicianName(username);
+      setTechnicianFilter(username);
     }
-  }, [isTechnician, username, staffList]);
+  }, [isTechnician, username, staffList, profile?.id, profile?.username]);
 
   // Optimized polling: refresh every 60 seconds
   useEffect(() => {
@@ -577,10 +594,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       }
 
       // Technician filter - if a specific technician is selected, show services where they are assigned
-      // Supports multiple technicians (comma-separated in the technician field)
+      // Supports multiple technicians (comma-separated) and tolerates spacing/casing differences.
       if (technicianFilter !== "all") {
-        const assignedTechnicians = service.technician?.split(",").map(t => t.trim()) || [];
-        if (!assignedTechnicians.includes(technicianFilter)) {
+        const normName = (v?: string) => (v || "").trim().toLowerCase();
+        const assignedTechnicians = (service.technician || "").split(",").map((t) => normName(t));
+        if (!assignedTechnicians.includes(normName(technicianFilter))) {
           return false;
         }
       } else if (departmentFilter !== "all") {
