@@ -77,34 +77,32 @@ serve(async (req) => {
     if (!row) return json({ error: "Service not found" }, 404);
 
     // --- Verify the requester actually owns this ticket ---------------------
-    // Accepted proof: the last 4 digits of the contact number on file, or the
-    // client's full name exactly as recorded (used when no number was captured).
+    // The only accepted proof is the last 4 digits of the contact number on
+    // file. The client name is printed on the public /track page, so it can
+    // never serve as proof of identity.
     const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
-    const normName = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ").toLowerCase();
-
     const phoneOnFile = digits(row.contact_number);
-    const nameOnFile = normName(row.client_name);
+
+    if (phoneOnFile.length < 4) {
+      return json(
+        {
+          error:
+            "No contact number is on file for this ticket, so we cannot confirm your identity online. Please contact the shop to approve.",
+        },
+        403,
+      );
+    }
     if (!verification.trim()) {
       return json({ error: "Enter the last 4 digits of your contact number to confirm." }, 400);
     }
 
     const suppliedDigits = digits(verification);
     const phoneMatch =
-      phoneOnFile.length >= 4 &&
       suppliedDigits.length >= 4 &&
       (suppliedDigits.endsWith(phoneOnFile.slice(-4)) || phoneOnFile.endsWith(suppliedDigits));
-    const nameMatch = nameOnFile.length > 2 && normName(verification) === nameOnFile;
 
-    if (!phoneMatch && !nameMatch) {
-      return json(
-        {
-          error:
-            phoneOnFile.length >= 4
-              ? "The digits entered do not match the contact number on file."
-              : "No contact number is on file for this ticket. Enter your full name exactly as it appears above, or contact the shop.",
-        },
-        403,
-      );
+    if (!phoneMatch) {
+      return json({ error: "The digits entered do not match the contact number on file." }, 403);
     }
 
 
