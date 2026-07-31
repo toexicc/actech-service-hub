@@ -7,14 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
  * Subscriptions are created once (at the app shell) and torn down on unmount.
  */
 const TABLE_KEYS: Record<string, string[][]> = {
-  services: [["services"], ["done-services"], ["service-breakdowns"]],
-  part_requests: [["part-requests"], ["partRequests"]],
-  inventory_parts: [["inventory"]],
-  fast_moving_parts: [["fast-moving-parts"], ["fastMovingParts"]],
+  services: [["services"], ["doneServices"], ["techServices"], ["allServiceBreakdowns"]],
+  part_requests: [["partRequests"], ["part-requests"]],
+  inventory_parts: [["inventory"], ["inventoryLogs"]],
+  fast_moving_parts: [["fastMovingParts"]],
   transactions: [["transactions"]],
   expenses: [["expenses"]],
-  client_inquiries: [["client-inquiries"], ["clientInquiries"]],
+  client_inquiries: [["clientInquiriesData"], ["clientInquiries"]],
   clients: [["clients"]],
+  service_breakdowns: [["serviceBreakdowns"], ["allServiceBreakdowns"]],
 };
 
 export const useRealtimeInvalidate = (enabled: boolean = true) => {
