@@ -160,7 +160,7 @@ export const useServices = () => {
     queryFn: fetchAllServices,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchOnMount: "always",
+
   });
 };
 

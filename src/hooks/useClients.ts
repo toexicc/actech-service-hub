@@ -88,7 +88,7 @@ export const useClients = () => useQuery({
   queryFn: fetchClients,
   staleTime: 2 * 60 * 1000,
   gcTime: 10 * 60 * 1000,
-  refetchOnMount: "always",
+
 });
 
 export const useClientInquiries = () => useQuery({
@@ -96,7 +96,7 @@ export const useClientInquiries = () => useQuery({
   queryFn: fetchClientInquiries,
   staleTime: 60 * 1000,
   gcTime: 5 * 60 * 1000,
-  refetchOnMount: "always",
+
 });
 
 export const useInvalidateClients = () => {
