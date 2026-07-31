@@ -1757,8 +1757,9 @@ const ServiceUpdate = () => {
                                     <SelectContent className="bg-background z-50">
                                       {inventory.map((item) => (
                                         <SelectItem key={item.id} value={item.id}>
-                                          {item.name}{item.deviceType && item.model ? ` [${item.deviceType} - ${item.model}]` : ''} (Stock: {item.quantity})
+                                          {item.name}{partLabel(item) ? ` [${partLabel(item)}]` : ''} (Stock: {item.quantity})
                                         </SelectItem>
+
                                       ))}
                                     </SelectContent>
                                   </Select>
