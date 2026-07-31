@@ -857,20 +857,25 @@ const ServiceTracking = () => {
                               placeholder="Please share why you're declining the diagnosis…"
                               rows={3}
                             />
-                            <Label htmlFor="declineVerify">{verifyLabel}</Label>
-                            <Input
-                              id="declineVerify"
-                              inputMode={hasPhoneOnFile ? "numeric" : "text"}
-                              maxLength={hasPhoneOnFile ? 4 : 60}
-                              value={verifyDigits}
-                              onChange={(e) =>
-                                setVerifyDigits(
-                                  hasPhoneOnFile ? e.target.value.replace(/\D/g, "").slice(0, 4) : e.target.value,
-                                )
-                              }
-                              placeholder={hasPhoneOnFile ? "••••" : "Your full name"}
-                              className={hasPhoneOnFile ? "w-32 tracking-widest" : "w-full"}
-                            />
+                            {hasPhoneOnFile ? (
+                              <>
+                                <Label htmlFor="declineVerify">{verifyLabel}</Label>
+                                <Input
+                                  id="declineVerify"
+                                  inputMode="numeric"
+                                  maxLength={4}
+                                  value={verifyDigits}
+                                  onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                  placeholder="••••"
+                                  className="w-32 tracking-widest"
+                                />
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No contact number is on file for this ticket, so we can't confirm your
+                                identity online. Please contact the shop to respond.
+                              </p>
+                            )}
                             <div className="flex gap-2 justify-end">
                               <Button variant="outline" onClick={() => { setDeclineOpen(false); setDeclineReason(""); setVerifyDigits(""); }} disabled={submittingApproval}>
                                 Cancel
