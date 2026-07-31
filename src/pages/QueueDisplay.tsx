@@ -86,7 +86,7 @@ const Column = ({
 const QueueDisplay = () => {
   const [params] = useSearchParams();
   const mine = params.get("entry");
-  const { entries, loading } = useQueueEntries({ activeOnly: true });
+  const { entries, loading, error } = useQueueEntries({ activeOnly: true });
 
   const { waiting, proceed, myEntry } = useMemo(() => {
     const w = entries.filter((e) => e.status === "waiting");
@@ -98,8 +98,13 @@ const QueueDisplay = () => {
   }, [entries, mine]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F8FF] via-white to-[#E8EEFB] p-4 md:p-10">
+    <div className="min-h-screen bg-[#F5F8FF] p-4 md:p-10">
       <div className="max-w-7xl mx-auto">
+        {error && (
+          <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {error}
+          </div>
+        )}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <img src={acTechLogo} alt="AC Tech Repair" className="h-12 object-contain" />
