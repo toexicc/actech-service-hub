@@ -429,78 +429,31 @@ const ServiceTracking = () => {
     if (!serviceData?.serviceId) return;
     setSubmittingApproval(true);
     try {
-      const tsDisplay = formatManilaDate(new Date(), "MMM dd, yyyy hh:mm a");
-      const tag = approved
-        ? `Approved by ${serviceData.clientName} on ${tsDisplay}`
-        : `Declined by ${serviceData.clientName} on ${tsDisplay}: ${reason || ""}`;
-      const newAdminNotes = [serviceData.adminNotes, tag].filter(Boolean).join("\n");
+      // The /track page is anonymous, so the decision is persisted by a
+      // service-role edge function (direct writes are blocked by access rules).
+      const { data, error } = await supabase.functions.invoke("submit-client-approval", {
+        body: {
+          serviceId: serviceData.serviceId,
+          approved,
+          reason: reason || "",
+        },
+      });
 
-      // On approve: also flip status to "Proceed Repair" and populate Service/s
-      // from the AI diagnosis service breakdown.
-      const newServices = approved ? parseServicesFromDiagnosis(serviceData.aiDiagnosis || "") : "";
-      const newStatus = approved ? "Proceed Repair" : serviceData.status;
-
-      // Persist to Google Sheets via updateService action
-      const formData = new FormData();
-      formData.append("action", "updateService");
-      formData.append("serviceId", serviceData.serviceId);
-      formData.append("deviceType", serviceData.deviceType || "");
-      formData.append("adminNotes", newAdminNotes);
-      if (approved) {
-        formData.append("status", "Proceed Repair");
-        if (newServices) formData.append("services", newServices);
+      const payloadError = (data as any)?.error;
+      if (error || payloadError) {
+        toast({
+          title: "Could not submit response",
+          description: payloadError || error?.message || "Please try again or contact the shop.",
+          variant: "destructive",
+        });
+        return;
       }
-      await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
-
-      // Mirror status change into Supabase so /manage-client and /service-update reflect it.
-      if (approved) {
-        try {
-          await supabase
-            .from("services")
-            .update({
-              status: "Proceed Repair" as any,
-              service: newServices || serviceData.service || "",
-              last_updated: new Date().toISOString(),
-            })
-            .eq("service_id", serviceData.serviceId);
-        } catch { /* ignore */ }
-      }
-
-      // Notify assigned admins + technicians via service-role edge function
-      // (works even when the /track page is anonymous).
-      try {
-        const adminNames: string[] = (serviceData.adminRep || "")
-          .split(",").map((s: string) => s.trim()).filter(Boolean);
-        const techNames: string[] = (serviceData.technician || "")
-          .split(",").map((s: string) => s.trim()).filter(Boolean);
-        const allNames = Array.from(new Set([...adminNames, ...techNames]));
-        if (allNames.length) {
-          const staff = await fetchStaffList();
-          const norm = (n: string) => n.split(" - ")[0].trim().toLowerCase();
-          const recipients = allNames
-            .map((n) => staff.find((s) => norm(s.name || "") === norm(n)))
-            .filter((s) => s?.staffId)
-            .map((s) => ({
-              userId: s!.staffId,
-              title: approved
-                ? `Service ${serviceData.serviceId}: Proceed Repair`
-                : `Service ${serviceData.serviceId} Declined`,
-              message: approved
-                ? `${serviceData.clientName} approved the diagnosis for ${serviceData.serviceId}. Service will proceed to repair.`
-                : `${serviceData.clientName} declined the diagnosis for ${serviceData.serviceId}. Reason: ${reason || "(none provided)"}.`,
-              serviceId: serviceData.serviceId,
-            }));
-          if (recipients.length) {
-            await supabase.functions.invoke("notify-service-event", { body: { recipients } });
-          }
-        }
-      } catch {}
 
       setServiceData({
         ...serviceData,
-        adminNotes: newAdminNotes,
-        status: newStatus,
-        service: approved && newServices ? newServices : serviceData.service,
+        adminNotes: (data as any)?.adminNotes ?? serviceData.adminNotes,
+        status: (data as any)?.status ?? serviceData.status,
+        service: (data as any)?.service || serviceData.service,
       });
       setDeclineOpen(false);
       setDeclineReason("");
@@ -512,6 +465,7 @@ const ServiceTracking = () => {
       setSubmittingApproval(false);
     }
   };
+
 
   // Active progress statuses where AI Diagnosis is shown above the forms
   const ACTIVE_STATUSES = [
