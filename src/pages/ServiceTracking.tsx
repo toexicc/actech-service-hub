@@ -157,9 +157,6 @@ const ServiceTracking = () => {
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
-  // Ownership challenge — /track is public, so a decision requires the last 4
-  // digits of the contact number on file for the ticket.
-  const [verifyDigits, setVerifyDigits] = useState("");
 
   const { toast } = useToast();
 
@@ -1218,7 +1215,6 @@ const ServiceTracking = () => {
               assigned admin and technician will be notified.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2">
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
             <AlertDialogAction
