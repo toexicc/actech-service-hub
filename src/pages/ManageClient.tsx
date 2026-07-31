@@ -893,6 +893,7 @@ const ManageClient = () => {
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
         adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
+        receivingStaff: (serviceData as any).receivingStaff || "",
         clientType: updateClientType,
         priority: updatePriority,
         clientName: serviceData.clientName || "",
