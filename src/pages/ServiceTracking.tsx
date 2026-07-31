@@ -95,9 +95,15 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       targetDate: pick(sb.targetDate, sheetData.targetDate),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
-      serviceDate: pick((row as any).service_date, sheetData.serviceDate),
+      serviceDate: pick((row as any).client_approved_at, pick((row as any).service_date, sheetData.serviceDate)),
       dateCompleted: pick(sb.dateCompleted, sheetData.dateCompleted),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
+      // Status, AI diagnosis and the approval trail live in the database.
+      status: pick(sb.status, sheetData.status),
+      service: pick(sb.service, sheetData.service),
+      aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
+      adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
+
 
     };
   } catch {
