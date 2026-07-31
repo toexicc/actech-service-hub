@@ -850,17 +850,19 @@ const ServiceTracking = () => {
                               placeholder="Please share why you're declining the diagnosis…"
                               rows={3}
                             />
-                            <Label htmlFor="declineVerify">
-                              Last 4 digits of your contact number
-                            </Label>
+                            <Label htmlFor="declineVerify">{verifyLabel}</Label>
                             <Input
                               id="declineVerify"
-                              inputMode="numeric"
-                              maxLength={4}
+                              inputMode={hasPhoneOnFile ? "numeric" : "text"}
+                              maxLength={hasPhoneOnFile ? 4 : 60}
                               value={verifyDigits}
-                              onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                              placeholder="••••"
-                              className="w-32 tracking-widest"
+                              onChange={(e) =>
+                                setVerifyDigits(
+                                  hasPhoneOnFile ? e.target.value.replace(/\D/g, "").slice(0, 4) : e.target.value,
+                                )
+                              }
+                              placeholder={hasPhoneOnFile ? "••••" : "Your full name"}
+                              className={hasPhoneOnFile ? "w-32 tracking-widest" : "w-full"}
                             />
                             <div className="flex gap-2 justify-end">
                               <Button variant="outline" onClick={() => { setDeclineOpen(false); setDeclineReason(""); setVerifyDigits(""); }} disabled={submittingApproval}>
