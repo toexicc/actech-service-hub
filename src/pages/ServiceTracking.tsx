@@ -966,13 +966,13 @@ const ServiceTracking = () => {
                       <span className="text-muted-foreground">Total</span>
                       <span className="font-semibold">₱{totalCost.toLocaleString()}</span>
                     </div>
-                    {Number(serviceData.initialPayment || 0) > 0 && (
+                    {showMoney && Number(serviceData.initialPayment || 0) > 0 && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Deposit</span>
                         <span>₱{Number(serviceData.initialPayment || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {(paymentsSummary?.payments?.length ?? 0) > 0 && (
+                    {showMoney && (paymentsSummary?.payments?.length ?? 0) > 0 && (
                       <div className="space-y-1">
                         {paymentsSummary!.payments.map((p) => (
                           <div key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
@@ -982,14 +982,18 @@ const ServiceTracking = () => {
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Total Paid</span>
-                      <span className="font-medium">₱{deposit.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-base font-semibold text-primary">
-                      <span>Balance</span>
-                      <span>₱{balance.toLocaleString()}</span>
-                    </div>
+                    {showMoney && (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total Paid</span>
+                          <span className="font-medium">₱{deposit.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-base font-semibold text-primary">
+                          <span>Balance</span>
+                          <span>₱{balance.toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       {MODES_OF_PAYMENT.map((m) => (
