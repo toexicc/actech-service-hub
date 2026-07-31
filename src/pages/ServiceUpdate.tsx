@@ -1565,7 +1565,7 @@ const ServiceUpdate = () => {
                 <Separator />
 
                 {/* Parts Used from Inventory - Only shown when actual sheet status is "Ongoing Service" */}
-                {serviceData?.status === "Ongoing Service" && (
+                {showPartsStage && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Package className="h-5 w-5" />
