@@ -445,6 +445,7 @@ const ServiceTracking = () => {
           serviceId: serviceData.serviceId,
           approved,
           reason: reason || "",
+          verification: verifyDigits,
         },
       });
 
