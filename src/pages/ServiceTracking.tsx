@@ -157,6 +157,9 @@ const ServiceTracking = () => {
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
+  // Ownership challenge — /track is public, so a decision requires the last 4
+  // digits of the contact number on file for the ticket.
+  const [verifyDigits, setVerifyDigits] = useState("");
 
   const { toast } = useToast();
 
