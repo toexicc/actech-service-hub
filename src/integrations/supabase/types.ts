@@ -1342,6 +1342,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_management: { Args: { _user_id: string }; Returns: boolean }
+      is_assigned_technician: {
+        Args: { _technicians: string[] }
+        Returns: boolean
+      }
       is_thread_member: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
