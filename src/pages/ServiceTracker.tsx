@@ -123,9 +123,17 @@ const ServiceTracker = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Check if user is a technician with locked filters
-  const userRole = sessionStorage.getItem("userRole");
-  const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username"));
+  // Identify the logged-in technician from the authenticated profile (the old
+  // sessionStorage lookup compared a full name against an email and never matched).
+  const { profile, roles } = useAuth();
+  const userRole = roles.includes("admin")
+    ? "admin"
+    : roles.includes("management")
+    ? "management"
+    : roles.includes("technician")
+    ? "technician"
+    : sessionStorage.getItem("userRole") || "";
+  const username = profile?.name || sessionStorage.getItem("userFullName") || sessionStorage.getItem("username");
   const isTechnician = userRole === "technician";
   const [technicianName, setTechnicianName] = useState("");
   const [technicianDepartment, setTechnicianDepartment] = useState("");
