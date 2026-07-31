@@ -464,7 +464,6 @@ const ServiceTracking = () => {
       setDeclineOpen(false);
       setDeclineReason("");
       setConfirmApproveOpen(false);
-      setVerifyDigits("");
       toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
     } catch (e) {
       toast({ title: "Error", description: "Failed to submit response.", variant: "destructive" });
