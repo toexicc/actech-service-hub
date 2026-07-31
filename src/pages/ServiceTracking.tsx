@@ -157,6 +157,9 @@ const ServiceTracking = () => {
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
+  // Ownership challenge — /track is public, so a decision requires the last 4
+  // digits of the contact number on file for the ticket.
+  const [verifyDigits, setVerifyDigits] = useState("");
 
   const { toast } = useToast();
 
@@ -431,6 +434,13 @@ const ServiceTracking = () => {
     return out.join(", ");
   };
 
+  // Ownership proof shown before a decision: the last 4 digits of the contact
+  // number on file. The client name is public on this page, so it is not proof.
+  const hasPhoneOnFile =
+    (serviceData?.contactNumber || "").replace(/\D/g, "").length >= 4;
+  const verifyLabel = "Last 4 digits of your contact number";
+  const verifyReady = hasPhoneOnFile && verifyDigits.length >= 4;
+
   const submitApproval = async (approved: boolean, reason?: string) => {
     if (!serviceData?.serviceId) return;
     setSubmittingApproval(true);
@@ -442,6 +452,7 @@ const ServiceTracking = () => {
           serviceId: serviceData.serviceId,
           approved,
           reason: reason || "",
+          verification: verifyDigits,
         },
       });
 
@@ -464,6 +475,7 @@ const ServiceTracking = () => {
       setDeclineOpen(false);
       setDeclineReason("");
       setConfirmApproveOpen(false);
+      setVerifyDigits("");
       toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
     } catch (e) {
       toast({ title: "Error", description: "Failed to submit response.", variant: "destructive" });
@@ -845,14 +857,33 @@ const ServiceTracking = () => {
                               placeholder="Please share why you're declining the diagnosis…"
                               rows={3}
                             />
+                            {hasPhoneOnFile ? (
+                              <>
+                                <Label htmlFor="declineVerify">{verifyLabel}</Label>
+                                <Input
+                                  id="declineVerify"
+                                  inputMode="numeric"
+                                  maxLength={4}
+                                  value={verifyDigits}
+                                  onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                  placeholder="••••"
+                                  className="w-32 tracking-widest"
+                                />
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                No contact number is on file for this ticket, so we can't confirm your
+                                identity online. Please contact the shop to respond.
+                              </p>
+                            )}
                             <div className="flex gap-2 justify-end">
-                              <Button variant="outline" onClick={() => { setDeclineOpen(false); setDeclineReason(""); }} disabled={submittingApproval}>
+                              <Button variant="outline" onClick={() => { setDeclineOpen(false); setDeclineReason(""); setVerifyDigits(""); }} disabled={submittingApproval}>
                                 Cancel
                               </Button>
                               <Button
                                 variant="destructive"
                                 onClick={() => submitApproval(false, declineReason.trim())}
-                                disabled={submittingApproval || !declineReason.trim()}
+                                disabled={submittingApproval || !declineReason.trim() || !verifyReady}
                               >
                                 Submit Decline
                               </Button>
@@ -1214,11 +1245,32 @@ const ServiceTracking = () => {
               assigned admin and technician will be notified.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            {hasPhoneOnFile ? (
+              <>
+                <Label htmlFor="approveVerify">To confirm it's you: {verifyLabel.toLowerCase()}</Label>
+                <Input
+                  id="approveVerify"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={verifyDigits}
+                  onChange={(e) => setVerifyDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="••••"
+                  className="w-32 tracking-widest"
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No contact number is on file for this ticket, so we can't confirm your identity
+                online. Please contact the shop to approve.
+              </p>
+            )}
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submittingApproval} onClick={() => setVerifyDigits("")}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); submitApproval(true); }}
-              disabled={submittingApproval}
+              disabled={submittingApproval || !verifyReady}
             >
               {submittingApproval ? "Submitting…" : "Confirm & Proceed"}
             </AlertDialogAction>
