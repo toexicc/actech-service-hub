@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, Wrench, Shield, ArrowRight } from "lucide-react";
+import { Search, Loader2, Shield, ArrowRight, QrCode, ClipboardList, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -97,18 +97,23 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-3">
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: Wrench, label: "Service Management", tone: "bg-primary/10 text-primary" },
-              { icon: Search, label: "Real-time Tracking", tone: "bg-info/10 text-info" },
-              { icon: Shield, label: "Secure Access", tone: "bg-success/10 text-success" },
+              { icon: Search, label: "Track Service", path: "/track", tone: "bg-info/10 text-info" },
+              { icon: QrCode, label: "Queue", path: "/queue", tone: "bg-primary/10 text-primary" },
+              { icon: ClipboardList, label: "Intake", path: "/intake", tone: "bg-success/10 text-success" },
+              { icon: Clock, label: "Attendance", path: "/attendance", tone: "bg-warning/10 text-warning" },
             ].map((f) => (
-              <div key={f.label} className="text-center p-3 rounded-xl glass-panel">
+              <button
+                key={f.label}
+                onClick={() => navigate(f.path)}
+                className="text-center p-3 rounded-xl glass-panel hover:bg-primary/5 transition-colors"
+              >
                 <div className={`w-9 h-9 rounded-xl ${f.tone} flex items-center justify-center mx-auto mb-1.5`}>
                   <f.icon className="h-4 w-4" />
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-tight">{f.label}</p>
-              </div>
+              </button>
             ))}
           </div>
         </div>
