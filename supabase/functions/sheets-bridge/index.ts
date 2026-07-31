@@ -902,6 +902,7 @@ async function addInventoryItem(b: Record<string, any>) {
     brand: b.brand,
     device_model: b.model,
     part_type: b.partType,
+    color: b.color || null,
     quantity: parseInt(b.quantity || "0"),
     cost_price: num(b.costPerUnit),
     supplier: b.supplier || null,
@@ -927,6 +928,7 @@ async function updateInventoryItem(b: Record<string, any>) {
   if ("brand" in b) patch.brand = b.brand;
   if ("model" in b) patch.device_model = b.model;
   if ("partType" in b) patch.part_type = b.partType;
+  if ("color" in b) patch.color = b.color;
   if ("quantity" in b) patch.quantity = parseInt(b.quantity);
   if ("costPerUnit" in b) patch.cost_price = num(b.costPerUnit);
   if ("supplier" in b) patch.supplier = b.supplier;

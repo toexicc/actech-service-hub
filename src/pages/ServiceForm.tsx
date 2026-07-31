@@ -52,7 +52,7 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   brand: z.string().min(1, "Brand is required"),
   color: z.string().min(1, "Color is required"),
   model: z.string().min(1, "Model is required"),
-  memory: z.string().min(1, "Memory is required"),
+  memory: z.string().min(1, "Storage is required"),
   chiefComplaint: z.string().min(1, "Chief Complaint is required"),
   devicePassword: z.string().min(1, "Device Password is required"),
   dents: z.boolean().default(false),
@@ -1259,7 +1259,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   name="memory"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Memory:</FormLabel>
+                      <FormLabel>Storage:</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>

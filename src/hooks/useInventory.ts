@@ -48,7 +48,7 @@ const fetchInventory = async (): Promise<InventoryItem[]> => {
     brand: r.brand ?? "",
     model: r.device_model ?? "",
     partType: r.part_type ?? "",
-    color: "",
+    color: r.color ?? "",
     quantity: Number(r.quantity ?? 0),
     dateOrdered: "",
     supplier: r.supplier ?? "",

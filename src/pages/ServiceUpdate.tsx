@@ -268,6 +268,53 @@ const ServiceUpdate = () => {
     run();
   }, [serviceData, serviceId, inventory]);
 
+  // ---- Status-first flow ----------------------------------------------------
+  // Fields are revealed based on the status the technician SELECTS (the next
+  // stage), not the saved status, so picking the next status is always step 1
+  // and the matching work fields appear before saving.
+  const savedStatus = serviceData?.status || "";
+  const stageStatus = updateStatus || savedStatus;
+  const statusChanged = !!updateStatus && updateStatus !== savedStatus;
+
+  const DONE_REPAIR_STAGES = [
+    "Done Repair - Under Observation",
+    "Done Repair - Observation",
+    "Done Repair - For Release",
+    "Done Repair - Advise Client",
+    "Released",
+    "Completed",
+    "Backjob",
+    "RTO",
+  ];
+
+  const showDiagnosisStage =
+    stageStatus === "Pending Diagnosis" || stageStatus === "Confirmed Diagnosis";
+  const showReportStage = DONE_REPAIR_STAGES.includes(stageStatus);
+  const showReportEditors =
+    stageStatus === "Done Repair - Under Observation" ||
+    stageStatus === "Done Repair - Observation" ||
+    stageStatus === "Done Repair - For Release";
+  const showPartsStage = stageStatus === "Ongoing Service";
+
+  const stageHint = (() => {
+    if (showDiagnosisStage)
+      return "Enter the technician diagnosis and run the AI formatter, then click Update to save it with this status.";
+    if (showPartsStage) return "Select the parts used from inventory, then click Update.";
+    if (showReportStage)
+      return "Enter the technician report and run the AI formatter, then click Update.";
+    return "Add any remarks or notes for this stage, then click Update.";
+  })();
+
+  const NEXT_STATUS: Record<string, string> = {
+    "Pending Diagnosis": "Confirmed Diagnosis",
+    "Confirmed Diagnosis": "Ongoing Service",
+    "Proceed Repair": "Ongoing Service",
+    "Waiting to Proceed": "Ongoing Service",
+    "Ongoing Service": "Done Repair - Under Observation",
+    "Done Repair - Under Observation": "Done Repair - For Release",
+  };
+  const suggestedNext = NEXT_STATUS[savedStatus];
+
 
   const calculateActualCost = () => {
     return Object.entries(selectedParts).reduce((total, [itemId, qty]) => {
@@ -941,7 +988,7 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Storage & Color:</h3>
                     <p className="text-lg">{serviceData.colorMemory}</p>
                   </div>
 
@@ -1087,7 +1134,14 @@ const ServiceUpdate = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status:</Label>
+                  <Label htmlFor="status">
+                    Step 1 — Set Status: <span className="text-xs font-normal text-muted-foreground">(currently {savedStatus || "—"})</span>
+                  </Label>
+                  {suggestedNext && !statusChanged && (
+                    <p className="text-xs text-muted-foreground">
+                      Next step is usually <span className="font-medium">{suggestedNext}</span>. Choose it first — the fields for that stage will appear below.
+                    </p>
+                  )}
                   <Select 
                     value={updateStatus} 
                     onValueChange={(value) => {
@@ -1148,6 +1202,14 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                    Step 2 — {stageStatus || "Update"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{stageHint}</p>
+                </div>
+
+
                 <div className="space-y-2">
                   <Label htmlFor="technician">Assigned Technician:</Label>
                   <MultiSelect
@@ -1195,25 +1257,25 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                  <Textarea
-                    id="technicianDiagnosis"
-                    placeholder="Enter technician diagnosis"
-                    value={updateTechnicianDiagnosis}
-                    onChange={(e) => {
-                      setUpdateTechnicianDiagnosis(e.target.value);
-                      setRawDiagnosis(e.target.value);
-                    }}
-                    rows={4}
-                    className="min-h-[80px] resize-none"
-                  />
-                </div>
+                {showDiagnosisStage && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                    <Textarea
+                      id="technicianDiagnosis"
+                      placeholder="Enter technician diagnosis"
+                      value={updateTechnicianDiagnosis}
+                      onChange={(e) => {
+                        setUpdateTechnicianDiagnosis(e.target.value);
+                        setRawDiagnosis(e.target.value);
+                      }}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
 
-                {/* (Diagnosis photos uploader moved below AI Diagnosis Formatter) */}
-
-                {/* Diagnosis Toggle - Based on actual sheet status */}
-                {serviceData?.status === "Pending Diagnosis" && (
+                {/* Diagnosis Toggle - based on the selected (next) status */}
+                {showDiagnosisStage && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
@@ -1333,24 +1395,12 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
-                {/* Device Diagnosis Photos uploader (technician) - shown at Pending Diagnosis, BELOW AI Diagnosis Formatter */}
-                {serviceData?.status === "Pending Diagnosis" && serviceData?.serviceId && (
+                {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
+                {showDiagnosisStage && serviceData?.serviceId && (
                   <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
                 )}
 
-                {(() => {
-                  const reportVisibleStatuses = [
-                    "Done Repair - Under Observation",
-                    "Done Repair - Observation",
-                    "Done Repair - For Release",
-                    "Done Repair - Advise Client",
-                    "Completed",
-                    "Backjob",
-                    "RTO",
-                    "Released",
-                  ];
-                  return reportVisibleStatuses.includes(serviceData?.status);
-                })() && (
+                {showReportStage && (
                   <div className="space-y-2">
                     <Label htmlFor="technicianReport">Technician Report:</Label>
                     <Textarea
@@ -1366,7 +1416,7 @@ const ServiceUpdate = () => {
 
 
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
-                {serviceData?.status === "Done Repair - Under Observation" && (
+                {showReportEditors && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
@@ -1487,20 +1537,10 @@ const ServiceUpdate = () => {
                 )}
 
                 {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
-                {serviceData?.serviceId && (
-                  serviceData?.status === "Done Repair - Under Observation" ||
-                  serviceData?.status === "Done Repair - Observation" ||
-                  serviceData?.status === "Done Repair - For Release" ||
-                  serviceData?.status === "Done Repair - Advise Client" ||
-                  serviceData?.status === "Released" ||
-                  serviceData?.status === "Completed"
-                ) && (
+                {serviceData?.serviceId && showReportStage && (
                   <DeviceReportPhotos
                     serviceId={serviceData.serviceId}
-                    editable={
-                      serviceData?.status === "Done Repair - Under Observation" ||
-                      serviceData?.status === "Done Repair - Observation"
-                    }
+                    editable={showReportEditors}
                   />
                 )}
 
@@ -1518,7 +1558,7 @@ const ServiceUpdate = () => {
                 <Separator />
 
                 {/* Parts Used from Inventory - Only shown when actual sheet status is "Ongoing Service" */}
-                {serviceData?.status === "Ongoing Service" && (
+                {showPartsStage && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Package className="h-5 w-5" />

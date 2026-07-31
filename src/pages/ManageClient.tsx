@@ -893,6 +893,7 @@ const ManageClient = () => {
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
         adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
+        receivingStaff: (serviceData as any).receivingStaff || "",
         clientType: updateClientType,
         priority: updatePriority,
         clientName: serviceData.clientName || "",
@@ -1034,6 +1035,7 @@ const ManageClient = () => {
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
         adminRep: updateAdminRep || serviceData.adminRep || "Admin",
         technician: updateTechnician,
+        receivingStaff: (serviceData as any).receivingStaff || "",
         clientType: updateClientType,
         priority: updatePriority,
         clientName: serviceData.clientName || "",
@@ -1440,7 +1442,7 @@ const ManageClient = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Memory & Color:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Storage & Color:</h3>
                     <p className="text-lg break-words whitespace-normal">
                       {(() => {
                         const mem = (serviceData.memory || "").trim();

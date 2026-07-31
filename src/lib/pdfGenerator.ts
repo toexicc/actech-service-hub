@@ -206,7 +206,7 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   doc.text(data.model, midCol, yPos);
 
   doc.setFont("helvetica", "bold");
-  doc.text("Memory:", rightCol, yPos);
+  doc.text("Storage:", rightCol, yPos);
   doc.setFont("helvetica", "normal");
   doc.text(data.memory, valueCol, yPos);
 
