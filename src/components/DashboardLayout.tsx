@@ -57,6 +57,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  // Live-refresh cached data when other staff change records.
+  useRealtimeInvalidate(true);
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(true);
