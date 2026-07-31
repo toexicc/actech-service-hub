@@ -340,6 +340,7 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
+          color: string | null
           cost_price: number
           created_at: string
           device_model: string | null
@@ -355,6 +356,7 @@ export type Database = {
         Insert: {
           brand?: string | null
           category?: string | null
+          color?: string | null
           cost_price?: number
           created_at?: string
           device_model?: string | null
@@ -370,6 +372,7 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: string | null
+          color?: string | null
           cost_price?: number
           created_at?: string
           device_model?: string | null
@@ -418,6 +421,7 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
+          color: string | null
           cost_price: number
           created_at: string
           device_model: string | null
@@ -437,6 +441,7 @@ export type Database = {
         Insert: {
           brand?: string | null
           category?: string | null
+          color?: string | null
           cost_price?: number
           created_at?: string
           device_model?: string | null
@@ -456,6 +461,7 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: string | null
+          color?: string | null
           cost_price?: number
           created_at?: string
           device_model?: string | null
