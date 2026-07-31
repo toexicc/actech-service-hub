@@ -880,7 +880,7 @@ const ServiceTracking = () => {
                               <Button
                                 variant="destructive"
                                 onClick={() => submitApproval(false, declineReason.trim())}
-                                disabled={submittingApproval || !declineReason.trim() || verifyDigits.length < 4}
+                                disabled={submittingApproval || !declineReason.trim() || !verifyReady}
                               >
                                 Submit Decline
                               </Button>
