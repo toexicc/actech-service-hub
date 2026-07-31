@@ -1134,7 +1134,14 @@ const ServiceUpdate = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status:</Label>
+                  <Label htmlFor="status">
+                    Step 1 — Set Status: <span className="text-xs font-normal text-muted-foreground">(currently {savedStatus || "—"})</span>
+                  </Label>
+                  {suggestedNext && !statusChanged && (
+                    <p className="text-xs text-muted-foreground">
+                      Next step is usually <span className="font-medium">{suggestedNext}</span>. Choose it first — the fields for that stage will appear below.
+                    </p>
+                  )}
                   <Select 
                     value={updateStatus} 
                     onValueChange={(value) => {
