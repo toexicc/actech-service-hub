@@ -273,8 +273,9 @@ const ServiceUpdate = () => {
   // stage), not the saved status, so picking the next status is always step 1
   // and the matching work fields appear before saving.
   const savedStatus = serviceData?.status || "";
-  const stageStatus = updateStatus || savedStatus;
   const statusChanged = !!updateStatus && updateStatus !== savedStatus;
+  // Nothing is revealed until the technician picks a NEW status.
+  const stageStatus = statusChanged ? updateStatus : "";
 
   const DONE_REPAIR_STAGES = [
     "Done Repair - Under Observation",
@@ -1202,6 +1203,15 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
+                {!statusChanged ? (
+                  <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
+                    <p className="text-sm font-semibold text-primary">Set the status first</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Choose the next status above{suggestedNext ? ` (usually ${suggestedNext})` : ""} and the fields for that stage will appear here.
+                    </p>
+                  </div>
+                ) : (
+                <>
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                     Step 2 — {stageStatus || "Update"}
@@ -1754,6 +1764,8 @@ const ServiceUpdate = () => {
                     "Update"
                   )}
                 </Button>
+                </>
+                )}
               </CardContent>
             </Card>
           </div>
