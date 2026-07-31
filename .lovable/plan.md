@@ -1,40 +1,30 @@
-## What I found (verified in code, not guessed)
+## What I verified first
 
-The reload is **not** a service worker and **not** query refetching:
+- `/track` approval writes the new status straight to the database from an **anonymous** page. The database only allows admins, management, or the assigned technician to update tickets, so that write is rejected silently (the code swallows the error) and the legacy Google Sheets call is dead. Ticket AC310726133 is still "Waiting to Proceed" — consistent with this.
+- The technician page saves the technician's **raw** diagnosis into the same `diagnosis` field that the admin page uses for the **AI-formatted** diagnosis, and never saves the AI-formatted text at all. So the formatter output vanishes on reload and can overwrite the admin's version.
+- Technician read access is enforced by an exact, case-sensitive, whitespace-sensitive match of the technician's profile name against the ticket's technician list. Any variation (extra space, different casing, name with a suffix) makes assigned tickets invisible. The tracker also tries to auto-lock the technician filter by comparing the logged-in **full name** against the staff **username/email**, which never matches, leaving filters in an inconsistent state.
 
-- There is no `vite-plugin-pwa`, no `sw.js`, and no registration in the app — `src/main.tsx` only *unregisters* legacy workers. The only worker is OneSignal's, which never claims/reloads clients.
-- React Query is already cache-first globally in `src/App.tsx`: `refetchOnWindowFocus: false`, `refetchOnMount: false`, `refetchOnReconnect: false`.
-- There is no `visibilitychange`, `focus`, or `location.reload()` handler anywhere in app code.
+## Plan
 
-The actual trigger is the auth provider:
+### 1. AI formatter sticking on the technician page
+- Add a dedicated `technician_diagnosis` column so raw notes and AI-formatted diagnosis stop fighting over one field.
+- Technician save: persist raw notes to `technician_diagnosis` and the AI-formatted text to `diagnosis` (the same field the admin page and `/track` read).
+- Technician load: read both fields from the database instead of the dead Sheets response, so the formatted diagnosis reappears after refresh and shows on `/manage-client` and `/track`.
 
-1. `src/hooks/useAuth.tsx:62` subscribes to `onAuthStateChange`. When you switch back to the tab, the auth client revalidates and fires `TOKEN_REFRESHED` (and sometimes `SIGNED_IN`) — even though the user never changed.
-2. The handler treats **every** event as a fresh sign-in: line 68 sets `loading = true` and re-fetches profile + roles.
-3. `src/components/ProtectedRoute.tsx:30` renders a full-screen spinner whenever `loading` is true, which **unmounts `children`**.
-4. Children include the whole workbench shell and `WorkbenchOutlet`'s keep-alive tabs. Unmount/remount wipes tab state and scroll position — visually identical to a page reload.
+### 2. Technician Service Tracker not showing assigned services
+- Make the access rule name comparison normalized (trimmed, case-insensitive) so assigned tickets always resolve, and apply the same normalization to the technician-update rule.
+- In the tracker, derive the logged-in technician from the authenticated profile (id/name) rather than comparing full name to email, and match assigned technicians with the same normalized comparison.
+- If the technician's identity can't be resolved, fall back to showing everything the database returns rather than an empty list.
 
-So the "reload on tab switch" is a spinner-driven remount of the entire app tree.
+### 3. Balance hidden before "Waiting to Proceed"
+- On `/track`, hide the Paid/Balance figures (both the summary tiles and the quote footer) until the ticket reaches "Waiting to Proceed" or later. Earlier stages show device/status info only.
 
-## The fix
+### 4. Client approval on /track not registering
+- Add a server-side function (`submit-client-approval`) that runs with elevated privileges and, given a service ID and approve/decline decision: appends the approval stamp to the admin notes, sets the status to "Proceed Repair" on approval, fills the Service/s field from the AI breakdown, records the approval timestamp, and triggers the existing technician/admin notifications.
+- Point the `/track` approve and decline buttons at this function, surface a real error toast if it fails (instead of the current silent catch), and refresh the page state from the saved record.
+- Repair the already-approved ticket(s) that were lost, after confirming with you which ones to move.
 
-**1. `src/hooks/useAuth.tsx` — only show loading for real auth transitions**
-
-- Track the hydrated user id in a ref. In the `onAuthStateChange` handler:
-  - Always update `session` / `user` (tokens must stay fresh).
-  - If the incoming user id equals the already-hydrated id (the `TOKEN_REFRESHED` / repeat `SIGNED_IN` case), **do not** touch `loading` and **do not** re-fetch profile/roles — the data is already in state.
-  - Only set `loading = true` and hydrate when the user id actually changes (new sign-in / account switch) and only when profile/roles aren't already populated for that id.
-- Handle `SIGNED_OUT` as today (clear profile/roles, `loading = false`).
-- Keep the initial `getSession()` hydration path as the one place that legitimately shows the first-load spinner, guarded so it doesn't double-hydrate with the subscription.
-
-**2. `src/components/ProtectedRoute.tsx` — never unmount an already-authenticated tree**
-
-- Show the spinner only during *initial* auth resolution: when there is no `user` yet. If a `user` is already present, render `children` even if `loading` is momentarily true. This makes the route resilient to any future transient loading flip, so the app tree can't be torn down mid-session.
-
-**3. Verify with a real refocus test**
-
-- Drive the running app with a headless browser: sign in, open a couple of workbench tabs, type into a field, blur the page (background it), wait past a token refresh tick, refocus, then confirm the field value, active tab, and scroll position survive and that no spinner-only frame appears. Capture before/after screenshots as evidence.
-
-## Notes
-
-- Three hooks still use `refetchOnMount: "always"` (`useServices`, `useStaff`, `useClients`, `useClientInquiriesData`, `TransactionTracker`). Those are correct once the tree stops remounting — they only cost a fetch on genuine mount. Leaving them alone avoids stale operational data; I'll only revisit them if the browser test still shows loading skeletons on refocus.
-- No database, backend, or business-logic changes are involved — this is auth-state and render-gating only.
+## Technical notes
+- Migration: new `technician_diagnosis` column on `services`; replace the two technician policies with normalized-name versions.
+- New edge function under `supabase/functions/submit-client-approval/` using the service role, with input validation and CORS; it must be callable anonymously.
+- Files touched: `src/pages/ServiceUpdate.tsx`, `src/pages/ManageClient.tsx` (read of the new field), `src/pages/ServiceTracker.tsx`, `src/pages/ServiceTracking.tsx`, `src/hooks/useServices.ts` (field mapping).
