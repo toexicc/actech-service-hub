@@ -215,7 +215,7 @@ const CustomerManagement = () => {
               </CardHeader>
               <CardContent>
                 <Input
-                  placeholder="Search by name, ID, username, service ID, contact, or email..."
+                  placeholder="Search by name, ID, FB/IG username, service ID, contact, or email..."
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
                   className="mb-4"
@@ -233,7 +233,7 @@ const CustomerManagement = () => {
                         <TableRow>
                           <TableHead>Client ID</TableHead>
                           <TableHead>Name</TableHead>
-                          <TableHead>Username</TableHead>
+                          <TableHead>Facebook Name/Instagram Username</TableHead>
                           <TableHead>Contact</TableHead>
                           <TableHead>Email</TableHead>
                           <TableHead>Service ID</TableHead>
@@ -329,7 +329,7 @@ const CustomerManagement = () => {
                       <p className="text-lg">{customerData.clientName || "N/A"}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Username:</h3>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Facebook Name/Instagram Username:</h3>
                       <p className="text-lg">{customerData.username || "N/A"}</p>
                     </div>
                     <div>
@@ -409,7 +409,7 @@ const CustomerManagement = () => {
                 <Input id="edit-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="edit-username">Username</Label>
+                <Label htmlFor="edit-username">Facebook Name/Instagram Username</Label>
                 <Input id="edit-username" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} />
               </div>
               <div className="space-y-1.5">
