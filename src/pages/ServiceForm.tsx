@@ -32,6 +32,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureClient } from "@/hooks/useClients";
+import { IntakeShareActions } from "@/components/IntakeShareActions";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
