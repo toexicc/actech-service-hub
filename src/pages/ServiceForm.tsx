@@ -715,6 +715,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           noPower: data.noPower, repairHistory: data.repairHistory,
         },
         acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
+        auto_approve_diagnosis: isPublic ? false : !!data.autoApproveDiagnosis,
+
       }, { onConflict: "service_id" });
       if (upsertError) throw new Error(upsertError.message);
 
