@@ -99,11 +99,12 @@ export const useNotifications = (userId: string | null, _enabled: boolean = true
   const previousNotificationIds = useRef<Set<string>>(new Set());
   const hasInitialLoad = useRef(false);
 
-  // Request permission only when enabled (iOS requires user gesture)
-  useEffect(() => {
-    if (!enabled) return;
-    requestNotificationPermission();
-  }, [enabled]);
+  // Permission is requested from a user gesture (see `requestPermission` below)
+  // because iOS/Safari silently denies automatic requests.
+  const requestPermission = useCallback(() => {
+    void requestNotificationPermission();
+  }, []);
+
 
   // Fetch notifications using React Query for proper caching
   const { data: rawNotifications = [], isLoading } = useQuery({
