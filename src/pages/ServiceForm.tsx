@@ -295,15 +295,38 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   }, [kioskCode]);
 
 
-  const generateServiceId = () => {
+  const buildServiceIdCandidate = () => {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = String(now.getFullYear()).slice(-2);
-    const seconds = String(now.getSeconds()).padStart(2, "0");
-    const milliseconds = String(now.getMilliseconds()).charAt(0);
-    return `AC${day}${month}${year}${seconds}${milliseconds}`;
+    const suffix = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    return `AC${day}${month}${year}${suffix}`;
   };
+
+  /**
+   * Allocates a Service ID that is not already taken. The previous version
+   * derived the suffix from the clock (seconds + 1 digit of ms), which gave
+   * only a few hundred possible IDs per day — collisions overwrote existing
+   * tickets. Now every candidate is checked against the database first.
+   */
+  const allocateServiceId = async (): Promise<string> => {
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const candidate = buildServiceIdCandidate();
+      const { data, error } = await supabase
+        .from("services")
+        .select("service_id")
+        .eq("service_id", candidate)
+        .maybeSingle();
+      if (error) break;
+      if (!data) return candidate;
+    }
+    // Fallback: high-entropy suffix that cannot realistically collide.
+    return `AC${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 100)
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
 
   const handleSearchClientId = async () => {
     if (!searchClientId.trim()) {
@@ -527,7 +550,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const hours = String(now.getHours()).padStart(2, "0");
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
-      const finalServiceId = serviceId || generateServiceId();
+      const finalServiceId = serviceId || (await allocateServiceId());
 
       // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateServicePDF({
@@ -683,7 +706,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         address: (data as any).address || null,
       }).catch(() => data.clientId || null);
 
-      const { error: upsertError } = await supabase.from("services").upsert({
+      const servicePayload = {
         service_id: finalServiceId,
         client_id: resolvedClientId || null,
         client_name: data.clientName,
@@ -716,9 +739,23 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         },
         acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
         auto_approve_diagnosis: isPublic ? false : !!data.autoApproveDiagnosis,
+      };
 
-      }, { onConflict: "service_id" });
-      if (upsertError) throw new Error(upsertError.message);
+      // New intakes must never overwrite an existing ticket: plain insert so a
+      // duplicate Service ID fails loudly instead of replacing another client's
+      // record. Only an explicit edit of a known ticket may update in place.
+      const { error: upsertError } = serviceId
+        ? await supabase.from("services").upsert(servicePayload, { onConflict: "service_id" })
+        : await supabase.from("services").insert(servicePayload);
+      if (upsertError) {
+        if ((upsertError as any).code === "23505") {
+          throw new Error(
+            `Service ID ${finalServiceId} is already in use. Please submit the form again to get a new ID.`
+          );
+        }
+        throw new Error(upsertError.message);
+      }
+
 
       // Upload the generated PDF to Supabase Storage so the
       // "View PDF" buttons can resolve a signed URL.
