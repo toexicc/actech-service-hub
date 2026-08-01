@@ -80,9 +80,15 @@ export function TicketWorkspaceHero({ service, showShare = false }: TicketWorksp
               </Badge>
               <span className="text-xs text-muted-foreground">Ticket</span>
             </div>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
-              {service.serviceId || "—"}
-            </h2>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
+                {service.serviceId || "—"}
+              </h2>
+              {showShare && service.serviceId && (
+                <TrackingShareActions serviceId={service.serviceId} />
+              )}
+            </div>
+
             <p className="mt-1 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{service.clientName || "—"}</span>
               {service.contactNumber ? <> • {service.contactNumber}</> : null}
