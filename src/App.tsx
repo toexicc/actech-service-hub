@@ -79,6 +79,7 @@ const App = () => (
               <Route path="/request-for-parts" element={<WorkbenchShell />} />
               <Route path="/salary-disbursement" element={<WorkbenchShell />} />
               <Route path="/attendance-overview" element={<WorkbenchShell />} />
+              <Route path="/reports" element={<WorkbenchShell />} />
               <Route path="/queueing" element={<WorkbenchShell />} />
 
               <Route path="*" element={<NotFound />} />

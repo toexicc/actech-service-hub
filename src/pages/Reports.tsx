@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useServices, useCompletedServices } from "@/hooks/useServices";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useExpenses } from "@/hooks/useExpenses";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { classifyStatus } from "@/lib/serviceStatus";
 import { parseManilaDate } from "@/lib/timezone";
 import {
@@ -42,8 +42,37 @@ const Reports = () => {
   const [range, setRange] = useState<RangeKey>("30");
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
-  const { data: transactions = [] } = useTransactions();
-  const { data: expenses = [] } = useExpenses();
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("type, amount, transaction_date")
+        .limit(5000);
+      if (error) throw error;
+      return (data ?? []).map((t: any) => ({
+        type: t.type,
+        amount: Number(t.amount ?? 0),
+        transactionDate: t.transaction_date,
+      }));
+    },
+    staleTime: 30 * 1000,
+  });
+  const { data: expenses = [] } = useQuery({
+    queryKey: ["expenses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("amount, expense_date")
+        .limit(5000);
+      if (error) throw error;
+      return (data ?? []).map((e: any) => ({
+        amount: Number(e.amount ?? 0),
+        expenseDate: e.expense_date,
+      }));
+    },
+    staleTime: 30 * 1000,
+  });
 
   const cutoff = useMemo(() => {
     if (range === "all") return null;
