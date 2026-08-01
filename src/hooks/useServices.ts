@@ -84,6 +84,8 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   diagnosis: r.diagnosis ?? "",
   technicianDiagnosis: r.technician_diagnosis ?? "",
   clientApprovedAt: r.client_approved_at ?? "",
+  autoApproveDiagnosis: !!r.auto_approve_diagnosis,
+
   status: r.status ?? "",
   technician: Array.isArray(r.technicians) ? r.technicians.join(", ") : (r.technicians ?? ""),
   technicianAssigned: Array.isArray(r.technicians) ? r.technicians.join(", ") : "",
