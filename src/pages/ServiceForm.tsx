@@ -32,6 +32,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureClient } from "@/hooks/useClients";
+import { IntakeShareActions } from "@/components/IntakeShareActions";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
@@ -916,6 +917,9 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
           <h1 className="text-3xl font-bold text-blue-600 mb-2">{isPublic ? "Client Intake Form" : "Initial Diagnosis Form"}</h1>
           <p className="text-muted-foreground">{isPublic ? "Please fill out your details below. Our team will be in touch shortly." : "Client Initial Diagnosis Form"}</p>
+          <div className="mt-4 flex justify-center">
+            <IntakeShareActions />
+          </div>
         </div>
 
         {!isPublic && (
