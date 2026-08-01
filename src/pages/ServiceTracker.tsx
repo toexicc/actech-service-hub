@@ -1113,19 +1113,24 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Stats — always reflect the tab / filters currently shown */}
         {(() => {
-          const ongoing = filteredAndSortedServices.filter(s => {
-            const status = s.status?.toLowerCase() || "";
-            return !status.includes("completed") && !status.includes("cancelled");
-          });
-          const overdueCount = ongoing.filter(s => isOverdue(s.targetDate, s.status)).length;
-          const onTrackCount = ongoing.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          const shown = filteredAndSortedServices;
+          const active = shown.filter((s) => classifyStatus(s.status) === "active");
+          const overdueCount = active.filter(s => isOverdue(s.targetDate, s.status)).length;
+          const onTrackCount = active.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          const totalLabel =
+            activeTab === "completed" ? "Completed shown"
+            : activeTab === "closed" ? "Cancelled / RTO / On Hold"
+            : activeTab === "all" ? "All shown"
+            : activeTab === "within" ? "Within the day"
+            : activeTab === "walkin" ? "Walk-in shown"
+            : "Total ongoing";
           return (
             <div className="grid gap-4 md:grid-cols-3 mb-6">
               <StatCard
-                label="Total Ongoing"
-                value={ongoing.length}
+                label={totalLabel}
+                value={shown.length}
                 tone="primary"
                 icon={<Clock className="h-5 w-5" />}
               />
@@ -1144,6 +1149,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             </div>
           );
         })()}
+
 
         {/* Services Table */}
         <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
