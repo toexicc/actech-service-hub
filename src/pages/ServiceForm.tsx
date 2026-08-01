@@ -71,6 +71,8 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
+  autoApproveDiagnosis: z.boolean().default(false),
+
   enablePhotoAnnotation: z.boolean().default(false),
   annotationDeviceType: z.string().optional(),
   annotationNotes: z.string().optional(),
