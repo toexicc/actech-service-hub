@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS auto_approve_diagnosis boolean NOT NULL DEFAULT false;

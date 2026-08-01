@@ -1008,6 +1008,7 @@ export type Database = {
           admin_reps: string[]
           ai_report: string | null
           ai_toggle: string | null
+          auto_approve_diagnosis: boolean
           brand: string | null
           chief_complaint: string | null
           client_approved_at: string | null
@@ -1073,6 +1074,7 @@ export type Database = {
           admin_reps?: string[]
           ai_report?: string | null
           ai_toggle?: string | null
+          auto_approve_diagnosis?: boolean
           brand?: string | null
           chief_complaint?: string | null
           client_approved_at?: string | null
@@ -1138,6 +1140,7 @@ export type Database = {
           admin_reps?: string[]
           ai_report?: string | null
           ai_toggle?: string | null
+          auto_approve_diagnosis?: boolean
           brand?: string | null
           chief_complaint?: string | null
           client_approved_at?: string | null
