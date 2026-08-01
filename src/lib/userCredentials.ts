@@ -99,21 +99,27 @@ export const updateUserPassword = async (username: string, newPassword: string) 
   return updateUser(username, { password: newPassword });
 };
 
+let _lastDeleteWasSoft = false;
+export const wasLastDeleteSoft = () => _lastDeleteWasSoft;
+
 export const removeUser = async (usernameOrUserId: string) => {
+  _lastDeleteWasSoft = false;
   try {
     let userId = usernameOrUserId;
     if (!/^[0-9a-f-]{36}$/i.test(usernameOrUserId)) {
       const { data } = await supabase.from("profiles").select("id").eq("username", usernameOrUserId).maybeSingle();
-      if (!data?.id) return false;
+      if (!data?.id) throw new Error("Staff member not found");
       userId = data.id;
     }
-    await invokeManageStaff({ action: "delete", user_id: userId });
+    const res = await invokeManageStaff({ action: "delete", user_id: userId });
+    _lastDeleteWasSoft = !!res?.soft;
     return true;
   } catch (e) {
     captureErr(e);
     return false;
   }
 };
+
 
 // Legacy helpers kept as no-ops for compatibility.
 export const loadUsersFromSheet = async (): Promise<UserCredential[]> => [];
