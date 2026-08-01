@@ -16,6 +16,8 @@ export interface ServiceRecord {
   diagnosis: string;
   technicianDiagnosis?: string;
   clientApprovedAt?: string;
+  autoApproveDiagnosis?: boolean;
+
   status: string;
   technician: string;
   technicianAssigned: string;
