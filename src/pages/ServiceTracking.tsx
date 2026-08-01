@@ -27,6 +27,8 @@ import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
 import { StatusChip } from "@/components/ui/status-chip";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+import { TrackingShareActions } from "@/components/TrackingShareActions";
+
 
 // Accepted modes of payment shown on the public tracking page.
 const MODES_OF_PAYMENT = [
