@@ -1574,9 +1574,13 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map(status => (
+                      {STATUS_OPTIONS.filter(status =>
+                        // Pre-approved tickets skip the client approval stage.
+                        !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
+                      ).map(status => (
                         <SelectItem key={status} value={status}>{status}</SelectItem>
                       ))}
+
                     </SelectContent>
                   </Select>
                 </div>
