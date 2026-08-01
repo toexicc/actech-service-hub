@@ -105,6 +105,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       service: pick(sb.service, sheetData.service),
       aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
+      autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
 
 
     };
