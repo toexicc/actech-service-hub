@@ -263,6 +263,62 @@ const ManageClient = () => {
   const [discountValue, setDiscountValue] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
+
+  const handleToggleAutoApprove = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingAutoApprove) return;
+
+    if (!next && serviceData.status && serviceData.status !== "Pending Diagnosis" && serviceData.status !== "Confirmed Diagnosis") {
+      const confirmed = window.confirm(
+        "This ticket is already past diagnosis. Turning pre-approval off means the client will need to approve the diagnosis again on the tracking page. Continue?",
+      );
+      if (!confirmed) return;
+    }
+
+    setIsTogglingAutoApprove(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({
+          auto_approve_diagnosis: next,
+          ...(next ? {} : { client_approved_at: null }),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+
+      setServiceData((prev: any) => (prev ? { ...prev, autoApproveDiagnosis: next } : prev));
+      if (!next && updateStatus === "Proceed Repair" && serviceData.status === "Confirmed Diagnosis") {
+        setUpdateStatus("Waiting to Proceed");
+      }
+
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next
+          ? "Diagnosis pre-approval enabled (client approval skipped)"
+          : "Diagnosis pre-approval disabled (client approval required)",
+      });
+
+      toast({
+        title: next ? "Pre-approval enabled" : "Approval required",
+        description: next
+          ? "This ticket skips the client approval stage."
+          : "The client must approve the diagnosis on the tracking page.",
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the approval setting.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingAutoApprove(false);
+    }
+  };
+
 
   const fetchApiKey = async () => {
     try {
