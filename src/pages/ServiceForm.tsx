@@ -706,7 +706,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         address: (data as any).address || null,
       }).catch(() => data.clientId || null);
 
-      const { error: upsertError } = await supabase.from("services").upsert({
+      const servicePayload = {
         service_id: finalServiceId,
         client_id: resolvedClientId || null,
         client_name: data.clientName,
@@ -739,9 +739,23 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         },
         acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
         auto_approve_diagnosis: isPublic ? false : !!data.autoApproveDiagnosis,
+      };
 
-      }, { onConflict: "service_id" });
-      if (upsertError) throw new Error(upsertError.message);
+      // New intakes must never overwrite an existing ticket: plain insert so a
+      // duplicate Service ID fails loudly instead of replacing another client's
+      // record. Only an explicit edit of a known ticket may update in place.
+      const { error: upsertError } = serviceId
+        ? await supabase.from("services").upsert(servicePayload, { onConflict: "service_id" })
+        : await supabase.from("services").insert(servicePayload);
+      if (upsertError) {
+        if ((upsertError as any).code === "23505") {
+          throw new Error(
+            `Service ID ${finalServiceId} is already in use. Please submit the form again to get a new ID.`
+          );
+        }
+        throw new Error(upsertError.message);
+      }
+
 
       // Upload the generated PDF to Supabase Storage so the
       // "View PDF" buttons can resolve a signed URL.
