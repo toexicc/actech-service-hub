@@ -520,6 +520,8 @@ const ServiceUpdate = () => {
               technicianDiagnosis: pick(sb.technicianDiagnosis, data.data.technicianDiagnosis),
               aiDiagnosis: pick(sb.diagnosis, data.data.aiDiagnosis),
               aiReport: pick(sb.aiReport, data.data.aiReport),
+              autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
             };
           }
         } catch { /* ignore */ }
