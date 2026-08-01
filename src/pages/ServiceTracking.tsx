@@ -706,17 +706,8 @@ const ServiceTracking = () => {
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repair Ticket</p>
                         <div className="flex items-center gap-2 mt-1">
                           <h2 className="text-xl font-semibold tracking-tight">{serviceData.serviceId || serviceId}</h2>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => {
-                              try { navigator.clipboard.writeText(serviceData.serviceId || serviceId); toast({ title: "Copied", description: "Ticket ID copied to clipboard." }); } catch {}
-                            }}
-                          >
-                            Copy
-                          </Button>
+                          <TrackingShareActions serviceId={serviceData.serviceId || serviceId || ""} />
+
                         </div>
                       </div>
                       <StatusChip status={serviceData.status || "Pending Diagnosis"} className="text-sm px-3 py-1.5" />
