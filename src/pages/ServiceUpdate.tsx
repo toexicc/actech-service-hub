@@ -1273,40 +1273,50 @@ const ServiceUpdate = () => {
                     options={(() => {
                       // Filter technicians based on device type
                       const deviceType = serviceData?.deviceType;
-                      
+
                       const unassignedOption = { label: "Unassigned", value: "unassigned", group: "Status" };
-                      
+                      // Always available for special cases, regardless of device type / department
+                      const SPECIAL_CASE_TECH = "John Paul Espedido";
+                      const specialOption = {
+                        label: SPECIAL_CASE_TECH,
+                        value: SPECIAL_CASE_TECH,
+                        group: "Special Cases",
+                      };
+
                       // Check if device type is in the predefined list
                       const isPreDefinedDeviceType = deviceType && 
                         (DEVICE_TYPES as readonly string[]).includes(deviceType);
-                      
+
+                      const toOption = (tech: { name: string; department: string }) => ({
+                        label: tech.name,
+                        value: tech.name,
+                        group: tech.department,
+                      });
+
                       // If no device type or custom device (not in predefined list), show all technicians
                       if (!deviceType || !isPreDefinedDeviceType) {
+                        const all = technicians.map(toOption);
                         return [
                           unassignedOption,
-                          ...technicians.map(tech => ({
-                            label: tech.name,
-                            value: tech.name,
-                            group: tech.department
-                          }))
+                          ...all,
+                          ...(all.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
                         ];
                       }
-                      
+
                       // Filter by department only for predefined device types
                       const filteredTechs = technicians.filter(tech => {
                         const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
                         return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
                       });
-                      
+
+                      const filtered = filteredTechs.map(toOption);
                       return [
                         unassignedOption,
-                        ...filteredTechs.map(tech => ({
-                          label: tech.name,
-                          value: tech.name,
-                          group: tech.department
-                        }))
+                        ...filtered,
+                        ...(filtered.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
                       ];
                     })()}
+
                     selected={updateTechnician ? updateTechnician.split(", ") : []}
                     onChange={(values) => setUpdateTechnician(values.join(", "))}
                     placeholder="Select Technicians"
