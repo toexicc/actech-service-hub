@@ -1409,7 +1409,36 @@ const ManageClient = () => {
 
                 <Separator />
 
+                {canEditAdminRep && (
+                  <div className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-background/60 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Client pre-approves diagnosis</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceData.autoApproveDiagnosis
+                          ? "Approval skipped — ticket moves straight to Proceed Repair."
+                          : "Client must approve the diagnosis on the tracking page."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!serviceData.autoApproveDiagnosis}
+                      disabled={isTogglingAutoApprove}
+                      onCheckedChange={handleToggleAutoApprove}
+                    />
+                  </div>
+                )}
+
+                {isEditingDetails && canEditAdminRep ? (
+                <ServiceDetailsEditor
+                  serviceData={serviceData}
+                  onCancel={() => setIsEditingDetails(false)}
+                  onSaved={() => {
+                    setIsEditingDetails(false);
+                    handleSearch();
+                  }}
+                />
+                ) : (
                 <div className="grid gap-4">
+
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Type:</h3>
                     <p className="text-lg">{serviceData.clientType || "N/A"}</p>
