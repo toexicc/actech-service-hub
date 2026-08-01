@@ -661,7 +661,7 @@ const Reports = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stageHours} layout="vertical" margin={{ left: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                    <XAxis type="number" {...axisProps} tickFormatter={(v) => `${Math.round(v as number)}h`} />
+                    <XAxis type="number" {...axisProps} tickFormatter={(v) => `${Number(v).toFixed(1)}h`} />
                     <YAxis type="category" dataKey="stage" {...axisProps} width={150} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatHours(v)} />
                     <Bar dataKey="hours" name="Avg. hours" fill="hsl(var(--info))" radius={[0, 4, 4, 0]} />
