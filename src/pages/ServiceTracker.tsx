@@ -202,6 +202,46 @@ const ServiceTracker = () => {
     }
   };
 
+  // ---- Delete a service (management only) -------------------------------
+  const canDeleteService = userRole === "management";
+
+  const openDeleteDialog = (service: ServiceRecord) => {
+    setDeleteTarget(service);
+    setDeleteConfirm("");
+  };
+
+  const handleDeleteService = async () => {
+    if (!deleteTarget) return;
+    const sid = deleteTarget.serviceId;
+    setDeleting(true);
+    try {
+      await logActivity({
+        serviceId: sid,
+        username: sessionStorage.getItem("userFullName") || "Unknown",
+        role: userRole || "management",
+        activity: `Service deleted permanently (client: ${deleteTarget.clientName || "N/A"})`,
+      });
+
+      // Remove loosely-linked child rows first (no FK cascade on these).
+      await supabase.from("service_breakdowns").delete().eq("service_id", sid);
+      const { error } = await supabase.from("services").delete().eq("service_id", sid);
+      if (error) throw error;
+
+      toast({ title: "Service deleted", description: `${sid} has been permanently removed.` });
+      setDeleteTarget(null);
+      setDeleteConfirm("");
+      invalidateServices();
+    } catch (err: any) {
+      toast({
+        title: "Delete failed",
+        description: err?.message || "Could not delete this service.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
 
 
   const handleEditService = (serviceId: string) => {
