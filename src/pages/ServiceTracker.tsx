@@ -1316,7 +1316,19 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             >
                               <Forward className="h-4 w-4" />
                             </Button>
+                            {canDeleteService && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); openDeleteDialog(service as ServiceRecord); }}
+                                title="Delete service"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
+
                         </div>
                       </div>
                     );
