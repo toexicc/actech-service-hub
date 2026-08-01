@@ -10,6 +10,7 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   serviceId?: string;
+  threadId?: string;
 }
 
 export interface Message {
@@ -41,15 +42,37 @@ export interface ReadReceipt {
   readAt: string;
 }
 
+const KNOWN_TYPES: Notification["type"][] = [
+  "service_update",
+  "new_inquiry",
+  "message",
+  "system",
+  "part_request",
+  "others",
+];
+
+// Legacy/unknown categories (e.g. "service" written by older code paths) must
+// still resolve to a supported type, otherwise they render in no panel tab.
+export const normalizeNotificationType = (raw: unknown): Notification["type"] => {
+  const v = String(raw ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if ((KNOWN_TYPES as string[]).includes(v)) return v as Notification["type"];
+  if (v.includes("message") || v.includes("chat")) return "message";
+  if (v.includes("part")) return "part_request";
+  if (v.includes("inquiry")) return "new_inquiry";
+  if (v.includes("service") || v.includes("status") || v.includes("repair")) return "service_update";
+  return "others";
+};
+
 const mapNotification = (r: any): Notification => ({
   id: r.id,
   userId: r.recipient_id ?? "",
   title: r.title ?? "",
   message: r.message ?? "",
-  type: (r.category as Notification["type"]) ?? "system",
+  type: normalizeNotificationType(r.category),
   read: !!r.is_read,
   createdAt: r.created_at ?? "",
   serviceId: r.service_id ?? undefined,
+  threadId: r.thread_id ?? undefined,
 });
 
 export const fetchNotifications = async (userId: string): Promise<Notification[]> => {
