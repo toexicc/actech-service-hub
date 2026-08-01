@@ -29,14 +29,17 @@ export function useIsTabActive(): boolean {
 export function WorkbenchOutlet() {
   const location = useLocation();
   const { tabs } = useWorkbench();
-  const activePath = location.pathname;
+  // Include the query string: record pages (e.g. /manage-client?serviceId=X)
+  // are distinct instances. Keying by pathname alone made two different
+  // tickets share one mounted tree, mixing their data.
+  const activePath = location.pathname + location.search;
 
-  // Per-path element cache. Freeze element on first insert so re-renders of
+  // Per-URL element cache. Freeze element on first insert so re-renders of
   // this outlet never swap it, preserving the mounted React tree.
   const cacheRef = useRef<Map<string, React.ReactNode>>(new Map());
 
   // Ensure the active path has an element mounted (adds a tab entry lazily).
-  const activeRoute = findWorkbenchRoute(activePath);
+  const activeRoute = findWorkbenchRoute(location.pathname);
   if (activeRoute && !cacheRef.current.has(activePath)) {
     cacheRef.current.set(activePath, activeRoute.element);
   }
@@ -44,7 +47,7 @@ export function WorkbenchOutlet() {
   // Ensure each open tab whose path is a workbench route has an entry.
   for (const t of tabs) {
     if (cacheRef.current.has(t.path)) continue;
-    const r = findWorkbenchRoute(t.path);
+    const r = findWorkbenchRoute(t.path.split("?")[0]);
     if (r) cacheRef.current.set(t.path, r.element);
   }
 
