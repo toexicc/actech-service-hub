@@ -23,10 +23,28 @@ export const getLastStaffError = () => _lastStaffError;
 
 const invokeManageStaff = async (body: Record<string, unknown>) => {
   const { data, error } = await supabase.functions.invoke("manage-staff", { body });
-  if (error) throw error;
+  if (error) {
+    // Surface the actual server message instead of "non-2xx status code".
+    let detail = "";
+    try {
+      const res = (error as any)?.context;
+      if (res && typeof res.text === "function") {
+        const txt = await res.text();
+        try {
+          detail = JSON.parse(txt)?.error ?? txt;
+        } catch {
+          detail = txt;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    throw new Error(detail || (error as any).message || "Request failed");
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 };
+
 
 const captureErr = (e: unknown) => {
   _lastStaffError = e instanceof Error ? e.message : String(e);
