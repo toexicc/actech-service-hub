@@ -48,19 +48,23 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Verify caller is admin or management
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // Verify caller is admin or management.
+    // Validate the bearer token with the service client (works regardless of
+    // which publishable/anon key format the project is on).
     const authHeader = req.headers.get("Authorization") ?? "";
-    const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const { data: { user: caller } } = token
+      ? await admin.auth.getUser(token)
+      : { data: { user: null } } as any;
     if (!caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const { data: callerRoles } = await callerClient.from("user_roles").select("role").eq("user_id", caller.id);
+    const { data: callerRoles } = await admin.from("user_roles").select("role").eq("user_id", caller.id);
     const isAuthorized = (callerRoles ?? []).some((r: any) => r.role === "admin" || r.role === "management");
 
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
     const body = (await req.json()) as Body;
 
     // Read-only email directory is available to any authenticated user.
