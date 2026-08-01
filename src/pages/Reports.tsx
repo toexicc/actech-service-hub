@@ -384,6 +384,7 @@ const Reports = () => {
       });
     });
     return Array.from(totals.entries())
+      .filter(([stage]) => classifyStatus(stage) !== "completed")
       .map(([stage, list]) => ({ stage, hours: avg(list), tickets: list.length }))
       .sort((a, b) => b.hours - a.hours)
       .slice(0, 8);
