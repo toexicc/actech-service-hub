@@ -31,8 +31,12 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
+import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activityLogger";
+import { classifyStatus, isClosedStatus, isCompletedStatus } from "@/lib/serviceStatus";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
+
 
 interface ServiceRecord {
   serviceId: string;
@@ -83,19 +87,25 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "within" | "walkin" | "ongoing" | "completed" | "closed">("ongoing");
+  type TrackerTab = "all" | "within" | "walkin" | "ongoing" | "completed" | "closed";
+  const initialTab = ((): TrackerTab => {
+    const t = searchParams.get("tab") as TrackerTab | null;
+    if (t && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(t)) return t;
+    const s = searchParams.get("status");
+    if (s) {
+      const c = classifyStatus(s);
+      if (c === "completed") return "completed";
+      if (c === "closed") return "closed";
+    }
+    return "ongoing";
+  })();
+  const [activeTab, setActiveTab] = useState<TrackerTab>(initialTab);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 15;
 
-
-  const isClosedStatus = (status: string) => {
-    const s = (status || "").toLowerCase();
-    return s.includes("cancel") || s === "rto" || s.includes("on hold") || s.includes("on-hold") || s.includes("hold");
-  };
-  const isCompletedStatus = (status: string) => {
-    const s = (status || "").toLowerCase();
-    return s.includes("completed");
-  };
 
   // Derive technicians with departments from staff data
   const techniciansWithDept = useMemo(() => {
