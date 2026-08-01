@@ -1563,6 +1563,8 @@ const ManageClient = () => {
                     <p className="text-lg">{serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : "N/A"}</p>
                   </div>
                 </div>
+                )}
+
               </CardContent>
             </Card>
 
