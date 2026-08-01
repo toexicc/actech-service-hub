@@ -71,6 +71,8 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
+  autoApproveDiagnosis: z.boolean().default(false),
+
   enablePhotoAnnotation: z.boolean().default(false),
   annotationDeviceType: z.string().optional(),
   annotationNotes: z.string().optional(),
@@ -200,6 +202,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       ack1: false,
       ack2: false,
       ack3: false,
+      autoApproveDiagnosis: false,
+
       physicalSignature: false,
       enablePhotoAnnotation: false,
       annotationDeviceType: "",
@@ -711,6 +715,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           noPower: data.noPower, repairHistory: data.repairHistory,
         },
         acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
+        auto_approve_diagnosis: isPublic ? false : !!data.autoApproveDiagnosis,
+
       }, { onConflict: "service_id" });
       if (upsertError) throw new Error(upsertError.message);
 
@@ -1675,6 +1681,29 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     </FormItem>
                   )}
                 />
+
+                {!isPublic && (
+                <FormField
+                  control={form.control}
+                  name="autoApproveDiagnosis"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start space-x-2 space-y-0 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="flex-1">
+                        <FormLabel className="!mt-0 text-sm">
+                          Client pre-approves the diagnosis — proceed with the repair without a separate approval step.
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          When checked, this ticket skips the "Waiting to Proceed" status and moves straight to Proceed Repair.
+                        </p>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                )}
 
                 {!isPublic && (
                 <FormField

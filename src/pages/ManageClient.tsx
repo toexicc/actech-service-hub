@@ -132,6 +132,8 @@ const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) => ({
   partId: sb.partId,
   signaturePath: sb.signaturePath,
   deviceAnnotationPath: sb.deviceAnnotationPath,
+  autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
 });
 
 const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
@@ -175,6 +177,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
       technicianNotesInternal: pick(sb.internalTechnicianNotes, sheetData.technicianNotesInternal),
       adminNotesInternal: pick(sb.internalAdminNotes, sheetData.adminNotesInternal),
+      autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
     };
   } catch {
     return sheetData;
@@ -1296,17 +1300,22 @@ const ManageClient = () => {
             status={serviceData.status}
             serviceId={serviceData.serviceId}
 
-            guidance={getStatusGuidance(
-              serviceData.status || "",
-              {
-                serviceId: serviceData.serviceId || "",
-                clientName: serviceData.clientName || "",
-                technician: serviceData.technician ?? "",
-                adminRep: serviceData.adminRep,
-                device: serviceData.device || serviceData.deviceType,
-              },
-              "admin",
-            )}
+            guidance={
+              serviceData.autoApproveDiagnosis && serviceData.status === "Confirmed Diagnosis"
+                ? "Client pre-approved the diagnosis at intake — generate the quotation, then move straight to Proceed Repair."
+                : getStatusGuidance(
+                    serviceData.status || "",
+                    {
+                      serviceId: serviceData.serviceId || "",
+                      clientName: serviceData.clientName || "",
+                      technician: serviceData.technician ?? "",
+                      adminRep: serviceData.adminRep,
+                      device: serviceData.device || serviceData.deviceType,
+                    },
+                    "admin",
+                  )
+            }
+
             technician={serviceData.technician}
             adminRep={serviceData.adminRep}
             receivingStaff={(serviceData as any).receivingStaff}
@@ -1570,9 +1579,13 @@ const ManageClient = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map(status => (
+                      {STATUS_OPTIONS.filter(status =>
+                        // Pre-approved tickets skip the client approval stage.
+                        !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
+                      ).map(status => (
                         <SelectItem key={status} value={status}>{status}</SelectItem>
                       ))}
+
                     </SelectContent>
                   </Select>
                 </div>

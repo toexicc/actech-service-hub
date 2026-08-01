@@ -105,6 +105,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       service: pick(sb.service, sheetData.service),
       aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
+      autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
 
 
     };
@@ -487,7 +489,7 @@ const ServiceTracking = () => {
   ];
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
-  const isWaitingToProceed = serviceData?.status === "Waiting to Proceed";
+  const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
   const approvalRecord = (() => {
     const notes: string = serviceData?.adminNotes || "";
     // Match "Approved/Declined by <name> on <date>" where the date may contain colons.
@@ -645,16 +647,18 @@ const ServiceTracking = () => {
 
         {/* Service Details – Fixy two-column layout */}
         {serviceData && (() => {
+          const autoApproved = !!serviceData.autoApproveDiagnosis;
           const STEPS = [
             { key: "pending", label: "Pending", full: "Pending Diagnosis" },
             { key: "confirmed", label: "Confirmed", full: "Confirmed Diagnosis" },
-            { key: "waiting", label: "Waiting", full: "Waiting to Proceed" },
+            ...(autoApproved ? [] : [{ key: "waiting", label: "Waiting", full: "Waiting to Proceed" }]),
             { key: "repair", label: "Repair", full: "Proceed Repair" },
             { key: "observation", label: "Observation", full: "Done Repair - Under Observation" },
             { key: "release", label: "For Release", full: "Done Repair - For Release" },
             { key: "advise", label: "Advise Client", full: "Done Repair - Advise Client" },
             { key: "completed", label: "Completed", full: "Completed" },
           ];
+
           const OFF_PATH: Record<string, { label: string; tone: string }> = {
             "Backjob": { label: "Backjob", tone: "bg-destructive/15 text-destructive border-destructive/30" },
             "RTO": { label: "RTO", tone: "bg-muted text-muted-foreground border-border" },
@@ -665,11 +669,12 @@ const ServiceTracking = () => {
           const offPath = OFF_PATH[currentStatus];
           const statusToStep = (s: string): number => {
             if (!s) return 1;
-            // Merge Ongoing Service into Proceed Repair step
-            if (s === "Ongoing Service") return 4;
-            const idx = STEPS.findIndex((x) => x.full === s);
+            // Merge Ongoing Service into the Proceed Repair step
+            const target = s === "Ongoing Service" ? "Proceed Repair" : s;
+            const idx = STEPS.findIndex((x) => x.full === target);
             return idx >= 0 ? idx + 1 : 1;
           };
+
           const stepIdx = statusToStep(currentStatus);
           const totalCost = Number(serviceData.finalCost || serviceData.serviceCost || 0);
           const totals = derivePaymentTotals(

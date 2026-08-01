@@ -34,6 +34,8 @@ import {
   updateUser,
   removeUser,
   getLastStaffError,
+  wasLastDeleteSoft,
+
   UserCredential,
 } from "@/lib/userCredentials";
 import { DEPARTMENTS } from "@/lib/constants";
@@ -253,12 +255,15 @@ const StaffManagement = () => {
 
       if (success) {
         logStaffActivity("Removed staff member", staffName);
-        
+
         toast({
           title: "Success",
-          description: "Staff member removed successfully",
+          description: wasLastDeleteSoft()
+            ? "Staff deactivated (the account has linked records and could not be fully removed)"
+            : "Staff member removed successfully",
         });
         loadStaffList();
+
       } else {
         toast({
           title: "Error",
