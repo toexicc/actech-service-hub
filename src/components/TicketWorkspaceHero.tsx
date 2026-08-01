@@ -13,7 +13,10 @@ import {
 
 interface TicketWorkspaceHeroProps {
   service: any;
+  /** Show the copy-link + QR share actions beside the ticket ID. */
+  showShare?: boolean;
 }
+
 
 const STAGE_MAP: Record<string, { stage: string; tone: string; next: string }> = {
   "Pending Diagnosis": { stage: "Intake", tone: "bg-warning/15 text-warning border-warning/30", next: "Run the diagnostic and generate the intake form." },
