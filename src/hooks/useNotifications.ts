@@ -233,6 +233,7 @@ export const useNotifications = (userId: string | null, _enabled: boolean = true
     unreadCount,
     markAsRead,
     markAllAsRead,
-    refresh
+    refresh,
+    requestPermission
   };
 };
