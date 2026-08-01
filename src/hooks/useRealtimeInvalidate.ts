@@ -16,7 +16,10 @@ const TABLE_KEYS: Record<string, string[][]> = {
   client_inquiries: [["clientInquiriesData"], ["clientInquiries"]],
   clients: [["clients"]],
   service_breakdowns: [["serviceBreakdowns"], ["allServiceBreakdowns"]],
+  queue_entries: [["queueEntries"], ["queue_entries"]],
+  activity_logs: [["activityLogs"], ["activity_logs"]],
 };
+
 
 export const useRealtimeInvalidate = (enabled: boolean = true) => {
   const queryClient = useQueryClient();

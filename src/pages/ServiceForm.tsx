@@ -33,6 +33,7 @@ import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureClient } from "@/hooks/useClients";
 import { IntakeShareActions } from "@/components/IntakeShareActions";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
@@ -94,6 +95,7 @@ export interface ServiceFormProps {
 
 const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProps = {}) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const isPublic = !embedded && location.pathname === "/intake";
   const searchQueueId = useMemo(
@@ -784,11 +786,16 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const isResponseOk = true;
 
       if (isResponseOk) {
+        // Make the new ticket appear everywhere immediately (tracker, dashboards).
+        queryClient.invalidateQueries({ queryKey: ["services"] });
+        queryClient.invalidateQueries({ queryKey: ["techServices"] });
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
         // Show success immediately - don't wait for notifications/logging
         toast({
           title: "Success",
           description: `Service form submitted successfully! Service ID: ${finalServiceId}`,
         });
+
         form.reset();
         setServiceId("");
         setTermsRead(false);

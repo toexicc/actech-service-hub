@@ -162,7 +162,7 @@ export const useServices = () => {
   return useQuery({
     queryKey: ["services"],
     queryFn: fetchAllServices,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 1000,
     gcTime: 5 * 60 * 1000,
 
   });
@@ -172,10 +172,11 @@ export const useCompletedServices = () => {
   return useQuery({
     queryKey: ["services", "completed"],
     queryFn: fetchCompletedServices,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 };
+
 
 /** Active + completed services combined (used by the Service Tracker tabs). */
 export const useAllServices = () => {

@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -31,8 +31,12 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
+import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activityLogger";
+import { classifyStatus, isClosedStatus, isCompletedStatus } from "@/lib/serviceStatus";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
+
 
 interface ServiceRecord {
   serviceId: string;
@@ -83,19 +87,25 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "within" | "walkin" | "ongoing" | "completed" | "closed">("ongoing");
+  type TrackerTab = "all" | "within" | "walkin" | "ongoing" | "completed" | "closed";
+  const initialTab = ((): TrackerTab => {
+    const t = searchParams.get("tab") as TrackerTab | null;
+    if (t && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(t)) return t;
+    const s = searchParams.get("status");
+    if (s) {
+      const c = classifyStatus(s);
+      if (c === "completed") return "completed";
+      if (c === "closed") return "closed";
+    }
+    return "ongoing";
+  })();
+  const [activeTab, setActiveTab] = useState<TrackerTab>(initialTab);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 15;
 
-
-  const isClosedStatus = (status: string) => {
-    const s = (status || "").toLowerCase();
-    return s.includes("cancel") || s === "rto" || s.includes("on hold") || s.includes("on-hold") || s.includes("hold");
-  };
-  const isCompletedStatus = (status: string) => {
-    const s = (status || "").toLowerCase();
-    return s.includes("completed");
-  };
 
   // Derive technicians with departments from staff data
   const techniciansWithDept = useMemo(() => {
@@ -107,21 +117,36 @@ const ServiceTracker = () => {
       }));
   }, [staffList]);
 
-  // Handle URL params for status filter (from dashboard clicks)
+  // Handle URL params for status filter / tab (from dashboard clicks)
   useEffect(() => {
     const urlStatusFilter = searchParams.get('statusFilter');
     const urlStatus = searchParams.get('status');
+    const urlTab = searchParams.get('tab');
+    if (!urlStatusFilter && !urlStatus && !urlTab) return;
+
+    const next = new URLSearchParams(searchParams);
+    if (urlTab && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(urlTab)) {
+      setActiveTab(urlTab as TrackerTab);
+      next.delete('tab');
+    }
     if (urlStatusFilter) {
       setDueDateFilter(urlStatusFilter);
-      searchParams.delete('statusFilter');
-      setSearchParams(searchParams, { replace: true });
+      // Due-today / overdue only make sense for tickets still in the workflow.
+      if (!urlTab) setActiveTab("ongoing");
+      next.delete('statusFilter');
     }
     if (urlStatus) {
       setStatusFilter(urlStatus);
-      searchParams.delete('status');
-      setSearchParams(searchParams, { replace: true });
+      if (!urlTab) {
+        const cls = classifyStatus(urlStatus);
+        setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+      }
+      next.delete('status');
     }
+    setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
+
+
 
   // Identify the logged-in technician from the authenticated profile (the old
   // sessionStorage lookup compared a full name against an email and never matched).
@@ -174,6 +199,46 @@ const ServiceTracker = () => {
       case "On Hold":
       case "Cancelled": return "bg-gray-100 dark:bg-gray-800/40 border-gray-300/60 dark:border-gray-700/50";
       default: return "bg-[hsl(var(--surface-glass))] border-border/60";
+    }
+  };
+
+  // ---- Delete a service (management only) -------------------------------
+  const canDeleteService = userRole === "management";
+
+  const openDeleteDialog = (service: ServiceRecord) => {
+    setDeleteTarget(service);
+    setDeleteConfirm("");
+  };
+
+  const handleDeleteService = async () => {
+    if (!deleteTarget) return;
+    const sid = deleteTarget.serviceId;
+    setDeleting(true);
+    try {
+      await logActivity({
+        serviceId: sid,
+        username: sessionStorage.getItem("userFullName") || "Unknown",
+        role: userRole || "management",
+        activity: `Service deleted permanently (client: ${deleteTarget.clientName || "N/A"})`,
+      });
+
+      // Remove loosely-linked child rows first (no FK cascade on these).
+      await supabase.from("service_breakdowns").delete().eq("service_id", sid);
+      const { error } = await supabase.from("services").delete().eq("service_id", sid);
+      if (error) throw error;
+
+      toast({ title: "Service deleted", description: `${sid} has been permanently removed.` });
+      setDeleteTarget(null);
+      setDeleteConfirm("");
+      invalidateServices();
+    } catch (err: any) {
+      toast({
+        title: "Delete failed",
+        description: err?.message || "Could not delete this service.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -611,15 +676,18 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         }
       }
 
-      // Tab filter
-      const completed = isCompletedStatus(service.status);
-      const closed = isClosedStatus(service.status);
-      if (activeTab === "ongoing" && (completed || closed)) return false;
-      if (activeTab === "completed" && !completed) return false;
-      if (activeTab === "closed" && !closed) return false;
+      // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
+      // the "All" and "Cancelled / RTO / On Hold" tabs. They never leak into
+      // Within the Day, Walk In, Ongoing or Completed.
+      const cls = classifyStatus(service.status);
+      if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
+      if (activeTab === "ongoing" && cls !== "active") return false;
+      if (activeTab === "completed" && cls !== "completed") return false;
+      if (activeTab === "closed" && cls !== "closed") return false;
       if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
       if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
       // "all" — no additional filter
+
 
       // Status filter
       if (statusFilter !== "all" && service.status !== statusFilter) {
@@ -1045,19 +1113,24 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Stats — always reflect the tab / filters currently shown */}
         {(() => {
-          const ongoing = filteredAndSortedServices.filter(s => {
-            const status = s.status?.toLowerCase() || "";
-            return !status.includes("completed") && !status.includes("cancelled");
-          });
-          const overdueCount = ongoing.filter(s => isOverdue(s.targetDate, s.status)).length;
-          const onTrackCount = ongoing.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          const shown = filteredAndSortedServices;
+          const active = shown.filter((s) => classifyStatus(s.status) === "active");
+          const overdueCount = active.filter(s => isOverdue(s.targetDate, s.status)).length;
+          const onTrackCount = active.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          const totalLabel =
+            activeTab === "completed" ? "Completed shown"
+            : activeTab === "closed" ? "Cancelled / RTO / On Hold"
+            : activeTab === "all" ? "All shown"
+            : activeTab === "within" ? "Within the day"
+            : activeTab === "walkin" ? "Walk-in shown"
+            : "Total ongoing";
           return (
             <div className="grid gap-4 md:grid-cols-3 mb-6">
               <StatCard
-                label="Total Ongoing"
-                value={ongoing.length}
+                label={totalLabel}
+                value={shown.length}
                 tone="primary"
                 icon={<Clock className="h-5 w-5" />}
               />
@@ -1076,6 +1149,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             </div>
           );
         })()}
+
 
         {/* Services Table */}
         <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
@@ -1248,7 +1322,19 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             >
                               <Forward className="h-4 w-4" />
                             </Button>
+                            {canDeleteService && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); openDeleteDialog(service as ServiceRecord); }}
+                                title="Delete service"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
+
                         </div>
                       </div>
                     );
@@ -1401,7 +1487,22 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                                 >
                                   <Forward className="h-4 w-4" />
                                 </Button>
+                                {canDeleteService && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openDeleteDialog(service as ServiceRecord);
+                                    }}
+                                    title="Delete service"
+                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
+
                             </TableCell>
                          </ActivityLogRow>
                        );
@@ -1570,7 +1671,43 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete service confirmation (management only) */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirm(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete service permanently</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This permanently removes <span className="font-mono font-semibold text-foreground">{deleteTarget?.serviceId}</span>
+              {deleteTarget?.clientName ? <> for <span className="font-semibold text-foreground">{deleteTarget.clientName}</span></> : null} and its uploaded forms. This cannot be undone.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Type the Service ID to confirm</Label>
+              <Input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={deleteTarget?.serviceId || ""}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting || deleteConfirm.trim().toUpperCase() !== (deleteTarget?.serviceId || "").toUpperCase()}
+              onClick={handleDeleteService}
+            >
+              {deleting ? "Deleting..." : "Delete service"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
+
   );
 };
 
