@@ -132,6 +132,8 @@ const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) => ({
   partId: sb.partId,
   signaturePath: sb.signaturePath,
   deviceAnnotationPath: sb.deviceAnnotationPath,
+  autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
 });
 
 const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
