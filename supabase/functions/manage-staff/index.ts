@@ -132,18 +132,47 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "delete") {
-      await admin.from("user_roles").delete().eq("user_id", body.user_id);
+      const steps: string[] = [];
+
+      const { error: rolesErr } = await admin.from("user_roles").delete().eq("user_id", body.user_id);
+      if (rolesErr) steps.push(`roles: ${rolesErr.message}`);
+
       const { error: profErr } = await admin.from("profiles").delete().eq("id", body.user_id);
-      if (profErr) {
-        // Likely FK references (services, expenses, etc.) — soft-delete instead
-        await admin.from("profiles").update({ status: "inactive" }).eq("id", body.user_id);
+      if (profErr) steps.push(`profile: ${profErr.message}`);
+
+      let authErrMsg: string | null = null;
+      if (!profErr) {
+        const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
+        if (delErr) authErrMsg = delErr.message || String(delErr);
       }
-      const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
-      if (delErr) {
-        return new Response(JSON.stringify({ error: delErr.message || String(delErr) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      const hardDeleted = !profErr && !authErrMsg;
+
+      if (!hardDeleted) {
+        // Could not fully remove (references elsewhere or auth restriction):
+        // deactivate instead so the account disappears from active lists.
+        const { error: softErr } = await admin
+          .from("profiles")
+          .update({ status: "inactive" })
+          .eq("id", body.user_id);
+        if (softErr && profErr) {
+          return new Response(
+            JSON.stringify({ error: `Delete failed — ${[...steps, `deactivate: ${softErr.message}`].join("; ")}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
       }
-      return new Response(JSON.stringify({ ok: true, soft: !!profErr }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          soft: !hardDeleted,
+          detail: hardDeleted ? null : [...steps, authErrMsg ? `auth: ${authErrMsg}` : null].filter(Boolean).join("; "),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
+
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
