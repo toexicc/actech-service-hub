@@ -175,6 +175,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
       technicianNotesInternal: pick(sb.internalTechnicianNotes, sheetData.technicianNotesInternal),
       adminNotesInternal: pick(sb.internalAdminNotes, sheetData.adminNotesInternal),
+      autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+
     };
   } catch {
     return sheetData;
