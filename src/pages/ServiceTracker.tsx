@@ -1665,7 +1665,43 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete service confirmation (management only) */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirm(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete service permanently</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This permanently removes <span className="font-mono font-semibold text-foreground">{deleteTarget?.serviceId}</span>
+              {deleteTarget?.clientName ? <> for <span className="font-semibold text-foreground">{deleteTarget.clientName}</span></> : null} and its uploaded forms. This cannot be undone.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Type the Service ID to confirm</Label>
+              <Input
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={deleteTarget?.serviceId || ""}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting || deleteConfirm.trim().toUpperCase() !== (deleteTarget?.serviceId || "").toUpperCase()}
+              onClick={handleDeleteService}
+            >
+              {deleting ? "Deleting..." : "Delete service"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
+
   );
 };
 
