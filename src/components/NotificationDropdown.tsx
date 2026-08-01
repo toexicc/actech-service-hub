@@ -101,34 +101,42 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   // Always load notifications on mount - don't wait for dropdown to open
-  const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications(userId, true);
+  const { notifications, unreadCount, markAsRead, markAllAsRead, loading, requestPermission } = useNotifications(userId, true);
   const [activeTab, setActiveTab] = useState<'services' | 'messages' | 'others'>('services');
   const [showPreview, setShowPreview] = useState(false);
   const [previewNotification, setPreviewNotification] = useState<typeof notifications[0] | null>(null);
-  const previousUnreadCountRef = useRef(unreadCount);
+  const seenIdsRef = useRef<Set<string> | null>(null);
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Show preview immediately when a new notification arrives
+  // Tab buckets. Services is the catch-all so no category can ever be invisible.
+  const messageNotifications = notifications.filter((n) => n.type === 'message');
+  const otherNotifications = notifications.filter((n) => n.type === 'part_request' || n.type === 'others');
+  const serviceNotifications = notifications.filter(
+    (n) => n.type !== 'message' && n.type !== 'part_request' && n.type !== 'others',
+  );
+
+  // Show preview only for genuinely new notification ids (not on count changes)
   useEffect(() => {
-    if (unreadCount > previousUnreadCountRef.current && notifications.length > 0) {
-      // Find the newest unread notification
-      const newestUnread = notifications.find(n => !n.read);
-      if (newestUnread) {
-        // Show immediately without delay
-        setPreviewNotification(newestUnread);
-        setShowPreview(true);
-        
-        // Auto-hide preview after 5 seconds
-        if (previewTimeoutRef.current) {
-          clearTimeout(previewTimeoutRef.current);
-        }
-        previewTimeoutRef.current = setTimeout(() => {
-          setShowPreview(false);
-        }, 5000);
-      }
+    if (!notifications.length) return;
+
+    const currentIds = new Set(notifications.map((n) => n.id));
+
+    // First load: remember what already existed, don't pop anything.
+    if (!seenIdsRef.current) {
+      seenIdsRef.current = currentIds;
+      return;
     }
-    previousUnreadCountRef.current = unreadCount;
-  }, [unreadCount, notifications]);
+
+    const newest = notifications.find((n) => !n.read && !seenIdsRef.current!.has(n.id));
+    seenIdsRef.current = currentIds;
+
+    if (newest) {
+      setPreviewNotification(newest);
+      setShowPreview(true);
+      if (previewTimeoutRef.current) clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = setTimeout(() => setShowPreview(false), 5000);
+    }
+  }, [notifications]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -166,8 +174,8 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
         }
       }
     } else if (notification.type === 'message') {
-      // For message notifications, open messaging panel
-      onOpenMessaging?.();
+      // Open the messaging panel on the originating conversation when known
+      onOpenMessaging?.(notification.threadId);
     } else if (notification.type === 'part_request' || notification.type === 'others') {
       // Check if it's a transfer notification with a direct chat link
       const serviceId = notification.serviceId;
@@ -258,7 +266,14 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
         </div>
       )}
 
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenu
+        open={isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          // iOS/Safari only grants permission from a user gesture
+          if (open) requestPermission();
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -289,27 +304,27 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <TabsTrigger value="services" className="text-xs flex items-center gap-1.5">
                 <Wrench className="h-3.5 w-3.5" />
                 Services
-                {notifications.filter(n => (n.type === 'service_update' || n.type === 'new_inquiry') && !n.read).length > 0 && (
+                {serviceNotifications.filter(n => !n.read).length > 0 && (
                   <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                    {notifications.filter(n => (n.type === 'service_update' || n.type === 'new_inquiry') && !n.read).length}
+                    {serviceNotifications.filter(n => !n.read).length}
                   </span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="messages" className="text-xs flex items-center gap-1.5">
                 <MessageCircle className="h-3.5 w-3.5" />
                 Messages
-                {notifications.filter(n => n.type === 'message' && !n.read).length > 0 && (
+                {messageNotifications.filter(n => !n.read).length > 0 && (
                   <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                    {notifications.filter(n => n.type === 'message' && !n.read).length}
+                    {messageNotifications.filter(n => !n.read).length}
                   </span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="others" className="text-xs flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5" />
                 Others
-                 {notifications.filter(n => (n.type === 'others' || n.type === 'part_request') && !n.read).length > 0 && (
+                 {otherNotifications.filter(n => !n.read).length > 0 && (
                    <span className="ml-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                     {notifications.filter(n => (n.type === 'others' || n.type === 'part_request') && !n.read).length}
+                     {otherNotifications.filter(n => !n.read).length}
                    </span>
                  )}
               </TabsTrigger>
@@ -319,13 +334,11 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <ScrollArea className="h-[350px]">
                 {loading ? (
                   <div className="p-4 text-center text-muted-foreground">Loading...</div>
-                ) : notifications.filter(n => n.type === 'service_update' || n.type === 'new_inquiry').length === 0 ? (
+                ) : serviceNotifications.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">No service notifications</div>
                 ) : (
                   groupNotificationsByDate(
-                    notifications
-                      .filter(n => n.type === 'service_update' || n.type === 'new_inquiry')
-                      .slice(0, 20)
+                    serviceNotifications.slice(0, 20)
                   ).map((group) => (
                     <div key={group.date}>
                       <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">
@@ -364,13 +377,11 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <ScrollArea className="h-[350px]">
                 {loading ? (
                   <div className="p-4 text-center text-muted-foreground">Loading...</div>
-                ) : notifications.filter(n => n.type === 'message').length === 0 ? (
+                ) : messageNotifications.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">No message notifications</div>
                 ) : (
                   groupNotificationsByDate(
-                    notifications
-                      .filter(n => n.type === 'message')
-                      .slice(0, 20)
+                    messageNotifications.slice(0, 20)
                   ).map((group) => (
                     <div key={group.date}>
                       <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">
@@ -409,13 +420,11 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <ScrollArea className="h-[350px]">
                 {loading ? (
                   <div className="p-4 text-center text-muted-foreground">Loading...</div>
-                 ) : notifications.filter(n => n.type === 'others' || n.type === 'part_request').length === 0 ? (
+                 ) : otherNotifications.length === 0 ? (
                    <div className="p-4 text-center text-muted-foreground">No other notifications</div>
                  ) : (
                    groupNotificationsByDate(
-                     notifications
-                       .filter(n => n.type === 'others' || n.type === 'part_request')
-                       .slice(0, 20)
+                     otherNotifications.slice(0, 20)
                    ).map((group) => (
                     <div key={group.date}>
                       <div className="px-3 py-2 bg-muted/50 border-b sticky top-0">

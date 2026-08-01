@@ -122,7 +122,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const canViewSection = (s: NavSection) => !s.roles || s.roles.includes(userRole || "");
   const canViewItem = (i: NavItem) => !i.roles || i.roles.includes(userRole || "");
 
-  const handleOpenMessaging = () => { messagingPanelRef.current?.openPanel(); };
+  const handleOpenMessaging = (conversationId?: string) => { messagingPanelRef.current?.openPanel(conversationId); };
 
   const handleNavClick = (item: NavItem) => {
     // Open as a workbench tab so users can jump between pages.

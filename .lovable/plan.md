@@ -1,31 +1,37 @@
-## Verified findings
+## What I found (verified against the code and live database)
 
-- **Parts search is dead** — the search box on "Parts Used from Inventory" has an `onChange` that filters into a local variable and throws it away (there's a `// Just update display` comment). The list below only renders already-selected parts, so typing does nothing.
-- **Inventory deduction works** — on save, Service Update writes the parts list, calls `applyPartsDelta` (decrements `inventory_parts`/`fast_moving_parts`, logs to part logs), and stores the computed parts cost on the service record.
-- **Parts cost never reaches Completed Transactions** — the completed-services hook hardcodes `partsCost: 0` and `discount: 0` instead of reading the stored values, so every row shows 0 parts cost and all commission/net-sales math on that page is computed off zero.
-- **Stage fields follow the selected status** — the reveal logic uses the newly picked status, so on a ticket at Proceed Repair, choosing Ongoing Service immediately shows the Ongoing Service (parts) fields.
+1. **"Shows in the popup but not in the panel"** — confirmed. The notifications table currently holds two categories: `service_update` (72 rows) and `service` (10 rows). The `service` rows are written by the public client-approval function (`submit-client-approval` inserts `category: "service"`), but the panel's three tabs only match `service_update` / `new_inquiry`, `message`, and `others` / `part_request`. So those approval alerts land in the bell's toast preview (which shows the newest unread of *any* type) and then vanish — they belong to no tab.
 
-## Changes
+2. **"Sometimes it's not really notifying"** — chat messages never create a notification row at all. `useMessaging` / `MessagingPanel` only insert into `messages`; nothing calls `createNotification` with type `message`. That is why the Messages tab is permanently empty and DMs never alert the recipient.
 
-**1. Stage fields follow the actual (saved) status**
+3. **The mobile error** — `useNotifications` calls `new window.Notification(title, ...)`. On Android Chrome (and mobile Chromium generally) that constructor throws `TypeError: Failed to construct 'Notification': Illegal constructor. Use ServiceWorkerRegistration.showNotification() instead.` It is unguarded, so it surfaces through the global error handler as a "notification" error.
 
-Keep the status-first gate: nothing appears until a new status is picked. But the fields that appear belong to the ticket's *current saved* stage, not the stage being moved into. So at Proceed Repair, picking Ongoing Service shows only the fields that belong to Proceed Repair — the parts section appears on the next visit, when the ticket actually sits at Ongoing Service. Same rule for every stage (diagnosis fields while at Pending Diagnosis, report fields while at Done Repair stages, remarks-only for closing statuses).
+4. **Secondary reliability gaps** — permission is requested on mount without a user gesture (silently denied on iOS/Safari, so nothing ever appears); the toast preview fires on any increase in unread count rather than on a genuinely new notification; and OneSignal push is skipped entirely on non-production hostnames (expected, but worth stating so preview behaviour isn't mistaken for a bug).
 
-**2. Parts search across all part fields**
+## Fix plan
 
-Make the search box actually filter, matching typed text against every useful field: Part ID, part name, brand, device type/category, model, part type, color, and supplier. Multiple words all have to match (e.g. "iphone 13 screen" finds it regardless of field order). Each result row shows name, ID, brand/model, color and stock so the right variant is easy to pick, and the same searchable dropdown is used for the "Add Part" selector. Selected parts stay visible regardless of search text; clearing the box restores the full list.
+**A. Make every notification land in a tab**
+- Normalize categories at read time in `src/lib/notifications.ts`: map unknown/legacy values (`service`, `status`, empty) onto the supported set, so old rows immediately appear under Services.
+- Change `submit-client-approval` to insert `category: "service_update"` and backfill the 10 existing `service` rows to `service_update`.
+- Add a catch-all in `NotificationDropdown`: anything not matching Messages or Others falls into Services, so no future category can ever be invisible.
 
-**3. Parts cost on Completed Services**
+**B. Notify on chat messages**
+- After a DM or group message is sent successfully, create `message`-type notification rows for the other thread members (using the thread membership already available), and route the push through the existing edge function so offline recipients get it too.
+- Clicking such a notification opens the messaging panel on that conversation (pass the thread id through `onOpenMessaging`).
 
-Read the stored parts cost and discount from the service record in the completed-services hook so the Parts Cost column, net sales, and commission math use real values.
+**C. Fix native notification display on mobile**
+- Replace the direct `new Notification(...)` call with a helper that prefers `serviceWorkerRegistration.showNotification()` when a registration exists, falls back to the constructor only when it's actually supported, and swallows failures in a `try/catch` so it can never bubble to the global error handler.
+- Request permission on a user gesture (opening the bell / first interaction) instead of on mount, so iOS/Safari can actually grant it.
 
-**4. Rename Completed Transactions → Completed Services**
-
-Rename across that page: heading, subtitle, tab/breadcrumb label, sidebar entry, command-palette entry, and any toast/empty-state copy. Route path stays the same so existing links and open tabs keep working.
+**D. Panel/preview correctness**
+- Trigger the toast preview off a genuinely new notification id (not off the unread count), so marking-as-read or a refetch can't spawn phantom popups.
+- Keep the badge count from the same normalized list the tabs render, so the badge can never disagree with what's visible.
 
 ## Technical notes
+- Realtime is already enabled for `notifications` with full replica identity and RLS allows recipients to read their own rows — no policy change needed.
+- Files touched: `src/lib/notifications.ts`, `src/hooks/useNotifications.ts`, `src/components/NotificationDropdown.tsx`, `src/hooks/useMessaging.ts`, `supabase/functions/submit-client-approval/index.ts`, plus one small data-backfill migration.
 
-- Service Update: replace `stageStatus = statusChanged ? updateStatus : ""` with `statusChanged ? savedStatus : ""`; visibility maps stay as-is. Required-field validation stays keyed to the fields actually shown.
-- Search: `partSearch` state + a shared token-matching helper over the inventory item fields (id, name, brand, deviceType, model, partType, color, supplier); used by both the selectable list and the Add Part dropdown.
-- `useDoneServices`: map `parts_cost` and `discount` instead of literal zeros.
-- Rename touches `CompletedTransactions.tsx`, `DashboardLayout.tsx`, `CommandPalette.tsx` (labels only). No schema changes needed.
+## Verification
+- Confirm the 10 previously invisible approval notifications appear under Services.
+- Send a DM between two accounts and confirm a Messages-tab entry plus alert on the recipient side.
+- Load the app on mobile viewport and confirm no notification-related runtime error is recorded.
