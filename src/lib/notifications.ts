@@ -182,6 +182,62 @@ export const findOrCreateDmThread = async (
   return data as unknown as string;
 };
 
+// Chat messages must also create in-app notifications, otherwise recipients
+// never learn about a new DM/group message unless the panel is already open.
+const messagePreview = (content: string): string => {
+  const text = (content || "")
+    .replace(/\[Image:[^\]]*\]/gi, "📷 sent an image")
+    .replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/gi, "📷 sent an image")
+    .trim();
+  if (!text) return "📷 sent an attachment";
+  return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+};
+
+export const notifyThreadMessage = async (
+  threadId: string,
+  senderId: string,
+  senderName: string,
+  content: string,
+): Promise<void> => {
+  try {
+    const { data: members } = await supabase
+      .from("chat_members")
+      .select("user_id")
+      .eq("thread_id", threadId);
+    const recipients = Array.from(
+      new Set((members ?? []).map((m: any) => m.user_id as string)),
+    ).filter((id) => id && id !== senderId);
+    if (!recipients.length) return;
+
+    const { data: thread } = await supabase
+      .from("chat_threads")
+      .select("name, is_group")
+      .eq("id", threadId)
+      .maybeSingle();
+
+    const title = thread?.is_group
+      ? `${senderName} in ${thread?.name || "Group chat"}`
+      : `New message from ${senderName}`;
+    const preview = messagePreview(content);
+
+    await supabase.from("notifications").insert(
+      recipients.map((id) => ({
+        recipient_id: id,
+        title,
+        message: preview,
+        category: "message",
+        thread_id: threadId,
+      })),
+    );
+
+    for (const id of recipients) {
+      sendPushNotification({ userId: id, title, message: preview, data: { threadId } });
+    }
+  } catch {
+    // Notification fan-out must never break message sending
+  }
+};
+
 export const sendMessage = async (
   message: Omit<Message, "id" | "createdAt" | "read">
 ): Promise<boolean> => {
@@ -203,7 +259,10 @@ export const sendMessage = async (
     sender_name: message.senderName,
     body: message.content,
   });
-  return !error;
+  if (error) return false;
+
+  void notifyThreadMessage(threadId, authUid, message.senderName, message.content);
+  return true;
 };
 
 export const markMessageRead = async (_messageId: string): Promise<boolean> => true;
