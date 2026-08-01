@@ -1,36 +1,33 @@
-## 1. Staff deletion failing ("Edge Function returned a non-2xx status code")
+# Editable service details + approval toggle on /manage-client
 
-Diagnosis is not yet confirmed — the delete path can fail at three different points and the current code turns all of them into an opaque 500. There are no foreign keys pointing at profiles/auth users in the database, so the likely culprit is the auth-user deletion itself or the profile delete being blocked by access rules (profile deletion is admin-only, and the AC Tech Admin account is now on the management role).
+## 1. Inline edit mode for Service Details
 
-Fix plan (`supabase/functions/manage-staff/index.ts` + `src/lib/userCredentials.ts` + `src/pages/StaffManagement.tsx`):
+Add an **Edit details** button in the "Service Details" card header, visible only to admin/management (`isAdminOrManagement` from `useAuth`).
 
-1. Make the delete action report the real cause: wrap each step (roles removal, profile removal, auth-user removal) and return a specific message instead of a generic 500.
-2. Graceful fallback: if the account can't be hard-deleted, deactivate it (status `inactive`, roles removed) and return success with a `soft: true` flag; the UI then shows "Staff deactivated (account could not be fully removed)". No more non-2xx for a recoverable case.
-3. Pass the stable user UUID from the staff list instead of the username when deleting, so the lookup can't miss.
-4. Surface the returned error text in the toast so any remaining failure is self-describing.
-5. Verify by deleting a test staff member end to end and reading the function logs.
+When active, the read-only rows switch to inputs, with **Save** / **Cancel** in the same header:
 
-## 2. "Client already approved" option at intake
+- Client: client name, Facebook Name/Instagram Username, contact number, email, address
+- Device: device type (select), brand/model, serial number, storage, color, device password
+- Intake meta: client type (select), priority (select), service/s, estimated time frame, estimated target date (date picker), device notes / condition checkboxes (Dents, Scratches, Missing Parts, Physical Damage, Important Files, No Power, Repair History)
 
-Goal: some tickets are pre-approved at intake, so they should never sit in **Waiting to Proceed** — after Confirmed Diagnosis they go straight to **Proceed Repair**.
+Not editable here (kept in the existing Update Client Information card): status, admin rep, technician, service cost, discount, final cost, service date.
 
-**Database**: add `auto_approve_diagnosis` (boolean, default false) to `services`.
+Save behavior:
+- Trim and length-limit text fields; validate email format when non-empty; numeric-safe target date.
+- Single update to the `services` row for the current `service_id`, then refresh the ticket and invalidate the services cache so tracker/dashboard reflect the change.
+- Write an activity log entry ("Updated service details") with the changed field names, using the existing activity logger and full-name convention.
+- Cancel restores the last saved values without writing.
 
-**Intake forms** (`src/pages/ServiceForm.tsx`, which also powers the queue "Complete Intake" modal):
-- New checkbox in the Client Acknowledgement block: "Client pre-approves the diagnosis and authorizes the service to proceed without a separate approval step." Saved to the new column on submit.
-- Shown for staff intake and the queue modal; hidden on the public `/intake` form (client-side self intake).
+## 2. Pre-approved diagnosis toggle
 
-**Ticket pages** (`src/pages/ManageClient.tsx`, `src/pages/ServiceUpdate.tsx`):
-- When the flag is set, remove **Waiting to Proceed** from the status dropdown entirely, and make the suggested next status after Confirmed Diagnosis be **Proceed Repair** (unblocked for these tickets).
-- Show a small badge on the ticket ("Pre-approved at intake") so staff know why the step is gone.
-- Keep the existing rule that a Service Quotation PDF must exist before leaving Confirmed Diagnosis.
-- Add a read-only/toggle display so admins can still see (and, for admins only, correct) the flag on the ticket.
+Add a **Client pre-approves diagnosis** switch in the same card (admin/management only), bound to the existing `auto_approve_diagnosis` column.
 
-**Public tracking page** (`src/pages/ServiceTracking.tsx`, `StatusProgressBar`, stage groupings):
-- Hide the Approve/Decline actions and drop the "Waiting" step from the progress track for pre-approved tickets.
-
-**Notifications**: skip the "waiting for client approval" alert for these tickets; the Confirmed Diagnosis → Proceed Repair transition notifies as usual.
+- Toggling it on: "Waiting to Proceed" stays hidden from the status list, `/track` hides the approve/decline buttons and drops that step.
+- Toggling it off: reverts the ticket to requiring client approval — "Waiting to Proceed" reappears in the status options and the approval buttons return on `/track`. Any previously stored `client_approved_at` is cleared so the client must approve again.
+- Confirmation prompt when turning it off while the ticket is already past "Confirmed Diagnosis", noting the client will need to approve again.
 
 ## Technical notes
-- Status list stays unchanged in `src/lib/constants.ts`; filtering happens per-ticket at render time.
-- Existing tickets default to `false`, so current behavior is untouched.
+
+- All work is in `src/pages/ManageClient.tsx` plus a small edit-form section component; data write goes through the existing services update path in `src/hooks/useServices.ts` (extend the update mapping with any of the above fields not yet handled, e.g. `client_type`, `priority`, `device_password`, `conditions`, `auto_approve_diagnosis`, `client_approved_at`).
+- Existing RLS already lets admin/management update `services`; no migration needed.
+- Gate the whole edit affordance behind `isAdminOrManagement` so technicians see the current read-only view.

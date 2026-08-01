@@ -3,7 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
-import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
+
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
 import { Button } from "@/components/ui/button";
@@ -263,6 +266,62 @@ const ManageClient = () => {
   const [discountValue, setDiscountValue] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
+
+  const handleToggleAutoApprove = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingAutoApprove) return;
+
+    if (!next && serviceData.status && serviceData.status !== "Pending Diagnosis" && serviceData.status !== "Confirmed Diagnosis") {
+      const confirmed = window.confirm(
+        "This ticket is already past diagnosis. Turning pre-approval off means the client will need to approve the diagnosis again on the tracking page. Continue?",
+      );
+      if (!confirmed) return;
+    }
+
+    setIsTogglingAutoApprove(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({
+          auto_approve_diagnosis: next,
+          ...(next ? {} : { client_approved_at: null }),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+
+      setServiceData((prev: any) => (prev ? { ...prev, autoApproveDiagnosis: next } : prev));
+      if (!next && updateStatus === "Proceed Repair" && serviceData.status === "Confirmed Diagnosis") {
+        setUpdateStatus("Waiting to Proceed");
+      }
+
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next
+          ? "Diagnosis pre-approval enabled (client approval skipped)"
+          : "Diagnosis pre-approval disabled (client approval required)",
+      });
+
+      toast({
+        title: next ? "Pre-approval enabled" : "Approval required",
+        description: next
+          ? "This ticket skips the client approval stage."
+          : "The client must approve the diagnosis on the tracking page.",
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the approval setting.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingAutoApprove(false);
+    }
+  };
+
 
   const fetchApiKey = async () => {
     try {
@@ -1336,8 +1395,17 @@ const ManageClient = () => {
             {/* Client Information */}
             <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
               <CardHeader className="border-b border-border/50">
-                <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
+                  {canEditAdminRep && !isEditingDetails && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit details
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
@@ -1409,7 +1477,36 @@ const ManageClient = () => {
 
                 <Separator />
 
+                {canEditAdminRep && (
+                  <div className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-background/60 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Client pre-approves diagnosis</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceData.autoApproveDiagnosis
+                          ? "Approval skipped — ticket moves straight to Proceed Repair."
+                          : "Client must approve the diagnosis on the tracking page."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!serviceData.autoApproveDiagnosis}
+                      disabled={isTogglingAutoApprove}
+                      onCheckedChange={handleToggleAutoApprove}
+                    />
+                  </div>
+                )}
+
+                {isEditingDetails && canEditAdminRep ? (
+                <ServiceDetailsEditor
+                  serviceData={serviceData}
+                  onCancel={() => setIsEditingDetails(false)}
+                  onSaved={() => {
+                    setIsEditingDetails(false);
+                    handleSearch();
+                  }}
+                />
+                ) : (
                 <div className="grid gap-4">
+
                   <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Type:</h3>
                     <p className="text-lg">{serviceData.clientType || "N/A"}</p>
@@ -1563,6 +1660,8 @@ const ManageClient = () => {
                     <p className="text-lg">{serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : "N/A"}</p>
                   </div>
                 </div>
+                )}
+
               </CardContent>
             </Card>
 
