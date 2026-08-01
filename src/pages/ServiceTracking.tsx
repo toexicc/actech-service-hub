@@ -669,11 +669,12 @@ const ServiceTracking = () => {
           const offPath = OFF_PATH[currentStatus];
           const statusToStep = (s: string): number => {
             if (!s) return 1;
-            // Merge Ongoing Service into Proceed Repair step
-            if (s === "Ongoing Service") return 4;
-            const idx = STEPS.findIndex((x) => x.full === s);
+            // Merge Ongoing Service into the Proceed Repair step
+            const target = s === "Ongoing Service" ? "Proceed Repair" : s;
+            const idx = STEPS.findIndex((x) => x.full === target);
             return idx >= 0 ? idx + 1 : 1;
           };
+
           const stepIdx = statusToStep(currentStatus);
           const totalCost = Number(serviceData.finalCost || serviceData.serviceCost || 0);
           const totals = derivePaymentTotals(
