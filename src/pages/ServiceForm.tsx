@@ -33,6 +33,9 @@ import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureClient } from "@/hooks/useClients";
 
+const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
+const SPECIAL_CASE_DEPARTMENT = "Special Cases";
+
 const buildFormSchema = (isPublic: boolean) => z.object({
   clientId: z.string().optional(),
   adminRep: isPublic ? z.string().optional() : z.string().min(1, "Admin Representative is required"),
@@ -137,12 +140,19 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const adminList = useMemo(() => adminStaffOptions.map((staff) => staff.value), [adminStaffOptions]);
   const receivingStaffOptions = adminStaffOptions;
 
-  const technicianList = staffData
-    .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() !== "inactive")
-    .map((staff) => ({
-      name: staff.name,
-      department: staff.department || ""
-    }));
+  const technicianList = [
+    { name: SPECIAL_CASE_TECHNICIAN, department: SPECIAL_CASE_DEPARTMENT },
+    ...staffData
+      .filter((staff) =>
+        staff.role?.toLowerCase() === "technician" &&
+        staff.status?.toLowerCase() !== "inactive" &&
+        staff.name !== SPECIAL_CASE_TECHNICIAN
+      )
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || ""
+      })),
+  ];
 
   // Get logged-in user's full name for admin auto-select
   const loggedInUserFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "";
@@ -972,6 +982,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   // none is selected yet, offer all departments that have techs.
                   const deptOptions = Array.from(new Set(technicianList.map((t) => t.department).filter(Boolean)))
                     .filter((dept) => {
+                      if (dept === SPECIAL_CASE_DEPARTMENT) return true;
                       if (!deviceType) return true;
                       const allowed = DEVICE_TYPES_BY_DEPARTMENT[dept] || [];
                       return allowed.includes(deviceType) || dept === "Others";
@@ -1144,7 +1155,9 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     const availableDeviceTypes = selectedTechDepartments.length > 0
                       ? Array.from(new Set(
                           selectedTechDepartments.flatMap(dept =>
-                            DEVICE_TYPES_BY_DEPARTMENT[dept] || []
+                            dept === SPECIAL_CASE_DEPARTMENT
+                              ? [...DEVICE_TYPES]
+                              : DEVICE_TYPES_BY_DEPARTMENT[dept] || []
                           )
                         ))
                       : DEVICE_TYPES;
