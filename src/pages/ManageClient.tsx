@@ -1283,7 +1283,7 @@ const ManageClient = () => {
         {/* Service Details and Update Form */}
         {serviceData && (
           <div className="space-y-8">
-          <TicketWorkspaceHero service={serviceData} />
+          <TicketWorkspaceHero service={serviceData} showShare />
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
             clientName={serviceData.clientName || ""}

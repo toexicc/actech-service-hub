@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { STATUS_OPTIONS } from "@/lib/constants";
+
 import {
   User,
   Wrench,
@@ -13,7 +15,10 @@ import {
 
 interface TicketWorkspaceHeroProps {
   service: any;
+  /** Show the copy-link + QR share actions beside the ticket ID. */
+  showShare?: boolean;
 }
+
 
 const STAGE_MAP: Record<string, { stage: string; tone: string; next: string }> = {
   "Pending Diagnosis": { stage: "Intake", tone: "bg-warning/15 text-warning border-warning/30", next: "Run the diagnostic and generate the intake form." },
@@ -37,7 +42,7 @@ const currency = (n: any) => {
   return `₱${v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export function TicketWorkspaceHero({ service }: TicketWorkspaceHeroProps) {
+export function TicketWorkspaceHero({ service, showShare = false }: TicketWorkspaceHeroProps) {
   if (!service) return null;
   const status = service.status || "Pending Diagnosis";
   const info = STAGE_MAP[status] || STAGE_MAP["Pending Diagnosis"];
@@ -75,9 +80,15 @@ export function TicketWorkspaceHero({ service }: TicketWorkspaceHeroProps) {
               </Badge>
               <span className="text-xs text-muted-foreground">Ticket</span>
             </div>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
-              {service.serviceId || "—"}
-            </h2>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
+                {service.serviceId || "—"}
+              </h2>
+              {showShare && service.serviceId && (
+                <TrackingShareActions serviceId={service.serviceId} />
+              )}
+            </div>
+
             <p className="mt-1 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{service.clientName || "—"}</span>
               {service.contactNumber ? <> • {service.contactNumber}</> : null}
