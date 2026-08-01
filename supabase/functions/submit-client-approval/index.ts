@@ -128,7 +128,7 @@ serve(async (req) => {
           .map((p: any) => ({
             recipient_id: p.id,
             recipient_name: p.name,
-            category: "service",
+            category: "service_update",
             title: approved
               ? `Service ${serviceId}: Proceed Repair`
               : `Service ${serviceId} Declined`,
