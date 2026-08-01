@@ -1300,17 +1300,22 @@ const ManageClient = () => {
             status={serviceData.status}
             serviceId={serviceData.serviceId}
 
-            guidance={getStatusGuidance(
-              serviceData.status || "",
-              {
-                serviceId: serviceData.serviceId || "",
-                clientName: serviceData.clientName || "",
-                technician: serviceData.technician ?? "",
-                adminRep: serviceData.adminRep,
-                device: serviceData.device || serviceData.deviceType,
-              },
-              "admin",
-            )}
+            guidance={
+              serviceData.autoApproveDiagnosis && serviceData.status === "Confirmed Diagnosis"
+                ? "Client pre-approved the diagnosis at intake — generate the quotation, then move straight to Proceed Repair."
+                : getStatusGuidance(
+                    serviceData.status || "",
+                    {
+                      serviceId: serviceData.serviceId || "",
+                      clientName: serviceData.clientName || "",
+                      technician: serviceData.technician ?? "",
+                      adminRep: serviceData.adminRep,
+                      device: serviceData.device || serviceData.deviceType,
+                    },
+                    "admin",
+                  )
+            }
+
             technician={serviceData.technician}
             adminRep={serviceData.adminRep}
             receivingStaff={(serviceData as any).receivingStaff}
