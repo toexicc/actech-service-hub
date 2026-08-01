@@ -47,7 +47,7 @@ export function WorkbenchOutlet() {
   // Ensure each open tab whose path is a workbench route has an entry.
   for (const t of tabs) {
     if (cacheRef.current.has(t.path)) continue;
-    const r = findWorkbenchRoute(t.path);
+    const r = findWorkbenchRoute(t.path.split("?")[0]);
     if (r) cacheRef.current.set(t.path, r.element);
   }
 
