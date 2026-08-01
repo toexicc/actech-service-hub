@@ -489,7 +489,7 @@ const ServiceTracking = () => {
   ];
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
-  const isWaitingToProceed = serviceData?.status === "Waiting to Proceed";
+  const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
   const approvalRecord = (() => {
     const notes: string = serviceData?.adminNotes || "";
     // Match "Approved/Declined by <name> on <date>" where the date may contain colons.
