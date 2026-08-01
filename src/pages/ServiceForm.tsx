@@ -1088,7 +1088,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username:</FormLabel>
+                      <FormLabel>Facebook Name/Instagram Username:</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>

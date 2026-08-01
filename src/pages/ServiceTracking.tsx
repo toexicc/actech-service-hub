@@ -1111,7 +1111,7 @@ const ServiceTracking = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Username:</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Facebook Name/Instagram Username:</h3>
                   <p className="text-lg">{customerData.username || "N/A"}</p>
                 </div>
 

@@ -1596,18 +1596,31 @@ const ManageClient = () => {
                     options={(() => {
                       // Filter technicians based on device type
                       const deviceType = serviceData?.deviceType;
-                      
+
+                      // Always available for special cases, regardless of device type / department
+                      const SPECIAL_CASE_TECH = "John Paul Espedido";
+                      const specialOption = {
+                        label: SPECIAL_CASE_TECH,
+                        value: SPECIAL_CASE_TECH,
+                        group: "Special Cases",
+                      };
+                      const toOption = (tech: { name: string; department: string }) => ({
+                        label: tech.name,
+                        value: tech.name,
+                        group: tech.department,
+                      });
+                      const withSpecial = (opts: { label: string; value: string; group: string }[]) => [
+                        specialOption,
+                        ...opts.filter((o) => o.value !== SPECIAL_CASE_TECH),
+                      ];
+
                       // Check if device type is in the predefined list
                       const isPreDefinedDeviceType = deviceType && 
                         (DEVICE_TYPES as readonly string[]).includes(deviceType);
                       
                       // If no device type or custom device (not in predefined list), show all technicians
                       if (!deviceType || !isPreDefinedDeviceType) {
-                        return technicians.map(tech => ({
-                          label: tech.name,
-                          value: tech.name,
-                          group: tech.department
-                        }));
+                        return withSpecial(technicians.map(toOption));
                       }
                       
                       // Filter by department only for predefined device types
@@ -1616,11 +1629,7 @@ const ManageClient = () => {
                         return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
                       });
                       
-                      return filteredTechs.map(tech => ({
-                        label: tech.name,
-                        value: tech.name,
-                        group: tech.department
-                      }));
+                      return withSpecial(filteredTechs.map(toOption));
                     })()}
                     selected={updateTechnician ? updateTechnician.split(", ") : []}
                     onChange={(values) => setUpdateTechnician(values.join(", "))}
