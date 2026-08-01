@@ -357,7 +357,9 @@ export const sendGroupMessage = async (
     sender_name: senderName,
     body: content,
   });
-  return !error;
+  if (error) return false;
+  void notifyThreadMessage(groupId, authUid, senderName, content);
+  return true;
 };
 
 export const addGroupMember = async (

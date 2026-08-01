@@ -27,41 +27,49 @@ const playNotificationSound = () => {
   }
 };
 
-// Request browser notification permission
+// Request browser notification permission (must be called from a user gesture
+// on iOS/Safari, otherwise the request is silently denied).
 const requestNotificationPermission = async () => {
-  if (!('Notification' in window)) {
-    return false;
-  }
-  
-  if (window.Notification.permission === 'granted') {
-    return true;
-  }
-  
-  if (window.Notification.permission !== 'denied') {
+  try {
+    if (!('Notification' in window)) return false;
+    if (window.Notification.permission === 'granted') return true;
+    if (window.Notification.permission === 'denied') return false;
     const permission = await window.Notification.requestPermission();
     return permission === 'granted';
+  } catch {
+    return false;
   }
-  
-  return false;
 };
 
-// Show browser notification
-const showBrowserNotification = (title: string, body: string, icon?: string) => {
-  if (window.Notification && window.Notification.permission === 'granted') {
-    const notification = new window.Notification(title, {
+// Show a native notification.
+// Mobile Chromium throws "Illegal constructor" for `new Notification(...)`,
+// so prefer the service worker registration and guard every path.
+const showBrowserNotification = async (title: string, body: string, icon?: string) => {
+  try {
+    if (!('Notification' in window) || window.Notification.permission !== 'granted') return;
+
+    const options: NotificationOptions = {
       body,
       icon: icon || '/ac-tech-logo-pdf.png',
       tag: 'ac-tech-notification',
-    });
-    
-    // Auto close after 15 seconds for better visibility in PWA
+    };
+
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && typeof reg.showNotification === 'function') {
+        await reg.showNotification(title, options);
+        return;
+      }
+    }
+
+    const notification = new window.Notification(title, options);
     setTimeout(() => notification.close(), 15000);
-    
-    // Focus window when clicked
     notification.onclick = () => {
       window.focus();
       notification.close();
     };
+  } catch {
+    // Native notifications are best-effort; never surface as a runtime error
   }
 };
 
