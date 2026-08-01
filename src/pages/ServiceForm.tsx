@@ -550,7 +550,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const hours = String(now.getHours()).padStart(2, "0");
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
-      const finalServiceId = serviceId || generateServiceId();
+      const finalServiceId = serviceId || (await allocateServiceId());
 
       // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateServicePDF({
