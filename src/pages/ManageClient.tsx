@@ -1336,8 +1336,17 @@ const ManageClient = () => {
             {/* Client Information */}
             <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
               <CardHeader className="border-b border-border/50">
-                <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
+                  {canEditAdminRep && !isEditingDetails && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit details
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
