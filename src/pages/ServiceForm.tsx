@@ -1685,6 +1685,29 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                 {!isPublic && (
                 <FormField
                   control={form.control}
+                  name="autoApproveDiagnosis"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start space-x-2 space-y-0 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="flex-1">
+                        <FormLabel className="!mt-0 text-sm">
+                          Client pre-approves the diagnosis — proceed with the repair without a separate approval step.
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          When checked, this ticket skips the "Waiting to Proceed" status and moves straight to Proceed Repair.
+                        </p>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                )}
+
+                {!isPublic && (
+                <FormField
+                  control={form.control}
                   name="physicalSignature"
                   render={({ field }) => (
                     <FormItem className="flex items-start space-x-2 space-y-0">
