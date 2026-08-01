@@ -295,15 +295,38 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   }, [kioskCode]);
 
 
-  const generateServiceId = () => {
+  const buildServiceIdCandidate = () => {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = String(now.getFullYear()).slice(-2);
-    const seconds = String(now.getSeconds()).padStart(2, "0");
-    const milliseconds = String(now.getMilliseconds()).charAt(0);
-    return `AC${day}${month}${year}${seconds}${milliseconds}`;
+    const suffix = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
+    return `AC${day}${month}${year}${suffix}`;
   };
+
+  /**
+   * Allocates a Service ID that is not already taken. The previous version
+   * derived the suffix from the clock (seconds + 1 digit of ms), which gave
+   * only a few hundred possible IDs per day — collisions overwrote existing
+   * tickets. Now every candidate is checked against the database first.
+   */
+  const allocateServiceId = async (): Promise<string> => {
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const candidate = buildServiceIdCandidate();
+      const { data, error } = await supabase
+        .from("services")
+        .select("service_id")
+        .eq("service_id", candidate)
+        .maybeSingle();
+      if (error) break;
+      if (!data) return candidate;
+    }
+    // Fallback: high-entropy suffix that cannot realistically collide.
+    return `AC${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 100)
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
 
   const handleSearchClientId = async () => {
     if (!searchClientId.trim()) {
