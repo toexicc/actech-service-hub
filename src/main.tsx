@@ -77,24 +77,44 @@ function installGlobalErrorHandlers() {
     return;
   }
 
-  const [appModule, errorBoundaryModule, oneSignalModule, bridgeModule] =
-    await Promise.all([
-      import("./App.tsx"),
-      import("@/components/AppErrorBoundary"),
-      import("./lib/onesignal"),
-      import("@/lib/bridgeFetchInterceptor"),
-    ]);
+  // Retry dynamic imports once: a dev-server restart / redeploy can make the
+  // first chunk request fail, which previously left a blank screen.
+  const importWithRetry = async <T,>(load: () => Promise<T>): Promise<T> => {
+    try {
+      return await load();
+    } catch {
+      await new Promise((r) => setTimeout(r, 600));
+      return await load();
+    }
+  };
+
+  const [appModule, errorBoundaryModule] = await Promise.all([
+    importWithRetry(() => import("./App.tsx")),
+    importWithRetry(() => import("@/components/AppErrorBoundary")),
+  ]);
 
   const App = appModule.default;
   const AppErrorBoundary = errorBoundaryModule.default;
-  bridgeModule.installBridgeAuthInterceptor();
+
+  // Non-critical modules must never block rendering.
+  try {
+    const bridgeModule = await importWithRetry(() => import("@/lib/bridgeFetchInterceptor"));
+    bridgeModule.installBridgeAuthInterceptor();
+  } catch {
+    // continue without the auth interceptor
+  }
 
   // If a legacy PWA service worker was previously installed, unregister it.
   // This prevents the browser from repeatedly requesting /sw.js (now removed).
   await cleanupLegacyPwaServiceWorker();
 
   // Initialize OneSignal for push notifications
-  oneSignalModule.initOneSignal();
+  try {
+    const oneSignalModule = await importWithRetry(() => import("./lib/onesignal"));
+    oneSignalModule.initOneSignal();
+  } catch {
+    // push notifications unavailable
+  }
 
   createRoot(rootElement).render(
     <AppErrorBoundary>
