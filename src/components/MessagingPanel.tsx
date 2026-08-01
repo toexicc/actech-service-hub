@@ -60,7 +60,7 @@ interface MessagingPanelProps {
 }
 
 export interface MessagingPanelRef {
-  openPanel: () => void;
+  openPanel: (conversationId?: string) => void;
 }
 
 interface PendingMessage {
@@ -115,10 +115,49 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
   const [readReceipts, setReadReceipts] = useState<Record<string, ReadReceipt[]>>({});
   const [loadingReceipts, setLoadingReceipts] = useState(false);
 
+  const [pendingThreadId, setPendingThreadId] = useState<string | null>(null);
+
   // Expose openPanel method via ref
   useImperativeHandle(ref, () => ({
-    openPanel: () => setIsSheetOpen(true),
+    openPanel: (conversationId?: string) => {
+      setIsSheetOpen(true);
+      if (conversationId) setPendingThreadId(conversationId);
+    },
   }), []);
+
+  // Resolve a thread id coming from a notification into the matching conversation
+  useEffect(() => {
+    if (!pendingThreadId || !isSheetOpen) return;
+    let cancelled = false;
+
+    (async () => {
+      if (groupChats.some((g) => g.id === pendingThreadId)) {
+        setSelectedGroupId(pendingThreadId);
+        setSelectedConversation(null);
+        setPendingThreadId(null);
+        return;
+      }
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data } = await supabase
+          .from('chat_members')
+          .select('user_id')
+          .eq('thread_id', pendingThreadId);
+        const partner = (data ?? []).map((m: any) => m.user_id).find((id: string) => id !== userId);
+        if (!cancelled && partner) {
+          setSelectedGroupId(null);
+          setSelectedConversation(partner);
+        }
+      } catch {
+        // fall back to just opening the panel
+      }
+      if (!cancelled) setPendingThreadId(null);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingThreadId, isSheetOpen, groupChats, userId]);
 
   useEffect(() => {
     if (!isSheetOpen) return;
