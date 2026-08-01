@@ -122,10 +122,9 @@ const Menu = () => {
         ? filterAssigned(everything, userFullName, sessionStorage.getItem("username"))
         : everything;
 
-      const ongoing = services.filter((s: any) => {
-        const status = s.status?.toLowerCase() || "";
-        return !status.includes("completed") && !status.includes("cancelled");
-      }).length;
+      // Active = still in the workflow (excludes Completed and Cancelled/RTO/On Hold),
+      // exactly what the Service Tracker "Ongoing" tab shows.
+      const activeServices = services.filter((s: any) => classifyStatus(s.status) === "active");
 
       // Accepts ISO (YYYY-MM-DD) and MM/DD/YYYY target dates
       const parseTarget = (targetDate: string | undefined) => {
@@ -137,27 +136,26 @@ const Menu = () => {
         return date;
       };
 
-      // Services due today
-      const dueToday = services.filter((s: any) => {
-        const status = s.status?.toLowerCase() || "";
-        if (status.includes("completed") || status.includes("cancelled")) return false;
+      // Services due today (active only)
+      const dueToday = activeServices.filter((s: any) => {
         const target = parseTarget(s.targetDate);
         return target && isSameDay(target, today);
       });
 
-      // Overdue services
-      const overdue = services.filter((s: any) => {
-        const status = s.status?.toLowerCase() || "";
-        if (status.includes("completed") || status.includes("cancelled")) return false;
+      // Overdue services (active only)
+      const overdue = activeServices.filter((s: any) => {
         const target = parseTarget(s.targetDate);
         return target && isBefore(target, today);
       });
 
-      const completed = services.filter((s: any) => {
-        const status = s.status?.toLowerCase() || "";
-        return status.includes("completed");
+      // Completed today
+      const completedToday = services.filter((s: any) => {
+        if (classifyStatus(s.status) !== "completed") return false;
+        const raw = s.dateCompleted || s.lastUpdated;
+        if (!raw) return false;
+        const d = new Date(raw);
+        return !isNaN(d.getTime()) && isSameDay(startOfDay(d), today);
       }).length;
-
 
       // Pending inquiries
       const pendingInquiries =
@@ -171,21 +169,23 @@ const Menu = () => {
       return {
         stats: {
           pendingInquiries,
-          ongoingServices: ongoing,
+          activeServices: activeServices.length,
+          dueTodayServices: dueToday.length,
           overdueServices: overdue.length,
-          completedServices: completed,
+          completedToday,
         },
         servicesDueToday: dueToday.slice(0, 5),
         servicesOverdue: overdue.slice(0, 5),
       };
     } catch {
       return {
-        stats: { pendingInquiries: 0, ongoingServices: 0, overdueServices: 0, completedServices: 0 },
+        stats: { pendingInquiries: 0, activeServices: 0, dueTodayServices: 0, overdueServices: 0, completedToday: 0 },
         servicesDueToday: [],
         servicesOverdue: [],
       };
     }
   }, [allServices, completedServices, inquiriesData, isTechnician, userFullName]);
+
 
   // Parts for ordering (management only)
   const partsForOrdering = useMemo(() => {
