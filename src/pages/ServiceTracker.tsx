@@ -117,21 +117,36 @@ const ServiceTracker = () => {
       }));
   }, [staffList]);
 
-  // Handle URL params for status filter (from dashboard clicks)
+  // Handle URL params for status filter / tab (from dashboard clicks)
   useEffect(() => {
     const urlStatusFilter = searchParams.get('statusFilter');
     const urlStatus = searchParams.get('status');
+    const urlTab = searchParams.get('tab');
+    if (!urlStatusFilter && !urlStatus && !urlTab) return;
+
+    const next = new URLSearchParams(searchParams);
+    if (urlTab && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(urlTab)) {
+      setActiveTab(urlTab as TrackerTab);
+      next.delete('tab');
+    }
     if (urlStatusFilter) {
       setDueDateFilter(urlStatusFilter);
-      searchParams.delete('statusFilter');
-      setSearchParams(searchParams, { replace: true });
+      // Due-today / overdue only make sense for tickets still in the workflow.
+      if (!urlTab) setActiveTab("ongoing");
+      next.delete('statusFilter');
     }
     if (urlStatus) {
       setStatusFilter(urlStatus);
-      searchParams.delete('status');
-      setSearchParams(searchParams, { replace: true });
+      if (!urlTab) {
+        const cls = classifyStatus(urlStatus);
+        setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+      }
+      next.delete('status');
     }
+    setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
+
+
 
   // Identify the logged-in technician from the authenticated profile (the old
   // sessionStorage lookup compared a full name against an email and never matched).
@@ -621,15 +636,18 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         }
       }
 
-      // Tab filter
-      const completed = isCompletedStatus(service.status);
-      const closed = isClosedStatus(service.status);
-      if (activeTab === "ongoing" && (completed || closed)) return false;
-      if (activeTab === "completed" && !completed) return false;
-      if (activeTab === "closed" && !closed) return false;
+      // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
+      // the "All" and "Cancelled / RTO / On Hold" tabs. They never leak into
+      // Within the Day, Walk In, Ongoing or Completed.
+      const cls = classifyStatus(service.status);
+      if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
+      if (activeTab === "ongoing" && cls !== "active") return false;
+      if (activeTab === "completed" && cls !== "completed") return false;
+      if (activeTab === "closed" && cls !== "closed") return false;
       if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
       if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
       // "all" — no additional filter
+
 
       // Status filter
       if (statusFilter !== "all" && service.status !== statusFilter) {
