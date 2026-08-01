@@ -784,11 +784,16 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const isResponseOk = true;
 
       if (isResponseOk) {
+        // Make the new ticket appear everywhere immediately (tracker, dashboards).
+        queryClient.invalidateQueries({ queryKey: ["services"] });
+        queryClient.invalidateQueries({ queryKey: ["techServices"] });
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
         // Show success immediately - don't wait for notifications/logging
         toast({
           title: "Success",
           description: `Service form submitted successfully! Service ID: ${finalServiceId}`,
         });
+
         form.reset();
         setServiceId("");
         setTermsRead(false);
