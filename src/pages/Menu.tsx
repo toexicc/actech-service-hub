@@ -224,72 +224,44 @@ const Menu = () => {
     }
   };
 
-  // Role-based stat cards
   const getStatCards = () => {
-    if (isTechnician) {
-      return [
-        {
-          title: "My Ongoing Services",
-          value: stats.ongoingServices,
-          icon: Wrench,
-          color: "text-primary",
-          bgColor: "bg-primary/10",
-          onClick: () => navigate("/service-tracker?status=Ongoing Service"),
-        },
-        {
-          title: "My Overdue Services",
-          value: stats.overdueServices,
-          icon: AlertTriangle,
-          color: "text-destructive",
-          bgColor: "bg-destructive/10",
-          onClick: () => navigate("/service-tracker?statusFilter=overdue"),
-        },
-        {
-          title: "My Completed Services",
-          value: stats.completedServices,
-          icon: CheckCircle,
-          color: "text-success",
-          bgColor: "bg-success/10",
-          onClick: () => navigate("/service-tracker?status=Completed"),
-        },
-      ];
-    }
-
+    const prefix = isTechnician ? "My " : "";
     return [
       {
-        title: "Ongoing Services",
-        value: stats.ongoingServices,
+        title: `${prefix}Active Services`,
+        value: stats.activeServices,
         icon: Wrench,
         color: "text-primary",
         bgColor: "bg-primary/10",
-        onClick: () => navigate("/service-tracker?status=Ongoing Service"),
+        onClick: () => navigate("/service-tracker?tab=ongoing"),
       },
       {
-        title: "Ongoing Services",
-        value: stats.ongoingServices,
-        icon: Wrench,
-        color: "text-primary",
-        bgColor: "bg-primary/10",
-        onClick: () => navigate("/service-tracker?status=Ongoing Service"),
+        title: `${prefix}Due Today`,
+        value: stats.dueTodayServices,
+        icon: Clock,
+        color: "text-warning",
+        bgColor: "bg-warning/10",
+        onClick: () => navigate("/service-tracker?tab=ongoing&statusFilter=today"),
       },
       {
-        title: "Overdue Services",
+        title: `${prefix}Overdue Services`,
         value: stats.overdueServices,
         icon: AlertTriangle,
         color: "text-destructive",
         bgColor: "bg-destructive/10",
-        onClick: () => navigate("/service-tracker?statusFilter=overdue"),
+        onClick: () => navigate("/service-tracker?tab=ongoing&statusFilter=overdue"),
       },
       {
-        title: "Completed Services",
-        value: stats.completedServices,
+        title: `${prefix}Completed Today`,
+        value: stats.completedToday,
         icon: CheckCircle,
         color: "text-success",
         bgColor: "bg-success/10",
-        onClick: () => navigate("/service-tracker?status=Completed"),
+        onClick: () => navigate("/service-tracker?tab=completed"),
       },
     ];
   };
+
 
   // Role-based quick actions
   const getQuickActions = () => {
