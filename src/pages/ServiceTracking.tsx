@@ -647,16 +647,18 @@ const ServiceTracking = () => {
 
         {/* Service Details – Fixy two-column layout */}
         {serviceData && (() => {
+          const autoApproved = !!serviceData.autoApproveDiagnosis;
           const STEPS = [
             { key: "pending", label: "Pending", full: "Pending Diagnosis" },
             { key: "confirmed", label: "Confirmed", full: "Confirmed Diagnosis" },
-            { key: "waiting", label: "Waiting", full: "Waiting to Proceed" },
+            ...(autoApproved ? [] : [{ key: "waiting", label: "Waiting", full: "Waiting to Proceed" }]),
             { key: "repair", label: "Repair", full: "Proceed Repair" },
             { key: "observation", label: "Observation", full: "Done Repair - Under Observation" },
             { key: "release", label: "For Release", full: "Done Repair - For Release" },
             { key: "advise", label: "Advise Client", full: "Done Repair - Advise Client" },
             { key: "completed", label: "Completed", full: "Completed" },
           ];
+
           const OFF_PATH: Record<string, { label: string; tone: string }> = {
             "Backjob": { label: "Backjob", tone: "bg-destructive/15 text-destructive border-destructive/30" },
             "RTO": { label: "RTO", tone: "bg-muted text-muted-foreground border-border" },
