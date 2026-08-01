@@ -202,6 +202,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       ack1: false,
       ack2: false,
       ack3: false,
+      autoApproveDiagnosis: false,
+
       physicalSignature: false,
       enablePhotoAnnotation: false,
       annotationDeviceType: "",
