@@ -45,25 +45,6 @@ const MODES_OF_PAYMENT = [
   "Installment",
 ];
 
-// Pull the "SUMMARY:" section out of the AI diagnosis text.
-const parseSummaryFromDiagnosis = (diagnosis: string): string => {
-  if (!diagnosis) return "";
-  const lines = diagnosis.split(/\r?\n/);
-  const startIdx = lines.findIndex((l) => /^\s*summary\s*:?/i.test(l));
-  if (startIdx === -1) return "";
-  const first = lines[startIdx].replace(/^\s*summary\s*:?/i, "").trim();
-  const out: string[] = first ? [first] : [];
-  for (let i = startIdx + 1; i < lines.length; i++) {
-    const raw = lines[i].trim();
-    if (!raw) {
-      if (out.length) break;
-      continue;
-    }
-    if (/^(to proceed|service breakdown|recommendations|writing rules)/i.test(raw)) break;
-    out.push(raw);
-  }
-  return out.join("\n");
-};
 
 
 // Merge Supabase migrated fields over sheet data so public tracking shows
