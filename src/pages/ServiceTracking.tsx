@@ -1088,6 +1088,42 @@ const ServiceTracking = () => {
                         <a href={shopDirections} target="_blank" rel="noreferrer">Get directions</a>
                       </Button>
                     </div>
+
+                    <Separator />
+
+                    {/* Social links */}
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Follow us</p>
+                      <div className="flex flex-wrap gap-2">
+                        {SOCIAL_LINKS.map((link) => (
+                          <a
+                            key={link.name}
+                            href={link.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={link.name}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+                          >
+                            {link.icon}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Contact action buttons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <Button asChild variant="outline" className="rounded-xl">
+                        <a href={CONTACT_LINKS.facebook} target="_blank" rel="noreferrer">
+                          Message us on FB
+                        </a>
+                      </Button>
+                      <Button asChild variant="outline" className="rounded-xl">
+                        <a href={CONTACT_LINKS.email}>Email us</a>
+                      </Button>
+                      <Button asChild variant="outline" className="rounded-xl">
+                        <a href={CONTACT_LINKS.phone}>Contact us</a>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
