@@ -756,6 +756,7 @@ const ServiceUpdate = () => {
       }
 
       // Mirror critical updates to Supabase (source of truth)
+      const saveStamp = new Date().toISOString();
       const { data: updatedRows, error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
@@ -771,8 +772,11 @@ const ServiceUpdate = () => {
         parts_cost: actualCost,
         discount: discountAmount,
         final_cost: finalCost,
-        last_updated: new Date().toISOString(),
+        last_updated: saveStamp,
       }).eq("service_id", serviceId).select("service_id");
+      // Don't let our own write raise the "updated elsewhere" banner.
+      syncBaseline(saveStamp);
+
 
       // A policy mismatch returns no error but affects zero rows — treat as failure.
       const noRowsUpdated = !sbUpdateError && (updatedRows?.length ?? 0) === 0;
