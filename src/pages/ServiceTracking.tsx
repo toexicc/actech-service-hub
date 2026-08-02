@@ -788,8 +788,16 @@ const ServiceTracking = () => {
 
                     <Separator />
 
-                    {/* Device + complaint */}
+                    {/* Client + device + complaint */}
                     <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Client ID</p>
+                        <p className="text-base font-medium mt-0.5 font-mono">{serviceData.clientId || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Client Name</p>
+                        <p className="text-base font-medium mt-0.5">{serviceData.clientName || "N/A"}</p>
+                      </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Device</p>
                         <p className="text-base font-medium mt-0.5">{serviceData.device || "N/A"}</p>
