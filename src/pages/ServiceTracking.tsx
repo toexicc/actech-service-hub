@@ -1134,6 +1134,24 @@ const ServiceTracking = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
                         <div>
+                          <p className="text-sm font-medium">Terms and Conditions</p>
+                          <p className="text-xs text-muted-foreground">Service policy</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPdfModalUrl(TERMS_PDF_URL);
+                            setPdfModalTitle("Terms and Conditions");
+                            setPdfModalOpen(true);
+                          }}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div>
                           <p className="text-sm font-medium">Client Intake Form</p>
                           <p className="text-xs text-muted-foreground">Check-in receipt</p>
                         </div>
