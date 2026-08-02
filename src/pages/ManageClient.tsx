@@ -627,6 +627,8 @@ const ManageClient = () => {
         client_type: updateClientType,
         priority: updatePriority,
         diagnosis: updateAIDiagnosis,
+        technician_diagnosis: rawDiagnosis,
+        technician_report: technicianReport,
         ai_report: updateServiceReport,
         service: updateServices,
         service_cost: Number(updateServiceCost) || 0,
