@@ -784,7 +784,26 @@ const AttendanceOverview = () => {
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-3 mt-3">
+          <div className="flex items-center justify-between mt-3 px-1">
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <Checkbox
+                checked={bulkVisible.length > 0 && bulkVisible.every((s) => bulkSel[s.userId as string]?.checked)}
+                onCheckedChange={(v) => {
+                  const checked = !!v;
+                  setBulkSel((p) => {
+                    const next = { ...p };
+                    bulkVisible.forEach((s) => {
+                      const key = s.userId as string;
+                      next[key] = { ...(next[key] ?? { timeIn: "09:00", timeOut: "" }), checked };
+                    });
+                    return next;
+                  });
+                }}
+              />
+              Select all ({bulkVisible.filter((s) => bulkSel[s.userId as string]?.checked).length}/{bulkVisible.length})
+            </label>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3 mt-2">
             {bulkVisible.length === 0 && <p className="text-sm text-muted-foreground">No active staff found.</p>}
             {bulkVisible.map((s) => {
               const key = s.userId as string;
