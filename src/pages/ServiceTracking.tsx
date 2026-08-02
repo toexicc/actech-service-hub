@@ -1257,10 +1257,20 @@ const ServiceTracking = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
             <AlertDialogDescription>
-              By confirming, you agree to proceed with the repair of your device based on the
-              diagnosis above. The status will change to <strong>Proceed Repair</strong> and the
-              assigned admin and technician will be notified.
+              {needsChecklist && selectedBreakdown.length < breakdownItems.length ? (
+                <>
+                  You are approving only: <strong>{selectedBreakdown.join(", ")}</strong>. The remaining
+                  services stay pending — our team will contact you to confirm before the repair starts.
+                </>
+              ) : (
+                <>
+                  By confirming, you agree to proceed with the repair of your device based on the
+                  diagnosis above. The status will change to <strong>Proceed Repair</strong> and the
+                  assigned admin and technician will be notified.
+                </>
+              )}
             </AlertDialogDescription>
+
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
