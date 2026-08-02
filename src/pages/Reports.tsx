@@ -790,7 +790,6 @@ const Reports = () => {
                       <TableHead className="text-right">Active</TableHead>
                       <TableHead className="text-right">Avg. time</TableHead>
                       <TableHead className="text-right">On-time</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -801,7 +800,6 @@ const Reports = () => {
                         <TableCell className="text-right">{t.active}</TableCell>
                         <TableCell className="text-right">{formatHours(t.avgHours)}</TableCell>
                         <TableCell className="text-right">{t.completed ? pct(t.onTime) : "—"}</TableCell>
-                        <TableCell className="text-right">{peso(t.revenue)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
