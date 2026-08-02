@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
+import { maskStaffName } from "./utils";
 
 interface PDFData {
   serviceId: string;
@@ -116,9 +117,9 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     doc.setFontSize(10);
   };
 
-  drawStackedRow("Admin Representative/s:", data.adminRep);
-  drawStackedRow("Handling Staff:", (data as any).receivingStaff || "");
-  drawStackedRow("Technician/s:", data.technician);
+  drawStackedRow("Admin Representative/s:", maskStaffName(data.adminRep));
+  drawStackedRow("Handling Staff:", maskStaffName((data as any).receivingStaff));
+  drawStackedRow("Technician/s:", maskStaffName(data.technician));
 
   // Client Information Section
   yPos += 12;
