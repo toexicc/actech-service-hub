@@ -98,7 +98,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   address: r.address ?? "",
   deviceType: r.device_type ?? "",
   deviceBrand: r.brand ?? "",
-  deviceModel: r.model ?? "",
+  deviceModel: cleanDeviceModel(r.model, r.device_type, r.brand),
   serialNumber: r.serial_number ?? "",
   issueDescription: r.issue_description ?? "",
   diagnosis: r.diagnosis ?? "",
