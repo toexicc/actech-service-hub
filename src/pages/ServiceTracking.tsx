@@ -454,6 +454,7 @@ const ServiceTracking = () => {
           serviceId: serviceData.serviceId,
           approved,
           reason: reason || "",
+          selectedServices: approved ? selectedBreakdown : [],
         },
       });
 
@@ -467,16 +468,23 @@ const ServiceTracking = () => {
         return;
       }
 
+      const partial = !!(data as any)?.partial;
       setServiceData({
         ...serviceData,
         adminNotes: (data as any)?.adminNotes ?? serviceData.adminNotes,
         status: (data as any)?.status ?? serviceData.status,
         service: (data as any)?.service || serviceData.service,
+        approvalLocked: partial ? true : serviceData.approvalLocked,
       });
       setDeclineOpen(false);
       setDeclineReason("");
       setConfirmApproveOpen(false);
-      toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
+      toast({
+        title: approved ? (partial ? "Partial approval recorded" : "Approved") : "Declined",
+        description: partial
+          ? "The shop will contact you to confirm the remaining services."
+          : "Your response has been recorded.",
+      });
     } catch (e) {
       toast({ title: "Error", description: "Failed to submit response.", variant: "destructive" });
     } finally {
@@ -498,23 +506,28 @@ const ServiceTracking = () => {
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
-  const approvalRecord = (() => {
-    const notes: string = serviceData?.adminNotes || "";
-    // Match "Approved/Declined by <name> on <date>" where the date may contain colons.
-    const m = notes.match(/(Approved|Declined) by (.+?) on (.+?)(?:\n|$)/);
-    if (!m) return null;
-    let at = m[3].trim();
-    let reason = "";
-    // For declines we appended ": <reason>" — peel that off.
-    if (m[1] === "Declined") {
-      const idx = at.lastIndexOf(":");
-      if (idx > -1) {
-        reason = at.slice(idx + 1).trim();
-        at = at.slice(0, idx).trim();
-      }
+  const breakdownItems = parseServiceBreakdownItems(serviceData?.aiDiagnosis || "");
+  const needsChecklist = breakdownItems.length > 1;
+  const remark = parseApprovalRemark(serviceData?.adminNotes);
+  const approvalRecord = remark
+    ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
+    : null;
+
+  const toggleBreakdown = (item: string) =>
+    setSelectedBreakdown((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+
+  const startApprove = () => {
+    if (needsChecklist && selectedBreakdown.length === 0) {
+      toast({
+        title: "Select at least one service",
+        description: "Please tick the services you'd like us to proceed with.",
+        variant: "destructive",
+      });
+      return;
     }
-    return { decision: m[1], by: m[2].trim(), at, reason };
-  })();
+    setConfirmApproveOpen(true);
+  };
+
 
   return (
     <div className="min-h-screen w-full">
