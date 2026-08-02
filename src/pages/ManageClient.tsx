@@ -627,6 +627,8 @@ const ManageClient = () => {
         client_type: updateClientType,
         priority: updatePriority,
         diagnosis: updateAIDiagnosis,
+        technician_diagnosis: rawDiagnosis,
+        technician_report: technicianReport,
         ai_report: updateServiceReport,
         service: updateServices,
         service_cost: Number(updateServiceCost) || 0,
@@ -1739,6 +1741,24 @@ const ManageClient = () => {
 
                 {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
+                {/* Technician Diagnosis (raw) - same logic as /service-update */}
+                {serviceData?.status === "Confirmed Diagnosis" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                    <Textarea
+                      id="technicianDiagnosis"
+                      placeholder="Enter technician diagnosis"
+                      value={rawDiagnosis}
+                      onChange={(e) => {
+                        setRawDiagnosis(e.target.value);
+                        setUpdateTechDiagnosis(e.target.value);
+                      }}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
+
                 {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
                 {serviceData?.status === "Confirmed Diagnosis" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -1844,6 +1864,21 @@ const ManageClient = () => {
                 {/* Device Diagnosis Photos - shown only on Confirmed Diagnosis, BELOW AI Diagnosis */}
                 {serviceData?.status === "Confirmed Diagnosis" && serviceData?.serviceId && (
                   <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
+                )}
+
+                {/* Technician Report (raw) - same logic as /service-update */}
+                {serviceData?.status === "Done Repair - For Release" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianReport">Technician Report:</Label>
+                    <Textarea
+                      id="technicianReport"
+                      placeholder="Enter technician report"
+                      value={technicianReport}
+                      onChange={(e) => setTechnicianReport(e.target.value)}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
                 )}
 
                 {/* Report Display - Only visible when status is "Done Repair - For Release" */}
