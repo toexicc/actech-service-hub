@@ -1277,7 +1277,18 @@ const ManageClient = () => {
         {/* Service Details and Update Form */}
         {serviceData && (
           <div className="space-y-8">
-          <TicketWorkspaceHero service={serviceData} showShare />
+          {remoteChange && (
+            <RemoteUpdateBanner
+              changedFields={remoteChange.changedFields}
+              newStatus={remoteChange.newStatus}
+              isDirty={isFormDirty}
+              isReloading={isReloadingTicket}
+              onReload={reloadTicket}
+              onDismiss={dismissRemoteChange}
+            />
+          )}
+          <TicketWorkspaceHero service={serviceData} showShare isLive={isLive} />
+
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
             clientName={serviceData.clientName || ""}
