@@ -78,3 +78,10 @@ export const useStaffAvailability = (day: Date = new Date()) => {
     staleTime: 60 * 1000,
   });
 };
+
+/** Refresh availability after attendance / leave records change. */
+export const useInvalidateAvailability = () => {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: ["staffAvailability"] });
+};
+
