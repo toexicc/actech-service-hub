@@ -1752,7 +1752,28 @@ const ManageClient = () => {
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
                           <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
-                          <div className="flex gap-2 mb-2">
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              disabled={isFormattingAI}
+                              onClick={() => {
+                                const ok = window.confirm(
+                                  "AI Diagnosis Formatter\n\nThis reformats the technician's raw diagnosis. AI output may contain mistakes - review every section (especially Service Breakdown amounts and warranty) before saving or sharing with the client.\n\nProceed?"
+                                );
+                                if (ok) handleFormatWithAI();
+                              }}
+                            >
+                              {isFormattingAI ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
                             <Button
                               type="button"
                               variant="outline"
@@ -1838,7 +1859,28 @@ const ManageClient = () => {
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
                           <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
-                          <div className="flex gap-2 mb-2">
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              disabled={isFormattingReport}
+                              onClick={() => {
+                                const ok = window.confirm(
+                                  "AI Report Formatter\n\nThis reformats the technician's report. AI output may contain mistakes - review it carefully before saving or sharing with the client.\n\nProceed?"
+                                );
+                                if (ok) handleFormatReportWithAI();
+                              }}
+                            >
+                              {isFormattingReport ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
                             <Button
                               type="button"
                               variant="outline"
