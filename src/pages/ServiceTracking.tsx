@@ -830,8 +830,8 @@ const ServiceTracking = () => {
 
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Target</p>
-                        <p className="text-sm mt-0.5">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Time Frame</p>
+                        <p className="text-sm mt-0.5">{serviceData.timeFrame || serviceData.estimatedCompletion || "N/A"}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -845,14 +845,16 @@ const ServiceTracking = () => {
 
                     {approvalRecord && (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-sm font-medium text-foreground">
-                          {approvalRecord.decision} by {approvalRecord.by} on {approvalRecord.at}
-                          {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
-                        </p>
+                        <p className="text-sm font-medium text-foreground">{approvalRecord.text}</p>
+                        {serviceData.approvalLocked && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            We'll contact you shortly to confirm the remaining services.
+                          </p>
+                        )}
                       </div>
                     )}
 
-                    {isWaitingToProceed && !approvalRecord && (
+                    {isWaitingToProceed && !approvalRecord && !serviceData.approvalLocked && (
                       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
                         {declineOpen ? (
                           <div className="space-y-3">
@@ -878,26 +880,53 @@ const ServiceTracking = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <Button
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                              onClick={() => setConfirmApproveOpen(true)}
-                              disabled={submittingApproval}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Approve Diagnosis
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              className="flex-1"
-                              onClick={() => setDeclineOpen(true)}
-                              disabled={submittingApproval}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Decline
-                            </Button>
+                          <div className="space-y-4">
+                            {needsChecklist && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold">Select the services you approve</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Please tick at least one. If you don't approve everything, our team will contact you
+                                  to confirm before starting the repair.
+                                </p>
+                                <div className="space-y-2 pt-1">
+                                  {breakdownItems.map((item) => (
+                                    <label
+                                      key={item}
+                                      className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 cursor-pointer"
+                                    >
+                                      <Checkbox
+                                        checked={selectedBreakdown.includes(item)}
+                                        onCheckedChange={() => toggleBreakdown(item)}
+                                        className="mt-0.5"
+                                      />
+                                      <span className="text-sm">{item}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <Button
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                onClick={startApprove}
+                                disabled={submittingApproval}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                {needsChecklist ? "Approve Selected Services" : "Approve Diagnosis"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                className="flex-1"
+                                onClick={() => setDeclineOpen(true)}
+                                disabled={submittingApproval}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Decline
+                              </Button>
+                            </div>
                           </div>
                         )}
+
                       </div>
                     )}
                   </div>
