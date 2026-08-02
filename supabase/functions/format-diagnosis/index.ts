@@ -194,6 +194,10 @@ Service Breakdown:
 <Service Item 1> - Php {Enter Amount}
 <Service Item 2> - Php {Enter Amount}
 
+Warranty: {Enter Duration}
+
+
+
 To proceed with the service, PROCEED or APPROVE to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
 
 SUMMARY: <one-line summary of the repair needed>
