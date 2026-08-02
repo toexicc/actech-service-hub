@@ -40,6 +40,7 @@ import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
 import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
+import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
 
@@ -934,6 +935,8 @@ const ServiceUpdate = () => {
             showDiscount={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.discount ?? "0").replace(/[^0-9.-]/g, "")) > 0}
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
+
+          <ApprovalRemarkBlock adminNotes={serviceData.adminNotesInternal} />
 
           <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
