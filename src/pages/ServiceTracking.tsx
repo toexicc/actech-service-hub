@@ -98,6 +98,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Intake / scheduling fields must come from the record itself
       serialNumber: pick(sb.serialNumber, sheetData.serialNumber),
       targetDate: pick(sb.targetDate, sheetData.targetDate),
+      timeFrame: pick(sb.timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
       serviceDate: pick((row as any).client_approved_at, pick((row as any).service_date, sheetData.serviceDate)),
@@ -109,6 +110,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+      approvalLocked: !!(row as any).approval_locked,
+
 
 
 
