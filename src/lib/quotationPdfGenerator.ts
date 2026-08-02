@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
+import { maskStaffName } from "./utils";
 
 interface QuotationPDFData {
   serviceId: string;
@@ -176,9 +177,9 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
     yPos += Math.max(4, lines.length * 3.5);
   };
 
-  drawWrappedRow("Admin Representative/s:", data.adminRep);
-  drawWrappedRow("Handling Staff:", (data as any).receivingStaff || "");
-  drawWrappedRow("Technician/s:", data.technician);
+  drawWrappedRow("Admin Representative/s:", maskStaffName(data.adminRep));
+  drawWrappedRow("Handling Staff:", maskStaffName((data as any).receivingStaff));
+  drawWrappedRow("Technician/s:", maskStaffName(data.technician));
 
   // Client Information Section
   yPos += 10;

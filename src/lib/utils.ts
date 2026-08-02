@@ -71,3 +71,27 @@ export function normalizeGoogleDriveImageUrl(url: string): string {
   }
 }
 
+
+/**
+ * Mask a staff name for printed documents: keeps the first letter of each word
+ * and replaces the remaining letters with asterisks.
+ * "Khaya Naranja" -> "K**** N******"
+ * Handles comma-separated lists of names.
+ */
+export function maskStaffName(value?: string | null): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  return raw
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) =>
+      name
+        .split(/\s+/)
+        .map((word) =>
+          word.length <= 1 ? word : word[0] + "*".repeat(word.length - 1),
+        )
+        .join(" "),
+    )
+    .join(", ");
+}
