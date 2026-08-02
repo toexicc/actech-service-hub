@@ -6,6 +6,7 @@ import { displayDate } from "@/lib/timezone";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
+import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
@@ -171,6 +172,26 @@ const ManageClient = () => {
   const [finalCost, setFinalCost] = useState(0);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
+  const [isReopeningApproval, setIsReopeningApproval] = useState(false);
+
+  /** Clear the partial-approval hold so the client can approve again on /track. */
+  const handleReopenApproval = async () => {
+    if (!serviceData?.serviceId || isReopeningApproval) return;
+    setIsReopeningApproval(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ approval_locked: false, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+      setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
+      toast({ title: "Approval re-opened", description: "The client can approve again on the tracking page." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not re-open approval.", variant: "destructive" });
+    } finally {
+      setIsReopeningApproval(false);
+    }
+  };
 
   const handleToggleAutoApprove = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingAutoApprove) return;
