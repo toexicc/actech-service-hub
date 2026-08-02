@@ -45,7 +45,7 @@ const currency = (n: any) => {
   return `₱${v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export function TicketWorkspaceHero({ service, showShare = false }: TicketWorkspaceHeroProps) {
+export function TicketWorkspaceHero({ service, showShare = false, isLive = false }: TicketWorkspaceHeroProps) {
   if (!service) return null;
   const status = service.status || "Pending Diagnosis";
   const info = STAGE_MAP[status] || STAGE_MAP["Pending Diagnosis"];
