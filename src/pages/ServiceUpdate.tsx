@@ -14,6 +14,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
+import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
@@ -488,41 +490,8 @@ const ServiceUpdate = () => {
         try {
           const { data: row } = await supabase.from("services").select("*").eq("service_id", id).maybeSingle();
           if (row) {
-            const sb = mapServiceRow(row);
-            const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
-            data.data = {
-              ...data.data,
-              username: pick(sb.username, data.data.username),
-              devicePassword: pick(sb.devicePassword, data.data.devicePassword),
-              colorMemory: pick(sb.colorMemory, data.data.colorMemory),
-              color: pick(sb.color, data.data.color),
-              memory: pick(sb.memory, data.data.memory),
-              email: pick(sb.email, data.data.email),
-              phone: pick(sb.contactNumber, data.data.phone),
-              contactNumber: pick(sb.contactNumber, data.data.contactNumber),
-              chiefComplaint: pick(sb.chiefComplaint, data.data.chiefComplaint),
-              deviceNotes: pick(sb.deviceNotes, data.data.deviceNotes),
-              technicianReport: pick(sb.technicianReport, data.data.technicianReport),
-              finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, data.data.finalCost),
-              partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, data.data.partsCost),
-              estimatedCost: pick(sb.estimatedCost, data.data.estimatedCost),
-              discount: pick(Number(sb.discount) > 0 ? sb.discount : null, data.data.discount),
-              serviceCost: pick(Number(sb.serviceCost) > 0 ? sb.serviceCost : null, data.data.serviceCost),
-              clientType: pick(sb.clientType, data.data.clientType),
-              priority: pick(sb.priority, data.data.priority),
-              conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : data.data.conditions,
-              technicianNotesInternal: pick(sb.internalTechnicianNotes, data.data.technicianNotesInternal),
-              adminNotesInternal: pick(sb.internalAdminNotes, data.data.adminNotesInternal),
-              targetDate: pick(sb.targetDate, data.data.targetDate),
-              status: pick(sb.status, data.data.status),
-              // Raw technician notes and the AI-formatted diagnosis are stored
-              // in separate columns so they no longer overwrite each other.
-              technicianDiagnosis: pick(sb.technicianDiagnosis, data.data.technicianDiagnosis),
-              aiDiagnosis: pick(sb.diagnosis, data.data.aiDiagnosis),
-              aiReport: pick(sb.aiReport, data.data.aiReport),
-              autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
-
-            };
+            // Supabase is authoritative: sheet data only fills gaps.
+            data.data = mergeSupabaseOverSheet(mapServiceRow(row), data.data);
           }
         } catch { /* ignore */ }
         setServiceData(data.data);
@@ -1376,30 +1345,13 @@ const ServiceUpdate = () => {
 
                                 setIsFormattingAI(true);
                                 try {
-                                  const params = new URLSearchParams({
-                                    action: 'formatDiagnosis',
+                                  const formattedDiagnosis = await formatDiagnosisWithAI({
                                     rawDiagnosis,
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId: serviceId,
-                                    technician: updateTechnician || serviceData?.technician || '',
-                                    finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
+                                    serviceId,
                                   });
-
-                                  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-                                  if (!response.ok) {
-                                    throw new Error(`Failed to format diagnosis (status ${response.status})`);
-                                  }
-
-                                  const data = await response.json();
-                                  
-                                  if (data.error) {
-                                    throw new Error(data.error);
-                                  }
-
-                                  const formattedDiagnosis = data.formattedDiagnosis;
 
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
@@ -1517,30 +1469,14 @@ const ServiceUpdate = () => {
 
                                 setIsFormattingReport(true);
                                 try {
-                                  const params = new URLSearchParams({
-                                    action: 'formatReport',
+                                  const formattedReport = await formatReportWithAI({
                                     technicianReport: updateTechnicianReport,
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId: serviceId,
-                                    technician: serviceData?.technician || updateTechnician || '',
+                                    serviceId,
                                     finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
                                   });
-
-                                  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-                                  if (!response.ok) {
-                                    throw new Error(`Failed to format report (status ${response.status})`);
-                                  }
-
-                                  const data = await response.json();
-                                  
-                                  if (data.error) {
-                                    throw new Error(data.error);
-                                  }
-
-                                  const formattedReport = data.formattedReport;
 
                                   if (formattedReport) {
                                     setUpdateServiceReport(formattedReport);

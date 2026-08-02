@@ -23,6 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
+import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
+import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
@@ -85,108 +87,9 @@ const buildFallbackDiagnosis = (raw: string): string => {
   ].join("\n");
 };
 
-// Build a sheet-shaped payload directly from a Supabase service row so the
-// page works even when the Google Sheets endpoint is unavailable.
-const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) => ({
-  serviceId: sb.serviceId,
-  clientId: sb.clientId,
-  clientName: sb.clientName,
-  contactNumber: sb.contactNumber,
-  phone: sb.contactNumber,
-  email: sb.email,
-  address: sb.address,
-  deviceType: sb.deviceType,
-  brand: sb.brand,
-  device: sb.deviceModel || sb.deviceType,
-  serialNumber: sb.serialNumber,
-  issueDescription: sb.issueDescription,
-  status: sb.status,
-  technician: sb.technician,
-  adminRep: sb.adminRep,
-  receivingStaff: sb.receivingStaff,
-  dateReceived: sb.dateReceived,
-  targetDate: sb.targetDate ? format(new Date(sb.targetDate), "MM-dd-yyyy") : "",
-  service: sb.service,
-  serviceCost: sb.serviceCost,
-  finalCost: sb.finalCost,
-  partsCost: sb.partsCost,
-  estimatedCost: sb.estimatedCost,
-  discount: sb.discount,
-  modeOfTransfer: sb.modeOfTransfer,
-  initialPayment: sb.initialPayment,
-  aiReport: sb.aiReport,
-  aiDiagnosis: sb.diagnosis,
-  technicianDiagnosis: sb.technicianDiagnosis || sb.diagnosis,
-  technicianReport: sb.technicianReport,
-  username: sb.username,
-  devicePassword: sb.devicePassword,
-  color: sb.color,
-  memory: sb.memory,
-  colorMemory: sb.colorMemory,
-  chiefComplaint: sb.chiefComplaint,
-  deviceNotes: sb.deviceNotes,
-  clientType: sb.clientType,
-  priority: sb.priority,
-  conditions: sb.conditions,
-  adminNotes: sb.remarks,
-  adminNotesInternal: sb.internalAdminNotes,
-  technicianNotesInternal: sb.internalTechnicianNotes,
-  preOrder: sb.preOrder,
-  partId: sb.partId,
-  signaturePath: sb.signaturePath,
-  deviceAnnotationPath: sb.deviceAnnotationPath,
-  autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+// Supabase-authoritative payload builders live in a shared module so
+// /manage-client and /service-update behave identically.
 
-});
-
-const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
-  try {
-    const { data: row } = await supabase
-      .from("services")
-      .select("*")
-      .eq("service_id", serviceId)
-      .maybeSingle();
-    if (!row) return sheetData;
-    const sb = mapServiceRow(row);
-    // If we don't have sheet data, fully synthesize from Supabase.
-    if (!sheetData || Object.keys(sheetData).length === 0) {
-      return supabaseRowToSheetShape(sb);
-    }
-    const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
-    return {
-      ...sheetData,
-      username: pick(sb.username, sheetData.username),
-      devicePassword: pick(sb.devicePassword, sheetData.devicePassword),
-      colorMemory: pick(sb.colorMemory, sheetData.colorMemory),
-      color: pick(sb.color, sheetData.color),
-      memory: pick(sb.memory, sheetData.memory),
-      email: pick(sb.email, sheetData.email),
-      phone: pick(sb.contactNumber, sheetData.phone),
-      contactNumber: pick(sb.contactNumber, sheetData.contactNumber),
-      chiefComplaint: pick(sb.chiefComplaint, sheetData.chiefComplaint),
-      deviceNotes: pick(sb.deviceNotes, sheetData.deviceNotes),
-      technicianReport: pick(sb.technicianReport, sheetData.technicianReport),
-      finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, sheetData.finalCost),
-      partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
-      estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
-      discount: pick(Number(sb.discount) > 0 ? sb.discount : null, sheetData.discount),
-      targetDate: pick(
-        sb.targetDate ? format(new Date(sb.targetDate), "MM-dd-yyyy") : "",
-        sheetData.targetDate,
-      ),
-      serviceCost: pick(Number(sb.serviceCost) > 0 ? sb.serviceCost : null, sheetData.serviceCost),
-      clientType: pick(sb.clientType, sheetData.clientType),
-      priority: pick(sb.priority, sheetData.priority),
-      conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
-      technicianNotesInternal: pick(sb.internalTechnicianNotes, sheetData.technicianNotesInternal),
-      adminNotesInternal: pick(sb.internalAdminNotes, sheetData.adminNotesInternal),
-      autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
-
-    };
-  } catch {
-    return sheetData;
-  }
-};
 
 const ManageClient = () => {
   const navigate = useNavigate();
@@ -553,54 +456,13 @@ const ManageClient = () => {
 
     setIsFormattingAI(true);
     try {
-      const params = new URLSearchParams({
-        action: 'formatDiagnosis',
+      const formattedDiagnosis = await formatDiagnosisWithAI({
         rawDiagnosis,
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId: serviceId,
-        technician: updateTechnician || serviceData?.technician || '',
-        finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
+        serviceId,
       });
-
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to format diagnosis (status ${response.status})`);
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        if (data.error.includes("rate limit")) {
-          toast({
-            title: "Rate Limit Reached",
-            description: "AI service rate limit reached. Please wait and try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("API key")) {
-          toast({
-            title: "Invalid API Key",
-            description: "OpenAI API key is invalid or missing. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("quota")) {
-          toast({
-            title: "API Quota Exceeded",
-            description: "AI service quota exceeded. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(data.error);
-      }
-
-      const formattedDiagnosis = data.formattedDiagnosis;
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
@@ -649,54 +511,14 @@ const ManageClient = () => {
 
     setIsFormattingReport(true);
     try {
-      const params = new URLSearchParams({
-        action: 'formatReport',
+      const formattedReport = await formatReportWithAI({
         technicianReport,
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId: serviceId,
-        technician: serviceData?.technician || updateTechnician || '',
+        serviceId,
         finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
       });
-
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to format report (status ${response.status})`);
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        if (data.error.includes("rate limit")) {
-          toast({
-            title: "Rate Limit Reached",
-            description: "AI service rate limit reached. Please wait and try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("API key")) {
-          toast({
-            title: "Invalid API Key",
-            description: "OpenAI API key is invalid or missing. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("quota")) {
-          toast({
-            title: "API Quota Exceeded",
-            description: "AI service quota exceeded. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(data.error);
-      }
-
-      const formattedReport = data.formattedReport;
 
       if (formattedReport) {
         setUpdateServiceReport(formattedReport);
@@ -1930,7 +1752,28 @@ const ManageClient = () => {
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
                           <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
-                          <div className="flex gap-2 mb-2">
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              disabled={isFormattingAI}
+                              onClick={() => {
+                                const ok = window.confirm(
+                                  "AI Diagnosis Formatter\n\nThis reformats the technician's raw diagnosis. AI output may contain mistakes - review every section (especially Service Breakdown amounts and warranty) before saving or sharing with the client.\n\nProceed?"
+                                );
+                                if (ok) handleFormatWithAI();
+                              }}
+                            >
+                              {isFormattingAI ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
                             <Button
                               type="button"
                               variant="outline"
@@ -2016,7 +1859,28 @@ const ManageClient = () => {
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
                           <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
-                          <div className="flex gap-2 mb-2">
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              disabled={isFormattingReport}
+                              onClick={() => {
+                                const ok = window.confirm(
+                                  "AI Report Formatter\n\nThis reformats the technician's report. AI output may contain mistakes - review it carefully before saving or sharing with the client.\n\nProceed?"
+                                );
+                                if (ok) handleFormatReportWithAI();
+                              }}
+                            >
+                              {isFormattingReport ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
                             <Button
                               type="button"
                               variant="outline"

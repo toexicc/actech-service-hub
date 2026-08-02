@@ -53,54 +53,93 @@ const stripMarkdown = (s: string): string =>
 const stripDecor = (s: string) => s.replace(/[*_#>`]/g, "").trim();
 
 const OTHER_SECTION =
-  /^(to proceed|summary|recommendations?|findings?|cause of issue|cause|suggested solutions?|solution|note|notes|disclaimer)\b/i;
+  /^(to proceed|summary|recommendations?|findings?|cause of issue|cause|suggested solutions?|solution|note|notes|disclaimer|warranty)\b/i;
+
+const AMOUNT_PLACEHOLDER = "Php {Enter Amount}";
+const WARRANTY_LINE = "Warranty: {Enter Duration}";
 
 const enforceAmountPlaceholders = (text: string): string => {
   const lines = String(text ?? "").split("\n");
   let inBreakdown = false;
 
-  return lines
-    .map((line) => {
-      const bare = stripDecor(line);
+  const out = lines.map((line) => {
+    const bare = stripDecor(line);
 
-      // Enter the breakdown section on any heading mentioning it
-      if (/^service breakdown\b/i.test(bare)) {
-        inBreakdown = true;
-        // Heading may carry the first item inline
-        return line.replace(
-          /(?:php|₱|p)?\s*\[?\{?\s*[\d,]+(?:\.\d{1,2})?\s*\}?\]?\s*$/i,
-          "Php {Enter Amount}",
-        );
-      }
-
-      if (!inBreakdown) return line;
-
-      if (bare === "") return line; // keep blank lines, stay in section
-      if (OTHER_SECTION.test(bare)) {
-        inBreakdown = false;
-        return line;
-      }
-
-      let out = line;
-      // Any currency-tagged amount -> placeholder
-      out = out.replace(
-        /(?:php|₱|p)\s*\[?\{?\s*[\d,]+(?:\.\d{1,2})?\s*\}?\]?/gi,
-        "Php {Enter Amount}",
+    // Enter the breakdown section on any heading mentioning it
+    if (/^service breakdown\b/i.test(bare)) {
+      inBreakdown = true;
+      // Heading may carry the first item inline
+      return line.replace(
+        /(?:php|₱|p)?\s*\[?\{?\s*[\d,]+(?:\.\d{1,2})?\s*\}?\]?\s*$/i,
+        AMOUNT_PLACEHOLDER,
       );
-      // Bare trailing number (e.g. "Screen replacement - 5,000")
-      out = out.replace(/([-–:]\s*)[\d,]+(?:\.\d{1,2})?\s*(?:php|pesos)?\s*$/i, "$1Php {Enter Amount}");
-      // Bracketed placeholder variants
-      out = out.replace(/php\s*[\[\(]\s*enter amount\s*[\]\)]/gi, "Php {Enter Amount}");
-      out = out.replace(/\{?\s*enter amount\s*\}?/gi, "{Enter Amount}");
-      out = out.replace(/(?<!Php )\{Enter Amount\}/g, "Php {Enter Amount}");
+    }
 
-      if (!/Php \{Enter Amount\}/.test(out)) {
-        out = `${out.replace(/[\s\-–:]+$/, "")} - Php {Enter Amount}`;
-      }
-      return out;
-    })
-    .join("\n");
+    if (!inBreakdown) return line;
+
+    if (bare === "") return line; // keep blank lines, stay in section
+    if (OTHER_SECTION.test(bare)) {
+      inBreakdown = false;
+      return line;
+    }
+
+    let out = line;
+    // Any currency-tagged amount -> placeholder
+    out = out.replace(
+      /(?:php|₱|p)\s*\[?\{?\s*[\d,]+(?:\.\d{1,2})?\s*\}?\]?/gi,
+      AMOUNT_PLACEHOLDER,
+    );
+    // Bracketed placeholder variants
+    out = out.replace(/php\s*[\[\(]\s*enter amount\s*[\]\)]/gi, AMOUNT_PLACEHOLDER);
+    out = out.replace(/\{?\s*enter amount\s*\}?/gi, "{Enter Amount}");
+    // Any remaining bare number anywhere on the line (e.g. "Screen replacement - 5,000"
+    // or "Screen replacement 5000 pesos")
+    out = out.replace(
+      /(?<!\{)\b\d[\d,]*(?:\.\d{1,2})?\b\s*(?:php|pesos)?(?!\s*\})/gi,
+      AMOUNT_PLACEHOLDER,
+    );
+    // Collapse duplicated placeholders and normalise prefix
+    out = out.replace(/(?:Php\s*)?\{Enter Amount\}(?:\s*(?:Php\s*)?\{Enter Amount\})+/g, AMOUNT_PLACEHOLDER);
+    out = out.replace(/(?<!Php )\{Enter Amount\}/g, AMOUNT_PLACEHOLDER);
+
+    if (!out.includes(AMOUNT_PLACEHOLDER)) {
+      out = `${out.replace(/[\s\-–:]+$/, "")} - ${AMOUNT_PLACEHOLDER}`;
+    }
+    return out;
+  });
+
+  return out.join("\n");
 };
+
+// Guarantee a "Warranty: {Enter Duration}" line right after the Service
+// Breakdown block, regardless of what the model produced.
+const enforceWarrantyLine = (text: string): string => {
+  const lines = String(text ?? "").split("\n");
+  // Normalise any warranty line the model already produced.
+  let hasWarranty = false;
+  const normalised = lines.map((line) => {
+    if (/^\s*warranty\s*:/i.test(stripDecor(line))) {
+      hasWarranty = true;
+      return WARRANTY_LINE;
+    }
+    return line;
+  });
+  if (hasWarranty) return normalised.join("\n");
+
+  const headingIdx = normalised.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
+  if (headingIdx === -1) return normalised.join("\n");
+
+  let end = headingIdx + 1;
+  while (end < normalised.length) {
+    const bare = stripDecor(normalised[end]);
+    if (bare === "") break;
+    if (OTHER_SECTION.test(bare)) break;
+    end++;
+  }
+  normalised.splice(end, 0, "", WARRANTY_LINE);
+  return normalised.join("\n");
+};
+
 
 
 serve(async (req) => {
@@ -155,6 +194,10 @@ Service Breakdown:
 <Service Item 1> - Php {Enter Amount}
 <Service Item 2> - Php {Enter Amount}
 
+Warranty: {Enter Duration}
+
+
+
 To proceed with the service, PROCEED or APPROVE to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
 
 SUMMARY: <one-line summary of the repair needed>
@@ -171,6 +214,7 @@ No em dashes. Use regular hyphens only.
 No quotation marks unless necessary.
 CRITICAL PRICING RULE: Never invent, estimate, or guess any monetary amount. For every Service Breakdown line item the price MUST be the literal placeholder "Php {Enter Amount}" so the technician fills it in. Do NOT output any numeric peso amount under any circumstance.
 List every Service Breakdown item on its own line in the format "<Service Name> - Php {Enter Amount}".
+Immediately after the Service Breakdown items output the literal line "Warranty: {Enter Duration}". Never invent a warranty duration.
 Use the exact section labels and order shown in the template. Do not add or remove sections.`;
 
     const userPrompt = `customerName: ${customerName || ''}
@@ -216,6 +260,7 @@ Produce the report now using the EXACT template. Do not include this instruction
 
     let formattedDiagnosis = stripMarkdown(raw);
     formattedDiagnosis = enforceAmountPlaceholders(formattedDiagnosis);
+    formattedDiagnosis = enforceWarrantyLine(formattedDiagnosis);
 
     return new Response(JSON.stringify({ formattedDiagnosis }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
