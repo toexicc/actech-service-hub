@@ -147,6 +147,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const receivingStaffOptions = adminStaffOptions;
 
   const { data: availability } = useStaffAvailability();
+  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   const technicianList = [
     { name: SPECIAL_CASE_TECHNICIAN, department: SPECIAL_CASE_DEPARTMENT },
     ...staffData
@@ -155,7 +156,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         staff.status?.toLowerCase() !== "inactive" &&
         staff.name !== SPECIAL_CASE_TECHNICIAN &&
         // Hide absent / on-leave technicians from assignment.
-        (!availability ||
+        (showUnavailableTechs ||
+          !availability ||
           (!availability.isOnLeave(staff.name) &&
             (!availability.hasAttendanceToday || availability.isAvailable(staff.name))))
       )
@@ -164,6 +166,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         department: staff.department || ""
       })),
   ];
+
 
   // Get logged-in user's full name for admin auto-select
   const loggedInUserFullName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("fullName") || "";
