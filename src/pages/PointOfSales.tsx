@@ -14,6 +14,7 @@ import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
+import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -207,6 +208,24 @@ const PointOfSales = () => {
           role: userRole || "",
           activity: `POS: Recorded ${finalTransactionType} of Php ${amountClean} via ${finalMOP} (${transactionId})`,
         });
+
+        // Fully paid service at a release stage → auto-complete the ticket.
+        if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL") {
+          try {
+            const completed = await completeServiceIfFullyPaid({
+              serviceId,
+              totalPaid: previousPayments + amountNum,
+              actorName: username,
+              actorRole: userRole || "",
+            });
+            if (completed) {
+              toast({
+                title: "Service Completed",
+                description: `${serviceId} is fully paid and was moved to Completed.`,
+              });
+            }
+          } catch { /* non-blocking */ }
+        }
 
         // Refund → create technician salary deduction(s)
         if (isRefund && serviceId && serviceId !== "MANUAL") {
