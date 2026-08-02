@@ -72,6 +72,23 @@ export interface ServiceRecord {
   source?: string;
 }
 
+/**
+ * Legacy rows sometimes stored the model as "<device type> <brand> <model>".
+ * Strip the device type / brand prefixes so the model renders on its own.
+ */
+export const cleanDeviceModel = (model?: string | null, deviceType?: string | null, brand?: string | null): string => {
+  let out = String(model ?? "").trim();
+  if (!out) return "";
+  for (const prefix of [deviceType, brand, deviceType, brand]) {
+    const p = String(prefix ?? "").trim();
+    if (!p) continue;
+    if (out.toLowerCase().startsWith(p.toLowerCase())) {
+      out = out.slice(p.length).trim();
+    }
+  }
+  return out || String(model ?? "").trim();
+};
+
 export const mapServiceRow = (r: any): ServiceRecord => ({
   serviceId: r.service_id ?? "",
   clientId: r.client_id ?? "",
