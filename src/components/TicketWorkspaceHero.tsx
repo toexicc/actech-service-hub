@@ -82,7 +82,14 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
                 {info.stage}
               </Badge>
               <span className="text-xs text-muted-foreground">Ticket</span>
+              {isLive && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                  Live
+                </span>
+              )}
             </div>
+
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
                 {service.serviceId || "—"}
