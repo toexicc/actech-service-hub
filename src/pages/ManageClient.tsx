@@ -721,6 +721,7 @@ const ManageClient = () => {
       formData.append("Device Type", updateDeviceType || "");
 
       // Mirror to Supabase so dashboards / search reflect the change immediately
+      const saveStamp = new Date().toISOString();
       const { error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
         admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
@@ -740,8 +741,11 @@ const ManageClient = () => {
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
-        last_updated: new Date().toISOString(),
+        last_updated: saveStamp,
       }).eq("service_id", serviceId);
+      // Don't let our own write raise the "updated elsewhere" banner.
+      syncBaseline(saveStamp);
+
 
       // Fire-and-forget: keep Sheets in sync if still configured (non-blocking, ignore failures)
       try {
