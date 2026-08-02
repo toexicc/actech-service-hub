@@ -933,21 +933,14 @@ const ServiceTracking = () => {
                       </span>
                     </div>
 
-                    {quoteSummary && (
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm whitespace-pre-wrap">
-                        {quoteSummary}
-                      </div>
-                    )}
-
                     {serviceData.service ? (
-                      <div className="rounded-xl border border-border/60 bg-background/60 p-3 text-sm whitespace-pre-wrap">
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm whitespace-pre-wrap">
                         {serviceData.service}
                       </div>
                     ) : (
-                      !quoteSummary && (
-                        <p className="text-sm text-muted-foreground">The line items will appear here once we finalize the diagnosis.</p>
-                      )
+                      <p className="text-sm text-muted-foreground">The line items will appear here once we finalize the diagnosis.</p>
                     )}
+
 
                     <Separator />
 
