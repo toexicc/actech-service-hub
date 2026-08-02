@@ -14,6 +14,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
+import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
@@ -1500,30 +1502,14 @@ const ServiceUpdate = () => {
 
                                 setIsFormattingReport(true);
                                 try {
-                                  const params = new URLSearchParams({
-                                    action: 'formatReport',
+                                  const formattedReport = await formatReportWithAI({
                                     technicianReport: updateTechnicianReport,
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId: serviceId,
-                                    technician: serviceData?.technician || updateTechnician || '',
+                                    serviceId,
                                     finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
                                   });
-
-                                  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-                                  if (!response.ok) {
-                                    throw new Error(`Failed to format report (status ${response.status})`);
-                                  }
-
-                                  const data = await response.json();
-                                  
-                                  if (data.error) {
-                                    throw new Error(data.error);
-                                  }
-
-                                  const formattedReport = data.formattedReport;
 
                                   if (formattedReport) {
                                     setUpdateServiceReport(formattedReport);
