@@ -7,6 +7,7 @@ import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Penc
 import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
+import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
@@ -125,13 +126,24 @@ const ManageClient = () => {
   const canEditAdminRep = userRole === "admin" || userRole === "management";
   
   // Derive technicians list with display names
+  const { data: availability } = useStaffAvailability();
+  // Technicians who are absent (no Time In today) or on leave are hidden so they
+  // don't get assigned. When no attendance exists yet for the day we only hide
+  // staff on leave, otherwise the list would be empty.
   const technicians = useMemo(() => {
-    return technicianData.map((staff) => ({
-      name: staff.name,
-      department: staff.department || "",
-      displayName: `${staff.name} - ${staff.department || ""}`,
-    }));
-  }, [technicianData]);
+    return technicianData
+      .filter((staff) => {
+        if (!availability) return true;
+        if (availability.isOnLeave(staff.name)) return false;
+        if (!availability.hasAttendanceToday) return true;
+        return availability.isAvailable(staff.name);
+      })
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || "",
+        displayName: `${staff.name} - ${staff.department || ""}`,
+      }));
+  }, [technicianData, availability]);
 
   const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {

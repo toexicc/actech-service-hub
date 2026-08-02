@@ -27,6 +27,7 @@ import { sanitizeInput, phoneSchema, emailSchema, nameSchema, priceSchema } from
 import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
+import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
@@ -145,13 +146,18 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const adminList = useMemo(() => adminStaffOptions.map((staff) => staff.value), [adminStaffOptions]);
   const receivingStaffOptions = adminStaffOptions;
 
+  const { data: availability } = useStaffAvailability();
   const technicianList = [
     { name: SPECIAL_CASE_TECHNICIAN, department: SPECIAL_CASE_DEPARTMENT },
     ...staffData
       .filter((staff) =>
         staff.role?.toLowerCase() === "technician" &&
         staff.status?.toLowerCase() !== "inactive" &&
-        staff.name !== SPECIAL_CASE_TECHNICIAN
+        staff.name !== SPECIAL_CASE_TECHNICIAN &&
+        // Hide absent / on-leave technicians from assignment.
+        (!availability ||
+          (!availability.isOnLeave(staff.name) &&
+            (!availability.hasAttendanceToday || availability.isAvailable(staff.name))))
       )
       .map((staff) => ({
         name: staff.name,
