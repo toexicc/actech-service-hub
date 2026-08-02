@@ -1008,6 +1008,8 @@ export type Database = {
           admin_reps: string[]
           ai_report: string | null
           ai_toggle: string | null
+          approval_locked: boolean
+          approved_services: string[]
           auto_approve_diagnosis: boolean
           brand: string | null
           chief_complaint: string | null
@@ -1048,6 +1050,7 @@ export type Database = {
           parts_cost: number
           parts_used: string[]
           payment_status: string | null
+          pending_services: string[]
           pre_order: string | null
           priority: string | null
           receiving_staff: string | null
@@ -1074,6 +1077,8 @@ export type Database = {
           admin_reps?: string[]
           ai_report?: string | null
           ai_toggle?: string | null
+          approval_locked?: boolean
+          approved_services?: string[]
           auto_approve_diagnosis?: boolean
           brand?: string | null
           chief_complaint?: string | null
@@ -1114,6 +1119,7 @@ export type Database = {
           parts_cost?: number
           parts_used?: string[]
           payment_status?: string | null
+          pending_services?: string[]
           pre_order?: string | null
           priority?: string | null
           receiving_staff?: string | null
@@ -1140,6 +1146,8 @@ export type Database = {
           admin_reps?: string[]
           ai_report?: string | null
           ai_toggle?: string | null
+          approval_locked?: boolean
+          approved_services?: string[]
           auto_approve_diagnosis?: boolean
           brand?: string | null
           chief_complaint?: string | null
@@ -1180,6 +1188,7 @@ export type Database = {
           parts_cost?: number
           parts_used?: string[]
           payment_status?: string | null
+          pending_services?: string[]
           pre_order?: string | null
           priority?: string | null
           receiving_staff?: string | null
@@ -1199,6 +1208,48 @@ export type Database = {
           technicians?: string[]
           total_cost?: number
           username?: string | null
+        }
+        Relationships: []
+      }
+      staff_leaves: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          staff_id: string
+          staff_name: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          staff_id: string
+          staff_name: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          staff_id?: string
+          staff_name?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
