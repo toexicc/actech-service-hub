@@ -1741,6 +1741,24 @@ const ManageClient = () => {
 
                 {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
+                {/* Technician Diagnosis (raw) - same logic as /service-update */}
+                {serviceData?.status === "Confirmed Diagnosis" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                    <Textarea
+                      id="technicianDiagnosis"
+                      placeholder="Enter technician diagnosis"
+                      value={rawDiagnosis}
+                      onChange={(e) => {
+                        setRawDiagnosis(e.target.value);
+                        setUpdateTechDiagnosis(e.target.value);
+                      }}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
+
                 {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
                 {serviceData?.status === "Confirmed Diagnosis" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
