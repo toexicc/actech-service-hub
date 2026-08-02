@@ -79,12 +79,29 @@ function installGlobalErrorHandlers() {
 
   // Retry dynamic imports once: a dev-server restart / redeploy can make the
   // first chunk request fail, which previously left a blank screen.
+  const RELOAD_FLAG = "actech:chunk_reload";
+
   const importWithRetry = async <T,>(load: () => Promise<T>): Promise<T> => {
     try {
       return await load();
     } catch {
       await new Promise((r) => setTimeout(r, 600));
-      return await load();
+      try {
+        return await load();
+      } catch (err) {
+        // Stale chunk URLs (e.g. /src/App.tsx?t=...) can no longer be fetched
+        // after a restart/redeploy. A single hard reload gets fresh URLs.
+        try {
+          if (!sessionStorage.getItem(RELOAD_FLAG)) {
+            sessionStorage.setItem(RELOAD_FLAG, "1");
+            window.location.reload();
+            await new Promise(() => {});
+          }
+        } catch {
+          // ignore storage failures
+        }
+        throw err;
+      }
     }
   };
 
@@ -92,6 +109,13 @@ function installGlobalErrorHandlers() {
     importWithRetry(() => import("./App.tsx")),
     importWithRetry(() => import("@/components/AppErrorBoundary")),
   ]);
+
+  try {
+    sessionStorage.removeItem(RELOAD_FLAG);
+  } catch {
+    // ignore
+  }
+
 
   const App = appModule.default;
   const AppErrorBoundary = errorBoundaryModule.default;
