@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, Loader2 } from "lucide-react";
+import { toInlinePdfUrl, isInlineViewerUrl } from "@/lib/pdfViewer";
 
 interface PdfViewerModalProps {
   open: boolean;
@@ -13,25 +14,48 @@ interface PdfViewerModalProps {
 
 /**
  * Inline PDF viewer modal with Print + Download actions.
- * Renders a Loader while the iframe URL is empty; honors signed URLs that
- * expire (caller is responsible for fetching a fresh one each time it opens).
+ * The incoming URL is always converted to a local object URL before being
+ * rendered, so the document displays inside the modal and never navigates
+ * the browser to an external page. The iframe is sandboxed without
+ * `allow-top-navigation` so embedded viewers can't redirect the app either.
  */
 export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", filename }: PdfViewerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) setLoaded(false);
-  }, [open]);
+    let cancelled = false;
+    if (!open || !url) {
+      setLoaded(false);
+      setResolvedUrl(null);
+      return;
+    }
+    setLoaded(false);
+    setResolvedUrl(null);
+    (async () => {
+      const inline = await toInlinePdfUrl(url);
+      if (!cancelled) setResolvedUrl(inline);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, url]);
 
   const handlePrint = () => {
     try {
       iframeRef.current?.contentWindow?.focus();
       iframeRef.current?.contentWindow?.print();
     } catch {
-      if (url) window.open(url, "_blank");
+      /* printing blocked for cross-origin embeds — ignore, user can download */
     }
   };
+
+  const src = resolvedUrl
+    ? isInlineViewerUrl(resolvedUrl)
+      ? `${resolvedUrl}#toolbar=1&navpanes=0&view=FitH`
+      : resolvedUrl
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,12 +64,12 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="text-base">{title}</DialogTitle>
             <div className="flex gap-2 mr-6">
-              <Button size="sm" variant="outline" onClick={handlePrint} disabled={!url}>
+              <Button size="sm" variant="outline" onClick={handlePrint} disabled={!src}>
                 <Printer className="h-4 w-4 mr-1" />
                 Print
               </Button>
-              <Button size="sm" variant="default" asChild disabled={!url}>
-                <a href={url ?? "#"} download={filename ?? "document.pdf"} target="_blank" rel="noreferrer">
+              <Button size="sm" variant="default" asChild disabled={!src}>
+                <a href={src ?? "#"} download={filename ?? "document.pdf"}>
                   <Download className="h-4 w-4 mr-1" />
                   Download
                 </a>
@@ -60,11 +84,13 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
               Loading PDF...
             </div>
           )}
-          {url && (
+          {src && (
             <iframe
               ref={iframeRef}
-              src={`${url}${url.includes("#") ? "&" : "#"}toolbar=1&navpanes=0&view=FitH`}
+              key={src}
+              src={src}
               title={title}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-downloads allow-forms"
               className="absolute inset-0 w-full h-full border-0"
               onLoad={() => setLoaded(true)}
             />
