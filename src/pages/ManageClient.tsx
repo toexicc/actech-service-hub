@@ -8,6 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
+import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
+import { useIsTabActive } from "@/components/workbench/WorkbenchOutlet";
+import { RemoteUpdateBanner } from "@/components/workspace/RemoteUpdateBanner";
+
 
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
