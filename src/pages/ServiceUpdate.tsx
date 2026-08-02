@@ -43,7 +43,7 @@ import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
-import { useIsTabActive } from "@/components/workbench/WorkbenchOutlet";
+import { useIsTabActive } from "@/components/workbench/TabActiveContext";
 import { RemoteUpdateBanner } from "@/components/workspace/RemoteUpdateBanner";
 
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";

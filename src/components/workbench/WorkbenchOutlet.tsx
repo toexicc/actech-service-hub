@@ -1,23 +1,11 @@
-import { useRef, createContext, useContext } from "react";
+import { useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useWorkbench } from "./WorkbenchContext";
 import { findWorkbenchRoute } from "./workbenchRoutes";
+import { TabActiveContext } from "./TabActiveContext";
 
 // Max simultaneously mounted tabs (memory guardrail). Home is always kept.
 const MAX_MOUNTED = 12;
-
-interface TabActiveState {
-  isActive: boolean;
-}
-const TabActiveContext = createContext<TabActiveState>({ isActive: true });
-
-/**
- * Hook pages can use to short-circuit expensive background work while their
- * tab is hidden. Not required for correctness — useful for pollers/timers.
- */
-export function useIsTabActive(): boolean {
-  return useContext(TabActiveContext).isActive;
-}
 
 /**
  * Keep-alive router outlet for the workbench shell.
