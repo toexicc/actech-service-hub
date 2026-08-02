@@ -1,52 +1,48 @@
-## 1. Root cause behind two of the biggest issues
+## 1. `/track` — Estimated Target shows the time frame
 
-Both `/manage-client` and `/service-update` load a ticket by first calling the legacy Google Sheets `searchService` endpoint, then merging only a short whitelist of fields from the database on top (`mergeWithSupabase` in `src/pages/ManageClient.tsx`). Verified in the database: ticket `AC310726495` stores clean values (`device_type: "Laptop (Mac)"`, `brand: "Apple"`, `model: "A1502"`), so the concatenated `"(Apple Watch) (Apple) Apple Watch SE 2"` string and the "edits don't reflect" behavior both come from the stale sheet payload, because `device`/`model`, client name, brand, device type, service, notes and other edited fields are not part of the merge whitelist.
+The "Estimated Target" field on the public tracking page currently prints the target date. Change it to display the **Estimated Time Frame** text (e.g. "3-5 days", "Within the day") from the ticket, falling back to "N/A" when blank. Label becomes "Estimated Time Frame".
 
-Fix: make the database authoritative on both pages.
+## 2. Approval Remark visible to staff
 
-- Build the page payload from the database row first (existing `supabaseRowToSheetShape`), then use sheet data only to fill in fields the database has no column for (e.g. Drive folder URLs / legacy PDF links).
-- Set `device` from `model` only (no fallback to device type or brand concatenation); Device Type and Brand stay in their own fields.
-- After "Save details" in `ServiceDetailsEditor`, re-fetch the ticket from the database and re-seed the update form state so edits appear immediately.
+Show the same approval remark block that `/track` renders on both `/manage-client` and `/service-update`, placed directly below the "Client pre-approves diagnosis" toggle (and in the equivalent spot on the technician page).
 
-Same treatment in `src/pages/ServiceUpdate.tsx`.
+Format: `Approved by {Name} on {Date}` plus the approved/pending service lists (see below), or `Declined by {Name} on {Date} — {reason}`. Read-only for both roles. Extract the current remark parser into a shared helper so `/track`, `/manage-client` and `/service-update` all render identically.
 
-## 2. PDFs
+## 3. Checklist-based approval on `/track`
 
-`src/lib/pdfGenerator.ts` (intake form) and `src/lib/quotationPdfGenerator.ts` (quotation) print `data.model`. Callers in `ManageClient`/`ServiceUpdate` pass `serviceData.device` — which will now be the clean model value. Regeneration on "Update Form" / quotation update already exists, so both PDFs will print `Model: A1502` with Device Type and Brand separate.
+Parse the **Service Breakdown** items out of the AI diagnosis (item names only; amounts are placeholders/edited values).
 
-## 3. Reports
+- **One item:** current single "Approve" flow, unchanged.
+- **More than one item:** show a checklist of the detected items. Client must select at least one (validation prompt otherwise).
+  - **All items selected →** status moves to `Proceed Repair` as today.
+  - **Some items selected →** status stays `Waiting to Proceed`. The assigned admin(s) and technician(s) get a notification that the client only approved part of the quotation and manual confirmation is needed. Admin then moves the ticket to `Proceed Repair` manually.
+  - After a partial approval, the client's approve action is locked. Admin/management get a **"Re-open client approval"** action on `/manage-client` which clears the lock so the client can approve again from `/track`.
 
-Remove the revenue column from the Technician leaderboard table in `src/pages/Reports.tsx` (keep completed count, avg turnaround, on-time rate). Revenue stays in the financial panels.
-
-## 4. POS auto-complete on full payment
-
-In `src/pages/PointOfSales.tsx`, after a service payment is recorded successfully:
-
-- Recompute total paid (previous payments + this amount) versus final cost.
-- If remaining balance is 0 (or below a 1-peso tolerance) **and** the ticket's current status is `Done Repair - For Release` or `Done Repair - Advise Client`, update the status to `Completed`, set `date_completed`, write an activity log entry ("Auto-completed: fully paid via POS"), and fire the existing status-change notification. Any other status is left untouched.
-
-One-time back-fix: a data update that flips existing tickets currently in those two statuses whose recorded payments already cover the final cost to `Completed`, with the same log entry. Scope is limited to those two statuses so nothing else is auto-closed.
-
-## 5. "Format with AI" in Manage Client
-
-`ManageClient` already has `rawDiagnosis`, `technicianReport`, and the format handlers, but the buttons are gated. Enable them for admin/management with the same behavior as `/service-update`: call the `format-diagnosis` / `format-report` functions, write the result to `diagnosis` / `ai_report` (keeping the raw technician notes in `technician_diagnosis`), and allow inline editing afterwards.
-
-## 6. AI diagnosis: no prices + warranty line
-
-In `supabase/functions/format-diagnosis/index.ts`:
-
-- Strengthen the placeholder enforcement so any amount inside Service Breakdown becomes `Php {Enter Amount}` — the current pass misses lines where the number is not currency-tagged or trails other text, and lines using parentheses/tabs. Enforcement will rewrite every breakdown line to the strict shape `<Service Item> - Php {Enter Amount}`, stripping any digits from the price position.
-- Add a warranty line directly after the Service Breakdown section, in the template and enforced deterministically after generation:
+Approval Remark text stored on the ticket:
 
 ```text
-Service Breakdown:
-Screen replacement - Php {Enter Amount}
+one item / all approved:
+{Name} approved services : {Item A, Item B} on {Date}
 
-Warranty: {Enter Duration}
+partial:
+{Name} approved services : {Item A} on {Date}. Pending Approval on {Item B, Item C}
 ```
+
+## 4. Attendance page overhaul
+
+Rename **Attendance Overview → Attendance** (page title, sidebar, quick actions; route path unchanged).
+
+**Tabs:**
+- **Daily Logs** — existing table, plus pagination that always keeps a full day's records together on one page (page boundaries fall on date changes, never mid-day).
+- **Leave Tracker** — management can plot staff leave (staff, type: Sick / Vacation / Emergency, date range, notes), with list + edit/delete.
+
+**Manual bulk entry (management only):** a modal listing every active staff member with a checkbox and Time In / Time Out inputs, defaulting to today (date pickable), that writes/updates all selected rows in one submit. Unchecked staff are left untouched.
+
+**Technician availability:** a technician is "available" for a given day when they have a Time In for that day and no approved leave covering it. Technician dropdowns on the intake form, queue intake modal, service form, `/service-update` and `/manage-client` list only available technicians by default, with a **"Show unavailable staff"** toggle for admin/management to override. Special Cases → John Paul Espedido stays always visible.
 
 ## Technical notes
 
-- Files: `src/pages/ManageClient.tsx`, `src/pages/ServiceUpdate.tsx`, `src/components/workspace/ServiceDetailsEditor.tsx`, `src/pages/Reports.tsx`, `src/pages/PointOfSales.tsx`, `supabase/functions/format-diagnosis/index.ts`.
-- No schema changes needed; the back-fix is a data update only.
-- Sheet fetches are kept only as a fallback for legacy-only fields, so nothing that currently works breaks.
+- New table `staff_leaves` (staff_id, staff_name, leave_type, start_date, end_date, notes, status) with grants + RLS: management/admin manage, all authenticated read.
+- New columns on `services`: `approved_services text[]`, `pending_services text[]`, `approval_locked boolean` — used for the remark, partial-approval state and the re-open action.
+- `submit-client-approval` edge function extended to accept a `selectedServices` array, compute all/partial, write the remark + arrays, set the lock and notify assigned staff on partial approvals.
+- New shared helpers: service-breakdown item parser (client + edge function), approval-remark formatter/parser, and an availability hook (`useStaffAvailability`) used by every technician selector.

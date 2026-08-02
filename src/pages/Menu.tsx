@@ -345,7 +345,7 @@ const Menu = () => {
       return [
         ...baseActions,
         {
-          title: "Attendance Overview",
+          title: "Attendance",
           description: "Track staff attendance",
           icon: CalendarCheck,
           path: "/attendance-overview",

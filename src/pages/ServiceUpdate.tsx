@@ -40,6 +40,8 @@ import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
 import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
+import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
+import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
 
@@ -158,13 +160,24 @@ const ServiceUpdate = () => {
   }, [staffData, username, userRole]);
 
   // Derive technicians list with display names
+  const { data: availability } = useStaffAvailability();
+  // Technicians who are absent (no Time In today) or on leave are hidden so they
+  // don't get assigned. When no attendance exists yet for the day we only hide
+  // staff on leave, otherwise the list would be empty.
   const technicians = useMemo(() => {
-    return technicianData.map((staff) => ({
-      name: staff.name,
-      department: staff.department || "",
-      displayName: `${staff.name} - ${staff.department || ""}`,
-    }));
-  }, [technicianData]);
+    return technicianData
+      .filter((staff) => {
+        if (!availability) return true;
+        if (availability.isOnLeave(staff.name)) return false;
+        if (!availability.hasAttendanceToday) return true;
+        return availability.isAvailable(staff.name);
+      })
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || "",
+        displayName: `${staff.name} - ${staff.department || ""}`,
+      }));
+  }, [technicianData, availability]);
 
   // Combine regular inventory with received fast moving parts
   const inventory = useMemo(() => {
@@ -934,6 +947,8 @@ const ServiceUpdate = () => {
             showDiscount={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.discount ?? "0").replace(/[^0-9.-]/g, "")) > 0}
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
+
+          <ApprovalRemarkBlock adminNotes={serviceData.adminNotesInternal} />
 
           <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 

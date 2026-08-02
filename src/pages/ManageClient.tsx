@@ -6,6 +6,8 @@ import { displayDate } from "@/lib/timezone";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
+import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
+import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
@@ -124,13 +126,24 @@ const ManageClient = () => {
   const canEditAdminRep = userRole === "admin" || userRole === "management";
   
   // Derive technicians list with display names
+  const { data: availability } = useStaffAvailability();
+  // Technicians who are absent (no Time In today) or on leave are hidden so they
+  // don't get assigned. When no attendance exists yet for the day we only hide
+  // staff on leave, otherwise the list would be empty.
   const technicians = useMemo(() => {
-    return technicianData.map((staff) => ({
-      name: staff.name,
-      department: staff.department || "",
-      displayName: `${staff.name} - ${staff.department || ""}`,
-    }));
-  }, [technicianData]);
+    return technicianData
+      .filter((staff) => {
+        if (!availability) return true;
+        if (availability.isOnLeave(staff.name)) return false;
+        if (!availability.hasAttendanceToday) return true;
+        return availability.isAvailable(staff.name);
+      })
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || "",
+        displayName: `${staff.name} - ${staff.department || ""}`,
+      }));
+  }, [technicianData, availability]);
 
   const adminStaffOptions = useMemo(() => staffData
     .filter((staff) => {
@@ -171,6 +184,26 @@ const ManageClient = () => {
   const [finalCost, setFinalCost] = useState(0);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
+  const [isReopeningApproval, setIsReopeningApproval] = useState(false);
+
+  /** Clear the partial-approval hold so the client can approve again on /track. */
+  const handleReopenApproval = async () => {
+    if (!serviceData?.serviceId || isReopeningApproval) return;
+    setIsReopeningApproval(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ approval_locked: false, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+      setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
+      toast({ title: "Approval re-opened", description: "The client can approve again on the tracking page." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not re-open approval.", variant: "destructive" });
+    } finally {
+      setIsReopeningApproval(false);
+    }
+  };
 
   const handleToggleAutoApprove = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingAutoApprove) return;
@@ -1318,6 +1351,28 @@ const ManageClient = () => {
                     />
                   </div>
                 )}
+
+                <ApprovalRemarkBlock adminNotes={serviceData.adminNotesInternal} />
+
+                {serviceData.approvalLocked && canEditAdminRep && (
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Client approval is on hold</p>
+                      <p className="text-xs text-muted-foreground">
+                        Re-open it so the client can approve the remaining services on the tracking page.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isReopeningApproval}
+                      onClick={handleReopenApproval}
+                    >
+                      Re-open approval
+                    </Button>
+                  </div>
+                )}
+
 
                 {isEditingDetails && canEditAdminRep ? (
                 <ServiceDetailsEditor

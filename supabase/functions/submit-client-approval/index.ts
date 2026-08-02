@@ -16,7 +16,7 @@ const json = (body: unknown, status = 200) =>
   });
 
 /** Extract service item names from the "Service Breakdown" block of the AI diagnosis. */
-const parseServicesFromDiagnosis = (text: string): string => {
+const parseServicesFromDiagnosis = (text: string): string[] => {
   const lines = String(text ?? "").split("\n");
   const out: string[] = [];
   let inSection = false;
@@ -27,13 +27,16 @@ const parseServicesFromDiagnosis = (text: string): string => {
       continue;
     }
     if (!inSection) continue;
-    if (!bare) continue;
-    if (/^(to proceed|summary|recommendations?|findings?|cause)/i.test(bare)) break;
+    if (!bare) {
+      if (out.length) break;
+      continue;
+    }
+    if (/^(to proceed|summary|recommendations?|findings?|cause|warranty)/i.test(bare)) break;
     const cleaned = bare.replace(/^[-*•\d.\s]+/, "");
     const name = cleaned.split(/\s[-—]\s/)[0].trim();
     if (name && !/^php\b/i.test(name)) out.push(name);
   }
-  return out.join(", ");
+  return out;
 };
 
 const manilaStamp = () =>
@@ -55,6 +58,13 @@ serve(async (req) => {
     const serviceId = typeof body?.serviceId === "string" ? body.serviceId.trim() : "";
     const approved = body?.approved;
     const reason = typeof body?.reason === "string" ? body.reason.slice(0, 1000) : "";
+    const selectedServices: string[] = Array.isArray(body?.selectedServices)
+      ? body.selectedServices
+          .filter((s: unknown) => typeof s === "string")
+          .map((s: string) => s.trim().slice(0, 200))
+          .filter(Boolean)
+          .slice(0, 50)
+      : [];
 
     if (!serviceId || serviceId.length > 64 || typeof approved !== "boolean") {
       return json({ error: "serviceId (string) and approved (boolean) are required" }, 400);
@@ -73,22 +83,46 @@ serve(async (req) => {
     if (fetchError) return json({ error: fetchError.message }, 500);
     if (!row) return json({ error: "Service not found" }, 404);
 
-
-
-
     const status = String(row.status ?? "");
     if (status !== "Waiting to Proceed") {
       return json({ error: `This service is no longer awaiting your approval (status: ${status}).` }, 409);
     }
+    if (row.approval_locked) {
+      return json(
+        { error: "Approval is on hold while the shop confirms your selection. Please contact the shop." },
+        409,
+      );
+    }
 
     const stamp = manilaStamp();
     const clientName = row.client_name || "Client";
+    const allItems = parseServicesFromDiagnosis(row.diagnosis || "");
+
+    // Determine approved vs pending items.
+    let approvedItems: string[] = [];
+    let pendingItems: string[] = [];
+    if (approved) {
+      if (selectedServices.length && allItems.length > 1) {
+        const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+        const picked = new Set(selectedServices.map(norm));
+        approvedItems = allItems.filter((i) => picked.has(norm(i)));
+        pendingItems = allItems.filter((i) => !picked.has(norm(i)));
+        if (approvedItems.length === 0) {
+          return json({ error: "Please select at least one service to approve." }, 400);
+        }
+      } else {
+        approvedItems = allItems;
+      }
+    }
+
+    const isPartial = approved && pendingItems.length > 0;
+
     const tag = approved
-      ? `Approved by ${clientName} on ${stamp}`
+      ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}` +
+        (isPartial ? `. Pending Approval on ${pendingItems.join(", ")}` : "")
       : `Declined by ${clientName} on ${stamp}: ${reason}`;
     const newAdminNotes = [row.internal_admin_notes, tag].filter(Boolean).join("\n");
 
-    const services = approved ? parseServicesFromDiagnosis(row.diagnosis || "") : "";
     const nowIso = new Date().toISOString();
 
     const update: Record<string, unknown> = {
@@ -96,10 +130,18 @@ serve(async (req) => {
       last_updated: nowIso,
     };
     if (approved) {
-      update.status = "Proceed Repair";
+      update.approved_services = approvedItems;
+      update.pending_services = pendingItems;
       update.client_approved_at = nowIso;
-      if (services) update.service = services;
+      if (approvedItems.length) update.service = approvedItems.join(", ");
       if (!row.service_date) update.service_date = nowIso.slice(0, 10);
+      if (isPartial) {
+        // Stay in Waiting to Proceed; lock further client responses until an
+        // admin re-opens the approval.
+        update.approval_locked = true;
+      } else {
+        update.status = "Proceed Repair";
+      }
     }
 
     const { error: updateError } = await admin
@@ -122,6 +164,17 @@ serve(async (req) => {
         const { data: profiles } = await admin.from("profiles").select("id, name");
         const norm = (n: string) => n.split(" - ")[0].trim().toLowerCase();
         const seen = new Set<string>();
+        const title = !approved
+          ? `Service ${serviceId} Declined`
+          : isPartial
+          ? `Service ${serviceId}: Partial Approval — action needed`
+          : `Service ${serviceId}: Proceed Repair`;
+        const message = !approved
+          ? `${clientName} declined the diagnosis for ${serviceId}. Reason: ${reason || "(none provided)"}.`
+          : isPartial
+          ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
+          : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.`;
+
         const rows = names
           .map((n) => (profiles ?? []).find((p: any) => norm(p.name || "") === norm(n)))
           .filter((p: any) => p?.id && !seen.has(p.id) && seen.add(p.id))
@@ -129,12 +182,8 @@ serve(async (req) => {
             recipient_id: p.id,
             recipient_name: p.name,
             category: "service_update",
-            title: approved
-              ? `Service ${serviceId}: Proceed Repair`
-              : `Service ${serviceId} Declined`,
-            message: approved
-              ? `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.`
-              : `${clientName} declined the diagnosis for ${serviceId}. Reason: ${reason || "(none provided)"}.`,
+            title,
+            message,
             service_id: serviceId,
           }));
         if (rows.length) await admin.from("notifications").insert(rows);
@@ -145,8 +194,11 @@ serve(async (req) => {
 
     return json({
       success: true,
-      status: approved ? "Proceed Repair" : status,
-      service: services,
+      status: approved && !isPartial ? "Proceed Repair" : status,
+      partial: isPartial,
+      approvedServices: approvedItems,
+      pendingServices: pendingItems,
+      service: approvedItems.join(", "),
       adminNotes: newAdminNotes,
     });
   } catch (error) {

@@ -70,6 +70,7 @@ export const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) =>
   deviceAnnotationPath: sb.deviceAnnotationPath,
   clientApprovedAt: (sb as any).clientApprovedAt || "",
   autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+  approvalLocked: !!(sb as any).approvalLocked,
   source: sb.source,
   lastUpdated: sb.lastUpdated,
   timestamp: sb.timestamp,
@@ -122,6 +123,7 @@ const AUTHORITATIVE_KEYS = new Set<string>([
   "adminNotesInternal",
   "technicianNotesInternal",
   "autoApproveDiagnosis",
+  "approvalLocked",
 ]);
 
 const isEmpty = (v: any) =>

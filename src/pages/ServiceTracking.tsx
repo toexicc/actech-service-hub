@@ -28,6 +28,9 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { StatusChip } from "@/components/ui/status-chip";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText } from "@/lib/serviceApproval";
+
 
 
 // Accepted modes of payment shown on the public tracking page.
@@ -95,6 +98,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Intake / scheduling fields must come from the record itself
       serialNumber: pick(sb.serialNumber, sheetData.serialNumber),
       targetDate: pick(sb.targetDate, sheetData.targetDate),
+      timeFrame: pick(sb.timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
       serviceDate: pick((row as any).client_approved_at, pick((row as any).service_date, sheetData.serviceDate)),
@@ -106,6 +110,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+      approvalLocked: !!(row as any).approval_locked,
+
 
 
 
@@ -161,6 +167,8 @@ const ServiceTracking = () => {
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
+  const [selectedBreakdown, setSelectedBreakdown] = useState<string[]>([]);
+
 
   const { toast } = useToast();
 
@@ -446,6 +454,7 @@ const ServiceTracking = () => {
           serviceId: serviceData.serviceId,
           approved,
           reason: reason || "",
+          selectedServices: approved ? selectedBreakdown : [],
         },
       });
 
@@ -459,16 +468,23 @@ const ServiceTracking = () => {
         return;
       }
 
+      const partial = !!(data as any)?.partial;
       setServiceData({
         ...serviceData,
         adminNotes: (data as any)?.adminNotes ?? serviceData.adminNotes,
         status: (data as any)?.status ?? serviceData.status,
         service: (data as any)?.service || serviceData.service,
+        approvalLocked: partial ? true : serviceData.approvalLocked,
       });
       setDeclineOpen(false);
       setDeclineReason("");
       setConfirmApproveOpen(false);
-      toast({ title: approved ? "Approved" : "Declined", description: "Your response has been recorded." });
+      toast({
+        title: approved ? (partial ? "Partial approval recorded" : "Approved") : "Declined",
+        description: partial
+          ? "The shop will contact you to confirm the remaining services."
+          : "Your response has been recorded.",
+      });
     } catch (e) {
       toast({ title: "Error", description: "Failed to submit response.", variant: "destructive" });
     } finally {
@@ -490,23 +506,28 @@ const ServiceTracking = () => {
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
-  const approvalRecord = (() => {
-    const notes: string = serviceData?.adminNotes || "";
-    // Match "Approved/Declined by <name> on <date>" where the date may contain colons.
-    const m = notes.match(/(Approved|Declined) by (.+?) on (.+?)(?:\n|$)/);
-    if (!m) return null;
-    let at = m[3].trim();
-    let reason = "";
-    // For declines we appended ": <reason>" — peel that off.
-    if (m[1] === "Declined") {
-      const idx = at.lastIndexOf(":");
-      if (idx > -1) {
-        reason = at.slice(idx + 1).trim();
-        at = at.slice(0, idx).trim();
-      }
+  const breakdownItems = parseServiceBreakdownItems(serviceData?.aiDiagnosis || "");
+  const needsChecklist = breakdownItems.length > 1;
+  const remark = parseApprovalRemark(serviceData?.adminNotes);
+  const approvalRecord = remark
+    ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
+    : null;
+
+  const toggleBreakdown = (item: string) =>
+    setSelectedBreakdown((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+
+  const startApprove = () => {
+    if (needsChecklist && selectedBreakdown.length === 0) {
+      toast({
+        title: "Select at least one service",
+        description: "Please tick the services you'd like us to proceed with.",
+        variant: "destructive",
+      });
+      return;
     }
-    return { decision: m[1], by: m[2].trim(), at, reason };
-  })();
+    setConfirmApproveOpen(true);
+  };
+
 
   return (
     <div className="min-h-screen w-full">
@@ -809,8 +830,8 @@ const ServiceTracking = () => {
 
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Target</p>
-                        <p className="text-sm mt-0.5">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Time Frame</p>
+                        <p className="text-sm mt-0.5">{serviceData.timeFrame || serviceData.estimatedCompletion || "N/A"}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -824,14 +845,16 @@ const ServiceTracking = () => {
 
                     {approvalRecord && (
                       <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-sm font-medium text-foreground">
-                          {approvalRecord.decision} by {approvalRecord.by} on {approvalRecord.at}
-                          {approvalRecord.reason ? ` — ${approvalRecord.reason}` : ""}
-                        </p>
+                        <p className="text-sm font-medium text-foreground">{approvalRecord.text}</p>
+                        {serviceData.approvalLocked && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            We'll contact you shortly to confirm the remaining services.
+                          </p>
+                        )}
                       </div>
                     )}
 
-                    {isWaitingToProceed && !approvalRecord && (
+                    {isWaitingToProceed && !approvalRecord && !serviceData.approvalLocked && (
                       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
                         {declineOpen ? (
                           <div className="space-y-3">
@@ -857,26 +880,53 @@ const ServiceTracking = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <Button
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                              onClick={() => setConfirmApproveOpen(true)}
-                              disabled={submittingApproval}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Approve Diagnosis
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              className="flex-1"
-                              onClick={() => setDeclineOpen(true)}
-                              disabled={submittingApproval}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Decline
-                            </Button>
+                          <div className="space-y-4">
+                            {needsChecklist && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold">Select the services you approve</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Please tick at least one. If you don't approve everything, our team will contact you
+                                  to confirm before starting the repair.
+                                </p>
+                                <div className="space-y-2 pt-1">
+                                  {breakdownItems.map((item) => (
+                                    <label
+                                      key={item}
+                                      className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 cursor-pointer"
+                                    >
+                                      <Checkbox
+                                        checked={selectedBreakdown.includes(item)}
+                                        onCheckedChange={() => toggleBreakdown(item)}
+                                        className="mt-0.5"
+                                      />
+                                      <span className="text-sm">{item}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <Button
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                onClick={startApprove}
+                                disabled={submittingApproval}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                {needsChecklist ? "Approve Selected Services" : "Approve Diagnosis"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                className="flex-1"
+                                onClick={() => setDeclineOpen(true)}
+                                disabled={submittingApproval}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Decline
+                              </Button>
+                            </div>
                           </div>
                         )}
+
                       </div>
                     )}
                   </div>
@@ -1207,10 +1257,20 @@ const ServiceTracking = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
             <AlertDialogDescription>
-              By confirming, you agree to proceed with the repair of your device based on the
-              diagnosis above. The status will change to <strong>Proceed Repair</strong> and the
-              assigned admin and technician will be notified.
+              {needsChecklist && selectedBreakdown.length < breakdownItems.length ? (
+                <>
+                  You are approving only: <strong>{selectedBreakdown.join(", ")}</strong>. The remaining
+                  services stay pending — our team will contact you to confirm before the repair starts.
+                </>
+              ) : (
+                <>
+                  By confirming, you agree to proceed with the repair of your device based on the
+                  diagnosis above. The status will change to <strong>Proceed Repair</strong> and the
+                  assigned admin and technician will be notified.
+                </>
+              )}
             </AlertDialogDescription>
+
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
