@@ -1376,30 +1376,13 @@ const ServiceUpdate = () => {
 
                                 setIsFormattingAI(true);
                                 try {
-                                  const params = new URLSearchParams({
-                                    action: 'formatDiagnosis',
+                                  const formattedDiagnosis = await formatDiagnosisWithAI({
                                     rawDiagnosis,
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId: serviceId,
-                                    technician: updateTechnician || serviceData?.technician || '',
-                                    finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
+                                    serviceId,
                                   });
-
-                                  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-                                  if (!response.ok) {
-                                    throw new Error(`Failed to format diagnosis (status ${response.status})`);
-                                  }
-
-                                  const data = await response.json();
-                                  
-                                  if (data.error) {
-                                    throw new Error(data.error);
-                                  }
-
-                                  const formattedDiagnosis = data.formattedDiagnosis;
 
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
