@@ -17,7 +17,10 @@ interface TicketWorkspaceHeroProps {
   service: any;
   /** Show the copy-link + QR share actions beside the ticket ID. */
   showShare?: boolean;
+  /** Realtime watch is connected for this ticket. */
+  isLive?: boolean;
 }
+
 
 
 const STAGE_MAP: Record<string, { stage: string; tone: string; next: string }> = {
