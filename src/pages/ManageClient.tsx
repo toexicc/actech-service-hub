@@ -1866,6 +1866,21 @@ const ManageClient = () => {
                   <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
                 )}
 
+                {/* Technician Report (raw) - same logic as /service-update */}
+                {serviceData?.status === "Done Repair - For Release" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianReport">Technician Report:</Label>
+                    <Textarea
+                      id="technicianReport"
+                      placeholder="Enter technician report"
+                      value={technicianReport}
+                      onChange={(e) => setTechnicianReport(e.target.value)}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                )}
+
                 {/* Report Display - Only visible when status is "Done Repair - For Release" */}
                 {serviceData?.status === "Done Repair - For Release" && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
