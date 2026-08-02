@@ -24,6 +24,7 @@ import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
+import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
@@ -455,54 +456,13 @@ const ManageClient = () => {
 
     setIsFormattingAI(true);
     try {
-      const params = new URLSearchParams({
-        action: 'formatDiagnosis',
+      const formattedDiagnosis = await formatDiagnosisWithAI({
         rawDiagnosis,
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId: serviceId,
-        technician: updateTechnician || serviceData?.technician || '',
-        finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
+        serviceId,
       });
-
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to format diagnosis (status ${response.status})`);
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        if (data.error.includes("rate limit")) {
-          toast({
-            title: "Rate Limit Reached",
-            description: "AI service rate limit reached. Please wait and try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("API key")) {
-          toast({
-            title: "Invalid API Key",
-            description: "OpenAI API key is invalid or missing. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("quota")) {
-          toast({
-            title: "API Quota Exceeded",
-            description: "AI service quota exceeded. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(data.error);
-      }
-
-      const formattedDiagnosis = data.formattedDiagnosis;
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
@@ -551,54 +511,14 @@ const ManageClient = () => {
 
     setIsFormattingReport(true);
     try {
-      const params = new URLSearchParams({
-        action: 'formatReport',
+      const formattedReport = await formatReportWithAI({
         technicianReport,
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId: serviceId,
-        technician: serviceData?.technician || updateTechnician || '',
+        serviceId,
         finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
       });
-
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to format report (status ${response.status})`);
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        if (data.error.includes("rate limit")) {
-          toast({
-            title: "Rate Limit Reached",
-            description: "AI service rate limit reached. Please wait and try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("API key")) {
-          toast({
-            title: "Invalid API Key",
-            description: "OpenAI API key is invalid or missing. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (data.error.includes("quota")) {
-          toast({
-            title: "API Quota Exceeded",
-            description: "AI service quota exceeded. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(data.error);
-      }
-
-      const formattedReport = data.formattedReport;
 
       if (formattedReport) {
         setUpdateServiceReport(formattedReport);
