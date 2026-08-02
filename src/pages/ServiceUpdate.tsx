@@ -573,6 +573,62 @@ const ServiceUpdate = () => {
     await searchService(serviceId);
   };
 
+  // ---- Live ticket watch: detect updates made elsewhere -------------------
+  const isTabActive = useIsTabActive();
+  const loadedServiceId = serviceData?.serviceId || null;
+  const { change: remoteChange, isLive, dismiss: dismissRemoteChange, syncBaseline } =
+    useServiceLiveWatch(loadedServiceId, isTabActive);
+  const [isReloadingTicket, setIsReloadingTicket] = useState(false);
+
+  /** True when the form holds edits a silent refresh would discard. */
+  const isFormDirty = (() => {
+    if (!serviceData) return false;
+    const pairs: Array<[any, any]> = [
+      [updateStatus, serviceData.status || ""],
+      [updateTechnician, serviceData.technician || ""],
+      [updateTechnicianDiagnosis, serviceData.technicianDiagnosis || ""],
+      [updateTechnicianNotesInternal, serviceData.technicianNotesInternal || ""],
+      [updateTechnicianReport, serviceData.technicianReport || ""],
+      [rawDiagnosis, serviceData.technicianDiagnosis || ""],
+      [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateServiceReport, serviceData.aiReport || ""],
+    ];
+    return pairs.some(([a, b]) => String(a ?? "") !== String(b ?? ""));
+  })();
+
+  const reloadTicket = async () => {
+    if (!loadedServiceId) return;
+    setIsReloadingTicket(true);
+    try {
+      await searchService(loadedServiceId);
+      await syncBaseline();
+    } finally {
+      setIsReloadingTicket(false);
+    }
+  };
+
+  // Clean form + remote change -> refresh silently. Dirty form -> show banner.
+  useEffect(() => {
+    if (!remoteChange || !loadedServiceId || isFormDirty || isReloadingTicket) return;
+    (async () => {
+      setIsReloadingTicket(true);
+      try {
+        await searchService(loadedServiceId);
+        await syncBaseline();
+        toast({
+          title: "Ticket refreshed",
+          description: remoteChange.newStatus
+            ? `Status is now ${remoteChange.newStatus}.`
+            : `Updated: ${remoteChange.changedFields.join(", ")}.`,
+        });
+      } finally {
+        setIsReloadingTicket(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteChange]);
+
+
   const loadExistingPhotos = async (folderUrl: string) => {
     try {
       const folderId = extractFolderIdFromUrl(folderUrl);
