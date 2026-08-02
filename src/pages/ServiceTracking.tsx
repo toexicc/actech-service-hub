@@ -167,6 +167,8 @@ const ServiceTracking = () => {
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
+  const [selectedBreakdown, setSelectedBreakdown] = useState<string[]>([]);
+
 
   const { toast } = useToast();
 
