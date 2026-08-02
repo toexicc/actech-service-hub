@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle } from "lucide-react";
+import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Phone } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
@@ -78,20 +78,12 @@ const SOCIAL_LINKS = [
   {
     name: "Website",
     href: "https://actechrepairph.com/",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm1.145 21.063c-.668.1-1.357.154-2.062.154-2.395 0-4.62-.733-6.466-1.985.914-2.05 2.55-3.66 4.64-4.43.48 1.62 1.13 3.14 1.93 4.53.58 1.01 1.25 1.97 1.96 2.73zm3.53-.54c-.7-.76-1.37-1.72-1.95-2.73-.8-1.39-1.45-2.91-1.93-4.53 2.09.77 3.73 2.38 4.64 4.43-.64.41-1.32.75-2.04 1.01-.24.09-.48.16-.72.22v.6zm-8.69-1.43c-1.13-1.45-1.93-3.13-2.31-4.95 1.18-.28 2.42-.44 3.69-.47-.38 1.86-.66 3.75-.84 5.65-.18-.08-.36-.16-.54-.23zm10.84-4.95c-.38 1.82-1.18 3.5-2.31 4.95-.18.07-.36.15-.54.23-.18-1.9-.46-3.79-.84-5.65 1.27.03 2.51.19 3.69.47zm-7.2-6.24c.44 1.53 1.02 2.99 1.73 4.34-.92-.04-1.82-.15-2.69-.33-.87.18-1.77.29-2.69.33.71-1.35 1.29-2.81 1.73-4.34.31-1.06.55-2.15.71-3.27.16 1.12.4 2.21.71 3.27.51 1.76 1.18 3.44 2.01 5.01-.83-1.57-1.5-3.25-2.01-5.01zm4.66 4.01c-.72-1.35-1.3-2.81-1.73-4.34-.31-1.06-.55-2.15-.71-3.27-.16 1.12-.4 2.21-.71 3.27-.44 1.53-1.02 2.99-1.73 4.34.92-.04 1.82-.15 2.69-.33.87.18 1.77.29 2.69.33zm-4.66-7.28c-.16 1.12-.4 2.21-.71 3.27-.44 1.53-1.02 2.99-1.73 4.34-.92-.04-1.82-.15-2.69-.33-.87.18-1.77.29-2.69.33.71-1.35 1.29-2.81 1.73-4.34.31-1.06.55-2.15.71-3.27.16 1.12.4 2.21.71 3.27z" />
-      </svg>
-    ),
+    icon: <Globe className="h-5 w-5" aria-hidden="true" />,
   },
   {
     name: "Viber",
     href: "https://viber.com/",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-        <path d="M11.988 0C5.412 0 .008 5.352.008 11.88c0 3.168 1.236 6.096 3.348 8.292l.012 2.628c0 .696.564 1.26 1.26 1.26h.012c.696 0 1.26-.564 1.26-1.26v-2.04c4.392.744 7.596-.84 7.596-.84-.696 1.392-2.58 2.688-5.052 2.976v1.464c0 1.14-.924 2.064-2.064 2.064h-.012c-1.14 0-2.064-.924-2.064-2.064v-1.272C2.028 21.504 0 17.388 0 12.696 0 5.688 5.688 0 12.696 0h-.708zm5.688 5.76c-.42 0-.756.336-.756.756s.336.756.756.756c2.496 0 4.524 2.028 4.524 4.524 0 .42.336.756.756.756s.756-.336.756-.756c0-3.324-2.712-6.036-6.036-6.036zm-1.548 2.352c-.42 0-.756.336-.756.756 0 .42.336.756.756.756 1.14 0 2.064.924 2.064 2.064 0 .42.336.756.756.756s.756-.336.756-.756c0-1.98-1.596-3.576-3.576-3.576zm-1.512 2.4c-.42 0-.756.336-.756.756 0 .42.336.756.756.756.396 0 .72.324.72.72 0 .42.336.756.756.756s.756-.336.756-.756c0-1.248-1.008-2.232-2.232-2.232z" />
-      </svg>
-    ),
+    icon: <Phone className="h-5 w-5" aria-hidden="true" />,
   },
 ];
 
@@ -1094,7 +1086,7 @@ const ServiceTracking = () => {
                     {/* Social links */}
                     <div className="space-y-2">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Follow us</p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap justify-between gap-2">
                         {SOCIAL_LINKS.map((link) => (
                           <a
                             key={link.name}
@@ -1111,17 +1103,17 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Contact action buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <Button asChild variant="outline" className="rounded-xl">
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button asChild variant="outline" className="rounded-xl px-2">
                         <a href={CONTACT_LINKS.facebook} target="_blank" rel="noreferrer">
-                          Message us on FB
+                          Message
                         </a>
                       </Button>
-                      <Button asChild variant="outline" className="rounded-xl">
-                        <a href={CONTACT_LINKS.email}>Email us</a>
+                      <Button asChild variant="outline" className="rounded-xl px-2">
+                        <a href={CONTACT_LINKS.email}>Email</a>
                       </Button>
-                      <Button asChild variant="outline" className="rounded-xl">
-                        <a href={CONTACT_LINKS.phone}>Contact us</a>
+                      <Button asChild variant="outline" className="rounded-xl px-2">
+                        <a href={CONTACT_LINKS.phone}>Call</a>
                       </Button>
                     </div>
                   </CardContent>
