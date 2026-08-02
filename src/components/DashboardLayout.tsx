@@ -39,7 +39,7 @@ const adminSection: NavSection = {
     { title: "Transaction Tracker", icon: DollarSign, path: "/transaction-tracker", roles: ["management"], iconName: "DollarSign" },
     { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"], iconName: "Settings" },
-    { title: "Attendance Overview", icon: Clock, path: "/attendance-overview", roles: ["management"], iconName: "Clock" },
+    { title: "Attendance", icon: Clock, path: "/attendance-overview", roles: ["management"], iconName: "Clock" },
     { title: "Reports", icon: BarChart3, path: "/reports", roles: ["management"], iconName: "BarChart3" },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"], iconName: "LayoutDashboard" },
   ],
