@@ -17,7 +17,10 @@ interface TicketWorkspaceHeroProps {
   service: any;
   /** Show the copy-link + QR share actions beside the ticket ID. */
   showShare?: boolean;
+  /** Realtime watch is connected for this ticket. */
+  isLive?: boolean;
 }
+
 
 
 const STAGE_MAP: Record<string, { stage: string; tone: string; next: string }> = {
@@ -42,7 +45,7 @@ const currency = (n: any) => {
   return `₱${v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export function TicketWorkspaceHero({ service, showShare = false }: TicketWorkspaceHeroProps) {
+export function TicketWorkspaceHero({ service, showShare = false, isLive = false }: TicketWorkspaceHeroProps) {
   if (!service) return null;
   const status = service.status || "Pending Diagnosis";
   const info = STAGE_MAP[status] || STAGE_MAP["Pending Diagnosis"];
@@ -79,7 +82,14 @@ export function TicketWorkspaceHero({ service, showShare = false }: TicketWorksp
                 {info.stage}
               </Badge>
               <span className="text-xs text-muted-foreground">Ticket</span>
+              {isLive && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                  Live
+                </span>
+              )}
             </div>
+
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
                 {service.serviceId || "—"}

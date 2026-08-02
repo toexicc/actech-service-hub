@@ -8,6 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
+import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
+import { useIsTabActive } from "@/components/workbench/WorkbenchOutlet";
+import { RemoteUpdateBanner } from "@/components/workspace/RemoteUpdateBanner";
+
 
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
@@ -448,6 +452,70 @@ const ManageClient = () => {
     }
   };
 
+  // ---- Live ticket watch: detect updates made elsewhere -------------------
+  const isTabActive = useIsTabActive();
+  const loadedServiceId = serviceData?.serviceId || null;
+  const { change: remoteChange, isLive, dismiss: dismissRemoteChange, syncBaseline } =
+    useServiceLiveWatch(loadedServiceId, isTabActive);
+  const [isReloadingTicket, setIsReloadingTicket] = useState(false);
+
+  /** True when the form holds edits that a silent refresh would discard. */
+  const isFormDirty = (() => {
+    if (!serviceData) return false;
+    if (isEditingDetails || isEditingAIDiagnosis || isEditingServiceReport) return true;
+    const pairs: Array<[any, any]> = [
+      [updateStatus, serviceData.status || ""],
+      [updateAdminRep, serviceData.adminRep || ""],
+      [updateTechnician, serviceData.technician || ""],
+      [updateClientType, serviceData.clientType || ""],
+      [updatePriority, serviceData.priority || ""],
+      [updateChiefComplaint, serviceData.chiefComplaint || ""],
+      [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateServices, serviceData.service || ""],
+      [String(updateServiceCost ?? ""), String(serviceData.serviceCost ?? "")],
+      [updateTimeFrame, serviceData.timeFrame || ""],
+      [updateAdminNotes, serviceData.adminNotes || ""],
+      [updateAdminNotesInternal, serviceData.adminNotesInternal || ""],
+      [updateTechDiagnosis, serviceData.technicianDiagnosis || ""],
+      [technicianReport, serviceData.technicianReport || ""],
+      [updateServiceReport, serviceData.aiReport || ""],
+    ];
+    return pairs.some(([a, b]) => String(a ?? "") !== String(b ?? ""));
+  })();
+
+  const reloadTicket = async () => {
+    if (!loadedServiceId) return;
+    setIsReloadingTicket(true);
+    try {
+      await handleSearch();
+      await syncBaseline();
+    } finally {
+      setIsReloadingTicket(false);
+    }
+  };
+
+  // Clean form + remote change -> refresh silently. Dirty form -> show banner.
+  useEffect(() => {
+    if (!remoteChange || !loadedServiceId || isFormDirty || isReloadingTicket) return;
+    (async () => {
+      setIsReloadingTicket(true);
+      try {
+        await handleSearch();
+        await syncBaseline();
+        toast({
+          title: "Ticket refreshed",
+          description: remoteChange.newStatus
+            ? `Status is now ${remoteChange.newStatus}.`
+            : `Updated: ${remoteChange.changedFields.join(", ")}.`,
+        });
+      } finally {
+        setIsReloadingTicket(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteChange]);
+
+
   // Fallback: if Sheets didn't return a quotationPdfUrl but Supabase Storage
   // already has a generated quotation for this service, mark it so the button
   // shows "Update Form" instead of "Generate PDF".
@@ -653,6 +721,7 @@ const ManageClient = () => {
       formData.append("Device Type", updateDeviceType || "");
 
       // Mirror to Supabase so dashboards / search reflect the change immediately
+      const saveStamp = new Date().toISOString();
       const { error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
         admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
@@ -672,8 +741,11 @@ const ManageClient = () => {
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
-        last_updated: new Date().toISOString(),
+        last_updated: saveStamp,
       }).eq("service_id", serviceId);
+      // Don't let our own write raise the "updated elsewhere" banner.
+      syncBaseline(saveStamp);
+
 
       // Fire-and-forget: keep Sheets in sync if still configured (non-blocking, ignore failures)
       try {
@@ -1205,7 +1277,18 @@ const ManageClient = () => {
         {/* Service Details and Update Form */}
         {serviceData && (
           <div className="space-y-8">
-          <TicketWorkspaceHero service={serviceData} showShare />
+          {remoteChange && (
+            <RemoteUpdateBanner
+              changedFields={remoteChange.changedFields}
+              newStatus={remoteChange.newStatus}
+              isDirty={isFormDirty}
+              isReloading={isReloadingTicket}
+              onReload={reloadTicket}
+              onDismiss={dismissRemoteChange}
+            />
+          )}
+          <TicketWorkspaceHero service={serviceData} showShare isLive={isLive} />
+
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
             clientName={serviceData.clientName || ""}
