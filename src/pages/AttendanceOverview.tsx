@@ -11,13 +11,24 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { CalendarIcon, Search, Download, UserPlus, Plane, Trash2 } from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { CalendarIcon, Search, Download, UserPlus, Plane, Trash2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStaff } from "@/hooks/useStaff";
+import { useInvalidateAvailability } from "@/hooks/useStaffAvailability";
 import { toast } from "@/hooks/use-toast";
 
 interface AttendanceRow {
@@ -29,6 +40,7 @@ interface AttendanceRow {
   time_out: string | null;
   is_late: boolean;
   is_overtime: boolean;
+  notes?: string | null;
 }
 
 interface LeaveRow {
@@ -43,9 +55,17 @@ interface LeaveRow {
 }
 
 const LEAVE_TYPES = ["sick", "vacation", "emergency"];
+const titleCase = (v: string) => (v ? v.charAt(0).toUpperCase() + v.slice(1) : "");
 
 const fmtTime = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+
+/** "HH:mm" value for a time input, from a stored timestamp. */
+const toHHmm = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
 
 const computeHours = (ti: string | null, to: string | null): string => {
   if (!ti || !to) return "—";
@@ -64,17 +84,34 @@ const AttendanceOverview = () => {
   const [search, setSearch] = useState("");
   const [start, setStart] = useState<Date | undefined>();
   const [end, setEnd] = useState<Date | undefined>();
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [staffFilter, setStaffFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
 
   const { data: staff } = useStaff();
+  const invalidateAvailability = useInvalidateAvailability();
+
+  /** Everyone active — management included — can be entered manually. */
   const eligibleStaff = useMemo(
     () =>
-      (staff ?? []).filter(
-        (s) =>
-          ["technician", "admin"].includes((s.role || "").toLowerCase()) &&
-          (s.status || "active").toLowerCase() === "active",
-      ),
+      (staff ?? [])
+        .filter((s) => s.userId && (s.status || "active").toLowerCase() === "active")
+        .sort((a, b) => (a.role || "zz").localeCompare(b.role || "zz") || a.name.localeCompare(b.name)),
+    [staff],
+  );
+
+  const staffById = useMemo(() => {
+    const m = new Map<string, { role: string; department: string }>();
+    (staff ?? []).forEach((s) => {
+      if (s.userId) m.set(s.userId, { role: (s.role || "").toLowerCase(), department: s.department || "" });
+    });
+    return m;
+  }, [staff]);
+
+  const departments = useMemo(
+    () => Array.from(new Set((staff ?? []).map((s) => s.department).filter(Boolean))).sort() as string[],
     [staff],
   );
 
@@ -82,16 +119,39 @@ const AttendanceOverview = () => {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkDate, setBulkDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkSearch, setBulkSearch] = useState("");
   const [bulkSel, setBulkSel] = useState<Record<string, { checked: boolean; timeIn: string; timeOut: string }>>({});
 
   // ---- Leave modal state ----
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaveSaving, setLeaveSaving] = useState(false);
+  const [leaveEditId, setLeaveEditId] = useState<string | null>(null);
   const [leaveStaff, setLeaveStaff] = useState("");
   const [leaveType, setLeaveType] = useState("sick");
+  const [leaveStatus, setLeaveStatus] = useState("approved");
   const [leaveStart, setLeaveStart] = useState(format(new Date(), "yyyy-MM-dd"));
   const [leaveEnd, setLeaveEnd] = useState(format(new Date(), "yyyy-MM-dd"));
   const [leaveNotes, setLeaveNotes] = useState("");
+
+  // ---- Edit attendance modal state ----
+  const [editRow, setEditRow] = useState<AttendanceRow | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editIn, setEditIn] = useState("");
+  const [editOut, setEditOut] = useState("");
+  const [editLate, setEditLate] = useState(false);
+  const [editOt, setEditOt] = useState(false);
+  const [editNotes, setEditNotes] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  // ---- Convert to leave state ----
+  const [convertRow, setConvertRow] = useState<AttendanceRow | null>(null);
+  const [convertType, setConvertType] = useState("sick");
+  const [convertNotes, setConvertNotes] = useState("");
+  const [converting, setConverting] = useState(false);
+
+  // ---- Delete confirmations ----
+  const [deleteLog, setDeleteLog] = useState<AttendanceRow | null>(null);
+  const [deleteLeaveRow, setDeleteLeaveRow] = useState<LeaveRow | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -114,11 +174,22 @@ const AttendanceOverview = () => {
     })();
   }, [start, end, reload]);
 
+  const refresh = () => {
+    setReload((n) => n + 1);
+    invalidateAvailability();
+  };
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
-    const q = search.toLowerCase();
-    return rows.filter((r) => r.staff_name.toLowerCase().includes(q));
-  }, [rows, search]);
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q && !r.staff_name.toLowerCase().includes(q)) return false;
+      if (staffFilter !== "all" && r.staff_id !== staffFilter) return false;
+      const info = staffById.get(r.staff_id);
+      if (roleFilter !== "all" && (info?.role || "") !== roleFilter) return false;
+      if (deptFilter !== "all" && (info?.department || "") !== deptFilter) return false;
+      return true;
+    });
+  }, [rows, search, staffFilter, roleFilter, deptFilter, staffById]);
 
   // Pagination is by day so every record for a single day stays on one page.
   const days = useMemo(() => {
@@ -134,7 +205,23 @@ const AttendanceOverview = () => {
   const currentPage = Math.min(page, pageCount - 1);
   const pageDays = days.slice(currentPage * DAYS_PER_PAGE, currentPage * DAYS_PER_PAGE + DAYS_PER_PAGE);
 
-  useEffect(() => setPage(0), [search, start, end]);
+  useEffect(() => setPage(0), [search, start, end, roleFilter, deptFilter, staffFilter]);
+
+  const hasFilters =
+    !!start || !!end || !!search || roleFilter !== "all" || deptFilter !== "all" || staffFilter !== "all";
+  const clearFilters = () => {
+    setStart(undefined);
+    setEnd(undefined);
+    setSearch("");
+    setRoleFilter("all");
+    setDeptFilter("all");
+    setStaffFilter("all");
+  };
+
+  const setMonth = (d: Date) => {
+    setStart(startOfMonth(d));
+    setEnd(endOfMonth(d));
+  };
 
   const exportCsv = () => {
     const header = ["Date", "Employee", "Time In", "Late", "Time Out", "Overtime", "Hours"].join(",");
@@ -164,6 +251,7 @@ const AttendanceOverview = () => {
       if (s.userId) init[s.userId] = { checked: false, timeIn: "09:00", timeOut: "" };
     });
     setBulkSel(init);
+    setBulkSearch("");
     setBulkDate(format(new Date(), "yyyy-MM-dd"));
     setBulkOpen(true);
   };
@@ -197,12 +285,120 @@ const AttendanceOverview = () => {
       if (error) throw new Error(error.message);
       toast({ title: "Attendance saved", description: `${payload.length} record(s) recorded.` });
       setBulkOpen(false);
-      setReload((n) => n + 1);
+      refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e?.message || "Could not save attendance.", variant: "destructive" });
     } finally {
       setBulkSaving(false);
     }
+  };
+
+  // ---------- attendance row actions ----------
+  const openEdit = (r: AttendanceRow) => {
+    setEditRow(r);
+    setEditDate(r.log_date);
+    setEditIn(toHHmm(r.time_in));
+    setEditOut(toHHmm(r.time_out));
+    setEditLate(!!r.is_late);
+    setEditOt(!!r.is_overtime);
+    setEditNotes(r.notes || "");
+  };
+
+  const applyTimes = (nextIn: string, nextOut: string) => {
+    setEditIn(nextIn);
+    setEditOut(nextOut);
+    setEditLate(!!nextIn && nextIn > "09:15");
+    setEditOt(!!nextOut && nextOut > "18:00");
+  };
+
+  const saveEdit = async () => {
+    if (!editRow) return;
+    setEditSaving(true);
+    try {
+      const { error } = await supabase
+        .from("attendance_logs")
+        .update({
+          log_date: editDate,
+          time_in: isoFor(editDate, editIn),
+          time_out: isoFor(editDate, editOut),
+          is_late: editLate,
+          is_overtime: editOt,
+          notes: editNotes || null,
+        })
+        .eq("id", editRow.id);
+      if (error) throw new Error(error.message);
+      toast({ title: "Attendance updated" });
+      setEditRow(null);
+      refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not update record.", variant: "destructive" });
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const confirmDeleteLog = async () => {
+    if (!deleteLog) return;
+    const { error } = await supabase.from("attendance_logs").delete().eq("id", deleteLog.id);
+    setDeleteLog(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Record deleted" });
+    refresh();
+  };
+
+  const convertToLeave = async () => {
+    if (!convertRow) return;
+    setConverting(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase.from("staff_leaves").insert({
+        staff_id: convertRow.staff_id,
+        staff_name: convertRow.staff_name,
+        leave_type: convertType,
+        start_date: convertRow.log_date,
+        end_date: convertRow.log_date,
+        status: "approved",
+        notes: convertNotes || null,
+        created_by: userRes?.user?.id ?? null,
+      });
+      if (error) throw new Error(error.message);
+      await supabase.from("attendance_logs").delete().eq("id", convertRow.id);
+      toast({ title: "Converted to leave", description: `${convertRow.staff_name} is marked on leave.` });
+      setConvertRow(null);
+      setConvertNotes("");
+      setEditRow(null);
+      refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not convert record.", variant: "destructive" });
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  // ---------- leave actions ----------
+  const openNewLeave = () => {
+    setLeaveEditId(null);
+    setLeaveStaff("");
+    setLeaveType("sick");
+    setLeaveStatus("approved");
+    setLeaveStart(format(new Date(), "yyyy-MM-dd"));
+    setLeaveEnd(format(new Date(), "yyyy-MM-dd"));
+    setLeaveNotes("");
+    setLeaveOpen(true);
+  };
+
+  const openEditLeave = (l: LeaveRow) => {
+    setLeaveEditId(l.id);
+    setLeaveStaff(l.staff_id);
+    setLeaveType(l.leave_type);
+    setLeaveStatus(l.status || "approved");
+    setLeaveStart(l.start_date);
+    setLeaveEnd(l.end_date);
+    setLeaveNotes(l.notes || "");
+    setLeaveOpen(true);
   };
 
   const saveLeave = async () => {
@@ -218,20 +414,23 @@ const AttendanceOverview = () => {
     setLeaveSaving(true);
     try {
       const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase.from("staff_leaves").insert({
+      const payload = {
         staff_id: member.userId,
         staff_name: member.name,
         leave_type: leaveType,
+        status: leaveStatus,
         start_date: leaveStart,
         end_date: leaveEnd,
         notes: leaveNotes || null,
-        created_by: userRes?.user?.id ?? null,
-      });
+      };
+      const { error } = leaveEditId
+        ? await supabase.from("staff_leaves").update(payload).eq("id", leaveEditId)
+        : await supabase.from("staff_leaves").insert({ ...payload, created_by: userRes?.user?.id ?? null });
       if (error) throw new Error(error.message);
-      toast({ title: "Leave recorded", description: `${member.name} is marked unavailable.` });
+      toast({ title: leaveEditId ? "Leave updated" : "Leave recorded", description: `${member.name} — ${titleCase(leaveType)}` });
       setLeaveOpen(false);
       setLeaveNotes("");
-      setReload((n) => n + 1);
+      refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e?.message || "Could not save leave.", variant: "destructive" });
     } finally {
@@ -239,17 +438,24 @@ const AttendanceOverview = () => {
     }
   };
 
-  const deleteLeave = async (id: string) => {
-    const { error } = await supabase.from("staff_leaves").delete().eq("id", id);
+  const confirmDeleteLeave = async () => {
+    if (!deleteLeaveRow) return;
+    const { error } = await supabase.from("staff_leaves").delete().eq("id", deleteLeaveRow.id);
+    setDeleteLeaveRow(null);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    setReload((n) => n + 1);
+    toast({ title: "Leave deleted" });
+    refresh();
   };
 
   const today = format(new Date(), "yyyy-MM-dd");
   const onLeaveToday = leaves.filter((l) => l.start_date <= today && l.end_date >= today && l.status === "approved");
+
+  const bulkVisible = eligibleStaff.filter((s) =>
+    bulkSearch ? s.name.toLowerCase().includes(bulkSearch.toLowerCase()) : true,
+  );
 
   return (
     <DashboardLayout>
@@ -263,7 +469,7 @@ const AttendanceOverview = () => {
             <Button size="sm" onClick={openBulk}>
               <UserPlus className="h-4 w-4 mr-1" /> Record attendance
             </Button>
-            <Button size="sm" variant="outline" onClick={() => setLeaveOpen(true)}>
+            <Button size="sm" variant="outline" onClick={openNewLeave}>
               <Plane className="h-4 w-4 mr-1" /> Add leave
             </Button>
           </div>
@@ -286,50 +492,116 @@ const AttendanceOverview = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search employee..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="pl-8"
-                    />
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search employee..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn("min-w-[220px] justify-start", !start && !end && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-3 w-3" />
+                          {start && end
+                            ? `${format(start, "MM/dd/yyyy")} – ${format(end, "MM/dd/yyyy")}`
+                            : start
+                            ? format(start, "MM/dd/yyyy")
+                            : "Date range"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="range"
+                          selected={{ from: start, to: end }}
+                          onSelect={(r: any) => {
+                            setStart(r?.from);
+                            setEnd(r?.to ?? r?.from);
+                          }}
+                          numberOfMonths={2}
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <CalendarIcon className="mr-2 h-3 w-3" /> Month
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <div className="p-2 border-b">
+                          <Button size="sm" variant="ghost" className="w-full" onClick={() => setMonth(new Date())}>
+                            This month
+                          </Button>
+                        </div>
+                        <Calendar
+                          mode="single"
+                          onSelect={(d) => d && setMonth(d)}
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-[140px]", !start && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3 w-3" />
-                        {start ? format(start, "MMM dd") : "From"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={start} onSelect={setStart} className="pointer-events-auto" />
-                    </PopoverContent>
-                  </Popover>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-[140px]", !end && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3 w-3" />
-                        {end ? format(end, "MMM dd") : "To"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={end} onSelect={setEnd} className="pointer-events-auto" />
-                    </PopoverContent>
-                  </Popover>
-                  {(start || end) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setStart(undefined);
-                        setEnd(undefined);
-                      }}
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                      <SelectTrigger className="sm:w-[180px]">
+                        <SelectValue placeholder="Role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All roles</SelectItem>
+                        <SelectItem value="management">Management</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="technician">Technician</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={deptFilter}
+                      onValueChange={setDeptFilter}
+                      disabled={!(roleFilter === "all" || roleFilter === "technician")}
                     >
-                      Clear
-                    </Button>
-                  )}
+                      <SelectTrigger className="sm:w-[220px]">
+                        <SelectValue placeholder="Department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All departments</SelectItem>
+                        {departments.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={staffFilter} onValueChange={setStaffFilter}>
+                      <SelectTrigger className="sm:w-[220px]">
+                        <SelectValue placeholder="Staff" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All staff</SelectItem>
+                        {(staff ?? [])
+                          .filter((s) => s.userId)
+                          .map((s) => (
+                            <SelectItem key={s.userId} value={s.userId as string}>
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {hasFilters && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters}>
+                        Clear filters
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {loading ? (
@@ -348,10 +620,12 @@ const AttendanceOverview = () => {
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Employee</TableHead>
+                                <TableHead>Role</TableHead>
                                 <TableHead>Time In</TableHead>
                                 <TableHead>Time Out</TableHead>
                                 <TableHead>Hours</TableHead>
                                 <TableHead>Tags</TableHead>
+                                <TableHead className="w-[100px]" />
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -360,12 +634,25 @@ const AttendanceOverview = () => {
                                 .map((r) => (
                                   <TableRow key={r.id}>
                                     <TableCell className="font-medium">{r.staff_name}</TableCell>
+                                    <TableCell className="capitalize text-muted-foreground text-sm">
+                                      {staffById.get(r.staff_id)?.role || "—"}
+                                    </TableCell>
                                     <TableCell>{fmtTime(r.time_in)}</TableCell>
                                     <TableCell>{fmtTime(r.time_out)}</TableCell>
                                     <TableCell>{computeHours(r.time_in, r.time_out)}</TableCell>
                                     <TableCell className="space-x-1">
                                       {r.is_late && <Badge variant="destructive">Late</Badge>}
                                       {r.is_overtime && <Badge>Overtime</Badge>}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex gap-1">
+                                        <Button size="icon" variant="ghost" onClick={() => openEdit(r)}>
+                                          <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={() => setDeleteLog(r)}>
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -420,14 +707,15 @@ const AttendanceOverview = () => {
                         <TableHead>Type</TableHead>
                         <TableHead>From</TableHead>
                         <TableHead>To</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Notes</TableHead>
-                        <TableHead className="w-[60px]" />
+                        <TableHead className="w-[100px]" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {leaves.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                             No leave recorded
                           </TableCell>
                         </TableRow>
@@ -444,14 +732,20 @@ const AttendanceOverview = () => {
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="capitalize">{l.leave_type}</TableCell>
+                              <TableCell>{titleCase(l.leave_type)}</TableCell>
                               <TableCell>{format(new Date(l.start_date + "T00:00:00"), "MM/dd/yyyy")}</TableCell>
                               <TableCell>{format(new Date(l.end_date + "T00:00:00"), "MM/dd/yyyy")}</TableCell>
+                              <TableCell>{titleCase(l.status || "")}</TableCell>
                               <TableCell className="text-muted-foreground text-sm">{l.notes || "—"}</TableCell>
                               <TableCell>
-                                <Button size="icon" variant="ghost" onClick={() => deleteLeave(l.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                                <div className="flex gap-1">
+                                  <Button size="icon" variant="ghost" onClick={() => openEditLeave(l)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" onClick={() => setDeleteLeaveRow(l)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -475,15 +769,24 @@ const AttendanceOverview = () => {
               Tick everyone who reported for the day and set their times. Existing records for the same day are replaced.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto space-y-3">
+          <div className="shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="bulkDate">Date</Label>
               <Input id="bulkDate" type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} />
             </div>
-            {eligibleStaff.length === 0 && (
-              <p className="text-sm text-muted-foreground">No active technicians or admins found.</p>
-            )}
-            {eligibleStaff.map((s) => {
+            <div className="space-y-1">
+              <Label htmlFor="bulkSearch">Search staff</Label>
+              <Input
+                id="bulkSearch"
+                placeholder="Filter by name"
+                value={bulkSearch}
+                onChange={(e) => setBulkSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3 mt-3">
+            {bulkVisible.length === 0 && <p className="text-sm text-muted-foreground">No active staff found.</p>}
+            {bulkVisible.map((s) => {
               const key = s.userId as string;
               const entry = bulkSel[key] ?? { checked: false, timeIn: "09:00", timeOut: "" };
               return (
@@ -525,12 +828,110 @@ const AttendanceOverview = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Leave entry */}
+      {/* Edit attendance */}
+      <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
+        <DialogContent className="max-w-md !flex !flex-col max-h-[95dvh]">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Edit attendance</DialogTitle>
+            <DialogDescription>{editRow?.staff_name}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="editDate">Date</Label>
+              <Input id="editDate" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="editIn">Time In</Label>
+                <Input id="editIn" type="time" value={editIn} onChange={(e) => applyTimes(e.target.value, editOut)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="editOut">Time Out</Label>
+                <Input id="editOut" type="time" value={editOut} onChange={(e) => applyTimes(editIn, e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-6 pt-1">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={editLate} onCheckedChange={(v) => setEditLate(!!v)} /> Late
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={editOt} onCheckedChange={(v) => setEditOt(!!v)} /> Overtime
+              </label>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="editNotes">Notes</Label>
+              <Textarea id="editNotes" rows={2} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
+            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setConvertType("sick");
+                setConvertRow(editRow);
+              }}
+            >
+              <Plane className="h-4 w-4 mr-1" /> Convert to leave
+            </Button>
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setEditRow(null)} disabled={editSaving}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to leave */}
+      <Dialog open={!!convertRow} onOpenChange={(o) => !o && setConvertRow(null)}>
+        <DialogContent className="max-w-md !flex !flex-col max-h-[95dvh]">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Convert to leave</DialogTitle>
+            <DialogDescription>
+              The attendance record is removed and {convertRow?.staff_name} is marked on leave for{" "}
+              {convertRow ? format(new Date(convertRow.log_date + "T00:00:00"), "MM/dd/yyyy") : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            <div className="space-y-1">
+              <Label>Leave type</Label>
+              <Select value={convertType} onValueChange={setConvertType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAVE_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {titleCase(t)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="convertNotes">Notes</Label>
+              <Textarea id="convertNotes" rows={2} value={convertNotes} onChange={(e) => setConvertNotes(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setConvertRow(null)} disabled={converting}>
+              Cancel
+            </Button>
+            <Button onClick={convertToLeave} disabled={converting}>
+              {converting ? "Converting…" : "Convert"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave entry / edit */}
       <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
         <DialogContent className="max-w-md !flex !flex-col max-h-[95dvh]">
           <DialogHeader className="shrink-0">
-            <DialogTitle>Add leave</DialogTitle>
-            <DialogDescription>Staff on leave are not offered for service assignment.</DialogDescription>
+            <DialogTitle>{leaveEditId ? "Edit leave" : "Add leave"}</DialogTitle>
+            <DialogDescription>Staff on approved leave are not offered for service assignment.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-3">
             <div className="space-y-1">
@@ -550,20 +951,35 @@ const AttendanceOverview = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label>Leave type</Label>
-              <Select value={leaveType} onValueChange={setLeaveType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEAVE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t} className="capitalize">
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Leave type</Label>
+                <Select value={leaveType} onValueChange={setLeaveType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEAVE_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {titleCase(t)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={leaveStatus} onValueChange={setLeaveStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -590,6 +1006,38 @@ const AttendanceOverview = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmations */}
+      <AlertDialog open={!!deleteLog} onOpenChange={(o) => !o && setDeleteLog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete attendance record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteLog?.staff_name} on{" "}
+              {deleteLog ? format(new Date(deleteLog.log_date + "T00:00:00"), "MM/dd/yyyy") : ""} will be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteLog}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteLeaveRow} onOpenChange={(o) => !o && setDeleteLeaveRow(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete leave record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteLeaveRow?.staff_name} — {titleCase(deleteLeaveRow?.leave_type || "")} leave will be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteLeave}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

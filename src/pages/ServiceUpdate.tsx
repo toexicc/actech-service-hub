@@ -161,13 +161,14 @@ const ServiceUpdate = () => {
 
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
+  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // Technicians who are absent (no Time In today) or on leave are hidden so they
   // don't get assigned. When no attendance exists yet for the day we only hide
   // staff on leave, otherwise the list would be empty.
   const technicians = useMemo(() => {
     return technicianData
       .filter((staff) => {
-        if (!availability) return true;
+        if (showUnavailableTechs || !availability) return true;
         if (availability.isOnLeave(staff.name)) return false;
         if (!availability.hasAttendanceToday) return true;
         return availability.isAvailable(staff.name);
@@ -177,7 +178,8 @@ const ServiceUpdate = () => {
         department: staff.department || "",
         displayName: `${staff.name} - ${staff.department || ""}`,
       }));
-  }, [technicianData, availability]);
+  }, [technicianData, availability, showUnavailableTechs]);
+
 
   // Combine regular inventory with received fast moving parts
   const inventory = useMemo(() => {
@@ -1254,7 +1256,19 @@ const ServiceUpdate = () => {
 
 
                 <div className="space-y-2">
-                  <Label htmlFor="technician">Assigned Technician:</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="technician">Assigned Technician:</Label>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-primary"
+                        checked={showUnavailableTechs}
+                        onChange={(e) => setShowUnavailableTechs(e.target.checked)}
+                      />
+                      Show unavailable staff
+                    </label>
+                  </div>
+
                   <MultiSelect
                     options={(() => {
                       // Filter technicians based on device type
