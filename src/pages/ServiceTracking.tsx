@@ -28,6 +28,9 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { StatusChip } from "@/components/ui/status-chip";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText } from "@/lib/serviceApproval";
+
 
 
 // Accepted modes of payment shown on the public tracking page.
