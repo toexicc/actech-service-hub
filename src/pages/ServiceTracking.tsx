@@ -1086,7 +1086,7 @@ const ServiceTracking = () => {
                     {/* Social links */}
                     <div className="space-y-2">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Follow us</p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap justify-between gap-2">
                         {SOCIAL_LINKS.map((link) => (
                           <a
                             key={link.name}
@@ -1103,17 +1103,17 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Contact action buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <Button asChild variant="outline" className="rounded-xl">
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button asChild variant="outline" className="rounded-xl px-2">
                         <a href={CONTACT_LINKS.facebook} target="_blank" rel="noreferrer">
-                          Message us on FB
+                          Message
                         </a>
                       </Button>
-                      <Button asChild variant="outline" className="rounded-xl">
-                        <a href={CONTACT_LINKS.email}>Email us</a>
+                      <Button asChild variant="outline" className="rounded-xl px-2">
+                        <a href={CONTACT_LINKS.email}>Email</a>
                       </Button>
-                      <Button asChild variant="outline" className="rounded-xl">
-                        <a href={CONTACT_LINKS.phone}>Contact us</a>
+                      <Button asChild variant="outline" className="rounded-xl px-2">
+                        <a href={CONTACT_LINKS.phone}>Call</a>
                       </Button>
                     </div>
                   </CardContent>
