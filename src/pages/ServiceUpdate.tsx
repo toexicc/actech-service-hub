@@ -976,7 +976,17 @@ const ServiceUpdate = () => {
         {/* Service Details and Update Form */}
         {serviceData && (
           <div className="space-y-8">
-          <TicketWorkspaceHero service={serviceData} />
+          {remoteChange && (
+            <RemoteUpdateBanner
+              changedFields={remoteChange.changedFields}
+              newStatus={remoteChange.newStatus}
+              isDirty={isFormDirty}
+              isReloading={isReloadingTicket}
+              onReload={reloadTicket}
+              onDismiss={dismissRemoteChange}
+            />
+          )}
+          <TicketWorkspaceHero service={serviceData} isLive={isLive} />
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
             clientName={serviceData.clientName || ""}
