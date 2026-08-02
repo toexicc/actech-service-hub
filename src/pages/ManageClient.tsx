@@ -1584,7 +1584,19 @@ const ManageClient = () => {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="technician">Technician:</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="technician">Technician:</Label>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-primary"
+                        checked={showUnavailableTechs}
+                        onChange={(e) => setShowUnavailableTechs(e.target.checked)}
+                      />
+                      Show unavailable staff
+                    </label>
+                  </div>
+
                   <MultiSelect
                     options={(() => {
                       // Filter technicians based on device type
