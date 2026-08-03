@@ -1379,6 +1379,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_service_atomic: {
+        Args: { _payload: Json; _queue_id?: string }
+        Returns: string
+      }
       find_or_create_dm_thread: {
         Args: { _other_user_id: string }
         Returns: string

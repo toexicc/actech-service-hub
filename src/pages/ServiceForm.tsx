@@ -109,7 +109,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const [termsRead, setTermsRead] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serviceId, setServiceId] = useState("");
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
@@ -305,39 +304,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       clearTimeout(done);
     };
   }, [kioskCode]);
-
-
-  const buildServiceIdCandidate = () => {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, "0");
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const year = String(now.getFullYear()).slice(-2);
-    const suffix = String(Math.floor(Math.random() * 1000)).padStart(3, "0");
-    return `AC${day}${month}${year}${suffix}`;
-  };
-
-  /**
-   * Allocates a Service ID that is not already taken. The previous version
-   * derived the suffix from the clock (seconds + 1 digit of ms), which gave
-   * only a few hundred possible IDs per day — collisions overwrote existing
-   * tickets. Now every candidate is checked against the database first.
-   */
-  const allocateServiceId = async (): Promise<string> => {
-    for (let attempt = 0; attempt < 25; attempt++) {
-      const candidate = buildServiceIdCandidate();
-      const { data, error } = await supabase
-        .from("services")
-        .select("service_id")
-        .eq("service_id", candidate)
-        .maybeSingle();
-      if (error) break;
-      if (!data) return candidate;
-    }
-    // Fallback: high-entropy suffix that cannot realistically collide.
-    return `AC${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 100)
-      .toString()
-      .padStart(2, "0")}`;
-  };
 
 
   const handleSearchClientId = async () => {
@@ -562,7 +528,63 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       const hours = String(now.getHours()).padStart(2, "0");
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const timestamp = `${month}-${day}-${year}, ${hours}:${minutes}`;
-      const finalServiceId = serviceId || (await allocateServiceId());
+      const techNamesArr = (data.technician || "").split(",").map(s => s.trim()).filter(Boolean);
+      const adminRepsArr = (data.adminRep || "").split(",").map(s => s.trim()).filter(Boolean);
+      const techDepartmentsArr = [...new Set(
+        techNamesArr.map(n => technicianList.find(t => t.name === n)?.department).filter(Boolean) as string[]
+      )];
+      const resolvedClientId = await ensureClient({
+        clientId: data.clientId || null,
+        name: data.clientName,
+        username: data.username || null,
+        contactNumber: data.phone,
+        email: data.email,
+        address: (data as any).address || null,
+      }).catch(() => data.clientId || null);
+
+      const servicePayload = {
+        client_id: resolvedClientId || null,
+        client_name: data.clientName,
+        contact_number: data.phone,
+        email: data.email || null,
+        address: (data as any).address || null,
+        username: data.username || null,
+        device_type: data.deviceType,
+        brand: data.brand,
+        model: data.model,
+        color: data.color,
+        memory: data.memory,
+        serial_number: data.serial,
+        device_password: data.devicePassword || null,
+        chief_complaint: data.chiefComplaint,
+        issue_description: data.chiefComplaint,
+        device_notes: data.annotationNotes || null,
+        estimated_cost: data.estimatedCost ?? 0,
+        estimated_completion: data.timeFrame || null,
+        client_type: data.clientType,
+        priority: data.priority,
+        receiving_staff: data.receivingStaff || null,
+        technicians: techNamesArr,
+        admin_reps: adminRepsArr,
+        technician_departments: techDepartmentsArr,
+        source: "Staff Intake",
+        conditions: {
+          dents: data.dents, scratches: data.scratches, missingParts: data.missingParts,
+          physicalDamage: data.physicalDamage, importantFiles: data.importantFiles,
+          noPower: data.noPower, repairHistory: data.repairHistory,
+        },
+        acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
+        auto_approve_diagnosis: !!data.autoApproveDiagnosis,
+      };
+
+      const { data: createdServiceId, error: createError } = await supabase.rpc("create_service_atomic", {
+        _payload: servicePayload,
+        _queue_id: queueId || undefined,
+      });
+      if (createError || !createdServiceId) {
+        throw new Error(createError?.message || "Could not create the service ticket.");
+      }
+      const finalServiceId = createdServiceId;
 
       // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateServicePDF({
@@ -701,74 +723,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         formData.append("AnnotationNotes", data.annotationNotes);
       }
 
-      // Persist to Supabase (primary source of truth) — non-blocking, captures all new intake fields
-      const techNamesArr = (data.technician || "").split(",").map(s => s.trim()).filter(Boolean);
-      const adminRepsArr = (data.adminRep || "").split(",").map(s => s.trim()).filter(Boolean);
-      const techDepartmentsArr = [...new Set(
-        techNamesArr.map(n => technicianList.find(t => t.name === n)?.department).filter(Boolean) as string[]
-      )];
-      // Create or reuse the customer record so Customer Management always has
-      // an entry and the service carries a real Client ID.
-      const resolvedClientId = await ensureClient({
-        clientId: data.clientId || null,
-        name: data.clientName,
-        username: (data as any).username || null,
-        contactNumber: data.phone,
-        email: data.email,
-        address: (data as any).address || null,
-      }).catch(() => data.clientId || null);
-
-      const servicePayload = {
-        service_id: finalServiceId,
-        client_id: resolvedClientId || null,
-        client_name: data.clientName,
-        contact_number: data.phone,
-        email: data.email || null,
-        username: data.username || null,
-        device_type: data.deviceType,
-        brand: data.brand,
-        model: data.model,
-        color: data.color,
-        memory: data.memory,
-        serial_number: data.serial,
-        device_password: data.devicePassword || null,
-        chief_complaint: data.chiefComplaint,
-        issue_description: data.chiefComplaint,
-        device_notes: data.annotationNotes || null,
-        estimated_cost: data.estimatedCost ?? 0,
-        estimated_completion: data.timeFrame || null,
-        client_type: data.clientType,
-        priority: data.priority,
-        receiving_staff: data.receivingStaff || null,
-        technicians: techNamesArr,
-        admin_reps: adminRepsArr,
-        technician_departments: techDepartmentsArr,
-        source: isPublic ? "Public Intake" : "Staff Intake",
-        conditions: {
-          dents: data.dents, scratches: data.scratches, missingParts: data.missingParts,
-          physicalDamage: data.physicalDamage, importantFiles: data.importantFiles,
-          noPower: data.noPower, repairHistory: data.repairHistory,
-        },
-        acknowledgements: { ack1: data.ack1, ack2: data.ack2, ack3: data.ack3 },
-        auto_approve_diagnosis: isPublic ? false : !!data.autoApproveDiagnosis,
-      };
-
-      // New intakes must never overwrite an existing ticket: plain insert so a
-      // duplicate Service ID fails loudly instead of replacing another client's
-      // record. Only an explicit edit of a known ticket may update in place.
-      const { error: upsertError } = serviceId
-        ? await supabase.from("services").upsert(servicePayload, { onConflict: "service_id" })
-        : await supabase.from("services").insert(servicePayload);
-      if (upsertError) {
-        if ((upsertError as any).code === "23505") {
-          throw new Error(
-            `Service ID ${finalServiceId} is already in use. Please submit the form again to get a new ID.`
-          );
-        }
-        throw new Error(upsertError.message);
-      }
-
-
       // Upload the generated PDF to Supabase Storage so the
       // "View PDF" buttons can resolve a signed URL.
       uploadServicePdf({
@@ -806,7 +760,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         });
 
         form.reset();
-        setServiceId("");
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
@@ -878,14 +831,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           }),
         ]).catch(() => {});
 
-        // If this admin submission is completing a queue entry, mark it done
-        // so it drops off /queue and /queueing automatically.
-        if (queueId) {
-          await supabase
-            .from("queue_entries")
-            .update({ status: "completed", service_id: finalServiceId })
-            .eq("id", queueId);
-        }
         onCompleted?.(finalServiceId);
 
       } else {
@@ -902,8 +847,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           description: "Service form submitted successfully!",
         });
         form.reset();
-        setServiceId("");
-        
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
@@ -913,8 +856,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         return;
       }
 
-      // Error submitting form — surface the real cause so we can debug
-      console.error("[ServiceForm] submit failed:", error);
       toast({
         title: "Error",
         description: `Failed to submit form: ${msg}`,
