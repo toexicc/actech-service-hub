@@ -1,0 +1,1 @@
+ALTER TABLE public.inventory_parts ADD COLUMN IF NOT EXISTS date_ordered date;
