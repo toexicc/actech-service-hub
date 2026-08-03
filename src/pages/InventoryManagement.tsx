@@ -1618,6 +1618,8 @@ const InventoryManagement = () => {
                                   {item.quantity}
                                 </TableCell>
                                 {!isViewOnly && <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>}
+                                <TableCell>{item.supplier || "N/A"}</TableCell>
+                                <TableCell>{item.dateOrdered || "N/A"}</TableCell>
                                 <TableCell>
                                   <span className={`px-2 py-1 rounded text-xs ${
                                     item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :
