@@ -15,29 +15,39 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-/** Extract service item names from the "Service Breakdown" block of the AI diagnosis. */
+/**
+ * Extract service item names from the "Service Breakdown" block of the AI diagnosis.
+ * Mirrors parseServiceBreakdownItems() in src/lib/serviceApproval.ts — keep both in sync.
+ */
 const parseServicesFromDiagnosis = (text: string): string[] => {
-  const lines = String(text ?? "").split("\n");
+  if (!text) return [];
+  const lines = String(text).split(/\r?\n/);
+  const startIdx = lines.findIndex((l) =>
+    /service\s*breakdown\s*:?/i.test(l.replace(/[*_#>`]/g, "")),
+  );
+  if (startIdx === -1) return [];
   const out: string[] = [];
-  let inSection = false;
-  for (const line of lines) {
-    const bare = line.replace(/[*_#>`]/g, "").trim();
-    if (/^service breakdown\b/i.test(bare)) {
-      inSection = true;
-      continue;
-    }
-    if (!inSection) continue;
-    if (!bare) {
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const raw = lines[i].replace(/[*_#>`]/g, "").trim();
+    if (!raw) {
       if (out.length) break;
       continue;
     }
-    if (/^(to proceed|summary|recommendations?|findings?|cause|warranty)/i.test(bare)) break;
-    const cleaned = bare.replace(/^[-*•\d.\s]+/, "");
+    if (/^(to proceed|summary|recommendations?|findings?|cause|warranty|writing rules)/i.test(raw)) break;
+    const cleaned = raw.replace(/^[-*•\d.\s]+/, "");
     const name = cleaned.split(/\s[-—]\s/)[0].trim();
     if (name && !/^php\b/i.test(name)) out.push(name);
   }
   return out;
 };
+
+/** Loose comparison key so client/server spacing or punctuation drift can't break matching. */
+const norm = (s: string) =>
+  String(s ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 
 const manilaStamp = () =>
   new Intl.DateTimeFormat("en-US", {
