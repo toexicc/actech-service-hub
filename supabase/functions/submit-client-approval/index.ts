@@ -94,6 +94,23 @@ serve(async (req) => {
     if (!row) return json({ error: "Service not found" }, 404);
 
     const status = String(row.status ?? "");
+    const alreadyAnswered = !!row.client_approved_at;
+
+    // Repeat submissions (double tap, retry after a flaky network) must not look
+    // like an error — report the state the ticket is already in.
+    if (alreadyAnswered && (row.approval_locked || status !== "Waiting to Proceed")) {
+      return json({
+        success: true,
+        alreadyRecorded: true,
+        status,
+        partial: !!row.approval_locked,
+        approvedServices: Array.isArray(row.approved_services) ? row.approved_services : [],
+        pendingServices: Array.isArray(row.pending_services) ? row.pending_services : [],
+        service: row.service ?? "",
+        adminNotes: row.internal_admin_notes ?? "",
+      });
+    }
+
     if (status !== "Waiting to Proceed") {
       return json({ error: `This service is no longer awaiting your approval (status: ${status}).` }, 409);
     }
@@ -112,18 +129,38 @@ serve(async (req) => {
     let approvedItems: string[] = [];
     let pendingItems: string[] = [];
     if (approved) {
-      if (selectedServices.length && allItems.length > 1) {
-        const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+      if (allItems.length === 0) {
+        // No parseable breakdown: treat as a plain full approval, and keep any
+        // client selection as the recorded approved list.
+        approvedItems = selectedServices;
+      } else if (allItems.length === 1 || selectedServices.length === 0) {
+        // Single-item breakdown, or no checklist shown -> approve everything.
+        approvedItems = allItems;
+      } else {
         const picked = new Set(selectedServices.map(norm));
         approvedItems = allItems.filter((i) => picked.has(norm(i)));
         pendingItems = allItems.filter((i) => !picked.has(norm(i)));
+
+        // Fallback: names drifted between what the page showed and what the
+        // ticket now stores — match by position instead of rejecting.
+        if (approvedItems.length === 0) {
+          const idxPicked = new Set(
+            selectedServices
+              .map((s) => allItems.findIndex((i) => norm(i).includes(norm(s)) || norm(s).includes(norm(i))))
+              .filter((i) => i >= 0),
+          );
+          if (idxPicked.size > 0) {
+            approvedItems = allItems.filter((_, i) => idxPicked.has(i));
+            pendingItems = allItems.filter((_, i) => !idxPicked.has(i));
+          }
+        }
+
         if (approvedItems.length === 0) {
           return json({ error: "Please select at least one service to approve." }, 400);
         }
-      } else {
-        approvedItems = allItems;
       }
     }
+
 
     const isPartial = approved && pendingItems.length > 0;
 
