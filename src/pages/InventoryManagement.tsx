@@ -1572,6 +1572,8 @@ const InventoryManagement = () => {
                             </div>
                           </TableHead>
                           {!isViewOnly && <TableHead>Cost</TableHead>}
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>Date Ordered</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
                             <div className="flex items-center gap-1">
