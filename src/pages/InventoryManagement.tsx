@@ -609,6 +609,7 @@ const InventoryManagement = () => {
       formData.append("model", editingPart.model || "");
       formData.append("partType", editingPart.partType || "");
       formData.append("supplier", editingPart.supplier || "");
+      formData.append("dateOrdered", editingPart.dateOrdered || "");
       formData.append("costPerUnit", editingPart.costPerUnit || "");
       formData.append("remarks", editingPart.remarks || "");
       formData.append("updatedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
