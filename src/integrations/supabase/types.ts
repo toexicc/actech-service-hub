@@ -424,6 +424,7 @@ export type Database = {
           color: string | null
           cost_price: number
           created_at: string
+          date_ordered: string | null
           device_model: string | null
           id: string
           location: string | null
@@ -444,6 +445,7 @@ export type Database = {
           color?: string | null
           cost_price?: number
           created_at?: string
+          date_ordered?: string | null
           device_model?: string | null
           id?: string
           location?: string | null
@@ -464,6 +466,7 @@ export type Database = {
           color?: string | null
           cost_price?: number
           created_at?: string
+          date_ordered?: string | null
           device_model?: string | null
           id?: string
           location?: string | null

@@ -609,6 +609,7 @@ const InventoryManagement = () => {
       formData.append("model", editingPart.model || "");
       formData.append("partType", editingPart.partType || "");
       formData.append("supplier", editingPart.supplier || "");
+      formData.append("dateOrdered", editingPart.dateOrdered || "");
       formData.append("costPerUnit", editingPart.costPerUnit || "");
       formData.append("remarks", editingPart.remarks || "");
       formData.append("updatedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
@@ -1572,6 +1573,8 @@ const InventoryManagement = () => {
                             </div>
                           </TableHead>
                           {!isViewOnly && <TableHead>Cost</TableHead>}
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>Date Ordered</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
                             <div className="flex items-center gap-1">
@@ -1616,6 +1619,8 @@ const InventoryManagement = () => {
                                   {item.quantity}
                                 </TableCell>
                                 {!isViewOnly && <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>}
+                                <TableCell>{item.supplier || "N/A"}</TableCell>
+                                <TableCell>{item.dateOrdered || "N/A"}</TableCell>
                                 <TableCell>
                                   <span className={`px-2 py-1 rounded text-xs ${
                                     item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :
@@ -2324,6 +2329,17 @@ const InventoryManagement = () => {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dateOrdered">Date Ordered</Label>
+                  <Input
+                    id="edit-dateOrdered"
+                    type="date"
+                    value={editingPart.dateOrdered || ""}
+                    onChange={(e) => setEditingPart({...editingPart, dateOrdered: e.target.value})}
+                  />
+                </div>
+
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-remarks">Remarks</Label>

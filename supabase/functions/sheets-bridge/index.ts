@@ -906,6 +906,7 @@ async function addInventoryItem(b: Record<string, any>) {
     quantity: parseInt(b.quantity || "0"),
     cost_price: num(b.costPerUnit),
     supplier: b.supplier || null,
+    date_ordered: b.dateOrdered || null,
     notes: b.remarks || null,
     status: b.status || "In Stock",
   });
@@ -932,6 +933,7 @@ async function updateInventoryItem(b: Record<string, any>) {
   if ("quantity" in b) patch.quantity = parseInt(b.quantity);
   if ("costPerUnit" in b) patch.cost_price = num(b.costPerUnit);
   if ("supplier" in b) patch.supplier = b.supplier;
+  if ("dateOrdered" in b) patch.date_ordered = b.dateOrdered || null;
   if ("remarks" in b) patch.notes = b.remarks;
   if ("status" in b) patch.status = b.status;
   const { error } = await sb
