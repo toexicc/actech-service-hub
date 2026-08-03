@@ -50,7 +50,7 @@ const fetchInventory = async (): Promise<InventoryItem[]> => {
     partType: r.part_type ?? "",
     color: r.color ?? "",
     quantity: Number(r.quantity ?? 0),
-    dateOrdered: "",
+    dateOrdered: r.date_ordered ?? "",
     supplier: r.supplier ?? "",
     costPerUnit: String(r.cost_price ?? 0),
     status: r.status ?? "In Stock",
@@ -61,26 +61,39 @@ const fetchInventory = async (): Promise<InventoryItem[]> => {
 };
 
 const fetchInventoryLogs = async (): Promise<InventoryLog[]> => {
-  const { data, error } = await supabase
-    .from("part_logs")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1000);
+  const [{ data, error }, { data: parts }, { data: fastParts }] = await Promise.all([
+    supabase
+      .from("part_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase.from("inventory_parts").select("part_id,part_name,category").limit(2000),
+    supabase.from("fast_moving_parts").select("part_id,part_name,category").limit(2000),
+  ]);
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
-    logId: r.id,
-    partId: r.part_id ?? "",
-    partName: "",
-    deviceType: "",
-    transactionType: r.action ?? "",
-    quantityChanged: String(r.quantity ?? 0),
-    previousQuantity: "",
-    newQuantity: "",
-    dateTime: r.created_at ?? "",
-    remarks: r.notes ?? "",
-    username: r.performed_by_name ?? "",
-    role: "",
-  }));
+
+  const lookup = new Map<string, { name: string; type: string }>();
+  [...(parts ?? []), ...(fastParts ?? [])].forEach((p: any) => {
+    lookup.set(p.part_id, { name: p.part_name ?? "", type: p.category ?? "" });
+  });
+
+  return (data ?? []).map((r: any) => {
+    const meta = lookup.get(r.part_id ?? "");
+    return {
+      logId: r.id,
+      partId: r.part_id ?? "",
+      partName: meta?.name ?? "",
+      deviceType: meta?.type ?? "",
+      transactionType: r.action ?? "",
+      quantityChanged: String(r.quantity ?? 0),
+      previousQuantity: "",
+      newQuantity: "",
+      dateTime: r.created_at ?? "",
+      remarks: r.notes ?? "",
+      username: r.performed_by_name ?? "",
+      role: "",
+    };
+  });
 };
 
 export const useInventory = (enabled: boolean = true) => useQuery({
