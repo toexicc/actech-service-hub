@@ -730,7 +730,10 @@ const ManageClient = () => {
         device_type: updateDeviceType,
         client_type: updateClientType,
         priority: updatePriority,
+        chief_complaint: updateChiefComplaint,
+        issue_description: updateChiefComplaint,
         diagnosis: updateAIDiagnosis,
+
         technician_diagnosis: rawDiagnosis,
         technician_report: technicianReport,
         ai_report: updateServiceReport,
