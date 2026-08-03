@@ -906,6 +906,7 @@ async function addInventoryItem(b: Record<string, any>) {
     quantity: parseInt(b.quantity || "0"),
     cost_price: num(b.costPerUnit),
     supplier: b.supplier || null,
+    date_ordered: b.dateOrdered || null,
     notes: b.remarks || null,
     status: b.status || "In Stock",
   });
