@@ -2330,6 +2330,17 @@ const InventoryManagement = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="edit-dateOrdered">Date Ordered</Label>
+                  <Input
+                    id="edit-dateOrdered"
+                    type="date"
+                    value={editingPart.dateOrdered || ""}
+                    onChange={(e) => setEditingPart({...editingPart, dateOrdered: e.target.value})}
+                  />
+                </div>
+
+
+                <div className="space-y-2">
                   <Label htmlFor="edit-remarks">Remarks</Label>
                   <Textarea
                     id="edit-remarks"
