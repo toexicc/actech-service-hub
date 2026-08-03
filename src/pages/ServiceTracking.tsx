@@ -489,15 +489,30 @@ const ServiceTracking = () => {
         },
       });
 
-      const payloadError = (data as any)?.error;
-      if (error || payloadError) {
+      // On a non-2xx the SDK gives a generic message and hides the JSON body in
+      // error.context — read it so the client sees the real reason.
+      let serverError = (data as any)?.error as string | undefined;
+      if (!serverError && error) {
+        try {
+          const res = (error as any)?.context;
+          if (res && typeof res.json === "function") {
+            const body = await res.clone().json();
+            serverError = body?.error;
+          }
+        } catch {
+          // keep the generic message
+        }
+      }
+
+      if (error || serverError) {
         toast({
           title: "Could not submit response",
-          description: payloadError || error?.message || "Please try again or contact the shop.",
+          description: serverError || error?.message || "Please try again or contact the shop.",
           variant: "destructive",
         });
         return;
       }
+
 
       const partial = !!(data as any)?.partial;
       setServiceData({
