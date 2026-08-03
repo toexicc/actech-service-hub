@@ -165,9 +165,12 @@ serve(async (req) => {
     const isPartial = approved && pendingItems.length > 0;
 
     const tag = approved
-      ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}` +
+      ? (approvedItems.length
+          ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}`
+          : `Approved by ${clientName} on ${stamp}`) +
         (isPartial ? `. Pending Approval on ${pendingItems.join(", ")}` : "")
       : `Declined by ${clientName} on ${stamp}: ${reason}`;
+
     const newAdminNotes = [row.internal_admin_notes, tag].filter(Boolean).join("\n");
 
     const nowIso = new Date().toISOString();
