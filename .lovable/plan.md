@@ -1,37 +1,39 @@
-## Confirmed cause
+## 1. Service Tracker — date range + filters vs tabs
 
-`AC010826002` was reused by three separate queue completions on August 1: Keihl James Valencia, Charlene Aquino, and Isaiah John Verdejo. The database has a unique constraint on `services.service_id`, but historical creation logic updated/upserted the existing row, so Isaiah’s identity fields replaced Keihl’s while Keihl’s diagnosis, payment, and documents remained attached.
+Confirmed in `src/pages/ServiceTracker.tsx` (filter block, lines ~638–740):
+- The date range only compares against **Target Date**, and when a ticket has no parseable target date the row passes the filter untouched — so the range appears to do nothing.
+- Tab filters for **Within the Day** and **Walk In** only check priority/client type; they do not exclude `Completed` tickets (only cancelled/RTO/on-hold are excluded).
 
-The current frontend now uses a plain insert for new tickets, but ID allocation is still client-side and ticket creation remains split across multiple write paths. Queue history also currently allows multiple entries to reference the same service ID.
+Changes:
+- Switch the date range to the ticket's **service/received date** (`serviceDate` / `dateReceived` / `timestamp`, first parseable), inclusive of the whole end day. Tickets with no parseable received date are excluded while a range is active.
+- Keep the existing presets (Today / This Week / This Month / Clear) wired to the same field, and relabel the filter as "Service Date Range".
+- Add `cls === "completed"` exclusion to the `within` and `walkin` tabs so those tabs show only active tickets; the Completed tab remains the place completed work appears.
+- Verify all other filters (device type, technician, department, status, due-date) compose correctly with each tab, and reset pagination when any filter or tab changes (already partly handled).
 
-## Recovery and permanent fix
+## 2. `/track` approval — "edge function returned a non-2xx status code"
 
-1. **Recover the affected records**
-   - Preserve `AC010826002` as Keihl James Valencia’s completed iPhone 14 Pro Max service.
-   - Rebuild Keihl’s intake identity fields from queue entry `Q-0015`, while retaining his existing diagnosis, Php 3,800 transaction, quotation, diagnosis photos, and other correctly timed files.
-   - Keep Charlene Aquino on `AC010826999` and reconcile her queue/document references to that ticket.
-   - Keep Isaiah John Verdejo on his separate existing ticket `AC010826809`, merge only Isaiah-owned files/details into it, and remove Isaiah data from Keihl’s ticket.
-   - Update all affected queue, file, transaction, breakdown, notification, and log references consistently rather than changing only the visible service row.
+Confirmed: the function is deployed and reachable. Two real defects:
+- `supabase.functions.invoke` sets `data = null` on any non-2xx response, so the specific message returned by `submit-client-approval` (400 "select at least one service", 409 "no longer awaiting approval", 409 "approval is on hold") is never shown — every failure surfaces as the generic non-2xx toast. The exact failing case is therefore currently unknowable from the UI.
+- The service-breakdown parser is **duplicated**: `src/lib/serviceApproval.ts` (client, matches "service breakdown" anywhere in a line) vs. the edge function's own copy (requires the line to *start* with "service breakdown"). When the two disagree, the client shows a checklist while the server parses zero items, so a single selection can't be matched and the request is rejected.
 
-2. **Move ticket creation into one atomic backend operation**
-   - Add an authenticated database function that allocates a collision-safe service ID and inserts the service in the same transaction.
-   - Lock a queue entry while completing it so one intake cannot be converted twice.
-   - Make queue completion idempotent: reopening or double-clicking the same queue entry returns its already-created service instead of creating or overwriting another one.
-   - Retain the existing `AC + date + suffix` display format while making suffix allocation concurrency-safe.
+Changes:
+- Read the real error body in `ServiceTracking.tsx` via `FunctionsHttpError` (`await error.context.json()`), and show the server's message in the toast.
+- Make the edge function's parser identical to the client's (same heading match, same stop-words including `warranty`), so item lists always agree.
+- Harden matching in the edge function: normalise case/whitespace/punctuation, and if a selection can't be matched by name, fall back to matching by position; only if the ticket has no parseable breakdown at all treat "approved" as full approval.
+- Handle every case explicitly and return clear messages: no items parsed, one item total (approve all, no checklist), all items selected (full approval → `Proceed Repair`), subset selected (partial → stays in `Waiting to Proceed`, `approval_locked = true`), none selected, already approved / already locked, wrong status, decline with/without reason.
+- Make repeat submissions idempotent-friendly: if the ticket is already locked or already moved on because of *this* client's decision, return success with the current state instead of a 409 error.
+- Verify end-to-end against a live ticket with a two-item breakdown (single-item selection, then full selection).
 
-3. **Remove unsafe creation paths**
-   - Replace client-side “check then insert” allocation in the intake form with the atomic backend function.
-   - Ensure every new-service path uses insert-only semantics; retain update calls only for explicit editing of a known ticket.
-   - Align the legacy bridge creation path with the same backend allocator so it cannot independently reuse an ID.
-   - Remove the remaining service creation upsert branch.
+## 3. Chief complaint not persisting
 
-4. **Add database guardrails**
-   - Make `services.service_id` immutable after creation.
-   - Add a unique constraint/index preventing multiple completed queue entries from pointing to the same service ID after the corrupted references are repaired.
-   - Keep all existing role-based access controls and grant only the minimum authenticated function permissions required.
+Confirmed: `/manage-client` renders an editable Chief Complaint textarea (`updateChiefComplaint`), but the field is **absent from the update payload** sent to the database, so Update reloads the original intake text. `/service-update` shows it read-only.
 
-5. **Validate the repair**
-   - Verify `AC010826002` shows Keihl across `/track`, `/manage-client`, `/service-update`, tracker, PDFs, photos, logs, and POS payment history.
-   - Verify Charlene and Isaiah remain isolated on their own IDs and documents.
-   - Test simultaneous submissions and repeated completion of one queue entry to prove no existing service can be overwritten.
-   - Confirm newly created tickets appear in dashboards and trackers without reload.
+Changes (admin/management only, per your answer):
+- Include `chief_complaint` in the `/manage-client` update payload, and mirror it to `issue_description` (intake writes both, and the PDFs/`track` read from these).
+- Add it to the change log line ("Chief complaint updated") so edits are auditable.
+- Leave `/service-update` read-only, but it will now display the admin-updated text after refresh.
+- Confirm the regenerated Client Intake Form and Service Quotation PDFs pick up the edited complaint.
+
+## Technical notes
+- Files: `src/pages/ServiceTracker.tsx`, `src/pages/ServiceTracking.tsx`, `src/lib/serviceApproval.ts`, `supabase/functions/submit-client-approval/index.ts`, `src/pages/ManageClient.tsx`.
+- No schema changes required.

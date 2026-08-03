@@ -15,29 +15,39 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-/** Extract service item names from the "Service Breakdown" block of the AI diagnosis. */
+/**
+ * Extract service item names from the "Service Breakdown" block of the AI diagnosis.
+ * Mirrors parseServiceBreakdownItems() in src/lib/serviceApproval.ts — keep both in sync.
+ */
 const parseServicesFromDiagnosis = (text: string): string[] => {
-  const lines = String(text ?? "").split("\n");
+  if (!text) return [];
+  const lines = String(text).split(/\r?\n/);
+  const startIdx = lines.findIndex((l) =>
+    /service\s*breakdown\s*:?/i.test(l.replace(/[*_#>`]/g, "")),
+  );
+  if (startIdx === -1) return [];
   const out: string[] = [];
-  let inSection = false;
-  for (const line of lines) {
-    const bare = line.replace(/[*_#>`]/g, "").trim();
-    if (/^service breakdown\b/i.test(bare)) {
-      inSection = true;
-      continue;
-    }
-    if (!inSection) continue;
-    if (!bare) {
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const raw = lines[i].replace(/[*_#>`]/g, "").trim();
+    if (!raw) {
       if (out.length) break;
       continue;
     }
-    if (/^(to proceed|summary|recommendations?|findings?|cause|warranty)/i.test(bare)) break;
-    const cleaned = bare.replace(/^[-*•\d.\s]+/, "");
+    if (/^(to proceed|summary|recommendations?|findings?|cause|warranty|writing rules)/i.test(raw)) break;
+    const cleaned = raw.replace(/^[-*•\d.\s]+/, "");
     const name = cleaned.split(/\s[-—]\s/)[0].trim();
     if (name && !/^php\b/i.test(name)) out.push(name);
   }
   return out;
 };
+
+/** Loose comparison key so client/server spacing or punctuation drift can't break matching. */
+const norm = (s: string) =>
+  String(s ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 
 const manilaStamp = () =>
   new Intl.DateTimeFormat("en-US", {
@@ -84,6 +94,23 @@ serve(async (req) => {
     if (!row) return json({ error: "Service not found" }, 404);
 
     const status = String(row.status ?? "");
+    const alreadyAnswered = !!row.client_approved_at;
+
+    // Repeat submissions (double tap, retry after a flaky network) must not look
+    // like an error — report the state the ticket is already in.
+    if (alreadyAnswered && (row.approval_locked || status !== "Waiting to Proceed")) {
+      return json({
+        success: true,
+        alreadyRecorded: true,
+        status,
+        partial: !!row.approval_locked,
+        approvedServices: Array.isArray(row.approved_services) ? row.approved_services : [],
+        pendingServices: Array.isArray(row.pending_services) ? row.pending_services : [],
+        service: row.service ?? "",
+        adminNotes: row.internal_admin_notes ?? "",
+      });
+    }
+
     if (status !== "Waiting to Proceed") {
       return json({ error: `This service is no longer awaiting your approval (status: ${status}).` }, 409);
     }
@@ -102,25 +129,48 @@ serve(async (req) => {
     let approvedItems: string[] = [];
     let pendingItems: string[] = [];
     if (approved) {
-      if (selectedServices.length && allItems.length > 1) {
-        const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+      if (allItems.length === 0) {
+        // No parseable breakdown: treat as a plain full approval, and keep any
+        // client selection as the recorded approved list.
+        approvedItems = selectedServices;
+      } else if (allItems.length === 1 || selectedServices.length === 0) {
+        // Single-item breakdown, or no checklist shown -> approve everything.
+        approvedItems = allItems;
+      } else {
         const picked = new Set(selectedServices.map(norm));
         approvedItems = allItems.filter((i) => picked.has(norm(i)));
         pendingItems = allItems.filter((i) => !picked.has(norm(i)));
+
+        // Fallback: names drifted between what the page showed and what the
+        // ticket now stores — match by position instead of rejecting.
+        if (approvedItems.length === 0) {
+          const idxPicked = new Set(
+            selectedServices
+              .map((s) => allItems.findIndex((i) => norm(i).includes(norm(s)) || norm(s).includes(norm(i))))
+              .filter((i) => i >= 0),
+          );
+          if (idxPicked.size > 0) {
+            approvedItems = allItems.filter((_, i) => idxPicked.has(i));
+            pendingItems = allItems.filter((_, i) => !idxPicked.has(i));
+          }
+        }
+
         if (approvedItems.length === 0) {
           return json({ error: "Please select at least one service to approve." }, 400);
         }
-      } else {
-        approvedItems = allItems;
       }
     }
+
 
     const isPartial = approved && pendingItems.length > 0;
 
     const tag = approved
-      ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}` +
+      ? (approvedItems.length
+          ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}`
+          : `Approved by ${clientName} on ${stamp}`) +
         (isPartial ? `. Pending Approval on ${pendingItems.join(", ")}` : "")
       : `Declined by ${clientName} on ${stamp}: ${reason}`;
+
     const newAdminNotes = [row.internal_admin_notes, tag].filter(Boolean).join("\n");
 
     const nowIso = new Date().toISOString();

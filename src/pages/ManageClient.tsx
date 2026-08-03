@@ -707,6 +707,8 @@ const ManageClient = () => {
       formData.append("Technician Department", techDept);
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
+      formData.append("chiefComplaint", updateChiefComplaint);
+
       formData.append("aiDiagnosis", updateAIDiagnosis);
       formData.append("aiReport", updateServiceReport);
       formData.append("services", updateServices);
@@ -730,7 +732,10 @@ const ManageClient = () => {
         device_type: updateDeviceType,
         client_type: updateClientType,
         priority: updatePriority,
+        chief_complaint: updateChiefComplaint,
+        issue_description: updateChiefComplaint,
         diagnosis: updateAIDiagnosis,
+
         technician_diagnosis: rawDiagnosis,
         technician_report: technicianReport,
         ai_report: updateServiceReport,
@@ -776,6 +781,8 @@ const ManageClient = () => {
         if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
         if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
         if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
+        if (updateChiefComplaint !== (serviceData.chiefComplaint || "")) changes.push("Chief complaint updated");
+
         if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
         if (updateServiceReport !== serviceData.aiReport) changes.push("AI Service Report updated");
         if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);

@@ -589,6 +589,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return isNaN(d.getTime()) ? null : d;
   };
 
+  /**
+   * Service (received) date parser used by the date-range filter.
+   * Handles ISO timestamps from the database and legacy "MM/dd/yyyy, hh:mm a".
+   */
+  const parseServiceDate = (value?: string | null): Date | null => {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const [datePart] = raw.split(",");
+    const fromParts = parseTargetDate(datePart.trim());
+    if (fromParts) return fromParts;
+    const fallback = new Date(raw);
+    return isNaN(fallback.getTime()) ? null : fallback;
+  };
+
+
   const isOverdue = (targetDate: string, status: string): boolean => {
     if (!targetDate) return false;
     if (status === "Completed") return false;
@@ -684,8 +704,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       if (activeTab === "ongoing" && cls !== "active") return false;
       if (activeTab === "completed" && cls !== "completed") return false;
       if (activeTab === "closed" && cls !== "closed") return false;
-      if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
-      if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
+      if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
+      if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
       // "all" — no additional filter
 
 
@@ -694,34 +714,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         return false;
       }
 
-      // Date range filter - filter by TARGET DATE
+      // Date range filter — filters by the ticket's SERVICE (received) date.
+      // Tickets without a parseable service date are hidden while a range is on.
       if (startDate || endDate) {
-        try {
-          const targetDate = parseTargetDate(service.targetDate);
-          if (targetDate) {
-            targetDate.setHours(0, 0, 0, 0);
+        const serviceDate = parseServiceDate(service.timestamp || service.dateReceived);
+        if (!serviceDate) return false;
+        serviceDate.setHours(0, 0, 0, 0);
 
-            
-            if (startDate) {
-              const start = new Date(startDate);
-              start.setHours(0, 0, 0, 0);
-              if (targetDate < start) {
-                return false;
-              }
-            }
-            
-            if (endDate) {
-              const end = new Date(endDate);
-              end.setHours(23, 59, 59, 999);
-              if (targetDate > end) {
-                return false;
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error parsing target date for filter:", error);
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (serviceDate < start) return false;
+        }
+
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (serviceDate > end) return false;
         }
       }
+
 
       // Due date filter
       if (dueDateFilter !== "all") {
@@ -798,7 +810,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
+  }, [deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -976,7 +988,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               </div>
 
               <div className="space-y-2">
-                <Label>Sort By</Label>
+                <Label>Service Date From</Label>
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1012,7 +1025,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               </div>
 
               <div className="space-y-2">
-                <Label>End Date</Label>
+                <Label>Service Date To</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
