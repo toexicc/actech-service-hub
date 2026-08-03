@@ -707,6 +707,8 @@ const ManageClient = () => {
       formData.append("Technician Department", techDept);
       formData.append("clientType", updateClientType);
       formData.append("priority", updatePriority);
+      formData.append("chiefComplaint", updateChiefComplaint);
+
       formData.append("aiDiagnosis", updateAIDiagnosis);
       formData.append("aiReport", updateServiceReport);
       formData.append("services", updateServices);
