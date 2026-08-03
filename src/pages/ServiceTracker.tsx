@@ -810,7 +810,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
+  }, [deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
