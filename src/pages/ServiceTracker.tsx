@@ -589,6 +589,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return isNaN(d.getTime()) ? null : d;
   };
 
+  /**
+   * Service (received) date parser used by the date-range filter.
+   * Handles ISO timestamps from the database and legacy "MM/dd/yyyy, hh:mm a".
+   */
+  const parseServiceDate = (value?: string | null): Date | null => {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) {
+      const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const [datePart] = raw.split(",");
+    const fromParts = parseTargetDate(datePart.trim());
+    if (fromParts) return fromParts;
+    const fallback = new Date(raw);
+    return isNaN(fallback.getTime()) ? null : fallback;
+  };
+
+
   const isOverdue = (targetDate: string, status: string): boolean => {
     if (!targetDate) return false;
     if (status === "Completed") return false;
