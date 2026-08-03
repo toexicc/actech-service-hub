@@ -109,7 +109,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const [termsRead, setTermsRead] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serviceId, setServiceId] = useState("");
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
@@ -761,7 +760,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         });
 
         form.reset();
-        setServiceId("");
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
@@ -849,8 +847,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           description: "Service form submitted successfully!",
         });
         form.reset();
-        setServiceId("");
-        
         setTermsRead(false);
         setSignatureUrl("");
         setAnnotationImageUrl("");
