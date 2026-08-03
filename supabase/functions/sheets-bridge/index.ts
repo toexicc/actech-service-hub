@@ -587,17 +587,6 @@ Produce the report now using the EXACT template. Do not include this instruction
 
 // ---------- WRITE handlers ----------
 async function createIntake(b: Record<string, any>) {
-  let serviceId = b["Service ID"] || genId("AC");
-  // Ensure uniqueness — regenerate if the ID already exists
-  for (let i = 0; i < 5; i++) {
-    const { data: existing } = await sb
-      .from("services")
-      .select("service_id")
-      .eq("service_id", serviceId)
-      .maybeSingle();
-    if (!existing) break;
-    serviceId = genId("AC");
-  }
   const clientId = b["Client ID"] || `CL${Date.now()}`;
   const clientName = b["Client Name"] || "";
   const technicians = splitList(b["Technician"]);
@@ -619,6 +608,30 @@ async function createIntake(b: Record<string, any>) {
       );
   }
 
+  const { data: serviceId, error: createError } = await sb.rpc("create_service_atomic", {
+    _payload: {
+      client_id: clientId,
+      client_name: clientName,
+      contact_number: b["Phone"] || "",
+      email: b["Email"] || "",
+      device_type: b["Device Type"] || "",
+      brand: b["Brand"] || "",
+      model: b["Model"] || "",
+      serial_number: b["Serial"] || "",
+      chief_complaint: b["Chief Complaint"] || "",
+      issue_description: b["Chief Complaint"] || "",
+      technicians,
+      technician_departments: techDepts,
+      admin_reps: adminReps,
+      receiving_staff: b["Receiving Staff"] || null,
+      estimated_completion: b["Time Frame"] || "",
+      estimated_cost: num(b["Estimated Cost"]),
+      priority: b["Priority"] || "",
+      source: "Legacy Bridge Intake",
+    },
+  });
+  if (createError || !serviceId) return err(createError?.message || "Unable to create service", 500);
+
   // Upload PDF / signature / annotation if provided as base64
   const pdfPath = await uploadBase64(
     "intake-forms",
@@ -638,39 +651,6 @@ async function createIntake(b: Record<string, any>) {
     b["DeviceAnnotation_Base64"] ?? "",
     b["DeviceAnnotation_MimeType"] ?? "image/png",
   );
-
-  let insertError: any = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const { error } = await sb.from("services").insert({
-      service_id: serviceId,
-      client_id: clientId,
-      client_name: clientName,
-      contact_number: b["Phone"] || "",
-      email: b["Email"] || "",
-      device_type: b["Device Type"] || "",
-      brand: b["Brand"] || "",
-      model: b["Model"] || "",
-      serial_number: b["Serial"] || "",
-      issue_description: b["Chief Complaint"] || "",
-      technicians,
-      technician_departments: techDepts,
-      admin_reps: adminReps,
-      receiving_staff: b["Receiving Staff"] || null,
-      estimated_completion: b["Time Frame"] || "",
-      service_cost: num(b["Estimated Cost"]),
-      priority: b["Priority"] || "",
-      remarks: b["AnnotationNotes"] || null,
-      status: "Pending Diagnosis",
-    });
-    if (!error) { insertError = null; break; }
-    insertError = error;
-    if (String(error.message || "").includes("duplicate key")) {
-      serviceId = genId("AC");
-      continue;
-    }
-    break;
-  }
-  if (insertError) return err(insertError.message, 500);
 
   // Track files
   const files: any[] = [];
