@@ -684,8 +684,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       if (activeTab === "ongoing" && cls !== "active") return false;
       if (activeTab === "completed" && cls !== "completed") return false;
       if (activeTab === "closed" && cls !== "closed") return false;
-      if (activeTab === "within" && String(service.priority || "").trim().toLowerCase() !== "within the day") return false;
-      if (activeTab === "walkin" && !String(service.clientType || "").toLowerCase().includes("walk in")) return false;
+      if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
+      if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
       // "all" — no additional filter
 
 
@@ -694,34 +694,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         return false;
       }
 
-      // Date range filter - filter by TARGET DATE
+      // Date range filter — filters by the ticket's SERVICE (received) date.
+      // Tickets without a parseable service date are hidden while a range is on.
       if (startDate || endDate) {
-        try {
-          const targetDate = parseTargetDate(service.targetDate);
-          if (targetDate) {
-            targetDate.setHours(0, 0, 0, 0);
+        const serviceDate = parseServiceDate(service.timestamp || service.dateReceived);
+        if (!serviceDate) return false;
+        serviceDate.setHours(0, 0, 0, 0);
 
-            
-            if (startDate) {
-              const start = new Date(startDate);
-              start.setHours(0, 0, 0, 0);
-              if (targetDate < start) {
-                return false;
-              }
-            }
-            
-            if (endDate) {
-              const end = new Date(endDate);
-              end.setHours(23, 59, 59, 999);
-              if (targetDate > end) {
-                return false;
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error parsing target date for filter:", error);
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (serviceDate < start) return false;
+        }
+
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (serviceDate > end) return false;
         }
       }
+
 
       // Due date filter
       if (dueDateFilter !== "all") {
