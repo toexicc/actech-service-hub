@@ -27,6 +27,7 @@ export interface QuotationPDFData {
   partsUsed: string;
   discount: string;
   totalCost: string;
+  serviceBreakdown?: { label: string; amount?: string | number }[];
   isUpdated?: boolean;
 }
 
@@ -413,13 +414,20 @@ const buildDiagnosisBlocks = (
 /* --------------------------------------------------------------- sections */
 
 const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
-  let y = 5;
+  // The source logo PNG has large transparent padding (content sits between
+  // 27.7% and 67.4% of its height). Draw it oversized with a negative offset so
+  // the visible mark sits tight against the top margin without empty space.
+  const BOX = 58;
+  const TOP_FRAC = 0.2769;
+  const BOTTOM_FRAC = 0.6741;
+  const contentTop = 4;
+  const boxY = contentTop - TOP_FRAC * BOX;
   try {
-    doc.addImage(logo, "PNG", (PAGE_W - 40) / 2, y, 40, 36);
+    doc.addImage(logo, "PNG", (PAGE_W - BOX) / 2, boxY, BOX, BOX);
   } catch {
     /* logo optional */
   }
-  y += 39;
+  let y = boxY + BOTTOM_FRAC * BOX + 4.5;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.8);
@@ -430,72 +438,64 @@ const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
     y,
     { align: "center" },
   );
-  y += 4;
+  y += 3.8;
   setText(doc, MUTED);
   doc.text("MONDAY TO SATURDAY (10:00 AM - 7:00 PM)", PAGE_W / 2, y, { align: "center" });
 
-  y += 8;
+  y += 7;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(17);
   setText(doc, NAVY);
   doc.text("SERVICE QUOTATION FORM", PAGE_W / 2, y, { align: "center" });
 
-  y += 2.2;
+  y += 2;
   setDraw(doc, ACCENT);
   doc.setLineWidth(0.7);
-  doc.line(PAGE_W / 2 - 34, y, PAGE_W / 2 + 34, y);
+  doc.line(PAGE_W / 2 - 32, y, PAGE_W / 2 + 32, y);
 
   if (isUpdated) {
-    y += 6;
+    y += 5;
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(200, 40, 55);
     doc.text("*** UPDATED VERSION ***", PAGE_W / 2, y, { align: "center" });
   }
 
-  return y + 5;
+  return y + 4;
 };
 
 const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
-  const rows: [string, string][] = [
-    ["Date and Time:", formatPdfTimestamp(data.timestamp)],
-    ["Admin Representative/s:", maskStaffName(data.adminRep)],
-    ["Handling Staff:", maskStaffName(data.receivingStaff)],
-    ["Technician/s:", maskStaffName(data.technician)],
+  const rows: [Glyph, string, string][] = [
+    ["calendar", "Date and Time:", formatPdfTimestamp(data.timestamp)],
+    ["ticket", "Service ID:", data.serviceId],
+    ["person", "Admin Representative/s:", maskStaffName(data.adminRep)],
+    ["person", "Handling Staff:", maskStaffName(data.receivingStaff)],
+    ["wrench", "Technician/s:", maskStaffName(data.technician)],
   ];
 
-  const leftX = M + 3;
-  const badgeS = 6.4;
-  const textX = leftX + badgeS + 3;
+  const badgeS = 6;
+  const textX = M + 3 + badgeS + 3;
   const labelW = 36;
-  const leftW = COL_W + GUTTER + 6;
+  const valueW = CONTENT_W - (textX - M) - 6;
 
   doc.setFontSize(7.6);
-  let h = 6;
-  for (const [, v] of rows) {
-    const lines = doc.splitTextToSize(v || "N/A", leftW - (textX - leftX) - labelW);
-    h += Math.max(4.4, lines.length * 3.4);
-  }
-  h += 3;
+  let h = 4.5;
+  const heights = rows.map(([, , v]) => {
+    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelW));
+    return Math.max(4.6, lines.length * 3.4);
+  });
+  h += heights.reduce((s2, v) => s2 + v, 0) + 2.5;
 
   card(doc, M, y, CONTENT_W, h);
-  iconBadge(doc, leftX, y + 4.2, badgeS, "calendar");
 
-  let ry = y + 6.8;
-  for (const [label, value] of rows) {
-    ry += labelValue(doc, textX, ry, leftW - (textX - leftX), label, value, labelW, ACCENT);
-  }
+  let ry = y + 5.4;
+  rows.forEach(([glyph, label, value], i) => {
+    iconBadge(doc, M + 3, ry - 3.4, badgeS, glyph);
+    labelValue(doc, textX, ry, valueW, label, value, labelW, ACCENT);
+    ry += heights[i];
+  });
 
-  // divider
-  const divX = M + leftW + 8;
-  setDraw(doc, BORDER);
-  doc.setLineWidth(0.35);
-  doc.line(divX, y + 4, divX, y + h - 4);
-
-  iconBadge(doc, divX + 6, y + 4.2, badgeS, "ticket");
-  labelValue(doc, divX + 6 + badgeS + 3, y + 6.8, 60, "Service ID:", data.serviceId, 18, ACCENT);
-
-  return y + h + 4;
+  return y + h + 3.5;
 };
 
 const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
@@ -561,9 +561,8 @@ const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   drawCard(M, "Client Information", "person", clientRows, clientH);
   drawCard(M + COL_W + GUTTER, "Device Information", "device", deviceRows, deviceH);
 
-  return y + h + 4;
+  return y + h + 3.5;
 };
-
 
 const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): Block[] => {
   const blocks: Block[] = [];
@@ -623,6 +622,112 @@ const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): 
       doc.text("Total Cost:", x + 1, y + 6.8);
       doc.setFontSize(12);
       doc.text(`Php ${data.totalCost}`, x + w * 0.45, y + 6.8);
+    },
+  });
+
+  return blocks;
+};
+
+const parseBreakdownFromDiagnosis = (raw?: string): { label: string; amount?: string }[] => {
+  if (!raw) return [];
+  const marker = raw.search(/service breakdown\s*:/i);
+  if (marker < 0) return [];
+  const tail = raw.slice(marker);
+  const lines = tail.split("\n").slice(1).map((l) => l.trim());
+  const out: { label: string; amount?: string }[] = [];
+  for (const line of lines) {
+    if (!line) {
+      if (out.length) break;
+      continue;
+    }
+    if (/^[A-Z][A-Za-z\s&/]*:$/.test(line)) break;
+    const cleaned = line.replace(/^([-•·*]|\d+[.)])\s*/, "").replace(/[#*_`]/g, "").trim();
+    if (!cleaned) continue;
+    const m = cleaned.match(/^(.*?)[\s-–:]*((?:Php|PHP|₱)\s*[^\s].*)$/);
+    if (m) out.push({ label: m[1].replace(/[-–:\s]+$/, ""), amount: m[2].trim() });
+    else out.push({ label: cleaned });
+  }
+  return out;
+};
+
+const buildBreakdownBlocks = (
+  doc: jsPDF,
+  data: QuotationPDFData,
+  innerW: number,
+): Block[] => {
+  const items =
+    (data.serviceBreakdown && data.serviceBreakdown.length
+      ? data.serviceBreakdown.map((i) => ({
+          label: i.label,
+          amount:
+            i.amount === undefined || i.amount === null || i.amount === ""
+              ? undefined
+              : `${i.amount}`.replace(/^(?!Php|PHP|₱)/, "Php "),
+        }))
+      : parseBreakdownFromDiagnosis(data.technicianDiagnosis));
+
+  const blocks: Block[] = [];
+
+  if (!items.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.6);
+    const fallback = doc.splitTextToSize(
+      data.serviceSummary || "Service breakdown will be provided with the final quotation.",
+      innerW,
+    );
+    blocks.push({
+      h: fallback.length * 3.3 + 2,
+      gapBefore: 1,
+      draw: (x, y) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.6);
+        setText(doc, INK);
+        doc.text(fallback, x, y + 2.4);
+      },
+    });
+  } else {
+    items.forEach((item, i) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.4);
+      const amountW = item.amount ? Math.min(28, doc.getTextWidth(item.amount) + 2) : 0;
+      const labelLines = doc.splitTextToSize(item.label, innerW - amountW - 5);
+      blocks.push({
+        h: Math.max(4.6, labelLines.length * 3.2 + 1.4),
+        gapBefore: i === 0 ? 1 : 0.6,
+        draw: (x, y, w) => {
+          if (i > 0) dottedRule(doc, x, y - 0.6, x + w);
+          setFill(doc, ACCENT);
+          doc.circle(x + 1, y + 1.9, 0.55, "F");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.4);
+          setText(doc, INK);
+          doc.text(labelLines, x + 3.4, y + 2.6);
+          if (item.amount) {
+            doc.setFont("helvetica", "bold");
+            setText(doc, NAVY);
+            doc.text(item.amount, x + w, y + 2.6, { align: "right" });
+          }
+        },
+      });
+    });
+  }
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.2);
+  const note = doc.splitTextToSize(
+    "This is the suggested repair for your service. We will be waiting for your approval.",
+    innerW - 4,
+  );
+  blocks.push({
+    h: note.length * 3.2 + 5,
+    gapBefore: 3,
+    draw: (x, y, w) => {
+      setFill(doc, BADGE);
+      doc.roundedRect(x - 1.5, y, w + 3, note.length * 3.2 + 5, 1.6, 1.6, "F");
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.2);
+      setText(doc, NAVY);
+      doc.text(note, x + 1, y + 4);
     },
   });
 
@@ -753,7 +858,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const availableFirstPage = PAGE_H - 38 - y;
   let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
-  for (const sc of [0.94, 0.88, 0.82, 0.78]) {
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
     diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
   }
@@ -775,6 +880,19 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
+  const breakdownResult = flowPanel(doc, buildBreakdownBlocks(doc, data, COL_W - 7), {
+    x: rightX,
+    w: COL_W,
+    startY: summaryResult.lastPageBottom + 3.5,
+    bottomLimit,
+    title: "Service Breakdown",
+    glyph: "wrench",
+    onNewPage: () => {
+      doc.addPage();
+      return { startY: 16, bottomLimit: PAGE_H - footerReserve };
+    },
+  });
+
   const diagResult = flowPanel(doc, diagBlocks, {
     x: leftX,
     w: COL_W,
@@ -782,18 +900,6 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     bottomLimit,
     title: "Technician Diagnosis",
     glyph: "search",
-    extraRegions:
-      summaryResult.pageCount === 1 && summaryResult.lastPageBottom + 24 < bottomLimit
-        ? [
-            {
-              x: rightX,
-              w: COL_W,
-              startY: summaryResult.lastPageBottom + 4,
-              bottomLimit,
-              title: "Technician Diagnosis (cont.)",
-            },
-          ]
-        : [],
     onNewPage: () => {
       doc.addPage();
       return { startY: 16, bottomLimit: PAGE_H - footerReserve };
@@ -801,14 +907,17 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   });
 
   // Equalize the two page-1 panels visually by extending the shorter border.
-  const target = Math.max(diagResult.lastPageBottom, summaryResult.lastPageBottom);
-  if (diagResult.pageCount === 1 && summaryResult.pageCount === 1) {
+  const rightBottom = Math.max(summaryResult.lastPageBottom, breakdownResult.lastPageBottom);
+  const target = Math.max(diagResult.lastPageBottom, rightBottom);
+  if (
+    diagResult.pageCount === 1 &&
+    summaryResult.pageCount === 1 &&
+    breakdownResult.pageCount === 1
+  ) {
     setDraw(doc, BORDER);
     doc.setLineWidth(0.35);
     doc.roundedRect(leftX, panelTop, COL_W, target - panelTop, 2, 2, "S");
-    doc.roundedRect(rightX, panelTop, COL_W, target - panelTop, 2, 2, "S");
     panelHeader(doc, leftX, panelTop, COL_W, "Technician Diagnosis", "search");
-    panelHeader(doc, rightX, panelTop, COL_W, "Service Summary", "clipboard");
   }
 
   drawFooter(doc);
