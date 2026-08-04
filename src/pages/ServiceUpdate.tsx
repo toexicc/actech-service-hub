@@ -1293,6 +1293,244 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
+                {(diagnosisEditable || !!(updateAIDiagnosis || updateTechnicianDiagnosis).trim()) && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          <span className="font-semibold">AI Diagnosis Formatter</span>
+                          <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                    <Textarea
+                            readOnly={!diagnosisEditable}
+                      id="technicianDiagnosis"
+                      placeholder="Enter technician diagnosis"
+                      value={updateTechnicianDiagnosis}
+                      onChange={(e) => {
+                        setUpdateTechnicianDiagnosis(e.target.value);
+                        setRawDiagnosis(e.target.value);
+                      }}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                        <div className="space-y-2">
+                          <div className="flex gap-2 mb-2">
+                            <Button
+                              disabled={!diagnosisEditable}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                 if (!rawDiagnosis?.trim()) {
+                                   toast({
+                                     title: "No Raw Diagnosis",
+                                     description: "No raw diagnosis data found from the technician (Column AE)",
+                                     variant: "destructive",
+                                   });
+                                   return;
+                                 }
+                                 const ok = window.confirm(
+                                   "AI Diagnosis Formatter\n\nThis uses AI to reformat your raw diagnosis. AI output may contain mistakes — review every section (especially Service Breakdown costs) before saving or sharing with the client.\n\nProceed?"
+                                 );
+                                 if (!ok) return;
+
+                                setIsFormattingAI(true);
+                                try {
+                                  const formattedDiagnosis = await formatDiagnosisWithAI({
+                                    rawDiagnosis,
+                                    customerName: serviceData?.clientName || '',
+                                    deviceType: serviceData?.deviceType || '',
+                                    model: serviceData?.device || '',
+                                    serviceId,
+                                  });
+
+                                  if (formattedDiagnosis) {
+                                    setUpdateAIDiagnosis(formattedDiagnosis);
+                                    
+                                    // Create notification in panel for proofread reminder
+                                    const notifyUserId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
+                                    if (notifyUserId) {
+                                      createNotification({
+                                        userId: notifyUserId,
+                                        title: "AI Diagnosis Generated",
+                                        message: `⚠️ Please double-check and proofread the AI-generated diagnosis for ${serviceId} before saving.`,
+                                        type: "others",
+                                        serviceId,
+                                      });
+                                    }
+                                    
+                                    toast({
+                                      title: "AI Formatting Complete",
+                                      description: "⚠️ Please double-check and proofread the generated diagnosis before saving.",
+                                    });
+                                  } else {
+                                    throw new Error("No formatted diagnosis received from AI service");
+                                  }
+                                } catch (error: any) {
+                                  // Error formatting diagnosis
+                                  toast({
+                                    title: "Error",
+                                    description: error.message || "Failed to format diagnosis with AI.",
+                                    variant: "destructive",
+                                  });
+                                } finally {
+                                  setIsFormattingAI(false);
+                                }
+                              }}
+                              disabled={isFormattingAI}
+                            >
+                              {isFormattingAI ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
+                          </div>
+                          <Label htmlFor="aiDiagnosis">AI Diagnosis (Editable):</Label>
+                          <Textarea
+                            readOnly={!diagnosisEditable}
+                            id="aiDiagnosis"
+                            placeholder="AI formatted diagnosis"
+                            value={updateAIDiagnosis}
+                            onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
+                            className="min-h-[100px] resize-none"
+                            style={{ 
+                              minHeight: '100px',
+                              height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
+                            }}
+                          />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                )}
+
+                {(reportEditable || reportStageReached || !!(updateServiceReport || updateTechnicianReport).trim()) && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          <span className="font-semibold">AI Report Formatter</span>
+                          <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="technicianReport">Technician Report:</Label>
+                    <Textarea
+                            readOnly={!reportEditable}
+                      id="technicianReport"
+                      placeholder="Enter technician report"
+                      value={updateTechnicianReport}
+                      onChange={(e) => setUpdateTechnicianReport(e.target.value)}
+                      rows={4}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
+                        <div className="space-y-2">
+                          <div className="flex gap-2 mb-2">
+                            <Button
+                              disabled={!reportEditable}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                 if (!updateTechnicianReport?.trim()) {
+                                   toast({
+                                     title: "No Technician Report",
+                                     description: "No technician report data found (Column BA)",
+                                     variant: "destructive",
+                                   });
+                                   return;
+                                 }
+                                 const ok = window.confirm(
+                                   "AI Report Formatter\n\nThis uses AI to reformat your technician report. AI output may contain mistakes — review the generated report carefully before saving.\n\nProceed?"
+                                 );
+                                 if (!ok) return;
+
+                                setIsFormattingReport(true);
+                                try {
+                                  const formattedReport = await formatReportWithAI({
+                                    technicianReport: updateTechnicianReport,
+                                    customerName: serviceData?.clientName || '',
+                                    deviceType: serviceData?.deviceType || '',
+                                    model: serviceData?.device || '',
+                                    serviceId,
+                                    finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
+                                  });
+
+                                  if (formattedReport) {
+                                    setUpdateServiceReport(formattedReport);
+                                    
+                                    // Create notification in panel for proofread reminder
+                                    const notifyUserId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
+                                    if (notifyUserId) {
+                                      createNotification({
+                                        userId: notifyUserId,
+                                        title: "AI Report Generated",
+                                        message: `⚠️ Please double-check and proofread the AI-generated service report for ${serviceId} before saving.`,
+                                        type: "others",
+                                        serviceId,
+                                      });
+                                    }
+                                    
+                                    toast({
+                                      title: "AI Formatting Complete",
+                                      description: "⚠️ Please double-check and proofread the generated report before saving.",
+                                    });
+                                  } else {
+                                    throw new Error("No formatted report received from AI service");
+                                  }
+                                } catch (error: any) {
+                                  // Error formatting service report
+                                  toast({
+                                    title: "Error",
+                                    description: error.message || "Failed to format service report with AI.",
+                                    variant: "destructive",
+                                  });
+                                } finally {
+                                  setIsFormattingReport(false);
+                                }
+                              }}
+                              disabled={isFormattingReport}
+                            >
+                              {isFormattingReport ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Formatting...
+                                </>
+                              ) : (
+                                "Format with AI"
+                              )}
+                            </Button>
+                          </div>
+                          <Label htmlFor="aiReport">AI Report (Editable):</Label>
+                          <Textarea
+                            readOnly={!reportEditable}
+                            id="aiReport"
+                            placeholder="AI formatted service report"
+                            value={updateServiceReport}
+                            onChange={(e) => setUpdateServiceReport(e.target.value)}
+                            className="min-h-[100px] resize-none"
+                            style={{ 
+                              minHeight: '100px',
+                              height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
+                            }}
+                          />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                )}
+
                 {!statusChanged ? (
                   <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
                     <p className="text-sm font-semibold text-primary">Set the status first</p>
@@ -1379,251 +1617,17 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                {showDiagnosisStage && (
-                  <div className="space-y-2">
-                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                    <Textarea
-                      id="technicianDiagnosis"
-                      placeholder="Enter technician diagnosis"
-                      value={updateTechnicianDiagnosis}
-                      onChange={(e) => {
-                        setUpdateTechnicianDiagnosis(e.target.value);
-                        setRawDiagnosis(e.target.value);
-                      }}
-                      rows={4}
-                      className="min-h-[80px] resize-none"
-                    />
-                  </div>
-                )}
 
                 {/* Diagnosis Toggle - based on the selected (next) status */}
-                {showDiagnosisStage && (
-                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="font-semibold">AI Diagnosis Formatter</span>
-                          <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <div className="flex gap-2 mb-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                 if (!rawDiagnosis?.trim()) {
-                                   toast({
-                                     title: "No Raw Diagnosis",
-                                     description: "No raw diagnosis data found from the technician (Column AE)",
-                                     variant: "destructive",
-                                   });
-                                   return;
-                                 }
-                                 const ok = window.confirm(
-                                   "AI Diagnosis Formatter\n\nThis uses AI to reformat your raw diagnosis. AI output may contain mistakes — review every section (especially Service Breakdown costs) before saving or sharing with the client.\n\nProceed?"
-                                 );
-                                 if (!ok) return;
-
-                                setIsFormattingAI(true);
-                                try {
-                                  const formattedDiagnosis = await formatDiagnosisWithAI({
-                                    rawDiagnosis,
-                                    customerName: serviceData?.clientName || '',
-                                    deviceType: serviceData?.deviceType || '',
-                                    model: serviceData?.device || '',
-                                    serviceId,
-                                  });
-
-                                  if (formattedDiagnosis) {
-                                    setUpdateAIDiagnosis(formattedDiagnosis);
-                                    
-                                    // Create notification in panel for proofread reminder
-                                    const notifyUserId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
-                                    if (notifyUserId) {
-                                      createNotification({
-                                        userId: notifyUserId,
-                                        title: "AI Diagnosis Generated",
-                                        message: `⚠️ Please double-check and proofread the AI-generated diagnosis for ${serviceId} before saving.`,
-                                        type: "others",
-                                        serviceId,
-                                      });
-                                    }
-                                    
-                                    toast({
-                                      title: "AI Formatting Complete",
-                                      description: "⚠️ Please double-check and proofread the generated diagnosis before saving.",
-                                    });
-                                  } else {
-                                    throw new Error("No formatted diagnosis received from AI service");
-                                  }
-                                } catch (error: any) {
-                                  // Error formatting diagnosis
-                                  toast({
-                                    title: "Error",
-                                    description: error.message || "Failed to format diagnosis with AI.",
-                                    variant: "destructive",
-                                  });
-                                } finally {
-                                  setIsFormattingAI(false);
-                                }
-                              }}
-                              disabled={isFormattingAI}
-                            >
-                              {isFormattingAI ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Formatting...
-                                </>
-                              ) : (
-                                "Format with AI"
-                              )}
-                            </Button>
-                          </div>
-                          <Label htmlFor="aiDiagnosis">AI Diagnosis (Editable):</Label>
-                          <Textarea
-                            id="aiDiagnosis"
-                            placeholder="AI formatted diagnosis"
-                            value={updateAIDiagnosis}
-                            onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                            className="min-h-[100px] resize-none"
-                            style={{ 
-                              minHeight: '100px',
-                              height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
-                            }}
-                          />
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
 
                 {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
                 {showDiagnosisStage && serviceData?.serviceId && (
                   <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
                 )}
 
-                {showReportStage && (
-                  <div className="space-y-2">
-                    <Label htmlFor="technicianReport">Technician Report:</Label>
-                    <Textarea
-                      id="technicianReport"
-                      placeholder="Enter technician report"
-                      value={updateTechnicianReport}
-                      onChange={(e) => setUpdateTechnicianReport(e.target.value)}
-                      rows={4}
-                      className="min-h-[80px] resize-none"
-                    />
-                  </div>
-                )}
 
 
                 {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
-                {showReportEditors && (
-                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="font-semibold">AI Report Formatter</span>
-                          <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <div className="flex gap-2 mb-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                 if (!updateTechnicianReport?.trim()) {
-                                   toast({
-                                     title: "No Technician Report",
-                                     description: "No technician report data found (Column BA)",
-                                     variant: "destructive",
-                                   });
-                                   return;
-                                 }
-                                 const ok = window.confirm(
-                                   "AI Report Formatter\n\nThis uses AI to reformat your technician report. AI output may contain mistakes — review the generated report carefully before saving.\n\nProceed?"
-                                 );
-                                 if (!ok) return;
-
-                                setIsFormattingReport(true);
-                                try {
-                                  const formattedReport = await formatReportWithAI({
-                                    technicianReport: updateTechnicianReport,
-                                    customerName: serviceData?.clientName || '',
-                                    deviceType: serviceData?.deviceType || '',
-                                    model: serviceData?.device || '',
-                                    serviceId,
-                                    finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
-                                  });
-
-                                  if (formattedReport) {
-                                    setUpdateServiceReport(formattedReport);
-                                    
-                                    // Create notification in panel for proofread reminder
-                                    const notifyUserId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
-                                    if (notifyUserId) {
-                                      createNotification({
-                                        userId: notifyUserId,
-                                        title: "AI Report Generated",
-                                        message: `⚠️ Please double-check and proofread the AI-generated service report for ${serviceId} before saving.`,
-                                        type: "others",
-                                        serviceId,
-                                      });
-                                    }
-                                    
-                                    toast({
-                                      title: "AI Formatting Complete",
-                                      description: "⚠️ Please double-check and proofread the generated report before saving.",
-                                    });
-                                  } else {
-                                    throw new Error("No formatted report received from AI service");
-                                  }
-                                } catch (error: any) {
-                                  // Error formatting service report
-                                  toast({
-                                    title: "Error",
-                                    description: error.message || "Failed to format service report with AI.",
-                                    variant: "destructive",
-                                  });
-                                } finally {
-                                  setIsFormattingReport(false);
-                                }
-                              }}
-                              disabled={isFormattingReport}
-                            >
-                              {isFormattingReport ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Formatting...
-                                </>
-                              ) : (
-                                "Format with AI"
-                              )}
-                            </Button>
-                          </div>
-                          <Label htmlFor="aiReport">AI Report (Editable):</Label>
-                          <Textarea
-                            id="aiReport"
-                            placeholder="AI formatted service report"
-                            value={updateServiceReport}
-                            onChange={(e) => setUpdateServiceReport(e.target.value)}
-                            className="min-h-[100px] resize-none"
-                            style={{ 
-                              minHeight: '100px',
-                              height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
-                            }}
-                          />
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
 
                 {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
                 {serviceData?.serviceId && showReportStage && (
