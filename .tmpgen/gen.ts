@@ -1,4 +1,5 @@
-import jsPDF from "jspdf";
+import jspdfmod from "jspdf";
+const jsPDF: any = (jspdfmod as any).jsPDF || jspdfmod;
 import fs from "fs";
 import { drawQuotation } from "/dev-server/src/lib/quotationPdfGenerator";
 
