@@ -31,6 +31,7 @@ import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
+import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -343,6 +344,14 @@ const ServiceUpdate = () => {
   const statusChanged = !!updateStatus && updateStatus !== savedStatus;
   // Nothing is revealed until the technician picks a NEW status.
   const stageStatus = statusChanged ? savedStatus : "";
+  // Technicians can only step forward one stage at a time (no bypassing statuses).
+  const allowedNext = technicianAllowedNextStatuses(savedStatus);
+  // AI sections stay visible once their stage has been reached, but become
+  // read-only for technicians after that stage is over.
+  const diagnosisEditable = savedStatus === "Pending Diagnosis";
+  const reportStageReached = statusRank(savedStatus) >= statusRank("Done Repair - Under Observation");
+  const reportEditable =
+    savedStatus === "Done Repair - Under Observation" || savedStatus === "Done Repair - Observation";
 
 
   const DONE_REPAIR_STAGES = [
@@ -1251,30 +1260,19 @@ const ServiceUpdate = () => {
                       Next step is usually <span className="font-medium">{suggestedNext}</span>. Choose it first — the fields for that stage will appear below.
                     </p>
                   )}
-                  <Select 
-                    value={updateStatus} 
+                  <Select
+                    value={updateStatus}
                     onValueChange={(value) => {
-                      const allowRevertToPending = serviceData?.status === "Confirmed Diagnosis";
-                      const restrictedStatuses = [
-                        ...(allowRevertToPending ? [] : ["Pending Diagnosis"]),
-                        "Waiting to Proceed",
-                        "Proceed Repair",
-                        "Done Repair - Advise Client",
-                        "Completed",
-                        "RTO",
-                        "Cancelled"
-                      ];
-                      
-                      // Prevent selection of restricted statuses
-                      if (restrictedStatuses.includes(value)) {
+                      if (!allowedNext.includes(value)) {
                         toast({
                           title: "Status Restricted",
-                          description: "This status cannot be selected from Service Update",
+                          description: allowedNext.length
+                            ? `From "${savedStatus}" you can only move to: ${allowedNext.join(", ")}.`
+                            : "This ticket's next status is handled by admin/management.",
                           variant: "destructive",
                         });
                         return;
                       }
-                      
                       setUpdateStatus(value);
                     }}
                   >
@@ -1282,29 +1280,15 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map(status => {
-                        const allowRevertToPending = serviceData?.status === "Confirmed Diagnosis";
-                        const restrictedStatuses = [
-                          ...(allowRevertToPending ? [] : ["Pending Diagnosis"]),
-                          "Waiting to Proceed",
-                          "Proceed Repair",
-                          "Done Repair - Advise Client",
-                          "Completed",
-                          "RTO",
-                          "Cancelled"
-                        ];
-                        const isRestricted = restrictedStatuses.includes(status);
-                        
-                        return (
-                          <SelectItem 
-                            key={status} 
-                            value={status}
-                            disabled={isRestricted}
-                          >
-                            {status}
-                          </SelectItem>
-                        );
-                      })}
+                      {STATUS_OPTIONS.map((status) => (
+                        <SelectItem
+                          key={status}
+                          value={status}
+                          disabled={status !== savedStatus && !allowedNext.includes(status)}
+                        >
+                          {status}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
