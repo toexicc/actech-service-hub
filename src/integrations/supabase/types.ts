@@ -1056,6 +1056,7 @@ export type Database = {
           pending_services: string[]
           pre_order: string | null
           priority: string | null
+          quoted_breakdown: Json
           receiving_staff: string | null
           remarks: string | null
           serial_number: string | null
@@ -1125,6 +1126,7 @@ export type Database = {
           pending_services?: string[]
           pre_order?: string | null
           priority?: string | null
+          quoted_breakdown?: Json
           receiving_staff?: string | null
           remarks?: string | null
           serial_number?: string | null
@@ -1194,6 +1196,7 @@ export type Database = {
           pending_services?: string[]
           pre_order?: string | null
           priority?: string | null
+          quoted_breakdown?: Json
           receiving_staff?: string | null
           remarks?: string | null
           serial_number?: string | null
