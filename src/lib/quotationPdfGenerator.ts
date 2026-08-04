@@ -355,16 +355,16 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
     if (bulletMatch) {
       const body = bulletMatch[2];
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.4);
+      doc.setFontSize(7.2);
       const wrapped = doc.splitTextToSize(body, innerW - 3.4);
       blocks.push({
-        h: wrapped.length * 3.25 + 0.8,
+        h: wrapped.length * 3.1 + 0.8,
         gapBefore: 0.6,
         draw: (x, y) => {
           setFill(doc, ACCENT);
           doc.circle(x + 1, y + 1.15, 0.55, "F");
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(7.4);
+          doc.setFontSize(7.2);
           setText(doc, INK);
           doc.text(wrapped, x + 3.4, y + 2);
         },
@@ -373,14 +373,14 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
     }
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.4);
+    doc.setFontSize(7.2);
     const wrapped = doc.splitTextToSize(line, innerW);
     blocks.push({
-      h: wrapped.length * 3.3,
+      h: wrapped.length * 3.15,
       gapBefore: 0.6,
       draw: (x, y) => {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.4);
+        doc.setFontSize(7.2);
         setText(doc, INK);
         doc.text(wrapped, x, y + 2);
       },
@@ -393,7 +393,7 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
       gapBefore: 0,
       draw: (x, y) => {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.4);
+        doc.setFontSize(7.2);
         setText(doc, MUTED);
         doc.text("N/A", x, y + 2);
       },
@@ -405,13 +405,13 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
 /* --------------------------------------------------------------- sections */
 
 const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
-  let y = 8;
+  let y = 5;
   try {
-    doc.addImage(logo, "PNG", (PAGE_W - 46) / 2, y, 46, 42);
+    doc.addImage(logo, "PNG", (PAGE_W - 40) / 2, y, 40, 36);
   } catch {
     /* logo optional */
   }
-  y += 46;
+  y += 39;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.8);
@@ -426,9 +426,9 @@ const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
   setText(doc, MUTED);
   doc.text("MONDAY TO SATURDAY (10:00 AM - 7:00 PM)", PAGE_W / 2, y, { align: "center" });
 
-  y += 9;
+  y += 8;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(19);
+  doc.setFontSize(18);
   setText(doc, NAVY);
   doc.text("SERVICE QUOTATION FORM", PAGE_W / 2, y, { align: "center" });
 
@@ -445,7 +445,7 @@ const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
     doc.text("*** UPDATED VERSION ***", PAGE_W / 2, y, { align: "center" });
   }
 
-  return y + 6;
+  return y + 5;
 };
 
 const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
@@ -459,7 +459,7 @@ const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   const leftX = M + 3;
   const badgeS = 6.4;
   const textX = leftX + badgeS + 3;
-  const labelW = 30;
+  const labelW = 36;
   const leftW = COL_W + GUTTER + 6;
 
   doc.setFontSize(7.6);
@@ -702,7 +702,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   y = drawMetaCard(doc, y, data);
   y = drawInfoCards(doc, y, data);
 
-  const footerReserve = 46;
+  const footerReserve = 42;
   const bottomLimit = PAGE_H - footerReserve;
 
   const leftX = M;
