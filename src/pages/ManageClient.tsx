@@ -1920,6 +1920,21 @@ const ManageClient = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 pt-4">
                         <div className="space-y-2">
+                          <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                          <Textarea
+                            id="technicianDiagnosis"
+                            placeholder="Enter technician diagnosis"
+                            value={rawDiagnosis}
+                            onChange={(e) => {
+                              setRawDiagnosis(e.target.value);
+                              setUpdateTechDiagnosis(e.target.value);
+                            }}
+                            rows={4}
+                            className="min-h-[80px] resize-none"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
                           <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <div className="flex flex-wrap gap-2 mb-2">
                             <Button
