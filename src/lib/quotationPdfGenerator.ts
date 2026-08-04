@@ -506,7 +506,7 @@ const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   return y + h + 3.5;
 };
 
-/** Single-column info card: one field per row, values wrap on the full card width. */
+/** Info card with a configurable column count; values wrap inside their column. */
 const drawStackedCard = (
   doc: jsPDF,
   x: number,
@@ -515,20 +515,34 @@ const drawStackedCard = (
   title: string,
   glyph: Glyph,
   rows: [string, string][],
+  columns = 1,
 ) => {
+  const cols = Math.max(1, columns);
+  const colGutter = cols > 1 ? 5 : 0;
   const innerW = w - 8;
-  doc.setFontSize(7.6);
-  const labelWidths = rows.map(([label]) => {
-    doc.setFont("helvetica", "bold");
-    return doc.getTextWidth(label) + 1.8;
-  });
-  const heights = rows.map(([, v], i) => {
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(v || "N/A", Math.max(12, innerW - labelWidths[i]));
-    return Math.max(4.4, lines.length * 3.4) + 0.6;
-  });
+  const colW = (innerW - colGutter * (cols - 1)) / cols;
 
-  const h = 16.5 + heights.reduce((s, v) => s + v, 0) + 1;
+  const perCol = Math.ceil(rows.length / cols);
+  const groups: [string, string][][] = [];
+  for (let c = 0; c < cols; c++) groups.push(rows.slice(c * perCol, (c + 1) * perCol));
+
+  doc.setFontSize(7.6);
+  const measure = (group: [string, string][]) => {
+    const labelWidths = group.map(([label]) => {
+      doc.setFont("helvetica", "bold");
+      return doc.getTextWidth(label) + 1.8;
+    });
+    const heights = group.map(([, v], i) => {
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(v || "N/A", Math.max(12, colW - labelWidths[i]));
+      return Math.max(4.4, lines.length * 3.4) + 0.6;
+    });
+    return { labelWidths, heights, total: heights.reduce((s, v) => s + v, 0) };
+  };
+  const measured = groups.map(measure);
+  const bodyH = Math.max(0, ...measured.map((m) => m.total));
+
+  const h = 16.5 + bodyH + 1;
   card(doc, x, y, w, h);
   iconBadge(doc, x + 3, y + 3.4, 6.2, glyph);
   doc.setFont("helvetica", "bold");
@@ -539,34 +553,56 @@ const drawStackedCard = (
   doc.setLineWidth(0.35);
   doc.line(x + 3, y + 11.5, x + w - 3, y + 11.5);
 
-  let ry = y + 16.5;
-  rows.forEach(([label, value], i) => {
-    labelValue(doc, x + 4, ry, innerW, label, value, labelWidths[i]);
-    ry += heights[i];
+  groups.forEach((group, c) => {
+    const cx = x + 4 + c * (colW + colGutter);
+    let ry = y + 16.5;
+    group.forEach(([label, value], i) => {
+      labelValue(doc, cx, ry, colW, label, value, measured[c].labelWidths[i]);
+      ry += measured[c].heights[i];
+    });
   });
 
   return y + h;
 };
 
 const drawClientCard = (doc: jsPDF, x: number, y: number, w: number, data: QuotationPDFData) =>
-  drawStackedCard(doc, x, y, w, "Client Information", "person", [
-    ["Client Type:", data.clientType],
-    ["Priority:", data.priority],
-    ["Name:", data.clientName],
-    ["Facebook Name/Instagram Username:", data.username],
-    ["Phone:", data.phone],
-    ["Email:", data.email],
-  ]);
+  drawStackedCard(
+    doc,
+    x,
+    y,
+    w,
+    "Client Information",
+    "person",
+    [
+      ["Client Type:", data.clientType],
+      ["Priority:", data.priority],
+      ["Name:", data.clientName],
+      ["Facebook Name/Instagram Username:", data.username],
+      ["Phone:", data.phone],
+      ["Email:", data.email],
+    ],
+    2,
+  );
 
 const drawDeviceCard = (doc: jsPDF, x: number, y: number, w: number, data: QuotationPDFData) =>
-  drawStackedCard(doc, x, y, w, "Device Information", "device", [
-    ["Device Type:", data.deviceType],
-    ["Brand:", data.brand],
-    ["Model:", data.model],
-    ["Serial No.:", data.serial],
-    ["Color:", data.color],
-    ["Storage:", data.memory],
-  ]);
+  drawStackedCard(
+    doc,
+    x,
+    y,
+    w,
+    "Device Information",
+    "device",
+    [
+      ["Device Type:", data.deviceType],
+      ["Brand:", data.brand],
+      ["Model:", data.model],
+      ["Serial No.:", data.serial],
+      ["Color:", data.color],
+      ["Storage:", data.memory],
+    ],
+    2,
+  );
+
 
 
 const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): Block[] => {
