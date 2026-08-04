@@ -304,7 +304,15 @@ const isSectionHeader = (line: string) =>
   line.length < 70 &&
   /finding|cause|issue|solution|recommend|note|summary|warrant|observ/i.test(line);
 
-const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] => {
+const buildDiagnosisBlocks = (
+  doc: jsPDF,
+  raw: string,
+  innerW: number,
+  scale = 1,
+): Block[] => {
+  const BODY = 7.2 * scale;
+  const HEAD = 7.8 * scale;
+  const LEAD = 3.15 * scale;
   const cleaned = cleanDiagnosisText(raw);
   const lines = cleaned.split("\n").map((l) => l.trim()).filter(Boolean);
   const blocks: Block[] = [];
@@ -315,33 +323,33 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
       const upper = /^[A-Z\s&/]+:$/.test(line);
       const glyph = SECTION_GLYPHS.find((g) => g.test.test(line))?.glyph ?? "clipboard";
       const label = line.replace(/:$/, "");
-      const gapBefore = first ? 0 : 3.6;
+      const gapBefore = first ? 0 : 3.6 * scale;
       first = false;
 
       if (upper) {
         // Section band (IMPORTANT NOTE, SUMMARY)
         blocks.push({
-          h: 5.4,
+          h: 5.4 * scale,
           gapBefore,
           keepWithNext: true,
           draw: (x, y, w) => {
             dottedRule(doc, x, y - 2.4, x + w);
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(7.8);
+            doc.setFontSize(HEAD);
             setText(doc, NAVY);
             doc.text(label.toUpperCase() + ":", x, y + 2.6);
           },
         });
       } else {
         blocks.push({
-          h: 6.2,
+          h: 6.2 * scale,
           gapBefore,
           keepWithNext: true,
           draw: (x, y, w) => {
             dottedRule(doc, x, y - 2.2, x + w);
             iconBadge(doc, x, y, 5.6, glyph);
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(7.8);
+            doc.setFontSize(HEAD);
             setText(doc, ACCENT);
             doc.text(label + ":", x + 7.6, y + 4);
           },
@@ -355,16 +363,16 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
     if (bulletMatch) {
       const body = bulletMatch[2];
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.2);
+      doc.setFontSize(BODY);
       const wrapped = doc.splitTextToSize(body, innerW - 3.4);
       blocks.push({
-        h: wrapped.length * 3.1 + 0.8,
+        h: wrapped.length * LEAD + 0.8,
         gapBefore: 0.6,
         draw: (x, y) => {
           setFill(doc, ACCENT);
           doc.circle(x + 1, y + 1.15, 0.55, "F");
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(7.2);
+          doc.setFontSize(BODY);
           setText(doc, INK);
           doc.text(wrapped, x + 3.4, y + 2);
         },
@@ -373,14 +381,14 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
     }
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.2);
+    doc.setFontSize(BODY);
     const wrapped = doc.splitTextToSize(line, innerW);
     blocks.push({
-      h: wrapped.length * 3.15,
+      h: wrapped.length * LEAD,
       gapBefore: 0.6,
       draw: (x, y) => {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.2);
+        doc.setFontSize(BODY);
         setText(doc, INK);
         doc.text(wrapped, x, y + 2);
       },
@@ -393,7 +401,7 @@ const buildDiagnosisBlocks = (doc: jsPDF, raw: string, innerW: number): Block[] 
       gapBefore: 0,
       draw: (x, y) => {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.2);
+        doc.setFontSize(BODY);
         setText(doc, MUTED);
         doc.text("N/A", x, y + 2);
       },
@@ -731,7 +739,13 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const leftX = M;
   const rightX = M + COL_W + GUTTER;
 
-  const diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
+  const availableFirstPage = PAGE_H - 38 - y;
+  let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
+  const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
+  for (const sc of [0.94, 0.88, 0.82, 0.78]) {
+    if (totalH(diagBlocks) <= availableFirstPage) break;
+    diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
+  }
   const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
 
   const panelTop = y;
