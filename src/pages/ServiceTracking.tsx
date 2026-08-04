@@ -1162,14 +1162,11 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Contact action buttons */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Button asChild variant="outline" className="rounded-xl px-2">
                         <a href={CONTACT_LINKS.facebook} target="_blank" rel="noreferrer">
                           Message
                         </a>
-                      </Button>
-                      <Button asChild variant="outline" className="rounded-xl px-2">
-                        <a href={CONTACT_LINKS.email}>Email</a>
                       </Button>
                       <Button asChild variant="outline" className="rounded-xl px-2">
                         <a href={CONTACT_LINKS.phone}>Call</a>
