@@ -38,32 +38,58 @@ interface ServiceInfo {
   device?: string;
 }
 
-/** Notify every assigned admin and technician when AI diagnosis needs review. */
-export const notifyAiDiagnosisGenerated = async (service: ServiceInfo): Promise<void> => {
+/**
+ * Notify the staff member who ran the AI formatter plus every assigned admin
+ * and technician. The acting user is always included so the alert is visible
+ * to whoever clicked the button, regardless of assignment.
+ */
+export const notifyAiOutputGenerated = async (
+  service: ServiceInfo,
+  kind: 'diagnosis' | 'report' = 'diagnosis',
+): Promise<void> => {
+  const title = kind === 'report' ? 'AI Report Generated' : 'AI Diagnosis Generated';
+  const label = kind === 'report' ? 'service report' : 'diagnosis';
+  const message = `⚠️ Please double-check and proofread the AI-generated ${label} for ${service.serviceId} before approving.`;
   try {
+    const seen = new Set<string>();
+    const recipients: { userId: string; title: string; message: string; serviceId?: string }[] = [];
+
+    // 1) The acting user (whoever clicked the formatter).
+    try {
+      const { data } = await supabase.auth.getUser();
+      const actorId = data?.user?.id;
+      if (actorId) {
+        seen.add(actorId);
+        recipients.push({ userId: actorId, title, message, serviceId: service.serviceId });
+      }
+    } catch {
+      // Ignore auth lookup issues; assigned staff still get notified.
+    }
+
+    // 2) Assigned admins and technicians.
     const staffList = await fetchStaffList();
     const assignedNames = [service.adminRep, service.technician]
       .filter(Boolean)
       .flatMap((value) => String(value).split(","))
       .map((name) => name.trim())
       .filter(Boolean);
-    const seen = new Set<string>();
-    const recipients = assignedNames.flatMap((name) => {
+    for (const name of assignedNames) {
       const staff = findStaffByName(staffList, name);
-      if (!staff?.staffId || seen.has(staff.staffId)) return [];
+      if (!staff?.staffId || seen.has(staff.staffId)) continue;
       seen.add(staff.staffId);
-      return [{
-        userId: staff.staffId,
-        title: "AI Diagnosis Generated",
-        message: `Please double-check and proofread the AI-generated diagnosis for ${service.serviceId} before approving.`,
-        serviceId: service.serviceId,
-      }];
-    });
+      recipients.push({ userId: staff.staffId, title, message, serviceId: service.serviceId });
+    }
+
     await sendViaEdge(recipients);
   } catch {
     // Formatting must remain available even if alert delivery is unavailable.
   }
 };
+
+/** Backwards-compatible alias for the diagnosis formatter. */
+export const notifyAiDiagnosisGenerated = (service: ServiceInfo): Promise<void> =>
+  notifyAiOutputGenerated(service, 'diagnosis');
+
 
 // Normalize staff names like "Kenn Perez - Laptop (Daily Repairs)" -> "Kenn Perez"
 const normalizeStaffName = (name: string): string => {
