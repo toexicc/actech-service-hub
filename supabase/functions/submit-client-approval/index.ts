@@ -79,6 +79,9 @@ serve(async (req) => {
     if (!serviceId || serviceId.length > 64 || typeof approved !== "boolean") {
       return json({ error: "serviceId (string) and approved (boolean) are required" }, 400);
     }
+    if (!approved && !reason.trim()) {
+      return json({ error: "Please provide a reason for declining." }, 400);
+    }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
@@ -123,18 +126,36 @@ serve(async (req) => {
 
     const stamp = manilaStamp();
     const clientName = row.client_name || "Client";
-    const allItems = parseServicesFromDiagnosis(row.diagnosis || "");
+    const quoted = Array.isArray(row.quoted_breakdown)
+      ? row.quoted_breakdown
+          .map((line: any) => ({
+            name: String(line?.name ?? "").trim(),
+            cost: Math.max(0, Number(line?.cost ?? 0) || 0),
+            selected: line?.selected === undefined ? true : !!line.selected,
+            required: !!line?.required,
+          }))
+          .filter((line: any) => line.name)
+      : [];
+    const allItems = quoted.length ? quoted.map((line: any) => line.name) : parseServicesFromDiagnosis(row.diagnosis || "");
 
     // Determine approved vs pending items.
     let approvedItems: string[] = [];
     let pendingItems: string[] = [];
     if (approved) {
-      if (allItems.length === 0) {
+      if (quoted.length) {
+        const picked = new Set(selectedServices.map(norm));
+        for (const line of quoted) if (line.required) picked.add(norm(line.name));
+        approvedItems = allItems.filter((item) => picked.has(norm(item)));
+        pendingItems = allItems.filter((item) => !picked.has(norm(item)));
+        if (approvedItems.length === 0) {
+          return json({ error: "Please select at least one service to approve." }, 400);
+        }
+      } else if (allItems.length === 0) {
         // No parseable breakdown: treat as a plain full approval, and keep any
         // client selection as the recorded approved list.
         approvedItems = selectedServices;
-      } else if (allItems.length === 1 || selectedServices.length === 0) {
-        // Single-item breakdown, or no checklist shown -> approve everything.
+      } else if (allItems.length === 1) {
+        // A single-item breakdown is a plain full approval.
         approvedItems = allItems;
       } else {
         const picked = new Set(selectedServices.map(norm));
@@ -184,21 +205,19 @@ serve(async (req) => {
 
       // Recost the ticket from the finalized quotation lines when the shop
       // published one, so the client's selection drives the quoted amount.
-      const quoted = Array.isArray(row.quoted_breakdown) ? row.quoted_breakdown : [];
       if (quoted.length) {
         const pickedKeys = new Set(approvedItems.map(norm));
         const relined = quoted.map((l: any) => ({
           name: String(l?.name ?? ""),
           cost: Number(l?.cost ?? 0) || 0,
-          selected: pickedKeys.has(norm(String(l?.name ?? ""))),
+          selected: !!l.required || pickedKeys.has(norm(String(l?.name ?? ""))),
+          required: !!l.required,
         }));
         const total = relined.reduce((sum, l) => sum + (l.selected ? l.cost : 0), 0);
         update.quoted_breakdown = relined;
-        if (total > 0) {
-          const discount = Number(row.discount ?? 0) || 0;
-          update.service_cost = total;
-          update.final_cost = Math.max(0, total - discount);
-        }
+        const discount = Number(row.discount ?? 0) || 0;
+        update.service_cost = total;
+        update.final_cost = Math.max(0, total - discount);
       }
       update.pending_services = pendingItems;
       update.client_approved_at = nowIso;
@@ -269,6 +288,9 @@ serve(async (req) => {
       pendingServices: pendingItems,
       service: approvedItems.join(", "),
       adminNotes: newAdminNotes,
+      quotedBreakdown: update.quoted_breakdown ?? quoted,
+      serviceCost: update.service_cost ?? row.service_cost,
+      finalCost: update.final_cost ?? row.final_cost,
     });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Internal server error" }, 500);

@@ -29,7 +29,7 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
+import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
@@ -1351,17 +1351,12 @@ const ServiceUpdate = () => {
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
                                     
-                                    // Create notification in panel for proofread reminder
-                                    const notifyUserId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
-                                    if (notifyUserId) {
-                                      createNotification({
-                                        userId: notifyUserId,
-                                        title: "AI Diagnosis Generated",
-                                        message: `⚠️ Please double-check and proofread the AI-generated diagnosis for ${serviceId} before saving.`,
-                                        type: "others",
-                                        serviceId,
-                                      });
-                                    }
+                                    await notifyAiDiagnosisGenerated({
+                                      serviceId,
+                                      clientName: serviceData?.clientName || "Client",
+                                      technician: serviceData?.technician || "",
+                                      adminRep: serviceData?.adminRep || "",
+                                    });
                                     
                                     toast({
                                       title: "AI Formatting Complete",

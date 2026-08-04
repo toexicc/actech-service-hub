@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
-import { maskStaffName } from "./utils";
+import { formatPdfTimestamp, maskStaffName } from "./utils";
 
 interface QuotationPDFData {
   serviceId: string;
@@ -158,7 +158,7 @@ export const generateQuotationPDF = async (data: QuotationPDFData): Promise<Blob
   doc.setFont("helvetica", "bold");
   doc.text("Date and Time:", leftCol, yPos);
   doc.setFont("helvetica", "normal");
-  doc.text(data.timestamp, midCol, yPos);
+  doc.text(formatPdfTimestamp(data.timestamp), midCol, yPos);
 
   doc.setFont("helvetica", "bold");
   doc.text("Service ID:", rightCol, yPos);
