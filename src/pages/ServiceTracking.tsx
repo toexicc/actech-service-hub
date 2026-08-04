@@ -1400,8 +1400,8 @@ const ServiceTracking = () => {
       />
 
       <AlertDialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
-        <AlertDialogContent className="!flex-col max-h-[95dvh]">
-          <AlertDialogHeader>
+        <AlertDialogContent className="!flex !flex-col gap-4 max-h-[90dvh] overflow-hidden sm:max-w-lg">
+          <AlertDialogHeader className="shrink-0">
             <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
             <AlertDialogDescription>
               {needsChecklist && selectedBreakdown.length < breakdownItems.length ? (
@@ -1417,12 +1417,11 @@ const ServiceTracking = () => {
                 </>
               )}
             </AlertDialogDescription>
-
           </AlertDialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-md border">
             <TermsImageViewer />
           </div>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="shrink-0">
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); submitApproval(true); }}
@@ -1433,6 +1432,7 @@ const ServiceTracking = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <Dialog open={termsModalOpen} onOpenChange={setTermsModalOpen}>
         <DialogContent className="!flex-col max-h-[95dvh] max-w-4xl">
@@ -1446,8 +1446,9 @@ const ServiceTracking = () => {
       </Dialog>
 
       <AlertDialog open={confirmDeclineOpen} onOpenChange={setConfirmDeclineOpen}>
-        <AlertDialogContent className="!flex-col max-h-[95dvh]">
-          <AlertDialogHeader>
+        <AlertDialogContent className="!flex !flex-col gap-4 max-h-[90dvh] overflow-hidden sm:max-w-lg">
+          <AlertDialogHeader className="shrink-0">
+
             <AlertDialogTitle>Confirm Decline</AlertDialogTitle>
             <AlertDialogDescription>
               Review the Terms and Conditions, then confirm that you want to decline this diagnosis.
