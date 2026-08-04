@@ -99,6 +99,11 @@ const metricsCard = (
   doc.setLineWidth(0.35);
   doc.roundedRect(x, y, w, h, 2, 2, "FD");
 
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.6);
+  const valueX =
+    x + 4 + badgeS + 4 + Math.max(...rows.map(([, l]) => doc.getTextWidth(l.toUpperCase()))) + 5;
+
   let ry = y + 5;
   rows.forEach(([glyph, label, value], i) => {
     if (i > 0) {
@@ -113,7 +118,7 @@ const metricsCard = (
     doc.text(label.toUpperCase(), x + 4 + badgeS + 4, ry + 5.2);
     doc.setFont("helvetica", "normal");
     setText(doc, INK);
-    doc.text(value || "N/A", x + Math.min(w * 0.55, 58), ry + 5.2);
+    doc.text(value || "N/A", valueX, ry + 5.2);
     ry += rowH;
   });
 
@@ -151,7 +156,7 @@ export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
       ["Client Type:", data.clientType],
       ["Priority:", data.priority],
       ["Name:", data.clientName],
-      ["Facebook Name/Instagram Username:", data.username],
+      ["Username:", data.username],
       ["Phone:", data.phone],
       ["Email:", data.email],
     ],
