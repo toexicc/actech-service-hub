@@ -946,17 +946,23 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7, sc);
   }
 
-  const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
-  const sumH = totalH(sumBlocks);
+  const rightRoom = bottomLimit - rightTop;
   const firstPage = doc.getCurrentPageInfo().pageNumber;
 
-  // Shrink the breakdown so Summary + Breakdown both stay on page 1.
-  const breakdownRoom = bottomLimit - (rightTop + sumH + 3.5);
+  // Shrink Summary first, then Breakdown, so both stay on page 1.
+  let sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
   let breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
+  const fits = () => totalH(sumBlocks) + 3.5 + totalH(breakdownBlocks) <= rightRoom;
+
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52]) {
+    if (fits()) break;
+    sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7, sc);
+  }
   for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4]) {
-    if (totalH(breakdownBlocks) <= breakdownRoom) break;
+    if (fits()) break;
     breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7, sc);
   }
+
 
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
