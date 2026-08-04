@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
-import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
@@ -37,7 +37,7 @@ import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment } from "@/lib/serviceNotifications";
+import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
@@ -576,17 +576,12 @@ const ManageClient = () => {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
         
-        // Create notification in panel for proofread reminder
-        const userId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
-        if (userId) {
-          createNotification({
-            userId,
-            title: "AI Diagnosis Generated",
-            message: `⚠️ Please double-check and proofread the AI-generated diagnosis for ${serviceId} before approving.`,
-            type: "others",
-            serviceId,
-          });
-        }
+        await notifyAiDiagnosisGenerated({
+          serviceId,
+          clientName: serviceData?.clientName || "Client",
+          technician: serviceData?.technician || "",
+          adminRep: serviceData?.adminRep || "",
+        });
         
         toast({
           title: "AI Formatting Complete",
@@ -2160,7 +2155,7 @@ const ManageClient = () => {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true }])
+                        setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true, required: false }])
                       }
                     >
                       Add Line
@@ -2185,7 +2180,7 @@ const ManageClient = () => {
                             }
                           />
                           <Input
-                            className="col-span-7"
+                            className="col-span-6"
                             placeholder="Repair / service"
                             value={line.name}
                             onChange={(e) =>
@@ -2206,6 +2201,21 @@ const ManageClient = () => {
                               );
                             }}
                           />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant={line.required ? "secondary" : "ghost"}
+                            className="col-span-1 h-9 w-9"
+                            aria-label={line.required ? "Make service optional" : "Make service required"}
+                            title={line.required ? "Required service — click to unlock" : "Optional service — click to require"}
+                            onClick={() =>
+                              setQuotedLines((prev) =>
+                                prev.map((l, idx) => idx === i ? { ...l, required: !l.required, selected: !l.required || l.selected } : l),
+                              )
+                            }
+                          >
+                            {line.required ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+                          </Button>
                           <Button
                             type="button"
                             size="sm"

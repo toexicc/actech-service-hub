@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Phone } from "lucide-react";
+import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Phone, Lock } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
@@ -143,10 +143,9 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
       approvalLocked: !!(row as any).approval_locked,
-
-
-
-
+      quotedBreakdown: Array.isArray((row as any).quoted_breakdown) ? (row as any).quoted_breakdown : [],
+      serviceCost: sb.serviceCost ?? sheetData.serviceCost,
+      finalCost: sb.finalCost ?? sheetData.finalCost,
     };
   } catch {
     return sheetData;
@@ -199,6 +198,7 @@ const ServiceTracking = () => {
   const [declineReason, setDeclineReason] = useState("");
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
+  const [confirmDeclineOpen, setConfirmDeclineOpen] = useState(false);
   const [selectedBreakdown, setSelectedBreakdown] = useState<string[]>([]);
 
 
@@ -522,10 +522,14 @@ const ServiceTracking = () => {
         status: (data as any)?.status ?? serviceData.status,
         service: (data as any)?.service || serviceData.service,
         approvalLocked: partial ? true : serviceData.approvalLocked,
+        quotedBreakdown: (data as any)?.quotedBreakdown ?? serviceData.quotedBreakdown,
+        serviceCost: (data as any)?.serviceCost ?? serviceData.serviceCost,
+        finalCost: (data as any)?.finalCost ?? serviceData.finalCost,
       });
       setDeclineOpen(false);
       setDeclineReason("");
       setConfirmApproveOpen(false);
+      setConfirmDeclineOpen(false);
       toast({
         title: approved ? (partial ? "Partial approval recorded" : "Approved") : "Declined",
         description: partial
@@ -562,7 +566,7 @@ const ServiceTracking = () => {
   const selectedTotal = quotedSelectedTotal(
     quotedLines.map((l) => ({ ...l, selected: selectedBreakdown.includes(l.name) })),
   );
-  const needsChecklist = breakdownItems.length > 1;
+  const needsChecklist = breakdownItems.length > 0;
   const remark = parseApprovalRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
@@ -576,8 +580,11 @@ const ServiceTracking = () => {
     if (preselected.length) setSelectedBreakdown(preselected);
   }, [serviceData?.serviceId, JSON.stringify((serviceData as any)?.quotedBreakdown ?? [])]);
 
-  const toggleBreakdown = (item: string) =>
+  const toggleBreakdown = (item: string) => {
+    const line = quotedLines.find((candidate) => candidate.name === item);
+    if (line?.required) return;
     setSelectedBreakdown((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+  };
 
   const startApprove = () => {
     if (needsChecklist && selectedBreakdown.length === 0) {
@@ -965,19 +972,19 @@ const ServiceTracking = () => {
                                   {breakdownItems.map((item) => (
                                     <label
                                       key={item}
-                                      className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 cursor-pointer"
+                                        className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 cursor-pointer"
                                     >
                                       <Checkbox
                                         checked={selectedBreakdown.includes(item)}
                                         onCheckedChange={() => toggleBreakdown(item)}
+                                         disabled={quotedLines.find((line) => line.name === item)?.required}
                                         className="mt-0.5"
                                       />
                                       <span className="flex-1 text-sm">{item}</span>
-                                      {lineCost(item) > 0 && (
-                                        <span className="text-sm font-semibold">
-                                          ₱{lineCost(item).toLocaleString()}
-                                        </span>
-                                      )}
+                                       {quotedLines.find((line) => line.name === item)?.required && (
+                                         <Lock className="h-4 w-4 text-muted-foreground" aria-label="Required service" />
+                                       )}
+                                       <span className="text-sm font-semibold">₱{lineCost(item).toLocaleString()}</span>
                                     </label>
                                   ))}
                                 </div>
@@ -1384,7 +1391,7 @@ const ServiceTracking = () => {
       />
 
       <AlertDialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="!flex-col max-h-[95dvh]">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1403,6 +1410,9 @@ const ServiceTracking = () => {
             </AlertDialogDescription>
 
           </AlertDialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
+            <iframe src={TERMS_PDF_URL} title="Terms and Conditions" className="h-72 w-full" />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -1410,6 +1420,29 @@ const ServiceTracking = () => {
               disabled={submittingApproval}
             >
               {submittingApproval ? "Submitting…" : "Confirm & Proceed"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDeclineOpen} onOpenChange={setConfirmDeclineOpen}>
+        <AlertDialogContent className="!flex-col max-h-[95dvh]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Decline</AlertDialogTitle>
+            <AlertDialogDescription>
+              Review the Terms and Conditions, then confirm that you want to decline this diagnosis.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
+            <iframe src={TERMS_PDF_URL} title="Terms and Conditions" className="h-72 w-full" />
+          </div>
+          <AlertDialogFooter className="shrink-0">
+            <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => { event.preventDefault(); submitApproval(false, declineReason.trim()); }}
+              disabled={submittingApproval || !declineReason.trim()}
+            >
+              {submittingApproval ? "Submitting…" : "Confirm Decline"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
