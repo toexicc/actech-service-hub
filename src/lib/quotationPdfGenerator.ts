@@ -305,6 +305,21 @@ const isSectionHeader = (line: string) =>
   line.length < 70 &&
   /finding|cause|issue|solution|recommend|note|summary|warrant|observ/i.test(line);
 
+/**
+ * The PDF diagnosis panel mirrors the AI diagnosis field from "Findings" up to
+ * (but excluding) the "Service Breakdown" section, which is rendered separately.
+ */
+export const trimDiagnosisForPdf = (raw?: string): string => {
+  if (!raw) return "";
+  let text = raw;
+  const start = text.search(/findings?\s*:/i);
+  if (start > 0) text = text.slice(start);
+  const cut = text.search(/service\s+breakdown\s*:?/i);
+  if (cut >= 0) text = text.slice(0, cut);
+  return text.trim();
+};
+
+
 const buildDiagnosisBlocks = (
   doc: jsPDF,
   raw: string,
@@ -695,6 +710,7 @@ const buildBreakdownBlocks = (
   doc: jsPDF,
   data: QuotationPDFData,
   innerW: number,
+  scale = 1,
 ): Block[] => {
   const items =
     (data.serviceBreakdown && data.serviceBreakdown.length
@@ -708,72 +724,77 @@ const buildBreakdownBlocks = (
       : parseBreakdownFromDiagnosis(data.technicianDiagnosis));
 
   const blocks: Block[] = [];
+  const BODY = 7.4 * scale;
+  const LEAD = 3.2 * scale;
 
   if (!items.length) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
+    doc.setFontSize(BODY);
     const fallback = doc.splitTextToSize(
       data.serviceSummary || "Service breakdown will be provided with the final quotation.",
       innerW,
     );
     blocks.push({
-      h: fallback.length * 3.3 + 2,
+      h: fallback.length * LEAD + 2 * scale,
       gapBefore: 1,
       draw: (x, y) => {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.6);
+        doc.setFontSize(BODY);
         setText(doc, INK);
-        doc.text(fallback, x, y + 2.4);
+        doc.text(fallback, x, y + 2.4 * scale);
       },
     });
   } else {
     items.forEach((item, i) => {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.4);
+      doc.setFontSize(BODY);
       const amountW = item.amount ? Math.min(28, doc.getTextWidth(item.amount) + 2) : 0;
       const labelLines = doc.splitTextToSize(item.label, innerW - amountW - 5);
       blocks.push({
-        h: Math.max(4.6, labelLines.length * 3.2 + 1.4),
-        gapBefore: i === 0 ? 1 : 0.6,
+        h: Math.max(4.6 * scale, labelLines.length * LEAD + 1.4 * scale),
+        gapBefore: i === 0 ? 1 : 0.6 * scale,
         draw: (x, y, w) => {
           if (i > 0) dottedRule(doc, x, y - 0.6, x + w);
           setFill(doc, ACCENT);
-          doc.circle(x + 1, y + 1.9, 0.55, "F");
+          doc.circle(x + 1, y + 1.9 * scale, 0.55, "F");
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(7.4);
+          doc.setFontSize(BODY);
           setText(doc, INK);
-          doc.text(labelLines, x + 3.4, y + 2.6);
+          doc.text(labelLines, x + 3.4, y + 2.6 * scale);
           if (item.amount) {
             doc.setFont("helvetica", "bold");
             setText(doc, NAVY);
-            doc.text(item.amount, x + w, y + 2.6, { align: "right" });
+            doc.text(item.amount, x + w, y + 2.6 * scale, { align: "right" });
           }
         },
       });
     });
   }
 
+  const noteSize = 7.2 * scale;
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(7.2);
+  doc.setFontSize(noteSize);
   const note = doc.splitTextToSize(
     "This is the suggested repair for your service. We will be waiting for your approval.",
     innerW - 4,
   );
+  const noteH = note.length * LEAD + 5 * scale;
   blocks.push({
-    h: note.length * 3.2 + 5,
-    gapBefore: 3,
+    h: noteH,
+    gapBefore: 3 * scale,
     draw: (x, y, w) => {
       setFill(doc, BADGE);
-      doc.roundedRect(x - 1.5, y, w + 3, note.length * 3.2 + 5, 1.6, 1.6, "F");
+      doc.roundedRect(x - 1.5, y, w + 3, noteH, 1.6, 1.6, "F");
       doc.setFont("helvetica", "italic");
-      doc.setFontSize(7.2);
+      doc.setFontSize(noteSize);
       setText(doc, NAVY);
-      doc.text(note, x + 1, y + 4);
+      doc.text(note, x + 1, y + 4 * scale);
     },
   });
 
   return blocks;
 };
+
 
 const drawFooter = (doc: jsPDF) => {
   const barH = 12;
@@ -904,15 +925,28 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const diagTop = clientBottom + 3.5;
   const rightTop = deviceBottom + 3.5;
 
-  const availableFirstPage = PAGE_H - 38 - diagTop;
-  let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
+  const diagText = trimDiagnosisForPdf(data.technicianDiagnosis);
+  const availableFirstPage = bottomLimit - diagTop;
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66, 0.6, 0.55, 0.5, 0.46, 0.42]) {
+
+  // Shrink the diagnosis until it fits the single-page left column.
+  let diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7);
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66, 0.6, 0.55, 0.5, 0.46, 0.42, 0.38, 0.34, 0.3]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
-    diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
+    diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7, sc);
   }
+
   const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
+  const sumH = totalH(sumBlocks);
   const firstPage = doc.getCurrentPageInfo().pageNumber;
+
+  // Shrink the breakdown so Summary + Breakdown both stay on page 1.
+  const breakdownRoom = bottomLimit - (rightTop + sumH + 3.5);
+  let breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4]) {
+    if (totalH(breakdownBlocks) <= breakdownRoom) break;
+    breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7, sc);
+  }
 
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
@@ -928,20 +962,12 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
-  const breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
-  const breakdownH = breakdownBlocks.reduce((t, b) => t + b.gapBefore + b.h, 0) + 16;
-  let breakdownTop = summaryResult.lastPageBottom + 3.5;
-  let breakdownLimit = bottomLimit;
-  if (breakdownTop + breakdownH > bottomLimit) {
-    doc.addPage();
-    breakdownTop = 16;
-    breakdownLimit = PAGE_H - footerReserve;
-  }
+  const breakdownTop = summaryResult.lastPageBottom + 3.5;
   const breakdownResult = flowPanel(doc, breakdownBlocks, {
     x: rightX,
     w: COL_W,
     startY: breakdownTop,
-    bottomLimit: breakdownLimit,
+    bottomLimit,
     title: "Service Breakdown",
     glyph: "wrench",
     onNewPage: () => {
@@ -949,6 +975,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
       return { startY: 16, bottomLimit: PAGE_H - footerReserve };
     },
   });
+
 
   // Left column always starts on the same page as the cards above it.
   doc.setPage(firstPage);
