@@ -849,7 +849,6 @@ const flowPanel = (
 export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) => {
   let y = drawLetterhead(doc, logo, data.isUpdated);
   y = drawMetaCard(doc, y, data);
-  y = drawInfoCards(doc, y, data);
 
   const footerReserve = 38;
   const bottomLimit = PAGE_H - footerReserve;
@@ -857,7 +856,14 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const leftX = M;
   const rightX = M + COL_W + GUTTER;
 
-  const availableFirstPage = PAGE_H - 38 - y;
+  const cardTop = y;
+  const clientBottom = drawClientCard(doc, leftX, cardTop, COL_W, data);
+  const deviceBottom = drawDeviceCard(doc, rightX, cardTop, COL_W, data);
+
+  const diagTop = clientBottom + 3.5;
+  const rightTop = deviceBottom + 3.5;
+
+  const availableFirstPage = PAGE_H - 38 - diagTop;
   let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
   for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66]) {
@@ -866,13 +872,11 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   }
   const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
 
-  const panelTop = y;
-
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
     x: rightX,
     w: COL_W,
-    startY: panelTop,
+    startY: rightTop,
     bottomLimit,
     title: "Service Summary",
     glyph: "clipboard",
@@ -898,7 +902,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const diagResult = flowPanel(doc, diagBlocks, {
     x: leftX,
     w: COL_W,
-    startY: panelTop,
+    startY: diagTop,
     bottomLimit,
     title: "Technician Diagnosis",
     glyph: "search",
@@ -918,9 +922,10 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   ) {
     setDraw(doc, BORDER);
     doc.setLineWidth(0.35);
-    doc.roundedRect(leftX, panelTop, COL_W, target - panelTop, 2, 2, "S");
-    panelHeader(doc, leftX, panelTop, COL_W, "Technician Diagnosis", "search");
+    doc.roundedRect(leftX, diagTop, COL_W, target - diagTop, 2, 2, "S");
+    panelHeader(doc, leftX, diagTop, COL_W, "Technician Diagnosis", "search");
   }
+
 
   drawFooter(doc);
 };
