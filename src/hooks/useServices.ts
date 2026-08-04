@@ -70,6 +70,7 @@ export interface ServiceRecord {
   conditions?: Record<string, boolean>;
   signaturePath?: string;
   deviceAnnotationPath?: string;
+  annotationNotes?: string;
   source?: string;
 }
 
@@ -158,6 +159,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   conditions: (r.conditions && typeof r.conditions === "object") ? r.conditions : {},
   signaturePath: r.signature_path ?? "",
   deviceAnnotationPath: r.device_annotation_path ?? "",
+  annotationNotes: r.device_annotation_notes ?? "",
   source: r.source ?? "",
 });
 
