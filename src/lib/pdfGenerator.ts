@@ -3,7 +3,6 @@ import { PDFDocument } from "pdf-lib";
 import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
 import { formatPdfTimestamp, maskStaffName } from "./utils";
 import {
-  ACCENT,
   BORDER,
   COL_W,
   CONTENT_W,
@@ -94,8 +93,6 @@ const metricsCard = (
   const rowH = 9.5;
   const h = 5 + rows.length * rowH;
   const badgeS = 6.6;
-  const { card } = { card: null } as { card: null };
-  void card;
   // Plain card body (no title row) — rows carry their own icon badges.
   doc.setFillColor(255, 255, 255);
   setDraw(doc, BORDER);
@@ -313,5 +310,3 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
     return intakeBlob;
   }
 };
-
-void ACCENT;
