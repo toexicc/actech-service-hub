@@ -305,6 +305,21 @@ const isSectionHeader = (line: string) =>
   line.length < 70 &&
   /finding|cause|issue|solution|recommend|note|summary|warrant|observ/i.test(line);
 
+/**
+ * The PDF diagnosis panel mirrors the AI diagnosis field from "Findings" up to
+ * (but excluding) the "Service Breakdown" section, which is rendered separately.
+ */
+export const trimDiagnosisForPdf = (raw?: string): string => {
+  if (!raw) return "";
+  let text = raw;
+  const start = text.search(/findings?\s*:/i);
+  if (start > 0) text = text.slice(start);
+  const cut = text.search(/service\s+breakdown\s*:?/i);
+  if (cut >= 0) text = text.slice(0, cut);
+  return text.trim();
+};
+
+
 const buildDiagnosisBlocks = (
   doc: jsPDF,
   raw: string,
