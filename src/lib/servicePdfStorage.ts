@@ -91,3 +91,39 @@ export const getServicePdfSignedUrl = async (
 
   return null;
 };
+
+const IMAGE_BUCKETS = {
+  annotation: { bucket: "annotations", suffix: "ann" },
+  signature: { bucket: "signatures", suffix: "sig" },
+} as const;
+
+/**
+ * Loads a stored annotation/signature PNG as a data URL so regenerated PDFs
+ * keep the images captured at intake time.
+ */
+export const getServiceImageDataUrl = async (
+  serviceId: string,
+  kind: keyof typeof IMAGE_BUCKETS,
+  explicitPath?: string,
+): Promise<string | undefined> => {
+  if (!serviceId) return undefined;
+  const { bucket, suffix } = IMAGE_BUCKETS[kind];
+  const candidates = [explicitPath, `${serviceId}/${serviceId}_${suffix}.png`].filter(
+    (p): p is string => !!p,
+  );
+  for (const path of candidates) {
+    const { data } = await supabase.storage.from(bucket).download(path);
+    if (!data) continue;
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(data);
+      });
+    } catch {
+      /* try next candidate */
+    }
+  }
+  return undefined;
+};

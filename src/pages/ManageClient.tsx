@@ -34,7 +34,7 @@ import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } fr
 import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
-import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
+import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
@@ -915,6 +915,19 @@ const ManageClient = () => {
         estimatedCost: parseFloat(updateServiceCost) || 0,
         timeFrame: updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "",
         isUpdated: true,
+        // Keep the intake artifacts on regeneration — they live in storage, not
+        // in the form state, so they must be re-loaded before drawing.
+        annotationImageUrl: await getServiceImageDataUrl(
+          serviceId,
+          "annotation",
+          (serviceData as any).deviceAnnotationPath || undefined,
+        ),
+        annotationNotes: (serviceData as any).annotationNotes || "",
+        signatureUrl: await getServiceImageDataUrl(
+          serviceId,
+          "signature",
+          (serviceData as any).signaturePath || undefined,
+        ),
       };
       
       const pdfBlob = await generateServicePDF(pdfData);

@@ -68,6 +68,7 @@ export const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) =>
   partId: sb.partId,
   signaturePath: sb.signaturePath,
   deviceAnnotationPath: sb.deviceAnnotationPath,
+  annotationNotes: (sb as any).annotationNotes || "",
   clientApprovedAt: (sb as any).clientApprovedAt || "",
   autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
   approvalLocked: !!(sb as any).approvalLocked,
