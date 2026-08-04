@@ -23,9 +23,10 @@ customer management.
 ## 2. Always show AI Diagnosis and AI Report on /manage-client
 
 Both blocks are currently wrapped in a `status === "Confirmed Diagnosis"` condition.
-Remove that gate so the Technician Diagnosis field, AI Diagnosis (with Format with AI,
-Copy, Edit, Approve) and AI Service Report are visible at any status. Empty states show
-placeholder text rather than being hidden. No change to how they are saved.
+Remove that gate so the Technician Diagnosis field, the Technician Report field, AI
+Diagnosis (with Format with AI, Copy, Edit, Approve) and AI Service Report are visible at
+any status. Empty states show placeholder text rather than being hidden. No change to how
+they are saved.
 
 ## 3. Mask staff names on the Service Quotation Form
 
