@@ -502,13 +502,35 @@ const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
     ["Model:", data.model, "Storage:", data.memory],
   ];
 
-  const h = 6 + 9 + clientRows.length * 5.2 + 3;
+  const leftW = (COL_W - 8) * 0.55;
+  const rightW = (COL_W - 8) * 0.45;
+  const LW1 = 19;
+  const LW2 = 17;
+
+  const rowHeights = (rows: [string, string, string, string][]) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.6);
+    return rows.map(([, v1, , v2]) => {
+      const a = doc.splitTextToSize(v1 || "N/A", Math.max(10, leftW - LW1)).length;
+      const b = doc.splitTextToSize(v2 || "N/A", Math.max(10, rightW - LW2)).length;
+      return Math.max(1, a, b) * 3.4 + 1.8;
+    });
+  };
+
+  const clientH = rowHeights(clientRows);
+  const deviceH = rowHeights(deviceRows);
+  const bodyH = Math.max(
+    clientH.reduce((s, v) => s + v, 0),
+    deviceH.reduce((s, v) => s + v, 0),
+  );
+  const h = 16.5 - 0 + bodyH + 1;
 
   const drawCard = (
     x: number,
     title: string,
     glyph: Glyph,
     rows: [string, string, string, string][],
+    heights: number[],
   ) => {
     card(doc, x, y, COL_W, h);
     iconBadge(doc, x + 3, y + 3.4, 6.2, glyph);
@@ -520,20 +542,20 @@ const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
     doc.setLineWidth(0.35);
     doc.line(x + 3, y + 11.5, x + COL_W - 3, y + 11.5);
 
-    const half = (COL_W - 8) / 2;
     let ry = y + 16.5;
-    for (const [l1, v1, l2, v2] of rows) {
-      labelValue(doc, x + 4, ry, half, l1, v1, 19);
-      labelValue(doc, x + 4 + half, ry, half, l2, v2, 17);
-      ry += 5.2;
-    }
+    rows.forEach(([l1, v1, l2, v2], i) => {
+      labelValue(doc, x + 4, ry, leftW, l1, v1, LW1);
+      labelValue(doc, x + 4 + leftW, ry, rightW, l2, v2, LW2);
+      ry += heights[i];
+    });
   };
 
-  drawCard(M, "Client Information", "person", clientRows);
-  drawCard(M + COL_W + GUTTER, "Device Information", "device", deviceRows);
+  drawCard(M, "Client Information", "person", clientRows, clientH);
+  drawCard(M + COL_W + GUTTER, "Device Information", "device", deviceRows, deviceH);
 
   return y + h + 4;
 };
+
 
 const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): Block[] => {
   const blocks: Block[] = [];
