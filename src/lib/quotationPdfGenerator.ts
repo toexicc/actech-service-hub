@@ -876,6 +876,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
   }
   const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
+  const firstPage = doc.getCurrentPageInfo().pageNumber;
 
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
