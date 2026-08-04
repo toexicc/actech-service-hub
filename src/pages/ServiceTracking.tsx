@@ -122,7 +122,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       chiefComplaint: pick(sb.chiefComplaint, sheetData.chiefComplaint),
       deviceNotes: pick(sb.deviceNotes, sheetData.deviceNotes),
       technicianReport: pick(sb.technicianReport, sheetData.technicianReport),
-      finalCost: pick(Number(sb.finalCost) > 0 ? sb.finalCost : null, sheetData.finalCost),
+      finalCost: sb.finalCost ?? sheetData.finalCost,
       partsCost: pick(Number(sb.partsCost) > 0 ? sb.partsCost : null, sheetData.partsCost),
       estimatedCost: pick(sb.estimatedCost, sheetData.estimatedCost),
       clientType: pick(sb.clientType, sheetData.clientType),
@@ -145,7 +145,6 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       approvalLocked: !!(row as any).approval_locked,
       quotedBreakdown: Array.isArray((row as any).quoted_breakdown) ? (row as any).quoted_breakdown : [],
       serviceCost: sb.serviceCost ?? sheetData.serviceCost,
-      finalCost: sb.finalCost ?? sheetData.finalCost,
     };
   } catch {
     return sheetData;
@@ -952,7 +951,7 @@ const ServiceTracking = () => {
                               </Button>
                               <Button
                                 variant="destructive"
-                                onClick={() => submitApproval(false, declineReason.trim())}
+                                onClick={() => setConfirmDeclineOpen(true)}
                                 disabled={submittingApproval || !declineReason.trim()}
                               >
                                 Submit Decline
