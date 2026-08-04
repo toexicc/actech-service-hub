@@ -413,13 +413,20 @@ const buildDiagnosisBlocks = (
 /* --------------------------------------------------------------- sections */
 
 const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
-  let y = 5;
+  // The source logo PNG has large transparent padding (content sits between
+  // 27.7% and 67.4% of its height). Draw it oversized with a negative offset so
+  // the visible mark sits tight against the top margin without empty space.
+  const BOX = 58;
+  const TOP_FRAC = 0.2769;
+  const BOTTOM_FRAC = 0.6741;
+  const contentTop = 4;
+  const boxY = contentTop - TOP_FRAC * BOX;
   try {
-    doc.addImage(logo, "PNG", (PAGE_W - 40) / 2, y, 40, 36);
+    doc.addImage(logo, "PNG", (PAGE_W - BOX) / 2, boxY, BOX, BOX);
   } catch {
     /* logo optional */
   }
-  y += 39;
+  let y = boxY + BOTTOM_FRAC * BOX + 4.5;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.8);
@@ -430,72 +437,64 @@ const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
     y,
     { align: "center" },
   );
-  y += 4;
+  y += 3.8;
   setText(doc, MUTED);
   doc.text("MONDAY TO SATURDAY (10:00 AM - 7:00 PM)", PAGE_W / 2, y, { align: "center" });
 
-  y += 8;
+  y += 7;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(17);
   setText(doc, NAVY);
   doc.text("SERVICE QUOTATION FORM", PAGE_W / 2, y, { align: "center" });
 
-  y += 2.2;
+  y += 2;
   setDraw(doc, ACCENT);
   doc.setLineWidth(0.7);
-  doc.line(PAGE_W / 2 - 34, y, PAGE_W / 2 + 34, y);
+  doc.line(PAGE_W / 2 - 32, y, PAGE_W / 2 + 32, y);
 
   if (isUpdated) {
-    y += 6;
+    y += 5;
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(200, 40, 55);
     doc.text("*** UPDATED VERSION ***", PAGE_W / 2, y, { align: "center" });
   }
 
-  return y + 5;
+  return y + 4;
 };
 
 const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
-  const rows: [string, string][] = [
-    ["Date and Time:", formatPdfTimestamp(data.timestamp)],
-    ["Admin Representative/s:", maskStaffName(data.adminRep)],
-    ["Handling Staff:", maskStaffName(data.receivingStaff)],
-    ["Technician/s:", maskStaffName(data.technician)],
+  const rows: [Glyph, string, string][] = [
+    ["calendar", "Date and Time:", formatPdfTimestamp(data.timestamp)],
+    ["ticket", "Service ID:", data.serviceId],
+    ["person", "Admin Representative/s:", maskStaffName(data.adminRep)],
+    ["person", "Handling Staff:", maskStaffName(data.receivingStaff)],
+    ["wrench", "Technician/s:", maskStaffName(data.technician)],
   ];
 
-  const leftX = M + 3;
-  const badgeS = 6.4;
-  const textX = leftX + badgeS + 3;
+  const badgeS = 6;
+  const textX = M + 3 + badgeS + 3;
   const labelW = 36;
-  const leftW = COL_W + GUTTER + 6;
+  const valueW = CONTENT_W - (textX - M) - 6;
 
   doc.setFontSize(7.6);
-  let h = 6;
-  for (const [, v] of rows) {
-    const lines = doc.splitTextToSize(v || "N/A", leftW - (textX - leftX) - labelW);
-    h += Math.max(4.4, lines.length * 3.4);
-  }
-  h += 3;
+  let h = 4.5;
+  const heights = rows.map(([, , v]) => {
+    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelW));
+    return Math.max(4.6, lines.length * 3.4);
+  });
+  h += heights.reduce((s2, v) => s2 + v, 0) + 2.5;
 
   card(doc, M, y, CONTENT_W, h);
-  iconBadge(doc, leftX, y + 4.2, badgeS, "calendar");
 
-  let ry = y + 6.8;
-  for (const [label, value] of rows) {
-    ry += labelValue(doc, textX, ry, leftW - (textX - leftX), label, value, labelW, ACCENT);
-  }
+  let ry = y + 5.4;
+  rows.forEach(([glyph, label, value], i) => {
+    iconBadge(doc, M + 3, ry - 3.4, badgeS, glyph);
+    labelValue(doc, textX, ry, valueW, label, value, labelW, ACCENT);
+    ry += heights[i];
+  });
 
-  // divider
-  const divX = M + leftW + 8;
-  setDraw(doc, BORDER);
-  doc.setLineWidth(0.35);
-  doc.line(divX, y + 4, divX, y + h - 4);
-
-  iconBadge(doc, divX + 6, y + 4.2, badgeS, "ticket");
-  labelValue(doc, divX + 6 + badgeS + 3, y + 6.8, 60, "Service ID:", data.serviceId, 18, ACCENT);
-
-  return y + h + 4;
+  return y + h + 3.5;
 };
 
 const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
@@ -561,9 +560,8 @@ const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   drawCard(M, "Client Information", "person", clientRows, clientH);
   drawCard(M + COL_W + GUTTER, "Device Information", "device", deviceRows, deviceH);
 
-  return y + h + 4;
+  return y + h + 3.5;
 };
-
 
 const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): Block[] => {
   const blocks: Block[] = [];
