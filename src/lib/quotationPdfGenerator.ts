@@ -465,37 +465,43 @@ const drawLetterhead = (doc: jsPDF, logo: string, isUpdated?: boolean) => {
 };
 
 const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
-  const rows: [Glyph, string, string][] = [
-    ["calendar", "Date and Time:", formatPdfTimestamp(data.timestamp)],
-    ["ticket", "Service ID:", data.serviceId],
+  const staffRows: [Glyph, string, string][] = [
     ["person", "Admin Representative/s:", maskStaffName(data.adminRep)],
     ["person", "Handling Staff:", maskStaffName(data.receivingStaff)],
     ["wrench", "Technician/s:", maskStaffName(data.technician)],
   ];
+  const referenceRows: [Glyph, string, string][] = [
+    ["calendar", "Date and Time:", formatPdfTimestamp(data.timestamp)],
+    ["ticket", "Service ID:", data.serviceId],
+  ];
 
   const badgeS = 6;
-  const textX = M + 3 + badgeS + 3;
-  const valueW = CONTENT_W - (textX - M) - 6;
-  const labelW = 40; // fixed label column so all values align in a right column
-
-  doc.setFontSize(7.6);
-  let h = 4.5;
-  const heights = rows.map(([, , v]) => {
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelW));
-    return Math.max(4.6, lines.length * 3.4);
-  });
-  h += heights.reduce((s2, v) => s2 + v, 0) + 2.5;
+  const innerX = M + 3;
+  const innerW = CONTENT_W - 6;
+  const metaGutter = 8;
+  const leftW = innerW * 0.6;
+  const rightW = innerW - leftW - metaGutter;
+  const leftTextX = innerX + badgeS + 3;
+  const rightX = innerX + leftW + metaGutter;
+  const rightTextX = rightX + badgeS + 3;
+  const rowH = 5.2;
+  const h = 5 + staffRows.length * rowH + 2.5;
 
   card(doc, M, y, CONTENT_W, h);
 
   let ry = y + 5.4;
-  rows.forEach(([glyph, label, value], i) => {
-    iconBadge(doc, M + 3, ry - 3.4, badgeS, glyph);
-    labelValue(doc, textX, ry, valueW, label, value, labelW, ACCENT);
-    ry += heights[i];
+  staffRows.forEach(([glyph, label, value]) => {
+    iconBadge(doc, innerX, ry - 3.4, badgeS, glyph);
+    labelValue(doc, leftTextX, ry, leftW - badgeS - 3, label, value, 36, ACCENT);
+    ry += rowH;
   });
 
+  ry = y + 5.4;
+  referenceRows.forEach(([glyph, label, value]) => {
+    iconBadge(doc, rightX, ry - 3.4, badgeS, glyph);
+    labelValue(doc, rightTextX, ry, rightW - badgeS - 3, label, value, 22, ACCENT);
+    ry += rowH;
+  });
 
   return y + h + 3.5;
 };
