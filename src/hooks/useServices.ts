@@ -20,6 +20,7 @@ export interface ServiceRecord {
   approvalLocked?: boolean;
   approvedServices?: string[];
   pendingServices?: string[];
+  quotedBreakdown?: any[];
 
   status: string;
   technician: string;
@@ -108,6 +109,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   approvalLocked: !!r.approval_locked,
   approvedServices: Array.isArray(r.approved_services) ? r.approved_services : [],
   pendingServices: Array.isArray(r.pending_services) ? r.pending_services : [],
+  quotedBreakdown: Array.isArray((r as any).quoted_breakdown) ? (r as any).quoted_breakdown : [],
 
   status: r.status ?? "",
   technician: Array.isArray(r.technicians) ? r.technicians.join(", ") : (r.technicians ?? ""),
