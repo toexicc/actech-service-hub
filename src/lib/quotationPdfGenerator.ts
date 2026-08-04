@@ -27,6 +27,7 @@ export interface QuotationPDFData {
   partsUsed: string;
   discount: string;
   totalCost: string;
+  serviceBreakdown?: { label: string; amount?: string | number }[];
   isUpdated?: boolean;
 }
 
@@ -627,6 +628,112 @@ const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): 
   return blocks;
 };
 
+const parseBreakdownFromDiagnosis = (raw?: string): { label: string; amount?: string }[] => {
+  if (!raw) return [];
+  const marker = raw.search(/service breakdown\s*:/i);
+  if (marker < 0) return [];
+  const tail = raw.slice(marker);
+  const lines = tail.split("\n").slice(1).map((l) => l.trim());
+  const out: { label: string; amount?: string }[] = [];
+  for (const line of lines) {
+    if (!line) {
+      if (out.length) break;
+      continue;
+    }
+    if (/^[A-Z][A-Za-z\s&/]*:$/.test(line)) break;
+    const cleaned = line.replace(/^([-•·*]|\d+[.)])\s*/, "").replace(/[#*_`]/g, "").trim();
+    if (!cleaned) continue;
+    const m = cleaned.match(/^(.*?)[\s-–:]*((?:Php|PHP|₱)\s*[^\s].*)$/);
+    if (m) out.push({ label: m[1].replace(/[-–:\s]+$/, ""), amount: m[2].trim() });
+    else out.push({ label: cleaned });
+  }
+  return out;
+};
+
+const buildBreakdownBlocks = (
+  doc: jsPDF,
+  data: QuotationPDFData,
+  innerW: number,
+): Block[] => {
+  const items =
+    (data.serviceBreakdown && data.serviceBreakdown.length
+      ? data.serviceBreakdown.map((i) => ({
+          label: i.label,
+          amount:
+            i.amount === undefined || i.amount === null || i.amount === ""
+              ? undefined
+              : `${i.amount}`.replace(/^(?!Php|PHP|₱)/, "Php "),
+        }))
+      : parseBreakdownFromDiagnosis(data.technicianDiagnosis));
+
+  const blocks: Block[] = [];
+
+  if (!items.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.6);
+    const fallback = doc.splitTextToSize(
+      data.serviceSummary || "Service breakdown will be provided with the final quotation.",
+      innerW,
+    );
+    blocks.push({
+      h: fallback.length * 3.3 + 2,
+      gapBefore: 1,
+      draw: (x, y) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.6);
+        setText(doc, INK);
+        doc.text(fallback, x, y + 2.4);
+      },
+    });
+  } else {
+    items.forEach((item, i) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.4);
+      const amountW = item.amount ? Math.min(28, doc.getTextWidth(item.amount) + 2) : 0;
+      const labelLines = doc.splitTextToSize(item.label, innerW - amountW - 5);
+      blocks.push({
+        h: Math.max(4.6, labelLines.length * 3.2 + 1.4),
+        gapBefore: i === 0 ? 1 : 0.6,
+        draw: (x, y, w) => {
+          if (i > 0) dottedRule(doc, x, y - 0.6, x + w);
+          setFill(doc, ACCENT);
+          doc.circle(x + 1, y + 1.9, 0.55, "F");
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.4);
+          setText(doc, INK);
+          doc.text(labelLines, x + 3.4, y + 2.6);
+          if (item.amount) {
+            doc.setFont("helvetica", "bold");
+            setText(doc, NAVY);
+            doc.text(item.amount, x + w, y + 2.6, { align: "right" });
+          }
+        },
+      });
+    });
+  }
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.2);
+  const note = doc.splitTextToSize(
+    "This is the suggested repair for your service. We will be waiting for your approval.",
+    innerW - 4,
+  );
+  blocks.push({
+    h: note.length * 3.2 + 5,
+    gapBefore: 3,
+    draw: (x, y, w) => {
+      setFill(doc, BADGE);
+      doc.roundedRect(x - 1.5, y, w + 3, note.length * 3.2 + 5, 1.6, 1.6, "F");
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.2);
+      setText(doc, NAVY);
+      doc.text(note, x + 1, y + 4);
+    },
+  });
+
+  return blocks;
+};
+
 const drawFooter = (doc: jsPDF) => {
   const barH = 12;
   const barY = PAGE_H - barH;
@@ -780,18 +887,6 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     bottomLimit,
     title: "Technician Diagnosis",
     glyph: "search",
-    extraRegions:
-      summaryResult.pageCount === 1 && summaryResult.lastPageBottom + 24 < bottomLimit
-        ? [
-            {
-              x: rightX,
-              w: COL_W,
-              startY: summaryResult.lastPageBottom + 4,
-              bottomLimit,
-              title: "Technician Diagnosis (cont.)",
-            },
-          ]
-        : [],
     onNewPage: () => {
       doc.addPage();
       return { startY: 16, bottomLimit: PAGE_H - footerReserve };
