@@ -37,7 +37,7 @@ import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated } from "@/lib/serviceNotifications";
+import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
@@ -627,17 +627,13 @@ const ManageClient = () => {
         setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
         
-        // Create notification in panel for proofread reminder
-        const userId = sessionStorage.getItem("staffId") || sessionStorage.getItem("username");
-        if (userId) {
-          createNotification({
-            userId,
-            title: "AI Report Generated",
-            message: `⚠️ Please double-check and proofread the AI-generated service report for ${serviceId} before approving.`,
-            type: "others",
-            serviceId,
-          });
-        }
+        // Notify the acting staff member plus assigned admins and technicians.
+        await notifyAiOutputGenerated({
+          serviceId,
+          clientName: serviceData?.clientName || "Client",
+          technician: serviceData?.technician || "",
+          adminRep: serviceData?.adminRep || "",
+        }, 'report');
         
         toast({
           title: "AI Formatting Complete",
