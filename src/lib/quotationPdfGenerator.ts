@@ -858,7 +858,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const availableFirstPage = PAGE_H - 38 - y;
   let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
-  for (const sc of [0.94, 0.88, 0.82, 0.78]) {
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
     diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
   }
@@ -880,6 +880,19 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
+  const breakdownResult = flowPanel(doc, buildBreakdownBlocks(doc, data, COL_W - 7), {
+    x: rightX,
+    w: COL_W,
+    startY: summaryResult.lastPageBottom + 3.5,
+    bottomLimit,
+    title: "Service Breakdown",
+    glyph: "wrench",
+    onNewPage: () => {
+      doc.addPage();
+      return { startY: 16, bottomLimit: PAGE_H - footerReserve };
+    },
+  });
+
   const diagResult = flowPanel(doc, diagBlocks, {
     x: leftX,
     w: COL_W,
@@ -894,14 +907,17 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   });
 
   // Equalize the two page-1 panels visually by extending the shorter border.
-  const target = Math.max(diagResult.lastPageBottom, summaryResult.lastPageBottom);
-  if (diagResult.pageCount === 1 && summaryResult.pageCount === 1) {
+  const rightBottom = Math.max(summaryResult.lastPageBottom, breakdownResult.lastPageBottom);
+  const target = Math.max(diagResult.lastPageBottom, rightBottom);
+  if (
+    diagResult.pageCount === 1 &&
+    summaryResult.pageCount === 1 &&
+    breakdownResult.pageCount === 1
+  ) {
     setDraw(doc, BORDER);
     doc.setLineWidth(0.35);
     doc.roundedRect(leftX, panelTop, COL_W, target - panelTop, 2, 2, "S");
-    doc.roundedRect(rightX, panelTop, COL_W, target - panelTop, 2, 2, "S");
     panelHeader(doc, leftX, panelTop, COL_W, "Technician Diagnosis", "search");
-    panelHeader(doc, rightX, panelTop, COL_W, "Service Summary", "clipboard");
   }
 
   drawFooter(doc);
