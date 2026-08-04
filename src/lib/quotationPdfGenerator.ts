@@ -860,8 +860,10 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const rightX = M + COL_W + GUTTER;
 
   const cardTop = y;
-  const clientBottom = drawClientCard(doc, leftX, cardTop, COL_W, data);
-  const deviceBottom = drawDeviceCard(doc, rightX, cardTop, COL_W, data);
+  const fullW = COL_W * 2 + GUTTER;
+  // Client Information spans the full width on its own row.
+  const clientBottom = drawClientCard(doc, leftX, cardTop, fullW, data);
+  const deviceBottom = drawDeviceCard(doc, rightX, clientBottom + 3.5, COL_W, data);
 
   const diagTop = clientBottom + 3.5;
   const rightTop = deviceBottom + 3.5;
