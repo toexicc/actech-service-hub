@@ -860,8 +860,10 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const rightX = M + COL_W + GUTTER;
 
   const cardTop = y;
-  const clientBottom = drawClientCard(doc, leftX, cardTop, COL_W, data);
-  const deviceBottom = drawDeviceCard(doc, rightX, cardTop, COL_W, data);
+  const fullW = COL_W * 2 + GUTTER;
+  // Client Information spans the full width on its own row.
+  const clientBottom = drawClientCard(doc, leftX, cardTop, fullW, data);
+  const deviceBottom = drawDeviceCard(doc, rightX, clientBottom + 3.5, COL_W, data);
 
   const diagTop = clientBottom + 3.5;
   const rightTop = deviceBottom + 3.5;
@@ -869,11 +871,12 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const availableFirstPage = PAGE_H - 38 - diagTop;
   let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66]) {
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66, 0.6, 0.55, 0.5, 0.46, 0.42]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
     diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
   }
   const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
+  const firstPage = doc.getCurrentPageInfo().pageNumber;
 
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
@@ -889,11 +892,20 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
-  const breakdownResult = flowPanel(doc, buildBreakdownBlocks(doc, data, COL_W - 7), {
+  const breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
+  const breakdownH = breakdownBlocks.reduce((t, b) => t + b.gapBefore + b.h, 0) + 16;
+  let breakdownTop = summaryResult.lastPageBottom + 3.5;
+  let breakdownLimit = bottomLimit;
+  if (breakdownTop + breakdownH > bottomLimit) {
+    doc.addPage();
+    breakdownTop = 16;
+    breakdownLimit = PAGE_H - footerReserve;
+  }
+  const breakdownResult = flowPanel(doc, breakdownBlocks, {
     x: rightX,
     w: COL_W,
-    startY: summaryResult.lastPageBottom + 3.5,
-    bottomLimit,
+    startY: breakdownTop,
+    bottomLimit: breakdownLimit,
     title: "Service Breakdown",
     glyph: "wrench",
     onNewPage: () => {
@@ -902,6 +914,8 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
+  // Left column always starts on the same page as the cards above it.
+  doc.setPage(firstPage);
   const diagResult = flowPanel(doc, diagBlocks, {
     x: leftX,
     w: COL_W,
