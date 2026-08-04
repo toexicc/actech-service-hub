@@ -672,7 +672,7 @@ const drawFooter = (doc: jsPDF) => {
   return boxY;
 };
 
-/** Flow a block list into a panel column, paginating when needed. */
+/** Flow a block list through one or more panel regions, paginating when needed. */
 const flowPanel = (
   doc: jsPDF,
   blocks: Block[],
@@ -683,19 +683,21 @@ const flowPanel = (
     bottomLimit: number;
     title: string;
     glyph: Glyph;
+    extraRegions?: { x: number; w: number; startY: number; bottomLimit: number; title: string }[];
     onNewPage: () => { startY: number; bottomLimit: number };
   },
 ): { lastPageBottom: number; pageCount: number } => {
-  let { startY, bottomLimit } = opts;
-  const innerX = opts.x + 3.5;
-  const innerW = opts.w - 7;
+  let { x, w, startY, bottomLimit, title } = opts;
+  const queue = [...(opts.extraRegions ?? [])];
   let idx = 0;
   let pageCount = 0;
   let lastBottom = startY;
 
   while (idx < blocks.length) {
     pageCount += 1;
-    panelHeader(doc, opts.x, startY, opts.w, opts.title, opts.glyph);
+    const innerX = x + 3.5;
+    const innerW = w - 7;
+    panelHeader(doc, x, startY, w, title, opts.glyph);
     let y = startY + 9 + 3.5;
     const bodyTop = y;
 
@@ -713,13 +715,22 @@ const flowPanel = (
     const panelH = y + 3.5 - startY;
     setDraw(doc, BORDER);
     doc.setLineWidth(0.35);
-    doc.roundedRect(opts.x, startY, opts.w, panelH, 2, 2, "S");
+    doc.roundedRect(x, startY, w, panelH, 2, 2, "S");
     lastBottom = startY + panelH;
 
     if (idx < blocks.length) {
-      const next = opts.onNewPage();
-      startY = next.startY;
-      bottomLimit = next.bottomLimit;
+      const region = queue.shift();
+      if (region) {
+        x = region.x;
+        w = region.w;
+        startY = region.startY;
+        bottomLimit = region.bottomLimit;
+        title = region.title;
+      } else {
+        const next = opts.onNewPage();
+        startY = next.startY;
+        bottomLimit = next.bottomLimit;
+      }
     }
   }
 
@@ -771,6 +782,18 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     bottomLimit,
     title: "Technician Diagnosis",
     glyph: "search",
+    extraRegions:
+      summaryResult.pageCount === 1 && summaryResult.lastPageBottom + 24 < bottomLimit
+        ? [
+            {
+              x: rightX,
+              w: COL_W,
+              startY: summaryResult.lastPageBottom + 4,
+              bottomLimit,
+              title: "Technician Diagnosis (cont.)",
+            },
+          ]
+        : [],
     onNewPage: () => {
       doc.addPage();
       return { startY: 16, bottomLimit: PAGE_H - footerReserve };
