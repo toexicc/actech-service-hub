@@ -892,11 +892,20 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
-  const breakdownResult = flowPanel(doc, buildBreakdownBlocks(doc, data, COL_W - 7), {
+  const breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
+  const breakdownH = breakdownBlocks.reduce((t, b) => t + b.gapBefore + b.h, 0) + 16;
+  let breakdownTop = summaryResult.lastPageBottom + 3.5;
+  let breakdownLimit = bottomLimit;
+  if (breakdownTop + breakdownH > bottomLimit) {
+    doc.addPage();
+    breakdownTop = 16;
+    breakdownLimit = PAGE_H - footerReserve;
+  }
+  const breakdownResult = flowPanel(doc, breakdownBlocks, {
     x: rightX,
     w: COL_W,
-    startY: summaryResult.lastPageBottom + 3.5,
-    bottomLimit,
+    startY: breakdownTop,
+    bottomLimit: breakdownLimit,
     title: "Service Breakdown",
     glyph: "wrench",
     onNewPage: () => {
