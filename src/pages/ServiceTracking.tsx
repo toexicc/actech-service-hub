@@ -30,6 +30,8 @@ import { clientStatusLabel } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import termsImage from "@/assets/terms-and-conditions.jpg";
 import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal } from "@/lib/serviceApproval";
 
 
@@ -95,6 +97,17 @@ const CONTACT_LINKS = {
 };
 
 const TERMS_PDF_URL = "/AC_Tech_Terms_and_Condition.pdf";
+
+// The terms are rendered as an image so they always display, even where PDF
+// embedding is blocked by the browser.
+const TermsImageViewer = ({ className = "" }: { className?: string }) => (
+  <img
+    src={termsImage}
+    alt="AC Tech Repair Terms and Conditions"
+    loading="eager"
+    className={`w-full h-auto rounded-md ${className}`}
+  />
+);
 
 
 
@@ -191,6 +204,7 @@ const ServiceTracking = () => {
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
 
   // Approve / Decline flow (Waiting to Proceed)
   const [declineOpen, setDeclineOpen] = useState(false);
@@ -1183,14 +1197,10 @@ const ServiceTracking = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setPdfModalUrl(TERMS_PDF_URL);
-                            setPdfModalTitle("Terms and Conditions");
-                            setPdfModalOpen(true);
-                          }}
+                          onClick={() => setTermsModalOpen(true)}
                         >
                           <FileText className="h-4 w-4 mr-1" />
-                          PDF
+                          View
                         </Button>
                       </div>
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
@@ -1410,7 +1420,7 @@ const ServiceTracking = () => {
 
           </AlertDialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
-            <iframe src={TERMS_PDF_URL} title="Terms and Conditions" className="h-72 w-full" />
+            <TermsImageViewer />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
@@ -1424,6 +1434,17 @@ const ServiceTracking = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <Dialog open={termsModalOpen} onOpenChange={setTermsModalOpen}>
+        <DialogContent className="!flex-col max-h-[95dvh] max-w-4xl">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Terms and Conditions</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
+            <TermsImageViewer />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirmDeclineOpen} onOpenChange={setConfirmDeclineOpen}>
         <AlertDialogContent className="!flex-col max-h-[95dvh]">
           <AlertDialogHeader>
@@ -1433,7 +1454,7 @@ const ServiceTracking = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
-            <iframe src={TERMS_PDF_URL} title="Terms and Conditions" className="h-72 w-full" />
+            <TermsImageViewer />
           </div>
           <AlertDialogFooter className="shrink-0">
             <AlertDialogCancel disabled={submittingApproval}>Cancel</AlertDialogCancel>
