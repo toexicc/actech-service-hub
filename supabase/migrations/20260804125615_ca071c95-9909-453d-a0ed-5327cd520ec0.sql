@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS quoted_breakdown jsonb NOT NULL DEFAULT '[]'::jsonb;

@@ -71,6 +71,9 @@ export const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) =>
   clientApprovedAt: (sb as any).clientApprovedAt || "",
   autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
   approvalLocked: !!(sb as any).approvalLocked,
+  approvedServices: Array.isArray((sb as any).approvedServices) ? (sb as any).approvedServices : [],
+  pendingServices: Array.isArray((sb as any).pendingServices) ? (sb as any).pendingServices : [],
+  quotedBreakdown: Array.isArray((sb as any).quotedBreakdown) ? (sb as any).quotedBreakdown : [],
   source: sb.source,
   lastUpdated: sb.lastUpdated,
   timestamp: sb.timestamp,
@@ -124,6 +127,9 @@ const AUTHORITATIVE_KEYS = new Set<string>([
   "technicianNotesInternal",
   "autoApproveDiagnosis",
   "approvalLocked",
+  "quotedBreakdown",
+  "approvedServices",
+  "pendingServices",
 ]);
 
 const isEmpty = (v: any) =>

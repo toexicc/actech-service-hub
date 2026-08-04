@@ -25,6 +25,62 @@ export const parseServiceBreakdownItems = (diagnosis: string): string[] => {
   return out;
 };
 
+/** A finalized quotation line the client sees (and can tick) on /track. */
+export interface QuotedLine {
+  name: string;
+  cost: number;
+  selected: boolean;
+}
+
+const toNumber = (raw: string): number => {
+  const cleaned = String(raw ?? "").replace(/[^0-9.]/g, "");
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Parse the "Service Breakdown" block of an AI diagnosis into quotation lines,
+ * keeping any amount found on the line (placeholders resolve to 0).
+ */
+export const parseQuotedBreakdown = (diagnosis: string): QuotedLine[] => {
+  if (!diagnosis) return [];
+  const lines = String(diagnosis).split(/\r?\n/);
+  const startIdx = lines.findIndex((l) => /service\s*breakdown\s*:?/i.test(l.replace(/[*_#>`]/g, "")));
+  if (startIdx === -1) return [];
+  const out: QuotedLine[] = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const raw = lines[i].replace(/[*_#>`]/g, "").trim();
+    if (!raw) {
+      if (out.length) break;
+      continue;
+    }
+    if (/^(to proceed|summary|recommendations?|findings?|cause|warranty|writing rules)/i.test(raw)) break;
+    const cleaned = raw.replace(/^[-*•\d.\s]+/, "");
+    const name = cleaned.split(/\s[-—]\s/)[0].trim();
+    if (!name || /^php\b/i.test(name)) continue;
+    const amountMatch = cleaned.match(/php\s*([0-9][0-9,.]*)/i);
+    out.push({ name, cost: amountMatch ? toNumber(amountMatch[1]) : 0, selected: true });
+  }
+  return out;
+};
+
+/** Coerce whatever is stored in services.quoted_breakdown into QuotedLine[]. */
+export const normalizeQuotedBreakdown = (raw: unknown): QuotedLine[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((r: any) => ({
+      name: String(r?.name ?? "").trim(),
+      cost: typeof r?.cost === "number" ? r.cost : toNumber(String(r?.cost ?? "0")),
+      selected: r?.selected === undefined ? true : !!r.selected,
+    }))
+    .filter((r) => r.name || r.cost);
+};
+
+/** Total of the ticked lines. */
+export const quotedSelectedTotal = (lines: QuotedLine[]): number =>
+  lines.reduce((sum, l) => sum + (l.selected ? Number(l.cost) || 0 : 0), 0);
+
+
 export interface ApprovalRemark {
   decision: "Approved" | "Declined";
   by: string;

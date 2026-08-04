@@ -181,6 +181,25 @@ serve(async (req) => {
     };
     if (approved) {
       update.approved_services = approvedItems;
+
+      // Recost the ticket from the finalized quotation lines when the shop
+      // published one, so the client's selection drives the quoted amount.
+      const quoted = Array.isArray(row.quoted_breakdown) ? row.quoted_breakdown : [];
+      if (quoted.length) {
+        const pickedKeys = new Set(approvedItems.map(norm));
+        const relined = quoted.map((l: any) => ({
+          name: String(l?.name ?? ""),
+          cost: Number(l?.cost ?? 0) || 0,
+          selected: pickedKeys.has(norm(String(l?.name ?? ""))),
+        }));
+        const total = relined.reduce((sum, l) => sum + (l.selected ? l.cost : 0), 0);
+        update.quoted_breakdown = relined;
+        if (total > 0) {
+          const discount = Number(row.discount ?? 0) || 0;
+          update.service_cost = total;
+          update.final_cost = Math.max(0, total - discount);
+        }
+      }
       update.pending_services = pendingItems;
       update.client_approved_at = nowIso;
       if (approvedItems.length) update.service = approvedItems.join(", ");

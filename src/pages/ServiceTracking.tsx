@@ -26,10 +26,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
 import { StatusChip } from "@/components/ui/status-chip";
+import { clientStatusLabel } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal } from "@/lib/serviceApproval";
 
 
 
@@ -552,12 +553,28 @@ const ServiceTracking = () => {
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
-  const breakdownItems = parseServiceBreakdownItems(serviceData?.aiDiagnosis || "");
+  // Quotation lines finalized by the shop (fallback: parse the AI diagnosis).
+  const quotedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const breakdownItems = quotedLines.length
+    ? quotedLines.map((l) => l.name)
+    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "");
+  const lineCost = (name: string) => quotedLines.find((l) => l.name === name)?.cost ?? 0;
+  const selectedTotal = quotedSelectedTotal(
+    quotedLines.map((l) => ({ ...l, selected: selectedBreakdown.includes(l.name) })),
+  );
   const needsChecklist = breakdownItems.length > 1;
   const remark = parseApprovalRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
+
+  // Pre-tick whatever the shop marked as selected on the quotation.
+  useEffect(() => {
+    const preselected = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown)
+      .filter((l) => l.selected)
+      .map((l) => l.name);
+    if (preselected.length) setSelectedBreakdown(preselected);
+  }, [serviceData?.serviceId, JSON.stringify((serviceData as any)?.quotedBreakdown ?? [])]);
 
   const toggleBreakdown = (item: string) =>
     setSelectedBreakdown((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
@@ -719,16 +736,15 @@ const ServiceTracking = () => {
             { key: "pending", label: "Pending", full: "Pending Diagnosis" },
             { key: "confirmed", label: "Confirmed", full: "Confirmed Diagnosis" },
             ...(autoApproved ? [] : [{ key: "waiting", label: "Waiting", full: "Waiting to Proceed" }]),
-            { key: "repair", label: "Repair", full: "Proceed Repair" },
-            { key: "observation", label: "Observation", full: "Done Repair - Under Observation" },
-            { key: "release", label: "For Release", full: "Done Repair - For Release" },
-            { key: "advise", label: "Advise Client", full: "Done Repair - Advise Client" },
+            { key: "repair", label: "Under Repair", full: "Proceed Repair" },
+            { key: "observation", label: "Under Observation", full: "Done Repair - For Release" },
+            { key: "release", label: "For Release", full: "Done Repair - Advise Client" },
             { key: "completed", label: "Completed", full: "Completed" },
           ];
 
           const OFF_PATH: Record<string, { label: string; tone: string }> = {
             "Backjob": { label: "Backjob", tone: "bg-destructive/15 text-destructive border-destructive/30" },
-            "RTO": { label: "RTO", tone: "bg-muted text-muted-foreground border-border" },
+            "RTO": { label: "Return to Owner", tone: "bg-muted text-muted-foreground border-border" },
             "On Hold": { label: "On Hold", tone: "bg-warning/15 text-warning border-warning/30" },
             "Cancelled": { label: "Cancelled", tone: "bg-destructive/15 text-destructive border-destructive/30" },
           };
@@ -737,7 +753,10 @@ const ServiceTracking = () => {
           const statusToStep = (s: string): number => {
             if (!s) return 1;
             // Merge Ongoing Service into the Proceed Repair step
-            const target = s === "Ongoing Service" ? "Proceed Repair" : s;
+            const target =
+              s === "Ongoing Service" || s === "Done Repair - Under Observation" || s === "Done Repair - Observation"
+                ? "Proceed Repair"
+                : s;
             const idx = STEPS.findIndex((x) => x.full === target);
             return idx >= 0 ? idx + 1 : 1;
           };
@@ -784,12 +803,12 @@ const ServiceTracking = () => {
 
                         </div>
                       </div>
-                      <StatusChip status={serviceData.status || "Pending Diagnosis"} className="text-sm px-3 py-1.5" />
+                      <StatusChip status={clientStatusLabel(serviceData.status || "Pending Diagnosis")} className="text-sm px-3 py-1.5" />
                     </div>
 
                     <div>
                       <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-                        {serviceData.status || "Pending Diagnosis"}
+                        {clientStatusLabel(serviceData.status || "Pending Diagnosis")}
                       </h3>
                       {updatedAt && (
                         <p className="text-xs text-muted-foreground mt-1">Updated {displayDate(updatedAt, "MMM dd, yyyy · hh:mm a")}</p>
@@ -825,7 +844,7 @@ const ServiceTracking = () => {
                         return (
                           <div
                             key={s.key}
-                            title={s.full}
+                            title={s.label}
                             className={
                               "flex items-center justify-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium border text-center " +
                               (current
@@ -843,7 +862,7 @@ const ServiceTracking = () => {
                     </div>
                     {offPath && (
                       <div
-                        title={currentStatus}
+                        title={clientStatusLabel(currentStatus)}
                         className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
                       >
                         <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
@@ -953,10 +972,21 @@ const ServiceTracking = () => {
                                         onCheckedChange={() => toggleBreakdown(item)}
                                         className="mt-0.5"
                                       />
-                                      <span className="text-sm">{item}</span>
+                                      <span className="flex-1 text-sm">{item}</span>
+                                      {lineCost(item) > 0 && (
+                                        <span className="text-sm font-semibold">
+                                          ₱{lineCost(item).toLocaleString()}
+                                        </span>
+                                      )}
                                     </label>
                                   ))}
                                 </div>
+                                {quotedLines.length > 0 && (
+                                  <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+                                    <span className="font-medium">Estimated total for the selected services</span>
+                                    <span className="font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                             <div className="flex flex-col sm:flex-row gap-3">
