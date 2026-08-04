@@ -1446,8 +1446,9 @@ const ServiceTracking = () => {
       </Dialog>
 
       <AlertDialog open={confirmDeclineOpen} onOpenChange={setConfirmDeclineOpen}>
-        <AlertDialogContent className="!flex-col max-h-[95dvh]">
-          <AlertDialogHeader>
+        <AlertDialogContent className="!flex !flex-col gap-4 max-h-[90dvh] overflow-hidden sm:max-w-lg">
+          <AlertDialogHeader className="shrink-0">
+
             <AlertDialogTitle>Confirm Decline</AlertDialogTitle>
             <AlertDialogDescription>
               Review the Terms and Conditions, then confirm that you want to decline this diagnosis.
