@@ -87,8 +87,7 @@ const SOCIAL_LINKS = [
 
 const CONTACT_LINKS = {
   facebook: "https://www.facebook.com/actechrepairph",
-  email: "mailto:actechrepairph@gmail.com",
-  phone: "tel:", // placeholder — add shop number when available
+  phone: "tel:09456479905",
 };
 
 
