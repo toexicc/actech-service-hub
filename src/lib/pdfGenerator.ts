@@ -2,6 +2,26 @@ import jsPDF from "jspdf";
 import { PDFDocument } from "pdf-lib";
 import { getLogoDataUrl, getTermsPdfBytes } from "./pdfAssets";
 import { formatPdfTimestamp, maskStaffName } from "./utils";
+import {
+  BORDER,
+  COL_W,
+  CONTENT_W,
+  GUTTER,
+  Glyph,
+  INK,
+  M,
+  MUTED,
+  NAVY,
+  PAGE_H,
+  drawFooter,
+  drawLetterhead,
+  drawMetaCard,
+  iconBadge,
+  setDraw,
+  setText,
+  stackedCard,
+  titledCard,
+} from "./pdfPremiumKit";
 
 interface PDFData {
   serviceId: string;
@@ -37,202 +57,140 @@ interface PDFData {
   receivingStaff?: string;
 }
 
-export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
-  const doc = new jsPDF({
-    format: "letter",
-    unit: "mm",
-  });
+const DISCLAIMER =
+  "This document is automatically generated after you submitted the digital form. Please note that by completing the form, you have already acknowledged and agreed to the Terms and Conditions of AC Tech Repair Ph, confirmed the accuracy of all information provided, and consented to the servicing of your device with costs to be finalized based on the final diagnosis.";
 
-  // Use cached logo for faster generation
-  const logoImg = await getLogoDataUrl();
-
-  // Center logo at top with proper aspect ratio (square logo)
-  doc.addImage(logoImg, "PNG", 80, 10, 50, 50);
-
-  let yPos = 55;
-
-  // Header text
-  doc.setFontSize(9);
+/** Simple paragraph card that auto-sizes to its text. */
+const paragraphCard = (
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  title: string,
+  glyph: Glyph,
+  text: string,
+  fontSize = 8,
+) => {
   doc.setFont("helvetica", "normal");
-  doc.text("AC TECH REPAIR INC. | UNIT 103, 1ST FLOOR, FBR ARCADE, 5 a KATIPUNAN AVE, QUEZON CITY", 105, yPos, {
-    align: "center",
-  });
-  yPos += 4;
-  doc.text("MONDAY TO SATURDAY (10:00 PM - 7:00 PM)", 105, yPos, { align: "center" });
-
-  // Title
-  yPos += 10;
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text("DIAGNOSIS REPORT | CLIENT INTAKE FORM", 105, yPos, { align: "center" });
-
-  // Add UPDATED watermark/badge if this is an updated PDF
-  if (data.isUpdated) {
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setTextColor(220, 53, 69); // Red color for visibility
-    doc.setFont("helvetica", "bold");
-    doc.text("*** UPDATED VERSION ***", 105, yPos, { align: "center" });
-    doc.setTextColor(0, 0, 0); // Reset to black
-  }
-
-  // Table layout matching template with proper margins
-  yPos += 10;
-  const leftCol = 15;
-  const midCol = 60;
-  const rightCol = 115;
-  const valueCol = 150;
-
-  // Row 1: Date/Time and Service ID
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("Date and Time:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(formatPdfTimestamp(data.timestamp), midCol, yPos);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Service ID:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.serviceId, valueCol, yPos);
-
-  yPos += 6;
-
-  // One name per line so multiple selected staff don't overlap. Tight 3.6mm
-  // line height keeps the details block on a single page.
-  const drawStackedRow = (label: string, value: string) => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(label, leftCol, yPos);
+  doc.setFontSize(fontSize);
+  const lines = doc.splitTextToSize(text || "N/A", w - 8);
+  return titledCard(doc, x, y, w, title, glyph, lines.length * 3.5 + 2, (bx, by) => {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    const items = (value || "")
-      .split(/[,\n]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const list = items.length ? items : [""];
-    list.forEach((name, i) => {
-      doc.text(name, midCol, yPos + i * 3.6);
-    });
-    yPos += Math.max(5, list.length * 3.6 + 1.2);
-    doc.setFontSize(10);
-  };
+    doc.setFontSize(fontSize);
+    setText(doc, text ? INK : MUTED);
+    doc.text(lines, bx, by + 2.4);
+  });
+};
 
-  drawStackedRow("Admin Representative/s:", maskStaffName(data.adminRep));
-  drawStackedRow("Handling Staff:", maskStaffName((data as any).receivingStaff));
-  drawStackedRow("Technician/s:", maskStaffName(data.technician));
-
-  // Client Information Section
-  yPos += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Client Information", leftCol, yPos);
-
-  yPos += 8;
-  doc.setFontSize(10);
-
-  // Client Type and Priority
-  doc.text("Client Type:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.clientType, midCol, yPos);
+/** Icon rows for Estimated Cost / Estimated Time Frame. */
+const metricsCard = (
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  rows: [Glyph, string, string][],
+) => {
+  const rowH = 9.5;
+  const h = 5 + rows.length * rowH;
+  const badgeS = 6.6;
+  // Plain card body (no title row) — rows carry their own icon badges.
+  doc.setFillColor(255, 255, 255);
+  setDraw(doc, BORDER);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(x, y, w, h, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.text("Priority:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.priority, valueCol, yPos);
+  doc.setFontSize(8.6);
+  const valueX =
+    x + 4 + badgeS + 4 + Math.max(...rows.map(([, l]) => doc.getTextWidth(l.toUpperCase()))) + 5;
 
-  yPos += 6;
+  let ry = y + 5;
+  rows.forEach(([glyph, label, value], i) => {
+    if (i > 0) {
+      setDraw(doc, BORDER);
+      doc.setLineWidth(0.35);
+      doc.line(x + 4, ry - 0.6, x + w - 4, ry - 0.6);
+    }
+    iconBadge(doc, x + 4, ry + 0.6, badgeS, glyph);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.6);
+    setText(doc, NAVY);
+    doc.text(label.toUpperCase(), x + 4 + badgeS + 4, ry + 5.2);
+    doc.setFont("helvetica", "normal");
+    setText(doc, INK);
+    doc.text(value || "N/A", valueX, ry + 5.2);
+    ry += rowH;
+  });
 
-  // Name and Username
-  doc.setFont("helvetica", "bold");
-  doc.text("Name:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.clientName, midCol, yPos);
+  return y + h;
+};
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Username:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.username, valueCol, yPos);
+export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
+  let y = drawLetterhead(doc, logo, "Diagnosis Report | Client Intake Form", data.isUpdated);
 
-  yPos += 6;
+  y = drawMetaCard(
+    doc,
+    y,
+    [
+      ["person", "Admin Representative/s:", maskStaffName(data.adminRep)],
+      ["person", "Handling Staff:", maskStaffName(data.receivingStaff)],
+      ["wrench", "Technician/s:", maskStaffName(data.technician)],
+    ],
+    [
+      ["calendar", "Date and Time:", formatPdfTimestamp(data.timestamp)],
+      ["ticket", "Service ID:", data.serviceId],
+    ],
+  );
 
-  // Phone and Email
-  doc.setFont("helvetica", "bold");
-  doc.text("Phone:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.phone, midCol, yPos);
+  const leftX = M;
+  const rightX = M + COL_W + GUTTER;
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Email:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.email, valueCol, yPos);
+  const clientBottom = stackedCard(
+    doc,
+    leftX,
+    y,
+    COL_W,
+    "Client Information",
+    "person",
+    [
+      ["Client Type:", data.clientType],
+      ["Priority:", data.priority],
+      ["Name:", data.clientName],
+      ["Username:", data.username],
+      ["Phone:", data.phone],
+      ["Email:", data.email],
+    ],
+    2,
+  );
+  const deviceBottom = stackedCard(
+    doc,
+    rightX,
+    y,
+    COL_W,
+    "Device Information",
+    "device",
+    [
+      ["Device Type:", data.deviceType],
+      ["Brand:", data.brand],
+      ["Model:", data.model],
+      ["Serial No.:", data.serial],
+      ["Color:", data.color],
+      ["Storage:", data.memory],
+    ],
+    2,
+  );
 
-  // Device Information Section
-  yPos += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Device Information", leftCol, yPos);
+  y = Math.max(clientBottom, deviceBottom) + 3.5;
 
-  yPos += 8;
-  doc.setFontSize(10);
-
-  // Device Type and Serial
-  doc.text("Device Type:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.deviceType, midCol, yPos);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Serial No.:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.serial, valueCol, yPos);
-
-  yPos += 6;
-
-  // Brand and Color
-  doc.setFont("helvetica", "bold");
-  doc.text("Brand:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.brand, midCol, yPos);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Color:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.color, valueCol, yPos);
-
-  yPos += 6;
-
-  // Model and Memory
-  doc.setFont("helvetica", "bold");
-  doc.text("Model:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.model, midCol, yPos);
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Storage:", rightCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.memory, valueCol, yPos);
-
-  // Chief Complaint Section
-  yPos += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Chief Complaint", leftCol, yPos);
-
-  yPos += 8;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const complaintLines = doc.splitTextToSize(data.chiefComplaint, 180);
-  doc.text(complaintLines, leftCol, yPos);
-  yPos += complaintLines.length * 5;
-
-  // Device Notes Section
-  yPos += 10;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Device Notes", leftCol, yPos);
-
-  yPos += 8;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
+  y = paragraphCard(
+    doc,
+    M,
+    y,
+    CONTENT_W,
+    "Chief Complaint",
+    "note",
+    data.chiefComplaint || "N/A",
+  ) + 3.5;
 
   const deviceNotes: string[] = [];
   if (data.dents) deviceNotes.push("Dents");
@@ -243,106 +201,117 @@ export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
   if (data.noPower) deviceNotes.push("No Power");
   if (data.repairHistory) deviceNotes.push("With Repair History");
 
-  const notesText = deviceNotes.length > 0 ? deviceNotes.join(", ") : "";
-  if (notesText) {
-    const notesLines = doc.splitTextToSize(notesText, 180);
-    doc.text(notesLines, leftCol, yPos);
-    yPos += notesLines.length * 5;
-  }
+  y =
+    paragraphCard(
+      doc,
+      M,
+      y,
+      CONTENT_W,
+      "Device Notes",
+      "clipboard",
+      deviceNotes.length ? deviceNotes.join(", ") : "None noted",
+    ) + 3.5;
 
-  // Cost, Time Frame and Signature in one row
-  yPos += 10;
-  doc.setFont("helvetica", "bold");
-  doc.text("Estimated Cost:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(`PHP ${data.estimatedCost.toLocaleString()}`, midCol, yPos);
+  const bottomLimit = PAGE_H - 40;
+  const metricRows: [Glyph, string, string][] = [
+    ["money", "Estimated Cost:", `PHP ${Number(data.estimatedCost || 0).toLocaleString()}`],
+    ["clock", "Estimated Time Frame:", data.timeFrame],
+  ];
 
-  yPos += 6;
-  doc.setFont("helvetica", "bold");
-  doc.text("Estimated Time Frame:", leftCol, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(data.timeFrame, midCol, yPos);
-
-  // Signature beside cost/time frame (Column AK)
-  if (data.signatureUrl) {
-    const sigWidth = 50;
-    const sigHeight = 25;
-    const sigX = rightCol;
-    const sigY = yPos - 15;
-    doc.addImage(data.signatureUrl, "PNG", sigX, sigY, sigWidth, sigHeight);
-  }
-
-  // Footer - ALWAYS on first page
-  yPos += 15;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  const footerText =
-    "This document is automatically generated after you submitted the digital form. Please note that by completing the form, you have already acknowledged and agreed to the Terms and Conditions of AC Tech Repair Ph, confirmed the accuracy of all information provided, and consented to the servicing of your device with costs to be finalized based on the final diagnosis.";
-  const footerLines = doc.splitTextToSize(footerText, 180);
-  doc.text(footerLines, leftCol, yPos);
-
-  // Device Initial Condition Reference Section (if annotation provided) - PAGE 2
   if (data.annotationImageUrl) {
-    // Add new page for Device Initial Condition Reference
-    doc.addPage();
-    yPos = 20; // Reset Y position for new page
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Device Initial Condition Reference:", leftCol, yPos);
-    
-    yPos += 8;
-    // Add annotation image - scale to fit width while maintaining aspect ratio
-    const imgWidth = 180;
-    const imgHeight = 135; // Maintain 4:3 aspect ratio
-    doc.addImage(data.annotationImageUrl, "PNG", leftCol, yPos, imgWidth, imgHeight);
-    yPos += imgHeight + 5;
-    
-    // Additional Comments title and notes (Column AX)
+    // Variant A — annotation present: reference image on the left, cost +
+    // comments stacked on the right.
+    const imgW = COL_W - 8;
+    const room = bottomLimit - y - 18;
+    const imgH = Math.min(imgW * 0.75, Math.max(50, room));
+
+    titledCard(
+      doc,
+      leftX,
+      y,
+      COL_W,
+      "Device Initial Condition Reference",
+      "search",
+      imgH + 2,
+      (bx, by) => {
+        try {
+          doc.addImage(data.annotationImageUrl!, "PNG", bx, by, imgW, imgH);
+        } catch {
+          /* annotation optional */
+        }
+      },
+    );
+
+    let ry = metricsCard(doc, rightX, y, COL_W, metricRows) + 3.5;
     if (data.annotationNotes) {
-      yPos += 5;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text("Additional Comments:", leftCol, yPos);
-      
-      yPos += 6;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      const notesLines = doc.splitTextToSize(data.annotationNotes, 180);
-      doc.text(notesLines, leftCol, yPos);
-      yPos += notesLines.length * 5;
+      ry = paragraphCard(
+        doc,
+        rightX,
+        ry,
+        COL_W,
+        "Additional Comments",
+        "note",
+        data.annotationNotes,
+        7.6,
+      ) + 3.5;
+    }
+    if (data.signatureUrl) {
+      titledCard(doc, rightX, ry, COL_W, "Client Signature", "person", 26, (bx, by, bw) => {
+        try {
+          doc.addImage(data.signatureUrl!, "PNG", bx + (bw - 48) / 2, by, 48, 24);
+        } catch {
+          /* signature optional */
+        }
+      });
+    }
+  } else {
+    // Variant B — no annotation: metrics span the full width.
+    const nextY = metricsCard(doc, M, y, CONTENT_W, metricRows) + 3.5;
+    if (data.signatureUrl) {
+      titledCard(doc, rightX, nextY, COL_W, "Client Signature", "person", 26, (bx, by, bw) => {
+        try {
+          doc.addImage(data.signatureUrl!, "PNG", bx + (bw - 48) / 2, by, 48, 24);
+        } catch {
+          /* signature optional */
+        }
+      });
     }
   }
 
-  // Convert jsPDF to blob first
+  drawFooter(doc, DISCLAIMER);
+};
+
+export const generateServicePDF = async (data: PDFData): Promise<Blob> => {
+  const doc = new jsPDF({ format: "letter", unit: "mm" });
+
+  let logo = "";
+  try {
+    logo = await getLogoDataUrl();
+  } catch {
+    /* proceed without logo */
+  }
+
+  drawIntake(doc, data, logo);
+
   const intakeBlob = doc.output("blob");
 
-  // Merge with Terms and Conditions PDF using cached terms
   try {
-    // Load the intake PDF and get cached terms in parallel
     const [intakePdfBytes, termsPdfBytes] = await Promise.all([
       intakeBlob.arrayBuffer(),
       getTermsPdfBytes(),
     ]);
-    
+
     const intakePdfDoc = await PDFDocument.load(intakePdfBytes);
 
     if (termsPdfBytes) {
       const termsPdfDoc = await PDFDocument.load(termsPdfBytes);
-      
-      // Copy all pages from Terms PDF to the intake PDF
       const copiedPages = await intakePdfDoc.copyPages(termsPdfDoc, termsPdfDoc.getPageIndices());
-      copiedPages.forEach((page) => {
-        intakePdfDoc.addPage(page);
-      });
+      copiedPages.forEach((page) => intakePdfDoc.addPage(page));
     }
 
-    // Save the merged PDF
     const mergedPdfBytes = await intakePdfDoc.save();
-    return new Blob([new Uint8Array(mergedPdfBytes)], { type: 'application/pdf' });
-  } catch (error) {
-    console.error('Error merging PDFs:', error);
-    // Return intake PDF without terms if merging fails
+    return new Blob([new Uint8Array(mergedPdfBytes)], { type: "application/pdf" });
+  } catch {
     return intakeBlob;
   }
 };
