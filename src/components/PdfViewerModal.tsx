@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Printer, Loader2 } from "lucide-react";
-import { toInlinePdfUrl, isInlineViewerUrl } from "@/lib/pdfViewer";
+import { Download, Printer, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
+import { loadInlinePdf } from "@/lib/pdfViewer";
 
 interface PdfViewerModalProps {
   open: boolean;
@@ -14,28 +14,29 @@ interface PdfViewerModalProps {
 
 /**
  * Inline PDF viewer modal with Print + Download actions.
- * The incoming URL is always converted to a local object URL before being
- * rendered, so the document displays inside the modal and never navigates
- * the browser to an external page. The iframe is sandboxed without
- * `allow-top-navigation` so embedded viewers can't redirect the app either.
+ * The incoming URL is always downloaded and rendered as a local object URL, so
+ * the document displays inside the modal and the browser is never navigated to
+ * an external page. Remote URLs are never framed directly (Chrome blocks
+ * framing storage responses); if the bytes can't be loaded we show an explicit
+ * open/download fallback instead of a blocked frame.
  */
 export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", filename }: PdfViewerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    if (!open || !url) {
-      setLoaded(false);
-      setResolvedUrl(null);
-      return;
-    }
     setLoaded(false);
     setResolvedUrl(null);
+    setFailed(false);
+    if (!open || !url) return;
     (async () => {
-      const inline = await toInlinePdfUrl(url);
-      if (!cancelled) setResolvedUrl(inline);
+      const res = await loadInlinePdf(url);
+      if (cancelled) return;
+      setResolvedUrl(res.url);
+      setFailed(!res.ok);
     })();
     return () => {
       cancelled = true;
@@ -47,15 +48,11 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
       iframeRef.current?.contentWindow?.focus();
       iframeRef.current?.contentWindow?.print();
     } catch {
-      /* printing blocked for cross-origin embeds — ignore, user can download */
+      /* printing blocked — user can download instead */
     }
   };
 
-  const src = resolvedUrl
-    ? isInlineViewerUrl(resolvedUrl)
-      ? `${resolvedUrl}#toolbar=1&navpanes=0&view=FitH`
-      : resolvedUrl
-    : null;
+  const src = resolvedUrl ? `${resolvedUrl}#toolbar=1&navpanes=0&view=FitH` : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,8 +65,8 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
                 <Printer className="h-4 w-4 mr-1" />
                 Print
               </Button>
-              <Button size="sm" variant="default" asChild disabled={!src}>
-                <a href={src ?? "#"} download={filename ?? "document.pdf"}>
+              <Button size="sm" variant="default" asChild disabled={!resolvedUrl}>
+                <a href={resolvedUrl ?? "#"} download={filename ?? "document.pdf"}>
                   <Download className="h-4 w-4 mr-1" />
                   Download
                 </a>
@@ -78,10 +75,27 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
           </div>
         </DialogHeader>
         <div className="relative flex-1 min-h-0 bg-muted">
-          {!loaded && (
+          {!loaded && !failed && (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
               Loading PDF...
+            </div>
+          )}
+          {failed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <AlertTriangle className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground max-w-md">
+                This document couldn't be loaded for inline preview. You can still open it in a
+                new tab.
+              </p>
+              {url && (
+                <Button size="sm" variant="outline" asChild>
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Open in new tab
+                  </a>
+                </Button>
+              )}
             </div>
           )}
           {src && (
@@ -90,7 +104,6 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
               key={src}
               src={src}
               title={title}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-downloads allow-forms"
               className="absolute inset-0 w-full h-full border-0"
               onLoad={() => setLoaded(true)}
             />

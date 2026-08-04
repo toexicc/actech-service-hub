@@ -1901,7 +1901,7 @@ const ManageClient = () => {
                 {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
                 {/* Technician Diagnosis (raw) - same logic as /service-update */}
-                {serviceData?.status === "Confirmed Diagnosis" && (
+                {(
                   <div className="space-y-2">
                     <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
                     <Textarea
@@ -1918,8 +1918,8 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                {/* Diagnosis Display - Only visible when status is "Confirmed Diagnosis" */}
-                {serviceData?.status === "Confirmed Diagnosis" && (
+                {/* Diagnosis Display - always visible */}
+                {(
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
@@ -2026,7 +2026,7 @@ const ManageClient = () => {
                 )}
 
                 {/* Technician Report (raw) - same logic as /service-update */}
-                {serviceData?.status === "Done Repair - For Release" && (
+                {(
                   <div className="space-y-2">
                     <Label htmlFor="technicianReport">Technician Report:</Label>
                     <Textarea
@@ -2040,8 +2040,8 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                {/* Report Display - Only visible when status is "Done Repair - For Release" */}
-                {serviceData?.status === "Done Repair - For Release" && (
+                {/* Report Display - always visible */}
+                {(
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
