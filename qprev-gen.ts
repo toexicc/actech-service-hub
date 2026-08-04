@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import fs from "fs";
 import { drawQuotation } from "./src/lib/quotationPdfGenerator";
 
