@@ -476,17 +476,13 @@ const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   const badgeS = 6;
   const textX = M + 3 + badgeS + 3;
   const valueW = CONTENT_W - (textX - M) - 6;
+  const labelW = 40; // fixed label column so all values align in a right column
 
   doc.setFontSize(7.6);
-  const labelWidths = rows.map(([, label]) => {
-    doc.setFont("helvetica", "bold");
-    return doc.getTextWidth(label) + 1.8;
-  });
-
   let h = 4.5;
-  const heights = rows.map(([, , v], i) => {
+  const heights = rows.map(([, , v]) => {
     doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelWidths[i]));
+    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelW));
     return Math.max(4.6, lines.length * 3.4);
   });
   h += heights.reduce((s2, v) => s2 + v, 0) + 2.5;
@@ -496,9 +492,10 @@ const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   let ry = y + 5.4;
   rows.forEach(([glyph, label, value], i) => {
     iconBadge(doc, M + 3, ry - 3.4, badgeS, glyph);
-    labelValue(doc, textX, ry, valueW, label, value, labelWidths[i], ACCENT);
+    labelValue(doc, textX, ry, valueW, label, value, labelW, ACCENT);
     ry += heights[i];
   });
+
 
   return y + h + 3.5;
 };
