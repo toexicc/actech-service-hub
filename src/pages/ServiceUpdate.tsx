@@ -1321,7 +1321,6 @@ const ServiceUpdate = () => {
                         <div className="space-y-2">
                           <div className="flex gap-2 mb-2">
                             <Button
-                              disabled={!diagnosisEditable}
                               type="button"
                               variant="outline"
                               size="sm"
@@ -1382,7 +1381,7 @@ const ServiceUpdate = () => {
                                   setIsFormattingAI(false);
                                 }
                               }}
-                              disabled={isFormattingAI}
+                              disabled={isFormattingAI || !diagnosisEditable}
                             >
                               {isFormattingAI ? (
                                 <>
@@ -1438,7 +1437,6 @@ const ServiceUpdate = () => {
                         <div className="space-y-2">
                           <div className="flex gap-2 mb-2">
                             <Button
-                              disabled={!reportEditable}
                               type="button"
                               variant="outline"
                               size="sm"
@@ -1500,7 +1498,7 @@ const ServiceUpdate = () => {
                                   setIsFormattingReport(false);
                                 }
                               }}
-                              disabled={isFormattingReport}
+                              disabled={isFormattingReport || !reportEditable}
                             >
                               {isFormattingReport ? (
                                 <>
