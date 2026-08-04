@@ -96,7 +96,7 @@ const CONTACT_LINKS = {
   phone: "tel:", // placeholder — add shop number when available
 };
 
-const TERMS_PDF_URL = "/AC_Tech_Terms_and_Condition.pdf";
+
 
 // The terms are rendered as an image so they always display, even where PDF
 // embedding is blocked by the browser.
