@@ -905,6 +905,8 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     },
   });
 
+  // Left column always starts on the same page as the cards above it.
+  doc.setPage(firstPage);
   const diagResult = flowPanel(doc, diagBlocks, {
     x: leftX,
     w: COL_W,
