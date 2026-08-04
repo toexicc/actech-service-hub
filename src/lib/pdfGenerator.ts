@@ -145,26 +145,28 @@ export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
   const leftX = M;
   const rightX = M + COL_W + GUTTER;
 
-  const clientBottom = stackedCard(
-    doc,
-    leftX,
-    y,
-    COL_W,
-    "Client Information",
-    "person",
-    [
-      ["Client Type:", data.clientType],
-      ["Priority:", data.priority],
-      ["Name:", data.clientName],
-      ["Username:", data.username],
-      ["Phone:", data.phone],
-      ["Email:", data.email],
-    ],
-    2,
-  );
+  y =
+    stackedCard(
+      doc,
+      M,
+      y,
+      CONTENT_W,
+      "Client Information",
+      "person",
+      [
+        ["Client Type:", data.clientType],
+        ["Priority:", data.priority],
+        ["Name:", data.clientName],
+        ["Username:", data.username],
+        ["Phone:", data.phone],
+        ["Email:", data.email],
+      ],
+      2,
+    ) + 3.5;
+
   const deviceBottom = stackedCard(
     doc,
-    rightX,
+    leftX,
     y,
     COL_W,
     "Device Information",
@@ -180,17 +182,18 @@ export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
     2,
   );
 
-  y = Math.max(clientBottom, deviceBottom) + 3.5;
-
-  y = paragraphCard(
+  const complaintBottom = paragraphCard(
     doc,
-    M,
+    rightX,
     y,
-    CONTENT_W,
+    COL_W,
     "Chief Complaint",
     "note",
     data.chiefComplaint || "N/A",
-  ) + 3.5;
+  );
+
+  y = Math.max(deviceBottom, complaintBottom) + 3.5;
+
 
   const deviceNotes: string[] = [];
   if (data.dents) deviceNotes.push("Dents");
