@@ -125,6 +125,36 @@ const metricsCard = (
   return y + h;
 };
 
+/**
+ * Signature is drawn bare (no card) with a thin baseline and caption so an
+ * empty container never shows up when no signature was captured.
+ */
+const drawSignature = (
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  signatureUrl?: string,
+) => {
+  if (!signatureUrl) return y;
+  const sigW = 48;
+  const sigH = 22;
+  const sx = x + (w - sigW) / 2;
+  try {
+    doc.addImage(signatureUrl, "PNG", sx, y, sigW, sigH);
+  } catch {
+    return y;
+  }
+  setDraw(doc, BORDER);
+  doc.setLineWidth(0.4);
+  doc.line(sx - 4, y + sigH + 1, sx + sigW + 4, y + sigH + 1);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.4);
+  setText(doc, NAVY);
+  doc.text("CLIENT SIGNATURE", x + w / 2, y + sigH + 5, { align: "center" });
+  return y + sigH + 7;
+};
+
 export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
   let y = drawLetterhead(doc, logo, "Diagnosis Report | Client Intake Form", data.isUpdated);
 
@@ -258,27 +288,11 @@ export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
         7.6,
       ) + 3.5;
     }
-    if (data.signatureUrl) {
-      titledCard(doc, rightX, ry, COL_W, "Client Signature", "person", 26, (bx, by, bw) => {
-        try {
-          doc.addImage(data.signatureUrl!, "PNG", bx + (bw - 48) / 2, by, 48, 24);
-        } catch {
-          /* signature optional */
-        }
-      });
-    }
+    drawSignature(doc, rightX, ry, COL_W, data.signatureUrl);
   } else {
     // Variant B — no annotation: metrics span the full width.
     const nextY = metricsCard(doc, M, y, CONTENT_W, metricRows) + 3.5;
-    if (data.signatureUrl) {
-      titledCard(doc, rightX, nextY, COL_W, "Client Signature", "person", 26, (bx, by, bw) => {
-        try {
-          doc.addImage(data.signatureUrl!, "PNG", bx + (bw - 48) / 2, by, 48, 24);
-        } catch {
-          /* signature optional */
-        }
-      });
-    }
+    drawSignature(doc, rightX, nextY, COL_W, data.signatureUrl);
   }
 
   drawFooter(doc, DISCLAIMER);
