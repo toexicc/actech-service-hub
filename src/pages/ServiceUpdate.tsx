@@ -352,7 +352,6 @@ const ServiceUpdate = () => {
     "Done Repair - Advise Client",
     "Released",
     "Completed",
-    "Backjob",
     "RTO",
   ];
 
@@ -1262,7 +1261,6 @@ const ServiceUpdate = () => {
                         "Proceed Repair",
                         "Done Repair - Advise Client",
                         "Completed",
-                        "Backjob",
                         "RTO",
                         "Cancelled"
                       ];
@@ -1292,7 +1290,6 @@ const ServiceUpdate = () => {
                           "Proceed Repair",
                           "Done Repair - Advise Client",
                           "Completed",
-                          "Backjob",
                           "RTO",
                           "Cancelled"
                         ];
