@@ -79,6 +79,9 @@ serve(async (req) => {
     if (!serviceId || serviceId.length > 64 || typeof approved !== "boolean") {
       return json({ error: "serviceId (string) and approved (boolean) are required" }, 400);
     }
+    if (!approved && !reason.trim()) {
+      return json({ error: "Please provide a reason for declining." }, 400);
+    }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
@@ -139,7 +142,15 @@ serve(async (req) => {
     let approvedItems: string[] = [];
     let pendingItems: string[] = [];
     if (approved) {
-      if (allItems.length === 0) {
+      if (quoted.length) {
+        const picked = new Set(selectedServices.map(norm));
+        for (const line of quoted) if (line.required) picked.add(norm(line.name));
+        approvedItems = allItems.filter((item) => picked.has(norm(item)));
+        pendingItems = allItems.filter((item) => !picked.has(norm(item)));
+        if (approvedItems.length === 0) {
+          return json({ error: "Please select at least one service to approve." }, 400);
+        }
+      } else if (allItems.length === 0) {
         // No parseable breakdown: treat as a plain full approval, and keep any
         // client selection as the recorded approved list.
         approvedItems = selectedServices;
@@ -148,7 +159,6 @@ serve(async (req) => {
         approvedItems = allItems;
       } else {
         const picked = new Set(selectedServices.map(norm));
-        for (const line of quoted) if (line.required) picked.add(norm(line.name));
         approvedItems = allItems.filter((i) => picked.has(norm(i)));
         pendingItems = allItems.filter((i) => !picked.has(norm(i)));
 

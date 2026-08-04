@@ -574,9 +574,9 @@ const ServiceTracking = () => {
   // Pre-tick whatever the shop marked as selected on the quotation.
   useEffect(() => {
     const preselected = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown)
-      .filter((l) => l.selected)
+      .filter((l) => l.selected || l.required)
       .map((l) => l.name);
-    if (preselected.length) setSelectedBreakdown(preselected);
+    setSelectedBreakdown(preselected);
   }, [serviceData?.serviceId, JSON.stringify((serviceData as any)?.quotedBreakdown ?? [])]);
 
   const toggleBreakdown = (item: string) => {
