@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Phone, Lock } from "lucide-react";
+import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Lock } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
@@ -83,17 +83,11 @@ const SOCIAL_LINKS = [
     href: "https://actechrepairph.com/",
     icon: <Globe className="h-5 w-5" aria-hidden="true" />,
   },
-  {
-    name: "Viber",
-    href: "https://viber.com/",
-    icon: <Phone className="h-5 w-5" aria-hidden="true" />,
-  },
 ];
 
 const CONTACT_LINKS = {
   facebook: "https://www.facebook.com/actechrepairph",
-  email: "mailto:actechrepairph@gmail.com",
-  phone: "tel:", // placeholder — add shop number when available
+  phone: "tel:09456479905",
 };
 
 
@@ -1168,14 +1162,11 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Contact action buttons */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Button asChild variant="outline" className="rounded-xl px-2">
                         <a href={CONTACT_LINKS.facebook} target="_blank" rel="noreferrer">
                           Message
                         </a>
-                      </Button>
-                      <Button asChild variant="outline" className="rounded-xl px-2">
-                        <a href={CONTACT_LINKS.email}>Email</a>
                       </Button>
                       <Button asChild variant="outline" className="rounded-xl px-2">
                         <a href={CONTACT_LINKS.phone}>Call</a>
