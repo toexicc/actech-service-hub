@@ -52,5 +52,5 @@ const data = {
 
 const doc = new jsPDF({ format: "letter", unit: "mm" });
 drawQuotation(doc, data as any, logo);
-fs.writeFileSync("/mnt/documents/service-quotation-premium-preview_v6.pdf", Buffer.from(doc.output("arraybuffer")));
+fs.writeFileSync("/mnt/documents/service-quotation-premium-preview_v7.pdf", Buffer.from(doc.output("arraybuffer")));
 console.log("ok pages", (doc as any).getNumberOfPages());
