@@ -1905,23 +1905,8 @@ const ManageClient = () => {
 
                 {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
-                {/* Technician Diagnosis (raw) - same logic as /service-update */}
-                {(
-                  <div className="space-y-2">
-                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                    <Textarea
-                      id="technicianDiagnosis"
-                      placeholder="Enter technician diagnosis"
-                      value={rawDiagnosis}
-                      onChange={(e) => {
-                        setRawDiagnosis(e.target.value);
-                        setUpdateTechDiagnosis(e.target.value);
-                      }}
-                      rows={4}
-                      className="min-h-[80px] resize-none"
-                    />
-                  </div>
-                )}
+
+
 
                 {/* Diagnosis Display - always visible */}
                 {(
@@ -1934,6 +1919,21 @@ const ManageClient = () => {
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                          <Textarea
+                            id="technicianDiagnosis"
+                            placeholder="Enter technician diagnosis"
+                            value={rawDiagnosis}
+                            onChange={(e) => {
+                              setRawDiagnosis(e.target.value);
+                              setUpdateTechDiagnosis(e.target.value);
+                            }}
+                            rows={4}
+                            className="min-h-[80px] resize-none"
+                          />
+                        </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <div className="flex flex-wrap gap-2 mb-2">
@@ -2044,21 +2044,6 @@ const ManageClient = () => {
                   <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
                 )}
 
-                {/* Technician Report (raw) - same logic as /service-update */}
-                {(
-                  <div className="space-y-2">
-                    <Label htmlFor="technicianReport">Technician Report:</Label>
-                    <Textarea
-                      id="technicianReport"
-                      placeholder="Enter technician report"
-                      value={technicianReport}
-                      onChange={(e) => setTechnicianReport(e.target.value)}
-                      rows={4}
-                      className="min-h-[80px] resize-none"
-                    />
-                  </div>
-                )}
-
                 {/* Report Display - always visible */}
                 {(
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -2070,6 +2055,18 @@ const ManageClient = () => {
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="technicianReport">Technician Report:</Label>
+                          <Textarea
+                            id="technicianReport"
+                            placeholder="Enter technician report"
+                            value={technicianReport}
+                            onChange={(e) => setTechnicianReport(e.target.value)}
+                            rows={4}
+                            className="min-h-[80px] resize-none"
+                          />
+                        </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
                           <div className="flex flex-wrap gap-2 mb-2">
