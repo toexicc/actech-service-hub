@@ -30,6 +30,7 @@ export interface QuotedLine {
   name: string;
   cost: number;
   selected: boolean;
+  required: boolean;
 }
 
 const toNumber = (raw: string): number => {
@@ -59,7 +60,7 @@ export const parseQuotedBreakdown = (diagnosis: string): QuotedLine[] => {
     const name = cleaned.split(/\s[-—]\s/)[0].trim();
     if (!name || /^php\b/i.test(name)) continue;
     const amountMatch = cleaned.match(/php\s*([0-9][0-9,.]*)/i);
-    out.push({ name, cost: amountMatch ? toNumber(amountMatch[1]) : 0, selected: true });
+    out.push({ name, cost: amountMatch ? toNumber(amountMatch[1]) : 0, selected: true, required: false });
   }
   return out;
 };
@@ -72,6 +73,7 @@ export const normalizeQuotedBreakdown = (raw: unknown): QuotedLine[] => {
       name: String(r?.name ?? "").trim(),
       cost: typeof r?.cost === "number" ? r.cost : toNumber(String(r?.cost ?? "0")),
       selected: r?.selected === undefined ? true : !!r.selected,
+      required: !!r?.required,
     }))
     .filter((r) => r.name || r.cost);
 };
