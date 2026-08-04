@@ -34,7 +34,7 @@ import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } fr
 import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
-import { uploadServicePdf, getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
+import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
