@@ -475,13 +475,18 @@ const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
 
   const badgeS = 6;
   const textX = M + 3 + badgeS + 3;
-  const labelW = 36;
   const valueW = CONTENT_W - (textX - M) - 6;
 
   doc.setFontSize(7.6);
+  const labelWidths = rows.map(([, label]) => {
+    doc.setFont("helvetica", "bold");
+    return doc.getTextWidth(label) + 1.8;
+  });
+
   let h = 4.5;
-  const heights = rows.map(([, , v]) => {
-    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelW));
+  const heights = rows.map(([, , v], i) => {
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(v || "N/A", Math.max(20, valueW - labelWidths[i]));
     return Math.max(4.6, lines.length * 3.4);
   });
   h += heights.reduce((s2, v) => s2 + v, 0) + 2.5;
@@ -491,78 +496,75 @@ const drawMetaCard = (doc: jsPDF, y: number, data: QuotationPDFData) => {
   let ry = y + 5.4;
   rows.forEach(([glyph, label, value], i) => {
     iconBadge(doc, M + 3, ry - 3.4, badgeS, glyph);
-    labelValue(doc, textX, ry, valueW, label, value, labelW, ACCENT);
+    labelValue(doc, textX, ry, valueW, label, value, labelWidths[i], ACCENT);
     ry += heights[i];
   });
 
   return y + h + 3.5;
 };
 
-const drawInfoCards = (doc: jsPDF, y: number, data: QuotationPDFData) => {
-  const clientRows: [string, string, string, string][] = [
-    ["Client Type:", data.clientType, "Priority:", data.priority],
-    ["Name:", data.clientName, "Username:", data.username],
-    ["Phone:", data.phone, "Email:", data.email],
-  ];
-  const deviceRows: [string, string, string, string][] = [
-    ["Device Type:", data.deviceType, "Serial No.:", data.serial],
-    ["Brand:", data.brand, "Color:", data.color],
-    ["Model:", data.model, "Storage:", data.memory],
-  ];
-
-  const leftW = (COL_W - 8) * 0.55;
-  const rightW = (COL_W - 8) * 0.45;
-  const LW1 = 19;
-  const LW2 = 17;
-
-  const rowHeights = (rows: [string, string, string, string][]) => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
-    return rows.map(([, v1, , v2]) => {
-      const a = doc.splitTextToSize(v1 || "N/A", Math.max(10, leftW - LW1)).length;
-      const b = doc.splitTextToSize(v2 || "N/A", Math.max(10, rightW - LW2)).length;
-      return Math.max(1, a, b) * 3.4 + 1.8;
-    });
-  };
-
-  const clientH = rowHeights(clientRows);
-  const deviceH = rowHeights(deviceRows);
-  const bodyH = Math.max(
-    clientH.reduce((s, v) => s + v, 0),
-    deviceH.reduce((s, v) => s + v, 0),
-  );
-  const h = 16.5 - 0 + bodyH + 1;
-
-  const drawCard = (
-    x: number,
-    title: string,
-    glyph: Glyph,
-    rows: [string, string, string, string][],
-    heights: number[],
-  ) => {
-    card(doc, x, y, COL_W, h);
-    iconBadge(doc, x + 3, y + 3.4, 6.2, glyph);
+/** Single-column info card: one field per row, values wrap on the full card width. */
+const drawStackedCard = (
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  title: string,
+  glyph: Glyph,
+  rows: [string, string][],
+) => {
+  const innerW = w - 8;
+  doc.setFontSize(7.6);
+  const labelWidths = rows.map(([label]) => {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.6);
-    setText(doc, NAVY);
-    doc.text(title.toUpperCase(), x + 12, y + 8);
-    setDraw(doc, BORDER);
-    doc.setLineWidth(0.35);
-    doc.line(x + 3, y + 11.5, x + COL_W - 3, y + 11.5);
+    return doc.getTextWidth(label) + 1.8;
+  });
+  const heights = rows.map(([, v], i) => {
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(v || "N/A", Math.max(12, innerW - labelWidths[i]));
+    return Math.max(4.4, lines.length * 3.4) + 0.6;
+  });
 
-    let ry = y + 16.5;
-    rows.forEach(([l1, v1, l2, v2], i) => {
-      labelValue(doc, x + 4, ry, leftW, l1, v1, LW1);
-      labelValue(doc, x + 4 + leftW, ry, rightW, l2, v2, LW2);
-      ry += heights[i];
-    });
-  };
+  const h = 16.5 + heights.reduce((s, v) => s + v, 0) + 1;
+  card(doc, x, y, w, h);
+  iconBadge(doc, x + 3, y + 3.4, 6.2, glyph);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.6);
+  setText(doc, NAVY);
+  doc.text(title.toUpperCase(), x + 12, y + 8);
+  setDraw(doc, BORDER);
+  doc.setLineWidth(0.35);
+  doc.line(x + 3, y + 11.5, x + w - 3, y + 11.5);
 
-  drawCard(M, "Client Information", "person", clientRows, clientH);
-  drawCard(M + COL_W + GUTTER, "Device Information", "device", deviceRows, deviceH);
+  let ry = y + 16.5;
+  rows.forEach(([label, value], i) => {
+    labelValue(doc, x + 4, ry, innerW, label, value, labelWidths[i]);
+    ry += heights[i];
+  });
 
-  return y + h + 3.5;
+  return y + h;
 };
+
+const drawClientCard = (doc: jsPDF, x: number, y: number, w: number, data: QuotationPDFData) =>
+  drawStackedCard(doc, x, y, w, "Client Information", "person", [
+    ["Client Type:", data.clientType],
+    ["Priority:", data.priority],
+    ["Name:", data.clientName],
+    ["Facebook Name/Instagram Username:", data.username],
+    ["Phone:", data.phone],
+    ["Email:", data.email],
+  ]);
+
+const drawDeviceCard = (doc: jsPDF, x: number, y: number, w: number, data: QuotationPDFData) =>
+  drawStackedCard(doc, x, y, w, "Device Information", "device", [
+    ["Device Type:", data.deviceType],
+    ["Brand:", data.brand],
+    ["Model:", data.model],
+    ["Serial No.:", data.serial],
+    ["Color:", data.color],
+    ["Storage:", data.memory],
+  ]);
+
 
 const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): Block[] => {
   const blocks: Block[] = [];
@@ -847,7 +849,6 @@ const flowPanel = (
 export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) => {
   let y = drawLetterhead(doc, logo, data.isUpdated);
   y = drawMetaCard(doc, y, data);
-  y = drawInfoCards(doc, y, data);
 
   const footerReserve = 38;
   const bottomLimit = PAGE_H - footerReserve;
@@ -855,7 +856,14 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const leftX = M;
   const rightX = M + COL_W + GUTTER;
 
-  const availableFirstPage = PAGE_H - 38 - y;
+  const cardTop = y;
+  const clientBottom = drawClientCard(doc, leftX, cardTop, COL_W, data);
+  const deviceBottom = drawDeviceCard(doc, rightX, cardTop, COL_W, data);
+
+  const diagTop = clientBottom + 3.5;
+  const rightTop = deviceBottom + 3.5;
+
+  const availableFirstPage = PAGE_H - 38 - diagTop;
   let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
   for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66]) {
@@ -864,13 +872,11 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   }
   const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
 
-  const panelTop = y;
-
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
     x: rightX,
     w: COL_W,
-    startY: panelTop,
+    startY: rightTop,
     bottomLimit,
     title: "Service Summary",
     glyph: "clipboard",
@@ -896,7 +902,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const diagResult = flowPanel(doc, diagBlocks, {
     x: leftX,
     w: COL_W,
-    startY: panelTop,
+    startY: diagTop,
     bottomLimit,
     title: "Technician Diagnosis",
     glyph: "search",
@@ -916,9 +922,10 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   ) {
     setDraw(doc, BORDER);
     doc.setLineWidth(0.35);
-    doc.roundedRect(leftX, panelTop, COL_W, target - panelTop, 2, 2, "S");
-    panelHeader(doc, leftX, panelTop, COL_W, "Technician Diagnosis", "search");
+    doc.roundedRect(leftX, diagTop, COL_W, target - diagTop, 2, 2, "S");
+    panelHeader(doc, leftX, diagTop, COL_W, "Technician Diagnosis", "search");
   }
+
 
   drawFooter(doc);
 };
