@@ -710,6 +710,7 @@ const buildBreakdownBlocks = (
   doc: jsPDF,
   data: QuotationPDFData,
   innerW: number,
+  scale = 1,
 ): Block[] => {
   const items =
     (data.serviceBreakdown && data.serviceBreakdown.length
@@ -723,72 +724,77 @@ const buildBreakdownBlocks = (
       : parseBreakdownFromDiagnosis(data.technicianDiagnosis));
 
   const blocks: Block[] = [];
+  const BODY = 7.4 * scale;
+  const LEAD = 3.2 * scale;
 
   if (!items.length) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.6);
+    doc.setFontSize(BODY);
     const fallback = doc.splitTextToSize(
       data.serviceSummary || "Service breakdown will be provided with the final quotation.",
       innerW,
     );
     blocks.push({
-      h: fallback.length * 3.3 + 2,
+      h: fallback.length * LEAD + 2 * scale,
       gapBefore: 1,
       draw: (x, y) => {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.6);
+        doc.setFontSize(BODY);
         setText(doc, INK);
-        doc.text(fallback, x, y + 2.4);
+        doc.text(fallback, x, y + 2.4 * scale);
       },
     });
   } else {
     items.forEach((item, i) => {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.4);
+      doc.setFontSize(BODY);
       const amountW = item.amount ? Math.min(28, doc.getTextWidth(item.amount) + 2) : 0;
       const labelLines = doc.splitTextToSize(item.label, innerW - amountW - 5);
       blocks.push({
-        h: Math.max(4.6, labelLines.length * 3.2 + 1.4),
-        gapBefore: i === 0 ? 1 : 0.6,
+        h: Math.max(4.6 * scale, labelLines.length * LEAD + 1.4 * scale),
+        gapBefore: i === 0 ? 1 : 0.6 * scale,
         draw: (x, y, w) => {
           if (i > 0) dottedRule(doc, x, y - 0.6, x + w);
           setFill(doc, ACCENT);
-          doc.circle(x + 1, y + 1.9, 0.55, "F");
+          doc.circle(x + 1, y + 1.9 * scale, 0.55, "F");
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(7.4);
+          doc.setFontSize(BODY);
           setText(doc, INK);
-          doc.text(labelLines, x + 3.4, y + 2.6);
+          doc.text(labelLines, x + 3.4, y + 2.6 * scale);
           if (item.amount) {
             doc.setFont("helvetica", "bold");
             setText(doc, NAVY);
-            doc.text(item.amount, x + w, y + 2.6, { align: "right" });
+            doc.text(item.amount, x + w, y + 2.6 * scale, { align: "right" });
           }
         },
       });
     });
   }
 
+  const noteSize = 7.2 * scale;
   doc.setFont("helvetica", "italic");
-  doc.setFontSize(7.2);
+  doc.setFontSize(noteSize);
   const note = doc.splitTextToSize(
     "This is the suggested repair for your service. We will be waiting for your approval.",
     innerW - 4,
   );
+  const noteH = note.length * LEAD + 5 * scale;
   blocks.push({
-    h: note.length * 3.2 + 5,
-    gapBefore: 3,
+    h: noteH,
+    gapBefore: 3 * scale,
     draw: (x, y, w) => {
       setFill(doc, BADGE);
-      doc.roundedRect(x - 1.5, y, w + 3, note.length * 3.2 + 5, 1.6, 1.6, "F");
+      doc.roundedRect(x - 1.5, y, w + 3, noteH, 1.6, 1.6, "F");
       doc.setFont("helvetica", "italic");
-      doc.setFontSize(7.2);
+      doc.setFontSize(noteSize);
       setText(doc, NAVY);
-      doc.text(note, x + 1, y + 4);
+      doc.text(note, x + 1, y + 4 * scale);
     },
   });
 
   return blocks;
 };
+
 
 const drawFooter = (doc: jsPDF) => {
   const barH = 12;
