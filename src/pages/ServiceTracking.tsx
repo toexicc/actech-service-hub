@@ -83,11 +83,6 @@ const SOCIAL_LINKS = [
     href: "https://actechrepairph.com/",
     icon: <Globe className="h-5 w-5" aria-hidden="true" />,
   },
-  {
-    name: "Viber",
-    href: "https://viber.com/",
-    icon: <Phone className="h-5 w-5" aria-hidden="true" />,
-  },
 ];
 
 const CONTACT_LINKS = {
