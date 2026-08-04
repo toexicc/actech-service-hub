@@ -693,7 +693,8 @@ const flowPanel = (
 
     while (idx < blocks.length) {
       const b = blocks[idx];
-      const needed = b.gapBefore + b.h + (b.keepWithNext && blocks[idx + 1] ? blocks[idx + 1].h : 0);
+      const nextH = b.keepWithNext && blocks[idx + 1] ? Math.min(blocks[idx + 1].h, 7) : 0;
+      const needed = b.gapBefore + b.h + nextH;
       if (y + needed > bottomLimit && y > bodyTop) break;
       y += b.gapBefore;
       b.draw(innerX, y, innerW);
@@ -724,7 +725,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   y = drawMetaCard(doc, y, data);
   y = drawInfoCards(doc, y, data);
 
-  const footerReserve = 42;
+  const footerReserve = 38;
   const bottomLimit = PAGE_H - footerReserve;
 
   const leftX = M;
