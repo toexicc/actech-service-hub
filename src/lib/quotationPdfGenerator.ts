@@ -871,7 +871,7 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const availableFirstPage = PAGE_H - 38 - diagTop;
   let diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7);
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66]) {
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66, 0.6, 0.55, 0.5, 0.46, 0.42]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
     diagBlocks = buildDiagnosisBlocks(doc, data.technicianDiagnosis, COL_W - 7, sc);
   }
