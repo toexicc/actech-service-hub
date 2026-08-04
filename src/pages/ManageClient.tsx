@@ -189,6 +189,8 @@ const ManageClient = () => {
   const [discountValue, setDiscountValue] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
+  // Finalized quotation lines shown to the client on /track.
+  const [quotedLines, setQuotedLines] = useState<QuotedLine[]>([]);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
@@ -336,6 +338,8 @@ const ManageClient = () => {
           setUpdateAIDiagnosis(merged.aiDiagnosis || "");
           setUpdateServices(merged.service || "");
           setUpdateServiceCost(merged.serviceCost || "");
+      setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
+          setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setUpdateTimeFrame(merged.timeFrame || "");
           setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
           setUpdateAdminNotes(merged.adminNotes || "");
@@ -742,6 +746,7 @@ const ManageClient = () => {
         ai_report: updateServiceReport,
         service: updateServices,
         service_cost: Number(updateServiceCost) || 0,
+        quoted_breakdown: quotedLines as any,
         discount: discountAmount,
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
@@ -1983,6 +1988,20 @@ const ManageClient = () => {
                                 const summaryMatch = (updateAIDiagnosis || "").match(
                                   /SUMMARY:\s*([\s\S]+?)(?=\n\s*\n|\n[A-Z][A-Z ]+:|$)/i
                                 );
+                                const parsedLines = parseQuotedBreakdown(updateAIDiagnosis || "");
+                                if (parsedLines.length) {
+                                  setQuotedLines(parsedLines);
+                                  const total = quotedSelectedTotal(parsedLines);
+                                  if (total > 0) {
+                                    setUpdateServiceCost(total.toFixed(2));
+                                    const disc =
+                                      discountType === "percentage"
+                                        ? (total * (parseFloat(discountValue) || 0)) / 100
+                                        : parseFloat(discountValue) || 0;
+                                    setDiscountAmount(disc);
+                                    setFinalCost(Math.max(0, total - disc));
+                                  }
+                                }
                                 if (summaryMatch && summaryMatch[1]) {
                                   setUpdateServices(summaryMatch[1].trim());
                                   toast({ title: "Summary copied to Service/s" });
@@ -2134,6 +2153,96 @@ const ManageClient = () => {
                       height: `${Math.max(100, (updateServices.split('\n').length + 1) * 24)}px`
                     }}
                   />
+                </div>
+
+                <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Service Breakdown (shown to the client on /track):</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true }])
+                      }
+                    >
+                      Add Line
+                    </Button>
+                  </div>
+                  {quotedLines.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Click Approve on the AI Diagnosis to pull the service breakdown here, or add lines manually.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {quotedLines.map((line, i) => (
+                        <div key={i} className="grid grid-cols-12 items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="col-span-1 h-4 w-4 accent-primary"
+                            checked={line.selected}
+                            onChange={(e) =>
+                              setQuotedLines((prev) =>
+                                prev.map((l, idx) => (idx === i ? { ...l, selected: e.target.checked } : l)),
+                              )
+                            }
+                          />
+                          <Input
+                            className="col-span-7"
+                            placeholder="Repair / service"
+                            value={line.name}
+                            onChange={(e) =>
+                              setQuotedLines((prev) =>
+                                prev.map((l, idx) => (idx === i ? { ...l, name: e.target.value } : l)),
+                              )
+                            }
+                          />
+                          <Input
+                            className="col-span-3 text-right"
+                            inputMode="decimal"
+                            placeholder="0.00"
+                            value={line.cost ? String(line.cost) : ""}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
+                              setQuotedLines((prev) =>
+                                prev.map((l, idx) => (idx === i ? { ...l, cost: val } : l)),
+                              );
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="col-span-1 text-destructive"
+                            onClick={() => setQuotedLines((prev) => prev.filter((_, idx) => idx !== i))}
+                          >
+                            X
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between pt-1 text-sm">
+                        <span className="font-semibold">
+                          Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            const total = quotedSelectedTotal(quotedLines);
+                            setUpdateServiceCost(total.toFixed(2));
+                            const disc =
+                              discountType === "percentage"
+                                ? (total * (parseFloat(discountValue) || 0)) / 100
+                                : parseFloat(discountValue) || 0;
+                            setDiscountAmount(disc);
+                            setFinalCost(Math.max(0, total - disc));
+                          }}
+                        >
+                          Apply to Service Cost
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
