@@ -620,42 +620,50 @@ const drawDeviceCard = (doc: jsPDF, x: number, y: number, w: number, data: Quota
 
 
 
-const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): Block[] => {
+const drawSummaryBlocks = (
+  doc: jsPDF,
+  data: QuotationPDFData,
+  innerW: number,
+  scale = 1,
+): Block[] => {
   const blocks: Block[] = [];
 
+  const bodySize = 8 * scale;
+  const lead = 3.3 * scale;
+
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(bodySize);
   const summaryLines = doc.splitTextToSize(data.serviceSummary || "N/A", innerW);
   blocks.push({
-    h: summaryLines.length * 3.6 + 2,
-    gapBefore: 1,
+    h: summaryLines.length * lead + 1.2 * scale,
+    gapBefore: 0.6 * scale,
     draw: (x, y) => {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
+      doc.setFontSize(bodySize);
       setText(doc, INK);
-      doc.text(summaryLines, x, y + 2.6);
+      doc.text(summaryLines, x, y + 2.4 * scale);
     },
   });
 
   const money = (label: string, value: string) => {
     blocks.push({
-      h: 5.4,
-      gapBefore: 1.4,
+      h: 4.6 * scale,
+      gapBefore: 0.8 * scale,
       draw: (x, y, w) => {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8.2);
+        doc.setFontSize(8.2 * scale);
         setText(doc, NAVY);
-        doc.text(label, x, y + 3.4);
+        doc.text(label, x, y + 3.1 * scale);
         doc.setFont("helvetica", "normal");
         setText(doc, INK);
-        doc.text(`Php ${value}`, x + w * 0.45, y + 3.4);
+        doc.text(`Php ${value}`, x + w * 0.45, y + 3.1 * scale);
       },
     });
   };
 
   blocks.push({
-    h: 1,
-    gapBefore: 3,
+    h: 0.6,
+    gapBefore: 1.8 * scale,
     draw: (x, y, w) => {
       setDraw(doc, BORDER);
       doc.setLineWidth(0.35);
@@ -666,23 +674,25 @@ const drawSummaryBlocks = (doc: jsPDF, data: QuotationPDFData, innerW: number): 
   money("Service Cost:", data.serviceCost);
   money("Discount:", data.discount);
 
+  const totalH = 9 * scale;
   blocks.push({
-    h: 10.5,
-    gapBefore: 3,
+    h: totalH,
+    gapBefore: 1.8 * scale,
     draw: (x, y, w) => {
       setFill(doc, GREEN);
-      doc.roundedRect(x - 1.5, y, w + 3, 10.5, 1.6, 1.6, "F");
+      doc.roundedRect(x - 1.5, y, w + 3, totalH, 1.6, 1.6, "F");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
+      doc.setFontSize(9.5 * scale);
       setText(doc, NAVY);
-      doc.text("Total Cost:", x + 1, y + 6.8);
-      doc.setFontSize(12);
-      doc.text(`Php ${data.totalCost}`, x + w * 0.45, y + 6.8);
+      doc.text("Total Cost:", x + 1, y + totalH * 0.66);
+      doc.setFontSize(12 * scale);
+      doc.text(`Php ${data.totalCost}`, x + w * 0.45, y + totalH * 0.66);
     },
   });
 
   return blocks;
 };
+
 
 const parseBreakdownFromDiagnosis = (raw?: string): { label: string; amount?: string }[] => {
   if (!raw) return [];
@@ -936,17 +946,23 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7, sc);
   }
 
-  const sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
-  const sumH = totalH(sumBlocks);
+  const rightRoom = bottomLimit - rightTop;
   const firstPage = doc.getCurrentPageInfo().pageNumber;
 
-  // Shrink the breakdown so Summary + Breakdown both stay on page 1.
-  const breakdownRoom = bottomLimit - (rightTop + sumH + 3.5);
+  // Shrink Summary first, then Breakdown, so both stay on page 1.
+  let sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
   let breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
+  const fits = () => totalH(sumBlocks) + 3.5 + totalH(breakdownBlocks) <= rightRoom;
+
+  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52]) {
+    if (fits()) break;
+    sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7, sc);
+  }
   for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4]) {
-    if (totalH(breakdownBlocks) <= breakdownRoom) break;
+    if (fits()) break;
     breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7, sc);
   }
+
 
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
