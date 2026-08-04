@@ -1905,23 +1905,8 @@ const ManageClient = () => {
 
                 {/* (Diagnosis photos moved below AI Diagnosis section) */}
 
-                {/* Technician Diagnosis (raw) - same logic as /service-update */}
-                {(
-                  <div className="space-y-2">
-                    <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                    <Textarea
-                      id="technicianDiagnosis"
-                      placeholder="Enter technician diagnosis"
-                      value={rawDiagnosis}
-                      onChange={(e) => {
-                        setRawDiagnosis(e.target.value);
-                        setUpdateTechDiagnosis(e.target.value);
-                      }}
-                      rows={4}
-                      className="min-h-[80px] resize-none"
-                    />
-                  </div>
-                )}
+
+
 
                 {/* Diagnosis Display - always visible */}
                 {(
