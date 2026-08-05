@@ -1497,24 +1497,6 @@ const ManageClient = () => {
                 />
 
 
-                {serviceData.approvalLocked && canEditAdminRep && (
-                  <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">Client approval is on hold</p>
-                      <p className="text-xs text-muted-foreground">
-                        Re-open it so the client can approve the remaining services on the tracking page.
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isReopeningApproval}
-                      onClick={handleReopenApproval}
-                    >
-                      Re-open approval
-                    </Button>
-                  </div>
-                )}
 
 
                 {isEditingDetails && canEditAdminRep ? (
