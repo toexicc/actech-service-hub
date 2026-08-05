@@ -985,7 +985,19 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) => {
+                    setStatusFilter(v);
+                    // Keep the tab in sync so a status from another class
+                    // (completed / cancelled) never yields an empty list.
+                    if (v !== "all") {
+                      const cls = classifyStatus(v);
+                      setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+                    }
+                  }}
+                >
+
                   <SelectTrigger>
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
