@@ -470,6 +470,26 @@ const ServiceUpdate = () => {
     return () => { cancelled = true; };
   }, [serviceData?.serviceId, serviceData?.pdfUrl, serviceData?.quotationPdfUrl]);
 
+  // Rebuild the stored quotation from the client's approved lines when the
+  // approval is newer than the stored file.
+  const syncedQuotationRef = useRef<string>("");
+  useEffect(() => {
+    const sid = serviceData?.serviceId;
+    if (!sid || syncedQuotationRef.current === sid) return;
+    syncedQuotationRef.current = sid;
+    (async () => {
+      const { regenerated } = await syncApprovedQuotation(sid);
+      if (!regenerated) return;
+      const url = await getServicePdfSignedUrl(sid, "quotation");
+      setServiceData((prev: any) =>
+        prev && prev.serviceId === sid
+          ? { ...prev, quotationPdfUrl: url || prev.quotationPdfUrl }
+          : prev,
+      );
+    })().catch(() => {});
+  }, [serviceData?.serviceId]);
+
+
   async function searchService(id: string) {
     if (!id) {
       toast({
