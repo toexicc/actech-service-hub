@@ -11,17 +11,15 @@ Changes:
 - A parent service that has options and no amount of its own no longer shows a dangling amount slot; the dotted separator is only drawn between top-level services, not between a service and its options.
 - When one option is already chosen (after approval), the chosen row is marked as selected and the others are shown muted.
 
-## 2. "Loading PDF" that never finishes on the Client Intake Form
+## 2. Drop the "Loading PDF" wording in the preview modal
 
-The viewer already renders pages as images; the stuck state means the render pipeline never resolves and never throws — so no image and no error fallback. The most likely cause is the pdf.js worker script failing to resolve, which leaves the document load pending forever. This is not yet confirmed, so the first step is to instrument it.
+The image rendering already works for both the Client Intake Form and the Service Quotation Form — only the placeholder wording is wrong, since it says "Loading PDF..." while the page image is being prepared.
 
 Changes:
 
-- Add a hard timeout around loading bytes and loading the document. On timeout, the modal shows the existing "couldn't be loaded" fallback with Open in new tab / Download instead of spinning.
-- Fall back to pdf.js's worker-less mode when the worker script can't be fetched, so rendering still completes.
-- Render and show page 1 first, then continue the remaining pages in the background (intake forms carry the appended terms pages, which is the slowest part).
-- Show a clearer progress label ("Rendering page 1 of N") once the page count is known, so a slow multi-page intake form no longer looks frozen.
-- Verify with an actual stored intake form for a real ticket end to end before calling it fixed.
+- Replace the "Loading PDF..." text with a neutral spinner-only placeholder (no "PDF" wording) while the first page image is being prepared.
+- Replace the "Rendering remaining pages..." footer text with the same quiet spinner, so nothing in the modal talks about loading a PDF.
+- Keep the failure fallback (Open in new tab / Download) unchanged.
 
 ## 3. Quotation form auto-reflects the client's approval
 
