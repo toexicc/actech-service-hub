@@ -25,12 +25,22 @@ export const parseServiceBreakdownItems = (diagnosis: string): string[] => {
   return out;
 };
 
+/** One selectable variant of a service line (e.g. OEM vs Original battery). */
+export interface QuotedOption {
+  label: string;
+  cost: number;
+}
+
 /** A finalized quotation line the client sees (and can tick) on /track. */
 export interface QuotedLine {
   name: string;
   cost: number;
   selected: boolean;
   required: boolean;
+  /** Optional variants; when present the line's cost comes from the chosen one. */
+  options?: QuotedOption[];
+  /** Label of the chosen option (empty when nothing is chosen yet). */
+  selectedOption?: string;
 }
 
 const toNumber = (raw: string): number => {
@@ -39,9 +49,25 @@ const toNumber = (raw: string): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/** Strip a trailing "Php 1,200" / ":" tail off a parsed service name. */
+const cleanName = (raw: string): string =>
+  String(raw ?? "")
+    .replace(/[:\-–—]?\s*php\s*[0-9{][^)]*$/i, "")
+    .replace(/[\s:–—-]+$/, "")
+    .trim();
+
+/** Amount on a line, ignoring `{Enter Amount}` style placeholders. */
+const amountOf = (text: string): number => {
+  const m = String(text ?? "").match(/php\s*([0-9][0-9,.]*)/i);
+  return m ? toNumber(m[1]) : 0;
+};
+
+const OPTION_RE = /^option\s*([A-Za-z0-9]+)?\s*[-–—:]\s*([\s\S]+)$/i;
+
 /**
  * Parse the "Service Breakdown" block of an AI diagnosis into quotation lines,
- * keeping any amount found on the line (placeholders resolve to 0).
+ * keeping any amount found on the line (placeholders resolve to 0). Indented
+ * "Option A - OEM: Php 1,200" rows attach to the service above them.
  */
 export const parseQuotedBreakdown = (diagnosis: string): QuotedLine[] => {
   if (!diagnosis) return [];
@@ -57,30 +83,105 @@ export const parseQuotedBreakdown = (diagnosis: string): QuotedLine[] => {
     }
     if (/^(to proceed|summary|recommendations?|findings?|cause|warranty|writing rules)/i.test(raw)) break;
     const cleaned = raw.replace(/^[-*•\d.\s]+/, "");
-    const name = cleaned.split(/\s[-—]\s/)[0].trim();
+
+    const opt = cleaned.match(OPTION_RE);
+    if (opt && out.length) {
+      const label = cleanName(opt[2]) || `Option ${opt[1] ?? out[out.length - 1].options?.length ?? ""}`.trim();
+      const line = out[out.length - 1];
+      line.options = [...(line.options ?? []), { label, cost: amountOf(cleaned) }];
+      continue;
+    }
+
+    const name = cleanName(cleaned.split(/\s[-—]\s/)[0]);
     if (!name || /^php\b/i.test(name)) continue;
-    const amountMatch = cleaned.match(/php\s*([0-9][0-9,.]*)/i);
-    out.push({ name, cost: amountMatch ? toNumber(amountMatch[1]) : 0, selected: true, required: false });
+    out.push({ name, cost: amountOf(cleaned), selected: true, required: false });
   }
-  return out;
+  // A line with options takes its cost from the first (default) option.
+  return out.map((l) =>
+    l.options?.length
+      ? { ...l, selectedOption: l.selectedOption || "", cost: l.cost || 0 }
+      : l,
+  );
+};
+
+const normalizeOptions = (raw: unknown): QuotedOption[] | undefined => {
+  if (!Array.isArray(raw)) return undefined;
+  const out = raw
+    .map((o: any) => ({
+      label: String(o?.label ?? "").trim(),
+      cost: typeof o?.cost === "number" ? o.cost : toNumber(String(o?.cost ?? "0")),
+    }))
+    .filter((o) => o.label);
+  return out.length ? out : undefined;
 };
 
 /** Coerce whatever is stored in services.quoted_breakdown into QuotedLine[]. */
 export const normalizeQuotedBreakdown = (raw: unknown): QuotedLine[] => {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((r: any) => ({
-      name: String(r?.name ?? "").trim(),
-      cost: typeof r?.cost === "number" ? r.cost : toNumber(String(r?.cost ?? "0")),
-      selected: r?.selected === undefined ? true : !!r.selected,
-      required: !!r?.required,
-    }))
+    .map((r: any) => {
+      const options = normalizeOptions(r?.options);
+      return {
+        name: String(r?.name ?? "").trim(),
+        cost: typeof r?.cost === "number" ? r.cost : toNumber(String(r?.cost ?? "0")),
+        selected: r?.selected === undefined ? true : !!r.selected,
+        required: !!r?.required,
+        ...(options ? { options } : {}),
+        selectedOption: String(r?.selectedOption ?? "").trim(),
+      } as QuotedLine;
+    })
     .filter((r) => r.name || r.cost);
 };
 
-/** Total of the ticked lines. */
+/** Amount that actually applies to a line (chosen option wins when present). */
+export const lineEffectiveCost = (line: QuotedLine): number => {
+  if (line.options?.length) {
+    const chosen = line.options.find((o) => o.label === line.selectedOption);
+    return Number(chosen?.cost ?? 0) || 0;
+  }
+  return Number(line.cost ?? 0) || 0;
+};
+
+/** Name shown in remarks / Service-s, including the chosen option. */
+export const lineDisplayName = (line: QuotedLine): string =>
+  line.options?.length && line.selectedOption ? `${line.name} (${line.selectedOption})` : line.name;
+
+/** Total of the ticked lines, using each line's effective cost. */
 export const quotedSelectedTotal = (lines: QuotedLine[]): number =>
-  lines.reduce((sum, l) => sum + (l.selected ? Number(l.cost) || 0 : 0), 0);
+  lines.reduce((sum, l) => sum + (l.selected ? lineEffectiveCost(l) : 0), 0);
+
+export interface QuotedValidation {
+  ok: boolean;
+  /** Index -> problem, for inline highlighting. */
+  problems: Record<number, string>;
+  message: string;
+}
+
+/**
+ * Shared rule set: at least one ticked line, every ticked line must resolve to
+ * an amount greater than zero, and option lines must have a chosen option.
+ */
+export const validateQuotedLines = (lines: QuotedLine[], opts?: { requireOne?: boolean }): QuotedValidation => {
+  const problems: Record<number, string> = {};
+  lines.forEach((l, i) => {
+    if (!l.selected) return;
+    if (l.options?.length && !l.selectedOption) {
+      problems[i] = "Choose an option";
+      return;
+    }
+    if (lineEffectiveCost(l) <= 0) problems[i] = "Enter an amount greater than 0";
+  });
+  const anySelected = lines.some((l) => l.selected);
+  const needsOne = opts?.requireOne !== false;
+  const ok = Object.keys(problems).length === 0 && (!needsOne || anySelected);
+  const message = !anySelected && needsOne
+    ? "Please select at least one service."
+    : Object.keys(problems).length
+    ? "Please fix the highlighted service lines."
+    : "";
+  return { ok, problems, message };
+};
+
 
 
 export interface ApprovalRemark {
