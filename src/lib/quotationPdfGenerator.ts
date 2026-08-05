@@ -27,8 +27,22 @@ export interface QuotationPDFData {
   partsUsed: string;
   discount: string;
   totalCost: string;
-  serviceBreakdown?: { label: string; amount?: string | number }[];
+  serviceBreakdown?: BreakdownItem[];
+  /** e.g. "Client-approved quotation — Juan Dela Cruz, 08/06/2026" */
+  approvalStamp?: string;
   isUpdated?: boolean;
+}
+
+/** One row of the Service Breakdown panel. */
+export interface BreakdownItem {
+  label: string;
+  amount?: string | number;
+  /** Indented variant row (OEM / Original) under the service above it. */
+  isOption?: boolean;
+  /** Rendered in muted ink (not chosen / not approved). */
+  muted?: boolean;
+  /** Chosen option — rendered with a check mark. */
+  selected?: boolean;
 }
 
 /* ------------------------------------------------------------------ tokens */
