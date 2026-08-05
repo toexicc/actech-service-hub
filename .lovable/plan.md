@@ -61,8 +61,26 @@ Change all duration metrics (average turnaround, per-stage time, turnaround dist
 - Days marked as closed in the shop's closed-dates list are skipped entirely.
 - The turnaround distribution buckets are relabelled in working terms (for example "< 4h", "4h–1 shift", "1–3 shifts") and durations display as e.g. `2 shifts 3h` instead of calendar days, with a note on the page stating the shift window and break deduction.
 
+## 6. Attendance vs technician assignment, and attendance reminders
+
+What the current data shows:
+
+- Only one day has any attendance at all (Aug 3), with 11 entries — and every single one of those has a time-in but **no time-out**.
+- Six active staff have no attendance row for that day at all.
+- One name assigned as technician on tickets, "Exi Baclayon", has no staff profile, so that person can never be logged or counted; every other assigned technician does have a profile.
+
+So attendance and technician assignment do not line up today: time-outs are effectively never recorded, several staff never get logged, and at least one technician exists only as free text on tickets.
+
+Planned changes:
+
+- **Assignment / attendance reconciliation panel** on the Attendance Overview: for a chosen date, list each active staff member with their attendance state (In only, In + Out, missing) alongside how many tickets they are assigned that day. Rows flag three problems: assigned work but no attendance, attendance without a time-out, and technician names on tickets that match no staff profile (so "Exi Baclayon" surfaces for cleanup or registration). Management can jump from a row into Staff Management or the ticket list.
+- **9:45 AM time-in reminder**: every management account gets a notification (in-app + push) reminding them to log attendance IN for the day, sent only when the day is not a closed date and time-in entries are still incomplete.
+- **7:00 PM time-out reminder**: same targeting, reminding management to log attendance OUT, listing the staff who are still missing a time-out.
+- **Missing-log follow-ups**: a daily 8:00 PM check notifies management about that day's gaps (no time-in, or time-in without time-out), and the Attendance Overview shows a persistent banner listing dates in the last 14 days with incomplete logs so nothing is silently skipped.
+- Reminders are deduplicated per day and per type, so re-opening the app does not spam the same alert.
 
 ## Technical notes
+
 
 - `services.quoted_breakdown` line shape extends to `{ name, cost, selected, required, options?: [{ label, cost }], selectedOption?: string }`. Existing rows without `options` keep working unchanged — no schema migration needed (the column is already jsonb).
 - `src/lib/serviceApproval.ts`: extend `parseQuotedBreakdown` / `normalizeQuotedBreakdown` for option lines, add `lineEffectiveCost()`, `lineDisplayName()` (name + chosen option) and a `validateQuotedLines()` helper used by both pages.
@@ -72,3 +90,5 @@ Change all duration metrics (average turnaround, per-stage time, turnaround dist
 - `format-diagnosis` prompt/post-processing updated so multi-option repairs emit the `Option A - <label>: PHP {Enter Amount}` form and keep the placeholder rule.
 - `src/lib/reportMetrics.ts`: add a `workingHoursBetween(start, end, closedDates)` helper (10:00–19:00 Manila, minus 1.5h break pro-rated over the counted shift portion, closed dates skipped) and use it inside `buildTimings` for both stage hours and total turnaround; `formatHours` gains a shift-aware display mode. Reports page passes the existing closed-dates list in.
 
+- Attendance reminders run in a new `attendance-reminders` edge function invoked by pg_cron at 09:45, 19:00 and 20:00 Manila time. It resolves management recipients from `user_roles`, skips `closed_dates`, writes rows into `notifications` and calls the existing push sender. A `reminder_kind`-tagged notification per staff/day keeps it idempotent.
+- Reconciliation is a client-side join in a new `src/lib/attendanceReconcile.ts` (active `profiles` x `attendance_logs` for the date x `services.technicians`) consumed by `AttendanceOverview.tsx`; unmatched technician names reuse `src/lib/technicianMatch.ts` for case-insensitive comparison.
