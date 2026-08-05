@@ -7,7 +7,7 @@ import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Penc
 import { Switch } from "@/components/ui/switch";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
-import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, type QuotedLine } from "@/lib/serviceApproval";
+import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, type QuotedLine } from "@/lib/serviceApproval";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
