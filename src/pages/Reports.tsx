@@ -256,7 +256,18 @@ const Reports = () => {
     [activeData, completedData],
   );
 
-  const timings = useMemo(() => buildTimings(allServices, statusLogs as any[]), [allServices, statusLogs]);
+  // Durations count working time only (10:00-19:00 Manila minus a 1.5h break),
+  // and skip days the shop was closed.
+  const closedDayKeys = useMemo(
+    () => (closedDates ?? []).map((c) => String(c.startDate).slice(0, 10)).filter(Boolean),
+    [closedDates],
+  );
+
+  const timings = useMemo(
+    () => buildTimings(allServices, statusLogs as any[], closedDayKeys),
+    [allServices, statusLogs, closedDayKeys],
+  );
+
 
   const buildReport = (p: Period) => {
     const scoped = allServices.filter((s) => inPeriod(s.dateReceived || s.timestamp || s.lastUpdated, p));
