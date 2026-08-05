@@ -571,45 +571,88 @@ const ServiceTracking = () => {
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
   // Quotation lines finalized by the shop (fallback: parse the AI diagnosis).
-  const quotedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
-  const breakdownItems = quotedLines.length
-    ? quotedLines.map((l) => l.name)
-    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "");
-  const lineCost = (name: string) => quotedLines.find((l) => l.name === name)?.cost ?? 0;
-  const selectedTotal = quotedSelectedTotal(
-    quotedLines.map((l) => ({ ...l, selected: selectedBreakdown.includes(l.name) })),
-  );
-  const needsChecklist = breakdownItems.length > 0;
+  const storedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const quotedLines: QuotedLine[] = storedLines.length
+    ? storedLines
+    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").map((name) => ({
+        name,
+        cost: 0,
+        selected: true,
+        required: false,
+      }));
+  const alreadyApproved: string[] = Array.isArray((serviceData as any)?.approvedServices)
+    ? (serviceData as any).approvedServices
+    : [];
+  const normKey = (s: string) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const approvedKeys = new Set(alreadyApproved.map(normKey));
+  const isLineLocked = (line: QuotedLine, i: number) =>
+    line.required || approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+
+  /** Lines with the client's live picks applied (index-keyed). */
+  const liveLines: QuotedLine[] = quotedLines.map((l, i) => ({
+    ...l,
+    selected: selectedIdx.includes(i),
+    selectedOption: l.options?.length ? optionChoice[i] ?? "" : l.selectedOption,
+  }));
+  const selectedTotal = quotedSelectedTotal(liveLines);
+  const validation = validateQuotedLines(liveLines);
+  const needsChecklist = quotedLines.length > 0;
   const remark = parseApprovalRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
+  // Lines the client has not approved yet — they keep the checklist available
+  // after a partial approval is re-opened by the shop.
+  const hasPendingLines = quotedLines.some((l, i) => !isLineLocked(l, i));
+  const canRespond =
+    isWaitingToProceed &&
+    !serviceData?.approvalLocked &&
+    (!approvalRecord || (approvalRecord.decision === "Approved" && hasPendingLines));
 
-  // Pre-tick whatever the shop marked as selected on the quotation.
+  // Pre-tick whatever the shop marked as selected, plus anything already approved.
   useEffect(() => {
-    const preselected = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown)
-      .filter((l) => l.selected || l.required)
-      .map((l) => l.name);
-    setSelectedBreakdown(preselected);
+    const lines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+    const approved = new Set(
+      (Array.isArray((serviceData as any)?.approvedServices) ? (serviceData as any).approvedServices : []).map(
+        (n: string) => normKey(n),
+      ),
+    );
+    const idx: number[] = [];
+    const choices: Record<number, string> = {};
+    lines.forEach((l, i) => {
+      if (l.selected || l.required || approved.has(normKey(l.name))) idx.push(i);
+      if (l.options?.length && l.selectedOption) choices[i] = l.selectedOption;
+    });
+    setSelectedIdx(idx);
+    setOptionChoice(choices);
   }, [serviceData?.serviceId, JSON.stringify((serviceData as any)?.quotedBreakdown ?? [])]);
 
-  const toggleBreakdown = (item: string) => {
-    const line = quotedLines.find((candidate) => candidate.name === item);
-    if (line?.required) return;
-    setSelectedBreakdown((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+  const toggleBreakdown = (i: number) => {
+    const line = quotedLines[i];
+    if (!line || isLineLocked(line, i)) return;
+    setSelectedIdx((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
   };
 
+  const chooseOption = (i: number, label: string) => {
+    setOptionChoice((prev) => ({ ...prev, [i]: label }));
+    setSelectedIdx((prev) => (prev.includes(i) ? prev : [...prev, i]));
+  };
+
+  const selectedNames = liveLines.filter((l) => l.selected).map(lineDisplayName);
+
   const startApprove = () => {
-    if (needsChecklist && selectedBreakdown.length === 0) {
+    if (needsChecklist && !validation.ok) {
       toast({
-        title: "Select at least one service",
-        description: "Please tick the services you'd like us to proceed with.",
+        title: validation.message || "Please review your selection",
+        description: "Tick the services you'd like us to proceed with and pick an option where offered.",
         variant: "destructive",
       });
       return;
     }
     setConfirmApproveOpen(true);
   };
+
+
 
 
   return (
