@@ -1257,8 +1257,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   </TableBody>
                 </Table>
               </div>
+            ) : servicesError ? (
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm font-semibold text-destructive">Tickets could not be loaded</p>
+                <p className="text-xs text-muted-foreground">
+                  {(servicesError as any)?.message || "The connection dropped while fetching services."}
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetchServices()}>
+                  Retry
+                </Button>
+              </div>
             ) : filteredAndSortedServices.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No ongoing services found</div>
+              <div className="text-center py-8 space-y-3">
+                <p className="text-muted-foreground">No services match the current filters</p>
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+
             ) : viewMode === "cards" ? (
               <>
                 <div className="flex items-center justify-end mb-4">
