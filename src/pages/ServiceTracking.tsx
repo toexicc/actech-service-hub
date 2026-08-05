@@ -1513,9 +1513,10 @@ const ServiceTracking = () => {
           <AlertDialogHeader className="shrink-0">
             <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
             <AlertDialogDescription>
-              {needsChecklist && selectedBreakdown.length < breakdownItems.length ? (
+              {needsChecklist && selectedNames.length < quotedLines.length ? (
                 <>
-                  You are approving only: <strong>{selectedBreakdown.join(", ")}</strong>. The remaining
+                  You are approving only: <strong>{selectedNames.join(", ")}</strong>. The remaining
+
                   services stay pending — our team will contact you to confirm before the repair starts.
                 </>
               ) : (
