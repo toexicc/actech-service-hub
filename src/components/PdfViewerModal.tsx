@@ -155,9 +155,8 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
                 />
               ))}
               {busy && (
-                <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-center py-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Rendering remaining pages...
                 </div>
               )}
             </div>
