@@ -206,7 +206,10 @@ const ServiceTracking = () => {
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
   const [confirmDeclineOpen, setConfirmDeclineOpen] = useState(false);
-  const [selectedBreakdown, setSelectedBreakdown] = useState<string[]>([]);
+  // Selection is keyed by line index (names can repeat or be edited by the shop).
+  const [selectedIdx, setSelectedIdx] = useState<number[]>([]);
+  const [optionChoice, setOptionChoice] = useState<Record<number, string>>({});
+
 
 
   const { toast } = useToast();
