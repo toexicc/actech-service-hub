@@ -689,12 +689,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           return false;
         }
       } else if (departmentFilter !== "all") {
-        // Department filter - only apply if no specific technician is selected
-        const techDept = techniciansWithDept.find(t => t.name === service.technician)?.department;
-        if (techDept !== departmentFilter) {
+        // Department filter — a ticket matches when ANY assigned technician
+        // belongs to the selected department (tickets can have several techs).
+        const normName = (v?: string) => (v || "").trim().toLowerCase();
+        const assigned = (service.technician || "").split(",").map(normName).filter(Boolean);
+        const matchesDept =
+          assigned.some((n) =>
+            techniciansWithDept.some((t) => normName(t.name) === n && t.department === departmentFilter),
+          ) ||
+          (service.technicianDepartment || "")
+            .split(",")
+            .map((d) => d.trim())
+            .includes(departmentFilter);
+        if (!matchesDept) {
           return false;
         }
       }
+
 
       // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
       // the "All" and "Cancelled / RTO / On Hold" tabs. They never leak into
