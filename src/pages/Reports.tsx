@@ -586,7 +586,7 @@ const Reports = () => {
             icon={<CheckCircle className="h-5 w-5" />}
           />
           <KpiCard
-            label="Avg. turnaround"
+            label="Avg. turnaround (working hrs)"
             value={formatHours(report.avgTurnaround)}
             sub={`${report.logBacked}/${report.completed.length} from logs`}
             change={prev ? delta(report.avgTurnaround, prev.avgTurnaround) : null}
@@ -664,9 +664,9 @@ const Reports = () => {
         {/* Turnaround */}
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
           <Panel
-            title="Where time is spent (avg. hours per stage)"
+            title="Where time is spent (avg. working hours per stage)"
             icon={<Clock className="h-4 w-4" />}
-            hint="Derived from status-change activity logs."
+            hint="Working hours only: 10:00 AM - 7:00 PM shift, less the 1.5h daily break, skipping shop closed dates."
           >
             <div className="h-[300px]">
               {stageHours.length === 0 ? (
@@ -685,7 +685,7 @@ const Reports = () => {
             </div>
           </Panel>
 
-          <Panel title="Turnaround distribution" icon={<Clock className="h-4 w-4" />} hint="Completed tickets grouped by total time to completion.">
+          <Panel title="Turnaround distribution" icon={<Clock className="h-4 w-4" />} hint="Completed tickets grouped by total working time (shift hours only, breaks excluded).">
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={turnaroundDist}>
