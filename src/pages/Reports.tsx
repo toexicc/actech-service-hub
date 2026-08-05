@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useServices, useCompletedServices } from "@/hooks/useServices";
+import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
