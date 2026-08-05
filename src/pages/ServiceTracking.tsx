@@ -499,7 +499,18 @@ const ServiceTracking = () => {
           serviceId: serviceData.serviceId,
           approved,
           reason: reason || "",
-          selectedServices: approved ? selectedBreakdown : [],
+          selectedServices: approved ? selectedNames : [],
+          selectedLines: approved
+            ? liveLines
+                .filter((l) => l.selected)
+                .map((l) => ({
+                  name: l.name,
+                  label: lineDisplayName(l),
+                  option: l.selectedOption || "",
+                  cost: lineEffectiveCost(l),
+                }))
+            : [],
+
         },
       });
 
