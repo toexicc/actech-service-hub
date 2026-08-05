@@ -75,6 +75,21 @@ serve(async (req) => {
           .filter(Boolean)
           .slice(0, 50)
       : [];
+    // Richer payload: each picked line with the chosen sub-option and its price.
+    const selectedLines: { name: string; label: string; option: string; cost: number }[] = Array.isArray(
+      body?.selectedLines,
+    )
+      ? body.selectedLines
+          .map((l: any) => ({
+            name: String(l?.name ?? "").trim().slice(0, 200),
+            label: String(l?.label ?? l?.name ?? "").trim().slice(0, 240),
+            option: String(l?.option ?? "").trim().slice(0, 120),
+            cost: Math.max(0, Number(l?.cost ?? 0) || 0),
+          }))
+          .filter((l: any) => l.name)
+          .slice(0, 50)
+      : [];
+
 
     if (!serviceId || serviceId.length > 64 || typeof approved !== "boolean") {
       return json({ error: "serviceId (string) and approved (boolean) are required" }, 400);
