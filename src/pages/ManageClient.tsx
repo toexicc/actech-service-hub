@@ -679,6 +679,24 @@ const ManageClient = () => {
       return;
     }
 
+    // Every ticked quotation line must carry a real amount (and a chosen option
+    // when it has variants) before the client can be asked to approve it.
+    if (quotedLines.length) {
+      const check = validateQuotedLines(quotedLines);
+      if (!check.ok) {
+        setQuotedProblems(check.problems);
+        toast({
+          title: "Service Breakdown needs attention",
+          description: check.message || "Please review the highlighted service lines.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setQuotedProblems({});
+    }
+
+
+
 
     setIsUpdatingClientInfo(true);
     try {
