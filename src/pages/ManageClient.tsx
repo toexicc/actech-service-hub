@@ -191,6 +191,8 @@ const ManageClient = () => {
   const [finalCost, setFinalCost] = useState(0);
   // Finalized quotation lines shown to the client on /track.
   const [quotedLines, setQuotedLines] = useState<QuotedLine[]>([]);
+  const [quotedProblems, setQuotedProblems] = useState<Record<number, string>>({});
+
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
