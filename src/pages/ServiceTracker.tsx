@@ -816,12 +816,40 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return filteredAndSortedServices.slice(startIndex, endIndex);
   }, [filteredAndSortedServices, currentPage]);
 
-  const totalPages = Math.ceil(filteredAndSortedServices.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedServices.length / itemsPerPage));
+
+  useEffect(() => {
+    // Never leave the user on a page that no longer exists after filtering.
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const hasActiveFilters =
+    deviceTypeFilter !== "all" ||
+    statusFilter !== "all" ||
+    dueDateFilter !== "all" ||
+    !!startDate ||
+    !!endDate ||
+    !!debouncedSearch.trim() ||
+    (!isTechnician && (technicianFilter !== "all" || departmentFilter !== "all"));
+
+  const clearAllFilters = () => {
+    setDeviceTypeFilter("all");
+    setStatusFilter("all");
+    setDueDateFilter("all");
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSearchInput("");
+    if (!isTechnician) {
+      setTechnicianFilter("all");
+      setDepartmentFilter("all");
+    }
+  };
 
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
   }, [deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
+
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
