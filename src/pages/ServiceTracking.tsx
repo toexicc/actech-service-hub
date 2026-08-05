@@ -1025,25 +1025,94 @@ const ServiceTracking = () => {
                                   to confirm before starting the repair.
                                 </p>
                                 <div className="space-y-2 pt-1">
-                                  {breakdownItems.map((item) => (
-                                    <label
-                                      key={item}
-                                        className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 cursor-pointer"
-                                    >
-                                      <Checkbox
-                                        checked={selectedBreakdown.includes(item)}
-                                        onCheckedChange={() => toggleBreakdown(item)}
-                                         disabled={quotedLines.find((line) => line.name === item)?.required}
-                                        className="mt-0.5"
-                                      />
-                                      <span className="flex-1 text-sm">{item}</span>
-                                       {quotedLines.find((line) => line.name === item)?.required && (
-                                         <Lock className="h-4 w-4 text-muted-foreground" aria-label="Required service" />
-                                       )}
-                                       <span className="text-sm font-semibold">₱{lineCost(item).toLocaleString()}</span>
-                                    </label>
-                                  ))}
+                                  {quotedLines.map((line, i) => {
+                                    const locked = isLineLocked(line, i);
+                                    const checked = selectedIdx.includes(i);
+                                    const chosen = optionChoice[i] ?? "";
+                                    return (
+                                      <div
+                                        key={i}
+                                        className="rounded-xl border border-border/60 bg-background/60 p-3"
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <Checkbox
+                                            id={`svc-line-${i}`}
+                                            checked={checked}
+                                            onCheckedChange={() => toggleBreakdown(i)}
+                                            disabled={locked}
+                                            className="mt-0.5"
+                                          />
+                                          <span
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => toggleBreakdown(i)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                toggleBreakdown(i);
+                                              }
+                                            }}
+                                            className={cn("flex-1 text-sm", !locked && "cursor-pointer")}
+                                          >
+                                            {line.name}
+                                          </span>
+                                          {locked && (
+                                            <Lock
+                                              className="h-4 w-4 text-muted-foreground"
+                                              aria-label="Already confirmed"
+                                            />
+                                          )}
+                                          <span className="text-sm font-semibold">
+                                            {line.options?.length && !chosen
+                                              ? "Choose an option"
+                                              : `₱${lineEffectiveCost({ ...line, selectedOption: chosen }).toLocaleString()}`}
+                                          </span>
+                                        </div>
+                                        {!!line.options?.length && (
+                                          <div className="mt-2 space-y-1 pl-8">
+                                            {line.options.map((opt, oi) => (
+                                              <div
+                                                key={oi}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => !locked && chooseOption(i, opt.label)}
+                                                onKeyDown={(e) => {
+                                                  if (!locked && (e.key === "Enter" || e.key === " ")) {
+                                                    e.preventDefault();
+                                                    chooseOption(i, opt.label);
+                                                  }
+                                                }}
+                                                className={cn(
+                                                  "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
+                                                  chosen === opt.label
+                                                    ? "border-primary bg-primary/10"
+                                                    : "border-border/60 bg-background/40",
+                                                  !locked && "cursor-pointer",
+                                                )}
+                                              >
+                                                <span className="flex items-center gap-2">
+                                                  <span
+                                                    className={cn(
+                                                      "h-3.5 w-3.5 rounded-full border",
+                                                      chosen === opt.label
+                                                        ? "border-primary bg-primary"
+                                                        : "border-muted-foreground/50",
+                                                    )}
+                                                  />
+                                                  {opt.label}
+                                                </span>
+                                                <span className="font-semibold">
+                                                  ₱{Number(opt.cost || 0).toLocaleString()}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
+
                                 {quotedLines.length > 0 && (
                                   <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
                                     <span className="font-medium">Estimated total for the selected services</span>
