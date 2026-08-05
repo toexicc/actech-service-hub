@@ -1152,6 +1152,7 @@ const ManageClient = () => {
             : String(serviceData.finalCost || serviceData.serviceCost || "0.00");
         })(),
 
+        serviceBreakdown: quotedLines.length ? quotedLineItems(quotedLines) : undefined,
         isUpdated: !!serviceData.quotationPdfUrl,
       };
       
