@@ -785,7 +785,7 @@ const buildBreakdownBlocks = (
       const label = item.selected ? `${item.label}  (selected)` : item.label;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(size);
-      const amountText = item.amount;
+      const amountText = item.amount === undefined ? undefined : `${item.amount}`;
       const amountW = amountText ? Math.min(30, doc.getTextWidth(amountText) + 2) : 0;
       const labelLines = doc.splitTextToSize(label, innerW - amountW - indent - 2);
       // Only rule between top-level services, never between a service and
