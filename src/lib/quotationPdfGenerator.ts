@@ -27,8 +27,22 @@ export interface QuotationPDFData {
   partsUsed: string;
   discount: string;
   totalCost: string;
-  serviceBreakdown?: { label: string; amount?: string | number }[];
+  serviceBreakdown?: BreakdownItem[];
+  /** e.g. "Client-approved quotation — Juan Dela Cruz, 08/06/2026" */
+  approvalStamp?: string;
   isUpdated?: boolean;
+}
+
+/** One row of the Service Breakdown panel. */
+export interface BreakdownItem {
+  label: string;
+  amount?: string | number;
+  /** Indented variant row (OEM / Original) under the service above it. */
+  isOption?: boolean;
+  /** Rendered in muted ink (not chosen / not approved). */
+  muted?: boolean;
+  /** Chosen option — rendered with a check mark. */
+  selected?: boolean;
 }
 
 /* ------------------------------------------------------------------ tokens */
@@ -694,13 +708,15 @@ const drawSummaryBlocks = (
 };
 
 
-const parseBreakdownFromDiagnosis = (raw?: string): { label: string; amount?: string }[] => {
+const OPTION_RE = /^option\s+([A-Za-z0-9]+)\s*[-–:]\s*(.+)$/i;
+
+const parseBreakdownFromDiagnosis = (raw?: string): BreakdownItem[] => {
   if (!raw) return [];
-  const marker = raw.search(/service breakdown\s*:/i);
+  const marker = raw.search(/service breakdown\s*:?/i);
   if (marker < 0) return [];
   const tail = raw.slice(marker);
   const lines = tail.split("\n").slice(1).map((l) => l.trim());
-  const out: { label: string; amount?: string }[] = [];
+  const out: BreakdownItem[] = [];
   for (const line of lines) {
     if (!line) {
       if (out.length) break;
@@ -710,8 +726,14 @@ const parseBreakdownFromDiagnosis = (raw?: string): { label: string; amount?: st
     const cleaned = line.replace(/^([-•·*]|\d+[.)])\s*/, "").replace(/[#*_`]/g, "").trim();
     if (!cleaned) continue;
     const m = cleaned.match(/^(.*?)[\s-–:]*((?:Php|PHP|₱)\s*[^\s].*)$/);
-    if (m) out.push({ label: m[1].replace(/[-–:\s]+$/, ""), amount: m[2].trim() });
-    else out.push({ label: cleaned });
+    const label = (m ? m[1].replace(/[-–:\s]+$/, "") : cleaned).trim();
+    const amount = m ? m[2].trim() : undefined;
+    const opt = label.match(OPTION_RE);
+    if (opt) {
+      out.push({ label: `Option ${opt[1].toUpperCase()} - ${opt[2].trim()}`, amount, isOption: true });
+    } else {
+      out.push({ label, amount });
+    }
   }
   return out;
 };
@@ -722,16 +744,17 @@ const buildBreakdownBlocks = (
   innerW: number,
   scale = 1,
 ): Block[] => {
-  const items =
-    (data.serviceBreakdown && data.serviceBreakdown.length
-      ? data.serviceBreakdown.map((i) => ({
-          label: i.label,
-          amount:
-            i.amount === undefined || i.amount === null || i.amount === ""
-              ? undefined
-              : `${i.amount}`.replace(/^(?!Php|PHP|₱)/, "Php "),
-        }))
-      : parseBreakdownFromDiagnosis(data.technicianDiagnosis));
+  const withPeso = (amount?: string | number) =>
+    amount === undefined || amount === null || amount === ""
+      ? undefined
+      : /^(php|PHP|₱|not\b|declin|pending)/i.test(`${amount}`.trim())
+      ? `${amount}`.trim()
+      : `Php ${amount}`;
+
+  const items: BreakdownItem[] =
+    data.serviceBreakdown && data.serviceBreakdown.length
+      ? data.serviceBreakdown.map((i) => ({ ...i, amount: withPeso(i.amount) }))
+      : parseBreakdownFromDiagnosis(data.technicianDiagnosis);
 
   const blocks: Block[] = [];
   const BODY = 7.4 * scale;
@@ -756,25 +779,39 @@ const buildBreakdownBlocks = (
     });
   } else {
     items.forEach((item, i) => {
+      const isOption = !!item.isOption;
+      const size = isOption ? BODY - 0.5 * scale : BODY;
+      const indent = isOption ? 6.2 : 3.4;
+      const label = item.selected ? `${item.label}  (selected)` : item.label;
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(BODY);
-      const amountW = item.amount ? Math.min(28, doc.getTextWidth(item.amount) + 2) : 0;
-      const labelLines = doc.splitTextToSize(item.label, innerW - amountW - 5);
+      doc.setFontSize(size);
+      const amountText = item.amount === undefined ? undefined : `${item.amount}`;
+      const amountW = amountText ? Math.min(30, doc.getTextWidth(amountText) + 2) : 0;
+      const labelLines = doc.splitTextToSize(label, innerW - amountW - indent - 2);
+      // Only rule between top-level services, never between a service and
+      // its own option rows.
+      const rule = i > 0 && !isOption;
       blocks.push({
-        h: Math.max(4.6 * scale, labelLines.length * LEAD + 1.4 * scale),
-        gapBefore: i === 0 ? 1 : 0.6 * scale,
+        h: Math.max((isOption ? 4.1 : 4.6) * scale, labelLines.length * LEAD + 1.4 * scale),
+        gapBefore: i === 0 ? 1 : (isOption ? 0.2 : 0.6) * scale,
         draw: (x, y, w) => {
-          if (i > 0) dottedRule(doc, x, y - 0.6, x + w);
-          setFill(doc, ACCENT);
-          doc.circle(x + 1, y + 1.9 * scale, 0.55, "F");
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(BODY);
-          setText(doc, INK);
-          doc.text(labelLines, x + 3.4, y + 2.6 * scale);
-          if (item.amount) {
-            doc.setFont("helvetica", "bold");
-            setText(doc, NAVY);
-            doc.text(item.amount, x + w, y + 2.6 * scale, { align: "right" });
+          if (rule) dottedRule(doc, x, y - 0.6, x + w);
+          if (isOption) {
+            setDraw(doc, item.muted ? BORDER : ACCENT);
+            doc.setLineWidth(0.4);
+            doc.line(x + 4, y + 1.9 * scale, x + 5.4, y + 1.9 * scale);
+          } else {
+            setFill(doc, ACCENT);
+            doc.circle(x + 1, y + 1.9 * scale, 0.55, "F");
+          }
+          doc.setFont("helvetica", item.selected ? "bold" : "normal");
+          doc.setFontSize(size);
+          setText(doc, item.muted ? MUTED : isOption ? INK : INK);
+          doc.text(labelLines, x + indent, y + 2.6 * scale);
+          if (amountText) {
+            doc.setFont("helvetica", item.muted ? "normal" : "bold");
+            setText(doc, item.muted ? MUTED : NAVY);
+            doc.text(amountText, x + w, y + 2.6 * scale, { align: "right" });
           }
         },
       });
@@ -785,7 +822,9 @@ const buildBreakdownBlocks = (
   doc.setFont("helvetica", "italic");
   doc.setFontSize(noteSize);
   const note = doc.splitTextToSize(
-    "This is the suggested repair for your service. We will be waiting for your approval.",
+    data.approvalStamp
+      ? data.approvalStamp
+      : "This is the suggested repair for your service. We will be waiting for your approval.",
     innerW - 4,
   );
   const noteH = note.length * LEAD + 5 * scale;

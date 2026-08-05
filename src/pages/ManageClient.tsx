@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
@@ -35,6 +35,7 @@ import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
+import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
@@ -570,6 +571,30 @@ const ManageClient = () => {
     })();
     return () => { cancelled = true; };
   }, [serviceData?.serviceId, serviceData?.quotationPdfUrl]);
+
+  // Keep the stored quotation form in sync with the client's approval: when a
+  // client approves (or re-approves) part of the breakdown, the PDF is rebuilt
+  // from the approved lines and their chosen options.
+  const syncedQuotationRef = useRef<string>("");
+  useEffect(() => {
+    const sid = serviceData?.serviceId;
+    if (!sid || syncedQuotationRef.current === sid) return;
+    syncedQuotationRef.current = sid;
+    (async () => {
+      const { regenerated } = await syncApprovedQuotation(sid);
+      if (!regenerated) return;
+      const url = await getServicePdfSignedUrl(sid, "quotation");
+      setServiceData((prev: any) =>
+        prev && prev.serviceId === sid
+          ? { ...prev, quotationPdfUrl: url || prev.quotationPdfUrl || "generated" }
+          : prev,
+      );
+      toast({
+        title: "Quotation updated",
+        description: "The quotation form now reflects the approved services.",
+      });
+    })().catch(() => {});
+  }, [serviceData?.serviceId]);
 
   // Fallback: resolve the intake PDF from Supabase Storage when Sheets
   // didn't return a pdfUrl, so the "View PDF" button is enabled.
@@ -1127,6 +1152,7 @@ const ManageClient = () => {
             : String(serviceData.finalCost || serviceData.serviceCost || "0.00");
         })(),
 
+        serviceBreakdown: quotedLines.length ? quotedLineItems(quotedLines) : undefined,
         isUpdated: !!serviceData.quotationPdfUrl,
       };
       

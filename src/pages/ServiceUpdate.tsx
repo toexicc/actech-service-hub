@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
@@ -19,6 +19,7 @@ import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
+import { syncApprovedQuotation } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -468,6 +469,26 @@ const ServiceUpdate = () => {
     })();
     return () => { cancelled = true; };
   }, [serviceData?.serviceId, serviceData?.pdfUrl, serviceData?.quotationPdfUrl]);
+
+  // Rebuild the stored quotation from the client's approved lines when the
+  // approval is newer than the stored file.
+  const syncedQuotationRef = useRef<string>("");
+  useEffect(() => {
+    const sid = serviceData?.serviceId;
+    if (!sid || syncedQuotationRef.current === sid) return;
+    syncedQuotationRef.current = sid;
+    (async () => {
+      const { regenerated } = await syncApprovedQuotation(sid);
+      if (!regenerated) return;
+      const url = await getServicePdfSignedUrl(sid, "quotation");
+      setServiceData((prev: any) =>
+        prev && prev.serviceId === sid
+          ? { ...prev, quotationPdfUrl: url || prev.quotationPdfUrl }
+          : prev,
+      );
+    })().catch(() => {});
+  }, [serviceData?.serviceId]);
+
 
   async function searchService(id: string) {
     if (!id) {

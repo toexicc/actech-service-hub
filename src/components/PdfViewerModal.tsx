@@ -124,8 +124,7 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
         <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain bg-muted">
           {loadingFirst && (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              Loading PDF...
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           )}
           {failed && pages.length === 0 && (
@@ -156,9 +155,8 @@ export const PdfViewerModal = ({ open, onOpenChange, url, title = "Document", fi
                 />
               ))}
               {busy && (
-                <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-center py-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Rendering remaining pages...
                 </div>
               )}
             </div>
