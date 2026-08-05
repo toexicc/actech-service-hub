@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useStaff } from "@/hooks/useStaff";
 import { useInvalidateAvailability } from "@/hooks/useStaffAvailability";
 import { toast } from "@/hooks/use-toast";
+import AttendanceReconcilePanel from "@/components/attendance/AttendanceReconcilePanel";
 
 interface AttendanceRow {
   id: string;
@@ -79,6 +80,7 @@ const isoFor = (day: string, hhmm: string) => (hhmm ? new Date(`${day}T${hhmm}:0
 
 const AttendanceOverview = () => {
   const [rows, setRows] = useState<AttendanceRow[]>([]);
+  const [reconcileDate, setReconcileDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -479,6 +481,7 @@ const AttendanceOverview = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="logs">Daily Logs</TabsTrigger>
             <TabsTrigger value="leave">Leave Tracker ({onLeaveToday.length} today)</TabsTrigger>
+            <TabsTrigger value="reconcile">Reconciliation</TabsTrigger>
           </TabsList>
 
           <TabsContent value="logs">
@@ -756,6 +759,15 @@ const AttendanceOverview = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reconcile">
+            <AttendanceReconcilePanel
+              date={reconcileDate}
+              onDateChange={setReconcileDate}
+              attendance={rows}
+              staff={(staff ?? []) as any}
+            />
           </TabsContent>
         </Tabs>
       </div>

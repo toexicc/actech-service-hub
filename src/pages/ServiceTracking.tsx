@@ -30,9 +30,11 @@ import { clientStatusLabel } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, type QuotedLine } from "@/lib/serviceApproval";
 
 
 
@@ -150,7 +152,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
       approvalLocked: !!(row as any).approval_locked,
+      approvedServices: Array.isArray((row as any).approved_services) ? (row as any).approved_services : [],
+      pendingServices: Array.isArray((row as any).pending_services) ? (row as any).pending_services : [],
       quotedBreakdown: Array.isArray((row as any).quoted_breakdown) ? (row as any).quoted_breakdown : [],
+
       serviceCost: sb.serviceCost ?? sheetData.serviceCost,
     };
   } catch {
@@ -206,7 +211,10 @@ const ServiceTracking = () => {
   const [submittingApproval, setSubmittingApproval] = useState(false);
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
   const [confirmDeclineOpen, setConfirmDeclineOpen] = useState(false);
-  const [selectedBreakdown, setSelectedBreakdown] = useState<string[]>([]);
+  // Selection is keyed by line index (names can repeat or be edited by the shop).
+  const [selectedIdx, setSelectedIdx] = useState<number[]>([]);
+  const [optionChoice, setOptionChoice] = useState<Record<number, string>>({});
+
 
 
   const { toast } = useToast();
@@ -493,7 +501,18 @@ const ServiceTracking = () => {
           serviceId: serviceData.serviceId,
           approved,
           reason: reason || "",
-          selectedServices: approved ? selectedBreakdown : [],
+          selectedServices: approved ? selectedNames : [],
+          selectedLines: approved
+            ? liveLines
+                .filter((l) => l.selected)
+                .map((l) => ({
+                  name: l.name,
+                  label: lineDisplayName(l),
+                  option: l.selectedOption || "",
+                  cost: lineEffectiveCost(l),
+                }))
+            : [],
+
         },
       });
 
@@ -565,45 +584,88 @@ const ServiceTracking = () => {
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
   // Quotation lines finalized by the shop (fallback: parse the AI diagnosis).
-  const quotedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
-  const breakdownItems = quotedLines.length
-    ? quotedLines.map((l) => l.name)
-    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "");
-  const lineCost = (name: string) => quotedLines.find((l) => l.name === name)?.cost ?? 0;
-  const selectedTotal = quotedSelectedTotal(
-    quotedLines.map((l) => ({ ...l, selected: selectedBreakdown.includes(l.name) })),
-  );
-  const needsChecklist = breakdownItems.length > 0;
+  const storedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const quotedLines: QuotedLine[] = storedLines.length
+    ? storedLines
+    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").map((name) => ({
+        name,
+        cost: 0,
+        selected: true,
+        required: false,
+      }));
+  const alreadyApproved: string[] = Array.isArray((serviceData as any)?.approvedServices)
+    ? (serviceData as any).approvedServices
+    : [];
+  const normKey = (s: string) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const approvedKeys = new Set(alreadyApproved.map(normKey));
+  const isLineLocked = (line: QuotedLine, i: number) =>
+    line.required || approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+
+  /** Lines with the client's live picks applied (index-keyed). */
+  const liveLines: QuotedLine[] = quotedLines.map((l, i) => ({
+    ...l,
+    selected: selectedIdx.includes(i),
+    selectedOption: l.options?.length ? optionChoice[i] ?? "" : l.selectedOption,
+  }));
+  const selectedTotal = quotedSelectedTotal(liveLines);
+  const validation = validateQuotedLines(liveLines);
+  const needsChecklist = quotedLines.length > 0;
   const remark = parseApprovalRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
+  // Lines the client has not approved yet — they keep the checklist available
+  // after a partial approval is re-opened by the shop.
+  const hasPendingLines = quotedLines.some((l, i) => !isLineLocked(l, i));
+  const canRespond =
+    isWaitingToProceed &&
+    !serviceData?.approvalLocked &&
+    (!approvalRecord || (approvalRecord.decision === "Approved" && hasPendingLines));
 
-  // Pre-tick whatever the shop marked as selected on the quotation.
+  // Pre-tick whatever the shop marked as selected, plus anything already approved.
   useEffect(() => {
-    const preselected = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown)
-      .filter((l) => l.selected || l.required)
-      .map((l) => l.name);
-    setSelectedBreakdown(preselected);
+    const lines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+    const approved = new Set(
+      (Array.isArray((serviceData as any)?.approvedServices) ? (serviceData as any).approvedServices : []).map(
+        (n: string) => normKey(n),
+      ),
+    );
+    const idx: number[] = [];
+    const choices: Record<number, string> = {};
+    lines.forEach((l, i) => {
+      if (l.selected || l.required || approved.has(normKey(l.name))) idx.push(i);
+      if (l.options?.length && l.selectedOption) choices[i] = l.selectedOption;
+    });
+    setSelectedIdx(idx);
+    setOptionChoice(choices);
   }, [serviceData?.serviceId, JSON.stringify((serviceData as any)?.quotedBreakdown ?? [])]);
 
-  const toggleBreakdown = (item: string) => {
-    const line = quotedLines.find((candidate) => candidate.name === item);
-    if (line?.required) return;
-    setSelectedBreakdown((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+  const toggleBreakdown = (i: number) => {
+    const line = quotedLines[i];
+    if (!line || isLineLocked(line, i)) return;
+    setSelectedIdx((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
   };
 
+  const chooseOption = (i: number, label: string) => {
+    setOptionChoice((prev) => ({ ...prev, [i]: label }));
+    setSelectedIdx((prev) => (prev.includes(i) ? prev : [...prev, i]));
+  };
+
+  const selectedNames = liveLines.filter((l) => l.selected).map(lineDisplayName);
+
   const startApprove = () => {
-    if (needsChecklist && selectedBreakdown.length === 0) {
+    if (needsChecklist && !validation.ok) {
       toast({
-        title: "Select at least one service",
-        description: "Please tick the services you'd like us to proceed with.",
+        title: validation.message || "Please review your selection",
+        description: "Tick the services you'd like us to proceed with and pick an option where offered.",
         variant: "destructive",
       });
       return;
     }
     setConfirmApproveOpen(true);
   };
+
+
 
 
   return (
@@ -941,7 +1003,7 @@ const ServiceTracking = () => {
                       </div>
                     )}
 
-                    {isWaitingToProceed && !approvalRecord && !serviceData.approvalLocked && (
+                    {canRespond && (
                       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
                         {declineOpen ? (
                           <div className="space-y-3">
@@ -976,25 +1038,94 @@ const ServiceTracking = () => {
                                   to confirm before starting the repair.
                                 </p>
                                 <div className="space-y-2 pt-1">
-                                  {breakdownItems.map((item) => (
-                                    <label
-                                      key={item}
-                                        className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 cursor-pointer"
-                                    >
-                                      <Checkbox
-                                        checked={selectedBreakdown.includes(item)}
-                                        onCheckedChange={() => toggleBreakdown(item)}
-                                         disabled={quotedLines.find((line) => line.name === item)?.required}
-                                        className="mt-0.5"
-                                      />
-                                      <span className="flex-1 text-sm">{item}</span>
-                                       {quotedLines.find((line) => line.name === item)?.required && (
-                                         <Lock className="h-4 w-4 text-muted-foreground" aria-label="Required service" />
-                                       )}
-                                       <span className="text-sm font-semibold">₱{lineCost(item).toLocaleString()}</span>
-                                    </label>
-                                  ))}
+                                  {quotedLines.map((line, i) => {
+                                    const locked = isLineLocked(line, i);
+                                    const checked = selectedIdx.includes(i);
+                                    const chosen = optionChoice[i] ?? "";
+                                    return (
+                                      <div
+                                        key={i}
+                                        className="rounded-xl border border-border/60 bg-background/60 p-3"
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <Checkbox
+                                            id={`svc-line-${i}`}
+                                            checked={checked}
+                                            onCheckedChange={() => toggleBreakdown(i)}
+                                            disabled={locked}
+                                            className="mt-0.5"
+                                          />
+                                          <span
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => toggleBreakdown(i)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                toggleBreakdown(i);
+                                              }
+                                            }}
+                                            className={cn("flex-1 text-sm", !locked && "cursor-pointer")}
+                                          >
+                                            {line.name}
+                                          </span>
+                                          {locked && (
+                                            <Lock
+                                              className="h-4 w-4 text-muted-foreground"
+                                              aria-label="Already confirmed"
+                                            />
+                                          )}
+                                          <span className="text-sm font-semibold">
+                                            {line.options?.length && !chosen
+                                              ? "Choose an option"
+                                              : `₱${lineEffectiveCost({ ...line, selectedOption: chosen }).toLocaleString()}`}
+                                          </span>
+                                        </div>
+                                        {!!line.options?.length && (
+                                          <div className="mt-2 space-y-1 pl-8">
+                                            {line.options.map((opt, oi) => (
+                                              <div
+                                                key={oi}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => !locked && chooseOption(i, opt.label)}
+                                                onKeyDown={(e) => {
+                                                  if (!locked && (e.key === "Enter" || e.key === " ")) {
+                                                    e.preventDefault();
+                                                    chooseOption(i, opt.label);
+                                                  }
+                                                }}
+                                                className={cn(
+                                                  "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
+                                                  chosen === opt.label
+                                                    ? "border-primary bg-primary/10"
+                                                    : "border-border/60 bg-background/40",
+                                                  !locked && "cursor-pointer",
+                                                )}
+                                              >
+                                                <span className="flex items-center gap-2">
+                                                  <span
+                                                    className={cn(
+                                                      "h-3.5 w-3.5 rounded-full border",
+                                                      chosen === opt.label
+                                                        ? "border-primary bg-primary"
+                                                        : "border-muted-foreground/50",
+                                                    )}
+                                                  />
+                                                  {opt.label}
+                                                </span>
+                                                <span className="font-semibold">
+                                                  ₱{Number(opt.cost || 0).toLocaleString()}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
+
                                 {quotedLines.length > 0 && (
                                   <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
                                     <span className="font-medium">Estimated total for the selected services</span>
@@ -1395,9 +1526,10 @@ const ServiceTracking = () => {
           <AlertDialogHeader className="shrink-0">
             <AlertDialogTitle>Confirm Approval</AlertDialogTitle>
             <AlertDialogDescription>
-              {needsChecklist && selectedBreakdown.length < breakdownItems.length ? (
+              {needsChecklist && selectedNames.length < quotedLines.length ? (
                 <>
-                  You are approving only: <strong>{selectedBreakdown.join(", ")}</strong>. The remaining
+                  You are approving only: <strong>{selectedNames.join(", ")}</strong>. The remaining
+
                   services stay pending — our team will contact you to confirm before the repair starts.
                 </>
               ) : (

@@ -13,6 +13,72 @@ export interface StatusLogEntry {
   created?: boolean;
 }
 
+/* ------------------------------------------------------------------
+ * Business-hours math (Manila shop shift)
+ * ------------------------------------------------------------------ */
+
+/** Shop shift, Manila time. */
+export const SHIFT_START_HOUR = 10; // 10:00 AM
+export const SHIFT_END_HOUR = 19; // 7:00 PM
+/** Unpaid break deducted per full working day. */
+export const BREAK_HOURS = 1.5;
+/** Productive hours in a full working day (9h shift - 1.5h break). */
+export const WORKDAY_HOURS = SHIFT_END_HOUR - SHIFT_START_HOUR - BREAK_HOURS;
+
+const MANILA_OFFSET_MS = 8 * 3600000;
+
+/** Manila calendar day key (yyyy-mm-dd) for an instant. */
+const manilaDayKey = (ms: number): string => new Date(ms + MANILA_OFFSET_MS).toISOString().slice(0, 10);
+
+/**
+ * Working hours between two instants, counting only the 10:00-19:00 Manila
+ * shift, skipping shop closed dates and deducting the 1.5h daily break
+ * (pro-rated for partial days). Time outside the shift is not counted.
+ */
+export const workingHoursBetween = (
+  start: Date | null | undefined,
+  end: Date | null | undefined,
+  closedDates: Iterable<string> = [],
+): number => {
+  if (!start || !end) return 0;
+  const from = start.getTime();
+  const to = end.getTime();
+  if (!(to > from)) return 0;
+
+  const closed = new Set(Array.from(closedDates).map((d) => String(d).slice(0, 10)));
+  const shiftMs = (SHIFT_END_HOUR - SHIFT_START_HOUR) * 3600000;
+  let total = 0;
+
+  // Walk Manila calendar days from the start day to the end day.
+  let dayStartUtc = Date.UTC(
+    new Date(from + MANILA_OFFSET_MS).getUTCFullYear(),
+    new Date(from + MANILA_OFFSET_MS).getUTCMonth(),
+    new Date(from + MANILA_OFFSET_MS).getUTCDate(),
+  ) - MANILA_OFFSET_MS;
+  const lastDayKey = manilaDayKey(to);
+
+  for (let guard = 0; guard < 3650; guard++) {
+    const key = manilaDayKey(dayStartUtc + 1);
+    const shiftOpen = dayStartUtc + SHIFT_START_HOUR * 3600000;
+    const shiftClose = dayStartUtc + SHIFT_END_HOUR * 3600000;
+    if (!closed.has(key)) {
+      const overlap = Math.min(to, shiftClose) - Math.max(from, shiftOpen);
+      if (overlap > 0) {
+        // Deduct the break in proportion to how much of the shift was used.
+        total += (overlap / shiftMs) * (shiftMs / 3600000 - BREAK_HOURS);
+      }
+    }
+    if (key >= lastDayKey) break;
+    dayStartUtc += 24 * 3600000;
+  }
+
+  return Math.max(0, total);
+};
+
+/** Working hours expressed as shop days (7.5 productive hours each). */
+export const workingDaysFromHours = (hours: number) => (WORKDAY_HOURS ? hours / WORKDAY_HOURS : 0);
+
+
 export const toDate = (raw: any): Date | null => {
   if (!raw) return null;
   const d = typeof raw === "string" && raw.length <= 10 ? parseManilaDate(raw) : new Date(raw);
@@ -188,10 +254,13 @@ export interface ServiceTiming {
 /**
  * Builds per-service timings. Uses the parsed activity log timeline when
  * available and falls back to date_received -> date_completed otherwise.
+ * All durations count working time only (10:00-19:00 Manila, minus the 1.5h
+ * daily break, skipping shop closed dates).
  */
 export const buildTimings = (
   services: any[],
   logs: StatusLogEntry[],
+  closedDates: Iterable<string> = [],
 ): Map<string, ServiceTiming> => {
   const byService = new Map<string, StatusLogEntry[]>();
   logs.forEach((l) => {
@@ -203,6 +272,7 @@ export const buildTimings = (
     arr.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
   );
 
+  const closed = new Set(Array.from(closedDates).map((d) => String(d).slice(0, 10)));
   const out = new Map<string, ServiceTiming>();
 
   services.forEach((s) => {
@@ -228,7 +298,7 @@ export const buildTimings = (
         const at = toDate(t.createdAt);
         if (cursor && at && at >= cursor) {
           const stage = (t.from || "Pending Diagnosis").trim();
-          const hrs = (at.getTime() - cursor.getTime()) / 3600000;
+          const hrs = workingHoursBetween(cursor, at, closed);
           stageHours[stage] = (stageHours[stage] || 0) + hrs;
         }
         cursor = at || cursor;
@@ -239,17 +309,19 @@ export const buildTimings = (
         .find((t) => classifyStatus(t.to) === "completed");
       if (completedTransition && firstStamp) {
         const end = toDate(completedTransition.createdAt);
-        if (end && end >= firstStamp) totalHours = (end.getTime() - firstStamp.getTime()) / 3600000;
+        if (end && end >= firstStamp) totalHours = workingHoursBetween(firstStamp, end, closed);
       }
     }
 
     if (totalHours === null && classifyStatus(s.status) === "completed") {
       const end = toDate(s.dateCompleted || s.lastUpdated);
       if (received && end && end >= received) {
-        totalHours = (end.getTime() - received.getTime()) / 3600000;
+        totalHours = workingHoursBetween(received, end, closed);
         fromLogs = false;
       }
     }
+
+
 
     out.set(id, { serviceId: id, totalHours, stageHours, fromLogs });
   });

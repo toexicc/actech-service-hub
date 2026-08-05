@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useServices, useCompletedServices } from "@/hooks/useServices";
+import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,6 +188,8 @@ const Reports = () => {
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
   const { data: statusLogs = [], isLoading: loadingLogs } = useServiceStatusLogs();
+  const { data: closedDates = [] } = useClosedDates();
+
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["transactions", "reports"],
@@ -256,7 +259,18 @@ const Reports = () => {
     [activeData, completedData],
   );
 
-  const timings = useMemo(() => buildTimings(allServices, statusLogs as any[]), [allServices, statusLogs]);
+  // Durations count working time only (10:00-19:00 Manila minus a 1.5h break),
+  // and skip days the shop was closed.
+  const closedDayKeys = useMemo(
+    () => (closedDates ?? []).map((c) => String(c.startDate).slice(0, 10)).filter(Boolean),
+    [closedDates],
+  );
+
+  const timings = useMemo(
+    () => buildTimings(allServices, statusLogs as any[], closedDayKeys),
+    [allServices, statusLogs, closedDayKeys],
+  );
+
 
   const buildReport = (p: Period) => {
     const scoped = allServices.filter((s) => inPeriod(s.dateReceived || s.timestamp || s.lastUpdated, p));
@@ -572,7 +586,7 @@ const Reports = () => {
             icon={<CheckCircle className="h-5 w-5" />}
           />
           <KpiCard
-            label="Avg. turnaround"
+            label="Avg. turnaround (working hrs)"
             value={formatHours(report.avgTurnaround)}
             sub={`${report.logBacked}/${report.completed.length} from logs`}
             change={prev ? delta(report.avgTurnaround, prev.avgTurnaround) : null}
@@ -650,9 +664,9 @@ const Reports = () => {
         {/* Turnaround */}
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
           <Panel
-            title="Where time is spent (avg. hours per stage)"
+            title="Where time is spent (avg. working hours per stage)"
             icon={<Clock className="h-4 w-4" />}
-            hint="Derived from status-change activity logs."
+            hint="Working hours only: 10:00 AM - 7:00 PM shift, less the 1.5h daily break, skipping shop closed dates."
           >
             <div className="h-[300px]">
               {stageHours.length === 0 ? (
@@ -671,7 +685,7 @@ const Reports = () => {
             </div>
           </Panel>
 
-          <Panel title="Turnaround distribution" icon={<Clock className="h-4 w-4" />} hint="Completed tickets grouped by total time to completion.">
+          <Panel title="Turnaround distribution" icon={<Clock className="h-4 w-4" />} hint="Completed tickets grouped by total working time (shift hours only, breaks excluded).">
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={turnaroundDist}>

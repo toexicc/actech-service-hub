@@ -192,7 +192,10 @@ Recommendations:
 
 Service Breakdown:
 <Service Item 1> - Php {Enter Amount}
-<Service Item 2> - Php {Enter Amount}
+<Service Item 2 with part grade choices>
+Option A - OEM: Php {Enter Amount}
+Option B - Original: Php {Enter Amount}
+
 
 Warranty: {Enter Duration}
 
@@ -214,7 +217,9 @@ No em dashes. Use regular hyphens only.
 No quotation marks unless necessary.
 CRITICAL PRICING RULE: Never invent, estimate, or guess any monetary amount. For every Service Breakdown line item the price MUST be the literal placeholder "Php {Enter Amount}" so the technician fills it in. Do NOT output any numeric peso amount under any circumstance.
 List every Service Breakdown item on its own line in the format "<Service Name> - Php {Enter Amount}".
+When a service can be done with different part grades or variants (for example a battery or screen available as OEM and Original), write the service name alone on its line, then list each variant on the following lines in the exact format "Option A - <Variant>: Php {Enter Amount}", "Option B - <Variant>: Php {Enter Amount}". Never put an amount on the parent service line in that case.
 Immediately after the Service Breakdown items output the literal line "Warranty: {Enter Duration}". Never invent a warranty duration.
+
 Use the exact section labels and order shown in the template. Do not add or remove sections.`;
 
     const userPrompt = `customerName: ${customerName || ''}

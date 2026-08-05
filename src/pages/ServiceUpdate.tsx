@@ -1032,7 +1032,12 @@ const ServiceUpdate = () => {
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
 
-          <ApprovalRemarkBlock adminNotes={serviceData.adminNotesInternal} />
+          <ApprovalRemarkBlock
+            adminNotes={serviceData.adminNotesInternal}
+            pendingServices={(serviceData as any).pendingServices}
+            approvalLocked={(serviceData as any).approvalLocked}
+          />
+
 
           <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
