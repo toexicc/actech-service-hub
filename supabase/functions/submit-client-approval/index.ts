@@ -148,9 +148,19 @@ serve(async (req) => {
             cost: Math.max(0, Number(line?.cost ?? 0) || 0),
             selected: line?.selected === undefined ? true : !!line.selected,
             required: !!line?.required,
+            options: Array.isArray(line?.options)
+              ? line.options
+                  .map((o: any) => ({
+                    label: String(o?.label ?? "").trim(),
+                    cost: Math.max(0, Number(o?.cost ?? 0) || 0),
+                  }))
+                  .filter((o: any) => o.label)
+              : undefined,
+            selectedOption: String(line?.selectedOption ?? "").trim(),
           }))
           .filter((line: any) => line.name)
       : [];
+
     const allItems = quoted.length ? quoted.map((line: any) => line.name) : parseServicesFromDiagnosis(row.diagnosis || "");
 
     // Determine approved vs pending items.
