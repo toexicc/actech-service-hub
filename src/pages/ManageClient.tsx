@@ -34,7 +34,7 @@ import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } fr
 import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
-import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl } from "@/lib/servicePdfStorage";
+import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
@@ -106,6 +106,7 @@ const ManageClient = () => {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
+  const [pdfModalFilename, setPdfModalFilename] = useState("document.pdf");
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingClientInfo, setIsUpdatingClientInfo] = useState(false);
   const [isUpdatingForm, setIsUpdatingForm] = useState(false);
@@ -202,6 +203,23 @@ const ManageClient = () => {
     if (!serviceData?.serviceId || isReopeningApproval) return;
     setIsReopeningApproval(true);
     try {
+      // Idempotent: re-opening an already-open approval is a no-op, never an
+      // error, so repeated back-and-forth between shop and client is safe.
+      const { data: current } = await supabase
+        .from("services")
+        .select("approval_locked")
+        .eq("service_id", serviceData.serviceId)
+        .maybeSingle();
+
+      if (current && (current as any).approval_locked === false) {
+        setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
+        toast({
+          title: "Approval already open",
+          description: "The client can select the remaining services on the tracking page.",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("services")
         .update({ approval_locked: false, last_updated: new Date().toISOString() } as any)
@@ -209,12 +227,19 @@ const ManageClient = () => {
       if (error) throw new Error(error.message);
       setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
       toast({ title: "Approval re-opened", description: "The client can approve again on the tracking page." });
+      // Pull the authoritative row back so the remark + pending list stay in sync.
+      try {
+        await handleSearch();
+      } catch {
+        /* refresh is best-effort */
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e?.message || "Could not re-open approval.", variant: "destructive" });
     } finally {
       setIsReopeningApproval(false);
     }
   };
+
 
   const handleToggleAutoApprove = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingAutoApprove) return;
@@ -293,6 +318,13 @@ const ManageClient = () => {
       return;
     }
     setPdfModalUrl(url);
+    setPdfModalFilename(
+      servicePdfDownloadName("intake", {
+        serviceDate: serviceData?.dateReceived,
+        clientName: serviceData?.clientName,
+        serviceId: serviceData?.serviceId,
+      }),
+    );
     setPdfModalTitle("Client Intake Form");
     setPdfModalOpen(true);
   };
@@ -1254,6 +1286,13 @@ const ManageClient = () => {
       return;
     }
     setPdfModalUrl(url);
+    setPdfModalFilename(
+      servicePdfDownloadName("quotation", {
+        serviceDate: serviceData?.dateReceived,
+        clientName: serviceData?.clientName,
+        serviceId: serviceData?.serviceId,
+      }),
+    );
     setPdfModalTitle("Service Quotation Form");
     setPdfModalOpen(true);
   };
@@ -1482,24 +1521,6 @@ const ManageClient = () => {
                 />
 
 
-                {serviceData.approvalLocked && canEditAdminRep && (
-                  <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">Client approval is on hold</p>
-                      <p className="text-xs text-muted-foreground">
-                        Re-open it so the client can approve the remaining services on the tracking page.
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isReopeningApproval}
-                      onClick={handleReopenApproval}
-                    >
-                      Re-open approval
-                    </Button>
-                  </div>
-                )}
 
 
                 {isEditingDetails && canEditAdminRep ? (
@@ -2591,7 +2612,7 @@ const ManageClient = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
-      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} />
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
     </DashboardLayout>
   );
 };

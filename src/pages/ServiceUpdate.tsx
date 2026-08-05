@@ -18,7 +18,7 @@ import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
-import { getServicePdfSignedUrl } from "@/lib/servicePdfStorage";
+import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -122,6 +122,7 @@ const ServiceUpdate = () => {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
+  const [pdfModalFilename, setPdfModalFilename] = useState("document.pdf");
   const openPdfModal = async (
     legacy: string | undefined,
     sid: string | undefined,
@@ -135,6 +136,13 @@ const ServiceUpdate = () => {
       return;
     }
     setPdfModalUrl(url);
+    setPdfModalFilename(
+      servicePdfDownloadName(kind, {
+        serviceDate: serviceData?.dateReceived,
+        clientName: serviceData?.clientName,
+        serviceId: sid,
+      }),
+    );
     setPdfModalTitle(title);
     setPdfModalOpen(true);
   };
@@ -1891,7 +1899,7 @@ const ServiceUpdate = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
-      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} />
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
     </DashboardLayout>
   );
 };
