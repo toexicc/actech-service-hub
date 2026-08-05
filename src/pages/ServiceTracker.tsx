@@ -62,7 +62,7 @@ const ServiceTracker = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { data: services = [], isLoading } = useAllServices();
+  const { data: services = [], isLoading, error: servicesError, refetch: refetchServices } = useAllServices();
   const invalidateServices = useInvalidateServices();
   const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
@@ -689,12 +689,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           return false;
         }
       } else if (departmentFilter !== "all") {
-        // Department filter - only apply if no specific technician is selected
-        const techDept = techniciansWithDept.find(t => t.name === service.technician)?.department;
-        if (techDept !== departmentFilter) {
+        // Department filter — a ticket matches when ANY assigned technician
+        // belongs to the selected department (tickets can have several techs).
+        const normName = (v?: string) => (v || "").trim().toLowerCase();
+        const assigned = (service.technician || "").split(",").map(normName).filter(Boolean);
+        const matchesDept =
+          assigned.some((n) =>
+            techniciansWithDept.some((t) => normName(t.name) === n && t.department === departmentFilter),
+          ) ||
+          (service.technicianDepartment || "")
+            .split(",")
+            .map((d) => d.trim())
+            .includes(departmentFilter);
+        if (!matchesDept) {
           return false;
         }
       }
+
 
       // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
       // the "All" and "Cancelled / RTO / On Hold" tabs. They never leak into
@@ -805,12 +816,40 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return filteredAndSortedServices.slice(startIndex, endIndex);
   }, [filteredAndSortedServices, currentPage]);
 
-  const totalPages = Math.ceil(filteredAndSortedServices.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedServices.length / itemsPerPage));
+
+  useEffect(() => {
+    // Never leave the user on a page that no longer exists after filtering.
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const hasActiveFilters =
+    deviceTypeFilter !== "all" ||
+    statusFilter !== "all" ||
+    dueDateFilter !== "all" ||
+    !!startDate ||
+    !!endDate ||
+    !!debouncedSearch.trim() ||
+    (!isTechnician && (technicianFilter !== "all" || departmentFilter !== "all"));
+
+  const clearAllFilters = () => {
+    setDeviceTypeFilter("all");
+    setStatusFilter("all");
+    setDueDateFilter("all");
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSearchInput("");
+    if (!isTechnician) {
+      setTechnicianFilter("all");
+      setDepartmentFilter("all");
+    }
+  };
 
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
   }, [deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
+
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -974,7 +1013,19 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(v) => {
+                    setStatusFilter(v);
+                    // Keep the tab in sync so a status from another class
+                    // (completed / cancelled) never yields an empty list.
+                    if (v !== "all") {
+                      const cls = classifyStatus(v);
+                      setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+                    }
+                  }}
+                >
+
                   <SelectTrigger>
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
@@ -1234,8 +1285,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   </TableBody>
                 </Table>
               </div>
+            ) : servicesError ? (
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm font-semibold text-destructive">Tickets could not be loaded</p>
+                <p className="text-xs text-muted-foreground">
+                  {(servicesError as any)?.message || "The connection dropped while fetching services."}
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetchServices()}>
+                  Retry
+                </Button>
+              </div>
             ) : filteredAndSortedServices.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No ongoing services found</div>
+              <div className="text-center py-8 space-y-3">
+                <p className="text-muted-foreground">No services match the current filters</p>
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+
             ) : viewMode === "cards" ? (
               <>
                 <div className="flex items-center justify-end mb-4">

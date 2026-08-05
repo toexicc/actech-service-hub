@@ -949,33 +949,34 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const rightRoom = bottomLimit - rightTop;
   const firstPage = doc.getCurrentPageInfo().pageNumber;
 
-  // Shrink Summary first, then Breakdown, so both stay on page 1.
+  // Shrink Summary and Breakdown TOGETHER: the pair (including both panel
+  // headers and their inner padding, which totalH accounts for) must fit the
+  // page-1 right column, otherwise a breakdown of even two items can spill.
+  const SCALES = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4, 0.34, 0.3];
   let sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7);
   let breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7);
-  const fits = () => totalH(sumBlocks) + 3.5 + totalH(breakdownBlocks) <= rightRoom;
+  const pairHeight = () => totalH(sumBlocks) + 3.5 + totalH(breakdownBlocks);
 
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52]) {
-    if (fits()) break;
+  for (const sc of SCALES) {
     sumBlocks = drawSummaryBlocks(doc, data, COL_W - 7, sc);
-  }
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4]) {
-    if (fits()) break;
     breakdownBlocks = buildBreakdownBlocks(doc, data, COL_W - 7, sc);
+    if (pairHeight() <= rightRoom) break;
   }
 
+  // The body is strictly one page: an effectively unlimited bottom limit stops
+  // flowPanel from ever paginating (the pre-shrink above keeps it on the page).
+  const NO_BREAK = Number.MAX_SAFE_INTEGER;
+  const noNewPage = () => ({ startY: rightTop, bottomLimit: NO_BREAK });
 
   // Right column first so we know the minimum shared height on page 1.
   const summaryResult = flowPanel(doc, sumBlocks, {
     x: rightX,
     w: COL_W,
     startY: rightTop,
-    bottomLimit,
+    bottomLimit: NO_BREAK,
     title: "Service Summary",
     glyph: "clipboard",
-    onNewPage: () => {
-      doc.addPage();
-      return { startY: 16, bottomLimit: PAGE_H - footerReserve };
-    },
+    onNewPage: noNewPage,
   });
 
   const breakdownTop = summaryResult.lastPageBottom + 3.5;
@@ -983,13 +984,10 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     x: rightX,
     w: COL_W,
     startY: breakdownTop,
-    bottomLimit,
+    bottomLimit: NO_BREAK,
     title: "Service Breakdown",
     glyph: "wrench",
-    onNewPage: () => {
-      doc.addPage();
-      return { startY: 16, bottomLimit: PAGE_H - footerReserve };
-    },
+    onNewPage: noNewPage,
   });
 
 
@@ -999,28 +997,27 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
     x: leftX,
     w: COL_W,
     startY: diagTop,
-    bottomLimit,
+    bottomLimit: NO_BREAK,
     title: "Technician Diagnosis",
     glyph: "search",
-    onNewPage: () => {
-      doc.addPage();
-      return { startY: 16, bottomLimit: PAGE_H - footerReserve };
-    },
+    onNewPage: noNewPage,
   });
 
   // Equalize the two page-1 panels visually by extending the shorter border.
   const rightBottom = Math.max(summaryResult.lastPageBottom, breakdownResult.lastPageBottom);
   const target = Math.max(diagResult.lastPageBottom, rightBottom);
-  if (
-    diagResult.pageCount === 1 &&
-    summaryResult.pageCount === 1 &&
-    breakdownResult.pageCount === 1
-  ) {
-    setDraw(doc, BORDER);
-    doc.setLineWidth(0.35);
-    doc.roundedRect(leftX, diagTop, COL_W, target - diagTop, 2, 2, "S");
-    panelHeader(doc, leftX, diagTop, COL_W, "Technician Diagnosis", "search");
+  setDraw(doc, BORDER);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(leftX, diagTop, COL_W, target - diagTop, 2, 2, "S");
+  panelHeader(doc, leftX, diagTop, COL_W, "Technician Diagnosis", "search");
+
+  // Safety net: the quotation body must never leave extra (often blank) pages
+  // behind, so the appended Terms & Conditions always starts on page 2.
+  while (doc.getNumberOfPages() > firstPage) {
+    doc.deletePage(doc.getNumberOfPages());
   }
+  doc.setPage(firstPage);
+
 
 
   drawFooter(doc);

@@ -163,60 +163,43 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   source: r.source ?? "",
 });
 
-const fetchAllServices = async (): Promise<ServiceRecord[]> => {
+/**
+ * Single authoritative fetch for every ticket. All tracker / dashboard views are
+ * derived from this one cache entry so a view can never render a partial list
+ * because a second request failed independently.
+ */
+const fetchServiceRows = async (): Promise<ServiceRecord[]> => {
   const { data, error } = await supabase
     .from("services")
     .select("*")
-    .neq("status", "Completed")
     .order("created_at", { ascending: false })
-    .limit(1000);
+    .limit(5000);
   if (error) throw error;
   return (data ?? []).map(mapServiceRow);
 };
 
-const fetchCompletedServices = async (): Promise<ServiceRecord[]> => {
-  const { data, error } = await supabase
-    .from("services")
-    .select("*")
-    .eq("status", "Completed")
-    .order("date_completed", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return (data ?? []).map(mapServiceRow);
-};
-
-export const useServices = () => {
-  return useQuery({
+const useServiceRows = <T,>(select: (rows: ServiceRecord[]) => T) =>
+  useQuery({
     queryKey: ["services"],
-    queryFn: fetchAllServices,
+    queryFn: fetchServiceRows,
     staleTime: 5 * 1000,
     gcTime: 5 * 60 * 1000,
-
+    select,
   });
-};
 
-export const useCompletedServices = () => {
-  return useQuery({
-    queryKey: ["services", "completed"],
-    queryFn: fetchCompletedServices,
-    staleTime: 5 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
-};
+const isCompleted = (s: ServiceRecord) =>
+  (s.status || "").trim().toLowerCase().includes("completed");
 
+/** Tickets still in the workflow (everything that is not Completed). */
+export const useServices = () =>
+  useServiceRows((rows) => rows.filter((r) => !isCompleted(r)));
+
+export const useCompletedServices = () =>
+  useServiceRows((rows) => rows.filter(isCompleted));
 
 /** Active + completed services combined (used by the Service Tracker tabs). */
-export const useAllServices = () => {
-  const active = useServices();
-  const completed = useCompletedServices();
-  const data = [...(active.data ?? []), ...(completed.data ?? [])];
-  return {
-    data,
-    isLoading: active.isLoading || completed.isLoading,
-    isFetching: active.isFetching || completed.isFetching,
-    error: active.error ?? completed.error,
-  };
-};
+export const useAllServices = () => useServiceRows((rows) => rows);
+
 
 export const useInvalidateServices = () => {
   const queryClient = useQueryClient();
