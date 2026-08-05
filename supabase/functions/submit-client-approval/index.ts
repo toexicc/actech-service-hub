@@ -163,44 +163,71 @@ serve(async (req) => {
 
     const allItems = quoted.length ? quoted.map((line: any) => line.name) : parseServicesFromDiagnosis(row.diagnosis || "");
 
+    // Anything the client already confirmed in an earlier (partial) approval
+    // stays approved when the shop re-opens the checklist.
+    const previouslyApproved: string[] = Array.isArray(row.approved_services)
+      ? row.approved_services.map((s: any) => String(s ?? "")).filter(Boolean)
+      : [];
+    const prevKeys = new Set(previouslyApproved.map(norm));
+
+    // Loose pick matching: the page may send the plain name or the
+    // "Name (Option)" label, and shop edits can drift the wording.
+    const pickTokens = [
+      ...selectedLines.map((l) => l.name),
+      ...selectedLines.map((l) => l.label),
+      ...selectedServices,
+    ]
+      .map(norm)
+      .filter(Boolean);
+    const isPicked = (name: string) => {
+      const key = norm(name);
+      if (!key) return false;
+      return pickTokens.some((t) => t === key || t.includes(key) || key.includes(t));
+    };
+    const optionFor = (name: string) => {
+      const key = norm(name);
+      const hit = selectedLines.find((l) => norm(l.name) === key || norm(l.label).includes(key));
+      return hit?.option ?? "";
+    };
+    const labelFor = (name: string, option: string) => (option ? `${name} (${option})` : name);
+
     // Determine approved vs pending items.
     let approvedItems: string[] = [];
     let pendingItems: string[] = [];
+    let relined: any[] = [];
     if (approved) {
       if (quoted.length) {
-        const picked = new Set(selectedServices.map(norm));
-        for (const line of quoted) if (line.required) picked.add(norm(line.name));
-        approvedItems = allItems.filter((item) => picked.has(norm(item)));
-        pendingItems = allItems.filter((item) => !picked.has(norm(item)));
+        relined = quoted.map((l: any) => {
+          const keep = !!l.required || prevKeys.has(norm(l.name)) || isPicked(l.name);
+          const option = l.options?.length ? optionFor(l.name) || l.selectedOption || "" : "";
+          const optionCost = l.options?.length
+            ? l.options.find((o: any) => norm(o.label) === norm(option))?.cost ?? 0
+            : 0;
+          return {
+            name: l.name,
+            cost: l.options?.length ? optionCost : l.cost,
+            selected: keep,
+            required: !!l.required,
+            ...(l.options?.length ? { options: l.options, selectedOption: option } : {}),
+          };
+        });
+        approvedItems = relined.filter((l) => l.selected).map((l) => labelFor(l.name, l.selectedOption ?? ""));
+        pendingItems = relined.filter((l) => !l.selected).map((l) => l.name);
         if (approvedItems.length === 0) {
           return json({ error: "Please select at least one service to approve." }, 400);
         }
+        const missingOption = relined.find((l) => l.selected && l.options?.length && !l.selectedOption);
+        if (missingOption) {
+          return json({ error: `Please choose an option for "${missingOption.name}".` }, 400);
+        }
       } else if (allItems.length === 0) {
-        // No parseable breakdown: treat as a plain full approval, and keep any
-        // client selection as the recorded approved list.
+        // No parseable breakdown: treat as a plain full approval.
         approvedItems = selectedServices;
       } else if (allItems.length === 1) {
-        // A single-item breakdown is a plain full approval.
         approvedItems = allItems;
       } else {
-        const picked = new Set(selectedServices.map(norm));
-        approvedItems = allItems.filter((i) => picked.has(norm(i)));
-        pendingItems = allItems.filter((i) => !picked.has(norm(i)));
-
-        // Fallback: names drifted between what the page showed and what the
-        // ticket now stores — match by position instead of rejecting.
-        if (approvedItems.length === 0) {
-          const idxPicked = new Set(
-            selectedServices
-              .map((s) => allItems.findIndex((i) => norm(i).includes(norm(s)) || norm(s).includes(norm(i))))
-              .filter((i) => i >= 0),
-          );
-          if (idxPicked.size > 0) {
-            approvedItems = allItems.filter((_, i) => idxPicked.has(i));
-            pendingItems = allItems.filter((_, i) => !idxPicked.has(i));
-          }
-        }
-
+        approvedItems = allItems.filter((i) => prevKeys.has(norm(i)) || isPicked(i));
+        pendingItems = allItems.filter((i) => !(prevKeys.has(norm(i)) || isPicked(i)));
         if (approvedItems.length === 0) {
           return json({ error: "Please select at least one service to approve." }, 400);
         }
@@ -230,15 +257,8 @@ serve(async (req) => {
 
       // Recost the ticket from the finalized quotation lines when the shop
       // published one, so the client's selection drives the quoted amount.
-      if (quoted.length) {
-        const pickedKeys = new Set(approvedItems.map(norm));
-        const relined = quoted.map((l: any) => ({
-          name: String(l?.name ?? ""),
-          cost: Number(l?.cost ?? 0) || 0,
-          selected: !!l.required || pickedKeys.has(norm(String(l?.name ?? ""))),
-          required: !!l.required,
-        }));
-        const total = relined.reduce((sum, l) => sum + (l.selected ? l.cost : 0), 0);
+      if (relined.length) {
+        const total = relined.reduce((sum, l) => sum + (l.selected ? Number(l.cost) || 0 : 0), 0);
         update.quoted_breakdown = relined;
         const discount = Number(row.discount ?? 0) || 0;
         update.service_cost = total;
@@ -248,6 +268,7 @@ serve(async (req) => {
       update.client_approved_at = nowIso;
       if (approvedItems.length) update.service = approvedItems.join(", ");
       if (!row.service_date) update.service_date = nowIso.slice(0, 10);
+
       if (isPartial) {
         // Stay in Waiting to Proceed; lock further client responses until an
         // admin re-opens the approval.
