@@ -2197,7 +2197,14 @@ const ManageClient = () => {
                   ) : (
                     <div className="space-y-2">
                       {quotedLines.map((line, i) => (
-                        <div key={i} className="grid grid-cols-12 items-center gap-2">
+                        <div
+                          key={i}
+                          className={cn(
+                            "space-y-2 rounded-lg p-1",
+                            quotedProblems[i] && "border border-destructive/50 bg-destructive/5",
+                          )}
+                        >
+                        <div className="grid grid-cols-12 items-center gap-2">
                           <input
                             type="checkbox"
                             className="col-span-1 h-4 w-4 accent-primary"
@@ -2218,18 +2225,26 @@ const ManageClient = () => {
                               )
                             }
                           />
-                          <Input
-                            className="col-span-3 text-right"
-                            inputMode="decimal"
-                            placeholder="0.00"
-                            value={line.cost ? String(line.cost) : ""}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
-                              setQuotedLines((prev) =>
-                                prev.map((l, idx) => (idx === i ? { ...l, cost: val } : l)),
-                              );
-                            }}
-                          />
+                          {line.options?.length ? (
+                            <div className="col-span-3 text-right text-sm font-medium text-muted-foreground">
+                              {lineEffectiveCost(line) > 0
+                                ? `Php ${lineEffectiveCost(line).toFixed(2)}`
+                                : "Choose option"}
+                            </div>
+                          ) : (
+                            <Input
+                              className="col-span-3 text-right"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              value={line.cost ? String(line.cost) : ""}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
+                                setQuotedLines((prev) =>
+                                  prev.map((l, idx) => (idx === i ? { ...l, cost: val } : l)),
+                                );
+                              }}
+                            />
+                          )}
                           <Button
                             type="button"
                             size="icon"
@@ -2255,7 +2270,111 @@ const ManageClient = () => {
                             X
                           </Button>
                         </div>
+
+                        {/* Options (e.g. OEM vs Original) */}
+                        <div className="pl-8 space-y-1">
+                          {(line.options ?? []).map((opt, oi) => (
+                            <div key={oi} className="grid grid-cols-12 items-center gap-2">
+                              <input
+                                type="radio"
+                                className="col-span-1 h-4 w-4 accent-primary"
+                                checked={line.selectedOption === opt.label}
+                                onChange={() =>
+                                  setQuotedLines((prev) =>
+                                    prev.map((l, idx) => (idx === i ? { ...l, selectedOption: opt.label } : l)),
+                                  )
+                                }
+                              />
+                              <Input
+                                className="col-span-5 h-8 text-sm"
+                                placeholder="Option label (e.g. OEM)"
+                                value={opt.label}
+                                onChange={(e) =>
+                                  setQuotedLines((prev) =>
+                                    prev.map((l, idx) => {
+                                      if (idx !== i) return l;
+                                      const options = (l.options ?? []).map((o, x) =>
+                                        x === oi ? { ...o, label: e.target.value } : o,
+                                      );
+                                      const selectedOption =
+                                        l.selectedOption === opt.label ? e.target.value : l.selectedOption;
+                                      return { ...l, options, selectedOption };
+                                    }),
+                                  )
+                                }
+                              />
+                              <Input
+                                className="col-span-3 h-8 text-right text-sm"
+                                inputMode="decimal"
+                                placeholder="0.00"
+                                value={opt.cost ? String(opt.cost) : ""}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
+                                  setQuotedLines((prev) =>
+                                    prev.map((l, idx) =>
+                                      idx === i
+                                        ? {
+                                            ...l,
+                                            options: (l.options ?? []).map((o, x) =>
+                                              x === oi ? { ...o, cost: val } : o,
+                                            ),
+                                          }
+                                        : l,
+                                    ),
+                                  );
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="col-span-2 h-8 text-destructive text-xs"
+                                onClick={() =>
+                                  setQuotedLines((prev) =>
+                                    prev.map((l, idx) => {
+                                      if (idx !== i) return l;
+                                      const options = (l.options ?? []).filter((_, x) => x !== oi);
+                                      return {
+                                        ...l,
+                                        options: options.length ? options : undefined,
+                                        selectedOption:
+                                          l.selectedOption === opt.label ? "" : l.selectedOption,
+                                      };
+                                    }),
+                                  )
+                                }
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() =>
+                              setQuotedLines((prev) =>
+                                prev.map((l, idx) =>
+                                  idx === i
+                                    ? {
+                                        ...l,
+                                        options: [...(l.options ?? []), { label: "", cost: 0 }],
+                                      }
+                                    : l,
+                                ),
+                              )
+                            }
+                          >
+                            + Add option (e.g. OEM / Original)
+                          </Button>
+                        </div>
+                        {quotedProblems[i] && (
+                          <p className="pl-8 text-xs text-destructive">{quotedProblems[i]}</p>
+                        )}
+                        </div>
                       ))}
+
                       <div className="flex items-center justify-between pt-1 text-sm">
                         <span className="font-semibold">
                           Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
