@@ -31,6 +31,31 @@ const dateLabel = (iso?: string | null) => {
     : `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 };
 
+/**
+ * Breakdown rows for a quotation that hasn't been approved yet: every line is
+ * listed, and option variants are indented under their service name.
+ */
+export const quotedLineItems = (lines: QuotedLine[]): BreakdownItem[] => {
+  const items: BreakdownItem[] = [];
+  lines.forEach((line) => {
+    if (line.options?.length) {
+      items.push({ label: line.name });
+      line.options.forEach((opt, i) => {
+        items.push({
+          label: `Option ${String.fromCharCode(65 + i)} - ${opt.label}`,
+          amount: opt.cost > 0 ? money(opt.cost) : undefined,
+          isOption: true,
+          selected: !!line.selectedOption && opt.label === line.selectedOption,
+        });
+      });
+      return;
+    }
+    const cost = lineEffectiveCost(line);
+    items.push({ label: line.name, amount: cost > 0 ? money(cost) : undefined });
+  });
+  return items;
+};
+
 /** Breakdown rows for the PDF: approved lines priced, the rest marked. */
 export const approvedBreakdownItems = (lines: QuotedLine[]): BreakdownItem[] => {
   const items: BreakdownItem[] = [];
