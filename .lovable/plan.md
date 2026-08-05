@@ -49,6 +49,19 @@ Service Breakdown
 - /manage-client: Update is blocked when any ticked breakdown line (or its chosen option) has an amount of 0 or blank, with the offending rows highlighted. Unticked lines may stay at 0.
 - /track: Approve requires at least one ticked line, and every ticked line must have an amount greater than 0; Decline still requires only a reason. The same rules are re-checked server side so the client and server totals cannot disagree.
 
+## 5. Reports: average time counted in working hours only
+
+Today the Reports page measures turnaround as raw wall-clock hours, so nights, weekends and breaks inflate every average.
+
+Change all duration metrics (average turnaround, per-stage time, turnaround distribution buckets) to count **working time only**:
+
+- Shift window: 10:00 AM to 7:00 PM Manila time (9 hours per day).
+- Deduct 1 hour 30 minutes of break per day worked, giving 7.5 productive hours per working day.
+- Time outside the shift window is not counted; a ticket that sits overnight only accrues time again from 10:00 AM.
+- Days marked as closed in the shop's closed-dates list are skipped entirely.
+- The turnaround distribution buckets are relabelled in working terms (for example "< 4h", "4h–1 shift", "1–3 shifts") and durations display as e.g. `2 shifts 3h` instead of calendar days, with a note on the page stating the shift window and break deduction.
+
+
 ## Technical notes
 
 - `services.quoted_breakdown` line shape extends to `{ name, cost, selected, required, options?: [{ label, cost }], selectedOption?: string }`. Existing rows without `options` keep working unchanged — no schema migration needed (the column is already jsonb).
@@ -57,3 +70,5 @@ Service Breakdown
 - `supabase/functions/submit-client-approval/index.ts`: accept `selectedIndices` and `selectedOptions`, resolve by index first, validate amount > 0 on approved lines, write chosen options back into `quoted_breakdown`, and build the remark from display names.
 - `src/components/workspace/ApprovalRemarkBlock.tsx`: show pending lines plus the re-open / resend actions (staff-only).
 - `format-diagnosis` prompt/post-processing updated so multi-option repairs emit the `Option A - <label>: PHP {Enter Amount}` form and keep the placeholder rule.
+- `src/lib/reportMetrics.ts`: add a `workingHoursBetween(start, end, closedDates)` helper (10:00–19:00 Manila, minus 1.5h break pro-rated over the counted shift portion, closed dates skipped) and use it inside `buildTimings` for both stage hours and total turnaround; `formatHours` gains a shift-aware display mode. Reports page passes the existing closed-dates list in.
+
