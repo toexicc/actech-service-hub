@@ -19,6 +19,7 @@ import { Search, User, FileText, Loader2, Users, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClients, updateClient, useInvalidateClients } from "@/hooks/useClients";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { servicePdfDownloadName } from "@/lib/servicePdfStorage";
 
 interface CustomerData {
   clientId: string;
@@ -446,7 +447,7 @@ const CustomerManagement = () => {
           
         </div>
       </div>
-      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title="Client Intake Form" />
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title="Client Intake Form" filename={pdfModalFilename} />
     </DashboardLayout>
   );
 };

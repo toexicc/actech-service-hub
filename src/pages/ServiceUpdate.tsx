@@ -1899,7 +1899,7 @@ const ServiceUpdate = () => {
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
-      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} />
+      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
     </DashboardLayout>
   );
 };
