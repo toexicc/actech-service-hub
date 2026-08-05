@@ -203,6 +203,23 @@ const ManageClient = () => {
     if (!serviceData?.serviceId || isReopeningApproval) return;
     setIsReopeningApproval(true);
     try {
+      // Idempotent: re-opening an already-open approval is a no-op, never an
+      // error, so repeated back-and-forth between shop and client is safe.
+      const { data: current } = await supabase
+        .from("services")
+        .select("approval_locked")
+        .eq("service_id", serviceData.serviceId)
+        .maybeSingle();
+
+      if (current && (current as any).approval_locked === false) {
+        setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
+        toast({
+          title: "Approval already open",
+          description: "The client can select the remaining services on the tracking page.",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("services")
         .update({ approval_locked: false, last_updated: new Date().toISOString() } as any)
@@ -210,12 +227,19 @@ const ManageClient = () => {
       if (error) throw new Error(error.message);
       setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
       toast({ title: "Approval re-opened", description: "The client can approve again on the tracking page." });
+      // Pull the authoritative row back so the remark + pending list stay in sync.
+      try {
+        await handleSearch();
+      } catch {
+        /* refresh is best-effort */
+      }
     } catch (e: any) {
       toast({ title: "Error", description: e?.message || "Could not re-open approval.", variant: "destructive" });
     } finally {
       setIsReopeningApproval(false);
     }
   };
+
 
   const handleToggleAutoApprove = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingAutoApprove) return;
