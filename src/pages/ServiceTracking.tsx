@@ -150,7 +150,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
       approvalLocked: !!(row as any).approval_locked,
+      approvedServices: Array.isArray((row as any).approved_services) ? (row as any).approved_services : [],
+      pendingServices: Array.isArray((row as any).pending_services) ? (row as any).pending_services : [],
       quotedBreakdown: Array.isArray((row as any).quoted_breakdown) ? (row as any).quoted_breakdown : [],
+
       serviceCost: sb.serviceCost ?? sheetData.serviceCost,
     };
   } catch {
