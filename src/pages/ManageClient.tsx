@@ -106,6 +106,7 @@ const ManageClient = () => {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
+  const [pdfModalFilename, setPdfModalFilename] = useState("document.pdf");
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingClientInfo, setIsUpdatingClientInfo] = useState(false);
   const [isUpdatingForm, setIsUpdatingForm] = useState(false);
