@@ -127,3 +127,43 @@ export const getServiceImageDataUrl = async (
   }
   return undefined;
 };
+
+/* ------------------------------------------------------------------ *
+ * Download file naming
+ * Client Intake Form:     {YYYYMMDD} {Name} - {Service ID} - CIF.pdf
+ * Service Quotation Form: {YYYYMMDD} {Name} - {Service ID} - SQF.pdf
+ * ------------------------------------------------------------------ */
+
+const toYyyymmdd = (raw?: string | null): string => {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}${iso[2]}${iso[3]}`;
+  const mdy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (mdy) return `${mdy[3]}${mdy[1].padStart(2, "0")}${mdy[2].padStart(2, "0")}`;
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  }
+  return "";
+};
+
+/** Safe-for-filesystem version of a client name (keeps spaces). */
+const cleanNamePart = (s?: string | null) =>
+  String(s ?? "")
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export const servicePdfDownloadName = (
+  kind: ServicePdfKind,
+  info: { serviceDate?: string | null; clientName?: string | null; serviceId?: string | null },
+): string => {
+  const suffix = kind === "quotation" ? "SQF" : "CIF";
+  const date = toYyyymmdd(info.serviceDate);
+  const name = cleanNamePart(info.clientName);
+  const id = cleanNamePart(info.serviceId);
+  const head = [date, name].filter(Boolean).join(" ");
+  const parts = [head, id, suffix].filter(Boolean);
+  return `${parts.join(" - ").replace(/^ - /, "")}.pdf`;
+};
