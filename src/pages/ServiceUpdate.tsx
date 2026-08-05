@@ -19,6 +19,7 @@ import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
+import { syncApprovedQuotation } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
