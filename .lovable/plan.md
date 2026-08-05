@@ -70,3 +70,5 @@ Change all duration metrics (average turnaround, per-stage time, turnaround dist
 - `supabase/functions/submit-client-approval/index.ts`: accept `selectedIndices` and `selectedOptions`, resolve by index first, validate amount > 0 on approved lines, write chosen options back into `quoted_breakdown`, and build the remark from display names.
 - `src/components/workspace/ApprovalRemarkBlock.tsx`: show pending lines plus the re-open / resend actions (staff-only).
 - `format-diagnosis` prompt/post-processing updated so multi-option repairs emit the `Option A - <label>: PHP {Enter Amount}` form and keep the placeholder rule.
+- `src/lib/reportMetrics.ts`: add a `workingHoursBetween(start, end, closedDates)` helper (10:00–19:00 Manila, minus 1.5h break pro-rated over the counted shift portion, closed dates skipped) and use it inside `buildTimings` for both stage hours and total turnaround; `formatHours` gains a shift-aware display mode. Reports page passes the existing closed-dates list in.
+
