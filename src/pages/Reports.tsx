@@ -188,6 +188,8 @@ const Reports = () => {
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
   const { data: statusLogs = [], isLoading: loadingLogs } = useServiceStatusLogs();
+  const { data: closedDates = [] } = useClosedDates();
+
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["transactions", "reports"],
