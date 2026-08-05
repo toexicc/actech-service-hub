@@ -254,10 +254,13 @@ export interface ServiceTiming {
 /**
  * Builds per-service timings. Uses the parsed activity log timeline when
  * available and falls back to date_received -> date_completed otherwise.
+ * All durations count working time only (10:00-19:00 Manila, minus the 1.5h
+ * daily break, skipping shop closed dates).
  */
 export const buildTimings = (
   services: any[],
   logs: StatusLogEntry[],
+  closedDates: Iterable<string> = [],
 ): Map<string, ServiceTiming> => {
   const byService = new Map<string, StatusLogEntry[]>();
   logs.forEach((l) => {
@@ -269,6 +272,7 @@ export const buildTimings = (
     arr.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
   );
 
+  const closed = new Set(Array.from(closedDates).map((d) => String(d).slice(0, 10)));
   const out = new Map<string, ServiceTiming>();
 
   services.forEach((s) => {
@@ -294,7 +298,7 @@ export const buildTimings = (
         const at = toDate(t.createdAt);
         if (cursor && at && at >= cursor) {
           const stage = (t.from || "Pending Diagnosis").trim();
-          const hrs = (at.getTime() - cursor.getTime()) / 3600000;
+          const hrs = workingHoursBetween(cursor, at, closed);
           stageHours[stage] = (stageHours[stage] || 0) + hrs;
         }
         cursor = at || cursor;
@@ -305,17 +309,19 @@ export const buildTimings = (
         .find((t) => classifyStatus(t.to) === "completed");
       if (completedTransition && firstStamp) {
         const end = toDate(completedTransition.createdAt);
-        if (end && end >= firstStamp) totalHours = (end.getTime() - firstStamp.getTime()) / 3600000;
+        if (end && end >= firstStamp) totalHours = workingHoursBetween(firstStamp, end, closed);
       }
     }
 
     if (totalHours === null && classifyStatus(s.status) === "completed") {
       const end = toDate(s.dateCompleted || s.lastUpdated);
       if (received && end && end >= received) {
-        totalHours = (end.getTime() - received.getTime()) / 3600000;
+        totalHours = workingHoursBetween(received, end, closed);
         fromLogs = false;
       }
     }
+
+
 
     out.set(id, { serviceId: id, totalHours, stageHours, fromLogs });
   });
