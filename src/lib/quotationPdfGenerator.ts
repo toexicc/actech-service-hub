@@ -818,12 +818,13 @@ const buildBreakdownBlocks = (
     });
   }
 
-
   const noteSize = 7.2 * scale;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(noteSize);
   const note = doc.splitTextToSize(
-    "This is the suggested repair for your service. We will be waiting for your approval.",
+    data.approvalStamp
+      ? data.approvalStamp
+      : "This is the suggested repair for your service. We will be waiting for your approval.",
     innerW - 4,
   );
   const noteH = note.length * LEAD + 5 * scale;
