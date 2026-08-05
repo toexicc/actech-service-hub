@@ -1474,7 +1474,13 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                <ApprovalRemarkBlock adminNotes={serviceData.adminNotesInternal} />
+                <ApprovalRemarkBlock
+                  adminNotes={serviceData.adminNotesInternal}
+                  pendingServices={(serviceData as any).pendingServices}
+                  approvalLocked={serviceData.approvalLocked}
+                  onReopen={canEditAdminRep ? handleReopenApproval : undefined}
+                />
+
 
                 {serviceData.approvalLocked && canEditAdminRep && (
                   <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
