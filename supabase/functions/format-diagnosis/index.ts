@@ -192,7 +192,10 @@ Recommendations:
 
 Service Breakdown:
 <Service Item 1> - Php {Enter Amount}
-<Service Item 2> - Php {Enter Amount}
+<Service Item 2 with part grade choices>
+Option A - OEM: Php {Enter Amount}
+Option B - Original: Php {Enter Amount}
+
 
 Warranty: {Enter Duration}
 
