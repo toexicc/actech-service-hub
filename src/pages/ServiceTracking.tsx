@@ -1003,7 +1003,7 @@ const ServiceTracking = () => {
                       </div>
                     )}
 
-                    {isWaitingToProceed && !approvalRecord && !serviceData.approvalLocked && (
+                    {canRespond && (
                       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
                         {declineOpen ? (
                           <div className="space-y-3">
