@@ -51,6 +51,7 @@ const CustomerManagement = () => {
   const [activeTab, setActiveTab] = useState("list");
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
+  const [pdfModalFilename, setPdfModalFilename] = useState("document.pdf");
   const [editTarget, setEditTarget] = useState<CustomerData | null>(null);
   const [editForm, setEditForm] = useState({ name: "", username: "", contactNumber: "", email: "", address: "" });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -183,6 +184,12 @@ const CustomerManagement = () => {
       return;
     }
     setPdfModalUrl(url);
+    setPdfModalFilename(
+      servicePdfDownloadName("intake", {
+        clientName: customerData?.clientName,
+        serviceId,
+      }),
+    );
     setPdfModalOpen(true);
   };
 

@@ -34,7 +34,7 @@ import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } fr
 import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
-import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl } from "@/lib/servicePdfStorage";
+import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
@@ -293,6 +293,13 @@ const ManageClient = () => {
       return;
     }
     setPdfModalUrl(url);
+    setPdfModalFilename(
+      servicePdfDownloadName("intake", {
+        serviceDate: serviceData?.dateReceived,
+        clientName: serviceData?.clientName,
+        serviceId: serviceData?.serviceId,
+      }),
+    );
     setPdfModalTitle("Client Intake Form");
     setPdfModalOpen(true);
   };
@@ -1254,6 +1261,13 @@ const ManageClient = () => {
       return;
     }
     setPdfModalUrl(url);
+    setPdfModalFilename(
+      servicePdfDownloadName("quotation", {
+        serviceDate: serviceData?.dateReceived,
+        clientName: serviceData?.clientName,
+        serviceId: serviceData?.serviceId,
+      }),
+    );
     setPdfModalTitle("Service Quotation Form");
     setPdfModalOpen(true);
   };
