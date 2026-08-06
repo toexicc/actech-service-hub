@@ -1105,8 +1105,12 @@ const ServiceTracking = () => {
 
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Time Frame</p>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Diagnostic Time Frame</p>
                         <p className="text-sm mt-0.5">{serviceData.timeFrame || serviceData.estimatedCompletion || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repair Time Frame</p>
+                        <p className="text-sm mt-0.5">{serviceData.repairTimeFrame || "N/A"}</p>
                       </div>
                     </div>
                   </CardContent>
