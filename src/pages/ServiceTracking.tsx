@@ -331,13 +331,23 @@ const ServiceTracking = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
-      );
-      const data = await response.json();
+      // The database is the source of truth; the legacy sheet is only a
+      // fallback for very old tickets that were never migrated.
+      const snapshot = await fetchPublicServiceSnapshot(targetId);
 
-      if (data.status === "found") {
-        const merged = await mergeWithSupabase(targetId, data.data);
+      let sheetRecord: any = null;
+      try {
+        const response = await fetch(
+          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
+        );
+        const data = await response.json();
+        if (data.status === "found") sheetRecord = data.data;
+      } catch {
+        // sheet lookup is optional
+      }
+
+      if (snapshot || sheetRecord) {
+        const merged = await mergeWithSupabase(targetId, sheetRecord || {});
         setServiceData(merged);
         // Sync URL so the result is shareable
         if (routeServiceId !== targetId) {
@@ -360,6 +370,7 @@ const ServiceTracking = () => {
     } finally {
       setIsLoading(false);
     }
+
   };
 
   // Auto-fetch when arriving via /track/:serviceId
