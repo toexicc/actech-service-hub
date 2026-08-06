@@ -1115,6 +1115,23 @@ const ManageClient = () => {
   const handleGenerateQuotation = async () => {
     if (!serviceData) return;
 
+    // A quotation must always ship with at least one required (locked) service.
+    if (quotedLines.length) {
+      const check = validateQuotedLines(quotedLines, { requireLock: true });
+      if (!check.ok) {
+        setQuotedProblems(check.problems);
+        toast({
+          title: "Service Breakdown needs attention",
+          description: check.message || "Please review the highlighted service lines.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setQuotedProblems({});
+    }
+
+
+
     setIsUpdatingQuotation(true);
     try {
       const [color, memory] = (serviceData.colorMemory || "").split("|").map((s) => s.trim());
