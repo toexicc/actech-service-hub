@@ -570,6 +570,7 @@ const ManageClient = () => {
       [updateServices, serviceData.service || ""],
       [String(updateServiceCost ?? ""), String(serviceData.serviceCost ?? "")],
       [updateTimeFrame, serviceData.timeFrame || ""],
+      [updateRepairTimeFrame, (serviceData as any).repairTimeFrame || ""],
       [updateAdminNotes, serviceData.adminNotes || ""],
       [updateAdminNotesInternal, serviceData.adminNotesInternal || ""],
       [updateTechDiagnosis, serviceData.technicianDiagnosis || ""],
