@@ -229,6 +229,7 @@ const ManageClient = () => {
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
+  const [updateRepairTimeFrame, setUpdateRepairTimeFrame] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
