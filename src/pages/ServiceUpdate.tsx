@@ -1053,6 +1053,7 @@ const ServiceUpdate = () => {
             serviceCost={serviceData.serviceCost}
             discount={serviceData.discount}
             finalCost={serviceData.finalCost}
+            vatRequested={!!(serviceData as any).vatRequested}
             initialPayment={serviceData.initialPayment}
             paymentStatus={serviceData.paymentStatus}
             showCharges={serviceData.status !== "Pending Diagnosis"}
