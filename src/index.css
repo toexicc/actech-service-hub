@@ -240,6 +240,10 @@
     box-shadow: var(--shadow-soft);
   }
 
+  .bg-gradient-destructive {
+    background-image: var(--gradient-destructive);
+  }
+
   .animate-fade-in {
     animation: fade-in 0.3s ease-out;
   }
