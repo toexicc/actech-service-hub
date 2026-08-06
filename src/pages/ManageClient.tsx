@@ -741,7 +741,8 @@ const ManageClient = () => {
     // Every ticked quotation line must carry a real amount (and a chosen option
     // when it has variants) before the client can be asked to approve it.
     if (quotedLines.length) {
-      const check = validateQuotedLines(quotedLines);
+      const check = validateQuotedLines(quotedLines, { requireLock: true });
+
       if (!check.ok) {
         setQuotedProblems(check.problems);
         toast({
