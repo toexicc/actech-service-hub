@@ -47,6 +47,7 @@ import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
+import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -1685,25 +1686,8 @@ const ManageClient = () => {
                   )}
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Notes:</h3>
-                    <p className="text-lg">
-                      {(() => {
-                        const conditions: string[] = [];
-                        const isYes = (value: any) => {
-                          if (value === true || value === 1) return true;
-                          const v = typeof value === "string" ? value.trim().toLowerCase() : value;
-                          return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
-                        };
-                        if (isYes(serviceData.dents)) conditions.push("Dents");
-                        if (isYes(serviceData.scratches)) conditions.push("Scratches");
-                        if (isYes(serviceData.missingParts)) conditions.push("Missing Parts");
-                        if (isYes(serviceData.physicalDamage)) conditions.push("Physical Damage");
-                        if (isYes(serviceData.importantFiles)) conditions.push("Important Files");
-                        if (isYes(serviceData.noPower)) conditions.push("No Power");
-                        if (isYes(serviceData.repairHistory)) conditions.push("Repair History");
-                        return conditions.length > 0 ? conditions.join(", ") : "N/A";
-                      })()}
-                    </p>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Conditions:</h3>
+                    <p className="text-lg">{describeDeviceConditions(serviceData)}</p>
                   </div>
 
 
