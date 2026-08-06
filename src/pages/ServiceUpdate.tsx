@@ -239,6 +239,9 @@ const ServiceUpdate = () => {
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
+  const [concernOpen, setConcernOpen] = useState(false);
+  const [concernMessage, setConcernMessage] = useState("");
+  const [concernSending, setConcernSending] = useState(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
