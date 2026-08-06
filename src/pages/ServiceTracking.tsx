@@ -107,17 +107,29 @@ const TermsImageViewer = ({ className = "" }: { className?: string }) => (
 
 
 
-// Merge Supabase migrated fields over sheet data so public tracking shows
-// up-to-date info even when fields were updated post-migration.
+// Public, tracking-safe snapshot of a ticket. The services table is not
+// readable by anonymous visitors, so /track reads through a database function
+// that returns only the fields the client is allowed to see.
+export const fetchPublicServiceSnapshot = async (serviceId: string): Promise<any | null> => {
+  try {
+    const { data, error } = await supabase.rpc("public_service_snapshot", {
+      _service_id: serviceId,
+    });
+    if (error || !data) return null;
+    return data as any;
+  } catch {
+    return null;
+  }
+};
+
+// Merge Supabase fields over any legacy sheet data so public tracking always
+// shows the live quotation, amounts and approval state.
 const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
   try {
-    const { data: row } = await supabase
-      .from("services")
-      .select("*")
-      .eq("service_id", serviceId)
-      .maybeSingle();
+    const row: any = await fetchPublicServiceSnapshot(serviceId);
     if (!row) return sheetData;
     const sb: any = mapServiceRow(row);
+
     const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
     return {
       ...sheetData,
