@@ -304,6 +304,44 @@ export const notifyTechnicianConcern = async (
   await sendViaEdge(recipients);
 };
 
+/**
+ * An admin/management raises a concern to the ticket's assigned technician(s).
+ * Falls back to management when no technician can be resolved.
+ */
+export const notifyAdminConcern = async (
+  service: ServiceInfo,
+  message: string,
+  fromName: string,
+): Promise<void> => {
+  const body = (message || '').trim();
+  if (!body) throw new Error('Message is required');
+
+  const staffList = await fetchStaffList();
+  const deviceInfo = service.device || service.deviceType || 'device';
+  const title = `Concern raised: ${service.serviceId}`;
+  const text = `${fromName || 'An admin'}: ${body} (${service.clientName}'s ${deviceInfo})`;
+
+  const recipients: { userId: string; title: string; message: string; serviceId?: string }[] = [];
+  const seen = new Set<string>();
+  const push = (staff: StaffMember | undefined) => {
+    if (!staff?.staffId || seen.has(staff.staffId)) return;
+    seen.add(staff.staffId);
+    recipients.push({ userId: staff.staffId, title, message: text, serviceId: service.serviceId });
+  };
+
+  if (service.technician) {
+    for (const name of service.technician.split(',').map(t => t.trim()).filter(Boolean)) {
+      push(findStaffByName(staffList, name));
+    }
+  }
+  if (recipients.length === 0) {
+    for (const m of getManagementStaff(staffList)) push(m);
+  }
+  if (recipients.length === 0) throw new Error('No technician recipient could be resolved');
+
+  await sendViaEdge(recipients);
+};
+
 /** Names of the admins that a concern would be sent to (for UI display). */
 export const resolveConcernRecipientNames = async (service: ServiceInfo): Promise<string[]> => {
   try {

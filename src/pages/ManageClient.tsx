@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
-import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { notifyAdminConcern } from "@/lib/serviceNotifications";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
@@ -174,6 +176,50 @@ const ManageClient = () => {
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
+  const [concernOpen, setConcernOpen] = useState(false);
+  const [concernMessage, setConcernMessage] = useState("");
+  const [concernSending, setConcernSending] = useState(false);
+
+  const concernRecipientLabel = (serviceData?.technician || "").trim() || "Management";
+
+  const handleSendConcern = async () => {
+    const body = concernMessage.trim();
+    if (!serviceData || !body) return;
+    setConcernSending(true);
+    try {
+      const fromName = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
+      await notifyAdminConcern(
+        {
+          serviceId: serviceData.serviceId,
+          clientName: serviceData.clientName,
+          technician: serviceData.technician || "",
+          adminRep: serviceData.adminRep,
+          receivingStaff: serviceData.receivingStaff,
+          deviceType: serviceData.deviceType,
+          device: [serviceData.brand, serviceData.model].filter(Boolean).join(" "),
+        },
+        body,
+        fromName,
+      );
+      logActivity({
+        serviceId: serviceData.serviceId,
+        username: fromName,
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: `Concern raised to technician: ${body}`,
+      }).catch(() => {});
+      toast({ title: "Concern sent", description: `Notified ${concernRecipientLabel}.` });
+      setConcernMessage("");
+      setConcernOpen(false);
+    } catch (error) {
+      toast({
+        title: "Could not send concern",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConcernSending(false);
+    }
+  };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateClientType, setUpdateClientType] = useState("");
@@ -1743,7 +1789,19 @@ const ManageClient = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status:</Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label htmlFor="status">Status:</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
+                      onClick={() => setConcernOpen(true)}
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      Raise Concern
+                    </Button>
+                  </div>
                   <Select value={updateStatus} onValueChange={setUpdateStatus}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
@@ -2686,6 +2744,34 @@ const ManageClient = () => {
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
       <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
+
+      <Dialog open={concernOpen} onOpenChange={(o) => { if (!concernSending) setConcernOpen(o); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Raise a Concern</DialogTitle>
+            <DialogDescription>
+              {serviceData
+                ? `${serviceData.serviceId} — ${serviceData.clientName}. This will notify: ${concernRecipientLabel}.`
+                : "Search a service first."}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={concernMessage}
+            onChange={(e) => setConcernMessage(e.target.value.slice(0, 500))}
+            placeholder="Describe your concern for the assigned technician..."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{concernMessage.length}/500</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConcernOpen(false)} disabled={concernSending}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendConcern} disabled={concernSending || !concernMessage.trim() || !serviceData}>
+              {concernSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>) : "Send Concern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
