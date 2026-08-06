@@ -10,10 +10,25 @@ export interface StaffMember {
 }
 
 export const fetchStaffList = async (): Promise<StaffMember[]> => {
+  // Preferred path: security-definer directory so non-admin roles (technicians)
+  // can still resolve colleagues for notification routing.
+  const { data: directory } = await supabase.rpc("staff_directory");
+  if (Array.isArray(directory) && directory.length > 0) {
+    return (directory as any[]).map((p) => ({
+      id: p.id,
+      staffId: p.id,
+      name: p.name ?? "",
+      role: p.role ?? "",
+      username: p.username ?? "",
+      department: p.department ?? "",
+    }));
+  }
+
   const [{ data: profiles }, { data: roles }] = await Promise.all([
     supabase.from("profiles").select("id, name, username, department, staff_id"),
     supabase.from("user_roles").select("user_id, role"),
   ]);
+
 
   const roleMap = new Map<string, string[]>();
   for (const r of roles ?? []) {

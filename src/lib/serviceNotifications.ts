@@ -65,10 +65,15 @@ export const notifyAiDiagnosisGenerated = (service: ServiceInfo): Promise<void> 
   notifyAiOutputGenerated(service, 'diagnosis');
 
 
-// Normalize staff names like "Kenn Perez - Laptop (Daily Repairs)" -> "Kenn Perez"
+// Normalize staff labels like "Kenn Perez - Laptop (Daily Repairs)" -> "Kenn Perez"
+// and "Special Cases - John Paul Espedido" -> "John Paul Espedido".
 const normalizeStaffName = (name: string): string => {
-  return name.split(' - ')[0].trim();
+  const parts = (name || '').split(' - ').map(p => p.trim()).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (/^special cases$/i.test(parts[0]) && parts[1]) return parts[1];
+  return parts[0];
 };
+
 
 // Get staff member by name — exact match first, then tolerant partial matching so
 // slightly different spellings/formats still resolve to a real recipient.
