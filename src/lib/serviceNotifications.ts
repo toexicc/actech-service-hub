@@ -263,6 +263,64 @@ export const notifyServiceStatusChange = async (
   }
 };
 
+/**
+ * A technician raises a concern about a ticket. Notifies every assigned admin
+ * rep; falls back to management when no admin can be resolved.
+ */
+export const notifyTechnicianConcern = async (
+  service: ServiceInfo,
+  message: string,
+  fromName: string,
+): Promise<void> => {
+  const body = (message || '').trim();
+  if (!body) throw new Error('Message is required');
+
+  const staffList = await fetchStaffList();
+  const deviceInfo = service.device || service.deviceType || 'device';
+  const title = `Concern raised: ${service.serviceId}`;
+  const text = `${fromName || 'A technician'}: ${body} (${service.clientName}'s ${deviceInfo})`;
+
+  const recipients: { userId: string; title: string; message: string; serviceId?: string }[] = [];
+  const seen = new Set<string>();
+  const push = (staff: StaffMember | undefined) => {
+    if (!staff?.staffId || seen.has(staff.staffId)) return;
+    seen.add(staff.staffId);
+    recipients.push({ userId: staff.staffId, title, message: text, serviceId: service.serviceId });
+  };
+
+  if (service.adminRep) {
+    for (const name of service.adminRep.split(',').map(a => a.trim()).filter(Boolean)) {
+      push(findStaffByName(staffList, name));
+    }
+  }
+  if (recipients.length === 0 && service.receivingStaff) {
+    push(findStaffByName(staffList, service.receivingStaff));
+  }
+  if (recipients.length === 0) {
+    for (const m of getManagementStaff(staffList)) push(m);
+  }
+  if (recipients.length === 0) throw new Error('No admin recipient could be resolved');
+
+  await sendViaEdge(recipients);
+};
+
+/** Names of the admins that a concern would be sent to (for UI display). */
+export const resolveConcernRecipientNames = async (service: ServiceInfo): Promise<string[]> => {
+  try {
+    const staffList = await fetchStaffList();
+    const names: string[] = [];
+    if (service.adminRep) {
+      for (const name of service.adminRep.split(',').map(a => a.trim()).filter(Boolean)) {
+        const s = findStaffByName(staffList, name);
+        if (s?.name) names.push(normalizeStaffName(s.name));
+      }
+    }
+    return names;
+  } catch {
+    return [];
+  }
+};
+
 // Notify about new service assignment (handles comma-separated multi-technician strings)
 export const notifyNewServiceAssignment = async (
   service: ServiceInfo,

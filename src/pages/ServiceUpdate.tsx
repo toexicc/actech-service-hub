@@ -21,7 +21,8 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search } from "lucide-react";
+import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
@@ -30,7 +31,7 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
+import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
@@ -238,6 +239,9 @@ const ServiceUpdate = () => {
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
+  const [concernOpen, setConcernOpen] = useState(false);
+  const [concernMessage, setConcernMessage] = useState("");
+  const [concernSending, setConcernSending] = useState(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
@@ -401,6 +405,48 @@ const ServiceUpdate = () => {
     "Done Repair - Under Observation": "Done Repair - For Release",
   };
   const suggestedNext = NEXT_STATUS[savedStatus];
+
+  const concernRecipientLabel = (serviceData?.adminRep || "").trim() || "Management";
+
+  const handleSendConcern = async () => {
+    const body = concernMessage.trim();
+    if (!serviceData || !body) return;
+    setConcernSending(true);
+    try {
+      await notifyTechnicianConcern(
+        {
+          serviceId: serviceData.serviceId,
+          clientName: serviceData.clientName,
+          technician: updateTechnician || serviceData.technician || "",
+          adminRep: serviceData.adminRep,
+          receivingStaff: serviceData.receivingStaff,
+          deviceType: serviceData.deviceType,
+          device: [serviceData.brand, serviceData.model].filter(Boolean).join(" "),
+        },
+        body,
+        username,
+      );
+      logActivity({
+        serviceId: serviceData.serviceId,
+        username,
+        role: userRole,
+        activity: `Concern raised to admin: ${body}`,
+      }).catch(() => {});
+      toast({ title: "Concern sent", description: `Notified ${concernRecipientLabel}.` });
+      setConcernMessage("");
+      setConcernOpen(false);
+    } catch (error) {
+      toast({
+        title: "Could not send concern",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConcernSending(false);
+    }
+  };
+
+
 
 
   const calculateActualCost = () => {
@@ -1271,9 +1317,21 @@ const ServiceUpdate = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="status">
-                    Step 1 — Set Status: <span className="text-xs font-normal text-muted-foreground">(currently {savedStatus || "—"})</span>
-                  </Label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label htmlFor="status">
+                      Step 1 — Set Status: <span className="text-xs font-normal text-muted-foreground">(currently {savedStatus || "—"})</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
+                      onClick={() => setConcernOpen(true)}
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      Raise Concern
+                    </Button>
+                  </div>
                   {suggestedNext && !statusChanged && (
                     <p className="text-xs text-muted-foreground">
                       Next step is usually <span className="font-medium">{suggestedNext}</span>. Choose it first — the fields for that stage will appear below.
@@ -1906,6 +1964,35 @@ const ServiceUpdate = () => {
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
       <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
+
+      <Dialog open={concernOpen} onOpenChange={(o) => { if (!concernSending) setConcernOpen(o); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Raise a Concern</DialogTitle>
+            <DialogDescription>
+              {serviceData
+                ? `${serviceData.serviceId} — ${serviceData.clientName}. This will notify: ${concernRecipientLabel}.`
+                : "Select a service first."}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={concernMessage}
+            onChange={(e) => setConcernMessage(e.target.value.slice(0, 500))}
+            placeholder="Describe your concern for the assigned admin..."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{concernMessage.length}/500</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConcernOpen(false)} disabled={concernSending}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendConcern} disabled={concernSending || !concernMessage.trim() || !serviceData}>
+              {concernSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>) : "Send Concern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
   );
 };
