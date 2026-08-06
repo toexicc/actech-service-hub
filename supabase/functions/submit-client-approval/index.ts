@@ -309,13 +309,15 @@ serve(async (req) => {
         const seen = new Set<string>();
         const title = !approved
           ? `Service ${serviceId} Declined`
-          : isPartial
+          : blockAdvance
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
         const message = !approved
           ? `${clientName} declined the diagnosis for ${serviceId}. Reason: ${reason || "(none provided)"}.`
-          : isPartial
+          : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
+          : isPartial
+          ? `${clientName} approved the required services for ${serviceId}: ${approvedItems.join(", ")}. Still pending: ${pendingItems.join(", ")}. Ticket moved to Proceed Repair.`
           : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.`;
 
         const rows = names
@@ -337,8 +339,8 @@ serve(async (req) => {
 
     return json({
       success: true,
-      status: approved && !isPartial ? "Proceed Repair" : status,
-      partial: isPartial,
+      status: approved && !blockAdvance ? "Proceed Repair" : status,
+      partial: blockAdvance,
       approvedServices: approvedItems,
       pendingServices: pendingItems,
       service: approvedItems.join(", "),
