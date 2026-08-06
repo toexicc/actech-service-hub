@@ -1113,6 +1113,11 @@ const ServiceTracking = () => {
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repair Time Frame</p>
                         <p className="text-sm mt-0.5">{serviceData.repairTimeFrame || "N/A"}</p>
                       </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-[10px] leading-relaxed text-muted-foreground">
+                          All diagnostic and repair timelines are estimates only and are not guaranteed completion dates. Actual turnaround time may vary depending on the device’s condition, repair complexity, additional findings, parts availability, and required testing.
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

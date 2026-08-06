@@ -202,6 +202,7 @@ Warranty: {Enter Duration}
 
 
 To proceed with the service, PROCEED or APPROVE to confirm your approval and kindly review our Terms and Conditions: bit.ly/actech-termsnconditions
+Note: The quoted price excludes 12% VAT.
 
 SUMMARY: <one-line summary of the repair needed>
 
@@ -219,6 +220,7 @@ CRITICAL PRICING RULE: Never invent, estimate, or guess any monetary amount. For
 List every Service Breakdown item on its own line in the format "<Service Name> - Php {Enter Amount}".
 When a service can be done with different part grades or variants (for example a battery or screen available as OEM and Original), write the service name alone on its line, then list each variant on the following lines in the exact format "Option A - <Variant>: Php {Enter Amount}", "Option B - <Variant>: Php {Enter Amount}". Never put an amount on the parent service line in that case.
 Immediately after the Service Breakdown items output the literal line "Warranty: {Enter Duration}". Never invent a warranty duration.
+After the "To proceed with the service..." line, always add the literal line "Note: The quoted price excludes 12% VAT." on its own line.
 
 Use the exact section labels and order shown in the template. Do not add or remove sections.`;
 
