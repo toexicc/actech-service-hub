@@ -1423,6 +1423,18 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      public_client_services: {
+        Args: { _client_id: string }
+        Returns: {
+          final_cost: number
+          service: string
+          service_cost: number
+          service_id: string
+          status: string
+          target_date: string
+        }[]
+      }
+      public_service_snapshot: { Args: { _service_id: string }; Returns: Json }
       staff_directory: {
         Args: never
         Returns: {
