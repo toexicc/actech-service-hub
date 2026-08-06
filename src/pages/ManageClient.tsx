@@ -741,7 +741,8 @@ const ManageClient = () => {
     // Every ticked quotation line must carry a real amount (and a chosen option
     // when it has variants) before the client can be asked to approve it.
     if (quotedLines.length) {
-      const check = validateQuotedLines(quotedLines);
+      const check = validateQuotedLines(quotedLines, { requireLock: true });
+
       if (!check.ok) {
         setQuotedProblems(check.problems);
         toast({
@@ -1113,6 +1114,23 @@ const ManageClient = () => {
 
   const handleGenerateQuotation = async () => {
     if (!serviceData) return;
+
+    // A quotation must always ship with at least one required (locked) service.
+    if (quotedLines.length) {
+      const check = validateQuotedLines(quotedLines, { requireLock: true });
+      if (!check.ok) {
+        setQuotedProblems(check.problems);
+        toast({
+          title: "Service Breakdown needs attention",
+          description: check.message || "Please review the highlighted service lines.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setQuotedProblems({});
+    }
+
+
 
     setIsUpdatingQuotation(true);
     try {
@@ -2428,7 +2446,16 @@ const ManageClient = () => {
                         </div>
                       ))}
 
+                      {!quotedLines.some((l) => l.required) && (
+                        <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                          Lock at least one required service (padlock icon). The client's approval of the required
+                          service(s) is what moves the ticket to Proceed Repair — optional services left unticked
+                          will simply stay pending.
+                        </p>
+                      )}
+
                       <div className="flex items-center justify-between pt-1 text-sm">
+
                         <span className="font-semibold">
                           Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
                         </span>

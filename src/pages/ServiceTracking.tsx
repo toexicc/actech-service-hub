@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, type QuotedLine } from "@/lib/serviceApproval";
 
 
 
@@ -617,7 +617,13 @@ const ServiceTracking = () => {
   }));
   const selectedTotal = quotedSelectedTotal(liveLines);
   const validation = validateQuotedLines(liveLines);
+  // Required (locked) lines gate the advance to Proceed Repair.
+  const requiredOk = requiredLinesSatisfied(liveLines);
+  const requiredMissing = liveLines.filter(
+    (l) => l.required && (!l.selected || (!!l.options?.length && !l.selectedOption)),
+  );
   const needsChecklist = quotedLines.length > 0;
+
   const remark = parseApprovalRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
@@ -682,8 +688,19 @@ const ServiceTracking = () => {
       });
       return;
     }
+    if (needsChecklist && !requiredOk) {
+      toast({
+        title: "Required service needs your approval",
+        description: `Please approve ${requiredMissing
+          .map((l) => l.name)
+          .join(", ")}${requiredMissing.some((l) => !!l.options?.length) ? " and choose an option where offered." : "."}`,
+        variant: "destructive",
+      });
+      return;
+    }
     setConfirmApproveOpen(true);
   };
+
 
 
 
@@ -1054,9 +1071,11 @@ const ServiceTracking = () => {
                               <div className="space-y-2">
                                 <p className="text-sm font-semibold">Select the services you approve</p>
                                 <p className="text-xs text-muted-foreground">
-                                  Please tick at least one. If you don't approve everything, our team will contact you
-                                  to confirm before starting the repair.
+                                  Services marked <span className="font-semibold">Required</span> must be approved for
+                                  us to start the repair. Optional services you leave unticked simply stay pending —
+                                  our team can discuss them with you later.
                                 </p>
+
                                 <div className="space-y-2 pt-1">
                                   {quotedLines.map((line, i) => {
                                     const locked = isLineLocked(line, i);
@@ -1088,6 +1107,16 @@ const ServiceTracking = () => {
                                             className={cn("flex-1 text-sm", !locked && "cursor-pointer")}
                                           >
                                             {line.name}
+                                            <span
+                                              className={cn(
+                                                "ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                                line.required
+                                                  ? "bg-primary/15 text-primary"
+                                                  : "bg-muted text-muted-foreground",
+                                              )}
+                                            >
+                                              {line.required ? "Required" : "Optional"}
+                                            </span>
                                           </span>
                                           {locked && (
                                             <Lock
@@ -1095,6 +1124,7 @@ const ServiceTracking = () => {
                                               aria-label="Already confirmed"
                                             />
                                           )}
+
                                           <span
                                             className={cn(
                                               "text-sm font-semibold",
