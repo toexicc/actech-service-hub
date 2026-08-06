@@ -1059,6 +1059,7 @@ export type Database = {
           quoted_breakdown: Json
           receiving_staff: string | null
           remarks: string | null
+          repair_time_frame: string | null
           serial_number: string | null
           service: string | null
           service_cost: number
@@ -1130,6 +1131,7 @@ export type Database = {
           quoted_breakdown?: Json
           receiving_staff?: string | null
           remarks?: string | null
+          repair_time_frame?: string | null
           serial_number?: string | null
           service?: string | null
           service_cost?: number
@@ -1201,6 +1203,7 @@ export type Database = {
           quoted_breakdown?: Json
           receiving_staff?: string | null
           remarks?: string | null
+          repair_time_frame?: string | null
           serial_number?: string | null
           service?: string | null
           service_cost?: number
