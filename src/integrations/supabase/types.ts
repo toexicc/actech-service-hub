@@ -1423,6 +1423,17 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      staff_directory: {
+        Args: never
+        Returns: {
+          department: string
+          id: string
+          name: string
+          role: string
+          staff_id: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "technician" | "management"
