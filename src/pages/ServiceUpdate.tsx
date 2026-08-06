@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
 import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
@@ -314,7 +314,7 @@ const ServiceUpdate = () => {
       if (!serviceData || serviceData.partsUsed) return;
       if (!serviceId) return;
       try {
-        const res = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getServiceLogs&serviceId=${serviceId}&limit=50`);
+        const res = await fetch(`${DATA_BRIDGE_URL}?action=getServiceLogs&serviceId=${serviceId}&limit=50`);
         const json = await res.json();
         if (json.status === 'success' && Array.isArray(json.logs)) {
           const entry = json.logs.find((l: any) => typeof l.activity === 'string' && l.activity.includes('Parts used:'));
@@ -550,7 +550,7 @@ const ServiceUpdate = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${id}`,
+        `${DATA_BRIDGE_URL}?action=searchService&serviceId=${id}`,
       );
       const data = await response.json();
 
@@ -727,7 +727,7 @@ const ServiceUpdate = () => {
 
       // Fetching existing photos from folder
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
+        `${DATA_BRIDGE_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
       );
       const data = await response.json();
       // Photos response received
@@ -879,7 +879,7 @@ const ServiceUpdate = () => {
 
       // Fire-and-forget Sheets sync (non-blocking) — only after a confirmed save
       try {
-        fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData }).catch(() => {});
+        fetch(DATA_BRIDGE_URL, { method: "POST", body: formData }).catch(() => {});
       } catch { /* ignore */ }
 
       const isSuccess = true;
@@ -943,7 +943,7 @@ const ServiceUpdate = () => {
           aiFormData.append("aiDiagnosis", updateAIDiagnosis);
           aiFormData.append("aiReport", updateServiceReport);
           backgroundTasks.push(
-            fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: aiFormData }).catch(() => {})
+            fetch(DATA_BRIDGE_URL, { method: "POST", body: aiFormData }).catch(() => {})
           );
         }
 
@@ -1254,8 +1254,13 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Time Frame:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Diagnostic Time Frame:</h3>
                     <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Repair Time Frame:</h3>
+                    <p className="text-lg">{(serviceData as any).repairTimeFrame || "N/A"}</p>
                   </div>
 
                   <div>

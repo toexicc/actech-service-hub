@@ -30,7 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
@@ -229,6 +229,7 @@ const ManageClient = () => {
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
+  const [updateRepairTimeFrame, setUpdateRepairTimeFrame] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
@@ -347,7 +348,7 @@ const ManageClient = () => {
 
   const fetchApiKey = async () => {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`);
+      const response = await fetch(`${DATA_BRIDGE_URL}?action=getApiKey`);
       const data = await response.json();
       if (data.status === "success" && data.apiKey) {
         setOpenAIKey(data.apiKey);
@@ -398,7 +399,7 @@ const ManageClient = () => {
           let foundFromSheets = false;
           try {
             const response = await fetch(
-              `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${urlServiceId}`,
+              `${DATA_BRIDGE_URL}?action=searchService&serviceId=${urlServiceId}`,
             );
             const data = await response.json();
             if (data.status === "found") {
@@ -425,6 +426,7 @@ const ManageClient = () => {
       setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setUpdateTimeFrame(merged.timeFrame || "");
+          setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
           setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
           setUpdateAdminNotes(merged.adminNotes || "");
           setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
@@ -482,7 +484,7 @@ const ManageClient = () => {
       let foundFromSheets = false;
       try {
         const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+          `${DATA_BRIDGE_URL}?action=searchService&serviceId=${serviceId}`,
         );
         const data = await response.json();
         if (data.status === "found") {
@@ -508,6 +510,7 @@ const ManageClient = () => {
       setUpdateServices(merged.service || "");
       setUpdateServiceCost(merged.serviceCost || "");
       setUpdateTimeFrame(merged.timeFrame || "");
+      setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
       setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
       setUpdateAdminNotes(merged.adminNotes || "");
       setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
@@ -567,6 +570,7 @@ const ManageClient = () => {
       [updateServices, serviceData.service || ""],
       [String(updateServiceCost ?? ""), String(serviceData.serviceCost ?? "")],
       [updateTimeFrame, serviceData.timeFrame || ""],
+      [updateRepairTimeFrame, (serviceData as any).repairTimeFrame || ""],
       [updateAdminNotes, serviceData.adminNotes || ""],
       [updateAdminNotesInternal, serviceData.adminNotesInternal || ""],
       [updateTechDiagnosis, serviceData.technicianDiagnosis || ""],
@@ -874,19 +878,21 @@ const ManageClient = () => {
         vat_requested: vatRequested,
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
+        estimated_completion: updateTimeFrame || null,
+        repair_time_frame: updateRepairTimeFrame || null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
         last_updated: saveStamp,
-      }).eq("service_id", serviceId);
+      } as any).eq("service_id", serviceId);
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
 
 
-      // Fire-and-forget: keep Sheets in sync if still configured (non-blocking, ignore failures)
+      // Fire-and-forget mirror to the data bridge (non-blocking, ignore failures)
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData, signal: controller.signal })
+        fetch(DATA_BRIDGE_URL, { method: "POST", body: formData, signal: controller.signal })
           .catch(() => {})
           .finally(() => clearTimeout(timeoutId));
       } catch { /* ignore */ }
@@ -1109,7 +1115,7 @@ const ManageClient = () => {
         blob: pdfBlob,
       }).catch(() => {});
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
         signal: controller.signal,
@@ -1288,7 +1294,7 @@ const ManageClient = () => {
         blob: pdfBlob,
       }).catch(() => {});
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
         signal: controller.signal,
@@ -1409,17 +1415,8 @@ const ManageClient = () => {
           title="Manage Client"
           subtitle="View and update client information"
           icon={<UserCog className="h-5 w-5" />}
-          actions={
-            <Button
-              onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")}
-              variant="outline"
-              className="rounded-xl"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Sheet
-            </Button>
-          }
         />
+
 
         {/* Search Form */}
         <Card className="mb-8 rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
@@ -1720,9 +1717,15 @@ const ManageClient = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Time Frame:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Diagnostic Time Frame:</h3>
                     <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
                   </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Repair Time Frame:</h3>
+                    <p className="text-lg">{(serviceData as any).repairTimeFrame || "N/A"}</p>
+                  </div>
+
 
                   {serviceData.status !== "Pending Diagnosis" && (
                     <div>
@@ -2658,7 +2661,7 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="timeFrame">Estimated Time Frame:</Label>
+                  <Label htmlFor="timeFrame">Diagnostic Time Frame:</Label>
                   <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select time frame" />
@@ -2670,6 +2673,21 @@ const ManageClient = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="repairTimeFrame">Repair Time Frame:</Label>
+                  <Select value={updateRepairTimeFrame} onValueChange={setUpdateRepairTimeFrame}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time frame" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_FRAME_OPTIONS.map(tf => (
+                        <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
 
                 <div className="space-y-2">
                   <Label htmlFor="targetDate">Estimated Target Date:</Label>

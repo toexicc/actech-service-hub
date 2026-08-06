@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
 import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -224,7 +224,7 @@ const InventoryManagement = () => {
       formData.append("addedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("color", newPart.color);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -387,7 +387,7 @@ const InventoryManagement = () => {
             await new Promise((r) => setTimeout(r, 1000));
           }
 
-          const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+          const response = await fetch(DATA_BRIDGE_URL, {
             method: "POST",
             body: formData,
           });
@@ -502,7 +502,7 @@ const InventoryManagement = () => {
       formData.append("adjustedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("userRole", sessionStorage.getItem("userRole") || "Management");
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -615,7 +615,7 @@ const InventoryManagement = () => {
       formData.append("updatedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
       formData.append("color", editingPart.color || "");
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -685,7 +685,7 @@ const InventoryManagement = () => {
       formData.append("partId", selectedPart.partId);
       formData.append("deletedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -758,7 +758,7 @@ const InventoryManagement = () => {
       formData.append("userRole", sessionStorage.getItem("userRole") || "Management");
       formData.append("remarks", "Order received and confirmed");
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });

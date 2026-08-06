@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Lock } from "lucide-react";
@@ -167,7 +167,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Intake / scheduling fields must come from the record itself
       serialNumber: pick(sb.serialNumber, sheetData.serialNumber),
       targetDate: pick(sb.targetDate, sheetData.targetDate),
-      timeFrame: pick(sb.timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
+      timeFrame: pick((sb as any).timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
+      repairTimeFrame: pick((sb as any).repairTimeFrame, sheetData.repairTimeFrame),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
       vatRequested: !!(row as any).vat_requested,
@@ -272,7 +273,7 @@ const ServiceTracking = () => {
 
         // Fetching device photos from folder
         const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
+          `${DATA_BRIDGE_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
         );
         const data = await response.json();
         // Photos response received
@@ -338,7 +339,7 @@ const ServiceTracking = () => {
       let sheetRecord: any = null;
       try {
         const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
+          `${DATA_BRIDGE_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
         );
         const data = await response.json();
         if (data.status === "found") sheetRecord = data.data;
@@ -431,7 +432,7 @@ const ServiceTracking = () => {
       }
 
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(clientId)}`
+        `${DATA_BRIDGE_URL}?action=searchClient&clientId=${encodeURIComponent(clientId)}`
       );
       const data = await response.json();
 
@@ -1105,8 +1106,12 @@ const ServiceTracking = () => {
 
                       </div>
                       <div>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Estimated Time Frame</p>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Diagnostic Time Frame</p>
                         <p className="text-sm mt-0.5">{serviceData.timeFrame || serviceData.estimatedCompletion || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repair Time Frame</p>
+                        <p className="text-sm mt-0.5">{serviceData.repairTimeFrame || "N/A"}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -1372,6 +1377,12 @@ const ServiceTracking = () => {
 
                     <Separator />
 
+                    {showMoney && trackDiscount > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Discount</span>
+                        <span>-₱{trackDiscount.toLocaleString()}</span>
+                      </div>
+                    )}
                     {showMoney && vatRequested && (
                       <>
                         <div className="flex items-center justify-between text-sm">
@@ -1431,7 +1442,7 @@ const ServiceTracking = () => {
 
                 {/* Admin notes (kept for continuity) */}
                 {serviceData.adminNotes?.trim() && (
-                  <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
+                  <Card className="border-[hsl(var(--surface-note-border))] bg-[hsl(var(--surface-note))] shadow-[var(--shadow-soft)] rounded-2xl">
                     <CardContent className="p-6">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Notes from the team</p>
                       <p className="text-sm whitespace-pre-wrap">{serviceData.adminNotes}</p>

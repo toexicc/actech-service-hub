@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,7 +101,7 @@ const PointOfSales = () => {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(searchServiceId)}`
+        `${DATA_BRIDGE_URL}?action=searchService&serviceId=${encodeURIComponent(searchServiceId)}`
       );
       const result = await response.json();
       if (result.status === "found" && result.data) {
@@ -116,7 +116,7 @@ const PointOfSales = () => {
           status: result.data.status || "",
         });
 
-        const txnResponse = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getServicePayments&serviceId=${encodeURIComponent(searchServiceId)}`);
+        const txnResponse = await fetch(`${DATA_BRIDGE_URL}?action=getServicePayments&serviceId=${encodeURIComponent(searchServiceId)}`);
         const txnResult = await txnResponse.json();
         if (txnResult.status === "success") {
           setPreviousPayments(txnResult.totalPaid || 0);
@@ -197,7 +197,7 @@ const PointOfSales = () => {
         params.append("fundSource", transactionType);
       }
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {

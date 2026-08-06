@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { displayDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Ban, Plus, RefreshCw,
@@ -76,7 +76,7 @@ const EXPENSE_SUB_TABS = [
 ];
 
 const fetchTransactions = async (): Promise<Transaction[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getTransactions`);
+  const response = await fetch(`${DATA_BRIDGE_URL}?action=getTransactions`);
   const data = await response.json();
   if (data.status === "success" && data.transactions) {
     return data.transactions;
@@ -147,7 +147,7 @@ const TransactionTracker = () => {
     setIsLoadingLogs(true);
     try {
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=getServiceLogs&serviceId=${encodeURIComponent(t.serviceId || t.transactionId)}&limit=50`
+        `${DATA_BRIDGE_URL}?action=getServiceLogs&serviceId=${encodeURIComponent(t.serviceId || t.transactionId)}&limit=50`
       );
       const result = await response.json();
       if (result.status === "success" && result.logs) {
@@ -378,7 +378,7 @@ const TransactionTracker = () => {
       params.append("remaining", editForm.remaining);
       params.append("fundSource", editForm.fundSource);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {
@@ -431,7 +431,7 @@ const TransactionTracker = () => {
       params.append("previousPayments", "0");
       if (voidTarget.fundSource) params.append("fundSource", voidTarget.fundSource);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {

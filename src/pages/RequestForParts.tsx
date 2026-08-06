@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
 import { notifyPartRequest } from "@/lib/partNotifications";
 import { Package, Plus, CalendarIcon, Loader2, Search, ChevronLeft, ChevronRight, RefreshCw, Edit, X, Copy } from "lucide-react";
@@ -197,7 +197,7 @@ const RequestForParts = () => {
 
         const postUrlEncoded = async (payload: Record<string, string>) => {
           const body = new URLSearchParams(payload);
-          return fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+          return fetch(DATA_BRIDGE_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
@@ -228,7 +228,7 @@ const RequestForParts = () => {
         } catch (updateError) {
           // 2) Fallback: use existing getClientInquiries + updateClientInquiry
           try {
-            const inquiriesRes = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getClientInquiries`);
+            const inquiriesRes = await fetch(`${DATA_BRIDGE_URL}?action=getClientInquiries`);
             const inquiriesJson = await inquiriesRes.json();
             const list = inquiriesJson?.data || [];
             const match = list.find((i: any) => (i.serviceId || "").toString().trim() === serviceId);
@@ -337,7 +337,7 @@ const RequestForParts = () => {
       formDataToSend.append("quantity", editForm.quantity);
       formDataToSend.append("remarks", editForm.remarks);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formDataToSend,
       });
@@ -405,7 +405,7 @@ const RequestForParts = () => {
       formDataToSend.append("action", "cancelFastMovingPart");
       formDataToSend.append("partId", cancellingRequest.partId);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formDataToSend,
       });

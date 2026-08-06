@@ -1,4 +1,4 @@
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 
 interface CorsPostResult {
   success: boolean;
@@ -13,7 +13,7 @@ interface CorsPostResult {
  */
 export async function corsSafePost(formData: FormData): Promise<CorsPostResult> {
   try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+    const response = await fetch(DATA_BRIDGE_URL, {
       method: "POST",
       body: formData,
     });
@@ -75,7 +75,7 @@ export async function corsSafePost(formData: FormData): Promise<CorsPostResult> 
  */
 export async function corsSafePostParams(params: URLSearchParams): Promise<CorsPostResult> {
   try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+    const response = await fetch(DATA_BRIDGE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",

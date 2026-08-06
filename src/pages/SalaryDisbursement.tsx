@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { useStaff } from "@/hooks/useStaff";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
@@ -52,7 +52,7 @@ interface ServiceRecord {
 }
 
 const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
-  const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getSalaryLogs`);
+  const response = await fetch(`${DATA_BRIDGE_URL}?action=getSalaryLogs`);
   const data = await response.json();
   if (data.status === "success" && data.logs) return data.logs;
   return [];
@@ -335,7 +335,7 @@ const SalaryDisbursement = () => {
       params.append("totalDeductions", c.totalDeductions.toFixed(2));
       params.append("netPay", c.net.toFixed(2));
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       let result: any = null;
       try { result = await response.json(); } catch { /* CORS */ }
 
@@ -385,7 +385,7 @@ const SalaryDisbursement = () => {
       params.append("remarks", `${salaryPeriod}: ` + disbursedList.map((d) => `${d.staffName} (${fmtCurrency(d.amount)})`).join("; "));
       params.append("fundSource", fundSource);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: params });
+      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       let result: any = null;
       try { result = await response.json(); } catch { /* CORS */ }
 
