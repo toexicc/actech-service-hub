@@ -1372,6 +1372,12 @@ const ServiceTracking = () => {
 
                     <Separator />
 
+                    {showMoney && trackDiscount > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Discount</span>
+                        <span>-₱{trackDiscount.toLocaleString()}</span>
+                      </div>
+                    )}
                     {showMoney && vatRequested && (
                       <>
                         <div className="flex items-center justify-between text-sm">
