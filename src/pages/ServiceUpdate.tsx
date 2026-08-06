@@ -1217,25 +1217,8 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Notes:</h3>
-                    <p className="text-lg">
-                      {(() => {
-                        const conditions: string[] = [];
-                        const isYes = (value: any) => {
-                          if (value === true || value === 1) return true;
-                          const v = typeof value === "string" ? value.trim().toLowerCase() : value;
-                          return v === "yes" || v === "true" || v === "y" || v === "✓" || v === "checked";
-                        };
-                        if (isYes(serviceData.dents)) conditions.push("Dents");
-                        if (isYes(serviceData.scratches)) conditions.push("Scratches");
-                        if (isYes(serviceData.missingParts)) conditions.push("Missing Parts");
-                        if (isYes(serviceData.physicalDamage)) conditions.push("Physical Damage");
-                        if (isYes(serviceData.importantFiles)) conditions.push("Important Files");
-                        if (isYes(serviceData.noPower)) conditions.push("No Power");
-                        if (isYes(serviceData.repairHistory)) conditions.push("Repair History");
-                        return conditions.length > 0 ? conditions.join(", ") : "N/A";
-                      })()}
-                    </p>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Conditions:</h3>
+                    <p className="text-lg">{describeDeviceConditions(serviceData)}</p>
                   </div>
 
                   <div>
