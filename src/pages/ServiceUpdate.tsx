@@ -1964,6 +1964,35 @@ const ServiceUpdate = () => {
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
       <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
+
+      <Dialog open={concernOpen} onOpenChange={(o) => { if (!concernSending) setConcernOpen(o); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Raise a Concern</DialogTitle>
+            <DialogDescription>
+              {serviceData
+                ? `${serviceData.serviceId} — ${serviceData.clientName}. This will notify: ${concernRecipientLabel}.`
+                : "Select a service first."}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={concernMessage}
+            onChange={(e) => setConcernMessage(e.target.value.slice(0, 500))}
+            placeholder="Describe your concern for the assigned admin..."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{concernMessage.length}/500</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConcernOpen(false)} disabled={concernSending}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendConcern} disabled={concernSending || !concernMessage.trim() || !serviceData}>
+              {concernSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>) : "Send Concern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
   );
 };
