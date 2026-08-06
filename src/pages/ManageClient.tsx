@@ -510,6 +510,7 @@ const ManageClient = () => {
       setUpdateServices(merged.service || "");
       setUpdateServiceCost(merged.serviceCost || "");
       setUpdateTimeFrame(merged.timeFrame || "");
+      setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
       setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
       setUpdateAdminNotes(merged.adminNotes || "");
       setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
