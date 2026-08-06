@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2 } from "lucide-react";

@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Lock } from "lucide-react";
@@ -272,7 +272,7 @@ const ServiceTracking = () => {
 
         // Fetching device photos from folder
         const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
+          `${DATA_BRIDGE_URL}?action=getDeviceReportPhotos&folderId=${folderId}`
         );
         const data = await response.json();
         // Photos response received
@@ -338,7 +338,7 @@ const ServiceTracking = () => {
       let sheetRecord: any = null;
       try {
         const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
+          `${DATA_BRIDGE_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
         );
         const data = await response.json();
         if (data.status === "found") sheetRecord = data.data;
@@ -431,7 +431,7 @@ const ServiceTracking = () => {
       }
 
       const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(clientId)}`
+        `${DATA_BRIDGE_URL}?action=searchClient&clientId=${encodeURIComponent(clientId)}`
       );
       const data = await response.json();
 

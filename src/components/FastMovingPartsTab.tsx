@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
 import { Edit, X, Package, CalendarIcon, Loader2, ChevronLeft, ChevronRight, Search, Copy, Plus } from "lucide-react";
 import { format } from "date-fns";
@@ -166,7 +166,7 @@ export const FastMovingPartsTab = ({
       formData.append("remarks", orderForm.remarks || selectedPart.remarks);
       formData.append("status", "Ordered");
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -257,7 +257,7 @@ export const FastMovingPartsTab = ({
       formData.append("quantity", normalizedQty);
       formData.append("dateReceived", format(new Date(), "yyyy-MM-dd"));
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -334,7 +334,7 @@ export const FastMovingPartsTab = ({
       formData.append("quantity", editForm.quantity);
       formData.append("remarks", editForm.remarks);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -408,7 +408,7 @@ export const FastMovingPartsTab = ({
       formData.append("partId", selectedPart.partId);
       formData.append("cancelRemark", cancelRemark);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });
@@ -524,7 +524,7 @@ export const FastMovingPartsTab = ({
       formData.append("status", "For Ordering");
       formData.append("remarks", duplicateForm.remarks);
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
       });

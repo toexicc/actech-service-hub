@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { uploadServicePdf } from "@/lib/servicePdfStorage";

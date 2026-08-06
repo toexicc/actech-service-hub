@@ -30,7 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { GOOGLE_SHEETS_SCRIPT_URL } from "@/lib/googleSheets";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
@@ -347,7 +347,7 @@ const ManageClient = () => {
 
   const fetchApiKey = async () => {
     try {
-      const response = await fetch(`${GOOGLE_SHEETS_SCRIPT_URL}?action=getApiKey`);
+      const response = await fetch(`${DATA_BRIDGE_URL}?action=getApiKey`);
       const data = await response.json();
       if (data.status === "success" && data.apiKey) {
         setOpenAIKey(data.apiKey);
@@ -398,7 +398,7 @@ const ManageClient = () => {
           let foundFromSheets = false;
           try {
             const response = await fetch(
-              `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${urlServiceId}`,
+              `${DATA_BRIDGE_URL}?action=searchService&serviceId=${urlServiceId}`,
             );
             const data = await response.json();
             if (data.status === "found") {
@@ -482,7 +482,7 @@ const ManageClient = () => {
       let foundFromSheets = false;
       try {
         const response = await fetch(
-          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${serviceId}`,
+          `${DATA_BRIDGE_URL}?action=searchService&serviceId=${serviceId}`,
         );
         const data = await response.json();
         if (data.status === "found") {
@@ -886,7 +886,7 @@ const ManageClient = () => {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        fetch(GOOGLE_SHEETS_SCRIPT_URL, { method: "POST", body: formData, signal: controller.signal })
+        fetch(DATA_BRIDGE_URL, { method: "POST", body: formData, signal: controller.signal })
           .catch(() => {})
           .finally(() => clearTimeout(timeoutId));
       } catch { /* ignore */ }
@@ -1109,7 +1109,7 @@ const ManageClient = () => {
         blob: pdfBlob,
       }).catch(() => {});
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
         signal: controller.signal,
@@ -1288,7 +1288,7 @@ const ManageClient = () => {
         blob: pdfBlob,
       }).catch(() => {});
 
-      const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+      const response = await fetch(DATA_BRIDGE_URL, {
         method: "POST",
         body: formData,
         signal: controller.signal,
