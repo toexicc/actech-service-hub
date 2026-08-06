@@ -34,6 +34,7 @@ import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosi
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
+import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useTechnicians, useStaff } from "@/hooks/useStaff";

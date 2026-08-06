@@ -47,6 +47,7 @@ import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
+import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
