@@ -179,6 +179,47 @@ const ManageClient = () => {
   const [concernOpen, setConcernOpen] = useState(false);
   const [concernMessage, setConcernMessage] = useState("");
   const [concernSending, setConcernSending] = useState(false);
+
+  const concernRecipientLabel = (serviceData?.technician || "").trim() || "Management";
+
+  const handleSendConcern = async () => {
+    const body = concernMessage.trim();
+    if (!serviceData || !body) return;
+    setConcernSending(true);
+    try {
+      const fromName = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
+      await notifyAdminConcern(
+        {
+          serviceId: serviceData.serviceId,
+          clientName: serviceData.clientName,
+          technician: serviceData.technician || "",
+          adminRep: serviceData.adminRep,
+          receivingStaff: serviceData.receivingStaff,
+          deviceType: serviceData.deviceType,
+          device: [serviceData.brand, serviceData.model].filter(Boolean).join(" "),
+        },
+        body,
+        fromName,
+      );
+      logActivity({
+        serviceId: serviceData.serviceId,
+        username: fromName,
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: `Concern raised to technician: ${body}`,
+      }).catch(() => {});
+      toast({ title: "Concern sent", description: `Notified ${concernRecipientLabel}.` });
+      setConcernMessage("");
+      setConcernOpen(false);
+    } catch (error) {
+      toast({
+        title: "Could not send concern",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConcernSending(false);
+    }
+  };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateClientType, setUpdateClientType] = useState("");
