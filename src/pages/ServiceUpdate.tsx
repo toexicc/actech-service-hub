@@ -406,6 +406,48 @@ const ServiceUpdate = () => {
   };
   const suggestedNext = NEXT_STATUS[savedStatus];
 
+  const concernRecipientLabel = (serviceData?.adminRep || "").trim() || "Management";
+
+  const handleSendConcern = async () => {
+    const body = concernMessage.trim();
+    if (!serviceData || !body) return;
+    setConcernSending(true);
+    try {
+      await notifyTechnicianConcern(
+        {
+          serviceId: serviceData.serviceId,
+          clientName: serviceData.clientName,
+          technician: updateTechnician || serviceData.technician || "",
+          adminRep: serviceData.adminRep,
+          receivingStaff: serviceData.receivingStaff,
+          deviceType: serviceData.deviceType,
+          device: [serviceData.brand, serviceData.model].filter(Boolean).join(" "),
+        },
+        body,
+        username,
+      );
+      logActivity({
+        serviceId: serviceData.serviceId,
+        username,
+        role: userRole,
+        activity: `Concern raised to admin: ${body}`,
+      }).catch(() => {});
+      toast({ title: "Concern sent", description: `Notified ${concernRecipientLabel}.` });
+      setConcernMessage("");
+      setConcernOpen(false);
+    } catch (error) {
+      toast({
+        title: "Could not send concern",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConcernSending(false);
+    }
+  };
+
+
+
 
   const calculateActualCost = () => {
     return Object.entries(selectedParts).reduce((total, [itemId, qty]) => {
