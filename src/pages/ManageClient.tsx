@@ -2587,6 +2587,27 @@ const ManageClient = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2 rounded-md border border-border/60 p-3">
+                  <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                    <Checkbox
+                      checked={vatRequested}
+                      onCheckedChange={(checked) => {
+                        const next = checked === true;
+                        setVatRequested(next);
+                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), discountAmount, next));
+                      }}
+                    />
+                    <span>Requesting Invoice (Add VAT to Total Cost)</span>
+                  </label>
+                  {vatRequested && (
+                    <p className="pl-6 text-sm font-semibold text-muted-foreground">
+                      VAT (12%): Php {vatAmount(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+
+
+
                 <div className="space-y-2">
                   <Label>Final Cost:</Label>
                   <div className="text-2xl font-bold text-primary">
