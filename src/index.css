@@ -59,6 +59,8 @@
 
     /* Glass + elevation tokens */
     --surface-glass: 0 0% 100% / 0.72;
+    --surface-note: 48 100% 92%;
+    --surface-note-border: 45 85% 72%;
     --shadow-float: 0 20px 40px -20px hsl(221 60% 40% / 0.18), 0 4px 12px -4px hsl(221 60% 40% / 0.08);
     --shadow-elegant: 0 10px 30px -12px hsl(221 60% 40% / 0.15);
     --shadow-soft: 0 2px 8px -2px hsl(220 40% 30% / 0.06);
@@ -109,6 +111,8 @@
     --sidebar-ring: 217 91% 62%;
 
     --surface-glass: 222 40% 10% / 0.6;
+    --surface-note: 48 45% 22%;
+    --surface-note-border: 45 50% 38%;
     --shadow-float: 0 20px 40px -20px hsl(0 0% 0% / 0.55), 0 4px 12px -4px hsl(0 0% 0% / 0.35);
     --shadow-elegant: 0 10px 30px -12px hsl(0 0% 0% / 0.5);
     --shadow-soft: 0 2px 8px -2px hsl(0 0% 0% / 0.35);

@@ -1442,7 +1442,7 @@ const ServiceTracking = () => {
 
                 {/* Admin notes (kept for continuity) */}
                 {serviceData.adminNotes?.trim() && (
-                  <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
+                  <Card className="border-[hsl(var(--surface-note-border))] bg-[hsl(var(--surface-note))] shadow-[var(--shadow-soft)] rounded-2xl">
                     <CardContent className="p-6">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Notes from the team</p>
                       <p className="text-sm whitespace-pre-wrap">{serviceData.adminNotes}</p>
