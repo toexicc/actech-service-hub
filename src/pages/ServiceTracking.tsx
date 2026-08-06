@@ -397,6 +397,39 @@ const ServiceTracking = () => {
 
     setIsLoadingClient(true);
     try {
+      // Database first so statuses and amounts match what staff see.
+      let dbRows: any[] = [];
+      try {
+        const { data: rows } = await supabase.rpc("public_client_services", {
+          _client_id: clientId.trim(),
+        });
+        dbRows = Array.isArray(rows) ? rows : [];
+      } catch {
+        dbRows = [];
+      }
+
+      if (dbRows.length) {
+        const first = await fetchPublicServiceSnapshot(dbRows[0].service_id);
+        setCustomerData({
+          clientId: clientId.trim(),
+          clientName: first?.client_name || "",
+          username: first?.username || "",
+          phone: first?.contact_number || "",
+          email: first?.email || "",
+          serviceIds: dbRows.map((r) => r.service_id),
+        });
+        setServiceRecords(
+          dbRows.map((r) => ({
+            serviceId: r.service_id,
+            status: r.status || "",
+            service: r.service || "",
+            targetDate: r.target_date ? format(new Date(r.target_date), "MM-dd-yyyy") : "",
+            serviceCost: String(r.final_cost ?? r.service_cost ?? 0),
+          })),
+        );
+        return;
+      }
+
       const response = await fetch(
         `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(clientId)}`
       );
@@ -421,6 +454,7 @@ const ServiceTracking = () => {
         setCustomerData(null);
         setServiceRecords([]);
       }
+
     } catch (error) {
       console.error("Error searching customer:", error);
       toast({
