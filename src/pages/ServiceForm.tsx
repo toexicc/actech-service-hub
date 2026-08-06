@@ -70,7 +70,7 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   repairHistory: z.boolean().default(false),
   physicalSignature: z.boolean().default(false),
   estimatedCost: z.number().optional(),
-  timeFrame: isPublic ? z.string().optional() : z.string().min(1, "Estimated Time Frame is required"),
+  timeFrame: isPublic ? z.string().optional() : z.string().min(1, "Diagnostic Time Frame is required"),
   ack1: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
@@ -1597,11 +1597,11 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                 name="timeFrame"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Estimated Time Frame:</FormLabel>
+                    <FormLabel>Diagnostic Time Frame:</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select Estimated Time Frame" />
+                          <SelectValue placeholder="Select Diagnostic Time Frame" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

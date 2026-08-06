@@ -1254,8 +1254,13 @@ const ServiceUpdate = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Time Frame:</h3>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Diagnostic Time Frame:</h3>
                     <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Repair Time Frame:</h3>
+                    <p className="text-lg">{(serviceData as any).repairTimeFrame || "N/A"}</p>
                   </div>
 
                   <div>

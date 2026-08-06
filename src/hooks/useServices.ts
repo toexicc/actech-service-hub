@@ -29,6 +29,7 @@ export interface ServiceRecord {
   dateReceived: string;
   targetDate: string;
   estimatedCompletion: string;
+  repairTimeFrame?: string;
   dateCompleted?: string;
   partsUsed: string;
   laborCost: string;
@@ -120,6 +121,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   dateReceived: r.date_received ?? "",
   targetDate: r.target_date ?? "",
   estimatedCompletion: r.estimated_completion ?? "",
+  repairTimeFrame: (r as any).repair_time_frame ?? "",
   dateCompleted: r.date_completed ?? "",
   partsUsed: Array.isArray(r.parts_used) ? r.parts_used.join(", ") : "",
   laborCost: String(r.labor_cost ?? 0),

@@ -70,7 +70,6 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
       username: serviceData?.username || "",
       contactNumber: serviceData?.contactNumber || serviceData?.phone || "",
       email: serviceData?.email || "",
-      address: serviceData?.address || "",
       deviceType: serviceData?.deviceType || "",
       brand: serviceData?.brand || "",
       model: serviceData?.device || serviceData?.model || "",
@@ -82,6 +81,7 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
       priority: serviceData?.priority || "",
       service: serviceData?.service || "",
       timeFrame: serviceData?.timeFrame || serviceData?.estimatedCompletion || "",
+      repairTimeFrame: serviceData?.repairTimeFrame || "",
       targetDate: parseDateInput(serviceData?.targetDate),
       deviceNotes: serviceData?.deviceNotes || "",
       conditions: CONDITION_FIELDS.reduce<Record<string, boolean>>((acc, f) => {
@@ -122,7 +122,6 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         username: trim(draft.username) || null,
         contact_number: trim(draft.contactNumber) || null,
         email: email || null,
-        address: trim(draft.address, MAX_LONG_TEXT) || null,
         device_type: trim(draft.deviceType),
         brand: trim(draft.brand) || null,
         model: trim(draft.model) || null,
@@ -134,6 +133,7 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         priority: trim(draft.priority) || null,
         service: trim(draft.service, MAX_LONG_TEXT) || null,
         estimated_completion: trim(draft.timeFrame) || null,
+        repair_time_frame: trim(draft.repairTimeFrame) || null,
         target_date: draft.targetDate ? format(draft.targetDate, "yyyy-MM-dd") : null,
         device_notes: trim(draft.deviceNotes, MAX_LONG_TEXT) || null,
         conditions: draft.conditions,
@@ -153,7 +153,6 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         ["Facebook/Instagram name", initial.username, draft.username],
         ["Contact number", initial.contactNumber, draft.contactNumber],
         ["Email", initial.email, email],
-        ["Address", initial.address, draft.address],
         ["Device type", initial.deviceType, draft.deviceType],
         ["Brand", initial.brand, draft.brand],
         ["Model", initial.model, draft.model],
@@ -225,10 +224,6 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
           <Label>Email</Label>
           <Input value={draft.email} maxLength={255} onChange={e => set("email", e.target.value)} />
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label>Address</Label>
-          <Input value={draft.address} maxLength={MAX_LONG_TEXT} onChange={e => set("address", e.target.value)} />
-        </div>
 
         <div className="space-y-2">
           <Label>Client Type</Label>
@@ -284,8 +279,17 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         </div>
 
         <div className="space-y-2">
-          <Label>Estimated Time Frame</Label>
+          <Label>Diagnostic Time Frame</Label>
           <Select value={draft.timeFrame} onValueChange={v => set("timeFrame", v)}>
+            <SelectTrigger><SelectValue placeholder="Select time frame" /></SelectTrigger>
+            <SelectContent>
+              {TIME_FRAME_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Repair Time Frame</Label>
+          <Select value={draft.repairTimeFrame} onValueChange={v => set("repairTimeFrame", v)}>
             <SelectTrigger><SelectValue placeholder="Select time frame" /></SelectTrigger>
             <SelectContent>
               {TIME_FRAME_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}

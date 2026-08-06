@@ -82,7 +82,7 @@ const paragraphCard = (
   });
 };
 
-/** Icon rows for Estimated Cost / Estimated Time Frame. */
+/** Icon rows for Estimated Cost / Diagnostic Time Frame. */
 const metricsCard = (
   doc: jsPDF,
   x: number,
@@ -248,7 +248,7 @@ export const drawIntake = (doc: jsPDF, data: PDFData, logo: string) => {
   const bottomLimit = PAGE_H - 40;
   const metricRows: [Glyph, string, string][] = [
     ["money", "Estimated Cost:", `PHP ${Number(data.estimatedCost || 0).toLocaleString()}`],
-    ["clock", "Estimated Time Frame:", data.timeFrame],
+    ["clock", "Diagnostic Time Frame:", data.timeFrame],
   ];
 
   if (data.annotationImageUrl) {

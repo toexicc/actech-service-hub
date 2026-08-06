@@ -167,7 +167,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Intake / scheduling fields must come from the record itself
       serialNumber: pick(sb.serialNumber, sheetData.serialNumber),
       targetDate: pick(sb.targetDate, sheetData.targetDate),
-      timeFrame: pick(sb.timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
+      timeFrame: pick((sb as any).timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
+      repairTimeFrame: pick((sb as any).repairTimeFrame, sheetData.repairTimeFrame),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
       vatRequested: !!(row as any).vat_requested,
