@@ -160,8 +160,8 @@ export interface QuotedValidation {
 }
 
 /**
- * Shared rule set: at least one ticked line, every ticked line must resolve to
- * an amount greater than zero, and option lines must have a chosen option.
+ * Shared rule set: at least one ticked line, and option lines must have a
+ * chosen option. Amounts of 0 are allowed (free services).
  * `requireLock` additionally demands at least one locked (required) line.
  */
 export const validateQuotedLines = (
@@ -175,8 +175,9 @@ export const validateQuotedLines = (
       problems[i] = "Choose an option";
       return;
     }
-    if (lineEffectiveCost(l) <= 0) problems[i] = "Enter an amount greater than 0";
+    if (lineEffectiveCost(l) < 0) problems[i] = "Amount cannot be negative";
   });
+
   const anySelected = lines.some((l) => l.selected);
   const needsOne = opts?.requireOne !== false;
   const lockMissing = !!opts?.requireLock && lines.length > 0 && !lines.some((l) => l.required);
