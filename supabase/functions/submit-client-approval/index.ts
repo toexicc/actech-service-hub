@@ -277,13 +277,14 @@ serve(async (req) => {
       if (approvedItems.length) update.service = approvedItems.join(", ");
       if (!row.service_date) update.service_date = nowIso.slice(0, 10);
 
-      if (isPartial) {
-        // Stay in Waiting to Proceed; lock further client responses until an
-        // admin re-opens the approval.
+      if (blockAdvance) {
+        // A required service is still unapproved: stay in Waiting to Proceed and
+        // lock further client responses until an admin re-opens the approval.
         update.approval_locked = true;
       } else {
         update.status = "Proceed Repair";
       }
+
     }
 
     const { error: updateError } = await admin
