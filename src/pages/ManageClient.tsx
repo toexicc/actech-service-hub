@@ -2446,7 +2446,16 @@ const ManageClient = () => {
                         </div>
                       ))}
 
+                      {!quotedLines.some((l) => l.required) && (
+                        <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                          Lock at least one required service (padlock icon). The client's approval of the required
+                          service(s) is what moves the ticket to Proceed Repair — optional services left unticked
+                          will simply stay pending.
+                        </p>
+                      )}
+
                       <div className="flex items-center justify-between pt-1 text-sm">
+
                         <span className="font-semibold">
                           Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
                         </span>
