@@ -688,8 +688,19 @@ const ServiceTracking = () => {
       });
       return;
     }
+    if (needsChecklist && !requiredOk) {
+      toast({
+        title: "Required service needs your approval",
+        description: `Please approve ${requiredMissing
+          .map((l) => l.name)
+          .join(", ")}${requiredMissing.some((l) => !!l.options?.length) ? " and choose an option where offered." : "."}`,
+        variant: "destructive",
+      });
+      return;
+    }
     setConfirmApproveOpen(true);
   };
+
 
 
 
