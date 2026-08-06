@@ -1088,6 +1088,16 @@ const ServiceTracking = () => {
                                             className={cn("flex-1 text-sm", !locked && "cursor-pointer")}
                                           >
                                             {line.name}
+                                            <span
+                                              className={cn(
+                                                "ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                                line.required
+                                                  ? "bg-primary/15 text-primary"
+                                                  : "bg-muted text-muted-foreground",
+                                              )}
+                                            >
+                                              {line.required ? "Required" : "Optional"}
+                                            </span>
                                           </span>
                                           {locked && (
                                             <Lock
@@ -1095,6 +1105,7 @@ const ServiceTracking = () => {
                                               aria-label="Already confirmed"
                                             />
                                           )}
+
                                           <span
                                             className={cn(
                                               "text-sm font-semibold",
