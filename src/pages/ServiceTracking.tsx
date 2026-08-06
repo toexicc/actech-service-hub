@@ -1095,11 +1095,19 @@ const ServiceTracking = () => {
                                               aria-label="Already confirmed"
                                             />
                                           )}
-                                          <span className="text-sm font-semibold">
+                                          <span
+                                            className={cn(
+                                              "text-sm font-semibold",
+                                              !checked && "text-muted-foreground",
+                                            )}
+                                          >
                                             {line.options?.length && !chosen
-                                              ? "Choose an option"
+                                              ? checked
+                                                ? "Choose an option"
+                                                : "Options available"
                                               : `₱${lineEffectiveCost({ ...line, selectedOption: chosen }).toLocaleString()}`}
                                           </span>
+
                                         </div>
                                         {!!line.options?.length && (
                                           <div
