@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
+import { supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
+
 import { StatusChip } from "@/components/ui/status-chip";
 import { clientStatusLabel } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
@@ -107,21 +109,47 @@ const TermsImageViewer = ({ className = "" }: { className?: string }) => (
 
 
 
-// Merge Supabase migrated fields over sheet data so public tracking shows
-// up-to-date info even when fields were updated post-migration.
+// Public, tracking-safe snapshot of a ticket. The services table is not
+// readable by anonymous visitors, so /track reads through a database function
+// that returns only the fields the client is allowed to see.
+export const fetchPublicServiceSnapshot = async (serviceId: string): Promise<any | null> => {
+  try {
+    const { data, error } = await supabase.rpc("public_service_snapshot", {
+      _service_id: serviceId,
+    });
+    if (error || !data) return null;
+    return data as any;
+  } catch {
+    return null;
+  }
+};
+
+// Merge Supabase fields over any legacy sheet data so public tracking always
+// shows the live quotation, amounts and approval state.
 const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any> => {
   try {
-    const { data: row } = await supabase
-      .from("services")
-      .select("*")
-      .eq("service_id", serviceId)
-      .maybeSingle();
+    const row: any = await fetchPublicServiceSnapshot(serviceId);
     if (!row) return sheetData;
     const sb: any = mapServiceRow(row);
+
     const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+    // Start from the database record so a ticket that only exists in Supabase
+    // still renders completely, then let the legacy sheet fill in the gaps.
+    const base = supabaseRowToSheetShape(sb);
     return {
-      ...sheetData,
+      ...base,
+      ...Object.fromEntries(
+        Object.entries(sheetData ?? {}).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+      ),
+      serviceId: pick(sb.serviceId, sheetData?.serviceId ?? serviceId),
+      clientName: pick(sb.clientName, sheetData?.clientName),
+      clientId: pick(sb.clientId, sheetData?.clientId),
+      deviceType: pick(sb.deviceType, sheetData?.deviceType),
+      brand: pick(sb.brand, sheetData?.brand),
+      model: pick(sb.deviceModel, sheetData?.model),
+      device: pick(sb.deviceModel, sheetData?.device),
       username: pick(sb.username, sheetData.username),
+
       colorMemory: pick(sb.colorMemory, sheetData.colorMemory),
       color: pick(sb.color, sheetData.color),
       memory: pick(sb.memory, sheetData.memory),
@@ -303,13 +331,23 @@ const ServiceTracking = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
-      );
-      const data = await response.json();
+      // The database is the source of truth; the legacy sheet is only a
+      // fallback for very old tickets that were never migrated.
+      const snapshot = await fetchPublicServiceSnapshot(targetId);
 
-      if (data.status === "found") {
-        const merged = await mergeWithSupabase(targetId, data.data);
+      let sheetRecord: any = null;
+      try {
+        const response = await fetch(
+          `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchService&serviceId=${encodeURIComponent(targetId)}`,
+        );
+        const data = await response.json();
+        if (data.status === "found") sheetRecord = data.data;
+      } catch {
+        // sheet lookup is optional
+      }
+
+      if (snapshot || sheetRecord) {
+        const merged = await mergeWithSupabase(targetId, sheetRecord || {});
         setServiceData(merged);
         // Sync URL so the result is shareable
         if (routeServiceId !== targetId) {
@@ -332,6 +370,7 @@ const ServiceTracking = () => {
     } finally {
       setIsLoading(false);
     }
+
   };
 
   // Auto-fetch when arriving via /track/:serviceId
@@ -358,6 +397,39 @@ const ServiceTracking = () => {
 
     setIsLoadingClient(true);
     try {
+      // Database first so statuses and amounts match what staff see.
+      let dbRows: any[] = [];
+      try {
+        const { data: rows } = await supabase.rpc("public_client_services", {
+          _client_id: clientId.trim(),
+        });
+        dbRows = Array.isArray(rows) ? rows : [];
+      } catch {
+        dbRows = [];
+      }
+
+      if (dbRows.length) {
+        const first = await fetchPublicServiceSnapshot(dbRows[0].service_id);
+        setCustomerData({
+          clientId: clientId.trim(),
+          clientName: first?.client_name || "",
+          username: first?.username || "",
+          phone: first?.contact_number || "",
+          email: first?.email || "",
+          serviceIds: dbRows.map((r) => r.service_id),
+        });
+        setServiceRecords(
+          dbRows.map((r) => ({
+            serviceId: r.service_id,
+            status: r.status || "",
+            service: r.service || "",
+            targetDate: r.target_date ? format(new Date(r.target_date), "MM-dd-yyyy") : "",
+            serviceCost: String(r.final_cost ?? r.service_cost ?? 0),
+          })),
+        );
+        return;
+      }
+
       const response = await fetch(
         `${GOOGLE_SHEETS_SCRIPT_URL}?action=searchClient&clientId=${encodeURIComponent(clientId)}`
       );
@@ -382,6 +454,7 @@ const ServiceTracking = () => {
         setCustomerData(null);
         setServiceRecords([]);
       }
+
     } catch (error) {
       console.error("Error searching customer:", error);
       toast({
@@ -592,16 +665,13 @@ const ServiceTracking = () => {
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
-  // Quotation lines finalized by the shop (fallback: parse the AI diagnosis).
-  const storedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
-  const quotedLines: QuotedLine[] = storedLines.length
-    ? storedLines
-    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").map((name) => ({
-        name,
-        cost: 0,
-        selected: true,
-        required: false,
-      }));
+  // Quotation lines finalized (and priced) by the shop. There is no ₱0
+  // fallback: an unpriced list can never be approved, so we tell the client the
+  // quote is still being finalised instead.
+  const quotedLines: QuotedLine[] = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const quoteNotReady =
+    quotedLines.length === 0 && !!parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").length;
+
   const alreadyApproved: string[] = Array.isArray((serviceData as any)?.approvedServices)
     ? (serviceData as any).approvedServices
     : [];
@@ -685,6 +755,14 @@ const ServiceTracking = () => {
   const selectedNames = liveLines.filter((l) => l.selected).map(lineDisplayName);
 
   const startApprove = () => {
+    if (quoteNotReady) {
+      toast({
+        title: "This quote is not ready for approval yet",
+        description: "Our team is still finalising the pricing — please contact the shop.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (needsChecklist && !validation.ok) {
       toast({
         title: validation.message || "Please review your selection",
@@ -693,6 +771,7 @@ const ServiceTracking = () => {
       });
       return;
     }
+
     if (needsChecklist && !requiredOk) {
       toast({
         title: "Required service needs your approval",
@@ -1077,7 +1156,14 @@ const ServiceTracking = () => {
                           </div>
                         ) : (
                           <div className="space-y-4">
+                            {quoteNotReady && (
+                              <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900">
+                                Our team is still finalising the pricing for your quote. Please contact the shop — you
+                                will be able to approve once the amounts are published.
+                              </div>
+                            )}
                             {needsChecklist && (
+
                               <div className="space-y-2">
                                 <p className="text-sm font-semibold">Select the services you approve</p>
                                 <p className="text-xs text-muted-foreground">
