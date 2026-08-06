@@ -1794,7 +1794,7 @@ const ManageClient = () => {
                     <Button
                       type="button"
                       size="sm"
-                      className="gap-1.5 gradient-destructive border-0 text-white shadow-lg"
+                      className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
                       onClick={() => setConcernOpen(true)}
                     >
                       <AlertTriangle className="h-4 w-4" />
