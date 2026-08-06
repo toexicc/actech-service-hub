@@ -1351,7 +1351,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-muted-foreground text-xs">Device</span>
                             <span className="text-foreground truncate max-w-[60%] text-right">
-                              {[service.deviceType, service.brand, service.device].filter(Boolean).join(" · ") || "N/A"}
+                              {Array.from(new Set([service.deviceType, service.brand, service.deviceModel].filter(Boolean).map((v) => String(v).trim()))).join(" · ") || "N/A"}
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-2">
