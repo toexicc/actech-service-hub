@@ -426,6 +426,7 @@ const ManageClient = () => {
       setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setUpdateTimeFrame(merged.timeFrame || "");
+          setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
           setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
           setUpdateAdminNotes(merged.adminNotes || "");
           setUpdateAdminNotesInternal(merged.adminNotesInternal || "");
