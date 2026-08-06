@@ -755,6 +755,14 @@ const ServiceTracking = () => {
   const selectedNames = liveLines.filter((l) => l.selected).map(lineDisplayName);
 
   const startApprove = () => {
+    if (quoteNotReady) {
+      toast({
+        title: "This quote is not ready for approval yet",
+        description: "Our team is still finalising the pricing — please contact the shop.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (needsChecklist && !validation.ok) {
       toast({
         title: validation.message || "Please review your selection",
@@ -763,6 +771,7 @@ const ServiceTracking = () => {
       });
       return;
     }
+
     if (needsChecklist && !requiredOk) {
       toast({
         title: "Required service needs your approval",
