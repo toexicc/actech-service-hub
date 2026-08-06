@@ -1409,17 +1409,8 @@ const ManageClient = () => {
           title="Manage Client"
           subtitle="View and update client information"
           icon={<UserCog className="h-5 w-5" />}
-          actions={
-            <Button
-              onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")}
-              variant="outline"
-              className="rounded-xl"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Sheet
-            </Button>
-          }
         />
+
 
         {/* Search Form */}
         <Card className="mb-8 rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
