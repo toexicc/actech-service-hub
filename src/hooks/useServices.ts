@@ -17,6 +17,7 @@ export interface ServiceRecord {
   technicianDiagnosis?: string;
   clientApprovedAt?: string;
   autoApproveDiagnosis?: boolean;
+  vatRequested?: boolean;
   approvalLocked?: boolean;
   approvedServices?: string[];
   pendingServices?: string[];
@@ -107,6 +108,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   technicianDiagnosis: r.technician_diagnosis ?? "",
   clientApprovedAt: r.client_approved_at ?? "",
   autoApproveDiagnosis: !!r.auto_approve_diagnosis,
+  vatRequested: !!(r as any).vat_requested,
   approvalLocked: !!r.approval_locked,
   approvedServices: Array.isArray(r.approved_services) ? r.approved_services : [],
   pendingServices: Array.isArray(r.pending_services) ? r.pending_services : [],
