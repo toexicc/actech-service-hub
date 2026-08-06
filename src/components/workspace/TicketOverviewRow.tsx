@@ -38,6 +38,7 @@ export interface TicketOverviewRowProps {
   serviceCost?: number | string;
   discount?: number | string;
   finalCost?: number | string;
+  vatRequested?: boolean;
   initialPayment?: number | string;
   paymentStatus?: string;
   showCharges?: boolean;
@@ -60,6 +61,7 @@ export function TicketOverviewRow({
   serviceCost,
   discount,
   finalCost,
+  vatRequested,
   initialPayment,
   paymentStatus,
   showCharges = true,
@@ -80,7 +82,8 @@ export function TicketOverviewRow({
   const dc = num(discount);
   const fc = finalCost !== undefined && finalCost !== null && String(finalCost) !== ""
     ? num(finalCost)
-    : Math.max(0, sc - dc);
+    : Math.max(0, sc - dc) + (vatRequested ? Math.round(Math.max(0, sc - dc) * 12) / 100 : 0);
+  const vat = vatRequested ? Math.round(Math.max(0, sc - dc) * 12) / 100 : 0;
   const ip = num(initialPayment);
   const totals = derivePaymentTotals(fc, ip, paymentsSummary?.transactionsPaid || 0);
   const paid = totals.paid;
@@ -170,6 +173,12 @@ export function TicketOverviewRow({
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Discount</span>
                     <span className="tabular-nums">{dc > 0 ? `- ${peso(dc)}` : peso(0)}</span>
+                  </div>
+                )}
+                {vatRequested && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">VAT (12%)</span>
+                    <span className="tabular-nums">{peso(vat)}</span>
                   </div>
                 )}
                 {showFinal && (
