@@ -1102,44 +1102,56 @@ const ServiceTracking = () => {
                                           </span>
                                         </div>
                                         {!!line.options?.length && (
-                                          <div className="mt-2 space-y-1 pl-8">
-                                            {line.options.map((opt, oi) => (
-                                              <div
-                                                key={oi}
-                                                role="button"
-                                                tabIndex={0}
-                                                onClick={() => !locked && chooseOption(i, opt.label)}
-                                                onKeyDown={(e) => {
-                                                  if (!locked && (e.key === "Enter" || e.key === " ")) {
-                                                    e.preventDefault();
-                                                    chooseOption(i, opt.label);
-                                                  }
-                                                }}
-                                                className={cn(
-                                                  "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
-                                                  chosen === opt.label
-                                                    ? "border-primary bg-primary/10"
-                                                    : "border-border/60 bg-background/40",
-                                                  !locked && "cursor-pointer",
-                                                )}
-                                              >
-                                                <span className="flex items-center gap-2">
-                                                  <span
-                                                    className={cn(
-                                                      "h-3.5 w-3.5 rounded-full border",
-                                                      chosen === opt.label
-                                                        ? "border-primary bg-primary"
-                                                        : "border-muted-foreground/50",
-                                                    )}
-                                                  />
-                                                  {opt.label}
-                                                </span>
-                                                <span className="font-semibold">
-                                                  ₱{Number(opt.cost || 0).toLocaleString()}
-                                                </span>
-                                              </div>
-                                            ))}
+                                          <div
+                                            className={cn(
+                                              "mt-2 space-y-1 pl-8 transition-opacity",
+                                              !checked && "pointer-events-none opacity-50",
+                                            )}
+                                            aria-disabled={!checked}
+                                          >
+                                            {line.options.map((opt, oi) => {
+                                              const optDisabled = locked || !checked;
+                                              const isChosen = checked && chosen === opt.label;
+                                              return (
+                                                <div
+                                                  key={oi}
+                                                  role="button"
+                                                  tabIndex={optDisabled ? -1 : 0}
+                                                  onClick={() => !optDisabled && chooseOption(i, opt.label)}
+                                                  onKeyDown={(e) => {
+                                                    if (!optDisabled && (e.key === "Enter" || e.key === " ")) {
+                                                      e.preventDefault();
+                                                      chooseOption(i, opt.label);
+                                                    }
+                                                  }}
+                                                  className={cn(
+                                                    "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
+                                                    isChosen
+                                                      ? "border-primary bg-primary/10"
+                                                      : "border-border/60 bg-background/40",
+                                                    !optDisabled && "cursor-pointer",
+                                                    !checked && "text-muted-foreground",
+                                                  )}
+                                                >
+                                                  <span className="flex items-center gap-2">
+                                                    <span
+                                                      className={cn(
+                                                        "h-3.5 w-3.5 rounded-full border",
+                                                        isChosen
+                                                          ? "border-primary bg-primary"
+                                                          : "border-muted-foreground/50",
+                                                      )}
+                                                    />
+                                                    {opt.label}
+                                                  </span>
+                                                  <span className="font-semibold">
+                                                    ₱{Number(opt.cost || 0).toLocaleString()}
+                                                  </span>
+                                                </div>
+                                              );
+                                            })}
                                           </div>
+
                                         )}
                                       </div>
                                     );
