@@ -1071,9 +1071,11 @@ const ServiceTracking = () => {
                               <div className="space-y-2">
                                 <p className="text-sm font-semibold">Select the services you approve</p>
                                 <p className="text-xs text-muted-foreground">
-                                  Please tick at least one. If you don't approve everything, our team will contact you
-                                  to confirm before starting the repair.
+                                  Services marked <span className="font-semibold">Required</span> must be approved for
+                                  us to start the repair. Optional services you leave unticked simply stay pending —
+                                  our team can discuss them with you later.
                                 </p>
+
                                 <div className="space-y-2 pt-1">
                                   {quotedLines.map((line, i) => {
                                     const locked = isLineLocked(line, i);
