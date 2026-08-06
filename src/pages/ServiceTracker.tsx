@@ -869,19 +869,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           icon={<Clock className="h-5 w-5" />}
           title="Service Tracker"
           subtitle="Monitor all ongoing services in real time"
-          actions={
-            (userRole === "admin" || userRole === "management") ? (
-              <Button
-                onClick={() => window.open("https://docs.google.com/spreadsheets/d/14aDQwwbLLS7FWNdcx-mChLjC-8pTV73UIScjt8HPnSc/edit?usp=sharing", "_blank")}
-                variant="outline"
-                className="rounded-xl"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View Sheet
-              </Button>
-            ) : undefined
-          }
         />
+
 
         {/* Search Bar */}
         <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
