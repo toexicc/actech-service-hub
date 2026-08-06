@@ -97,7 +97,7 @@ const ServiceTracker = () => {
       if (c === "completed") return "completed";
       if (c === "closed") return "closed";
     }
-    return "ongoing";
+    return "all";
   })();
   const [activeTab, setActiveTab] = useState<TrackerTab>(initialTab);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
@@ -550,29 +550,37 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   }, [invalidateServices]);
 
 
-  const calculateInServiceDays = (timestamp: string, status?: string): number => {
-    if (status && status.toLowerCase().includes("completed")) {
-      return 0;
-    }
+  /**
+   * Planned service span: Service Date -> Estimated Target Date.
+   */
+  const calculateInServiceDays = (timestamp: string, status?: string, targetDate?: string): number => {
+    if (status && status.toLowerCase().includes("completed")) return 0;
     if (!timestamp) return 0;
     try {
       const [datePart] = timestamp.split(", ");
       const parts = datePart.split(/[-/]/);
       if (parts.length !== 3) return 0;
-      
-      const [month, day, year] = parts;
+      const [month, day, year] = parts[0].length === 4
+        ? [parts[1], parts[2], parts[0]]
+        : [parts[0], parts[1], parts[2]];
       const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       serviceDate.setHours(0, 0, 0, 0);
-      
-      if (isNaN(serviceDate.getTime())) {
-        return 0;
+      if (isNaN(serviceDate.getTime())) return 0;
+
+      let endDate: Date | null = null;
+      const tp = (targetDate || "").split(/[-/]/);
+      if (tp.length === 3) {
+        const [tm, td, ty] = tp[0].length === 4 ? [tp[1], tp[2], tp[0]] : [tp[0], tp[1], tp[2]];
+        const parsed = new Date(parseInt(ty), parseInt(tm) - 1, parseInt(td));
+        parsed.setHours(0, 0, 0, 0);
+        if (!isNaN(parsed.getTime())) endDate = parsed;
       }
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const days = differenceInDays(today, serviceDate);
-      return Math.max(0, days);
+      if (!endDate) {
+        endDate = new Date();
+        endDate.setHours(0, 0, 0, 0);
+      }
+
+      return Math.max(0, differenceInDays(endDate, serviceDate));
     } catch (error) {
       return 0;
     }
@@ -792,7 +800,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           compareValue = (a.technician || "").localeCompare(b.technician || "");
           break;
         case "inService":
-          compareValue = calculateInServiceDays(a.timestamp, a.status) - calculateInServiceDays(b.timestamp, b.status);
+          compareValue = calculateInServiceDays(a.timestamp, a.status, a.targetDate) - calculateInServiceDays(b.timestamp, b.status, b.targetDate);
           break;
         case "targetDate":
           compareValue = (a.targetDate || "").localeCompare(b.targetDate || "");
@@ -1310,7 +1318,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 </div>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                   {paginatedServices.map((service) => {
-                    const inServiceDays = calculateInServiceDays(service.timestamp, service.status);
+                    const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.targetDate);
                     const overdueStatus = isOverdue(service.targetDate, service.status);
                     const isCompleted = (service.status || "").toLowerCase().includes("completed");
                     return (
@@ -1466,7 +1474,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   </TableHeader>
                   <TableBody>
                     {paginatedServices.map((service) => {
-                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status);
+                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.targetDate);
                        const overdueStatus = isOverdue(service.targetDate, service.status);
                        const isCompleted = (service.status || "").toLowerCase().includes("completed");
 
