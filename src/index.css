@@ -66,6 +66,7 @@
                     radial-gradient(ellipse 60% 50% at 100% 0%, hsl(217 100% 95%) 0%, transparent 55%),
                     linear-gradient(180deg, hsl(220 60% 98%) 0%, hsl(220 50% 96%) 100%);
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
+    --gradient-destructive: linear-gradient(135deg, hsl(var(--destructive)) 0%, hsl(0 84% 50%) 100%);
   }
 
   .dark {
@@ -181,18 +182,6 @@
 
   .gradient-primary {
     background: var(--gradient-primary);
-  }
-
-  .gradient-destructive {
-    background: linear-gradient(135deg, hsl(var(--destructive)) 0%, hsl(0 84% 50%) 100%);
-    color: hsl(var(--destructive-foreground));
-    box-shadow: 0 8px 20px -6px hsl(var(--destructive) / 0.35);
-    transition: filter 150ms ease, transform 150ms ease;
-  }
-
-  .gradient-destructive:hover {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
   }
 
   .gradient-bg {
