@@ -878,15 +878,17 @@ const ManageClient = () => {
         vat_requested: vatRequested,
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
+        estimated_completion: updateTimeFrame || null,
+        repair_time_frame: updateRepairTimeFrame || null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
         last_updated: saveStamp,
-      }).eq("service_id", serviceId);
+      } as any).eq("service_id", serviceId);
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
 
 
-      // Fire-and-forget: keep Sheets in sync if still configured (non-blocking, ignore failures)
+      // Fire-and-forget mirror to the data bridge (non-blocking, ignore failures)
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
