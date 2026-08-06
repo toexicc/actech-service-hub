@@ -42,6 +42,8 @@ const CompletedTransactions = () => {
   const [commissionRate, setCommissionRate] = useState(0);
   const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const filteredServices = useMemo(() => {
     return services.filter((service) => {
@@ -156,6 +158,18 @@ const CompletedTransactions = () => {
     };
   }, [filteredServices, commissionRate, screenCommissions, departmentFilter, breakdownMap]);
 
+
+  // Reset to the first page whenever the filters change the result set.
+  useEffect(() => {
+    setPage(1);
+  }, [technicianFilter, departmentFilter, startDate, endDate]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredServices.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedServices = useMemo(
+    () => filteredServices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredServices, currentPage],
+  );
 
   const uniqueTechnicians = useMemo(() => {
     return Array.from(new Set(services.map((s) => s.technician))).filter(Boolean);
@@ -380,7 +394,7 @@ const CompletedTransactions = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredServices.map((service) => {
+                    {pagedServices.map((service) => {
                       let adjustedCost = service.partsCost || 0;
                       const discount = service.discount || 0;
                       let profit = (service.quotedPrice || 0) - discount - adjustedCost;
@@ -473,6 +487,35 @@ const CompletedTransactions = () => {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+            {!isLoading && filteredServices.length > PAGE_SIZE && (
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                  {Math.min(currentPage * PAGE_SIZE, filteredServices.length)} of {filteredServices.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
