@@ -89,7 +89,7 @@ export const cleanDeviceModel = (model?: string | null, deviceType?: string | nu
       out = out.slice(p.length).trim();
     }
   }
-  return out || String(model ?? "").trim();
+  return out;
 };
 
 export const mapServiceRow = (r: any): ServiceRecord => ({
