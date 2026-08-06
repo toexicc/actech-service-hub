@@ -45,7 +45,7 @@ export const quotedLineItems = (lines: QuotedLine[]): BreakdownItem[] => {
       line.options.forEach((opt, i) => {
         items.push({
           label: `Option ${String.fromCharCode(65 + i)} - ${opt.label}`,
-          amount: opt.cost > 0 ? money(opt.cost) : undefined,
+          amount: money(opt.cost),
           isOption: true,
           selected: !!line.selectedOption && opt.label === line.selectedOption,
         });
@@ -53,7 +53,7 @@ export const quotedLineItems = (lines: QuotedLine[]): BreakdownItem[] => {
       return;
     }
     const cost = lineEffectiveCost(line);
-    items.push({ label: line.name, amount: cost > 0 ? money(cost) : undefined });
+    items.push({ label: line.name, amount: money(cost) });
   });
   return items;
 };
@@ -69,7 +69,7 @@ export const approvedBreakdownItems = (lines: QuotedLine[]): BreakdownItem[] => 
         const chosen = approved && opt.label === line.selectedOption;
         items.push({
           label: `Option ${String.fromCharCode(65 + i)} - ${opt.label}`,
-          amount: opt.cost > 0 ? money(opt.cost) : undefined,
+          amount: money(opt.cost),
           isOption: true,
           selected: chosen,
           muted: !chosen,
