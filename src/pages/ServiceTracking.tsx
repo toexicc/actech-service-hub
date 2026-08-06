@@ -665,16 +665,13 @@ const ServiceTracking = () => {
   const showAiDiagnosis = serviceData && ACTIVE_STATUSES.includes(serviceData.status) && (serviceData.aiDiagnosis || "").trim();
   const showAiReport = serviceData && ["Done Repair - Advise Client", "Completed"].includes(serviceData.status) && (serviceData.aiReport || "").trim();
   const isWaitingToProceed = serviceData?.status === "Waiting to Proceed" && !serviceData?.autoApproveDiagnosis;
-  // Quotation lines finalized by the shop (fallback: parse the AI diagnosis).
-  const storedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
-  const quotedLines: QuotedLine[] = storedLines.length
-    ? storedLines
-    : parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").map((name) => ({
-        name,
-        cost: 0,
-        selected: true,
-        required: false,
-      }));
+  // Quotation lines finalized (and priced) by the shop. There is no ₱0
+  // fallback: an unpriced list can never be approved, so we tell the client the
+  // quote is still being finalised instead.
+  const quotedLines: QuotedLine[] = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const quoteNotReady =
+    quotedLines.length === 0 && !!parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").length;
+
   const alreadyApproved: string[] = Array.isArray((serviceData as any)?.approvedServices)
     ? (serviceData as any).approvedServices
     : [];
