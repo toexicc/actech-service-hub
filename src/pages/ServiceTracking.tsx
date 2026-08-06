@@ -617,7 +617,13 @@ const ServiceTracking = () => {
   }));
   const selectedTotal = quotedSelectedTotal(liveLines);
   const validation = validateQuotedLines(liveLines);
+  // Required (locked) lines gate the advance to Proceed Repair.
+  const requiredOk = requiredLinesSatisfied(liveLines);
+  const requiredMissing = liveLines.filter(
+    (l) => l.required && (!l.selected || (!!l.options?.length && !l.selectedOption)),
+  );
   const needsChecklist = quotedLines.length > 0;
+
   const remark = parseApprovalRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
