@@ -445,6 +445,47 @@ const Reports = () => {
       .sort((a, b) => b.completed - a.completed || b.revenue - a.revenue);
   }, [report, timings]);
 
+  const admins = useMemo(() => {
+    const map = new Map<string, { tickets: number; completed: number; active: number; hours: number[]; onTime: number; withTarget: number }>();
+    report.scoped.forEach((s) => {
+      const names = String(s.adminRep || s.receivingStaff || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      names.forEach((n) => {
+        const e = map.get(n) || { tickets: 0, completed: 0, active: 0, hours: [], onTime: 0, withTarget: 0 };
+        e.tickets += 1;
+        const cls = classifyStatus(s.status);
+        if (cls === "completed") {
+          e.completed += 1;
+          const hrs = timings.get(String(s.serviceId))?.totalHours;
+          if (typeof hrs === "number" && hrs > 0) e.hours.push(hrs);
+          const target = toDate(s.targetDate);
+          const end = toDate(s.dateCompleted || s.lastUpdated);
+          if (target) {
+            e.withTarget += 1;
+            if (end && end <= target) e.onTime += 1;
+          }
+        } else if (cls === "active") {
+          e.active += 1;
+        }
+        map.set(n, e);
+      });
+    });
+    return Array.from(map.entries())
+      .map(([name, v]) => ({
+        name,
+        tickets: v.tickets,
+        completed: v.completed,
+        active: v.active,
+        avgHours: avg(v.hours),
+        onTime: v.withTarget ? (v.onTime / v.withTarget) * 100 : 0,
+      }))
+      .sort((a, b) => b.tickets - a.tickets || b.completed - a.completed);
+  }, [report, timings]);
+
+
+
   const countBy = (list: any[], get: (s: any) => string, limit = 8) => {
     const map = new Map<string, number>();
     list.forEach((s) => {
@@ -822,6 +863,63 @@ const Reports = () => {
             )}
           </Panel>
         </div>
+
+        {/* Admins */}
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <Panel title="Admin output" icon={<Users className="h-4 w-4" />}>
+            <div className="h-[300px]">
+              {admins.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No admin activity in this period.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={admins.slice(0, 8)} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                    <XAxis type="number" {...axisProps} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" {...axisProps} width={130} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="completed" name="Completed" stackId="a" fill="hsl(var(--success))" />
+                    <Bar dataKey="active" name="Active" stackId="a" fill="hsl(var(--warning))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Panel>
+
+          <Panel title="Admin leaderboard" icon={<Users className="h-4 w-4" />}>
+            {admins.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nothing to show yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Admin</TableHead>
+                      <TableHead className="text-right">Tickets</TableHead>
+                      <TableHead className="text-right">Done</TableHead>
+                      <TableHead className="text-right">Active</TableHead>
+                      <TableHead className="text-right">Avg. time</TableHead>
+                      <TableHead className="text-right">On-time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {admins.slice(0, 10).map((a) => (
+                      <TableRow key={a.name}>
+                        <TableCell className="font-medium">{a.name}</TableCell>
+                        <TableCell className="text-right">{a.tickets}</TableCell>
+                        <TableCell className="text-right">{a.completed}</TableCell>
+                        <TableCell className="text-right">{a.active}</TableCell>
+                        <TableCell className="text-right">{formatHours(a.avgHours)}</TableCell>
+                        <TableCell className="text-right">{a.completed ? pct(a.onTime) : "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Panel>
+        </div>
+
 
         {/* Mix */}
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
