@@ -131,9 +131,23 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
     const sb: any = mapServiceRow(row);
 
     const pick = (a: any, b: any) => (a !== undefined && a !== null && a !== "" ? a : b);
+    // Start from the database record so a ticket that only exists in Supabase
+    // still renders completely, then let the legacy sheet fill in the gaps.
+    const base = supabaseRowToSheetShape(sb);
     return {
-      ...sheetData,
+      ...base,
+      ...Object.fromEntries(
+        Object.entries(sheetData ?? {}).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+      ),
+      serviceId: pick(sb.serviceId, sheetData?.serviceId ?? serviceId),
+      clientName: pick(sb.clientName, sheetData?.clientName),
+      clientId: pick(sb.clientId, sheetData?.clientId),
+      deviceType: pick(sb.deviceType, sheetData?.deviceType),
+      brand: pick(sb.brand, sheetData?.brand),
+      model: pick(sb.deviceModel, sheetData?.model),
+      device: pick(sb.deviceModel, sheetData?.device),
       username: pick(sb.username, sheetData.username),
+
       colorMemory: pick(sb.colorMemory, sheetData.colorMemory),
       color: pick(sb.color, sheetData.color),
       memory: pick(sb.memory, sheetData.memory),
