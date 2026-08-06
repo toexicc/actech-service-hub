@@ -17,6 +17,8 @@ import {
   lineDisplayName,
   lineEffectiveCost,
   normalizeQuotedBreakdown,
+  vatAmount,
+  computeFinalCost,
   type QuotedLine,
 } from "@/lib/serviceApproval";
 
