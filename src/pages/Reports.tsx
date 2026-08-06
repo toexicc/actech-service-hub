@@ -445,6 +445,47 @@ const Reports = () => {
       .sort((a, b) => b.completed - a.completed || b.revenue - a.revenue);
   }, [report, timings]);
 
+  const admins = useMemo(() => {
+    const map = new Map<string, { tickets: number; completed: number; active: number; hours: number[]; onTime: number; withTarget: number }>();
+    report.scoped.forEach((s) => {
+      const names = String(s.adminRep || s.receivingStaff || "")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      names.forEach((n) => {
+        const e = map.get(n) || { tickets: 0, completed: 0, active: 0, hours: [], onTime: 0, withTarget: 0 };
+        e.tickets += 1;
+        const cls = classifyStatus(s.status);
+        if (cls === "completed") {
+          e.completed += 1;
+          const hrs = timings.get(String(s.serviceId))?.totalHours;
+          if (typeof hrs === "number" && hrs > 0) e.hours.push(hrs);
+          const target = toDate(s.targetDate);
+          const end = toDate(s.dateCompleted || s.lastUpdated);
+          if (target) {
+            e.withTarget += 1;
+            if (end && end <= target) e.onTime += 1;
+          }
+        } else if (cls === "active") {
+          e.active += 1;
+        }
+        map.set(n, e);
+      });
+    });
+    return Array.from(map.entries())
+      .map(([name, v]) => ({
+        name,
+        tickets: v.tickets,
+        completed: v.completed,
+        active: v.active,
+        avgHours: avg(v.hours),
+        onTime: v.withTarget ? (v.onTime / v.withTarget) * 100 : 0,
+      }))
+      .sort((a, b) => b.tickets - a.tickets || b.completed - a.completed);
+  }, [report, timings]);
+
+
+
   const countBy = (list: any[], get: (s: any) => string, limit = 8) => {
     const map = new Map<string, number>();
     list.forEach((s) => {
