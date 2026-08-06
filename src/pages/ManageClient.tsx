@@ -2661,7 +2661,7 @@ const ManageClient = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="timeFrame">Estimated Time Frame:</Label>
+                  <Label htmlFor="timeFrame">Diagnostic Time Frame:</Label>
                   <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select time frame" />
@@ -2673,6 +2673,21 @@ const ManageClient = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="repairTimeFrame">Repair Time Frame:</Label>
+                  <Select value={updateRepairTimeFrame} onValueChange={setUpdateRepairTimeFrame}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time frame" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_FRAME_OPTIONS.map(tf => (
+                        <SelectItem key={tf} value={tf}>{tf}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
 
                 <div className="space-y-2">
                   <Label htmlFor="targetDate">Estimated Target Date:</Label>
