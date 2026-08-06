@@ -7,6 +7,7 @@ interface ChargesBreakdownProps {
   serviceCost?: number | string;
   discount?: number | string;
   finalCost?: number | string;
+  vatRequested?: boolean;
   initialPayment?: number | string;
   paymentStatus?: string;
   /** When provided, actual POS payments for this ticket are included. */
@@ -31,6 +32,7 @@ export function ChargesBreakdown({
   serviceCost,
   discount,
   finalCost,
+  vatRequested,
   initialPayment,
   paymentStatus,
   serviceId,
@@ -44,7 +46,9 @@ export function ChargesBreakdown({
   const { data: paymentsSummary } = useServicePayments(serviceId);
   const sc = num(serviceCost);
   const dc = num(discount);
-  const fc = finalCost !== undefined ? num(finalCost) : Math.max(0, sc - dc);
+  const net = Math.max(0, sc - dc);
+  const vat = vatRequested ? Math.round(net * 12) / 100 : 0;
+  const fc = finalCost !== undefined ? num(finalCost) : net + vat;
   const ip = num(initialPayment);
   const totals = derivePaymentTotals(fc, ip, paymentsSummary?.transactionsPaid || 0);
   const balance = totals.balance;
@@ -52,6 +56,7 @@ export function ChargesBreakdown({
   const rows: { label: string; value: string; strong?: boolean; muted?: boolean }[] = [];
   if (showServiceCost) rows.push({ label: "Service Cost", value: peso(sc) });
   if (showDiscount) rows.push({ label: "Discount", value: dc > 0 ? `- ${peso(dc)}` : peso(0), muted: dc === 0 });
+  if (vatRequested) rows.push({ label: "VAT (12%)", value: peso(vat) });
   if (showFinal) rows.push({ label: "Final Cost", value: peso(fc), strong: true });
   if (showPayment) {
     if (ip > 0) rows.push({ label: "Initial Payment", value: peso(ip) });

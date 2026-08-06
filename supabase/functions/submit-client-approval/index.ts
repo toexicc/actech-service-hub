@@ -269,8 +269,10 @@ serve(async (req) => {
         const total = relined.reduce((sum, l) => sum + (l.selected ? Number(l.cost) || 0 : 0), 0);
         update.quoted_breakdown = relined;
         const discount = Number(row.discount ?? 0) || 0;
+        const net = Math.max(0, Math.round((total - discount) * 100) / 100);
+        const vat = row.vat_requested ? Math.round(net * 12) / 100 : 0;
         update.service_cost = total;
-        update.final_cost = Math.max(0, total - discount);
+        update.final_cost = Math.round((net + vat) * 100) / 100;
       }
       update.pending_services = pendingItems;
       update.client_approved_at = nowIso;

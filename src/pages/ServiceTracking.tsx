@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, type QuotedLine } from "@/lib/serviceApproval";
 
 
 
@@ -142,6 +142,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       timeFrame: pick(sb.timeFrame ?? sb.estimatedCompletion, sheetData.timeFrame ?? sheetData.estimatedCompletion),
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
+      vatRequested: !!(row as any).vat_requested,
       serviceDate: pick((row as any).client_approved_at, pick((row as any).service_date, sheetData.serviceDate)),
       dateCompleted: pick(sb.dateCompleted, sheetData.dateCompleted),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
@@ -616,6 +617,10 @@ const ServiceTracking = () => {
     selectedOption: l.options?.length ? optionChoice[i] ?? "" : l.selectedOption,
   }));
   const selectedTotal = quotedSelectedTotal(liveLines);
+  const trackDiscount = Number(String((serviceData as any)?.discount ?? "0").replace(/[^0-9.-]/g, "")) || 0;
+  const trackVatRequested = !!(serviceData as any)?.vatRequested;
+  const selectedVat = vatAmount(selectedTotal, trackDiscount, trackVatRequested);
+  const selectedTotalWithVat = computeFinalCost(selectedTotal, trackDiscount, trackVatRequested);
   const validation = validateQuotedLines(liveLines);
   // Required (locked) lines gate the advance to Proceed Repair.
   const requiredOk = requiredLinesSatisfied(liveLines);
@@ -875,7 +880,12 @@ const ServiceTracking = () => {
           };
 
           const stepIdx = statusToStep(currentStatus);
+          const vatRequested = !!(serviceData as any).vatRequested;
           const totalCost = Number(serviceData.finalCost || serviceData.serviceCost || 0);
+          const vatCost = vatRequested
+            ? Math.round((totalCost - totalCost / 1.12) * 100) / 100
+            : 0;
+          const netCost = Math.round((totalCost - vatCost) * 100) / 100;
           const totals = derivePaymentTotals(
             totalCost,
             Number(serviceData.initialPayment || 0),
@@ -1197,9 +1207,23 @@ const ServiceTracking = () => {
                                 </div>
 
                                 {quotedLines.length > 0 && (
-                                  <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
-                                    <span className="font-medium">Estimated total for the selected services</span>
-                                    <span className="font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
+                                  <div className="space-y-1 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium">Estimated total for the selected services</span>
+                                      <span className="font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
+                                    </div>
+                                    {selectedVat > 0 && (
+                                      <>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <span>VAT (12%)</span>
+                                          <span>₱{selectedVat.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between font-semibold">
+                                          <span>Total with VAT</span>
+                                          <span className="text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -1262,6 +1286,18 @@ const ServiceTracking = () => {
 
                     <Separator />
 
+                    {showMoney && vatRequested && (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Subtotal</span>
+                          <span>₱{netCost.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">VAT (12%)</span>
+                          <span>₱{vatCost.toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Total</span>
                       <span className="font-semibold">₱{totalCost.toLocaleString()}</span>

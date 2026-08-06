@@ -17,6 +17,8 @@ import {
   lineDisplayName,
   lineEffectiveCost,
   normalizeQuotedBreakdown,
+  vatAmount,
+  computeFinalCost,
   type QuotedLine,
 } from "@/lib/serviceApproval";
 
@@ -126,7 +128,9 @@ export const syncApprovedQuotation = async (
     0,
   );
   const discount = Number((row as any).discount ?? 0) || 0;
-  const finalCost = Math.max(0, approvedTotal - discount);
+  const vatRequested = !!(row as any).vat_requested;
+  const vat = vatAmount(approvedTotal, discount, vatRequested);
+  const finalCost = computeFinalCost(approvedTotal, discount, vatRequested);
   const approvedNames = lines.filter((l) => l.selected).map(lineDisplayName);
 
   const blob = await generateQuotationPDF({
@@ -152,6 +156,7 @@ export const syncApprovedQuotation = async (
     serviceCost: money(approvedTotal),
     partsUsed: (row.parts_used ?? []).join(", ") || "N/A",
     discount: money(discount),
+    vat: vat > 0 ? money(vat) : undefined,
     totalCost: money(finalCost),
     serviceBreakdown: approvedBreakdownItems(lines),
     approvalStamp: `Client-approved quotation — ${row.client_name ?? "Client"}, ${dateLabel(

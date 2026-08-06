@@ -201,6 +201,24 @@ export const requiredLines = (lines: QuotedLine[]): QuotedLine[] => lines.filter
 export const requiredLinesSatisfied = (lines: QuotedLine[]): boolean =>
   requiredLines(lines).every((l) => l.selected && (!l.options?.length || !!l.selectedOption));
 
+/** Philippine VAT rate applied when the client requests an invoice. */
+export const VAT_RATE = 0.12;
+
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+
+/** Net (VAT-exclusive) amount after discount. */
+export const netAfterDiscount = (serviceCost: number, discount: number) =>
+  Math.max(0, round2((Number(serviceCost) || 0) - (Number(discount) || 0)));
+
+/** 12% VAT on the discounted amount, or 0 when no invoice is requested. */
+export const vatAmount = (serviceCost: number, discount: number, vatRequested: boolean) =>
+  vatRequested ? round2(netAfterDiscount(serviceCost, discount) * VAT_RATE) : 0;
+
+/** Final (payable) cost: net after discount, plus VAT when requested. */
+export const computeFinalCost = (serviceCost: number, discount: number, vatRequested: boolean) =>
+  round2(netAfterDiscount(serviceCost, discount) + vatAmount(serviceCost, discount, vatRequested));
+
+
 
 
 

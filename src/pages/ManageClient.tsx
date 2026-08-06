@@ -5,9 +5,10 @@ import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
 import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
-import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, type QuotedLine } from "@/lib/serviceApproval";
+import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, computeFinalCost, vatAmount, type QuotedLine } from "@/lib/serviceApproval";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
@@ -191,6 +192,7 @@ const ManageClient = () => {
   const [discountValue, setDiscountValue] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
+  const [vatRequested, setVatRequested] = useState(false);
   // Finalized quotation lines shown to the client on /track.
   const [quotedLines, setQuotedLines] = useState<QuotedLine[]>([]);
   const [quotedProblems, setQuotedProblems] = useState<Record<number, string>>({});
@@ -396,13 +398,15 @@ const ManageClient = () => {
           const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
           const savedDiscountNum = sanitizeNumber(String(merged.discount ?? "0"));
           const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
+          const savedVat = !!(merged as any).vatRequested;
+          setVatRequested(savedVat);
           setDiscountAmount(savedDiscountNum);
           setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
           setDiscountType("amount");
           if (savedFinalCost > 0) {
             setFinalCost(savedFinalCost);
           } else {
-            setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
+            setFinalCost(computeFinalCost(serviceCostNum, savedDiscountNum, savedVat));
           }
           toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
         } catch {
@@ -477,13 +481,15 @@ const ManageClient = () => {
       const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
       const savedDiscountNum = sanitizeNumber(String(merged.discount ?? "0"));
       const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
+      const savedVat = !!(merged as any).vatRequested;
+      setVatRequested(savedVat);
       setDiscountAmount(savedDiscountNum);
       setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
       setDiscountType("amount");
       if (savedFinalCost > 0) {
         setFinalCost(savedFinalCost);
       } else {
-        setFinalCost(Math.max(0, serviceCostNum - savedDiscountNum));
+        setFinalCost(computeFinalCost(serviceCostNum, savedDiscountNum, savedVat));
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to fetch service data", variant: "destructive" });
@@ -788,6 +794,7 @@ const ManageClient = () => {
       formData.append("services", updateServices);
       formData.append("serviceCost", updateServiceCost);
       formData.append("discount", discountAmount.toString());
+      formData.append("vat", vatAmount(sanitizeNumber(updateServiceCost), discountAmount, vatRequested).toFixed(2));
       formData.append("finalCost", finalCost.toString());
       formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
       formData.append("adminNotes", updateAdminNotes);
@@ -817,6 +824,7 @@ const ManageClient = () => {
         service_cost: Number(updateServiceCost) || 0,
         quoted_breakdown: quotedLines as any,
         discount: discountAmount,
+        vat_requested: vatRequested,
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         internal_admin_notes: updateAdminNotesInternal,
@@ -1161,10 +1169,16 @@ const ManageClient = () => {
         discount: (discountAmount > 0
           ? discountAmount.toFixed(2)
           : String(serviceData.discount ?? "0.00")),
+        vat: (() => {
+          const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
+          const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
+          const v = vatAmount(costNum, disc, vatRequested);
+          return v > 0 ? v.toFixed(2) : undefined;
+        })(),
         totalCost: (() => {
           const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
           const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
-          const computed = costNum - disc;
+          const computed = computeFinalCost(costNum, disc, vatRequested);
           return computed > 0 || costNum > 0
             ? computed.toFixed(2)
             : String(serviceData.finalCost || serviceData.serviceCost || "0.00");
@@ -1443,6 +1457,7 @@ const ManageClient = () => {
             serviceCost={serviceData.serviceCost}
             discount={serviceData.discount}
             finalCost={serviceData.finalCost}
+            vatRequested={!!serviceData.vatRequested}
             initialPayment={serviceData.initialPayment}
             paymentStatus={serviceData.paymentStatus}
             showCharges={serviceData.status !== "Pending Diagnosis"}
@@ -2094,7 +2109,7 @@ const ManageClient = () => {
                                         ? (total * (parseFloat(discountValue) || 0)) / 100
                                         : parseFloat(discountValue) || 0;
                                     setDiscountAmount(disc);
-                                    setFinalCost(Math.max(0, total - disc));
+                                    setFinalCost(computeFinalCost(total, disc, vatRequested));
                                   }
                                 }
                                 if (summaryMatch && summaryMatch[1]) {
@@ -2470,7 +2485,7 @@ const ManageClient = () => {
                                 ? (total * (parseFloat(discountValue) || 0)) / 100
                                 : parseFloat(discountValue) || 0;
                             setDiscountAmount(disc);
-                            setFinalCost(Math.max(0, total - disc));
+                            setFinalCost(computeFinalCost(total, disc, vatRequested));
                           }}
                         >
                           Apply to Service Cost
@@ -2500,7 +2515,7 @@ const ManageClient = () => {
                         discount = parseFloat(discountValue) || 0;
                       }
                       setDiscountAmount(discount);
-                      setFinalCost(costNum - discount);
+                      setFinalCost(computeFinalCost(costNum, discount, vatRequested));
                     }}
                   />
                 </div>
@@ -2516,7 +2531,7 @@ const ManageClient = () => {
                         setDiscountType("amount");
                         setDiscountValue("");
                         setDiscountAmount(0);
-                        setFinalCost(sanitizeNumber(updateServiceCost));
+                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), 0, vatRequested));
                       }}
                       className="flex-1"
                     >
@@ -2530,7 +2545,7 @@ const ManageClient = () => {
                         setDiscountType("percentage");
                         setDiscountValue("");
                         setDiscountAmount(0);
-                        setFinalCost(sanitizeNumber(updateServiceCost));
+                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), 0, vatRequested));
                       }}
                       className="flex-1"
                     >
@@ -2561,7 +2576,7 @@ const ManageClient = () => {
                         }
                         
                         setDiscountAmount(discount);
-                        setFinalCost(costNum - discount);
+                        setFinalCost(computeFinalCost(costNum, discount, vatRequested));
                       }}
                       className="flex-1"
                     />
@@ -2572,6 +2587,27 @@ const ManageClient = () => {
                     )}
                   </div>
                 </div>
+
+                <div className="space-y-2 rounded-md border border-border/60 p-3">
+                  <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                    <Checkbox
+                      checked={vatRequested}
+                      onCheckedChange={(checked) => {
+                        const next = checked === true;
+                        setVatRequested(next);
+                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), discountAmount, next));
+                      }}
+                    />
+                    <span>Requesting Invoice (Add VAT to Total Cost)</span>
+                  </label>
+                  {vatRequested && (
+                    <p className="pl-6 text-sm font-semibold text-muted-foreground">
+                      VAT (12%): Php {vatAmount(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+
+
 
                 <div className="space-y-2">
                   <Label>Final Cost:</Label>

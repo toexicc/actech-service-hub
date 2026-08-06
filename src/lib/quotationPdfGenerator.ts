@@ -26,6 +26,7 @@ export interface QuotationPDFData {
   serviceCost: string;
   partsUsed: string;
   discount: string;
+  vat?: string;
   totalCost: string;
   serviceBreakdown?: BreakdownItem[];
   /** e.g. "Client-approved quotation — Juan Dela Cruz, 08/06/2026" */
@@ -687,6 +688,7 @@ const drawSummaryBlocks = (
 
   money("Service Cost:", data.serviceCost);
   money("Discount:", data.discount);
+  if (data.vat) money("VAT (12%):", data.vat);
 
   const totalH = 9 * scale;
   blocks.push({

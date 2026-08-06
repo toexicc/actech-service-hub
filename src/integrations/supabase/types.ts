@@ -1074,6 +1074,7 @@ export type Database = {
           technicians: string[]
           total_cost: number
           username: string | null
+          vat_requested: boolean
         }
         Insert: {
           acknowledgements?: Json
@@ -1144,6 +1145,7 @@ export type Database = {
           technicians?: string[]
           total_cost?: number
           username?: string | null
+          vat_requested?: boolean
         }
         Update: {
           acknowledgements?: Json
@@ -1214,6 +1216,7 @@ export type Database = {
           technicians?: string[]
           total_cost?: number
           username?: string | null
+          vat_requested?: boolean
         }
         Relationships: []
       }
