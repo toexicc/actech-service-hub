@@ -1726,6 +1726,10 @@ const ManageClient = () => {
                     <p className="text-lg">{(serviceData as any).repairTimeFrame || "N/A"}</p>
                   </div>
 
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Cost:</h3>
+                    <p className="text-lg">Php {parseFloat(serviceData.estimatedCost || 0).toFixed(2)}</p>
+                  </div>
 
                   {serviceData.status !== "Pending Diagnosis" && (
                     <div>
