@@ -155,13 +155,19 @@ export interface QuotedValidation {
   /** Index -> problem, for inline highlighting. */
   problems: Record<number, string>;
   message: string;
+  /** True when the shop has not locked (required) any service line. */
+  lockMissing?: boolean;
 }
 
 /**
  * Shared rule set: at least one ticked line, every ticked line must resolve to
  * an amount greater than zero, and option lines must have a chosen option.
+ * `requireLock` additionally demands at least one locked (required) line.
  */
-export const validateQuotedLines = (lines: QuotedLine[], opts?: { requireOne?: boolean }): QuotedValidation => {
+export const validateQuotedLines = (
+  lines: QuotedLine[],
+  opts?: { requireOne?: boolean; requireLock?: boolean },
+): QuotedValidation => {
   const problems: Record<number, string> = {};
   lines.forEach((l, i) => {
     if (!l.selected) return;
@@ -173,14 +179,28 @@ export const validateQuotedLines = (lines: QuotedLine[], opts?: { requireOne?: b
   });
   const anySelected = lines.some((l) => l.selected);
   const needsOne = opts?.requireOne !== false;
-  const ok = Object.keys(problems).length === 0 && (!needsOne || anySelected);
+  const lockMissing = !!opts?.requireLock && lines.length > 0 && !lines.some((l) => l.required);
+  const ok = Object.keys(problems).length === 0 && (!needsOne || anySelected) && !lockMissing;
   const message = !anySelected && needsOne
     ? "Please select at least one service."
+    : lockMissing
+    ? "Lock at least one required service — the client's approval of the required service(s) is what moves the ticket to Proceed Repair."
     : Object.keys(problems).length
     ? "Please fix the highlighted service lines."
     : "";
-  return { ok, problems, message };
+  return { ok, problems, message, lockMissing };
 };
+
+/** Lines the shop marked as required (locked). */
+export const requiredLines = (lines: QuotedLine[]): QuotedLine[] => lines.filter((l) => l.required);
+
+/**
+ * True when every required line is ticked and (when it has variants) has an
+ * option chosen. Tickets advance to Proceed Repair on this condition alone.
+ */
+export const requiredLinesSatisfied = (lines: QuotedLine[]): boolean =>
+  requiredLines(lines).every((l) => l.selected && (!l.options?.length || !!l.selectedOption));
+
 
 
 
