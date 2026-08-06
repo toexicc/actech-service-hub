@@ -1156,7 +1156,14 @@ const ServiceTracking = () => {
                           </div>
                         ) : (
                           <div className="space-y-4">
+                            {quoteNotReady && (
+                              <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900">
+                                Our team is still finalising the pricing for your quote. Please contact the shop — you
+                                will be able to approve once the amounts are published.
+                              </div>
+                            )}
                             {needsChecklist && (
+
                               <div className="space-y-2">
                                 <p className="text-sm font-semibold">Select the services you approve</p>
                                 <p className="text-xs text-muted-foreground">
