@@ -1793,9 +1793,8 @@ const ManageClient = () => {
                     <Label htmlFor="status">Status:</Label>
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
-                      className="gap-1.5 border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
+                      className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
                       onClick={() => setConcernOpen(true)}
                     >
                       <AlertTriangle className="h-4 w-4" />
