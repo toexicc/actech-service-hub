@@ -234,8 +234,16 @@ serve(async (req) => {
       }
     }
 
-
+    // Required (locked) lines are what gate the advance. When they are all
+    // approved the ticket proceeds even if optional lines stay pending.
+    const hasRequired = relined.some((l) => !!l.required);
+    const requiredPending = relined.filter(
+      (l) => l.required && (!l.selected || (l.options?.length && !l.selectedOption)),
+    );
     const isPartial = approved && pendingItems.length > 0;
+    const blockAdvance = approved && (hasRequired ? requiredPending.length > 0 : pendingItems.length > 0);
+
+
 
     const tag = approved
       ? (approvedItems.length
