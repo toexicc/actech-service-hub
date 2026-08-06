@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { mapServiceRow } from "@/hooks/useServices";
+import { supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
+
 import { StatusChip } from "@/components/ui/status-chip";
 import { clientStatusLabel } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
