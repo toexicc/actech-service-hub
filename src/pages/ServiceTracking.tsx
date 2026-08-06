@@ -651,8 +651,20 @@ const ServiceTracking = () => {
   const toggleBreakdown = (i: number) => {
     const line = quotedLines[i];
     if (!line || isLineLocked(line, i)) return;
-    setSelectedIdx((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
+    setSelectedIdx((prev) => {
+      const removing = prev.includes(i);
+      // Deselecting a main service clears any option it had chosen.
+      if (removing && line.options?.length) {
+        setOptionChoice((oc) => {
+          const next = { ...oc };
+          delete next[i];
+          return next;
+        });
+      }
+      return removing ? prev.filter((x) => x !== i) : [...prev, i];
+    });
   };
+
 
   const chooseOption = (i: number, label: string) => {
     setOptionChoice((prev) => ({ ...prev, [i]: label }));
