@@ -179,7 +179,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       status: pick(sb.status, sheetData.status),
       service: pick(sb.service, sheetData.service),
       aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
+      // Internal notes carry the approval trail (parsed, never shown to clients).
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
+      // Customer-facing "Admin Notes (Customer)" — this is what /track displays.
+      customerNotes: pick(sb.remarks ?? (row as any).remarks, sheetData.customerNotes ?? sheetData.remarks),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
       approvalLocked: !!(row as any).approval_locked,
       approvedServices: Array.isArray((row as any).approved_services) ? (row as any).approved_services : [],
