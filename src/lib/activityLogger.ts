@@ -76,8 +76,9 @@ export const logTicketActivity = (
 
 /**
  * Automatic (non-human) ticket event. Attributed to a named system actor so a
- * человек action is never mistaken for an automated one on the timeline.
+ * human action is never mistaken for an automated one on the timeline.
  */
+
 export const logSystemTicketActivity = (
   serviceId: string,
   activity: string,
