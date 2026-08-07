@@ -55,6 +55,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Callers that already wrote the in-app rows themselves (e.g. the client
+    // approval function) pass skipInsert so recipients don't get duplicates.
+    const skipInsert = body?.skipInsert === true;
     const rows = recipients
       .filter((r) => r.userId && r.title && r.message)
       .map((r) => ({
@@ -65,7 +68,7 @@ Deno.serve(async (req) => {
         service_id: r.serviceId ?? null,
       }));
 
-    if (rows.length) {
+    if (rows.length && !skipInsert) {
       await supabase.from("notifications").insert(rows);
     }
 
