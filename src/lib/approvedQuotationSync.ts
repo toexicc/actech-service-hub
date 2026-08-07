@@ -13,6 +13,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { generateQuotationPDF, type BreakdownItem } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf } from "@/lib/servicePdfStorage";
+import { logSystemTicketActivity } from "@/lib/activityLogger";
+
 import {
   lineDisplayName,
   lineEffectiveCost,
@@ -171,5 +173,20 @@ export const syncApprovedQuotation = async (
     kind: "quotation",
     blob,
   });
+  if (uploaded) {
+    logSystemTicketActivity(
+      serviceId,
+      "Service Quotation Form auto-regenerated from the client's approved services",
+      {
+        "Approved services": approvedNames.join(", ") || "(none)",
+        "Approved total": money(approvedTotal),
+        Discount: money(discount),
+        ...(vat > 0 ? { VAT: money(vat) } : {}),
+        "Final cost": money(finalCost),
+      },
+      "System (Quotation Sync)",
+    );
+  }
   return { regenerated: !!uploaded };
 };
+

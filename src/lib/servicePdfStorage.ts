@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logTicketActivity } from "@/lib/activityLogger";
+
 
 export type ServicePdfKind = "intake" | "quotation";
 
@@ -43,8 +45,14 @@ export const uploadServicePdf = async (params: {
     size_bytes: blob.size,
     uploaded_by: userRes?.user?.id ?? null,
   });
+  logTicketActivity(
+    serviceId,
+    `${kind === "intake" ? "Client Intake Form" : "Service Quotation Form"} document stored`,
+    { File: fileName, Size: `${Math.round(blob.size / 1024)} KB` },
+  );
   return { path, bucket };
 };
+
 
 /**
  * Returns a short-lived signed URL for the most recent PDF of the given

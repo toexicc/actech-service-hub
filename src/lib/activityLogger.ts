@@ -74,6 +74,28 @@ export const logTicketActivity = (
   logActivityAsync({ serviceId, username: actorName(), role: currentRole(), activity, details });
 };
 
+/**
+ * Automatic (non-human) ticket event. Attributed to a named system actor so a
+ * human action is never mistaken for an automated one on the timeline.
+ */
+
+export const logSystemTicketActivity = (
+  serviceId: string,
+  activity: string,
+  details?: Record<string, any>,
+  source = "System",
+) => {
+  if (!serviceId) return;
+  logActivityAsync({
+    serviceId,
+    username: source,
+    role: "system",
+    activity,
+    details,
+  });
+};
+
+
 /** Log a click of a "Format with AI" button (diagnosis or report). */
 export const logAiFormatActivity = (
   serviceId: string,

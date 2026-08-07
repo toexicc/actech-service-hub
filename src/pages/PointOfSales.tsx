@@ -207,7 +207,18 @@ const PointOfSales = () => {
           username,
           role: userRole || "",
           activity: `POS: Recorded ${finalTransactionType} of Php ${amountClean} via ${finalMOP} (${transactionId})`,
+          details: {
+            "Transaction ID": transactionId,
+            Type: finalTransactionType,
+            Amount: `Php ${amountClean}`,
+            "Mode of payment": finalMOP,
+            "Previous payments": `Php ${previousPayments.toFixed(2)}`,
+            "Total paid": `Php ${(previousPayments + parseCurrency(amountClean)).toFixed(2)}`,
+            "Amount due": `Php ${finalCostClean}`,
+            ...(remarks ? { Remarks: remarks } : {}),
+          },
         });
+
 
         // Fully paid service at a release stage → auto-complete the ticket.
         if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL") {

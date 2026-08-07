@@ -1,6 +1,32 @@
 import { createNotification } from './notifications';
 import { fetchStaffList, type StaffMember } from './staffList';
 import { supabase } from '@/integrations/supabase/client';
+import { logSystemTicketActivity } from './activityLogger';
+
+/** One audit entry per ticket for the alerts that were just dispatched. */
+const logDispatch = (
+  recipients: { userId: string; title: string; message: string; serviceId?: string }[],
+  pushFailed: boolean,
+) => {
+  const byService = new Map<string, typeof recipients>();
+  recipients.forEach((r) => {
+    if (!r.serviceId) return;
+    const list = byService.get(r.serviceId) ?? [];
+    list.push(r);
+    byService.set(r.serviceId, list);
+  });
+  byService.forEach((list, serviceId) => {
+    logSystemTicketActivity(
+      serviceId,
+      `Notification sent: ${list[0].title}${pushFailed ? ' (push delivery failed, in-app alert saved)' : ''}`,
+      {
+        Recipients: String(list.length),
+        Message: list[0].message,
+      },
+      'System (Notifications)',
+    );
+  });
+};
 
 // Sends notifications via the service-role edge function so they reliably
 // land for offline recipients and even when the caller is unauthenticated.
@@ -15,7 +41,10 @@ const sendViaEdge = async (
   } catch {
     delivered = false;
   }
-  if (delivered) return;
+  if (delivered) {
+    logDispatch(recipients, false);
+    return;
+  }
   // Fall back to direct inserts so the alert still lands.
   for (const r of recipients) {
     await createNotification({
@@ -26,7 +55,9 @@ const sendViaEdge = async (
       serviceId: r.serviceId,
     });
   }
+  logDispatch(recipients, true);
 };
+
 
 interface ServiceInfo {
   serviceId: string;

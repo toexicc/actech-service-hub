@@ -301,6 +301,47 @@ serve(async (req) => {
 
     if (updateError) return json({ error: updateError.message }, 500);
 
+    const resultingStatus = (update.status as string) ?? status;
+
+    // Audit trail: every client response (and the automatic status change it
+    // triggers) lands on the shared ticket timeline shown to staff.
+    try {
+      const details: Record<string, unknown> = {
+        role: "system",
+        Decision: approved ? (blockAdvance ? "Partially approved" : "Approved") : "Declined",
+        Client: clientName,
+        Status: { from: status, to: resultingStatus },
+      };
+      if (approvedItems.length) details["Approved services"] = approvedItems.join(", ");
+      if (pendingItems.length) details["Pending approval"] = pendingItems.join(", ");
+      if (!approved) details["Reason"] = reason;
+      if (update.service_cost !== undefined) {
+        details["Service cost"] = { from: String(row.service_cost ?? ""), to: String(update.service_cost) };
+      }
+      if (update.final_cost !== undefined) {
+        details["Final cost"] = { from: String(row.final_cost ?? ""), to: String(update.final_cost) };
+      }
+      if (update.approval_locked) details["Approval"] = "Locked until the shop re-opens it";
+
+      const action = approved
+        ? blockAdvance
+          ? `Client partially approved on /track — approved: ${approvedItems.join(", ")}; pending: ${pendingItems.join(", ")}. Approval locked, ticket stays ${resultingStatus}`
+          : `Client approved on /track — ${approvedItems.join(", ") || "diagnosis"}. Status auto-changed to ${resultingStatus}`
+        : `Client declined on /track — ${reason}. Status auto-changed to ${resultingStatus}`;
+
+      await admin.from("activity_logs").insert({
+        action,
+        actor_id: null,
+        actor_name: "System (Client Approval)",
+        entity_type: "service",
+        entity_id: serviceId,
+        changes: details,
+      });
+    } catch {
+      // The client's decision is already saved; audit failures must not fail it.
+    }
+
+
     // Notify assigned admins + technicians.
     try {
       const names: string[] = [
@@ -372,6 +413,7 @@ serve(async (req) => {
         if (rows.length) {
           await admin.from("notifications").insert(rows);
           // Fan out pushes through the shared notifier so offline staff get alerted.
+          let pushFailed = false;
           await admin.functions
             .invoke("notify-service-event", {
               body: {
@@ -380,11 +422,27 @@ serve(async (req) => {
                   title,
                   message,
                   serviceId,
-                })),
+                }),
+                ),
                 skipInsert: true,
               },
             })
-            .catch(() => {});
+            .catch(() => {
+              pushFailed = true;
+            });
+          await admin
+            .from("activity_logs")
+            .insert({
+              action: `Notification sent: ${title} → ${targets.map((p: any) => p.name).join(", ")}${
+                pushFailed ? " (push delivery failed, in-app alert saved)" : ""
+              }`,
+              actor_id: null,
+              actor_name: "System (Client Approval)",
+              entity_type: "service",
+              entity_id: serviceId,
+              changes: { role: "system", Message: message },
+            })
+            .then(() => {});
         }
       }
     } catch {
@@ -393,7 +451,8 @@ serve(async (req) => {
 
     return json({
       success: true,
-      status: !approved ? "On Hold" : blockAdvance ? status : "Proceed Repair",
+      status: resultingStatus,
+
       partial: blockAdvance,
       approvedServices: approvedItems,
       pendingServices: pendingItems,

@@ -2,6 +2,8 @@
 // Decrements inventory_parts (or fast_moving_parts) on use, increments on return,
 // and writes a row to part_logs for each change.
 import { supabase } from "@/integrations/supabase/client";
+import { logSystemTicketActivity } from "@/lib/activityLogger";
+
 
 interface PartCount {
   id: string; // Part ID (e.g. "P-001" or "FM-002")
@@ -63,7 +65,23 @@ const adjustOne = async (
     performed_by_name: meta.performerName || null,
     notes: delta < 0 ? "Deducted on service update" : "Restored on service edit",
   });
+
+  logSystemTicketActivity(
+    meta.serviceId,
+    delta < 0
+      ? `Inventory auto-deducted: ${partId} × ${Math.abs(delta)}`
+      : `Inventory auto-restored: ${partId} × ${Math.abs(delta)}`,
+    {
+      Part: partId,
+      Quantity: String(Math.abs(delta)),
+      "Stock on hand": { from: String(row.quantity || 0), to: String(newQty) },
+      Source: table === "inventory_parts" ? "Inventory" : "Fast-moving parts",
+      ...(meta.performerName ? { "Triggered by": meta.performerName } : {}),
+    },
+    "System (Inventory)",
+  );
 };
+
 
 export const applyPartsDelta = async (opts: {
   serviceId: string;
