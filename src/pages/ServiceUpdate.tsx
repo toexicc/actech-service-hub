@@ -30,7 +30,7 @@ import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { logActivity } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
@@ -307,48 +307,6 @@ const ServiceUpdate = () => {
       setUnmatchedParts({});
     }
   }, [serviceData, inventory]);
-
-  // Fallback: derive parts from recent activity logs if not present in record
-  useEffect(() => {
-    const run = async () => {
-      if (!serviceData || serviceData.partsUsed) return;
-      if (!serviceId) return;
-      try {
-        const res = await fetch(`${DATA_BRIDGE_URL}?action=getServiceLogs&serviceId=${serviceId}&limit=50`);
-        const json = await res.json();
-        if (json.status === 'success' && Array.isArray(json.logs)) {
-          const entry = json.logs.find((l: any) => typeof l.activity === 'string' && l.activity.includes('Parts used:'));
-          if (entry) {
-            const idx = entry.activity.indexOf('Parts used:');
-            const raw = entry.activity.substring(idx + 'Parts used:'.length).trim();
-            const items = raw.split(',').map((p: string) => p.trim()).filter(Boolean);
-            const byId: {[k:string]:number} = {};
-            const unmatched: {[k:string]:number} = {};
-            items.forEach((partStr: string) => {
-              const m = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
-              if (!m) return;
-              const tokenRaw = m[1].trim();
-              const token = tokenRaw.toLowerCase();
-              const qty = parseInt(m[2]);
-
-              // Match by Part ID (exact match, case-insensitive) - handles FM prefix parts
-              const item =
-                inventory.find(i => i.id?.toLowerCase() === token) ||
-                inventory.find(i => i.name?.toLowerCase() === token);
-
-              if (item) byId[item.id] = qty;
-              else unmatched[tokenRaw] = qty;
-            });
-            setSelectedParts(byId);
-            setUnmatchedParts(unmatched);
-          }
-        }
-      } catch (e) {
-        // Failed to derive parts from logs
-      }
-    };
-    run();
-  }, [serviceData, serviceId, inventory]);
 
   // ---- Status-first flow ----------------------------------------------------
   // Picking a new status is always step 1 (nothing is revealed before that), but
@@ -929,10 +887,18 @@ const ServiceUpdate = () => {
 
         // Fire-and-forget: AI fields, logging, and notifications (don't block UI)
         const userFullName = sessionStorage.getItem("userFullName") || username;
-        const changes: string[] = [];
-        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status} → ${updateStatus}`);
-        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
-        if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
+        const { summaries: fieldSummaries, details: fieldDetails } = diffFields([
+          { label: "Status", before: serviceData.status, after: updateStatus },
+          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
+          { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
+          { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
+          { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
+          { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
+          { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
+          { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
+        ]);
+        const changes: string[] = [...fieldSummaries];
         
         const prevParts = (serviceData.partsUsed || "").trim();
         const newPartsDisplay = partsUsedString.trim();
@@ -981,9 +947,10 @@ const ServiceUpdate = () => {
           backgroundTasks.push(
             logActivity({
               serviceId: sid,
-              username: username,
+              username: userFullName,
               role: userRole,
-              activity: `Service updated: ${changes.join(", ")}`
+              activity: `Service updated (/service-update): ${changes.join(", ")}`,
+              details: fieldDetails,
             }).catch(() => {})
           );
         }
@@ -1466,6 +1433,8 @@ const ServiceUpdate = () => {
                                  );
                                  if (!ok) return;
 
+                                const aiSid = requireLoadedTicket();
+                                if (!aiSid) return;
                                 setIsFormattingAI(true);
                                 try {
                                   const formattedDiagnosis = await formatDiagnosisWithAI({
@@ -1478,6 +1447,11 @@ const ServiceUpdate = () => {
 
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
+                                    logAiFormatActivity(aiSid, "diagnosis", {
+                                      source: "/service-update",
+                                      before: rawDiagnosis,
+                                      after: formattedDiagnosis,
+                                    });
                                     
                                     await notifyAiDiagnosisGenerated({
                                       serviceId: activeServiceId,
@@ -1577,6 +1551,8 @@ const ServiceUpdate = () => {
                                  );
                                  if (!ok) return;
 
+                                const aiReportSid = requireLoadedTicket();
+                                if (!aiReportSid) return;
                                 setIsFormattingReport(true);
                                 try {
                                   const formattedReport = await formatReportWithAI({
@@ -1590,6 +1566,11 @@ const ServiceUpdate = () => {
 
                                   if (formattedReport) {
                                     setUpdateServiceReport(formattedReport);
+                                    logAiFormatActivity(aiReportSid, "report", {
+                                      source: "/service-update",
+                                      before: updateTechnicianReport,
+                                      after: formattedReport,
+                                    });
                                     
                                     // Notify the acting staff member plus assigned staff.
                                     await notifyAiOutputGenerated({
