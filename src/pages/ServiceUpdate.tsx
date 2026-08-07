@@ -1093,6 +1093,7 @@ const ServiceUpdate = () => {
                 device: serviceData.device || serviceData.deviceType,
               },
               "technician",
+              /(^|\n)\s*Declined by /i.test(serviceData.adminNotesInternal || ""),
             )}
             technician={serviceData.technician}
             adminRep={serviceData.adminRep}
