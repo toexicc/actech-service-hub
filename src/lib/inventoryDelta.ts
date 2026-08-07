@@ -2,6 +2,8 @@
 // Decrements inventory_parts (or fast_moving_parts) on use, increments on return,
 // and writes a row to part_logs for each change.
 import { supabase } from "@/integrations/supabase/client";
+import { logSystemTicketActivity } from "@/lib/activityLogger";
+
 
 interface PartCount {
   id: string; // Part ID (e.g. "P-001" or "FM-002")

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { logActivityAsync } from "@/lib/activityLogger";
+import { logSystemTicketActivity } from "@/lib/activityLogger";
+
 
 /**
  * A service is only auto-completed by a full payment once it has already
@@ -56,11 +57,19 @@ export const completeServiceIfFullyPaid = async ({
     .eq("service_id", serviceId);
   if (error) return false;
 
-  logActivityAsync({
+  logSystemTicketActivity(
     serviceId,
-    username: actorName,
-    role: actorRole,
-    activity: "Status auto-changed to Completed (service fully paid)",
-  });
+    "Status auto-changed to Completed (service fully paid)",
+    {
+      Status: { from: String(row.status ?? ""), to: "Completed" },
+      "Payment status": { from: "", to: "Paid" },
+      "Amount due": String(due),
+      "Total paid": String(totalPaid),
+      "Triggered by": actorName || "payment",
+      ...(actorRole ? { "Actor role": actorRole } : {}),
+    },
+    "System (Auto-Complete)",
+  );
   return true;
 };
+
