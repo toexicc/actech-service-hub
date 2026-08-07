@@ -40,7 +40,7 @@ import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { logActivity } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
@@ -414,6 +414,7 @@ const ManageClient = () => {
             return;
           }
           setServiceData(merged);
+          if (merged?.serviceId) setServiceId(merged.serviceId);
           setUpdateStatus(merged.status || "");
           setUpdateAdminRep(merged.adminRep || "");
           setUpdateTechnician(merged.technician || "");
@@ -500,6 +501,7 @@ const ManageClient = () => {
         return;
       }
       setServiceData(merged);
+      if (merged?.serviceId) setServiceId(merged.serviceId);
       setUpdateStatus(merged.status || "");
       setUpdateAdminRep(merged.adminRep || "");
       setUpdateTechnician(merged.technician || "");
@@ -547,6 +549,34 @@ const ManageClient = () => {
       setIsLoading(false);
     }
   };
+
+  /** The ticket actually loaded in the form — the only id writes may target. */
+  const activeServiceId: string = serviceData?.serviceId || "";
+
+  /**
+   * Guards every write / AI call so a stale Service ID in the search box can
+   * never send one ticket's content to another ticket.
+   */
+  const requireLoadedTicket = (): string | null => {
+    const typed = (serviceId || "").trim().toUpperCase();
+    if (!activeServiceId) {
+      toast({ title: "Load the ticket first", description: "Search for a Service ID before continuing.", variant: "destructive" });
+      return null;
+    }
+    if (typed && typed !== activeServiceId.trim().toUpperCase()) {
+      toast({
+        title: "Load the ticket first",
+        description: `The Service ID box says ${typed} but ${activeServiceId} is loaded. Search again to load ${typed}.`,
+        variant: "destructive",
+      });
+      return null;
+    }
+    return activeServiceId;
+  };
+
+  /** Off-path / terminal statuses skip the client-approval guards. */
+  const isOffPathStatus = (status?: string): boolean =>
+    ["RTO", "Cancelled", "On Hold", "Pending Diagnosis"].includes((status || "").trim());
 
   // ---- Live ticket watch: detect updates made elsewhere -------------------
   const isTabActive = useIsTabActive();
@@ -678,6 +708,8 @@ const ManageClient = () => {
       return;
     }
 
+    const aiSid = requireLoadedTicket();
+    if (!aiSid) return;
     setIsFormattingAI(true);
     try {
       const formattedDiagnosis = await formatDiagnosisWithAI({
@@ -685,15 +717,20 @@ const ManageClient = () => {
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId,
+        serviceId: aiSid,
       });
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
-        
+        logAiFormatActivity(aiSid, "diagnosis", {
+          source: "/manage-client",
+          before: rawDiagnosis,
+          after: formattedDiagnosis,
+        });
+
         await notifyAiDiagnosisGenerated({
-          serviceId,
+          serviceId: aiSid,
           clientName: serviceData?.clientName || "Client",
           technician: serviceData?.technician || "",
           adminRep: serviceData?.adminRep || "",
@@ -728,6 +765,8 @@ const ManageClient = () => {
       return;
     }
 
+    const aiReportSid = requireLoadedTicket();
+    if (!aiReportSid) return;
     setIsFormattingReport(true);
     try {
       const formattedReport = await formatReportWithAI({
@@ -735,17 +774,22 @@ const ManageClient = () => {
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId,
+        serviceId: aiReportSid,
         finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
       });
 
       if (formattedReport) {
         setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
-        
+        logAiFormatActivity(aiReportSid, "report", {
+          source: "/manage-client",
+          before: technicianReport,
+          after: formattedReport,
+        });
+
         // Notify the acting staff member plus assigned admins and technicians.
         await notifyAiOutputGenerated({
-          serviceId,
+          serviceId: aiReportSid,
           clientName: serviceData?.clientName || "Client",
           technician: serviceData?.technician || "",
           adminRep: serviceData?.adminRep || "",
@@ -776,10 +820,25 @@ const ManageClient = () => {
     // Prevent multiple simultaneous updates
     if (isUpdatingClientInfo) return;
 
+    const sid = requireLoadedTicket();
+    if (!sid) return;
+
+    // Terminal / off-path moves (RTO, Cancelled, On Hold, back to Pending
+    // Diagnosis) must always be possible, so they bypass the client-approval
+    // guards below.
+    const offPathMove = isOffPathStatus(updateStatus) && updateStatus !== serviceData.status;
+    if (offPathMove && (updateStatus === "RTO" || updateStatus === "Cancelled")) {
+      const proceed = window.confirm(
+        `Set ${sid} to ${updateStatus}?\n\nThis takes the ticket off the repair workflow. Continue?`
+      );
+      if (!proceed) return;
+    }
+
     // Guard: fields can be saved freely while on Confirmed Diagnosis, but the
     // ticket cannot move forward until the Service Quotation Form exists.
     // Moving back to Pending Diagnosis is always allowed (re-diagnosis).
     if (
+      !offPathMove &&
       serviceData.status === "Confirmed Diagnosis" &&
       updateStatus &&
       updateStatus !== "Confirmed Diagnosis" &&
@@ -797,7 +856,7 @@ const ManageClient = () => {
 
     // Every ticked quotation line must carry a real amount (and a chosen option
     // when it has variants) before the client can be asked to approve it.
-    if (quotedLines.length) {
+    if (quotedLines.length && !offPathMove) {
       const check = validateQuotedLines(quotedLines, { requireLock: true });
 
       if (!check.ok) {
@@ -819,7 +878,7 @@ const ManageClient = () => {
     try {
       const formData = new FormData();
       formData.append("action", "updateService");
-      formData.append("serviceId", serviceId);
+      formData.append("serviceId", sid);
       formData.append("deviceType", updateDeviceType);
       formData.append("Device Type", updateDeviceType);
       formData.append("status", updateStatus);
@@ -883,7 +942,7 @@ const ManageClient = () => {
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
         last_updated: saveStamp,
-      } as any).eq("service_id", serviceId);
+      } as any).eq("service_id", sid);
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
 
@@ -905,37 +964,39 @@ const ManageClient = () => {
         // Log only the fields that actually changed
         const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
-        const changes: string[] = [];
-
-        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status || "N/A"} → ${updateStatus}`);
-        if (updateDeviceType !== (serviceData.deviceType || "")) {
-          const originalDeviceType = String(serviceData.deviceType || "");
-          const newDeviceType = String(updateDeviceType || "");
-          if (originalDeviceType !== newDeviceType) changes.push(`Device Type: ${originalDeviceType} → ${newDeviceType}`);
-        }
-        if (updateAdminRep !== serviceData.adminRep) changes.push(`Admin Rep: ${serviceData.adminRep || "Unassigned"} → ${updateAdminRep}`);
-        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
-        if (updateClientType !== serviceData.clientType) changes.push(`Client type: ${serviceData.clientType || "N/A"} → ${updateClientType}`);
-        if (updatePriority !== serviceData.priority) changes.push(`Priority: ${serviceData.priority || "N/A"} → ${updatePriority}`);
-        if (updateChiefComplaint !== (serviceData.chiefComplaint || "")) changes.push("Chief complaint updated");
-
-        if (updateAIDiagnosis !== serviceData.aiDiagnosis) changes.push("AI Diagnosis updated");
-        if (updateServiceReport !== serviceData.aiReport) changes.push("AI Service Report updated");
-        if (updateServices !== serviceData.service) changes.push(`Services: ${serviceData.service || "N/A"} → ${updateServices}`);
-        const prevCost = String(serviceData.serviceCost || "");
-        if (String(updateServiceCost || "") !== prevCost) changes.push(`Cost: ${prevCost || "0"} → ${updateServiceCost || "0"}`);
         const prevTarget = serviceData.targetDate || "";
         const newTarget = updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "";
-        if (newTarget !== prevTarget) changes.push(`Target date: ${prevTarget || "N/A"} → ${newTarget || "N/A"}`);
-        if (updateAdminNotes !== serviceData.adminNotes) changes.push("Admin notes updated");
-        if (updateAdminNotesInternal !== serviceData.adminNotesInternal) changes.push("Internal notes updated");
+        const { summaries, details: fieldDetails } = diffFields([
+          { label: "Status", before: serviceData.status, after: updateStatus },
+          { label: "Device Type", before: serviceData.deviceType, after: updateDeviceType },
+          { label: "Admin Rep", before: serviceData.adminRep || "Unassigned", after: updateAdminRep },
+          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
+          { label: "Client Type", before: serviceData.clientType, after: updateClientType },
+          { label: "Priority", before: serviceData.priority, after: updatePriority },
+          { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
+          { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
+          { label: "Services", before: serviceData.service, after: updateServices },
+          { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost },
+          { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
+          { label: "VAT Requested", before: (serviceData as any).vatRequested ? "Yes" : "No", after: vatRequested ? "Yes" : "No" },
+          { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
+          { label: "Diagnostic Time Frame", before: serviceData.timeFrame, after: updateTimeFrame },
+          { label: "Repair Time Frame", before: (serviceData as any).repairTimeFrame, after: updateRepairTimeFrame },
+          { label: "Target Date", before: prevTarget, after: newTarget },
+          { label: "Notes from the Team", before: serviceData.adminNotes, after: updateAdminNotes },
+          { label: "Internal Notes", before: serviceData.adminNotesInternal, after: updateAdminNotesInternal },
+          { label: "Service Breakdown", before: JSON.stringify(serviceData.quotedBreakdown ?? []), after: JSON.stringify(quotedLines ?? []) },
+        ]);
+        const changes: string[] = [...summaries];
 
         if (changes.length > 0) {
           await logActivity({
-            serviceId: serviceId,
+            serviceId: sid,
             username: username,
             role: role,
-            activity: `Service updated: ${changes.join(", ")}`,
+            activity: `Service updated (/manage-client): ${changes.join(", ")}`,
+            details: fieldDetails,
           });
         }
 
@@ -945,7 +1006,7 @@ const ManageClient = () => {
         if (updateStatus !== serviceData.status) {
           notifyServiceStatusChange(
             {
-              serviceId,
+              serviceId: sid,
               clientName: serviceData.clientName,
               technician: updateTechnician,
               adminRep: updateAdminRep,
@@ -963,7 +1024,7 @@ const ManageClient = () => {
         if (updateTechnician !== serviceData.technician) {
           notifyNewServiceAssignment(
             {
-              serviceId,
+              serviceId: sid,
               clientName: serviceData.clientName,
               technician: updateTechnician,
               adminRep: updateAdminRep,

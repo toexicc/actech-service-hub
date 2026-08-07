@@ -30,7 +30,7 @@ import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { logActivity } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
@@ -308,48 +308,6 @@ const ServiceUpdate = () => {
     }
   }, [serviceData, inventory]);
 
-  // Fallback: derive parts from recent activity logs if not present in record
-  useEffect(() => {
-    const run = async () => {
-      if (!serviceData || serviceData.partsUsed) return;
-      if (!serviceId) return;
-      try {
-        const res = await fetch(`${DATA_BRIDGE_URL}?action=getServiceLogs&serviceId=${serviceId}&limit=50`);
-        const json = await res.json();
-        if (json.status === 'success' && Array.isArray(json.logs)) {
-          const entry = json.logs.find((l: any) => typeof l.activity === 'string' && l.activity.includes('Parts used:'));
-          if (entry) {
-            const idx = entry.activity.indexOf('Parts used:');
-            const raw = entry.activity.substring(idx + 'Parts used:'.length).trim();
-            const items = raw.split(',').map((p: string) => p.trim()).filter(Boolean);
-            const byId: {[k:string]:number} = {};
-            const unmatched: {[k:string]:number} = {};
-            items.forEach((partStr: string) => {
-              const m = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
-              if (!m) return;
-              const tokenRaw = m[1].trim();
-              const token = tokenRaw.toLowerCase();
-              const qty = parseInt(m[2]);
-
-              // Match by Part ID (exact match, case-insensitive) - handles FM prefix parts
-              const item =
-                inventory.find(i => i.id?.toLowerCase() === token) ||
-                inventory.find(i => i.name?.toLowerCase() === token);
-
-              if (item) byId[item.id] = qty;
-              else unmatched[tokenRaw] = qty;
-            });
-            setSelectedParts(byId);
-            setUnmatchedParts(unmatched);
-          }
-        }
-      } catch (e) {
-        // Failed to derive parts from logs
-      }
-    };
-    run();
-  }, [serviceData, serviceId, inventory]);
-
   // ---- Status-first flow ----------------------------------------------------
   // Picking a new status is always step 1 (nothing is revealed before that), but
   // the fields that appear belong to the ticket's CURRENT (saved) stage — the
@@ -598,6 +556,9 @@ const ServiceUpdate = () => {
           }
         } catch { /* ignore */ }
         setServiceData(data.data);
+        // Keep the search box in sync with the ticket that actually loaded so
+        // saves/AI calls can never target a different ticket.
+        if (data.data?.serviceId) setServiceId(data.data.serviceId);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
@@ -659,6 +620,30 @@ const ServiceUpdate = () => {
 
   const handleSearch = async () => {
     await searchService(serviceId);
+  };
+
+  /** The ticket actually loaded in the form — the only id writes may target. */
+  const activeServiceId: string = serviceData?.serviceId || "";
+
+  /**
+   * Guards every write / AI call: refuses to run when the search box no longer
+   * matches the loaded ticket (prevents cross-ticket data bleed).
+   */
+  const requireLoadedTicket = (): string | null => {
+    const typed = (serviceId || "").trim().toUpperCase();
+    if (!activeServiceId) {
+      toast({ title: "Load the ticket first", description: "Search for a Service ID before continuing.", variant: "destructive" });
+      return null;
+    }
+    if (typed && typed !== activeServiceId.trim().toUpperCase()) {
+      toast({
+        title: "Load the ticket first",
+        description: `The Service ID box says ${typed} but ${activeServiceId} is loaded. Search again to load ${typed}.`,
+        variant: "destructive",
+      });
+      return null;
+    }
+    return activeServiceId;
   };
 
   // ---- Live ticket watch: detect updates made elsewhere -------------------
@@ -747,6 +732,8 @@ const ServiceUpdate = () => {
   };
 
   const handleUpdate = async () => {
+    const sid = requireLoadedTicket();
+    if (!sid) return;
     if (!serviceData) return;
 
     setIsUpdating(true);
@@ -779,7 +766,7 @@ const ServiceUpdate = () => {
 
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
-      formData.append("serviceId", serviceId);
+      formData.append("serviceId", sid);
       formData.append("deviceType", serviceData.deviceType);
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
@@ -857,7 +844,7 @@ const ServiceUpdate = () => {
         discount: discountAmount,
         final_cost: finalCost,
         last_updated: saveStamp,
-      }).eq("service_id", serviceId).select("service_id");
+      }).eq("service_id", sid).select("service_id");
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
 
@@ -900,10 +887,18 @@ const ServiceUpdate = () => {
 
         // Fire-and-forget: AI fields, logging, and notifications (don't block UI)
         const userFullName = sessionStorage.getItem("userFullName") || username;
-        const changes: string[] = [];
-        if (updateStatus !== serviceData.status) changes.push(`Status: ${serviceData.status} → ${updateStatus}`);
-        if (updateTechnician !== serviceData.technician) changes.push(`Technician: ${serviceData.technician || "Unassigned"} → ${updateTechnician}`);
-        if (updateTechnicianDiagnosis !== serviceData.technicianDiagnosis) changes.push("Updated diagnosis");
+        const { summaries: fieldSummaries, details: fieldDetails } = diffFields([
+          { label: "Status", before: serviceData.status, after: updateStatus },
+          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
+          { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
+          { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
+          { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
+          { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
+          { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
+          { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
+        ]);
+        const changes: string[] = [...fieldSummaries];
         
         const prevParts = (serviceData.partsUsed || "").trim();
         const newPartsDisplay = partsUsedString.trim();
@@ -924,7 +919,7 @@ const ServiceUpdate = () => {
         const performerId = sessionStorage.getItem("authUserId");
         backgroundTasks.push(
           applyPartsDelta({
-            serviceId,
+            serviceId: sid,
             prevPartsString: String(serviceData.partsUsed || ""),
             newParts: [...partsUsedArray, ...unmatchedArray].map((p: any) => ({
               id: p.id, name: p.name, quantity: p.quantity,
@@ -938,7 +933,7 @@ const ServiceUpdate = () => {
         if (updateAIDiagnosis || updateServiceReport) {
           const aiFormData = new FormData();
           aiFormData.append("action", "updateService");
-          aiFormData.append("serviceId", serviceId);
+          aiFormData.append("serviceId", sid);
           aiFormData.append("deviceType", serviceData.deviceType);
           aiFormData.append("aiDiagnosis", updateAIDiagnosis);
           aiFormData.append("aiReport", updateServiceReport);
@@ -951,10 +946,11 @@ const ServiceUpdate = () => {
         if (changes.length > 0) {
           backgroundTasks.push(
             logActivity({
-              serviceId: serviceId,
-              username: username,
+              serviceId: sid,
+              username: userFullName,
               role: userRole,
-              activity: `Service updated: ${changes.join(", ")}`
+              activity: `Service updated (/service-update): ${changes.join(", ")}`,
+              details: fieldDetails,
             }).catch(() => {})
           );
         }
@@ -964,7 +960,7 @@ const ServiceUpdate = () => {
           backgroundTasks.push(
             Promise.resolve(notifyServiceStatusChange(
               {
-                serviceId,
+                serviceId: sid,
                 clientName: serviceData.clientName,
                 technician: updateTechnician,
                 adminRep: serviceData.adminRep,
@@ -984,7 +980,7 @@ const ServiceUpdate = () => {
           backgroundTasks.push(
             Promise.resolve(notifyNewServiceAssignment(
               {
-                serviceId,
+                serviceId: sid,
                 clientName: serviceData.clientName,
                 technician: updateTechnician,
                 adminRep: serviceData.adminRep,
@@ -1437,6 +1433,8 @@ const ServiceUpdate = () => {
                                  );
                                  if (!ok) return;
 
+                                const aiSid = requireLoadedTicket();
+                                if (!aiSid) return;
                                 setIsFormattingAI(true);
                                 try {
                                   const formattedDiagnosis = await formatDiagnosisWithAI({
@@ -1444,14 +1442,19 @@ const ServiceUpdate = () => {
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId,
+                                    serviceId: activeServiceId,
                                   });
 
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
+                                    logAiFormatActivity(aiSid, "diagnosis", {
+                                      source: "/service-update",
+                                      before: rawDiagnosis,
+                                      after: formattedDiagnosis,
+                                    });
                                     
                                     await notifyAiDiagnosisGenerated({
-                                      serviceId,
+                                      serviceId: activeServiceId,
                                       clientName: serviceData?.clientName || "Client",
                                       technician: serviceData?.technician || "",
                                       adminRep: serviceData?.adminRep || "",
@@ -1548,6 +1551,8 @@ const ServiceUpdate = () => {
                                  );
                                  if (!ok) return;
 
+                                const aiReportSid = requireLoadedTicket();
+                                if (!aiReportSid) return;
                                 setIsFormattingReport(true);
                                 try {
                                   const formattedReport = await formatReportWithAI({
@@ -1555,16 +1560,21 @@ const ServiceUpdate = () => {
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId,
+                                    serviceId: activeServiceId,
                                     finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
                                   });
 
                                   if (formattedReport) {
                                     setUpdateServiceReport(formattedReport);
+                                    logAiFormatActivity(aiReportSid, "report", {
+                                      source: "/service-update",
+                                      before: updateTechnicianReport,
+                                      after: formattedReport,
+                                    });
                                     
                                     // Notify the acting staff member plus assigned staff.
                                     await notifyAiOutputGenerated({
-                                      serviceId,
+                                      serviceId: activeServiceId,
                                       clientName: serviceData?.clientName || "Client",
                                       technician: serviceData?.technician || "",
                                       adminRep: serviceData?.adminRep || "",
