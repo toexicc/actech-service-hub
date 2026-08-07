@@ -40,7 +40,7 @@ import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { logActivity } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
@@ -414,6 +414,7 @@ const ManageClient = () => {
             return;
           }
           setServiceData(merged);
+          if (merged?.serviceId) setServiceId(merged.serviceId);
           setUpdateStatus(merged.status || "");
           setUpdateAdminRep(merged.adminRep || "");
           setUpdateTechnician(merged.technician || "");
@@ -500,6 +501,7 @@ const ManageClient = () => {
         return;
       }
       setServiceData(merged);
+      if (merged?.serviceId) setServiceId(merged.serviceId);
       setUpdateStatus(merged.status || "");
       setUpdateAdminRep(merged.adminRep || "");
       setUpdateTechnician(merged.technician || "");
@@ -547,6 +549,34 @@ const ManageClient = () => {
       setIsLoading(false);
     }
   };
+
+  /** The ticket actually loaded in the form — the only id writes may target. */
+  const activeServiceId: string = serviceData?.serviceId || "";
+
+  /**
+   * Guards every write / AI call so a stale Service ID in the search box can
+   * never send one ticket's content to another ticket.
+   */
+  const requireLoadedTicket = (): string | null => {
+    const typed = (serviceId || "").trim().toUpperCase();
+    if (!activeServiceId) {
+      toast({ title: "Load the ticket first", description: "Search for a Service ID before continuing.", variant: "destructive" });
+      return null;
+    }
+    if (typed && typed !== activeServiceId.trim().toUpperCase()) {
+      toast({
+        title: "Load the ticket first",
+        description: `The Service ID box says ${typed} but ${activeServiceId} is loaded. Search again to load ${typed}.`,
+        variant: "destructive",
+      });
+      return null;
+    }
+    return activeServiceId;
+  };
+
+  /** Off-path / terminal statuses skip the client-approval guards. */
+  const isOffPathStatus = (status?: string): boolean =>
+    ["RTO", "Cancelled", "On Hold", "Pending Diagnosis"].includes((status || "").trim());
 
   // ---- Live ticket watch: detect updates made elsewhere -------------------
   const isTabActive = useIsTabActive();
@@ -678,6 +708,8 @@ const ManageClient = () => {
       return;
     }
 
+    const aiSid = requireLoadedTicket();
+    if (!aiSid) return;
     setIsFormattingAI(true);
     try {
       const formattedDiagnosis = await formatDiagnosisWithAI({
@@ -685,15 +717,20 @@ const ManageClient = () => {
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId,
+        serviceId: aiSid,
       });
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(formattedDiagnosis);
         setIsEditingAIDiagnosis(false);
-        
+        logAiFormatActivity(aiSid, "diagnosis", {
+          source: "/manage-client",
+          before: rawDiagnosis,
+          after: formattedDiagnosis,
+        });
+
         await notifyAiDiagnosisGenerated({
-          serviceId,
+          serviceId: aiSid,
           clientName: serviceData?.clientName || "Client",
           technician: serviceData?.technician || "",
           adminRep: serviceData?.adminRep || "",
@@ -728,6 +765,8 @@ const ManageClient = () => {
       return;
     }
 
+    const aiReportSid = requireLoadedTicket();
+    if (!aiReportSid) return;
     setIsFormattingReport(true);
     try {
       const formattedReport = await formatReportWithAI({
@@ -735,17 +774,22 @@ const ManageClient = () => {
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
-        serviceId,
+        serviceId: aiReportSid,
         finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
       });
 
       if (formattedReport) {
         setUpdateServiceReport(formattedReport);
         setIsEditingServiceReport(false);
-        
+        logAiFormatActivity(aiReportSid, "report", {
+          source: "/manage-client",
+          before: technicianReport,
+          after: formattedReport,
+        });
+
         // Notify the acting staff member plus assigned admins and technicians.
         await notifyAiOutputGenerated({
-          serviceId,
+          serviceId: aiReportSid,
           clientName: serviceData?.clientName || "Client",
           technician: serviceData?.technician || "",
           adminRep: serviceData?.adminRep || "",
