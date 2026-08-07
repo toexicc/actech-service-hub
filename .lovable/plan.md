@@ -29,3 +29,11 @@ Both `/manage-client` and `/service-update` show the decline-aware wording; `/tr
 - `src/lib/serviceNotifications.ts`: add a `declined` variant to the On Hold branch of `getStatusNotificationMessages` (extra optional flag) and expose it through `getStatusGuidance`.
 - `src/pages/ManageClient.tsx` / `src/pages/ServiceUpdate.tsx`: detect a client decline from the admin-notes remark ("Declined by ... ") when status is On Hold and pass that flag to the guidance helper.
 - `src/pages/ServiceTracking.tsx`: after a decline, use the returned status so the page reflects On Hold immediately.
+
+## Also: "Notes from the team" on /track shows the wrong field
+
+`/track` currently renders the internal admin notes ("Admin Notes (Internal)") under "Notes from the team". It must show the customer-facing **Admin Notes (Customer)** field instead (stored as the ticket's remarks).
+
+- Add `remarks` to the public tracking snapshot function so anonymous `/track` visitors can read it.
+- On `/track`, map the customer notes from `remarks` and display that in the yellow "Notes from the team" card.
+- Keep the internal notes wired only to the approval-remark parser (that is where the "Approved/Declined by ..." trail lives) — it is no longer displayed to the client.
