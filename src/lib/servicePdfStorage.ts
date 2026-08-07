@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logTicketActivity } from "@/lib/activityLogger";
+
 
 export type ServicePdfKind = "intake" | "quotation";
 
