@@ -171,5 +171,20 @@ export const syncApprovedQuotation = async (
     kind: "quotation",
     blob,
   });
+  if (uploaded) {
+    logSystemTicketActivity(
+      serviceId,
+      "Service Quotation Form auto-regenerated from the client's approved services",
+      {
+        "Approved services": approvedNames.join(", ") || "(none)",
+        "Approved total": money(approvedTotal),
+        Discount: money(discount),
+        ...(vat > 0 ? { VAT: money(vat) } : {}),
+        "Final cost": money(finalCost),
+      },
+      "System (Quotation Sync)",
+    );
+  }
   return { regenerated: !!uploaded };
 };
+
