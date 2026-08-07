@@ -65,7 +65,23 @@ const adjustOne = async (
     performed_by_name: meta.performerName || null,
     notes: delta < 0 ? "Deducted on service update" : "Restored on service edit",
   });
+
+  logSystemTicketActivity(
+    meta.serviceId,
+    delta < 0
+      ? `Inventory auto-deducted: ${partId} × ${Math.abs(delta)}`
+      : `Inventory auto-restored: ${partId} × ${Math.abs(delta)}`,
+    {
+      Part: partId,
+      Quantity: String(Math.abs(delta)),
+      "Stock on hand": { from: String(row.quantity || 0), to: String(newQty) },
+      Source: table === "inventory_parts" ? "Inventory" : "Fast-moving parts",
+      ...(meta.performerName ? { "Triggered by": meta.performerName } : {}),
+    },
+    "System (Inventory)",
+  );
 };
+
 
 export const applyPartsDelta = async (opts: {
   serviceId: string;
