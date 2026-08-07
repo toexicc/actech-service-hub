@@ -102,7 +102,8 @@ const getManagementStaff = (staffList: StaffMember[]): StaffMember[] => {
 const getStatusNotificationMessages = (
   newStatus: string,
   service: ServiceInfo,
-  changedBy: string
+  changedBy: string,
+  clientDeclined = false,
 ): { adminMessage: string; technicianMessage: string } => {
   const deviceInfo = service.device || service.deviceType || 'device';
   
@@ -176,11 +177,16 @@ const getStatusNotificationMessages = (
         technicianMessage: `Client didn't want to proceed with service ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please process the return of the unit to the client.`
       };
     
-    case 'On Hold':
+    case 'On Hold': {
+      if (clientDeclined) {
+        const declined = `Client declined the service for ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please prepare the device for return to owner and update status to RTO once returned.`;
+        return { adminMessage: declined, technicianMessage: declined };
+      }
       return {
         adminMessage: `Client is not sure yet with service ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback.`,
         technicianMessage: `Client is not sure yet with service ${service.serviceId} (${service.clientName}'s ${deviceInfo}). Please monitor for feedback.`
       };
+    }
     
     case 'Cancelled':
       return {
@@ -201,8 +207,9 @@ export const getStatusGuidance = (
   newStatus: string,
   service: ServiceInfo,
   role: 'admin' | 'management' | 'technician',
+  clientDeclined = false,
 ): string => {
-  const messages = getStatusNotificationMessages(newStatus, service, '');
+  const messages = getStatusNotificationMessages(newStatus, service, '', clientDeclined);
   if (role === 'technician') return messages.technicianMessage || messages.adminMessage || '';
   return messages.adminMessage || messages.technicianMessage || '';
 };
