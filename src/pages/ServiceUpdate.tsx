@@ -598,6 +598,9 @@ const ServiceUpdate = () => {
           }
         } catch { /* ignore */ }
         setServiceData(data.data);
+        // Keep the search box in sync with the ticket that actually loaded so
+        // saves/AI calls can never target a different ticket.
+        if (data.data?.serviceId) setServiceId(data.data.serviceId);
         // Initialize update fields with current values
         setUpdateStatus(data.data.status || "");
         setUpdateTechnician(data.data.technician || "");
@@ -659,6 +662,30 @@ const ServiceUpdate = () => {
 
   const handleSearch = async () => {
     await searchService(serviceId);
+  };
+
+  /** The ticket actually loaded in the form — the only id writes may target. */
+  const activeServiceId: string = serviceData?.serviceId || "";
+
+  /**
+   * Guards every write / AI call: refuses to run when the search box no longer
+   * matches the loaded ticket (prevents cross-ticket data bleed).
+   */
+  const requireLoadedTicket = (): string | null => {
+    const typed = (serviceId || "").trim().toUpperCase();
+    if (!activeServiceId) {
+      toast({ title: "Load the ticket first", description: "Search for a Service ID before continuing.", variant: "destructive" });
+      return null;
+    }
+    if (typed && typed !== activeServiceId.trim().toUpperCase()) {
+      toast({
+        title: "Load the ticket first",
+        description: `The Service ID box says ${typed} but ${activeServiceId} is loaded. Search again to load ${typed}.`,
+        variant: "destructive",
+      });
+      return null;
+    }
+    return activeServiceId;
   };
 
   // ---- Live ticket watch: detect updates made elsewhere -------------------
@@ -747,6 +774,8 @@ const ServiceUpdate = () => {
   };
 
   const handleUpdate = async () => {
+    const sid = requireLoadedTicket();
+    if (!sid) return;
     if (!serviceData) return;
 
     setIsUpdating(true);
@@ -779,7 +808,7 @@ const ServiceUpdate = () => {
 
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
-      formData.append("serviceId", serviceId);
+      formData.append("serviceId", sid);
       formData.append("deviceType", serviceData.deviceType);
       formData.append("status", updateStatus);
       formData.append("technician", updateTechnician);
@@ -857,7 +886,7 @@ const ServiceUpdate = () => {
         discount: discountAmount,
         final_cost: finalCost,
         last_updated: saveStamp,
-      }).eq("service_id", serviceId).select("service_id");
+      }).eq("service_id", sid).select("service_id");
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
 
@@ -924,7 +953,7 @@ const ServiceUpdate = () => {
         const performerId = sessionStorage.getItem("authUserId");
         backgroundTasks.push(
           applyPartsDelta({
-            serviceId,
+            serviceId: sid,
             prevPartsString: String(serviceData.partsUsed || ""),
             newParts: [...partsUsedArray, ...unmatchedArray].map((p: any) => ({
               id: p.id, name: p.name, quantity: p.quantity,
@@ -938,7 +967,7 @@ const ServiceUpdate = () => {
         if (updateAIDiagnosis || updateServiceReport) {
           const aiFormData = new FormData();
           aiFormData.append("action", "updateService");
-          aiFormData.append("serviceId", serviceId);
+          aiFormData.append("serviceId", sid);
           aiFormData.append("deviceType", serviceData.deviceType);
           aiFormData.append("aiDiagnosis", updateAIDiagnosis);
           aiFormData.append("aiReport", updateServiceReport);
@@ -951,7 +980,7 @@ const ServiceUpdate = () => {
         if (changes.length > 0) {
           backgroundTasks.push(
             logActivity({
-              serviceId: serviceId,
+              serviceId: sid,
               username: username,
               role: userRole,
               activity: `Service updated: ${changes.join(", ")}`
@@ -964,7 +993,7 @@ const ServiceUpdate = () => {
           backgroundTasks.push(
             Promise.resolve(notifyServiceStatusChange(
               {
-                serviceId,
+                serviceId: sid,
                 clientName: serviceData.clientName,
                 technician: updateTechnician,
                 adminRep: serviceData.adminRep,
@@ -984,7 +1013,7 @@ const ServiceUpdate = () => {
           backgroundTasks.push(
             Promise.resolve(notifyNewServiceAssignment(
               {
-                serviceId,
+                serviceId: sid,
                 clientName: serviceData.clientName,
                 technician: updateTechnician,
                 adminRep: serviceData.adminRep,
@@ -1444,14 +1473,14 @@ const ServiceUpdate = () => {
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId,
+                                    serviceId: activeServiceId,
                                   });
 
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(formattedDiagnosis);
                                     
                                     await notifyAiDiagnosisGenerated({
-                                      serviceId,
+                                      serviceId: activeServiceId,
                                       clientName: serviceData?.clientName || "Client",
                                       technician: serviceData?.technician || "",
                                       adminRep: serviceData?.adminRep || "",
@@ -1555,7 +1584,7 @@ const ServiceUpdate = () => {
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
-                                    serviceId,
+                                    serviceId: activeServiceId,
                                     finalCost: serviceData?.finalCost || serviceData?.serviceCost || '0',
                                   });
 
@@ -1564,7 +1593,7 @@ const ServiceUpdate = () => {
                                     
                                     // Notify the acting staff member plus assigned staff.
                                     await notifyAiOutputGenerated({
-                                      serviceId,
+                                      serviceId: activeServiceId,
                                       clientName: serviceData?.clientName || "Client",
                                       technician: serviceData?.technician || "",
                                       adminRep: serviceData?.adminRep || "",
