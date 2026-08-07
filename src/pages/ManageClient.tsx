@@ -276,8 +276,13 @@ const ManageClient = () => {
         .update({ approval_locked: false, last_updated: new Date().toISOString() } as any)
         .eq("service_id", serviceData.serviceId);
       if (error) throw new Error(error.message);
+      logTicketActivity(serviceData.serviceId, "Client approval re-opened on /track", {
+        "Approval lock": { from: "Locked", to: "Open" },
+        "Pending approval": (serviceData.pendingServices ?? []).join(", ") || "(none)",
+      });
       setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
       toast({ title: "Approval re-opened", description: "The client can approve again on the tracking page." });
+
       // Pull the authoritative row back so the remark + pending list stay in sync.
       try {
         await handleSearch();
