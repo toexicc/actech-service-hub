@@ -1492,6 +1492,7 @@ const ManageClient = () => {
                       device: serviceData.device || serviceData.deviceType,
                     },
                     "admin",
+                    /(^|\n)\s*Declined by /i.test(serviceData.adminNotesInternal || ""),
                   )
             }
 

@@ -287,6 +287,11 @@ serve(async (req) => {
         update.status = "Proceed Repair";
       }
 
+    } else {
+      // Declined: park the ticket On Hold so staff prepare the unit for return.
+      update.status = "On Hold";
+      update.client_approved_at = nowIso;
+      update.approval_locked = true;
     }
 
     const { error: updateError } = await admin
@@ -301,13 +306,32 @@ serve(async (req) => {
       const names: string[] = [
         ...(Array.isArray(row.admin_reps) ? row.admin_reps : []),
         ...(Array.isArray(row.technicians) ? row.technicians : []),
+        ...(row.receiving_staff ? [String(row.receiving_staff)] : []),
       ]
         .map((n: string) => String(n ?? "").trim())
         .filter(Boolean);
 
-      if (names.length) {
+      {
         const { data: profiles } = await admin.from("profiles").select("id, name");
-        const norm = (n: string) => n.split(" - ")[0].trim().toLowerCase();
+        const normName = (n: string) => {
+          const parts = String(n ?? "").split(" - ").map((x) => x.trim()).filter(Boolean);
+          if (!parts.length) return "";
+          if (/^special cases$/i.test(parts[0]) && parts[1]) return parts[1].toLowerCase();
+          return parts[0].toLowerCase();
+        };
+        const resolve = (n: string) => {
+          const needle = normName(n);
+          if (!needle) return undefined;
+          const list = profiles ?? [];
+          return (
+            list.find((p: any) => normName(p.name || "") === needle) ||
+            list.find((p: any) => {
+              const k = normName(p.name || "");
+              return k && (k.includes(needle) || needle.includes(k));
+            })
+          );
+        };
+        const deviceInfo = [row.device_type, row.brand, row.model].map((x: any) => String(x ?? "").trim()).filter(Boolean).join(" ") || "device";
         const seen = new Set<string>();
         const title = !approved
           ? `Service ${serviceId} Declined`
@@ -315,25 +339,53 @@ serve(async (req) => {
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
         const message = !approved
-          ? `${clientName} declined the diagnosis for ${serviceId}. Reason: ${reason || "(none provided)"}.`
+          ? `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
           : isPartial
           ? `${clientName} approved the required services for ${serviceId}: ${approvedItems.join(", ")}. Still pending: ${pendingItems.join(", ")}. Ticket moved to Proceed Repair.`
           : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.`;
 
-        const rows = names
-          .map((n) => (profiles ?? []).find((p: any) => norm(p.name || "") === norm(n)))
-          .filter((p: any) => p?.id && !seen.has(p.id) && seen.add(p.id))
-          .map((p: any) => ({
-            recipient_id: p.id,
-            recipient_name: p.name,
-            category: "service_update",
-            title,
-            message,
-            service_id: serviceId,
-          }));
-        if (rows.length) await admin.from("notifications").insert(rows);
+        let targets = names
+          .map((n) => resolve(n))
+          .filter((p: any) => p?.id && !seen.has(p.id) && seen.add(p.id));
+
+        // Safety net: if no assignee resolves, alert management so the decline
+        // never goes unseen.
+        if (!targets.length) {
+          const { data: mgmt } = await admin
+            .from("user_roles")
+            .select("user_id")
+            .in("role", ["admin", "management"]);
+          const ids = new Set((mgmt ?? []).map((r: any) => r.user_id));
+          targets = (profiles ?? []).filter((p: any) => ids.has(p.id) && !seen.has(p.id) && seen.add(p.id));
+        }
+
+        const rows = targets.map((p: any) => ({
+          recipient_id: p.id,
+          recipient_name: p.name,
+          category: "service_update",
+          title,
+          message,
+          service_id: serviceId,
+        }));
+        if (rows.length) {
+          await admin.from("notifications").insert(rows);
+          // Fan out pushes through the shared notifier so offline staff get alerted.
+          await admin.functions
+            .invoke("notify-service-event", {
+              body: {
+                recipients: targets.map((p: any) => ({
+                  userId: p.id,
+                  title,
+                  message,
+                  serviceId,
+                })),
+                skipInsert: true,
+              },
+            })
+            .catch(() => {});
+        }
       }
     } catch {
       // notification failures must not fail the approval
@@ -341,7 +393,7 @@ serve(async (req) => {
 
     return json({
       success: true,
-      status: approved && !blockAdvance ? "Proceed Repair" : status,
+      status: !approved ? "On Hold" : blockAdvance ? status : "Proceed Repair",
       partial: blockAdvance,
       approvedServices: approvedItems,
       pendingServices: pendingItems,
