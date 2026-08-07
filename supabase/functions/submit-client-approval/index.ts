@@ -413,6 +413,7 @@ serve(async (req) => {
         if (rows.length) {
           await admin.from("notifications").insert(rows);
           // Fan out pushes through the shared notifier so offline staff get alerted.
+          let pushFailed = false;
           await admin.functions
             .invoke("notify-service-event", {
               body: {
@@ -421,11 +422,27 @@ serve(async (req) => {
                   title,
                   message,
                   serviceId,
-                })),
+                }),
+                ),
                 skipInsert: true,
               },
             })
-            .catch(() => {});
+            .catch(() => {
+              pushFailed = true;
+            });
+          await admin
+            .from("activity_logs")
+            .insert({
+              action: `Notification sent: ${title} → ${targets.map((p: any) => p.name).join(", ")}${
+                pushFailed ? " (push delivery failed, in-app alert saved)" : ""
+              }`,
+              actor_id: null,
+              actor_name: "System (Client Approval)",
+              entity_type: "service",
+              entity_id: serviceId,
+              changes: { role: "system", Message: message },
+            })
+            .then(() => {});
         }
       }
     } catch {
@@ -434,7 +451,8 @@ serve(async (req) => {
 
     return json({
       success: true,
-      status: !approved ? "On Hold" : blockAdvance ? status : "Proceed Repair",
+      status: resultingStatus,
+
       partial: blockAdvance,
       approvedServices: approvedItems,
       pendingServices: pendingItems,
