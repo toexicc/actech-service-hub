@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
 import { DEVICE_TYPES, PRIORITY_OPTIONS, TIME_FRAME_OPTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { sanitizeNumber } from "@/lib/validation";
 
 const CLIENT_TYPE_OPTIONS = [
   "New Client - Walk In",
@@ -82,7 +83,12 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
       service: serviceData?.service || "",
       timeFrame: serviceData?.timeFrame || serviceData?.estimatedCompletion || "",
       repairTimeFrame: serviceData?.repairTimeFrame || "",
+      estimatedCost:
+        serviceData?.estimatedCost === undefined || serviceData?.estimatedCost === null
+          ? ""
+          : String(serviceData.estimatedCost),
       targetDate: parseDateInput(serviceData?.targetDate),
+
       deviceNotes: serviceData?.deviceNotes || "",
       conditions: CONDITION_FIELDS.reduce<Record<string, boolean>>((acc, f) => {
         acc[f.key] = isYes(conditions[f.key] ?? serviceData?.[f.key]);
@@ -113,6 +119,17 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
       return;
     }
 
+    const estimatedCostRaw = String(draft.estimatedCost ?? "").trim();
+    const estimatedCost = estimatedCostRaw ? sanitizeNumber(estimatedCostRaw) : 0;
+    if (estimatedCost < 0) {
+      toast({
+        title: "Invalid estimated cost",
+        description: "Estimated cost cannot be negative.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const trim = (v: string, max = MAX_TEXT) => v.trim().slice(0, max);
 
     setIsSaving(true);
@@ -134,11 +151,13 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         service: trim(draft.service, MAX_LONG_TEXT) || null,
         estimated_completion: trim(draft.timeFrame) || null,
         repair_time_frame: trim(draft.repairTimeFrame) || null,
+        estimated_cost: estimatedCost,
         target_date: draft.targetDate ? format(draft.targetDate, "yyyy-MM-dd") : null,
         device_notes: trim(draft.deviceNotes, MAX_LONG_TEXT) || null,
         conditions: draft.conditions,
         last_updated: new Date().toISOString(),
       };
+
 
       const { error } = await supabase
         .from("services")
@@ -164,6 +183,12 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         ["Priority", initial.priority, draft.priority],
         ["Service/s", initial.service, draft.service],
         ["Time frame", initial.timeFrame, draft.timeFrame],
+        ["Repair time frame", initial.repairTimeFrame, draft.repairTimeFrame],
+        [
+          "Estimated cost",
+          (sanitizeNumber(String(initial.estimatedCost || "0")) || 0).toFixed(2),
+          estimatedCost.toFixed(2),
+        ],
         [
           "Target date",
           initial.targetDate ? format(initial.targetDate, "MM/dd/yyyy") : "",
@@ -295,6 +320,17 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
               {TIME_FRAME_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Estimated Cost (Php)</Label>
+          <Input
+            type="text"
+            inputMode="decimal"
+            value={draft.estimatedCost}
+            maxLength={20}
+            placeholder="0.00"
+            onChange={e => set("estimatedCost", e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label>Estimated Target Date</Label>
