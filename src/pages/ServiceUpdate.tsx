@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -122,6 +123,7 @@ const ServiceUpdate = () => {
   const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
+  const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
@@ -363,6 +365,41 @@ const ServiceUpdate = () => {
     "Done Repair - Under Observation": "Done Repair - For Release",
   };
   const suggestedNext = NEXT_STATUS[savedStatus];
+
+  /** Waiting for Parts pauses the repair (and the turnaround clock). */
+  const handleToggleWaitingForParts = async (next: boolean) => {
+    const sid = serviceData?.serviceId;
+    if (!sid || isTogglingWaitingParts) return;
+    setIsTogglingWaitingParts(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ waiting_for_parts: next, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", sid);
+      if (error) throw new Error(error.message);
+      setServiceData((prev: any) => (prev ? { ...prev, waitingForParts: next } : prev));
+      await logActivity({
+        serviceId: sid,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Technician",
+        role: sessionStorage.getItem("userRole") || "technician",
+        activity: next ? "Waiting for Parts turned on" : "Waiting for Parts turned off",
+      });
+      toast({
+        title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
+        description: next
+          ? "Repair paused while parts are procured. Turnaround time stops counting."
+          : "Repair resumed and turnaround time counts again.",
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Waiting for Parts setting.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingWaitingParts(false);
+    }
+  };
 
   const concernRecipientLabel = (serviceData?.adminRep || "").trim() || "Management";
 
