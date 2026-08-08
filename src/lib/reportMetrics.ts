@@ -50,10 +50,14 @@ const MANILA_OFFSET_MS = 8 * 3600000;
 /** Manila calendar day key (yyyy-mm-dd) for an instant. */
 const manilaDayKey = (ms: number): string => new Date(ms + MANILA_OFFSET_MS).toISOString().slice(0, 10);
 
+/** Sunday check on the Manila calendar day that starts at `dayStartUtc`. */
+const isManilaSunday = (dayStartUtc: number): boolean =>
+  new Date(dayStartUtc + MANILA_OFFSET_MS + 1).getUTCDay() === 0;
+
 /**
  * Working hours between two instants, counting only the 10:00-19:00 Manila
- * shift, skipping shop closed dates and deducting the 1.5h daily break
- * (pro-rated for partial days). Time outside the shift is not counted.
+ * shift, skipping Sundays and shop closed dates and deducting the 1.5h daily
+ * break (pro-rated for partial days). Time outside the shift is not counted.
  */
 export const workingHoursBetween = (
   start: Date | null | undefined,
@@ -81,13 +85,14 @@ export const workingHoursBetween = (
     const key = manilaDayKey(dayStartUtc + 1);
     const shiftOpen = dayStartUtc + SHIFT_START_HOUR * 3600000;
     const shiftClose = dayStartUtc + SHIFT_END_HOUR * 3600000;
-    if (!closed.has(key)) {
+    if (!closed.has(key) && !isManilaSunday(dayStartUtc)) {
       const overlap = Math.min(to, shiftClose) - Math.max(from, shiftOpen);
       if (overlap > 0) {
         // Deduct the break in proportion to how much of the shift was used.
         total += (overlap / shiftMs) * (shiftMs / 3600000 - BREAK_HOURS);
       }
     }
+
     if (key >= lastDayKey) break;
     dayStartUtc += 24 * 3600000;
   }
