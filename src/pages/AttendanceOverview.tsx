@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { CalendarIcon, Search, Download, UserPlus, Plane, Trash2, Pencil } from "lucide-react";
+import { CalendarIcon, Search, Download, UserPlus, Plane, Trash2, Pencil, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStaff } from "@/hooks/useStaff";
 import { useInvalidateAvailability } from "@/hooks/useStaffAvailability";
@@ -42,6 +42,8 @@ interface AttendanceRow {
   is_late: boolean;
   is_overtime: boolean;
   notes?: string | null;
+  is_holiday?: boolean | null;
+  holiday_label?: string | null;
 }
 
 interface LeaveRow {
@@ -153,6 +155,11 @@ const AttendanceOverview = () => {
 
   // ---- Delete confirmations ----
   const [deleteLog, setDeleteLog] = useState<AttendanceRow | null>(null);
+  // ---------- holiday declaration ----------
+  const [holidayOpen, setHolidayOpen] = useState(false);
+  const [holidayDate, setHolidayDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [holidayLabel, setHolidayLabel] = useState("");
+  const [holidaySaving, setHolidaySaving] = useState(false);
   const [deleteLeaveRow, setDeleteLeaveRow] = useState<LeaveRow | null>(null);
 
   useEffect(() => {
@@ -292,6 +299,55 @@ const AttendanceOverview = () => {
       toast({ title: "Error", description: e?.message || "Could not save attendance.", variant: "destructive" });
     } finally {
       setBulkSaving(false);
+    }
+  };
+
+  /**
+   * Declares a holiday: records a holiday attendance row for every active
+   * employee (real time in/out later overrides it) and marks the shop closed
+   * so report turnaround skips the day.
+   */
+  const saveHoliday = async () => {
+    const label = holidayLabel.trim();
+    if (!label) {
+      toast({ title: "Add a holiday name", variant: "destructive" });
+      return;
+    }
+    setHolidaySaving(true);
+    try {
+      const ids = eligibleStaff.map((s) => s.userId).filter(Boolean) as string[];
+      if (ids.length) {
+        await supabase.from("attendance_logs").delete().eq("log_date", holidayDate).in("staff_id", ids);
+        const payload = eligibleStaff
+          .filter((s) => s.userId)
+          .map((s) => ({
+            staff_id: s.userId as string,
+            staff_name: s.name,
+            log_date: holidayDate,
+            time_in: null,
+            time_out: null,
+            is_late: false,
+            is_overtime: false,
+            is_holiday: true,
+            holiday_label: label,
+            notes: `Holiday — ${label}`,
+          }));
+        const { error } = await supabase.from("attendance_logs").insert(payload as any);
+        if (error) throw new Error(error.message);
+      }
+      await supabase
+        .from("closed_dates")
+        .upsert({ closed_date: holidayDate, reason: `Holiday — ${label}` } as any, {
+          onConflict: "closed_date",
+        });
+      toast({ title: "Holiday declared", description: `${label} on ${holidayDate} recorded for all staff.` });
+      setHolidayOpen(false);
+      setHolidayLabel("");
+      refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not declare the holiday.", variant: "destructive" });
+    } finally {
+      setHolidaySaving(false);
     }
   };
 
@@ -474,6 +530,9 @@ const AttendanceOverview = () => {
             <Button size="sm" variant="outline" onClick={openNewLeave}>
               <Plane className="h-4 w-4 mr-1" /> Add leave
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setHolidayOpen(true)}>
+              <PartyPopper className="h-4 w-4 mr-1" /> Declare holiday
+            </Button>
           </div>
         </div>
 
@@ -644,6 +703,11 @@ const AttendanceOverview = () => {
                                     <TableCell>{fmtTime(r.time_out)}</TableCell>
                                     <TableCell>{computeHours(r.time_in, r.time_out)}</TableCell>
                                     <TableCell className="space-x-1">
+                                      {r.is_holiday && (
+                                        <Badge variant="outline" className="border-amber-400 text-amber-700">
+                                          Holiday{r.holiday_label ? ` — ${r.holiday_label}` : ""}
+                                        </Badge>
+                                      )}
                                       {r.is_late && <Badge variant="destructive">Late</Badge>}
                                       {r.is_overtime && <Badge>Overtime</Badge>}
                                     </TableCell>
@@ -1033,6 +1097,41 @@ const AttendanceOverview = () => {
             </Button>
             <Button onClick={saveLeave} disabled={leaveSaving}>
               {leaveSaving ? "Saving…" : "Save leave"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Declare holiday */}
+      <Dialog open={holidayOpen} onOpenChange={setHolidayOpen}>
+        <DialogContent className="!flex !flex-col max-h-[95dvh]">
+          <DialogHeader>
+            <DialogTitle>Declare a holiday</DialogTitle>
+            <DialogDescription>
+              Records the day as a holiday for every active employee and marks the shop closed so turnaround
+              reports skip it. Staff can still time in and out — real logs override the holiday record.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 overflow-y-auto">
+            <div className="space-y-1">
+              <Label>Date</Label>
+              <Input type="date" value={holidayDate} onChange={(e) => setHolidayDate(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Holiday name</Label>
+              <Input
+                placeholder="e.g. Independence Day"
+                value={holidayLabel}
+                onChange={(e) => setHolidayLabel(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setHolidayOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveHoliday} disabled={holidaySaving}>
+              {holidaySaving ? "Saving…" : "Declare holiday"}
             </Button>
           </DialogFooter>
         </DialogContent>
