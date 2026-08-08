@@ -183,6 +183,12 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         ["Priority", initial.priority, draft.priority],
         ["Service/s", initial.service, draft.service],
         ["Time frame", initial.timeFrame, draft.timeFrame],
+        ["Repair time frame", initial.repairTimeFrame, draft.repairTimeFrame],
+        [
+          "Estimated cost",
+          (sanitizeNumber(String(initial.estimatedCost || "0")) || 0).toFixed(2),
+          estimatedCost.toFixed(2),
+        ],
         [
           "Target date",
           initial.targetDate ? format(initial.targetDate, "MM/dd/yyyy") : "",
