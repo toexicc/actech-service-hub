@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
 import { DEVICE_TYPES, PRIORITY_OPTIONS, TIME_FRAME_OPTIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { sanitizeNumber } from "@/lib/validation";
 
 const CLIENT_TYPE_OPTIONS = [
   "New Client - Walk In",
