@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle2, PackageCheck } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
+import { ShareLinkActions } from "@/components/ShareLinkActions";
+
+const RELEASE_URL = "https://actechrepair-service.com/release";
 
 interface ReleaseSummary {
   service_id: string;
