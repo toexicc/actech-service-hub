@@ -369,7 +369,17 @@ const QueueAdmin = () => {
           <TabsContent value="intake">
             <IntakeQueuePanel />
           </TabsContent>
+
+          <TabsContent value="release-records">
+            <ReleaseQueuePanel />
+          </TabsContent>
         </Tabs>
+
+        <ConfirmReleaseModal
+          entry={releasing}
+          onOpenChange={(open) => !open && setReleasing(null)}
+          onReleased={() => refetch()}
+        />
 
         <CompleteIntakeModal
           queueId={completing?.id ?? null}
@@ -380,6 +390,7 @@ const QueueAdmin = () => {
             refetch();
           }}
         />
+
 
       </div>
     </div>
