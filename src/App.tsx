@@ -18,6 +18,7 @@ import Install from "./pages/Install";
 import Attendance from "./pages/Attendance";
 import NotFound from "./pages/NotFound";
 import QueueDisplay from "./pages/QueueDisplay";
+import PublicRelease from "./pages/PublicRelease";
 
 // Configure QueryClient with caching settings for fast navigation
 const queryClient = new QueryClient({
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/intake" element={<ServiceForm />} />
               <Route path="/queue" element={<QueueDisplay />} />
+              <Route path="/release" element={<PublicRelease />} />
 
               {/* All authenticated workbench pages render through a single
                   keep-alive shell so switching tabs no longer remounts pages. */}

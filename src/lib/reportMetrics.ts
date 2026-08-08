@@ -11,7 +11,27 @@ export interface StatusLogEntry {
   from?: string;
   to?: string;
   created?: boolean;
+  /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
+  waitingParts?: "on" | "off";
 }
+
+/**
+ * Statuses where the shop is not actively working the ticket — the turnaround
+ * clock is paused while a ticket sits in any of these.
+ */
+export const PAUSED_STATUSES = new Set(
+  [
+    "Waiting to Proceed",
+    "Done Repair - Advise Client",
+    "On Hold",
+    "Cancelled",
+    "RTO",
+  ].map((s) => s.toLowerCase()),
+);
+
+export const isPausedStatus = (status?: string | null) =>
+  PAUSED_STATUSES.has(String(status ?? "").trim().toLowerCase());
+
 
 /* ------------------------------------------------------------------
  * Business-hours math (Manila shop shift)
@@ -30,10 +50,14 @@ const MANILA_OFFSET_MS = 8 * 3600000;
 /** Manila calendar day key (yyyy-mm-dd) for an instant. */
 const manilaDayKey = (ms: number): string => new Date(ms + MANILA_OFFSET_MS).toISOString().slice(0, 10);
 
+/** Sunday check on the Manila calendar day that starts at `dayStartUtc`. */
+const isManilaSunday = (dayStartUtc: number): boolean =>
+  new Date(dayStartUtc + MANILA_OFFSET_MS + 1).getUTCDay() === 0;
+
 /**
  * Working hours between two instants, counting only the 10:00-19:00 Manila
- * shift, skipping shop closed dates and deducting the 1.5h daily break
- * (pro-rated for partial days). Time outside the shift is not counted.
+ * shift, skipping Sundays and shop closed dates and deducting the 1.5h daily
+ * break (pro-rated for partial days). Time outside the shift is not counted.
  */
 export const workingHoursBetween = (
   start: Date | null | undefined,
@@ -61,13 +85,14 @@ export const workingHoursBetween = (
     const key = manilaDayKey(dayStartUtc + 1);
     const shiftOpen = dayStartUtc + SHIFT_START_HOUR * 3600000;
     const shiftClose = dayStartUtc + SHIFT_END_HOUR * 3600000;
-    if (!closed.has(key)) {
+    if (!closed.has(key) && !isManilaSunday(dayStartUtc)) {
       const overlap = Math.min(to, shiftClose) - Math.max(from, shiftOpen);
       if (overlap > 0) {
         // Deduct the break in proportion to how much of the shift was used.
         total += (overlap / shiftMs) * (shiftMs / 3600000 - BREAK_HOURS);
       }
     }
+
     if (key >= lastDayKey) break;
     dayStartUtc += 24 * 3600000;
   }
@@ -222,6 +247,7 @@ export const bucketLabel = (key: string, mode: BucketMode): string => {
 /* ------------------------------------------------------------------ */
 
 const STATUS_RE = /Status:\s*(.+?)\s*(?:→|->)\s*([^,]+)/;
+const WAITING_PARTS_RE = /waiting\s*for\s*parts[^a-z]*(on|off|enabled|disabled)/i;
 
 export const parseStatusLog = (row: any): StatusLogEntry | null => {
   const action = String(row?.action ?? "");
@@ -236,6 +262,15 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
       to: m[2].trim(),
     };
   }
+  const w = action.match(WAITING_PARTS_RE);
+  if (w) {
+    const flag = w[1].toLowerCase();
+    return {
+      serviceId,
+      createdAt: row.created_at,
+      waitingParts: flag === "on" || flag === "enabled" ? "on" : "off",
+    };
+  }
   if (/^New service created/i.test(action)) {
     return { serviceId, createdAt: row.created_at, created: true };
   }
@@ -244,10 +279,12 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
 
 export interface ServiceTiming {
   serviceId: string;
-  /** Total hours from intake to completion (null when not completed). */
+  /** Total productive hours from intake to completion (null when not completed). */
   totalHours: number | null;
-  /** Hours spent in each status before leaving it. */
+  /** Hours spent in each status before leaving it (paused stages included). */
   stageHours: Record<string, number>;
+  /** Working hours excluded because the ticket was paused. */
+  pausedHours: number;
   fromLogs: boolean;
 }
 
@@ -255,7 +292,10 @@ export interface ServiceTiming {
  * Builds per-service timings. Uses the parsed activity log timeline when
  * available and falls back to date_received -> date_completed otherwise.
  * All durations count working time only (10:00-19:00 Manila, minus the 1.5h
- * daily break, skipping shop closed dates).
+ * daily break, skipping Sundays and shop closed dates).
+ *
+ * The turnaround clock pauses while the ticket sits in a non-productive status
+ * (see PAUSED_STATUSES) and while the Waiting for Parts flag is on.
  */
 export const buildTimings = (
   services: any[],
@@ -283,6 +323,7 @@ export const buildTimings = (
     const stageHours: Record<string, number> = {};
 
     let totalHours: number | null = null;
+    let pausedHours = 0;
     let fromLogs = false;
 
     const transitions = entries.filter((e) => e.to);
@@ -293,24 +334,65 @@ export const buildTimings = (
           ? received
           : toDate(entries[0].createdAt);
 
-      let cursor = firstStamp;
-      transitions.forEach((t) => {
-        const at = toDate(t.createdAt);
-        if (cursor && at && at >= cursor) {
-          const stage = (t.from || "Pending Diagnosis").trim();
-          const hrs = workingHoursBetween(cursor, at, closed);
-          stageHours[stage] = (stageHours[stage] || 0) + hrs;
-        }
-        cursor = at || cursor;
-      });
-
       const completedTransition = [...transitions]
         .reverse()
         .find((t) => classifyStatus(t.to) === "completed");
-      if (completedTransition && firstStamp) {
-        const end = toDate(completedTransition.createdAt);
-        if (end && end >= firstStamp) totalHours = workingHoursBetween(firstStamp, end, closed);
+      const endStamp = completedTransition ? toDate(completedTransition.createdAt) : null;
+
+      // Waiting-for-Parts windows, closed at the end boundary when still open.
+      const partWindows: { start: Date; end: Date }[] = [];
+      let openWindow: Date | null = null;
+      entries.forEach((e) => {
+        if (!e.waitingParts) return;
+        const at = toDate(e.createdAt);
+        if (!at) return;
+        if (e.waitingParts === "on") {
+          if (!openWindow) openWindow = at;
+        } else if (openWindow) {
+          partWindows.push({ start: openWindow, end: at });
+          openWindow = null;
+        }
+      });
+      if (openWindow && endStamp && endStamp > openWindow) {
+        partWindows.push({ start: openWindow, end: endStamp });
       }
+
+      const pausedByParts = (from: Date, to: Date) =>
+        partWindows.reduce((sum, w) => {
+          const a = new Date(Math.max(+from, +w.start));
+          const b = new Date(Math.min(+to, +w.end));
+          return b > a ? sum + workingHoursBetween(a, b, closed) : sum;
+        }, 0);
+
+      let counted = 0;
+      let cursor = firstStamp;
+      let reachedEnd = false;
+
+      const walk = (segmentEnd: Date | null, stageName: string) => {
+        if (!cursor || !segmentEnd || segmentEnd < cursor) return;
+        const stage = stageName.trim() || "Pending Diagnosis";
+        const hrs = workingHoursBetween(cursor, segmentEnd, closed);
+        stageHours[stage] = (stageHours[stage] || 0) + hrs;
+        if (isPausedStatus(stage)) {
+          pausedHours += hrs;
+        } else {
+          const parts = Math.min(hrs, pausedByParts(cursor, segmentEnd));
+          pausedHours += parts;
+          counted += Math.max(0, hrs - parts);
+        }
+        cursor = segmentEnd;
+      };
+
+      for (const t of transitions) {
+        const at = toDate(t.createdAt);
+        walk(at, t.from || "Pending Diagnosis");
+        if (endStamp && at && +at === +endStamp) {
+          reachedEnd = true;
+          break;
+        }
+      }
+
+      if (endStamp && firstStamp && reachedEnd) totalHours = counted;
     }
 
     if (totalHours === null && classifyStatus(s.status) === "completed") {
@@ -323,7 +405,8 @@ export const buildTimings = (
 
 
 
-    out.set(id, { serviceId: id, totalHours, stageHours, fromLogs });
+
+    out.set(id, { serviceId: id, totalHours, stageHours, pausedHours, fromLogs });
   });
 
   return out;

@@ -4,8 +4,11 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type QueueStatus = "waiting" | "proceed" | "completed" | "cancelled";
 
+export type QueueKind = "intake" | "release";
+
 export interface QueueEntry {
   id: string;
+  kind: QueueKind;
   queue_number: number;
   display_code: string;
   status: QueueStatus;
@@ -117,8 +120,9 @@ function addListener(l: Listener) {
  * (used by /queue public board and the Intake tab); admins can pass false
  * to see the full history (useful for debugging).
  */
-export function useQueueEntries(opts: { activeOnly?: boolean } = {}) {
+export function useQueueEntries(opts: { activeOnly?: boolean; kind?: QueueKind } = {}) {
   const activeOnly = opts.activeOnly ?? true;
+  const kind = opts.kind;
   const [entries, setEntries] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +136,7 @@ export function useQueueEntries(opts: { activeOnly?: boolean } = {}) {
       .select("*")
       .order("created_at", { ascending: true });
     if (activeOnly) query = query.in("status", ["waiting", "proceed"]);
+    if (kind) query = query.eq("kind", kind);
     const { data, error } = await query;
     if (!mounted.current) return;
     if (error) {
@@ -142,7 +147,7 @@ export function useQueueEntries(opts: { activeOnly?: boolean } = {}) {
       setEntries((data ?? []) as QueueEntry[]);
     }
     setLoading(false);
-  }, [activeOnly]);
+  }, [activeOnly, kind]);
 
   const refetchRef = useRef(refetch);
   refetchRef.current = refetch;

@@ -247,6 +247,8 @@ const ManageClient = () => {
 
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
+  const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
+
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
   /** Clear the partial-approval hold so the client can approve again on /track. */
@@ -349,6 +351,44 @@ const ManageClient = () => {
       setIsTogglingAutoApprove(false);
     }
   };
+
+  /** Waiting for Parts pauses the repair (and the turnaround clock). */
+  const handleToggleWaitingForParts = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingWaitingParts) return;
+    setIsTogglingWaitingParts(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ waiting_for_parts: next, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+
+      setServiceData((prev: any) => (prev ? { ...prev, waitingForParts: next } : prev));
+
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next ? "Waiting for Parts turned on" : "Waiting for Parts turned off",
+      });
+
+      toast({
+        title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
+        description: next
+          ? "The repair is paused while parts are being procured. Turnaround time stops counting."
+          : "The repair resumes and turnaround time counts again.",
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Waiting for Parts setting.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingWaitingParts(false);
+    }
+  };
+
 
 
   const fetchApiKey = async () => {
@@ -1682,6 +1722,25 @@ const ManageClient = () => {
                     />
                   </div>
                 )}
+
+                {canEditAdminRep && (
+                  <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-300/60 bg-amber-50/60 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Waiting for Parts</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceData.waitingForParts
+                          ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
+                          : "Turn on when the repair is paused while parts/supplies are being procured."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!serviceData.waitingForParts}
+                      disabled={isTogglingWaitingParts}
+                      onCheckedChange={handleToggleWaitingForParts}
+                    />
+                  </div>
+                )}
+
 
                 <ApprovalRemarkBlock
                   adminNotes={serviceData.adminNotesInternal}

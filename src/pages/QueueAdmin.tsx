@@ -26,12 +26,14 @@ const Tile = ({
   onMove,
   onComplete,
   onCancel,
+  completeTitle = "Complete intake",
 }: {
   entry: QueueEntry;
   tone: "waiting" | "proceed";
   onMove: () => void;
   onComplete: () => void;
   onCancel: () => void;
+  completeTitle?: string;
 }) => (
   <div
     className={`flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg border px-3 py-2 ${
@@ -59,6 +61,7 @@ const Tile = ({
         </span>
       </div>
       <div className="truncate text-xs text-muted-foreground">
+        {entry.service_id ? `${entry.service_id} — ` : ""}
         {entry.contact_number ? `📞 ${entry.contact_number}` : ""}
         {entry.chief_complaint ? `${entry.contact_number ? " — " : ""}${entry.chief_complaint}` : ""}
       </div>
@@ -82,7 +85,7 @@ const Tile = ({
         size="sm"
         variant="ghost"
         className="h-7 w-7 p-0"
-        title="Complete intake"
+        title={completeTitle}
         onClick={onComplete}
       >
         <CheckCircle2 className="h-4 w-4 text-blue-600" />
@@ -121,8 +124,12 @@ const QueueAdmin = () => {
     );
   }, [entries, search]);
 
-  const waiting = filtered.filter((e) => e.status === "waiting");
-  const proceed = filtered.filter((e) => e.status === "proceed");
+  const ofKind = (kind: "intake" | "release", status: "waiting" | "proceed") =>
+    filtered.filter((e) => (e.kind ?? "intake") === kind && e.status === status);
+  const waiting = ofKind("intake", "waiting");
+  const proceed = ofKind("intake", "proceed");
+  const releaseWaiting = ofKind("release", "waiting");
+  const releaseProceed = ofKind("release", "proceed");
 
   const doMove = async (id: string, status: "waiting" | "proceed") => {
     const { error } = await moveQueueEntry(id, status);
@@ -138,6 +145,15 @@ const QueueAdmin = () => {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Cancelled", description: "Queue entry removed." });
+    }
+  };
+
+  const doRelease = async (id: string) => {
+    const { error } = await moveQueueEntry(id, "completed");
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Released", description: "Queue entry cleared from the board." });
     }
   };
 
@@ -182,8 +198,9 @@ const QueueAdmin = () => {
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
-            <TabsTrigger value="queue">Queue</TabsTrigger>
-            <TabsTrigger value="intake">Intake</TabsTrigger>
+            <TabsTrigger value="queue">Intake Queue</TabsTrigger>
+            <TabsTrigger value="release">Release Queue ({releaseWaiting.length + releaseProceed.length})</TabsTrigger>
+            <TabsTrigger value="intake">Intake Records</TabsTrigger>
           </TabsList>
 
           <TabsContent value="queue" className="space-y-6">
@@ -249,6 +266,92 @@ const QueueAdmin = () => {
                           tone="proceed"
                           onMove={() => doMove(e.id, "waiting")}
                           onComplete={() => doComplete(e)}
+                          onCancel={() => doCancel(e.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="release" className="space-y-6">
+            <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4">
+              <div className="text-sm font-semibold text-emerald-700">Release Queue</div>
+              <p className="text-xs text-muted-foreground">
+                Customers who looked up their ticket on the public /release page to pick up their
+                device. Call them to the front, then mark the entry released.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search name, number, phone"
+                  className="pl-8 w-64"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={() => window.open("/release", "_blank")}>
+                <ExternalLink className="h-4 w-4 mr-1" /> Open Release Kiosk
+              </Button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
+              <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Clock className="h-5 w-5 text-blue-600" /> Waiting ({releaseWaiting.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="min-w-0 overflow-hidden">
+                  {releaseWaiting.length === 0 ? (
+                    <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+                      {loading ? "Loading…" : "No one is waiting for release."}
+                    </div>
+                  ) : (
+                    <div className="grid min-w-0 gap-3">
+                      {releaseWaiting.map((e) => (
+                        <Tile
+                          key={e.id}
+                          entry={e}
+                          tone="waiting"
+                          completeTitle="Mark released"
+                          onMove={() => doMove(e.id, "proceed")}
+                          onComplete={() => doRelease(e.id)}
+                          onCancel={() => doCancel(e.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ArrowRight className="h-5 w-5 text-emerald-600" /> Proceed to Front (
+                    {releaseProceed.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="min-w-0 overflow-hidden">
+                  {releaseProceed.length === 0 ? (
+                    <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+                      {loading ? "Loading…" : "No one called yet."}
+                    </div>
+                  ) : (
+                    <div className="grid min-w-0 gap-3">
+                      {releaseProceed.map((e) => (
+                        <Tile
+                          key={e.id}
+                          entry={e}
+                          tone="proceed"
+                          completeTitle="Mark released"
+                          onMove={() => doMove(e.id, "waiting")}
+                          onComplete={() => doRelease(e.id)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}

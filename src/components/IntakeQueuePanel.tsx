@@ -66,7 +66,7 @@ const inDateRange = (iso: string, from: string, to: string) => {
  * search, status, device type, and date range filters.
  */
 export const IntakeQueuePanel = () => {
-  const { entries, loading } = useQueueEntries({ activeOnly: false });
+  const { entries, loading } = useQueueEntries({ activeOnly: false, kind: "intake" });
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [deviceType, setDeviceType] = useState("all");
