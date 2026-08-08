@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
+import { ReleaseQueuePanel } from "@/components/ReleaseQueuePanel";
 import { CompleteIntakeModal } from "@/components/CompleteIntakeModal";
+import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
+
 import {
   Clock,
   ArrowRight,
@@ -112,6 +115,8 @@ const QueueAdmin = () => {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [completing, setCompleting] = useState<QueueEntry | null>(null);
+  const [releasing, setReleasing] = useState<QueueEntry | null>(null);
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -148,14 +153,11 @@ const QueueAdmin = () => {
     }
   };
 
-  const doRelease = async (id: string) => {
-    const { error } = await moveQueueEntry(id, "completed");
-    if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Released", description: "Queue entry cleared from the board." });
-    }
+  const doRelease = (entry: QueueEntry) => {
+    // Confirm the hand-over in a modal so it lands in the ticket activity log.
+    setReleasing(entry);
   };
+
 
   const doComplete = (entry: QueueEntry) => {
     // Finish the intake in a modal so the admin never leaves the console.
@@ -199,9 +201,11 @@ const QueueAdmin = () => {
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="queue">Intake Queue</TabsTrigger>
-            <TabsTrigger value="release">Release Queue ({releaseWaiting.length + releaseProceed.length})</TabsTrigger>
             <TabsTrigger value="intake">Intake Records</TabsTrigger>
+            <TabsTrigger value="release">Release Queue ({releaseWaiting.length + releaseProceed.length})</TabsTrigger>
+            <TabsTrigger value="release-records">Release Records</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="queue" className="space-y-6">
             <div className="flex items-center gap-2">
@@ -321,7 +325,7 @@ const QueueAdmin = () => {
                           tone="waiting"
                           completeTitle="Mark released"
                           onMove={() => doMove(e.id, "proceed")}
-                          onComplete={() => doRelease(e.id)}
+                          onComplete={() => doRelease(e)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}
@@ -351,7 +355,7 @@ const QueueAdmin = () => {
                           tone="proceed"
                           completeTitle="Mark released"
                           onMove={() => doMove(e.id, "waiting")}
-                          onComplete={() => doRelease(e.id)}
+                          onComplete={() => doRelease(e)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}
@@ -365,7 +369,17 @@ const QueueAdmin = () => {
           <TabsContent value="intake">
             <IntakeQueuePanel />
           </TabsContent>
+
+          <TabsContent value="release-records">
+            <ReleaseQueuePanel />
+          </TabsContent>
         </Tabs>
+
+        <ConfirmReleaseModal
+          entry={releasing}
+          onOpenChange={(open) => !open && setReleasing(null)}
+          onReleased={() => refetch()}
+        />
 
         <CompleteIntakeModal
           queueId={completing?.id ?? null}
@@ -376,6 +390,7 @@ const QueueAdmin = () => {
             refetch();
           }}
         />
+
 
       </div>
     </div>
