@@ -9,6 +9,8 @@ import { notifyAdminConcern } from "@/lib/serviceNotifications";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
+import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
+
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
 import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, computeFinalCost, vatAmount, type QuotedLine } from "@/lib/serviceApproval";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
