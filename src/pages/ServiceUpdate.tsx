@@ -1371,6 +1371,24 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
+                <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-300/60 bg-amber-50/60 p-3">
+                  <div>
+                    <p className="text-sm font-semibold">Waiting for Parts</p>
+                    <p className="text-xs text-muted-foreground">
+                      {serviceData.waitingForParts
+                        ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
+                        : "Turn on when the repair is paused while parts/supplies are being procured."}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!serviceData.waitingForParts}
+                    disabled={isTogglingWaitingParts}
+                    onCheckedChange={handleToggleWaitingForParts}
+                  />
+                </div>
+
+
+
 
                 {!statusChanged ? (
                   <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
