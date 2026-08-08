@@ -350,6 +350,44 @@ const ManageClient = () => {
     }
   };
 
+  /** Waiting for Parts pauses the repair (and the turnaround clock). */
+  const handleToggleWaitingForParts = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingWaitingParts) return;
+    setIsTogglingWaitingParts(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ waiting_for_parts: next, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+
+      setServiceData((prev: any) => (prev ? { ...prev, waitingForParts: next } : prev));
+
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next ? "Waiting for Parts turned on" : "Waiting for Parts turned off",
+      });
+
+      toast({
+        title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
+        description: next
+          ? "The repair is paused while parts are being procured. Turnaround time stops counting."
+          : "The repair resumes and turnaround time counts again.",
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Waiting for Parts setting.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingWaitingParts(false);
+    }
+  };
+
+
 
   const fetchApiKey = async () => {
     try {
