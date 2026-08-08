@@ -1790,6 +1790,17 @@ const ManageClient = () => {
                   </div>
 
                   <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Contact Number:</h3>
+                    <p className="text-lg break-words">{serviceData.contactNumber || serviceData.phone || "N/A"}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Email:</h3>
+                    <p className="text-lg break-words">{serviceData.email || "N/A"}</p>
+                  </div>
+
+
+                  <div>
                     <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Type:</h3>
                     <p className="text-lg">{serviceData.deviceType || "N/A"}</p>
                   </div>
