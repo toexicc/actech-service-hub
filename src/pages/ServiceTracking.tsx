@@ -184,6 +184,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Customer-facing "Admin Notes (Customer)" — this is what /track displays.
       customerNotes: pick(sb.remarks ?? (row as any).remarks, sheetData.customerNotes ?? sheetData.remarks),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+      waitingForParts: !!((sb as any).waitingForParts ?? (row as any).waiting_for_parts),
       approvalLocked: !!(row as any).approval_locked,
       approvedServices: Array.isArray((row as any).approved_services) ? (row as any).approved_services : [],
       pendingServices: Array.isArray((row as any).pending_services) ? (row as any).pending_services : [],
@@ -1018,6 +1019,12 @@ const ServiceTracking = () => {
                       </h3>
                       {updatedAt && (
                         <p className="text-xs text-muted-foreground mt-1">Updated {displayDate(updatedAt, "MMM dd, yyyy · hh:mm a")}</p>
+                      )}
+                      {(serviceData as any).waitingForParts && (
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          Waiting for Parts — the required parts/supplies are being procured for your repair
+                        </div>
                       )}
                     </div>
 
