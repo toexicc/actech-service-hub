@@ -11,7 +11,27 @@ export interface StatusLogEntry {
   from?: string;
   to?: string;
   created?: boolean;
+  /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
+  waitingParts?: "on" | "off";
 }
+
+/**
+ * Statuses where the shop is not actively working the ticket — the turnaround
+ * clock is paused while a ticket sits in any of these.
+ */
+export const PAUSED_STATUSES = new Set(
+  [
+    "Waiting to Proceed",
+    "Done Repair - Advise Client",
+    "On Hold",
+    "Cancelled",
+    "RTO",
+  ].map((s) => s.toLowerCase()),
+);
+
+export const isPausedStatus = (status?: string | null) =>
+  PAUSED_STATUSES.has(String(status ?? "").trim().toLowerCase());
+
 
 /* ------------------------------------------------------------------
  * Business-hours math (Manila shop shift)
