@@ -153,14 +153,11 @@ const QueueAdmin = () => {
     }
   };
 
-  const doRelease = async (id: string) => {
-    const { error } = await moveQueueEntry(id, "completed");
-    if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Released", description: "Queue entry cleared from the board." });
-    }
+  const doRelease = (entry: QueueEntry) => {
+    // Confirm the hand-over in a modal so it lands in the ticket activity log.
+    setReleasing(entry);
   };
+
 
   const doComplete = (entry: QueueEntry) => {
     // Finish the intake in a modal so the admin never leaves the console.
