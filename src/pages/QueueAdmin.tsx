@@ -323,7 +323,7 @@ const QueueAdmin = () => {
                           tone="waiting"
                           completeTitle="Mark released"
                           onMove={() => doMove(e.id, "proceed")}
-                          onComplete={() => doRelease(e.id)}
+                          onComplete={() => doRelease(e)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}
@@ -353,7 +353,7 @@ const QueueAdmin = () => {
                           tone="proceed"
                           completeTitle="Mark released"
                           onMove={() => doMove(e.id, "waiting")}
-                          onComplete={() => doRelease(e.id)}
+                          onComplete={() => doRelease(e)}
                           onCancel={() => doCancel(e.id)}
                         />
                       ))}
