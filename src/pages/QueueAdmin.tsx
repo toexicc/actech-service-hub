@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
+import { ReleaseQueuePanel } from "@/components/ReleaseQueuePanel";
 import { CompleteIntakeModal } from "@/components/CompleteIntakeModal";
+import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
+
 import {
   Clock,
   ArrowRight,
