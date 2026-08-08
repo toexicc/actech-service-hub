@@ -322,6 +322,17 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
           </Select>
         </div>
         <div className="space-y-2">
+          <Label>Estimated Cost (Php)</Label>
+          <Input
+            type="text"
+            inputMode="decimal"
+            value={draft.estimatedCost}
+            maxLength={20}
+            placeholder="0.00"
+            onChange={e => set("estimatedCost", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
           <Label>Estimated Target Date</Label>
           <Popover>
             <PopoverTrigger asChild>
