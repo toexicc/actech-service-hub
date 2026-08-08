@@ -114,7 +114,9 @@ const QueueAdmin = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
+  const [completing, setCompleting] = useState<QueueEntry | null>(null);
   const [releasing, setReleasing] = useState<QueueEntry | null>(null);
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
