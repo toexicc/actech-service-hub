@@ -82,7 +82,12 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
       service: serviceData?.service || "",
       timeFrame: serviceData?.timeFrame || serviceData?.estimatedCompletion || "",
       repairTimeFrame: serviceData?.repairTimeFrame || "",
+      estimatedCost:
+        serviceData?.estimatedCost === undefined || serviceData?.estimatedCost === null
+          ? ""
+          : String(serviceData.estimatedCost),
       targetDate: parseDateInput(serviceData?.targetDate),
+
       deviceNotes: serviceData?.deviceNotes || "",
       conditions: CONDITION_FIELDS.reduce<Record<string, boolean>>((acc, f) => {
         acc[f.key] = isYes(conditions[f.key] ?? serviceData?.[f.key]);
