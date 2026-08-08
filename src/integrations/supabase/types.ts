@@ -50,7 +50,9 @@ export type Database = {
       attendance_logs: {
         Row: {
           created_at: string
+          holiday_label: string | null
           id: string
+          is_holiday: boolean
           is_late: boolean
           is_overtime: boolean
           log_date: string
@@ -63,7 +65,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          holiday_label?: string | null
           id?: string
+          is_holiday?: boolean
           is_late?: boolean
           is_overtime?: boolean
           log_date: string
@@ -76,7 +80,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          holiday_label?: string | null
           id?: string
+          is_holiday?: boolean
           is_late?: boolean
           is_overtime?: boolean
           log_date?: string
@@ -718,6 +724,7 @@ export type Database = {
           display_code: string | null
           form_payload: Json
           id: string
+          kind: string
           model: string | null
           queue_number: number
           service_id: string | null
@@ -734,6 +741,7 @@ export type Database = {
           display_code?: string | null
           form_payload?: Json
           id?: string
+          kind?: string
           model?: string | null
           queue_number?: number
           service_id?: string | null
@@ -750,6 +758,7 @@ export type Database = {
           display_code?: string | null
           form_payload?: Json
           id?: string
+          kind?: string
           model?: string | null
           queue_number?: number
           service_id?: string | null
@@ -1076,6 +1085,7 @@ export type Database = {
           total_cost: number
           username: string | null
           vat_requested: boolean
+          waiting_for_parts: boolean
         }
         Insert: {
           acknowledgements?: Json
@@ -1148,6 +1158,7 @@ export type Database = {
           total_cost?: number
           username?: string | null
           vat_requested?: boolean
+          waiting_for_parts?: boolean
         }
         Update: {
           acknowledgements?: Json
@@ -1220,6 +1231,7 @@ export type Database = {
           total_cost?: number
           username?: string | null
           vat_requested?: boolean
+          waiting_for_parts?: boolean
         }
         Relationships: []
       }
@@ -1437,6 +1449,7 @@ export type Database = {
           target_date: string
         }[]
       }
+      public_release_summary: { Args: { _service_id: string }; Returns: Json }
       public_service_snapshot: { Args: { _service_id: string }; Returns: Json }
       staff_directory: {
         Args: never
