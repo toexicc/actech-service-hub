@@ -406,7 +406,7 @@ export const buildTimings = (
 
 
 
-    out.set(id, { serviceId: id, totalHours, stageHours, fromLogs });
+    out.set(id, { serviceId: id, totalHours, stageHours, pausedHours, fromLogs });
   });
 
   return out;
