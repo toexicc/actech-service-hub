@@ -151,14 +151,26 @@ const PublicRelease = () => {
   return (
     <div className="min-h-screen bg-[#F5F8FF] p-4 md:p-10">
       <div className="mx-auto max-w-2xl space-y-6">
-        <div className="flex items-center gap-3">
-          <img src={acTechLogo} alt="AC Tech Repair" className="h-12 object-contain" />
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-blue-700">Device Release</h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your Service ID to confirm your details and join the release queue.
-            </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <img src={acTechLogo} alt="AC Tech Repair" className="h-12 object-contain" />
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-blue-700">Device Release</h1>
+              <p className="text-sm text-muted-foreground">
+                Enter your Service ID to confirm your details and join the release queue.
+              </p>
+            </div>
           </div>
+          <ShareLinkActions
+            url={RELEASE_URL}
+            buttonLabel="Share release link"
+            dialogTitle="Share release link"
+            dialogDescription="Scan or share this QR code to open the device release page."
+            shareTitle="AC Tech Repair — Device Release"
+            shareText="Pick up your repaired device"
+            downloadName="actech-release-link.png"
+            qrAlt="QR code linking to the AC Tech Repair device release page"
+          />
         </div>
 
         <Card className="rounded-3xl border-border/60 bg-white/95 shadow-[var(--shadow-elegant)]">
