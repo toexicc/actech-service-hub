@@ -118,6 +118,17 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
       return;
     }
 
+    const estimatedCostRaw = String(draft.estimatedCost ?? "").trim();
+    const estimatedCost = estimatedCostRaw ? sanitizeNumber(estimatedCostRaw) : 0;
+    if (estimatedCost < 0) {
+      toast({
+        title: "Invalid estimated cost",
+        description: "Estimated cost cannot be negative.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const trim = (v: string, max = MAX_TEXT) => v.trim().slice(0, max);
 
     setIsSaving(true);
@@ -139,11 +150,13 @@ export const ServiceDetailsEditor = ({ serviceData, onSaved, onCancel }: Props) 
         service: trim(draft.service, MAX_LONG_TEXT) || null,
         estimated_completion: trim(draft.timeFrame) || null,
         repair_time_frame: trim(draft.repairTimeFrame) || null,
+        estimated_cost: estimatedCost,
         target_date: draft.targetDate ? format(draft.targetDate, "yyyy-MM-dd") : null,
         device_notes: trim(draft.deviceNotes, MAX_LONG_TEXT) || null,
         conditions: draft.conditions,
         last_updated: new Date().toISOString(),
       };
+
 
       const { error } = await supabase
         .from("services")
