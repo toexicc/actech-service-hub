@@ -1741,13 +1741,12 @@ const ManageClient = () => {
                   />
                 </div>
 
-                {canEditAdminRep && (
-                  <PartsUsedPanel
-                    serviceId={serviceData.serviceId}
-                    partsUsed={serviceData.partsUsed}
-                    onSaved={handleSearch}
-                  />
-                )}
+                <PartsUsedPanel
+                  serviceId={serviceData.serviceId}
+                  partsUsed={serviceData.partsUsed}
+                  onSaved={handleSearch}
+                />
+
 
 
 
