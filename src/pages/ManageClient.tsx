@@ -247,6 +247,8 @@ const ManageClient = () => {
 
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
+  const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
+
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
   /** Clear the partial-approval hold so the client can approve again on /track. */
