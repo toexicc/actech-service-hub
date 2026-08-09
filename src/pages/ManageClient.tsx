@@ -1772,165 +1772,108 @@ const ManageClient = () => {
                   }}
                 />
                 ) : (
-                <div className="grid gap-4">
-
+                <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Type:</h3>
-                    <p className="text-lg">{serviceData.clientType || "N/A"}</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</p>
+                    <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                      <WorkspaceField label="Client Name" value={serviceData.clientName} />
+                      <WorkspaceField label="Client ID" value={serviceData.clientId} />
+                      <WorkspaceField label="Contact Number" value={serviceData.contactNumber || serviceData.phone} />
+                      <WorkspaceField label="Email" value={serviceData.email} />
+                      <WorkspaceField label="Client Type" value={serviceData.clientType} />
+                      <WorkspaceField label="Priority" value={serviceData.priority} />
+                      <WorkspaceField label="Admin Rep" value={serviceData.adminRep || "Unassigned"} />
+                      <WorkspaceField label="Technician" value={serviceData.technician} />
+                    </div>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Priority:</h3>
-                    <p className="text-lg">{serviceData.priority || "N/A"}</p>
-                  </div>
+                  <Separator />
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Rep:</h3>
-                    <p className="text-lg">{serviceData.adminRep || "Unassigned"}</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Device</p>
+                    <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                      <WorkspaceField label="Device Type" value={serviceData.deviceType} />
+                      <WorkspaceField label="Device Model" value={serviceData.device} />
+                      <WorkspaceField label="Serial Number" value={serviceData.serialNumber} />
+                      <WorkspaceField
+                        label="Storage & Color"
+                        value={(() => {
+                          const mem = (serviceData.memory || "").trim();
+                          const col = (serviceData.color || "").trim();
+                          return [mem, col].filter(Boolean).join(" | ") || serviceData.colorMemory || "";
+                        })()}
+                      />
+                      {serviceData.devicePassword && (
+                        <div className="space-y-0.5 min-w-0">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                            Device Password
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              value={serviceData.devicePassword}
+                              readOnly
+                              className="h-8 text-sm"
+                            />
+                            <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setShowPassword(!showPassword)}>
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      <WorkspaceField label="Device Conditions" value={describeDeviceConditions(serviceData)} />
+                    </div>
                   </div>
+
+                  <Separator />
 
                   <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Name:</h3>
-                    <p className="text-lg">{serviceData.clientName}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client ID:</h3>
-                    <p className="text-lg">{serviceData.clientId || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Contact Number:</h3>
-                    <p className="text-lg break-words">{serviceData.contactNumber || serviceData.phone || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Email:</h3>
-                    <p className="text-lg break-words">{serviceData.email || "N/A"}</p>
-                  </div>
-
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Type:</h3>
-                    <p className="text-lg">{serviceData.deviceType || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Model:</h3>
-                    <p className="text-lg">{serviceData.device}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Serial Number:</h3>
-                    <p className="text-lg">{serviceData.serialNumber || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Storage & Color:</h3>
-                    <p className="text-lg break-words whitespace-normal">
-                      {(() => {
-                        const mem = (serviceData.memory || "").trim();
-                        const col = (serviceData.color || "").trim();
-                        const combined = [mem, col].filter(Boolean).join(" | ");
-                        return combined || (serviceData.colorMemory || "N/A");
-                      })()}
-                    </p>
-                  </div>
-
-                  {serviceData.devicePassword && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Password:</h3>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          value={serviceData.devicePassword}
-                          readOnly
-                          className="max-w-xs"
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule & Costs</p>
+                    <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                      <WorkspaceField
+                        label="Service Date"
+                        value={serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : ""}
+                      />
+                      <WorkspaceField label="Diagnostic Time Frame" value={serviceData.timeFrame} />
+                      <WorkspaceField label="Repair Time Frame" value={(serviceData as any).repairTimeFrame} />
+                      <WorkspaceField
+                        label="Estimated Cost"
+                        value={`Php ${parseFloat(serviceData.estimatedCost || 0).toFixed(2)}`}
+                      />
+                      {serviceData.status !== "Pending Diagnosis" && (
+                        <WorkspaceField
+                          label="Estimated Target Date"
+                          value={serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : ""}
                         />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
+                      )}
+                      {serviceData.status === "Confirmed Diagnosis" && (
+                        <>
+                          <WorkspaceField label="Service Cost" value={`Php ${serviceData.serviceCost}`} />
+                          <WorkspaceField label="Discount" value={`Php ${discountAmount.toFixed(2)}`} />
+                        </>
+                      )}
+                      {serviceData.status !== "Pending Diagnosis" && (
+                        <WorkspaceField
+                          label="Final Cost"
+                          value={`Php ${(finalCost > 0 ? finalCost : sanitizeNumber(String(serviceData.serviceCost ?? "0"))).toFixed(2)}`}
+                          valueClassName="font-semibold text-primary"
+                        />
+                      )}
                     </div>
-                  )}
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
-                    <p className="text-lg">{serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</p>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Diagnostic Time Frame:</h3>
-                    <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
-                  </div>
+                  <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Repair Time Frame:</h3>
-                    <p className="text-lg">{(serviceData as any).repairTimeFrame || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Cost:</h3>
-                    <p className="text-lg">Php {parseFloat(serviceData.estimatedCost || 0).toFixed(2)}</p>
-                  </div>
-
-                  {serviceData.status !== "Pending Diagnosis" && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
-                      <p className="text-lg">{serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : "N/A"}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Conditions:</h3>
-                    <p className="text-lg">{describeDeviceConditions(serviceData)}</p>
-                  </div>
-
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
-                    <p className="text-lg whitespace-pre-line">{serviceData.service}</p>
-                  </div>
-
-                  {serviceData.status === "Confirmed Diagnosis" && (
-                    <>
-                      <div>
-                        <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Cost:</h3>
-                        <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
-                        <p className="text-lg font-semibold">Php {discountAmount.toFixed(2)}</p>
-                      </div>
-                    </>
-                  )}
-
-                  {serviceData.status !== "Pending Diagnosis" && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost:</h3>
-                      <p className="text-lg font-semibold text-primary">
-                        Php {(finalCost > 0 ? finalCost : sanitizeNumber(String(serviceData.serviceCost ?? "0"))).toFixed(2)}
-                      </p>
-                    </div>
-                  )}
-
-                  {serviceData.technician && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician:</h3>
-                      <p className="text-lg">{serviceData.technician}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician Notes (Internal):</h3>
-                    <p className="text-lg">{serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : "N/A"}</p>
+                  <div className="grid gap-x-4 gap-y-3 grid-cols-1 md:grid-cols-2">
+                    <WorkspaceField label="Service/s" value={serviceData.service} valueClassName="whitespace-pre-line" />
+                    <WorkspaceField
+                      label="Technician Notes (Internal)"
+                      value={serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : ""}
+                      valueClassName="whitespace-pre-line"
+                    />
                   </div>
                 </div>
+
                 )}
 
               </CardContent>
