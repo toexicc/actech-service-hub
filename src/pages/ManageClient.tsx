@@ -962,9 +962,27 @@ const ManageClient = () => {
       formData.append("Client Name", serviceData.clientName || "");
       formData.append("Device Type", updateDeviceType || "");
 
+      // A service line added beyond what the client already had/approved must
+      // re-open approval — pre-approval cannot cover the new work.
+      const approvedNames = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
+        String(s).trim().toLowerCase(),
+      );
+      const savedNames = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
+        l.name.trim().toLowerCase(),
+      );
+      const additionalLines = quotedLines.filter((l) => {
+        const n = l.name.trim().toLowerCase();
+        return n && !approvedNames.includes(n) && !savedNames.includes(n);
+      });
+      const disableAutoApprove =
+        !!(serviceData as any)?.autoApproveDiagnosis &&
+        additionalLines.length > 0 &&
+        (approvedNames.length > 0 || savedNames.length > 0);
+
       // Mirror to Supabase so dashboards / search reflect the change immediately
       const saveStamp = new Date().toISOString();
       const { error: sbUpdateError } = await supabase.from("services").update({
+
         status: updateStatus as any,
         admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
