@@ -200,14 +200,21 @@ const QueueAdmin = () => {
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
-            <TabsTrigger value="queue">Intake Queue</TabsTrigger>
+            <TabsTrigger value="queue">Intake &amp; Release Queue</TabsTrigger>
             <TabsTrigger value="intake">Intake Records</TabsTrigger>
-            <TabsTrigger value="release">Release Queue ({releaseWaiting.length + releaseProceed.length})</TabsTrigger>
             <TabsTrigger value="release-records">Release Records</TabsTrigger>
           </TabsList>
 
 
           <TabsContent value="queue" className="space-y-6">
+            <Tabs defaultValue="intake-board" className="space-y-6">
+              <TabsList className="flex flex-wrap gap-1">
+                <TabsTrigger value="intake-board">Intake</TabsTrigger>
+                <TabsTrigger value="release-board">Release</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="intake-board" className="space-y-6">
+
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -278,9 +285,10 @@ const QueueAdmin = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+              </TabsContent>
 
-          <TabsContent value="release" className="space-y-6">
+              <TabsContent value="release-board" className="space-y-6">
+
             <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4">
               <div className="text-sm font-semibold text-emerald-700">Release Queue</div>
               <p className="text-xs text-muted-foreground">
@@ -364,7 +372,10 @@ const QueueAdmin = () => {
                 </CardContent>
               </Card>
             </div>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
+
 
           <TabsContent value="intake">
             <IntakeQueuePanel />
