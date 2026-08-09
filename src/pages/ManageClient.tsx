@@ -249,6 +249,7 @@ const ManageClient = () => {
   const [quotedProblems, setQuotedProblems] = useState<Record<number, string>>({});
 
   const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isPartsUsedOpen, setIsPartsUsedOpen] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
   const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
 
