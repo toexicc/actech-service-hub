@@ -2009,8 +2009,12 @@ const ManageClient = () => {
                     grouped
                   />
                 </div>
+                </div>
 
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Classification</p>
+                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div className="space-y-2">
+
                   <Label htmlFor="deviceType">Device Type:</Label>
                   {showOtherDeviceInput ? (
                     <Input
