@@ -1077,20 +1077,33 @@ const ManageClient = () => {
           });
         }
 
-        if (disableAutoApprove) {
+        if (reopenApproval) {
+          const names = additionalLines.map((l) => l.name).join(", ");
           await logActivity({
             serviceId: sid,
             username,
             role,
-            activity: `Diagnosis pre-approval turned off automatically — additional service(s) added beyond what the client approved: ${additionalLines
-              .map((l) => l.name)
-              .join(", ")}`,
+            activity: disableAutoApprove
+              ? `Diagnosis pre-approval turned off automatically — additional service(s) added beyond what the client approved: ${names}`
+              : `Client approval re-opened automatically — additional service(s) added beyond what the client approved: ${names}`,
+            details: { additionalServices: names },
           });
+          setServiceData((prev: any) =>
+            prev
+              ? {
+                  ...prev,
+                  approvalLocked: false,
+                  clientApprovedAt: "",
+                  ...(disableAutoApprove ? { autoApproveDiagnosis: false } : {}),
+                }
+              : prev,
+          );
           toast({
-            title: "Pre-approval turned off",
+            title: disableAutoApprove ? "Pre-approval turned off" : "Approval re-opened",
             description: "Additional services were added, so the client needs to approve again. Resend the approval.",
           });
         }
+
 
 
         // Send notifications for status changes
