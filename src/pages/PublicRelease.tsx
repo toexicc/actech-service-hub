@@ -221,23 +221,57 @@ const PublicRelease = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <Row label="Client" value={summary.client_name} />
-                  <Row label="Contact" value={summary.contact_number} />
+                  <Row label="Email" value={summary.email} />
                   <Row
                     label="Device"
                     value={[summary.device_type, summary.brand, summary.model].filter(Boolean).join(" · ")}
                   />
                   <Row
-                    label="Storage & Color"
-                    value={[summary.memory, summary.color].filter(Boolean).join(" · ")}
+                    label="Service Date"
+                    value={
+                      summary.service_date || summary.date_received
+                        ? (() => {
+                            const d = new Date((summary.service_date || summary.date_received) as string);
+                            const mm = String(d.getMonth() + 1).padStart(2, "0");
+                            const dd = String(d.getDate()).padStart(2, "0");
+                            return `${mm}/${dd}/${d.getFullYear()}`;
+                          })()
+                        : null
+                    }
                   />
                   <Row label="Service" value={summary.service} />
                   <Row label="Status" value={summary.status} />
                 </div>
 
-                <Button className="w-full h-12 text-base" onClick={confirmRelease} disabled={submitting}>
+                <div className="space-y-2 rounded-xl border border-border/60 bg-background/70 p-3">
+                  <Label htmlFor="release-last4">
+                    Security check — last 4 digits of your contact number
+                  </Label>
+                  <Input
+                    id="release-last4"
+                    value={last4}
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="h-12 max-w-[140px] text-center text-lg tracking-[0.4em]"
+                  />
+                  {expectedLast4.length !== 4 && (
+                    <p className="text-xs text-destructive">
+                      No valid contact number is on file for this ticket. Please approach the front desk.
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  className="w-full h-12 text-base"
+                  onClick={confirmRelease}
+                  disabled={submitting || !last4Ok}
+                >
                   <PackageCheck className="h-5 w-5 mr-2" />
                   {submitting ? "Joining queue…" : "Confirm and join release queue"}
                 </Button>
+
               </div>
             )}
           </CardContent>
