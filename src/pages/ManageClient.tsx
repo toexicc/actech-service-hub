@@ -965,7 +965,7 @@ const ManageClient = () => {
       // A service line added beyond what the client already had/approved must
       // re-open approval — pre-approval cannot cover the new work.
       const approvedNames = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-        String(s).trim().toLowerCase(),
+        String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
       );
       const savedNames = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
         l.name.trim().toLowerCase(),
@@ -974,10 +974,16 @@ const ManageClient = () => {
         const n = l.name.trim().toLowerCase();
         return n && !approvedNames.includes(n) && !savedNames.includes(n);
       });
-      const disableAutoApprove =
-        !!(serviceData as any)?.autoApproveDiagnosis &&
-        additionalLines.length > 0 &&
-        (approvedNames.length > 0 || savedNames.length > 0);
+      // Any prior approval state counts as a baseline: an explicit client
+      // approval, a locked approval, or the pre-approve toggle being on.
+      const hadApprovalBaseline =
+        approvedNames.length > 0 ||
+        savedNames.length > 0 ||
+        !!(serviceData as any)?.approvalLocked ||
+        !!(serviceData as any)?.clientApprovedAt;
+      const reopenApproval = additionalLines.length > 0 && hadApprovalBaseline;
+      const disableAutoApprove = reopenApproval && !!(serviceData as any)?.autoApproveDiagnosis;
+
 
       // Mirror to Supabase so dashboards / search reflect the change immediately
       const saveStamp = new Date().toISOString();
