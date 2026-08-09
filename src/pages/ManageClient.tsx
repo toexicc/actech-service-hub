@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
-import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen, AlertTriangle, ChevronDown, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { notifyAdminConcern } from "@/lib/serviceNotifications";
 import { Switch } from "@/components/ui/switch";
