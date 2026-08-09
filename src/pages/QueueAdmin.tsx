@@ -285,9 +285,10 @@ const QueueAdmin = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+              </TabsContent>
 
-          <TabsContent value="release" className="space-y-6">
+              <TabsContent value="release-board" className="space-y-6">
+
             <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4">
               <div className="text-sm font-semibold text-emerald-700">Release Queue</div>
               <p className="text-xs text-muted-foreground">
