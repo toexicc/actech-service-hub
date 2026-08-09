@@ -2162,8 +2162,10 @@ const ManageClient = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                </div>
 
                 <div className="space-y-2">
+
                   <Label htmlFor="chiefComplaint">Chief Complaint:</Label>
                   <Textarea
                     id="chiefComplaint"
