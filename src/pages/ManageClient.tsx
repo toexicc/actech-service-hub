@@ -1008,8 +1008,12 @@ const ManageClient = () => {
         repair_time_frame: updateRepairTimeFrame || null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
+        ...(disableAutoApprove
+          ? { auto_approve_diagnosis: false, client_approved_at: null, approval_locked: false }
+          : {}),
         last_updated: saveStamp,
       } as any).eq("service_id", sid);
+
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
 
