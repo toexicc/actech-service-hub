@@ -372,7 +372,10 @@ const QueueAdmin = () => {
                 </CardContent>
               </Card>
             </div>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
+
 
           <TabsContent value="intake">
             <IntakeQueuePanel />
