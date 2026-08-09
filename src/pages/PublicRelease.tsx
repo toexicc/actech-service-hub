@@ -15,6 +15,7 @@ interface ReleaseSummary {
   service_id: string;
   client_name: string;
   contact_number: string | null;
+  email: string | null;
   device_type: string | null;
   brand: string | null;
   model: string | null;
@@ -25,7 +26,9 @@ interface ReleaseSummary {
   chief_complaint: string | null;
   repair_time_frame: string | null;
   date_received: string | null;
+  service_date: string | null;
 }
+
 
 const Row = ({ label, value }: { label: string; value?: string | null }) => (
   <div className="min-w-0">
