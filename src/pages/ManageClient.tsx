@@ -2724,7 +2724,7 @@ const ManageClient = () => {
 
                       {(() => {
                         const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-                          String(s).trim().toLowerCase(),
+                          String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
                         );
                         const saved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
                           l.name.trim().toLowerCase(),
@@ -2733,7 +2733,13 @@ const ManageClient = () => {
                           const n = l.name.trim().toLowerCase();
                           return n && !approved.includes(n) && !saved.includes(n);
                         });
-                        if (!approved.length || unsavedNew.length === 0) return null;
+                        const hasBaseline =
+                          approved.length > 0 ||
+                          saved.length > 0 ||
+                          !!(serviceData as any)?.approvalLocked ||
+                          !!(serviceData as any)?.clientApprovedAt;
+                        if (!hasBaseline || unsavedNew.length === 0) return null;
+
                         return (
                           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50/60 px-2.5 py-1 text-xs font-medium text-amber-800">
                             <AlertTriangle className="h-3.5 w-3.5" />
