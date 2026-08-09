@@ -2627,6 +2627,35 @@ const ManageClient = () => {
                         </p>
                       )}
 
+                      {(() => {
+                        const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
+                          String(s).trim().toLowerCase(),
+                        );
+                        const newLines = quotedLines.filter(
+                          (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
+                        );
+                        if (!approved.length || newLines.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
+                            <p className="text-xs text-amber-800">
+                              {newLines.length} service line(s) here haven't been approved yet. Save first, then resend
+                              the approval so the client can approve the new items — already approved services stay
+                              approved.
+                            </p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={isReopeningApproval}
+                              onClick={handleReopenApproval}
+                            >
+                              <Send className="mr-2 h-4 w-4" />
+                              {isReopeningApproval ? "Sending…" : "Resend approval to client"}
+                            </Button>
+                          </div>
+                        );
+                      })()}
+
                       <div className="flex items-center justify-between pt-1 text-sm">
 
                         <span className="font-semibold">
@@ -2649,6 +2678,7 @@ const ManageClient = () => {
                           Apply to Service Cost
                         </Button>
                       </div>
+
                     </div>
                   )}
                 </div>
