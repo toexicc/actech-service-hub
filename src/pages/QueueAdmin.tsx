@@ -206,8 +206,15 @@ const QueueAdmin = () => {
           </TabsList>
 
 
-
           <TabsContent value="queue" className="space-y-6">
+            <Tabs defaultValue="intake-board" className="space-y-6">
+              <TabsList className="flex flex-wrap gap-1">
+                <TabsTrigger value="intake-board">Intake</TabsTrigger>
+                <TabsTrigger value="release-board">Release</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="intake-board" className="space-y-6">
+
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
