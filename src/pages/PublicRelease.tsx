@@ -75,6 +75,7 @@ const PublicRelease = () => {
     if (!sid) return;
     setSearching(true);
     setSummary(null);
+    setLast4("");
     try {
       const { data, error } = await supabase.rpc("public_release_summary" as any, {
         _service_id: sid,
@@ -100,9 +101,22 @@ const PublicRelease = () => {
     }
   };
 
+  const onFileDigits = (summary?.contact_number || "").replace(/\D/g, "");
+  const expectedLast4 = onFileDigits.slice(-4);
+  const last4Ok = expectedLast4.length === 4 && last4 === expectedLast4;
+
   const confirmRelease = async () => {
     if (!summary) return;
+    if (!last4Ok) {
+      toast({
+        title: "Verification failed",
+        description: "The last 4 digits don't match the number on file. Please approach the front desk.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
+
     try {
       const { data, error } = await supabase
         .from("queue_entries")
