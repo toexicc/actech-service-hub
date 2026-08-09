@@ -2862,8 +2862,10 @@ const ManageClient = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
+                </div>
 
                 <div className="space-y-2">
+
                   <Label htmlFor="adminNotes">Admin Notes (Customer):</Label>
                   <Textarea
                     id="adminNotes"
