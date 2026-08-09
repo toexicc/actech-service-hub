@@ -2640,30 +2640,22 @@ const ManageClient = () => {
                         const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
                           String(s).trim().toLowerCase(),
                         );
-                        const newLines = quotedLines.filter(
-                          (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
+                        const saved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
+                          l.name.trim().toLowerCase(),
                         );
-                        if (!approved.length || newLines.length === 0) return null;
+                        const unsavedNew = quotedLines.filter((l) => {
+                          const n = l.name.trim().toLowerCase();
+                          return n && !approved.includes(n) && !saved.includes(n);
+                        });
+                        if (!approved.length || unsavedNew.length === 0) return null;
                         return (
-                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
-                            <p className="text-xs text-amber-800">
-                              {newLines.length} service line(s) here haven't been approved yet. Save first, then resend
-                              the approval so the client can approve the new items — already approved services stay
-                              approved.
-                            </p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={isReopeningApproval}
-                              onClick={handleReopenApproval}
-                            >
-                              <Send className="mr-2 h-4 w-4" />
-                              {isReopeningApproval ? "Sending…" : "Resend approval to client"}
-                            </Button>
-                          </div>
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50/60 px-2.5 py-1 text-xs font-medium text-amber-800">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {unsavedNew.length} unsaved new service line(s) — save to resend approval
+                          </span>
                         );
                       })()}
+
 
                       <div className="flex items-center justify-between pt-1 text-sm">
 
