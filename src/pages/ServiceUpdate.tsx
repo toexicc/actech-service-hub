@@ -1721,9 +1721,11 @@ const ServiceUpdate = () => {
                 )}
 
 
+                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="technician">Assigned Technician:</Label>
+
                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
                       <input
                         type="checkbox"
