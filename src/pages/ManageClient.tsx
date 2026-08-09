@@ -2686,7 +2686,10 @@ const ManageClient = () => {
                   )}
                 </div>
 
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pricing</p>
+                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div className="space-y-2">
+
                   <Label htmlFor="serviceCost">Service Cost:</Label>
                   <Input
                     id="serviceCost"
