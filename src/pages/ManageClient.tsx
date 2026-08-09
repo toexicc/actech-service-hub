@@ -965,7 +965,7 @@ const ManageClient = () => {
       // A service line added beyond what the client already had/approved must
       // re-open approval — pre-approval cannot cover the new work.
       const approvedNames = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-        String(s).trim().toLowerCase(),
+        String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
       );
       const savedNames = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
         l.name.trim().toLowerCase(),
@@ -974,10 +974,16 @@ const ManageClient = () => {
         const n = l.name.trim().toLowerCase();
         return n && !approvedNames.includes(n) && !savedNames.includes(n);
       });
-      const disableAutoApprove =
-        !!(serviceData as any)?.autoApproveDiagnosis &&
-        additionalLines.length > 0 &&
-        (approvedNames.length > 0 || savedNames.length > 0);
+      // Any prior approval state counts as a baseline: an explicit client
+      // approval, a locked approval, or the pre-approve toggle being on.
+      const hadApprovalBaseline =
+        approvedNames.length > 0 ||
+        savedNames.length > 0 ||
+        !!(serviceData as any)?.approvalLocked ||
+        !!(serviceData as any)?.clientApprovedAt;
+      const reopenApproval = additionalLines.length > 0 && hadApprovalBaseline;
+      const disableAutoApprove = reopenApproval && !!(serviceData as any)?.autoApproveDiagnosis;
+
 
       // Mirror to Supabase so dashboards / search reflect the change immediately
       const saveStamp = new Date().toISOString();
@@ -1008,9 +1014,9 @@ const ManageClient = () => {
         repair_time_frame: updateRepairTimeFrame || null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
-        ...(disableAutoApprove
-          ? { auto_approve_diagnosis: false, client_approved_at: null, approval_locked: false }
-          : {}),
+        ...(reopenApproval ? { client_approved_at: null, approval_locked: false } : {}),
+        ...(disableAutoApprove ? { auto_approve_diagnosis: false } : {}),
+
         last_updated: saveStamp,
       } as any).eq("service_id", sid);
 
@@ -1071,20 +1077,33 @@ const ManageClient = () => {
           });
         }
 
-        if (disableAutoApprove) {
+        if (reopenApproval) {
+          const names = additionalLines.map((l) => l.name).join(", ");
           await logActivity({
             serviceId: sid,
             username,
             role,
-            activity: `Diagnosis pre-approval turned off automatically — additional service(s) added beyond what the client approved: ${additionalLines
-              .map((l) => l.name)
-              .join(", ")}`,
+            activity: disableAutoApprove
+              ? `Diagnosis pre-approval turned off automatically — additional service(s) added beyond what the client approved: ${names}`
+              : `Client approval re-opened automatically — additional service(s) added beyond what the client approved: ${names}`,
+            details: { additionalServices: names },
           });
+          setServiceData((prev: any) =>
+            prev
+              ? {
+                  ...prev,
+                  approvalLocked: false,
+                  clientApprovedAt: "",
+                  ...(disableAutoApprove ? { autoApproveDiagnosis: false } : {}),
+                }
+              : prev,
+          );
           toast({
-            title: "Pre-approval turned off",
+            title: disableAutoApprove ? "Pre-approval turned off" : "Approval re-opened",
             description: "Additional services were added, so the client needs to approve again. Resend the approval.",
           });
         }
+
 
 
         // Send notifications for status changes
@@ -1819,12 +1838,17 @@ const ManageClient = () => {
 
                 {(() => {
                   const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-                    String(s).trim().toLowerCase(),
+                    String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
                   );
                   const savedUnapproved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).filter(
                     (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
                   );
-                  if (!approved.length || savedUnapproved.length === 0) return null;
+                  const hadApproval =
+                    approved.length > 0 ||
+                    !!(serviceData as any)?.clientApprovedAt ||
+                    !!(serviceData as any)?.approvalLocked;
+                  if (!hadApproval || savedUnapproved.length === 0) return null;
+
                   return (
                     <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
                       <p className="text-xs text-amber-800">
@@ -2705,7 +2729,7 @@ const ManageClient = () => {
 
                       {(() => {
                         const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-                          String(s).trim().toLowerCase(),
+                          String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
                         );
                         const saved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
                           l.name.trim().toLowerCase(),
@@ -2714,7 +2738,13 @@ const ManageClient = () => {
                           const n = l.name.trim().toLowerCase();
                           return n && !approved.includes(n) && !saved.includes(n);
                         });
-                        if (!approved.length || unsavedNew.length === 0) return null;
+                        const hasBaseline =
+                          approved.length > 0 ||
+                          saved.length > 0 ||
+                          !!(serviceData as any)?.approvalLocked ||
+                          !!(serviceData as any)?.clientApprovedAt;
+                        if (!hasBaseline || unsavedNew.length === 0) return null;
+
                         return (
                           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50/60 px-2.5 py-1 text-xs font-medium text-amber-800">
                             <AlertTriangle className="h-3.5 w-3.5" />
