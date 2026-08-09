@@ -215,6 +215,14 @@ const QueueAdmin = () => {
 
               <TabsContent value="intake-board" className="space-y-6">
 
+            <div className="rounded-2xl border border-blue-200/60 bg-blue-50/40 p-4">
+              <div className="text-sm font-semibold text-blue-700">Intake Queue</div>
+              <p className="text-xs text-muted-foreground">
+                Customers who submitted the public /intake form to drop off their device. Call them
+                to the front, then mark the entry served.
+              </p>
+            </div>
+
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -225,7 +233,11 @@ const QueueAdmin = () => {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
+              <Button variant="outline" size="sm" onClick={() => window.open("/intake", "_blank")}>
+                <ExternalLink className="h-4 w-4 mr-1" /> Open Intake Kiosk
+              </Button>
             </div>
+
 
             <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
               <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
