@@ -200,11 +200,11 @@ const QueueAdmin = () => {
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
-            <TabsTrigger value="queue">Intake Queue</TabsTrigger>
+            <TabsTrigger value="queue">Intake &amp; Release Queue</TabsTrigger>
             <TabsTrigger value="intake">Intake Records</TabsTrigger>
-            <TabsTrigger value="release">Release Queue ({releaseWaiting.length + releaseProceed.length})</TabsTrigger>
             <TabsTrigger value="release-records">Release Records</TabsTrigger>
           </TabsList>
+
 
 
           <TabsContent value="queue" className="space-y-6">
