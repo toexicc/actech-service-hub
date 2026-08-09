@@ -1791,6 +1791,8 @@ const ServiceUpdate = () => {
                     grouped
                   />
                 </div>
+                </div>
+
 
 
                 {/* Diagnosis Toggle - based on the selected (next) status */}
