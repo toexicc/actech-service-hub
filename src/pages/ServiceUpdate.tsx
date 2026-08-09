@@ -1435,15 +1435,30 @@ const ServiceUpdate = () => {
                     <Label htmlFor="status">
                       Step 1 — Set Status: <span className="text-xs font-normal text-muted-foreground">(currently {savedStatus || "—"})</span>
                     </Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
-                      onClick={() => setConcernOpen(true)}
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      Raise Concern
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {canRequestAdditionalRepair && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 border-amber-400 text-amber-700 hover:bg-amber-50"
+                          onClick={() => setAddlRepairOpen(true)}
+                        >
+                          <Wrench className="h-4 w-4" />
+                          Additional Repair
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
+                        onClick={() => setConcernOpen(true)}
+                      >
+                        <AlertTriangle className="h-4 w-4" />
+                        Raise Concern
+                      </Button>
+                    </div>
+
                   </div>
                   {suggestedNext && !statusChanged && (
                     <p className="text-xs text-muted-foreground">
