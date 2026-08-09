@@ -444,6 +444,78 @@ const ServiceUpdate = () => {
     }
   };
 
+  /** Statuses where a technician may reopen diagnosis for a newly found issue. */
+  const canRequestAdditionalRepair = [
+    "Proceed Repair",
+    "Ongoing Service",
+    "Done Repair - Under Observation",
+    "Done Repair - Observation",
+  ].includes(savedStatus);
+
+  const handleAdditionalRepair = async () => {
+    const reason = addlRepairReason.trim();
+    if (!serviceData?.serviceId || !reason || addlRepairSending) return;
+    setAddlRepairSending(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({
+          status: "Pending Diagnosis" as any,
+          approval_locked: false,
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+
+      setServiceData((prev: any) =>
+        prev ? { ...prev, status: "Pending Diagnosis", approvalLocked: false } : prev,
+      );
+      setUpdateStatus("Pending Diagnosis");
+
+      logActivity({
+        serviceId: serviceData.serviceId,
+        username,
+        role: userRole,
+        activity: `Additional repair requested — status moved from "${savedStatus}" to "Pending Diagnosis". Reason: ${reason}`,
+      }).catch(() => {});
+
+      try {
+        await notifyTechnicianConcern(
+          {
+            serviceId: serviceData.serviceId,
+            clientName: serviceData.clientName,
+            technician: updateTechnician || serviceData.technician || "",
+            adminRep: serviceData.adminRep,
+            receivingStaff: serviceData.receivingStaff,
+            deviceType: serviceData.deviceType,
+            device: [serviceData.brand, serviceData.model].filter(Boolean).join(" "),
+          },
+          `Additional repair needed — ${reason}. Ticket moved back to Pending Diagnosis for a new diagnosis and client re-approval.`,
+          username,
+        );
+      } catch {
+        /* notification is best-effort */
+      }
+
+      toast({
+        title: "Additional repair requested",
+        description: "Status is back to Pending Diagnosis and the assigned admin was notified.",
+      });
+      setAddlRepairReason("");
+      setAddlRepairOpen(false);
+    } catch (error) {
+      toast({
+        title: "Could not request additional repair",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddlRepairSending(false);
+    }
+  };
+
+
+
 
 
 
