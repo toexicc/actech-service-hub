@@ -52,7 +52,10 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   clientName: z.string().min(1, "Client Name is required"),
   username: z.string().optional(),
   email: z.string().optional(),
-  phone: z.string().min(1, "Phone is required"),
+  phone: z
+    .string()
+    .min(1, "Phone is required")
+    .regex(/^09\d{9}$/, "Phone must be 11 digits in this format: 09*********"),
   deviceType: z.string().min(1, "Device Type is required"),
   serial: isPublic ? z.string().optional() : z.string().min(1, "Serial is required"),
   brand: z.string().min(1, "Brand is required"),
