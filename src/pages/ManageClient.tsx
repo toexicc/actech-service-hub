@@ -1904,20 +1904,23 @@ const ManageClient = () => {
               <CardHeader className="border-b border-border/50">
                 <CardTitle className="text-2xl tracking-tight">Update Client Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assignment</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
+                    onClick={() => setConcernOpen(true)}
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    Raise Concern
+                  </Button>
+                </div>
+
+                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label htmlFor="status">Status:</Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
-                      onClick={() => setConcernOpen(true)}
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      Raise Concern
-                    </Button>
-                  </div>
+                  <Label htmlFor="status">Status:</Label>
                   <Select value={updateStatus} onValueChange={setUpdateStatus}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
