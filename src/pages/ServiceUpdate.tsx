@@ -1233,194 +1233,139 @@ const ServiceUpdate = () => {
                 <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                  <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Status</p>
+                    <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={handleViewPDF} variant="outline" size="sm" disabled={!serviceData?.pdfUrl}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Intake PDF
+                    </Button>
+                    <Button
+                      onClick={() => openPdfModal(serviceData?.quotationPdfUrl, serviceData?.serviceId, "quotation", "Service Quotation Form")}
+                      variant="outline"
+                      size="sm"
+                      disabled={!serviceData?.quotationPdfUrl}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Quotation PDF
+                    </Button>
+                  </div>
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
-                  <Button onClick={handleViewPDF} variant="outline" className="w-full" disabled={!serviceData?.pdfUrl}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    {serviceData?.pdfUrl ? "View PDF" : "Not Available"}
-                  </Button>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</p>
+                  <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                    <WorkspaceField label="Client Name" value={serviceData.clientName} />
+                    <WorkspaceField label="Contact" value={serviceData.contactNumber} />
+                    <WorkspaceField label="Email" value={serviceData.email} />
+                    <WorkspaceField label="Client Type" value={serviceData.clientType} />
+                    <WorkspaceField label="Priority" value={serviceData.priority} />
+                    <WorkspaceField label="Technician" value={serviceData.technician} />
+                  </div>
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
-                  <Button
-                    onClick={() => openPdfModal(serviceData?.quotationPdfUrl, serviceData?.serviceId, "quotation", "Service Quotation Form")}
-                    variant="outline"
-                    className="w-full"
-                    disabled={!serviceData?.quotationPdfUrl}
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    {serviceData?.quotationPdfUrl ? "View PDF" : "Not Available"}
-                  </Button>
-                </div>
-
-                <Separator />
-
-                <div className="grid gap-4">
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Type:</h3>
-                    <p className="text-lg">{serviceData.clientType || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Priority:</h3>
-                    <p className="text-lg">{serviceData.priority || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Client Name:</h3>
-                    <p className="text-lg">{serviceData.clientName}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Type:</h3>
-                    <p className="text-lg">{serviceData.deviceType || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Model:</h3>
-                    <p className="text-lg">{serviceData.device}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Serial Number:</h3>
-                    <p className="text-lg">{serviceData.serialNumber || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Storage & Color:</h3>
-                    <p className="text-lg">{serviceData.colorMemory}</p>
-                  </div>
-
-                  {serviceData.devicePassword && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Password:</h3>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          value={serviceData.devicePassword}
-                          readOnly
-                          className="max-w-xs"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Device</p>
+                  <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                    <WorkspaceField label="Device Type" value={serviceData.deviceType} />
+                    <WorkspaceField label="Device Model" value={serviceData.device} />
+                    <WorkspaceField label="Serial Number" value={serviceData.serialNumber} />
+                    <WorkspaceField label="Storage & Color" value={serviceData.colorMemory} />
+                    {serviceData.devicePassword && (
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                          Device Password
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            value={serviceData.devicePassword}
+                            readOnly
+                            className="h-8 text-sm"
+                          />
+                          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setShowPassword(!showPassword)}>
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-
-                  {serviceData.annotationImageUrl && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Annotation Photo:</h3>
-                      <img
-                        src={getAnnotationImageUrl(serviceData.annotationImageUrl)}
-                        alt="Device annotation"
-                        className="w-full rounded-lg border border-border mt-2"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                      <a
-                        href={serviceData.annotationImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-block text-xs text-primary underline break-all"
-                      >
-                        Open in Google Drive
-                      </a>
-                    </div>
-                  )}
-
-                  {serviceData.annotationNotes && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Annotation Comment:</h3>
-                      <p className="text-lg whitespace-pre-line">{serviceData.annotationNotes}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Date:</h3>
-                    <p className="text-lg">
-                      {(() => {
-                        const parsed = parseServiceTimestamp(serviceData.timestamp);
-                        return parsed
-                          ? format(parsed, "MM/dd/yyyy, HH:mm")
-                          : (serviceData.timestamp || "N/A");
-                      })()}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Diagnostic Time Frame:</h3>
-                    <p className="text-lg">{serviceData.timeFrame || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Repair Time Frame:</h3>
-                    <p className="text-lg">{(serviceData as any).repairTimeFrame || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Estimated Target Date:</h3>
-                    <p className="text-lg">{serviceData.targetDate || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Device Conditions:</h3>
-                    <p className="text-lg">{describeDeviceConditions(serviceData)}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Chief Complaint:</h3>
-                    <p className="text-lg whitespace-pre-line">{serviceData.chiefComplaint || "N/A"}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service/s:</h3>
-                    <p className="text-lg whitespace-pre-line">{serviceData.service}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Service Cost:</h3>
-                    <p className="text-lg font-semibold">Php {serviceData.serviceCost}</p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Discount:</h3>
-                    <p className="text-lg">
-                      {discountAmount > 0 ? `Php ${discountAmount.toFixed(2)}` : "Php 0.00"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Final Cost:</h3>
-                    <p className="text-lg font-semibold text-primary">Php {finalCost.toFixed(2)}</p>
-                  </div>
-
-                  {serviceData.technician && (
-                    <div>
-                      <h3 className="font-semibold text-sm text-muted-foreground mb-1">Technician:</h3>
-                      <p className="text-lg">{serviceData.technician}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Admin Notes (Internal):</h3>
-                    <p className="text-lg">{serviceData.adminNotesInternal?.trim() ? serviceData.adminNotesInternal : "N/A"}</p>
+                    )}
+                    <WorkspaceField label="Device Conditions" value={describeDeviceConditions(serviceData)} />
                   </div>
                 </div>
+
+                <Separator />
+
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule & Costs</p>
+                  <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                    <WorkspaceField
+                      label="Service Date"
+                      value={(() => {
+                        const parsed = parseServiceTimestamp(serviceData.timestamp);
+                        return parsed ? format(parsed, "MM/dd/yyyy, HH:mm") : serviceData.timestamp;
+                      })()}
+                    />
+                    <WorkspaceField label="Diagnostic Time Frame" value={serviceData.timeFrame} />
+                    <WorkspaceField label="Repair Time Frame" value={(serviceData as any).repairTimeFrame} />
+                    <WorkspaceField label="Estimated Target Date" value={serviceData.targetDate} />
+                    <WorkspaceField label="Service Cost" value={`Php ${serviceData.serviceCost}`} />
+                    <WorkspaceField
+                      label="Discount"
+                      value={discountAmount > 0 ? `Php ${discountAmount.toFixed(2)}` : "Php 0.00"}
+                    />
+                    <WorkspaceField
+                      label="Final Cost"
+                      value={`Php ${finalCost.toFixed(2)}`}
+                      valueClassName="font-semibold text-primary"
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid gap-x-4 gap-y-3 grid-cols-1 md:grid-cols-2">
+                  <WorkspaceField
+                    label="Chief Complaint"
+                    value={serviceData.chiefComplaint}
+                    valueClassName="whitespace-pre-line"
+                  />
+                  <WorkspaceField label="Service/s" value={serviceData.service} valueClassName="whitespace-pre-line" />
+                  <WorkspaceField
+                    label="Admin Notes (Internal)"
+                    value={serviceData.adminNotesInternal?.trim() ? serviceData.adminNotesInternal : ""}
+                    valueClassName="whitespace-pre-line"
+                  />
+                  {serviceData.annotationNotes && (
+                    <WorkspaceField
+                      label="Annotation Comment"
+                      value={serviceData.annotationNotes}
+                      valueClassName="whitespace-pre-line"
+                    />
+                  )}
+                </div>
+
+                {serviceData.annotationImageUrl && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Device Annotation Photo
+                    </p>
+                    <img
+                      src={getAnnotationImageUrl(serviceData.annotationImageUrl)}
+                      alt="Device annotation"
+                      className="w-full rounded-lg border border-border mt-2"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
+
               </CardContent>
             </Card>
 
