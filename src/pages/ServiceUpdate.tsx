@@ -2153,6 +2153,36 @@ const ServiceUpdate = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={addlRepairOpen} onOpenChange={(o) => { if (!addlRepairSending) setAddlRepairOpen(o); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Additional Repair Needed</DialogTitle>
+            <DialogDescription>
+              {serviceData
+                ? `${serviceData.serviceId} — ${serviceData.clientName}. The ticket goes back to Pending Diagnosis so you can add the new finding, and ${concernRecipientLabel} will be notified for client re-approval.`
+                : "Select a service first."}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={addlRepairReason}
+            onChange={(e) => setAddlRepairReason(e.target.value.slice(0, 500))}
+            placeholder="Describe the newly found issue that needs additional repair..."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{addlRepairReason.length}/500</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddlRepairOpen(false)} disabled={addlRepairSending}>
+              Cancel
+            </Button>
+            <Button onClick={handleAdditionalRepair} disabled={addlRepairSending || !addlRepairReason.trim() || !serviceData}>
+              {addlRepairSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>) : "Back to Pending Diagnosis"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
     </DashboardLayout>
   );
 };
