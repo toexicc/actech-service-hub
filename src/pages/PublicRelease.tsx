@@ -46,9 +46,11 @@ const PublicRelease = () => {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [summary, setSummary] = useState<ReleaseSummary | null>(null);
+  const [last4, setLast4] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [queueCode, setQueueCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
+
 
   useEffect(() => {
     if (!queueCode) return;
