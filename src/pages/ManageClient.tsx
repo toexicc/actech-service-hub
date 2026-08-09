@@ -2806,8 +2806,12 @@ const ManageClient = () => {
                     Php {finalCost.toFixed(2)}
                   </div>
                 </div>
+                </div>
 
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</p>
+                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
                 <div className="space-y-2">
+
                   <Label htmlFor="timeFrame">Diagnostic Time Frame:</Label>
                   <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
                     <SelectTrigger>
