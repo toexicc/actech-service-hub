@@ -1779,6 +1779,35 @@ const ManageClient = () => {
                   onReopen={canEditAdminRep ? handleReopenApproval : undefined}
                 />
 
+                {(() => {
+                  const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
+                    String(s).trim().toLowerCase(),
+                  );
+                  const savedUnapproved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).filter(
+                    (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
+                  );
+                  if (!approved.length || savedUnapproved.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
+                      <p className="text-xs text-amber-800">
+                        {savedUnapproved.length} saved service line(s) haven't been approved yet. Resend the approval so
+                        the client can approve the new items — already approved services stay approved.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isReopeningApproval}
+                        onClick={handleReopenApproval}
+                      >
+                        <Send className="mr-2 h-4 w-4" />
+                        {isReopeningApproval ? "Sending…" : "Resend approval to client"}
+                      </Button>
+                    </div>
+                  );
+                })()}
+
+
 
 
 
