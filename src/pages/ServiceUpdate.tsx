@@ -244,6 +244,9 @@ const ServiceUpdate = () => {
   const [concernOpen, setConcernOpen] = useState(false);
   const [concernMessage, setConcernMessage] = useState("");
   const [concernSending, setConcernSending] = useState(false);
+  const [addlRepairOpen, setAddlRepairOpen] = useState(false);
+  const [addlRepairReason, setAddlRepairReason] = useState("");
+  const [addlRepairSending, setAddlRepairSending] = useState(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
