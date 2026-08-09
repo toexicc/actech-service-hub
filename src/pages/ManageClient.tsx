@@ -1742,11 +1742,29 @@ const ManageClient = () => {
                   />
                 </div>
 
-                <PartsUsedPanel
-                  serviceId={serviceData.serviceId}
-                  partsUsed={serviceData.partsUsed}
-                  onSaved={handleSearch}
-                />
+                <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span>
+                        Parts Used
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          {Array.isArray(serviceData.partsUsed) && serviceData.partsUsed.length > 0
+                            ? `${serviceData.partsUsed.length} item(s)`
+                            : "none recorded"}
+                        </span>
+                      </span>
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", isPartsUsedOpen && "rotate-180")} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    <PartsUsedPanel
+                      serviceId={serviceData.serviceId}
+                      partsUsed={serviceData.partsUsed}
+                      onSaved={handleSearch}
+                    />
+                  </CollapsibleContent>
+                </Collapsible>
+
 
 
 
