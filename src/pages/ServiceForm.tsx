@@ -1147,9 +1147,16 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     <FormItem>
                       <FormLabel>Phone:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input
+                          {...field}
+                          inputMode="numeric"
+                          maxLength={11}
+                          placeholder="09*********"
+                          onChange={(e) => field.onChange(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                        />
                       </FormControl>
                       <FormMessage />
+
                     </FormItem>
                   )}
                 />
