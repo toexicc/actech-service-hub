@@ -1071,6 +1071,22 @@ const ManageClient = () => {
           });
         }
 
+        if (disableAutoApprove) {
+          await logActivity({
+            serviceId: sid,
+            username,
+            role,
+            activity: `Diagnosis pre-approval turned off automatically — additional service(s) added beyond what the client approved: ${additionalLines
+              .map((l) => l.name)
+              .join(", ")}`,
+          });
+          toast({
+            title: "Pre-approval turned off",
+            description: "Additional services were added, so the client needs to approve again. Resend the approval.",
+          });
+        }
+
+
         // Send notifications for status changes
         const userFullName = sessionStorage.getItem("userFullName") || username;
         const userRole = sessionStorage.getItem("userRole");
