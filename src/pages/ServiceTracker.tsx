@@ -1285,7 +1285,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               <button
                 key={status}
                 type="button"
-                onClick={() => setStatusFilter(isActive ? "all" : status)}
+                onClick={() => selectStatus(isActive ? "all" : status)}
                 className={cn(
                   "rounded-2xl border p-3 text-left transition-colors",
                   isActive
