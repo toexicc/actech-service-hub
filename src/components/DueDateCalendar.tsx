@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { useServices, type ServiceRecord } from "@/hooks/useServices";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
@@ -39,6 +39,19 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
   const { openTab } = useWorkbench();
   const { data: allServices = [] } = useServices();
   const [selected, setSelected] = useState<Date>(startOfDay(new Date()));
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = calendarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setCalendarHeight(el.offsetHeight));
+    ro.observe(el);
+    setCalendarHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
+
+
 
   const isTechnician = role === "technician";
 
@@ -102,8 +115,8 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           {services.length} active {services.length === 1 ? "ticket" : "tickets"}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[70%_30%] gap-4 glass-panel rounded-2xl p-4">
-        <div className="w-full min-w-0">
+      <div className="grid grid-cols-1 md:grid-cols-[70%_30%] gap-4 glass-panel rounded-2xl p-4 items-start">
+        <div ref={calendarRef} className="w-full min-w-0">
           <Calendar
             mode="single"
             selected={selected}
@@ -130,7 +143,10 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
             className="pointer-events-auto w-full rounded-xl border bg-card p-4"
           />
         </div>
-        <div className="min-w-0 flex flex-col h-full min-h-0">
+        <div
+          className="min-w-0 flex flex-col min-h-0"
+          style={calendarHeight ? { height: calendarHeight } : undefined}
+        >
           <div className="flex items-baseline justify-between mb-3">
             <h3 className="text-sm font-semibold text-foreground">
               {format(selected, "EEEE, MMMM d")}
