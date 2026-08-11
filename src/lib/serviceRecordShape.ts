@@ -50,7 +50,11 @@ export const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) =>
   initialPayment: sb.initialPayment,
   aiReport: sb.aiReport,
   aiDiagnosis: sb.diagnosis,
+  diagnosisWarranty: (sb as any).diagnosisWarranty || "",
+  diagnosisOtherNotes: (sb as any).diagnosisOtherNotes || "",
+  diagnosisSummary: (sb as any).diagnosisSummary || "",
   technicianDiagnosis: sb.technicianDiagnosis || sb.diagnosis,
+
   technicianReport: sb.technicianReport,
   username: sb.username,
   devicePassword: sb.devicePassword,
@@ -121,6 +125,10 @@ const AUTHORITATIVE_KEYS = new Set<string>([
   "chiefComplaint",
   "technicianDiagnosis",
   "aiDiagnosis",
+  "diagnosisWarranty",
+  "diagnosisOtherNotes",
+  "diagnosisSummary",
+
   "aiReport",
   "technicianReport",
   "serviceCost",

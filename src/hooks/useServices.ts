@@ -15,6 +15,10 @@ export interface ServiceRecord {
   issueDescription: string;
   diagnosis: string;
   technicianDiagnosis?: string;
+  diagnosisWarranty?: string;
+  diagnosisOtherNotes?: string;
+  diagnosisSummary?: string;
+
   clientApprovedAt?: string;
   autoApproveDiagnosis?: boolean;
   waitingForParts?: boolean;
