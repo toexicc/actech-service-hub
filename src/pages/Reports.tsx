@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useServices, useCompletedServices } from "@/hooks/useServices";
 import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
+import { useStaff } from "@/hooks/useStaff";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyStatus } from "@/lib/serviceStatus";
