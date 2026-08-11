@@ -265,6 +265,9 @@ const ManageClient = () => {
   // Finalized quotation lines shown to the client on /track.
   const [quotedLines, setQuotedLines] = useState<QuotedLine[]>([]);
   const [quotedProblems, setQuotedProblems] = useState<Record<number, string>>({});
+  // Set when a status change was blocked because the Service Breakdown is empty.
+  const [breakdownMissing, setBreakdownMissing] = useState(false);
+
 
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isPartsUsedOpen, setIsPartsUsedOpen] = useState(false);
