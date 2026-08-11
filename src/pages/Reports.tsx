@@ -951,9 +951,19 @@ const Reports = () => {
             hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
           >
             <div className="h-[320px]">
-              {actorChart.length === 0 ? (
+              {loadingLogs ? (
+                <p className="text-sm text-muted-foreground">Loading activity log…</p>
+              ) : logsFailed ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-destructive">Couldn't load the activity log.</p>
+                  <Button size="sm" variant="outline" onClick={() => refetchLogs()}>
+                    Retry
+                  </Button>
+                </div>
+              ) : actorChart.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No status changes logged in this period.</p>
               ) : (
+
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={actorChart} layout="vertical" margin={{ left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
