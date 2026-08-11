@@ -675,9 +675,18 @@ const ServiceTracking = () => {
   // Quotation lines finalized (and priced) by the shop. There is no ₱0
   // fallback: an unpriced list can never be approved, so we tell the client the
   // quote is still being finalised instead.
-  const quotedLines: QuotedLine[] = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const savedQuotedLines: QuotedLine[] = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  // Fallback for older tickets whose breakdown was never saved as structured
+  // lines: rebuild it from the priced "Service Breakdown" lines in the diagnosis.
+  const fallbackQuotedLines: QuotedLine[] = savedQuotedLines.length
+    ? []
+    : parseQuotedBreakdown(serviceData?.aiDiagnosis || "").filter(
+        (l) => lineEffectiveCost(l) > 0 || !!l.options?.length,
+      );
+  const quotedLines: QuotedLine[] = savedQuotedLines.length ? savedQuotedLines : fallbackQuotedLines;
   const quoteNotReady =
     quotedLines.length === 0 && !!parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").length;
+
 
   const alreadyApproved: string[] = Array.isArray((serviceData as any)?.approvedServices)
     ? (serviceData as any).approvedServices
