@@ -243,6 +243,7 @@ const ManageClient = () => {
   const [updatePriority, setUpdatePriority] = useState("");
   const [updateChiefComplaint, setUpdateChiefComplaint] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagBreakdown, setUpdateDiagBreakdown] = useState("");
   const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
   const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
   const [updateDiagSummary, setUpdateDiagSummary] = useState("");
@@ -494,7 +495,9 @@ const ManageClient = () => {
           {
             const seg = diagnosisFieldsFromRecord(merged);
             setUpdateAIDiagnosis(seg.diagnosis);
-            setUpdateDiagWarranty(seg.warranty);
+            setUpdateDiagBreakdown(seg.breakdownText);
+            setUpdateDiagBreakdown(seg.breakdownText);
+        setUpdateDiagWarranty(seg.warranty);
             setUpdateDiagOtherNotes(seg.otherNotes);
             setUpdateDiagSummary(seg.summary);
           }
@@ -588,6 +591,7 @@ const ManageClient = () => {
       {
         const seg = diagnosisFieldsFromRecord(merged);
         setUpdateAIDiagnosis(seg.diagnosis);
+        setUpdateDiagBreakdown(seg.breakdownText);
         setUpdateDiagWarranty(seg.warranty);
         setUpdateDiagOtherNotes(seg.otherNotes);
         setUpdateDiagSummary(seg.summary);
@@ -681,6 +685,7 @@ const ManageClient = () => {
       [updatePriority, serviceData.priority || ""],
       [updateChiefComplaint, serviceData.chiefComplaint || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagBreakdown, (serviceData as any).diagnosisBreakdownText || ""],
       [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
       [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
       [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
@@ -811,12 +816,9 @@ const ManageClient = () => {
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(sections.diagnosis);
+        setUpdateDiagBreakdown(sections.breakdownText);
         setUpdateDiagWarranty(sections.warranty);
         setUpdateDiagSummary(sections.summary);
-        const parsed = parseQuotedBreakdown(
-          sections.breakdownText ? `Service Breakdown:\n${sections.breakdownText}` : "",
-        );
-        if (parsed.length) setQuotedLines(parsed);
         setIsEditingAIDiagnosis(false);
         logAiFormatActivity(aiSid, "diagnosis", {
           source: "/manage-client",
@@ -1068,6 +1070,7 @@ const ManageClient = () => {
         chief_complaint: updateChiefComplaint,
         issue_description: updateChiefComplaint,
         diagnosis: updateAIDiagnosis,
+        diagnosis_breakdown_text: updateDiagBreakdown || null,
         diagnosis_warranty: updateDiagWarranty || null,
         diagnosis_other_notes: updateDiagOtherNotes || null,
         diagnosis_summary: updateDiagSummary || null,
@@ -1125,6 +1128,7 @@ const ManageClient = () => {
           { label: "Priority", before: serviceData.priority, after: updatePriority },
           { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Service Breakdown (draft)", before: (serviceData as any).diagnosisBreakdownText, after: updateDiagBreakdown },
           { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
           { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
@@ -2437,7 +2441,11 @@ const ManageClient = () => {
                                 );
                                 if (!ok) return;
                                 const summary = (updateDiagSummary || "").trim();
-                                const parsedLines = parseQuotedBreakdown(updateAIDiagnosis || "");
+                                const parsedLines = parseQuotedBreakdown(
+                                  updateDiagBreakdown.trim()
+                                    ? `Service Breakdown:\n${updateDiagBreakdown}`
+                                    : updateAIDiagnosis || "",
+                                );
                                 if (parsedLines.length) {
                                   setQuotedLines(parsedLines);
                                 }
