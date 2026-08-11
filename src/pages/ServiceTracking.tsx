@@ -28,7 +28,7 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
 
 import { StatusChip } from "@/components/ui/status-chip";
-import { clientStatusLabel } from "@/lib/serviceStatus";
+import { clientStatusLabel, isClosedStatus } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -971,6 +971,13 @@ const ServiceTracking = () => {
             "Cancelled": { label: "Cancelled", tone: "bg-destructive/15 text-destructive border-destructive/30" },
           };
           const currentStatus = serviceData.status || "";
+          const isClosed = isClosedStatus(currentStatus);
+          const CLOSED_BANNER: Record<string, string> = {
+            "RTO": "This device has been returned to its owner. Please contact the shop if you have questions.",
+            "Cancelled": "This service has been cancelled. Please contact the shop for details.",
+            "On Hold": "This service is currently on hold. Please contact the shop for an update.",
+          };
+          const closedBanner = isClosed ? (CLOSED_BANNER[currentStatus] ?? CLOSED_BANNER["On Hold"]) : "";
           const offPath = OFF_PATH[currentStatus];
           const statusToStep = (s: string): number => {
             if (!s) return 1;
@@ -1018,6 +1025,24 @@ const ServiceTracking = () => {
             <div className="grid gap-6 lg:grid-cols-3">
               {/* LEFT COLUMN – main */}
               <div className="lg:col-span-2 space-y-6">
+                {/* Closed-status banner */}
+                {isClosed && (
+                  <div className="rounded-2xl border border-amber-300/60 bg-amber-50 p-4 shadow-[var(--shadow-soft)]">
+                    <div className="flex items-start gap-3">
+                      {offPath && (
+                        <span
+                          title={clientStatusLabel(currentStatus)}
+                          className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border shrink-0 " + offPath.tone}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                          {offPath.label}
+                        </span>
+                      )}
+                      <p className="text-sm text-amber-900">{closedBanner}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Repair Ticket card */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] rounded-2xl overflow-hidden">
                   <CardContent className="p-6 space-y-5">
@@ -1049,6 +1074,7 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Mini stats */}
+                    {!isClosed && (
                     <div className={showMoney ? "grid grid-cols-3 gap-3" : "grid grid-cols-1 gap-3"}>
                       {showMoney && (
                         <div className="rounded-xl border border-border/60 bg-background/60 p-3">
@@ -1067,8 +1093,10 @@ const ServiceTracking = () => {
                         </div>
                       )}
                     </div>
+                    )}
 
                     {/* Step chips — two rows of 4 */}
+                    {!isClosed && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {STEPS.map((s, i) => {
                         const n = i + 1;
@@ -1093,7 +1121,8 @@ const ServiceTracking = () => {
                         );
                       })}
                     </div>
-                    {offPath && (
+                    )}
+                    {!isClosed && offPath && (
                       <div
                         title={clientStatusLabel(currentStatus)}
                         className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
@@ -1153,7 +1182,7 @@ const ServiceTracking = () => {
                 </Card>
 
                 {/* AI Diagnosis */}
-                {showAiDiagnosis && (
+                {showAiDiagnosis && !isClosed && (
                   <div className="space-y-6">
                     <AiReportCard
                       report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
@@ -1388,13 +1417,14 @@ const ServiceTracking = () => {
                 )}
 
                 {/* AI Report + report photos */}
-                {showAiReport && (
+                {showAiReport && !isClosed && (
                   <div className="space-y-6">
                     <AiReportCard report={serviceData.aiReport} title="Service Report" />
                   </div>
                 )}
 
                 {/* Quote card */}
+                {!isClosed && (
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
@@ -1480,9 +1510,10 @@ const ServiceTracking = () => {
                     <p className="text-xs text-muted-foreground">Settle in person on pickup. No online payments are required through this page.</p>
                   </CardContent>
                 </Card>
+                )}
 
                 {/* Customer-facing admin notes */}
-                {(serviceData as any).customerNotes?.trim() && (
+                {(!isClosed && (serviceData as any).customerNotes?.trim()) && (
                   <Card className="border-[hsl(var(--surface-note-border))] bg-[hsl(var(--surface-note))] shadow-[var(--shadow-soft)] rounded-2xl">
                     <CardContent className="p-6">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Notes from the team</p>
@@ -1569,6 +1600,7 @@ const ServiceTracking = () => {
                           View
                         </Button>
                       </div>
+                      {!isClosed && (
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
                         <div>
                           <p className="text-sm font-medium">Client Intake Form</p>
@@ -1584,6 +1616,8 @@ const ServiceTracking = () => {
                           PDF
                         </Button>
                       </div>
+                      )}
+                      {!isClosed && (
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
                         <div>
                           <p className="text-sm font-medium">Service Quotation</p>
@@ -1599,6 +1633,7 @@ const ServiceTracking = () => {
                           PDF
                         </Button>
                       </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
