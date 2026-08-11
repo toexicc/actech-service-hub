@@ -692,8 +692,11 @@ const ServiceTracking = () => {
     : [];
   const normKey = (s: string) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const approvedKeys = new Set(alreadyApproved.map(normKey));
-  const isLineLocked = (line: QuotedLine, i: number) =>
-    line.required || approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+  /** Already confirmed by the client earlier — fully read-only. */
+  const isLineApproved = (line: QuotedLine) =>
+    approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+  /** Cannot untick (required lines stay ticked), but options remain selectable. */
+  const isLineLocked = (line: QuotedLine, i: number) => line.required || isLineApproved(line);
 
   /** Lines with the client's live picks applied (index-keyed). */
   const liveLines: QuotedLine[] = quotedLines.map((l, i) => ({
@@ -763,6 +766,8 @@ const ServiceTracking = () => {
 
 
   const chooseOption = (i: number, label: string) => {
+    const line = quotedLines[i];
+    if (!line || isLineApproved(line)) return;
     setOptionChoice((prev) => ({ ...prev, [i]: label }));
     setSelectedIdx((prev) => (prev.includes(i) ? prev : [...prev, i]));
   };
@@ -1209,6 +1214,7 @@ const ServiceTracking = () => {
                                 <div className="space-y-2 pt-1">
                                   {quotedLines.map((line, i) => {
                                     const locked = isLineLocked(line, i);
+                                    const approvedLine = isLineApproved(line);
                                     const checked = selectedIdx.includes(i);
                                     const chosen = optionChoice[i] ?? "";
                                     return (
@@ -1248,7 +1254,7 @@ const ServiceTracking = () => {
                                               {line.required ? "Required" : "Optional"}
                                             </span>
                                           </span>
-                                          {locked && (
+                                          {approvedLine && (
                                             <Lock
                                               className="h-4 w-4 text-muted-foreground"
                                               aria-label="Already confirmed"
@@ -1273,13 +1279,14 @@ const ServiceTracking = () => {
                                           <div
                                             className={cn(
                                               "mt-2 space-y-1 pl-8 transition-opacity",
-                                              !checked && "pointer-events-none opacity-50",
+                                              !checked && !line.required && "pointer-events-none opacity-50",
+                                              approvedLine && "pointer-events-none opacity-70",
                                             )}
-                                            aria-disabled={!checked}
+                                            aria-disabled={approvedLine || (!checked && !line.required)}
                                           >
                                             {line.options.map((opt, oi) => {
-                                              const optDisabled = locked || !checked;
-                                              const isChosen = checked && chosen === opt.label;
+                                              const optDisabled = approvedLine || (!checked && !line.required);
+                                              const isChosen = chosen === opt.label;
                                               return (
                                                 <div
                                                   key={oi}
