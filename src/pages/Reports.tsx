@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useServices, useCompletedServices } from "@/hooks/useServices";
 import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
+import { useStaff } from "@/hooks/useStaff";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyStatus } from "@/lib/serviceStatus";
@@ -61,6 +62,7 @@ import {
   bucketKey,
   bucketLabel,
   buildTimings,
+  buildActorOutput,
   bucketTurnaround,
   avg,
   startOfDay,
@@ -184,11 +186,14 @@ const Reports = () => {
   const [preset, setPreset] = useState<"7" | "30" | "90" | "year" | "all">("30");
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
+  const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
+  const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
   const { data: statusLogs = [], isLoading: loadingLogs } = useServiceStatusLogs();
   const { data: closedDates = [] } = useClosedDates();
+  const { data: staffList = [] } = useStaff();
 
 
   const { data: transactions = [] } = useQuery({
@@ -483,6 +488,41 @@ const Reports = () => {
       }))
       .sort((a, b) => b.tickets - a.tickets || b.completed - a.completed);
   }, [report, timings]);
+
+  /**
+   * Real output, derived from the activity-log status transitions: who actually
+   * moved tickets forward instead of who was merely assigned to them.
+   */
+  const actorOutput = useMemo(
+    () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[]),
+    [statusLogs, report, staffList],
+  );
+
+  const actorRows = useMemo(() => {
+    const rows = actorOutput.filter((a) => {
+      if (a.moves === 0 && a.assignedUntouched === 0) return false;
+      if (outputRole === "all") return true;
+      return String(a.role || "").toLowerCase() === outputRole;
+    });
+    return [...rows].sort((a, b) => (b as any)[outputSort] - (a as any)[outputSort] || b.moves - a.moves);
+  }, [actorOutput, outputRole, outputSort]);
+
+  const actorChart = useMemo(
+    () =>
+      actorRows
+        .filter((a) => a.moves > 0)
+        .slice(0, 8)
+        .map((a) => ({
+          name: a.name,
+          diagnosed: a.diagnosed,
+          toRepair: a.toRepair,
+          released: a.released,
+          completed: a.completed,
+        })),
+    [actorRows],
+  );
+
+
 
 
 
@@ -864,9 +904,123 @@ const Reports = () => {
           </Panel>
         </div>
 
+        {/* Real output from the activity log */}
+        <div className="mb-6 grid gap-6">
+          <Panel
+            title="Who moves tickets"
+            icon={<Users className="h-4 w-4" />}
+            hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
+          >
+            <div className="h-[320px]">
+              {actorChart.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No status changes logged in this period.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={actorChart} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                    <XAxis type="number" {...axisProps} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" {...axisProps} width={140} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="diagnosed" name="Diagnosed" stackId="a" fill="hsl(var(--info))" />
+                    <Bar dataKey="toRepair" name="To repair" stackId="a" fill="hsl(var(--primary))" />
+                    <Bar dataKey="released" name="Released" stackId="a" fill="hsl(var(--warning))" />
+                    <Bar
+                      dataKey="completed"
+                      name="Completed"
+                      stackId="a"
+                      fill="hsl(var(--success))"
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Panel>
+
+          <Panel
+            title="Output leaderboard"
+            icon={<Users className="h-4 w-4" />}
+            hint="Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never changed its status."
+          >
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
+                <SelectTrigger className="h-9 w-[170px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="management">Management</SelectItem>
+                  <SelectItem value="technician">Technician</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={outputSort} onValueChange={(v) => setOutputSort(v as any)}>
+                <SelectTrigger className="h-9 w-[200px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="moves">Sort by moves</SelectItem>
+                  <SelectItem value="completed">Sort by completed</SelectItem>
+                  <SelectItem value="drivenEndToEnd">Sort by driven end-to-end</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {actorRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No logged activity for this selection.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Staff</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead className="text-right">Moves</TableHead>
+                      <TableHead className="text-right">Tickets touched</TableHead>
+                      <TableHead className="text-right">Diagnosed</TableHead>
+                      <TableHead className="text-right">To repair</TableHead>
+                      <TableHead className="text-right">Released</TableHead>
+                      <TableHead className="text-right">Completed</TableHead>
+                      <TableHead className="text-right">Driven end-to-end</TableHead>
+                      <TableHead className="text-right">Assigned untouched</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {actorRows.slice(0, 20).map((a) => (
+                      <TableRow key={a.name}>
+                        <TableCell className="font-medium">{a.name}</TableCell>
+                        <TableCell className="capitalize text-muted-foreground">{a.role || "—"}</TableCell>
+                        <TableCell className="text-right font-semibold">{a.moves}</TableCell>
+                        <TableCell className="text-right">{a.ticketsTouched}</TableCell>
+                        <TableCell className="text-right">{a.diagnosed}</TableCell>
+                        <TableCell className="text-right">{a.toRepair}</TableCell>
+                        <TableCell className="text-right">{a.released}</TableCell>
+                        <TableCell className="text-right">{a.completed}</TableCell>
+                        <TableCell className="text-right">{a.drivenEndToEnd}</TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right",
+                            a.assignedUntouched > 0 ? "text-warning" : "text-muted-foreground",
+                          )}
+                        >
+                          {a.assignedUntouched}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Panel>
+        </div>
+
         {/* Admins */}
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
-          <Panel title="Admin output" icon={<Users className="h-4 w-4" />}>
+          <Panel
+            title="Assignment load (admins)"
+            icon={<Users className="h-4 w-4" />}
+            hint="Based on assignment fields, not on who moved the ticket."
+          >
             <div className="h-[300px]">
               {admins.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No admin activity in this period.</p>
@@ -886,7 +1040,7 @@ const Reports = () => {
             </div>
           </Panel>
 
-          <Panel title="Admin leaderboard" icon={<Users className="h-4 w-4" />}>
+          <Panel title="Assignment leaderboard" icon={<Users className="h-4 w-4" />} hint="Tickets assigned to each admin — pair with the output leaderboard above.">
             {admins.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing to show yet.</p>
             ) : (

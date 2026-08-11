@@ -13,6 +13,10 @@ export interface StatusLogEntry {
   created?: boolean;
   /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
   waitingParts?: "on" | "off";
+  /** Person who performed the logged action (from activity_logs.actor_name). */
+  actor?: string;
+  /** Role stored on the log row, when present. */
+  role?: string;
 }
 
 /**
@@ -253,6 +257,8 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   const action = String(row?.action ?? "");
   const serviceId = String(row?.entity_id ?? "").trim();
   if (!serviceId) return null;
+  const actor = String(row?.actor_name ?? "").trim() || undefined;
+  const role = String(row?.changes?.role ?? "").trim() || undefined;
   const m = action.match(STATUS_RE);
   if (m) {
     return {
@@ -260,6 +266,8 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
       createdAt: row.created_at,
       from: m[1].trim(),
       to: m[2].trim(),
+      actor,
+      role,
     };
   }
   const w = action.match(WAITING_PARTS_RE);
@@ -269,12 +277,165 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
       serviceId,
       createdAt: row.created_at,
       waitingParts: flag === "on" || flag === "enabled" ? "on" : "off",
+      actor,
+      role,
     };
   }
   if (/^New service created/i.test(action)) {
-    return { serviceId, createdAt: row.created_at, created: true };
+    return { serviceId, createdAt: row.created_at, created: true, actor, role };
   }
   return null;
+};
+
+/* ------------------------------------------------------------------
+ * Actor output (who actually moves tickets)
+ * ------------------------------------------------------------------ */
+
+export interface ActorOutput {
+  name: string;
+  role: string;
+  moves: number;
+  ticketsTouched: number;
+  diagnosed: number;
+  toRepair: number;
+  released: number;
+  completed: number;
+  drivenEndToEnd: number;
+  assignedUntouched: number;
+}
+
+const norm = (s: any) => String(s ?? "").trim().toLowerCase();
+
+const CONFIRMED = new Set(["confirmed diagnosis"]);
+const TO_REPAIR = new Set(["proceed repair", "ongoing service"]);
+const RELEASE = new Set(["done repair - for release"]);
+const DONE = new Set(["completed"]);
+
+/**
+ * Measures real output from the activity-log status transitions instead of
+ * assignment fields: how many moves each person made, how many tickets they
+ * touched, and which tickets they carried all the way to Completed.
+ *
+ * `services` scopes the result to the tickets in the current report period,
+ * and provides the assignment fields used for the "assigned but untouched"
+ * idle check.
+ */
+export const buildActorOutput = (
+  logs: StatusLogEntry[],
+  services: any[],
+  staff: Array<{ name?: string; username?: string; role?: string }> = [],
+): ActorOutput[] => {
+  const scopedIds = new Set(
+    services.map((s) => String(s.serviceId || "").trim()).filter(Boolean),
+  );
+
+  const roleByName = new Map<string, string>();
+  staff.forEach((p) => {
+    const role = String(p.role ?? "").trim();
+    if (!role) return;
+    if (p.name) roleByName.set(norm(p.name), role);
+    if (p.username) roleByName.set(norm(p.username), role);
+  });
+
+  interface Acc {
+    name: string;
+    role: string;
+    moves: number;
+    tickets: Set<string>;
+    diagnosed: number;
+    toRepair: number;
+    released: number;
+    completed: number;
+    completedTickets: Set<string>;
+  }
+  const map = new Map<string, Acc>();
+  const get = (name: string, role?: string): Acc => {
+    const key = norm(name);
+    let e = map.get(key);
+    if (!e) {
+      e = {
+        name,
+        role: roleByName.get(key) || role || "",
+        moves: 0,
+        tickets: new Set(),
+        diagnosed: 0,
+        toRepair: 0,
+        released: 0,
+        completed: 0,
+        completedTickets: new Set(),
+      };
+      map.set(key, e);
+    }
+    if (!e.role) e.role = roleByName.get(key) || role || "";
+    return e;
+  };
+
+  logs.forEach((l) => {
+    if (!l.to || !l.actor) return;
+    const id = String(l.serviceId || "").trim();
+    if (!scopedIds.has(id)) return;
+    const e = get(l.actor, l.role);
+    e.moves += 1;
+    e.tickets.add(id);
+    const to = norm(l.to);
+    if (CONFIRMED.has(to)) e.diagnosed += 1;
+    if (TO_REPAIR.has(to)) e.toRepair += 1;
+    if (RELEASE.has(to)) e.released += 1;
+    if (DONE.has(to)) {
+      e.completed += 1;
+      e.completedTickets.add(id);
+    }
+  });
+
+  // Driven end-to-end: closed the ticket AND made at least one earlier move on it.
+  const movesPerActorTicket = new Map<string, number>();
+  logs.forEach((l) => {
+    if (!l.to || !l.actor) return;
+    const id = String(l.serviceId || "").trim();
+    if (!scopedIds.has(id)) return;
+    const key = `${norm(l.actor)}|${id}`;
+    movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
+  });
+
+  // Assignment fields, used only for the idle check.
+  const assigned = new Map<string, Set<string>>();
+  services.forEach((s) => {
+    const id = String(s.serviceId || "").trim();
+    if (!id) return;
+    const names = [s.adminRep, s.receivingStaff, s.technician]
+      .flatMap((v) => String(v ?? "").split(","))
+      .map((n) => n.trim())
+      .filter(Boolean);
+    names.forEach((n) => {
+      const key = norm(n);
+      const set = assigned.get(key) || new Set<string>();
+      set.add(id);
+      assigned.set(key, set);
+      get(n);
+    });
+  });
+
+  return Array.from(map.entries())
+    .map(([key, v]) => {
+      const driven = Array.from(v.completedTickets).filter(
+        (id) => (movesPerActorTicket.get(`${key}|${id}`) || 0) > 1,
+      ).length;
+      const assignedIds = assigned.get(key) || new Set<string>();
+      const untouched = Array.from(assignedIds).filter((id) => !v.tickets.has(id)).length;
+      return {
+        name: v.name,
+        role: v.role,
+        moves: v.moves,
+        ticketsTouched: v.tickets.size,
+        diagnosed: v.diagnosed,
+        toRepair: v.toRepair,
+        released: v.released,
+        completed: v.completed,
+        drivenEndToEnd: driven,
+        assignedUntouched: untouched,
+      };
+    })
+    .sort((a, b) => b.moves - a.moves || b.completed - a.completed);
 };
 
 export interface ServiceTiming {

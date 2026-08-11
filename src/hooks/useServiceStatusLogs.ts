@@ -12,7 +12,7 @@ export const useServiceStatusLogs = () => {
     queryFn: async (): Promise<StatusLogEntry[]> => {
       const { data, error } = await supabase
         .from("activity_logs")
-        .select("action, entity_id, entity_type, created_at")
+        .select("action, entity_id, entity_type, created_at, actor_name, changes")
         .eq("entity_type", "service")
         .order("created_at", { ascending: true })
         .limit(10000);
