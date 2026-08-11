@@ -666,6 +666,10 @@ const ManageClient = () => {
       [updatePriority, serviceData.priority || ""],
       [updateChiefComplaint, serviceData.chiefComplaint || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
+      [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
+      [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
+
       [updateServices, serviceData.service || ""],
       [String(updateServiceCost ?? ""), String(serviceData.serviceCost ?? "")],
       [updateTimeFrame, serviceData.timeFrame || ""],
@@ -1084,6 +1088,10 @@ const ManageClient = () => {
           { label: "Priority", before: serviceData.priority, after: updatePriority },
           { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
+          { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
+          { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
+
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Services", before: serviceData.service, after: updateServices },
           { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost },
