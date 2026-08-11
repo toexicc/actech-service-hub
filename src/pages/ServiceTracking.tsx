@@ -1025,6 +1025,24 @@ const ServiceTracking = () => {
             <div className="grid gap-6 lg:grid-cols-3">
               {/* LEFT COLUMN – main */}
               <div className="lg:col-span-2 space-y-6">
+                {/* Closed-status banner */}
+                {isClosed && (
+                  <div className="rounded-2xl border border-amber-300/60 bg-amber-50 p-4 shadow-[var(--shadow-soft)]">
+                    <div className="flex items-start gap-3">
+                      {offPath && (
+                        <span
+                          title={clientStatusLabel(currentStatus)}
+                          className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border shrink-0 " + offPath.tone}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                          {offPath.label}
+                        </span>
+                      )}
+                      <p className="text-sm text-amber-900">{closedBanner}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Repair Ticket card */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] rounded-2xl overflow-hidden">
                   <CardContent className="p-6 space-y-5">
@@ -1056,6 +1074,7 @@ const ServiceTracking = () => {
                     </div>
 
                     {/* Mini stats */}
+                    {!isClosed && (
                     <div className={showMoney ? "grid grid-cols-3 gap-3" : "grid grid-cols-1 gap-3"}>
                       {showMoney && (
                         <div className="rounded-xl border border-border/60 bg-background/60 p-3">
