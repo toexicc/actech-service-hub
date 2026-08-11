@@ -685,7 +685,14 @@ const ServiceUpdate = () => {
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
         setUpdateTechnicianReport(data.data.technicianReport || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
-        setUpdateAIDiagnosis(data.data.aiDiagnosis || ""); // Column AF - AI formatted diagnosis
+        {
+          const seg = diagnosisFieldsFromRecord(data.data);
+          setUpdateAIDiagnosis(seg.diagnosis);
+          setUpdateDiagWarranty(seg.warranty);
+          setUpdateDiagOtherNotes(seg.otherNotes);
+          setUpdateDiagSummary(seg.summary);
+        }
+
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
 
         // Initialize discount and final cost
@@ -955,6 +962,10 @@ const ServiceUpdate = () => {
         // which shares the `diagnosis` field with /manage-client and /track.
         technician_diagnosis: updateTechnicianDiagnosis,
         diagnosis: (updateAIDiagnosis || "").trim() ? updateAIDiagnosis : updateTechnicianDiagnosis,
+        diagnosis_warranty: updateDiagWarranty || null,
+        diagnosis_other_notes: updateDiagOtherNotes || null,
+        diagnosis_summary: updateDiagSummary || null,
+
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,
