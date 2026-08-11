@@ -842,7 +842,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isLoading]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending]);
+
+  /**
+   * Live per-status counts. They respect every filter EXCEPT the Status
+   * dropdown, so the row always shows the full breakdown of the current view.
+   */
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    STATUS_COUNT_CARDS.forEach((s) => (counts[s] = 0));
+    if (isPending) return counts;
+    services.forEach((service) => {
+      if (!passesFilters(service, false)) return;
+      const status = (service.status || "").trim();
+      if (status in counts) counts[status] += 1;
+    });
+    return counts;
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending]);
 
   const departments = useMemo(() => {
     const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
