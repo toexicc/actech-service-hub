@@ -111,34 +111,65 @@ const enforceAmountPlaceholders = (text: string): string => {
   return out.join("\n");
 };
 
-// Guarantee a "Warranty: {Enter Duration}" line right after the Service
-// Breakdown block, regardless of what the model produced.
+// Guarantee a "Warranty:" block right after the Service Breakdown block, with
+// one line per quoted service: "<Service Name> - {Enter Warranty Duration}".
+const breakdownServiceNames = (lines: string[]): string[] => {
+  const idx = lines.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
+  if (idx === -1) return [];
+  const names: string[] = [];
+  for (let i = idx + 1; i < lines.length; i++) {
+    const bare = stripDecor(lines[i]);
+    if (bare === "") continue;
+    if (OTHER_SECTION.test(bare)) break;
+    if (/^option\s+[a-z]\b/i.test(bare)) continue;
+    const name = bare
+      .split(/\s+-\s*php/i)[0]
+      .replace(/[-:]\s*$/, "")
+      .trim();
+    if (name) names.push(name);
+  }
+  return names;
+};
+
 const enforceWarrantyLine = (text: string): string => {
   const lines = String(text ?? "").split("\n");
-  // Normalise any warranty line the model already produced.
-  let hasWarranty = false;
-  const normalised = lines.map((line) => {
-    if (/^\s*warranty\s*:/i.test(stripDecor(line))) {
-      hasWarranty = true;
-      return WARRANTY_LINE;
-    }
-    return line;
-  });
-  if (hasWarranty) return normalised.join("\n");
+  const names = breakdownServiceNames(lines);
+  const block = [
+    "Warranty:",
+    ...(names.length ? names : ["Service"]).map((n) => `${n} - ${WARRANTY_PLACEHOLDER}`),
+  ];
 
-  const headingIdx = normalised.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
-  if (headingIdx === -1) return normalised.join("\n");
+  // Drop whatever warranty block the model produced.
+  const cleaned: string[] = [];
+  let inWarranty = false;
+  for (const line of lines) {
+    const bare = stripDecor(line);
+    if (/^warranty\s*:?/i.test(bare)) {
+      inWarranty = true;
+      continue;
+    }
+    if (inWarranty) {
+      if (bare === "") continue;
+      if (OTHER_SECTION.test(bare) && !/^warranty\b/i.test(bare)) inWarranty = false;
+      else continue;
+    }
+    cleaned.push(line);
+  }
+
+  const headingIdx = cleaned.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
+  if (headingIdx === -1) return cleaned.join("\n");
 
   let end = headingIdx + 1;
-  while (end < normalised.length) {
-    const bare = stripDecor(normalised[end]);
+  while (end < cleaned.length) {
+    const bare = stripDecor(cleaned[end]);
     if (bare === "") break;
     if (OTHER_SECTION.test(bare)) break;
     end++;
   }
-  normalised.splice(end, 0, "", WARRANTY_LINE);
-  return normalised.join("\n");
+  cleaned.splice(end, 0, "", ...block);
+  return cleaned.join("\n");
 };
+
 
 
 
