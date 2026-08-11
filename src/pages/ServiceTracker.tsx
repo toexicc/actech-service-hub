@@ -702,102 +702,103 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return Array.from(techs).sort();
   }, [services]);
 
+  /**
+   * All filters are AND-combined. `includeStatus` lets the status count cards
+   * reuse the exact same predicate while ignoring the Status dropdown itself.
+   */
+  const passesFilters = (service: any, includeStatus: boolean): boolean => {
+    const normName = (v?: string) => (v || "").trim().toLowerCase();
+
+    // Search filter - search by Service ID or Client Name
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
+      const matchesServiceId = service.serviceId?.toLowerCase().includes(query);
+      const matchesClientName = service.clientName?.toLowerCase().includes(query);
+      if (!matchesServiceId && !matchesClientName) return false;
+    }
+
+    // Device type filter
+    if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) return false;
+
+    // Technician filter — tolerates multiple techs / spacing / casing.
+    if (technicianFilter !== "all") {
+      const assignedTechnicians = (service.technician || "").split(",").map((t: string) => normName(t));
+      if (!assignedTechnicians.includes(normName(technicianFilter))) return false;
+    }
+
+    // Department filter — applies alongside the technician filter, not instead of it.
+    if (departmentFilter !== "all") {
+      const assigned = (service.technician || "").split(",").map(normName).filter(Boolean);
+      const matchesDept =
+        assigned.some((n) =>
+          techniciansWithDept.some((t) => normName(t.name) === n && t.department === departmentFilter),
+        ) ||
+        (service.technicianDepartment || "")
+          .split(",")
+          .map((d: string) => d.trim())
+          .includes(departmentFilter);
+      if (!matchesDept) return false;
+    }
+
+    // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
+    // the "All" and "Cancelled / RTO / On Hold" tabs.
+    const cls = classifyStatus(service.status);
+    if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
+    if (activeTab === "ongoing" && cls !== "active") return false;
+    if (activeTab === "completed" && cls !== "completed") return false;
+    if (activeTab === "closed" && cls !== "closed") return false;
+    if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
+    if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
+
+    // Status filter
+    if (includeStatus && statusFilter !== "all" && service.status !== statusFilter) return false;
+
+    // Date range filter — by the ticket's service / received date.
+    if (startDate || endDate) {
+      const serviceDate =
+        parseServiceDate(service.serviceDate) ||
+        parseServiceDate(service.dateReceived) ||
+        parseServiceDate(service.timestamp);
+      if (!serviceDate) return false;
+      serviceDate.setHours(0, 0, 0, 0);
+
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (serviceDate < start) return false;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (serviceDate > end) return false;
+      }
+    }
+
+    // Due date filter
+    if (dueDateFilter !== "all") {
+      const daysUntilDue = getDaysUntilDue(service.targetDate);
+      if (dueDateFilter === "overdue") {
+        if (!isOverdue(service.targetDate, service.status)) return false;
+      } else if (dueDateFilter === "dueToday") {
+        if (daysUntilDue !== 0) return false;
+      } else if (dueDateFilter === "dueSoon") {
+        if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
+      }
+    }
+
+    return true;
+  };
+
   const filteredAndSortedServices = useMemo(() => {
-    // Don't filter while loading to prevent showing unfiltered data
-    if (isLoading) {
+    // Only suppress the list on the very first load, so filters keep working
+    // while a background refresh is in flight.
+    if (isPending) {
       return [];
     }
 
-    let filtered = services.filter(service => {
-      // Do NOT filter out any services by status - show ALL services
+    let filtered = services.filter((service) => passesFilters(service, true));
 
-      // Search filter - search by Service ID or Client Name
-      if (debouncedSearch.trim()) {
-        const query = debouncedSearch.toLowerCase();
-        const matchesServiceId = service.serviceId?.toLowerCase().includes(query);
-        const matchesClientName = service.clientName?.toLowerCase().includes(query);
-        
-        if (!matchesServiceId && !matchesClientName) {
-          return false;
-        }
-      }
-
-      // Device type filter
-      if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) {
-        return false;
-      }
-
-      // Technician filter - if a specific technician is selected, show services where they are assigned
-      // Supports multiple technicians (comma-separated) and tolerates spacing/casing differences.
-      if (technicianFilter !== "all") {
-        const normName = (v?: string) => (v || "").trim().toLowerCase();
-        const assignedTechnicians = (service.technician || "").split(",").map((t) => normName(t));
-        if (!assignedTechnicians.includes(normName(technicianFilter))) {
-          return false;
-        }
-      } else if (departmentFilter !== "all") {
-        // Department filter — a ticket matches when ANY assigned technician
-        // belongs to the selected department (tickets can have several techs).
-        const normName = (v?: string) => (v || "").trim().toLowerCase();
-        const assigned = (service.technician || "").split(",").map(normName).filter(Boolean);
-        const matchesDept =
-          assigned.some((n) =>
-            techniciansWithDept.some((t) => normName(t.name) === n && t.department === departmentFilter),
-          ) ||
-          (service.technicianDepartment || "")
-            .split(",")
-            .map((d) => d.trim())
-            .includes(departmentFilter);
-        if (!matchesDept) {
-          return false;
-        }
-      }
-
-
-      // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
-      // the "All" and "Cancelled / RTO / On Hold" tabs. They never leak into
-      // Within the Day, Walk In, Ongoing or Completed.
-      const cls = classifyStatus(service.status);
-      if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
-      if (activeTab === "ongoing" && cls !== "active") return false;
-      if (activeTab === "completed" && cls !== "completed") return false;
-      if (activeTab === "closed" && cls !== "closed") return false;
-      if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
-      if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
-      // "all" — no additional filter
-
-
-      // Status filter
-      if (statusFilter !== "all" && service.status !== statusFilter) {
-        return false;
-      }
-
-      // Date range filter — filters by the ticket's SERVICE (received) date.
-      // Tickets without a parseable service date are hidden while a range is on.
-      if (startDate || endDate) {
-        const serviceDate = parseServiceDate(service.timestamp || service.dateReceived);
-        if (!serviceDate) return false;
-        serviceDate.setHours(0, 0, 0, 0);
-
-        if (startDate) {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          if (serviceDate < start) return false;
-        }
-
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (serviceDate > end) return false;
-        }
-      }
-
-
-      // Due date filter
-      if (dueDateFilter !== "all") {
-        const daysUntilDue = getDaysUntilDue(service.targetDate);
-        
-        if (dueDateFilter === "overdue") {
           if (!isOverdue(service.targetDate, service.status)) return false;
         } else if (dueDateFilter === "dueToday") {
           if (daysUntilDue !== 0) return false;
