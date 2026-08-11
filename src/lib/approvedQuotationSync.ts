@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateQuotationPDF, type BreakdownItem } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf } from "@/lib/servicePdfStorage";
 import { logSystemTicketActivity } from "@/lib/activityLogger";
+import { composeClientDiagnosis } from "@/lib/diagnosisSections";
+
 
 import {
   lineDisplayName,
