@@ -2388,33 +2388,33 @@ const ManageClient = () => {
                               size="sm"
                               onClick={() => {
                                 const ok = window.confirm(
-                                  "Approve this AI Diagnosis?\n\nThe SUMMARY section will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
+                                  "Approve this AI Diagnosis?\n\nThe Summary will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
                                 );
                                 if (!ok) return;
-                                const summaryMatch = (updateAIDiagnosis || "").match(
-                                  /SUMMARY:\s*([\s\S]+?)(?=\n\s*\n|\n[A-Z][A-Z ]+:|$)/i
-                                );
+                                const summary = (updateDiagSummary || "").trim();
                                 const parsedLines = parseQuotedBreakdown(updateAIDiagnosis || "");
                                 if (parsedLines.length) {
                                   setQuotedLines(parsedLines);
-                                  const total = quotedSelectedTotal(parsedLines);
-                                  if (total > 0) {
-                                    setUpdateServiceCost(total.toFixed(2));
-                                    const disc =
-                                      discountType === "percentage"
-                                        ? (total * (parseFloat(discountValue) || 0)) / 100
-                                        : parseFloat(discountValue) || 0;
-                                    setDiscountAmount(disc);
-                                    setFinalCost(computeFinalCost(total, disc, vatRequested));
-                                  }
                                 }
-                                if (summaryMatch && summaryMatch[1]) {
-                                  setUpdateServices(summaryMatch[1].trim());
+                                const total = quotedSelectedTotal(
+                                  parsedLines.length ? parsedLines : quotedLines,
+                                );
+                                if (total > 0) {
+                                  setUpdateServiceCost(total.toFixed(2));
+                                  const disc =
+                                    discountType === "percentage"
+                                      ? (total * (parseFloat(discountValue) || 0)) / 100
+                                      : parseFloat(discountValue) || 0;
+                                  setDiscountAmount(disc);
+                                  setFinalCost(computeFinalCost(total, disc, vatRequested));
+                                }
+                                if (summary) {
+                                  setUpdateServices(summary);
                                   toast({ title: "Summary copied to Service/s" });
                                 } else {
                                   toast({
-                                    title: "Error",
-                                    description: "Could not find 'SUMMARY' section in AI diagnosis",
+                                    title: "Summary is empty",
+                                    description: "Fill in the Summary field, then approve again.",
                                     variant: "destructive",
                                   });
                                 }
@@ -2426,7 +2426,7 @@ const ManageClient = () => {
                           </div>
                           <Textarea
                             id="aiDiagnosisDisplay"
-                            placeholder="AI Diagnosis"
+                            placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
                             value={updateAIDiagnosis}
                             onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
                             disabled={!isEditingAIDiagnosis}
@@ -2440,6 +2440,51 @@ const ManageClient = () => {
                             }}
                           />
                         </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisWarranty">Warranty:</Label>
+                            <Textarea
+                              id="diagnosisWarranty"
+                              placeholder="e.g. Screen replacement: 3 months"
+                              value={updateDiagWarranty}
+                              onChange={(e) => setUpdateDiagWarranty(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisOtherNotes">Other Notes:</Label>
+                            <Textarea
+                              id="diagnosisOtherNotes"
+                              placeholder="Anything else the client should know"
+                              value={updateDiagOtherNotes}
+                              onChange={(e) => setUpdateDiagOtherNotes(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisSummary">Summary:</Label>
+                          <Textarea
+                            id="diagnosisSummary"
+                            placeholder="One-line summary of the repair needed (internal / Service/s field)"
+                            value={updateDiagSummary}
+                            onChange={(e) => setUpdateDiagSummary(e.target.value)}
+                            rows={2}
+                            className="min-h-[60px] resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            The Summary is not shown to the client on the quotation form or the tracking page.
+                          </p>
+                        </div>
+
+                        <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
+                          {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
+                        </div>
+
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
