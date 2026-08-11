@@ -2000,23 +2000,33 @@ const ManageClient = () => {
                 />
 
                 {(() => {
-                  const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
+                  const rawApproved = ((serviceData?.approvedServices ?? []) as string[]).filter(Boolean);
+                  const approved = rawApproved.map((s) =>
                     String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
                   );
-                  const savedUnapproved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).filter(
+                  const savedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+                  const savedKeys = savedLines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
+                  const savedUnapproved = savedLines.filter(
                     (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
+                  );
+                  // Services the client approved that are no longer on the ticket.
+                  const replacedApproved = rawApproved.filter(
+                    (s, i) => !savedKeys.includes(approved[i]),
                   );
                   const hadApproval =
                     approved.length > 0 ||
                     !!(serviceData as any)?.clientApprovedAt ||
                     !!(serviceData as any)?.approvalLocked;
-                  if (!hadApproval || savedUnapproved.length === 0) return null;
+                  if (!hadApproval || (savedUnapproved.length === 0 && replacedApproved.length === 0)) return null;
 
                   return (
                     <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
                       <p className="text-xs text-amber-800">
-                        {savedUnapproved.length} saved service line(s) haven't been approved yet. Resend the approval so
-                        the client can approve the new items — already approved services stay approved.
+                        {replacedApproved.length > 0
+                          ? `The services changed since the client approved (${replacedApproved.join(", ")} ${
+                              replacedApproved.length > 1 ? "are" : "is"
+                            } no longer on this ticket). Resend the approval so the client can approve the current quote.`
+                          : `${savedUnapproved.length} saved service line(s) haven't been approved yet. Resend the approval so the client can approve the new items — already approved services stay approved.`}
                       </p>
                       <Button
                         type="button"
@@ -2031,6 +2041,7 @@ const ManageClient = () => {
                     </div>
                   );
                 })()}
+
 
 
 
