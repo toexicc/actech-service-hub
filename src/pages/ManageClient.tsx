@@ -2648,25 +2648,46 @@ const ManageClient = () => {
                   />
                 </div>
 
-                <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <div
+                  className={cn(
+                    "space-y-2 rounded-xl border p-3",
+                    breakdownMissing && quotedLines.length === 0
+                      ? "border-destructive/60 bg-destructive/5"
+                      : "border-primary/20 bg-primary/5",
+                  )}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <Label>Service Breakdown (shown to the client on /track):</Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true, required: false }])
-                      }
-                    >
-                      Add Line
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {breakdownMissing && quotedLines.length === 0 && (
+                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                          Required before status change
+                        </span>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true, required: false }])
+                        }
+                      >
+                        Add Line
+                      </Button>
+                    </div>
                   </div>
                   {quotedLines.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                      className={cn(
+                        "text-xs",
+                        breakdownMissing ? "text-destructive" : "text-muted-foreground",
+                      )}
+                    >
                       Click Approve on the AI Diagnosis to pull the service breakdown here, or add lines manually.
+                      This must be filled in and saved before the status can move past the diagnosis stage.
                     </p>
                   ) : (
+
                     <div className="space-y-2">
                       {quotedLines.map((line, i) => (
                         <div
