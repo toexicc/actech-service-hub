@@ -766,6 +766,8 @@ const ServiceTracking = () => {
 
 
   const chooseOption = (i: number, label: string) => {
+    const line = quotedLines[i];
+    if (!line || isLineApproved(line)) return;
     setOptionChoice((prev) => ({ ...prev, [i]: label }));
     setSelectedIdx((prev) => (prev.includes(i) ? prev : [...prev, i]));
   };
