@@ -964,17 +964,20 @@ const ManageClient = () => {
       setQuotedProblems({});
     }
 
-    // Clients approve the quoted breakdown on /track, so there must be at least
-    // one priced line before the ticket is handed to them.
-    if (updateStatus === "Waiting to Proceed" && !offPathMove && quotedLines.length === 0) {
+    // Clients approve the saved Service Breakdown on /track, so the ticket
+    // cannot leave the diagnosis stage until priced lines exist and are saved.
+    if (!offPathMove && breakdownRequired && quotedLines.length === 0) {
+      setBreakdownMissing(true);
       toast({
         title: "Service Breakdown required",
         description:
-          "Add the quoted services with their amounts (Approve the AI diagnosis to fill them in) before moving to Waiting to Proceed.",
+          "Fill in the Service Breakdown (click Approve on the AI Diagnosis to pull the lines in, or add them manually) and save it before changing the status.",
         variant: "destructive",
       });
       return;
     }
+    setBreakdownMissing(false);
+
 
 
 
