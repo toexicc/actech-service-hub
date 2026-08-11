@@ -1042,6 +1042,14 @@ const ManageClient = () => {
         const n = l.name.trim().toLowerCase();
         return n && !approvedNames.includes(n) && !savedNames.includes(n);
       });
+      // Lines currently in the editor, for detecting replaced/removed services.
+      const currentNames = quotedLines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
+      // Approved services that are no longer part of the ticket (replaced).
+      const rawApproved = ((serviceData?.approvedServices ?? []) as string[]).filter(Boolean);
+      const stillApproved = rawApproved.filter((s) =>
+        currentNames.includes(String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, "")),
+      );
+      const removedApproved = rawApproved.filter((s) => !stillApproved.includes(s));
       // Any prior approval state counts as a baseline: an explicit client
       // approval, a locked approval, or the pre-approve toggle being on.
       const hadApprovalBaseline =
@@ -1049,8 +1057,21 @@ const ManageClient = () => {
         savedNames.length > 0 ||
         !!(serviceData as any)?.approvalLocked ||
         !!(serviceData as any)?.clientApprovedAt;
-      const reopenApproval = additionalLines.length > 0 && hadApprovalBaseline;
+      const reopenApproval = (additionalLines.length > 0 || removedApproved.length > 0) && hadApprovalBaseline;
       const disableAutoApprove = reopenApproval && !!(serviceData as any)?.autoApproveDiagnosis;
+      // Recompute what is still pending once stale approvals are pruned.
+      const prunedPending = reopenApproval
+        ? quotedLines
+            .map((l) => l.name.trim())
+            .filter(
+              (n) =>
+                n &&
+                !stillApproved.some(
+                  (s) => String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, "") === n.toLowerCase(),
+                ),
+            )
+        : [];
+
 
 
       // Mirror to Supabase so dashboards / search reflect the change immediately
