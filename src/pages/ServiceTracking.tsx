@@ -1510,9 +1510,10 @@ const ServiceTracking = () => {
                     <p className="text-xs text-muted-foreground">Settle in person on pickup. No online payments are required through this page.</p>
                   </CardContent>
                 </Card>
+                )}
 
                 {/* Customer-facing admin notes */}
-                {(serviceData as any).customerNotes?.trim() && (
+                {(!isClosed && (serviceData as any).customerNotes?.trim()) && (
                   <Card className="border-[hsl(var(--surface-note-border))] bg-[hsl(var(--surface-note))] shadow-[var(--shadow-soft)] rounded-2xl">
                     <CardContent className="p-6">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Notes from the team</p>
