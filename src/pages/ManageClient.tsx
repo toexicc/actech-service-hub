@@ -2437,7 +2437,7 @@ const ManageClient = () => {
                               size="sm"
                               onClick={() => {
                                 const ok = window.confirm(
-                                  "Approve this AI Diagnosis?\n\nThe Summary will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
+                                  "Approve this AI Diagnosis?\n\nThe draft Service Breakdown lines will be moved into the client-facing Service Breakdown and the Summary copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
                                 );
                                 if (!ok) return;
                                 const summary = (updateDiagSummary || "").trim();
