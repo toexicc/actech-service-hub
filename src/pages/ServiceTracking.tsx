@@ -1602,6 +1602,8 @@ const ServiceTracking = () => {
                       </div>
                       {!isClosed && (
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div>
+                          <p className="text-sm font-medium">Client Intake Form</p>
                           <p className="text-xs text-muted-foreground">Check-in receipt</p>
                         </div>
                         <Button
@@ -1614,6 +1616,8 @@ const ServiceTracking = () => {
                           PDF
                         </Button>
                       </div>
+                      )}
+                      {!isClosed && (
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
                         <div>
                           <p className="text-sm font-medium">Service Quotation</p>
@@ -1629,6 +1633,7 @@ const ServiceTracking = () => {
                           PDF
                         </Button>
                       </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
