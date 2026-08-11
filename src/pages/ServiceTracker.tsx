@@ -1198,29 +1198,25 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               <div className="space-y-2 lg:col-span-4">
                 <Label>Quick Date Filters</Label>
                 <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => applyDatePreset("last7")}
-                  >
-                    Last 7 Days
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => applyDatePreset("last30")}
-                  >
-                    Last 30 Days
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => applyDatePreset("thisMonth")}
-                  >
-                    This Month
-                  </Button>
-                  <Button 
-                    variant="outline" 
+                  {([
+                    ["today", "Today"],
+                    ["yesterday", "Yesterday"],
+                    ["thisWeek", "This Week"],
+                    ["last7", "Last 7 Days"],
+                    ["last30", "Last 30 Days"],
+                    ["thisMonth", "This Month"],
+                  ] as [DatePreset, string][]).map(([preset, label]) => (
+                    <Button
+                      key={preset}
+                      variant={activePreset === preset ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => applyDatePreset(preset)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => applyDatePreset("clear")}
                   >
