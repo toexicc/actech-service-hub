@@ -237,6 +237,30 @@ const ServiceUpdate = () => {
   const [addlRepairReason, setAddlRepairReason] = useState("");
   const [addlRepairSending, setAddlRepairSending] = useState(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
+  // Absent / on-leave technicians are hidden so they don't get assigned, but
+  // technicians already on this ticket are always kept so the field never blanks.
+  const technicians = useMemo(() => {
+    const assigned = new Set(
+      updateTechnician
+        .split(",")
+        .map((n) => n.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    return technicianData
+      .filter((staff) => {
+        if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
+        if (showUnavailableTechs || !availability) return true;
+        if (availability.isOnLeave(staff.name)) return false;
+        if (!availability.hasAttendanceToday) return true;
+        return availability.isAvailable(staff.name);
+      })
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || "",
+        displayName: `${staff.name} - ${staff.department || ""}`,
+      }));
+  }, [technicianData, availability, showUnavailableTechs, updateTechnician]);
+
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
   const [updateTechnicianReport, setUpdateTechnicianReport] = useState("");
