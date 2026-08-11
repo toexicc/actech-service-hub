@@ -1090,23 +1090,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 <Label>Status</Label>
                 <Select
                   value={statusFilter}
-                  onValueChange={(v) => {
-                    setStatusFilter(v);
-                    // Only move the tab when the chosen status could never show
-                    // up in the current tab; otherwise both filters combine.
-                    if (v !== "all") {
-                      const cls = classifyStatus(v);
-                      const tabAllows =
-                        activeTab === "all" ||
-                        (activeTab === "closed" && cls === "closed") ||
-                        (activeTab === "completed" && cls === "completed") ||
-                        (activeTab === "ongoing" && cls === "active") ||
-                        ((activeTab === "within" || activeTab === "walkin") && cls !== "closed" && cls !== "completed");
-                      if (!tabAllows) {
-                        setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
-                      }
-                    }
-                  }}
+                  onValueChange={selectStatus}
                 >
 
                   <SelectTrigger>
