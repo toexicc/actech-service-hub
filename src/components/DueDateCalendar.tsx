@@ -130,7 +130,7 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
             className="pointer-events-auto w-full rounded-xl border bg-card p-4"
           />
         </div>
-        <div className="min-w-0 flex flex-col h-full">
+        <div className="min-w-0 flex flex-col h-full min-h-0">
           <div className="flex items-baseline justify-between mb-3">
             <h3 className="text-sm font-semibold text-foreground">
               {format(selected, "EEEE, MMMM d")}
@@ -144,7 +144,8 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
               No services due on this day.
             </div>
           ) : (
-            <ul className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+            <ul className="space-y-2 flex-1 min-h-0 overflow-y-auto overscroll-contain pr-2 pb-2">
+
               {dueOnSelected.map((s) => (
                 <li key={s.serviceId}>
                   <button
