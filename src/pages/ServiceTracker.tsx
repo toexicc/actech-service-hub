@@ -59,6 +59,17 @@ type SortField = "timestamp" | "technician" | "inService" | "targetDate";
 type SortOrder = "asc" | "desc";
 type DatePreset = "today" | "yesterday" | "thisWeek" | "last7" | "last30" | "thisMonth" | "clear";
 
+/** Statuses shown as live count cards under the summary row. */
+const STATUS_COUNT_CARDS = [
+  "Pending Diagnosis",
+  "Confirmed Diagnosis",
+  "Waiting to Proceed",
+  "Ongoing Service",
+  "Done Repair - For Release",
+  "Done Repair - Advise Client",
+  "Completed",
+] as const;
+
 const ServiceTracker = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
