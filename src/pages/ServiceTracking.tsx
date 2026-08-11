@@ -692,8 +692,11 @@ const ServiceTracking = () => {
     : [];
   const normKey = (s: string) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const approvedKeys = new Set(alreadyApproved.map(normKey));
-  const isLineLocked = (line: QuotedLine, i: number) =>
-    line.required || approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+  /** Already confirmed by the client earlier — fully read-only. */
+  const isLineApproved = (line: QuotedLine) =>
+    approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+  /** Cannot untick (required lines stay ticked), but options remain selectable. */
+  const isLineLocked = (line: QuotedLine, i: number) => line.required || isLineApproved(line);
 
   /** Lines with the client's live picks applied (index-keyed). */
   const liveLines: QuotedLine[] = quotedLines.map((l, i) => ({
