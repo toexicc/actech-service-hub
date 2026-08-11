@@ -1417,7 +1417,7 @@ const ServiceTracking = () => {
                 )}
 
                 {/* AI Report + report photos */}
-                {showAiReport && (
+                {showAiReport && !isClosed && (
                   <div className="space-y-6">
                     <AiReportCard report={serviceData.aiReport} title="Service Report" />
                   </div>
