@@ -1424,6 +1424,7 @@ const ServiceTracking = () => {
                 )}
 
                 {/* Quote card */}
+                {!isClosed && (
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
