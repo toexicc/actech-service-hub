@@ -382,6 +382,10 @@ export const buildActorOutput = (
     const e = get(l.actor!, l.role);
     e.moves += 1;
     e.tickets.add(id);
+    if (l.created) {
+      e.diagnosed += 1;
+      return;
+    }
     const to = norm(l.to);
     if (CONFIRMED.has(to)) e.diagnosed += 1;
     if (TO_REPAIR.has(to)) e.toRepair += 1;
