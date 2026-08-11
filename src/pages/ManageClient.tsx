@@ -123,7 +123,7 @@ const ManageClient = () => {
   const [isUpdatingQuotation, setIsUpdatingQuotation] = useState(false);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
-  const [isEditingAIDiagnosis, setIsEditingAIDiagnosis] = useState(false);
+  
   const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || '');
   const [technicianReport, setTechnicianReport] = useState("");
   const [updateServiceReport, setUpdateServiceReport] = useState("");
@@ -676,7 +676,7 @@ const ManageClient = () => {
   /** True when the form holds edits that a silent refresh would discard. */
   const isFormDirty = (() => {
     if (!serviceData) return false;
-    if (isEditingDetails || isEditingAIDiagnosis || isEditingServiceReport) return true;
+    if (isEditingDetails || isEditingServiceReport) return true;
     const pairs: Array<[any, any]> = [
       [updateStatus, serviceData.status || ""],
       [updateAdminRep, serviceData.adminRep || ""],
@@ -2428,9 +2428,17 @@ const ManageClient = () => {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => setIsEditingAIDiagnosis(!isEditingAIDiagnosis)}
+                              onClick={() => {
+                                if (!window.confirm("Clear all AI Diagnosis fields?")) return;
+                                setUpdateAIDiagnosis("");
+                                setUpdateDiagBreakdown("");
+                                setUpdateDiagWarranty("");
+                                setUpdateDiagOtherNotes("");
+                                setUpdateDiagSummary("");
+                                toast({ title: "AI Diagnosis fields cleared" });
+                              }}
                             >
-                              {isEditingAIDiagnosis ? "Lock" : "Edit"}
+                              Clear
                             </Button>
                             <Button
                               type="button"
@@ -2482,11 +2490,7 @@ const ManageClient = () => {
                             placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
                             value={updateAIDiagnosis}
                             onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                            disabled={!isEditingAIDiagnosis}
-                            className={cn(
-                              "min-h-[100px] resize-none",
-                              !isEditingAIDiagnosis && "bg-muted cursor-not-allowed opacity-75"
-                            )}
+                            className="min-h-[100px] resize-none"
                             style={{ 
                               minHeight: '100px',
                               height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
@@ -2502,7 +2506,7 @@ const ManageClient = () => {
                             value={updateDiagBreakdown}
                             onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
                             rows={4}
-                            className="min-h-[90px] resize-none font-mono text-sm"
+                            className="min-h-[90px] resize-none"
                           />
                           <p className="text-xs text-muted-foreground">
                             AI writes the breakdown here first. Click Approve above to move these lines into the Service Breakdown shown to the client.

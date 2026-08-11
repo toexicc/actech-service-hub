@@ -1625,6 +1625,23 @@ const ServiceUpdate = () => {
                                 "Format with AI"
                               )}
                             </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={!diagnosisEditable}
+                              onClick={() => {
+                                if (!window.confirm("Clear all AI Diagnosis fields?")) return;
+                                setUpdateAIDiagnosis("");
+                                setUpdateDiagBreakdown("");
+                                setUpdateDiagWarranty("");
+                                setUpdateDiagOtherNotes("");
+                                setUpdateDiagSummary("");
+                                toast({ title: "AI Diagnosis fields cleared" });
+                              }}
+                            >
+                              Clear
+                            </Button>
                           </div>
                           <Label htmlFor="aiDiagnosis">AI Diagnosis (Editable):</Label>
                           <Textarea
@@ -1650,7 +1667,7 @@ const ServiceUpdate = () => {
                             value={updateDiagBreakdown}
                             onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
                             rows={4}
-                            className="min-h-[90px] resize-none font-mono text-sm"
+                            className="min-h-[90px] resize-none"
                           />
                           <p className="text-xs text-muted-foreground">
                             AI writes the breakdown here first. It only moves into the client-facing Service Breakdown once an admin approves the diagnosis.
