@@ -799,16 +799,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
     let filtered = services.filter((service) => passesFilters(service, true));
 
-          if (!isOverdue(service.targetDate, service.status)) return false;
-        } else if (dueDateFilter === "dueToday") {
-          if (daysUntilDue !== 0) return false;
-        } else if (dueDateFilter === "dueSoon") {
-          if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
-        }
-      }
 
-      return true;
-    });
 
     // Sort: Put overdue services at the top, and completed/closed/cancelled at the bottom
     filtered.sort((a, b) => {
