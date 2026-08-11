@@ -1624,6 +1624,55 @@ const ServiceUpdate = () => {
                             }}
                           />
                         </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisWarranty">Warranty:</Label>
+                            <Textarea
+                              readOnly={!diagnosisEditable}
+                              id="diagnosisWarranty"
+                              placeholder="e.g. Screen replacement: 3 months"
+                              value={updateDiagWarranty}
+                              onChange={(e) => setUpdateDiagWarranty(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisOtherNotes">Other Notes:</Label>
+                            <Textarea
+                              readOnly={!diagnosisEditable}
+                              id="diagnosisOtherNotes"
+                              placeholder="Anything else the client should know"
+                              value={updateDiagOtherNotes}
+                              onChange={(e) => setUpdateDiagOtherNotes(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisSummary">Summary:</Label>
+                          <Textarea
+                            readOnly={!diagnosisEditable}
+                            id="diagnosisSummary"
+                            placeholder="One-line summary of the repair needed"
+                            value={updateDiagSummary}
+                            onChange={(e) => setUpdateDiagSummary(e.target.value)}
+                            rows={2}
+                            className="min-h-[60px] resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Not shown to the client on the quotation form or the tracking page.
+                          </p>
+                        </div>
+
+                        <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
+                          {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
+                        </div>
+                      </div>
+
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
