@@ -1186,30 +1186,47 @@ const ManageClient = () => {
 
         if (reopenApproval) {
           const names = additionalLines.map((l) => l.name).join(", ");
+          const removedNames = removedApproved.join(", ");
+          const reason = [
+            names ? `added: ${names}` : "",
+            removedNames ? `replaced/removed: ${removedNames}` : "",
+          ]
+            .filter(Boolean)
+            .join(" | ");
           await logActivity({
             serviceId: sid,
             username,
             role,
             activity: disableAutoApprove
-              ? `Diagnosis pre-approval turned off automatically — additional service(s) added beyond what the client approved: ${names}`
-              : `Client approval re-opened automatically — additional service(s) added beyond what the client approved: ${names}`,
-            details: { additionalServices: names },
+              ? `Diagnosis pre-approval turned off automatically — services changed beyond what the client approved (${reason})`
+              : `Client approval re-opened automatically — services changed beyond what the client approved (${reason})`,
+            details: {
+              additionalServices: names,
+              removedApprovedServices: removedNames,
+              approvedServicesAfter: stillApproved.join(", ") || "(none)",
+              pendingServicesAfter: prunedPending.join(", ") || "(none)",
+            },
           });
           setServiceData((prev: any) =>
             prev
               ? {
                   ...prev,
                   approvalLocked: false,
-                  clientApprovedAt: "",
+                  approvedServices: stillApproved,
+                  pendingServices: prunedPending,
+                  ...(stillApproved.length === 0 ? { clientApprovedAt: "" } : {}),
                   ...(disableAutoApprove ? { autoApproveDiagnosis: false } : {}),
                 }
               : prev,
           );
           toast({
             title: disableAutoApprove ? "Pre-approval turned off" : "Approval re-opened",
-            description: "Additional services were added, so the client needs to approve again. Resend the approval.",
+            description: removedNames
+              ? "The services changed, so the client needs to approve again. Resend the approval."
+              : "Additional services were added, so the client needs to approve again. Resend the approval.",
           });
         }
+
 
 
 
