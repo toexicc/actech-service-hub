@@ -1026,6 +1026,10 @@ const ServiceUpdate = () => {
           { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
           { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
+          { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
+          { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
+
           { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
