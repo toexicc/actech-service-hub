@@ -1671,7 +1671,8 @@ const ServiceUpdate = () => {
                         <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
                           {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
                         </div>
-                      </div>
+
+
 
                       </CollapsibleContent>
                     </Collapsible>
