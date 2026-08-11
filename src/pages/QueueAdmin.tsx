@@ -116,6 +116,7 @@ const QueueAdmin = () => {
   const [activeTab, setActiveTab] = useState("queue");
   const [completing, setCompleting] = useState<QueueEntry | null>(null);
   const [releasing, setReleasing] = useState<QueueEntry | null>(null);
+  const [manualRelease, setManualRelease] = useState(false);
 
 
   const filtered = useMemo(() => {
@@ -322,6 +323,11 @@ const QueueAdmin = () => {
               <Button variant="outline" size="sm" onClick={() => window.open("/release", "_blank")}>
                 <ExternalLink className="h-4 w-4 mr-1" /> Open Release Kiosk
               </Button>
+              {isAdminOrManagement && (
+                <Button size="sm" onClick={() => setManualRelease(true)}>
+                  <CheckCircle2 className="h-4 w-4 mr-1" /> Manual release
+                </Button>
+              )}
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 [&>*]:min-w-0">
@@ -400,7 +406,13 @@ const QueueAdmin = () => {
 
         <ConfirmReleaseModal
           entry={releasing}
-          onOpenChange={(open) => !open && setReleasing(null)}
+          manual={manualRelease}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReleasing(null);
+              setManualRelease(false);
+            }
+          }}
           onReleased={() => refetch()}
         />
 
