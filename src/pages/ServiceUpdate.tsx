@@ -15,7 +15,9 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
+import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI } from "@/lib/aiFormatters";
+import { diagnosisFieldsFromRecord, APPROVAL_DISCLAIMER, VAT_DISCLAIMER } from "@/lib/diagnosisSections";
+
 import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
@@ -256,6 +258,10 @@ const ServiceUpdate = () => {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
+  const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
+  const [updateDiagSummary, setUpdateDiagSummary] = useState("");
+
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [updateServiceReport, setUpdateServiceReport] = useState("");
   const [isFormattingReport, setIsFormattingReport] = useState(false);
