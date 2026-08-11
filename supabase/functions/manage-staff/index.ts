@@ -114,6 +114,12 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "update") {
+      const fail = (msg: string) =>
+        new Response(JSON.stringify({ error: msg }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+
       const updates: Record<string, unknown> = {};
       if (body.name !== undefined) updates.name = body.name;
       if (body.username !== undefined) updates.username = body.username;
@@ -123,16 +129,26 @@ Deno.serve(async (req) => {
       if (body.salary_type !== undefined) updates.salary_type = body.salary_type;
       if (body.status !== undefined) updates.status = body.status;
       if (Object.keys(updates).length > 0) {
-        await admin.from("profiles").update(updates).eq("id", body.user_id);
+        const { error } = await admin.from("profiles").update(updates).eq("id", body.user_id);
+        if (error) return fail(`Profile update failed — ${error.message}`);
       }
       if (body.role) {
-        await admin.from("user_roles").delete().eq("user_id", body.user_id);
-        await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
+        const { error: delErr } = await admin.from("user_roles").delete().eq("user_id", body.user_id);
+        if (delErr) return fail(`Role update failed — ${delErr.message}`);
+        const { error: insErr } = await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
+        if (insErr) return fail(`Role update failed — ${insErr.message}`);
       }
+      let passwordChanged = false;
       if (body.password) {
-        await admin.auth.admin.updateUserById(body.user_id, { password: body.password });
+        const { data: pwData, error: pwErr } = await admin.auth.admin.updateUserById(body.user_id, {
+          password: body.password,
+        });
+        if (pwErr || !pwData?.user) {
+          return fail(`Password not saved — ${pwErr?.message || "the account could not be updated"}`);
+        }
+        passwordChanged = true;
       }
-      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true, password_changed: passwordChanged }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (body.action === "delete") {
