@@ -36,7 +36,9 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, type QuotedLine } from "@/lib/serviceApproval";
+import { diagnosisFieldsFromRecord, composeClientDiagnosis } from "@/lib/diagnosisSections";
+
 
 
 
@@ -179,6 +181,10 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       status: pick(sb.status, sheetData.status),
       service: pick(sb.service, sheetData.service),
       aiDiagnosis: pick(sb.diagnosis, sheetData.aiDiagnosis),
+      diagnosisWarranty: (row as any).diagnosis_warranty || "",
+      diagnosisOtherNotes: (row as any).diagnosis_other_notes || "",
+      diagnosisSummary: (row as any).diagnosis_summary || "",
+
       // Internal notes carry the approval trail (parsed, never shown to clients).
       adminNotes: pick(sb.internalAdminNotes, sheetData.adminNotes),
       // Customer-facing "Admin Notes (Customer)" — this is what /track displays.
@@ -673,9 +679,18 @@ const ServiceTracking = () => {
   // Quotation lines finalized (and priced) by the shop. There is no ₱0
   // fallback: an unpriced list can never be approved, so we tell the client the
   // quote is still being finalised instead.
-  const quotedLines: QuotedLine[] = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  const savedQuotedLines: QuotedLine[] = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+  // Fallback for older tickets whose breakdown was never saved as structured
+  // lines: rebuild it from the priced "Service Breakdown" lines in the diagnosis.
+  const fallbackQuotedLines: QuotedLine[] = savedQuotedLines.length
+    ? []
+    : parseQuotedBreakdown(serviceData?.aiDiagnosis || "").filter(
+        (l) => lineEffectiveCost(l) > 0 || !!l.options?.length,
+      );
+  const quotedLines: QuotedLine[] = savedQuotedLines.length ? savedQuotedLines : fallbackQuotedLines;
   const quoteNotReady =
     quotedLines.length === 0 && !!parseServiceBreakdownItems(serviceData?.aiDiagnosis || "").length;
+
 
   const alreadyApproved: string[] = Array.isArray((serviceData as any)?.approvedServices)
     ? (serviceData as any).approvedServices
@@ -718,7 +733,7 @@ const ServiceTracking = () => {
 
   // Pre-tick whatever the shop marked as selected, plus anything already approved.
   useEffect(() => {
-    const lines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+    const lines = quotedLines;
     const approved = new Set(
       (Array.isArray((serviceData as any)?.approvedServices) ? (serviceData as any).approvedServices : []).map(
         (n: string) => normKey(n),
@@ -1135,7 +1150,11 @@ const ServiceTracking = () => {
                 {/* AI Diagnosis */}
                 {showAiDiagnosis && (
                   <div className="space-y-6">
-                    <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
+                    <AiReportCard
+                      report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
+                      title="Service Diagnosis"
+                    />
+
 
 
                     {approvalRecord && (

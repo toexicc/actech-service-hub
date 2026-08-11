@@ -279,14 +279,20 @@ const cleanDiagnosisText = (text: string): string => {
   cleaned = cleaned.replace(/[#*_`]/g, "");
   cleaned = cleaned.replace(/-{3,}/g, "");
 
+  // Repair letter-spaced text ("H e l l o") only. The previous heuristic fired
+  // on any line with a few one-letter words and stripped every space, which is
+  // what produced "Uponinspection,thekeyboard".
   cleaned = cleaned
     .split("\n")
     .map((line) => {
-      const matches = line.match(/\b\w\s+\w/g);
-      if (matches && matches.length > 3) return line.replace(/(\w)\s+(?=\w)/g, "$1");
-      return line;
+      const tokens = line.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length < 6) return line;
+      const singles = tokens.filter((t) => t.replace(/[^A-Za-z0-9]/g, "").length <= 1).length;
+      if (singles / tokens.length < 0.7) return line;
+      return line.replace(/(\w)\s+(?=\w)/g, "$1");
     })
     .join("\n");
+
 
   cleaned = cleaned.replace(/ {2,}/g, " ");
   cleaned = cleaned
@@ -980,12 +986,14 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const availableFirstPage = bottomLimit - diagTop;
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
 
-  // Shrink the diagnosis until it fits the single-page left column.
+  // Shrink the diagnosis until it fits the single-page left column, but never
+  // below 78% — squeezing further collapsed the text into an unreadable block.
   let diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7);
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66, 0.6, 0.55, 0.5, 0.46, 0.42, 0.38, 0.34, 0.3]) {
+  for (const sc of [0.94, 0.9, 0.86, 0.82, 0.78]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
     diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7, sc);
   }
+
 
   const rightRoom = bottomLimit - rightTop;
   const firstPage = doc.getCurrentPageInfo().pageNumber;

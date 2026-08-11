@@ -37,7 +37,9 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
-import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
+import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI } from "@/lib/aiFormatters";
+import { diagnosisFieldsFromRecord, composeClientDiagnosis, APPROVAL_DISCLAIMER, VAT_DISCLAIMER } from "@/lib/diagnosisSections";
+
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
@@ -142,23 +144,9 @@ const ManageClient = () => {
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
   const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
-  // Technicians who are absent (no Time In today) or on leave are hidden so they
-  // don't get assigned. When no attendance exists yet for the day we only hide
-  // staff on leave, otherwise the list would be empty.
-  const technicians = useMemo(() => {
-    return technicianData
-      .filter((staff) => {
-        if (showUnavailableTechs || !availability) return true;
-        if (availability.isOnLeave(staff.name)) return false;
-        if (!availability.hasAttendanceToday) return true;
-        return availability.isAvailable(staff.name);
-      })
-      .map((staff) => ({
-        name: staff.name,
-        department: staff.department || "",
-        displayName: `${staff.name} - ${staff.department || ""}`,
-      }));
-  }, [technicianData, availability, showUnavailableTechs]);
+  // (technician option list is derived further below, once the assigned
+  // technician state exists, so assigned staff are never filtered out)
+
 
 
   const adminStaffOptions = useMemo(() => staffData
@@ -225,10 +213,40 @@ const ManageClient = () => {
   };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
+  // Technicians who are absent (no Time In today) or on leave are hidden so they
+  // don't get assigned. When no attendance exists yet for the day we only hide
+  // staff on leave. Technicians already assigned to this ticket are ALWAYS kept
+  // in the list, otherwise the field renders blank and the assignment is lost.
+  const technicians = useMemo(() => {
+    const assigned = new Set(
+      updateTechnician
+        .split(",")
+        .map((n) => n.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    return technicianData
+      .filter((staff) => {
+        if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
+        if (showUnavailableTechs || !availability) return true;
+        if (availability.isOnLeave(staff.name)) return false;
+        if (!availability.hasAttendanceToday) return true;
+        return availability.isAvailable(staff.name);
+      })
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || "",
+        displayName: `${staff.name} - ${staff.department || ""}`,
+      }));
+  }, [technicianData, availability, showUnavailableTechs, updateTechnician]);
+
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
   const [updateChiefComplaint, setUpdateChiefComplaint] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
+  const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
+  const [updateDiagSummary, setUpdateDiagSummary] = useState("");
+
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
@@ -470,7 +488,14 @@ const ManageClient = () => {
           setUpdateClientType(merged.clientType || "");
           setUpdatePriority(merged.priority || "");
           setUpdateChiefComplaint(merged.chiefComplaint || "");
-          setUpdateAIDiagnosis(merged.aiDiagnosis || "");
+          {
+            const seg = diagnosisFieldsFromRecord(merged);
+            setUpdateAIDiagnosis(seg.diagnosis);
+            setUpdateDiagWarranty(seg.warranty);
+            setUpdateDiagOtherNotes(seg.otherNotes);
+            setUpdateDiagSummary(seg.summary);
+          }
+
           setUpdateServices(merged.service || "");
           setUpdateServiceCost(merged.serviceCost || "");
       setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
@@ -557,7 +582,14 @@ const ManageClient = () => {
       setUpdateClientType(merged.clientType || "");
       setUpdatePriority(merged.priority || "");
       setUpdateChiefComplaint(merged.chiefComplaint || "");
-      setUpdateAIDiagnosis(merged.aiDiagnosis || "");
+      {
+        const seg = diagnosisFieldsFromRecord(merged);
+        setUpdateAIDiagnosis(seg.diagnosis);
+        setUpdateDiagWarranty(seg.warranty);
+        setUpdateDiagOtherNotes(seg.otherNotes);
+        setUpdateDiagSummary(seg.summary);
+      }
+
       setUpdateServices(merged.service || "");
       setUpdateServiceCost(merged.serviceCost || "");
       setUpdateTimeFrame(merged.timeFrame || "");
@@ -646,6 +678,10 @@ const ManageClient = () => {
       [updatePriority, serviceData.priority || ""],
       [updateChiefComplaint, serviceData.chiefComplaint || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
+      [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
+      [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
+
       [updateServices, serviceData.service || ""],
       [String(updateServiceCost ?? ""), String(serviceData.serviceCost ?? "")],
       [updateTimeFrame, serviceData.timeFrame || ""],
@@ -761,22 +797,30 @@ const ManageClient = () => {
     if (!aiSid) return;
     setIsFormattingAI(true);
     try {
-      const formattedDiagnosis = await formatDiagnosisWithAI({
+      const sections = await formatDiagnosisSections({
         rawDiagnosis,
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
         serviceId: aiSid,
       });
+      const formattedDiagnosis = sections.diagnosis;
 
       if (formattedDiagnosis) {
-        setUpdateAIDiagnosis(formattedDiagnosis);
+        setUpdateAIDiagnosis(sections.diagnosis);
+        setUpdateDiagWarranty(sections.warranty);
+        setUpdateDiagSummary(sections.summary);
+        const parsed = parseQuotedBreakdown(
+          sections.breakdownText ? `Service Breakdown:\n${sections.breakdownText}` : "",
+        );
+        if (parsed.length) setQuotedLines(parsed);
         setIsEditingAIDiagnosis(false);
         logAiFormatActivity(aiSid, "diagnosis", {
           source: "/manage-client",
           before: rawDiagnosis,
           after: formattedDiagnosis,
         });
+
 
         await notifyAiDiagnosisGenerated({
           serviceId: aiSid,
@@ -920,6 +964,19 @@ const ManageClient = () => {
       setQuotedProblems({});
     }
 
+    // Clients approve the quoted breakdown on /track, so there must be at least
+    // one priced line before the ticket is handed to them.
+    if (updateStatus === "Waiting to Proceed" && !offPathMove && quotedLines.length === 0) {
+      toast({
+        title: "Service Breakdown required",
+        description:
+          "Add the quoted services with their amounts (Approve the AI diagnosis to fill them in) before moving to Waiting to Proceed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+
 
 
 
@@ -999,6 +1056,10 @@ const ManageClient = () => {
         chief_complaint: updateChiefComplaint,
         issue_description: updateChiefComplaint,
         diagnosis: updateAIDiagnosis,
+        diagnosis_warranty: updateDiagWarranty || null,
+        diagnosis_other_notes: updateDiagOtherNotes || null,
+        diagnosis_summary: updateDiagSummary || null,
+
 
         technician_diagnosis: rawDiagnosis,
         technician_report: technicianReport,
@@ -1052,6 +1113,10 @@ const ManageClient = () => {
           { label: "Priority", before: serviceData.priority, after: updatePriority },
           { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
+          { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
+          { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
+
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Services", before: serviceData.service, after: updateServices },
           { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost },
@@ -1382,7 +1447,13 @@ const ManageClient = () => {
         color: color?.trim() || "",
         model: serviceData.deviceModel || serviceData.model || "",
         memory: memory?.trim() || "",
-        technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
+        technicianDiagnosis:
+          composeClientDiagnosis({
+            diagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "",
+            warranty: updateDiagWarranty,
+            otherNotes: updateDiagOtherNotes,
+          }) || "N/A",
+
         serviceSummary: updateServices || serviceData.service || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
@@ -2350,33 +2421,33 @@ const ManageClient = () => {
                               size="sm"
                               onClick={() => {
                                 const ok = window.confirm(
-                                  "Approve this AI Diagnosis?\n\nThe SUMMARY section will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
+                                  "Approve this AI Diagnosis?\n\nThe Summary will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
                                 );
                                 if (!ok) return;
-                                const summaryMatch = (updateAIDiagnosis || "").match(
-                                  /SUMMARY:\s*([\s\S]+?)(?=\n\s*\n|\n[A-Z][A-Z ]+:|$)/i
-                                );
+                                const summary = (updateDiagSummary || "").trim();
                                 const parsedLines = parseQuotedBreakdown(updateAIDiagnosis || "");
                                 if (parsedLines.length) {
                                   setQuotedLines(parsedLines);
-                                  const total = quotedSelectedTotal(parsedLines);
-                                  if (total > 0) {
-                                    setUpdateServiceCost(total.toFixed(2));
-                                    const disc =
-                                      discountType === "percentage"
-                                        ? (total * (parseFloat(discountValue) || 0)) / 100
-                                        : parseFloat(discountValue) || 0;
-                                    setDiscountAmount(disc);
-                                    setFinalCost(computeFinalCost(total, disc, vatRequested));
-                                  }
                                 }
-                                if (summaryMatch && summaryMatch[1]) {
-                                  setUpdateServices(summaryMatch[1].trim());
+                                const total = quotedSelectedTotal(
+                                  parsedLines.length ? parsedLines : quotedLines,
+                                );
+                                if (total > 0) {
+                                  setUpdateServiceCost(total.toFixed(2));
+                                  const disc =
+                                    discountType === "percentage"
+                                      ? (total * (parseFloat(discountValue) || 0)) / 100
+                                      : parseFloat(discountValue) || 0;
+                                  setDiscountAmount(disc);
+                                  setFinalCost(computeFinalCost(total, disc, vatRequested));
+                                }
+                                if (summary) {
+                                  setUpdateServices(summary);
                                   toast({ title: "Summary copied to Service/s" });
                                 } else {
                                   toast({
-                                    title: "Error",
-                                    description: "Could not find 'SUMMARY' section in AI diagnosis",
+                                    title: "Summary is empty",
+                                    description: "Fill in the Summary field, then approve again.",
                                     variant: "destructive",
                                   });
                                 }
@@ -2388,7 +2459,7 @@ const ManageClient = () => {
                           </div>
                           <Textarea
                             id="aiDiagnosisDisplay"
-                            placeholder="AI Diagnosis"
+                            placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
                             value={updateAIDiagnosis}
                             onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
                             disabled={!isEditingAIDiagnosis}
@@ -2402,6 +2473,51 @@ const ManageClient = () => {
                             }}
                           />
                         </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisWarranty">Warranty:</Label>
+                            <Textarea
+                              id="diagnosisWarranty"
+                              placeholder="e.g. Screen replacement: 3 months"
+                              value={updateDiagWarranty}
+                              onChange={(e) => setUpdateDiagWarranty(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisOtherNotes">Other Notes:</Label>
+                            <Textarea
+                              id="diagnosisOtherNotes"
+                              placeholder="Anything else the client should know"
+                              value={updateDiagOtherNotes}
+                              onChange={(e) => setUpdateDiagOtherNotes(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisSummary">Summary:</Label>
+                          <Textarea
+                            id="diagnosisSummary"
+                            placeholder="One-line summary of the repair needed (internal / Service/s field)"
+                            value={updateDiagSummary}
+                            onChange={(e) => setUpdateDiagSummary(e.target.value)}
+                            rows={2}
+                            className="min-h-[60px] resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            The Summary is not shown to the client on the quotation form or the tracking page.
+                          </p>
+                        </div>
+
+                        <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
+                          {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
+                        </div>
+
                       </CollapsibleContent>
                     </Collapsible>
                   </div>

@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateQuotationPDF, type BreakdownItem } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf } from "@/lib/servicePdfStorage";
 import { logSystemTicketActivity } from "@/lib/activityLogger";
+import { composeClientDiagnosis } from "@/lib/diagnosisSections";
+
 
 import {
   lineDisplayName,
@@ -153,7 +155,13 @@ export const syncApprovedQuotation = async (
     color: row.color ?? "",
     model: row.model ?? "",
     memory: row.memory ?? "",
-    technicianDiagnosis: row.diagnosis || (row as any).technician_diagnosis || "N/A",
+    technicianDiagnosis:
+      composeClientDiagnosis({
+        diagnosis: row.diagnosis || (row as any).technician_diagnosis || "",
+        warranty: (row as any).diagnosis_warranty || "",
+        otherNotes: (row as any).diagnosis_other_notes || "",
+      }) || "N/A",
+
     serviceSummary: approvedNames.join(", ") || row.service || "N/A",
     serviceCost: money(approvedTotal),
     partsUsed: (row.parts_used ?? []).join(", ") || "N/A",

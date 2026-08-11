@@ -15,6 +15,10 @@ export interface ServiceRecord {
   issueDescription: string;
   diagnosis: string;
   technicianDiagnosis?: string;
+  diagnosisWarranty?: string;
+  diagnosisOtherNotes?: string;
+  diagnosisSummary?: string;
+
   clientApprovedAt?: string;
   autoApproveDiagnosis?: boolean;
   waitingForParts?: boolean;
@@ -107,7 +111,11 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   serialNumber: r.serial_number ?? "",
   issueDescription: r.issue_description ?? "",
   diagnosis: r.diagnosis ?? "",
+  diagnosisWarranty: (r as any).diagnosis_warranty ?? "",
+  diagnosisOtherNotes: (r as any).diagnosis_other_notes ?? "",
+  diagnosisSummary: (r as any).diagnosis_summary ?? "",
   technicianDiagnosis: r.technician_diagnosis ?? "",
+
   clientApprovedAt: r.client_approved_at ?? "",
   autoApproveDiagnosis: !!r.auto_approve_diagnosis,
   waitingForParts: !!(r as any).waiting_for_parts,

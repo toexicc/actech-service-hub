@@ -15,7 +15,9 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
+import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI } from "@/lib/aiFormatters";
+import { diagnosisFieldsFromRecord, APPROVAL_DISCLAIMER, VAT_DISCLAIMER } from "@/lib/diagnosisSections";
+
 import { mergeSupabaseOverSheet } from "@/lib/serviceRecordShape";
 import { mapServiceRow } from "@/hooks/useServices";
 import { generateServicePDF } from "@/lib/pdfGenerator";
@@ -181,23 +183,9 @@ const ServiceUpdate = () => {
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
   const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
-  // Technicians who are absent (no Time In today) or on leave are hidden so they
-  // don't get assigned. When no attendance exists yet for the day we only hide
-  // staff on leave, otherwise the list would be empty.
-  const technicians = useMemo(() => {
-    return technicianData
-      .filter((staff) => {
-        if (showUnavailableTechs || !availability) return true;
-        if (availability.isOnLeave(staff.name)) return false;
-        if (!availability.hasAttendanceToday) return true;
-        return availability.isAvailable(staff.name);
-      })
-      .map((staff) => ({
-        name: staff.name,
-        department: staff.department || "",
-        displayName: `${staff.name} - ${staff.department || ""}`,
-      }));
-  }, [technicianData, availability, showUnavailableTechs]);
+  // (technician option list is derived below, after the assigned technician
+  // state exists, so assigned staff are never filtered out)
+
 
 
   // Combine regular inventory with received fast moving parts
@@ -249,6 +237,30 @@ const ServiceUpdate = () => {
   const [addlRepairReason, setAddlRepairReason] = useState("");
   const [addlRepairSending, setAddlRepairSending] = useState(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
+  // Absent / on-leave technicians are hidden so they don't get assigned, but
+  // technicians already on this ticket are always kept so the field never blanks.
+  const technicians = useMemo(() => {
+    const assigned = new Set(
+      updateTechnician
+        .split(",")
+        .map((n) => n.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    return technicianData
+      .filter((staff) => {
+        if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
+        if (showUnavailableTechs || !availability) return true;
+        if (availability.isOnLeave(staff.name)) return false;
+        if (!availability.hasAttendanceToday) return true;
+        return availability.isAvailable(staff.name);
+      })
+      .map((staff) => ({
+        name: staff.name,
+        department: staff.department || "",
+        displayName: `${staff.name} - ${staff.department || ""}`,
+      }));
+  }, [technicianData, availability, showUnavailableTechs, updateTechnician]);
+
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
   const [updateTechnicianReport, setUpdateTechnicianReport] = useState("");
@@ -256,6 +268,10 @@ const ServiceUpdate = () => {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
+  const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
+  const [updateDiagSummary, setUpdateDiagSummary] = useState("");
+
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [updateServiceReport, setUpdateServiceReport] = useState("");
   const [isFormattingReport, setIsFormattingReport] = useState(false);
@@ -679,7 +695,14 @@ const ServiceUpdate = () => {
         setUpdateTechnicianNotesInternal(data.data.technicianNotesInternal || "");
         setUpdateTechnicianReport(data.data.technicianReport || "");
         setRawDiagnosis(data.data.technicianDiagnosis || ""); // Column AE - raw diagnosis
-        setUpdateAIDiagnosis(data.data.aiDiagnosis || ""); // Column AF - AI formatted diagnosis
+        {
+          const seg = diagnosisFieldsFromRecord(data.data);
+          setUpdateAIDiagnosis(seg.diagnosis);
+          setUpdateDiagWarranty(seg.warranty);
+          setUpdateDiagOtherNotes(seg.otherNotes);
+          setUpdateDiagSummary(seg.summary);
+        }
+
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
 
         // Initialize discount and final cost
@@ -777,6 +800,10 @@ const ServiceUpdate = () => {
       [updateTechnicianReport, serviceData.technicianReport || ""],
       [rawDiagnosis, serviceData.technicianDiagnosis || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
+      [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
+      [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
+
       [updateServiceReport, serviceData.aiReport || ""],
     ];
     return pairs.some(([a, b]) => String(a ?? "") !== String(b ?? ""));
@@ -949,6 +976,10 @@ const ServiceUpdate = () => {
         // which shares the `diagnosis` field with /manage-client and /track.
         technician_diagnosis: updateTechnicianDiagnosis,
         diagnosis: (updateAIDiagnosis || "").trim() ? updateAIDiagnosis : updateTechnicianDiagnosis,
+        diagnosis_warranty: updateDiagWarranty || null,
+        diagnosis_other_notes: updateDiagOtherNotes || null,
+        diagnosis_summary: updateDiagSummary || null,
+
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,
@@ -1005,6 +1036,10 @@ const ServiceUpdate = () => {
           { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
           { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
+          { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
+          { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
+
           { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
@@ -1528,21 +1563,25 @@ const ServiceUpdate = () => {
                                 if (!aiSid) return;
                                 setIsFormattingAI(true);
                                 try {
-                                  const formattedDiagnosis = await formatDiagnosisWithAI({
+                                  const sections = await formatDiagnosisSections({
                                     rawDiagnosis,
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
                                     serviceId: activeServiceId,
                                   });
+                                  const formattedDiagnosis = sections.diagnosis;
 
                                   if (formattedDiagnosis) {
-                                    setUpdateAIDiagnosis(formattedDiagnosis);
+                                    setUpdateAIDiagnosis(sections.diagnosis);
+                                    setUpdateDiagWarranty(sections.warranty);
+                                    setUpdateDiagSummary(sections.summary);
                                     logAiFormatActivity(aiSid, "diagnosis", {
                                       source: "/service-update",
                                       before: rawDiagnosis,
                                       after: formattedDiagnosis,
                                     });
+
                                     
                                     await notifyAiDiagnosisGenerated({
                                       serviceId: activeServiceId,
@@ -1595,6 +1634,56 @@ const ServiceUpdate = () => {
                             }}
                           />
                         </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisWarranty">Warranty:</Label>
+                            <Textarea
+                              readOnly={!diagnosisEditable}
+                              id="diagnosisWarranty"
+                              placeholder="e.g. Screen replacement: 3 months"
+                              value={updateDiagWarranty}
+                              onChange={(e) => setUpdateDiagWarranty(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisOtherNotes">Other Notes:</Label>
+                            <Textarea
+                              readOnly={!diagnosisEditable}
+                              id="diagnosisOtherNotes"
+                              placeholder="Anything else the client should know"
+                              value={updateDiagOtherNotes}
+                              onChange={(e) => setUpdateDiagOtherNotes(e.target.value)}
+                              rows={3}
+                              className="min-h-[70px] resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisSummary">Summary:</Label>
+                          <Textarea
+                            readOnly={!diagnosisEditable}
+                            id="diagnosisSummary"
+                            placeholder="One-line summary of the repair needed"
+                            value={updateDiagSummary}
+                            onChange={(e) => setUpdateDiagSummary(e.target.value)}
+                            rows={2}
+                            className="min-h-[60px] resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Not shown to the client on the quotation form or the tracking page.
+                          </p>
+                        </div>
+
+                        <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
+                          {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
+                        </div>
+
+
+
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
