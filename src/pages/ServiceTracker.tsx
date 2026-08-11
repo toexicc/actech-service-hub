@@ -898,6 +898,25 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     !!debouncedSearch.trim() ||
     (!isTechnician && (technicianFilter !== "all" || departmentFilter !== "all"));
 
+  /**
+   * Set the status filter and only move the tab when the chosen status could
+   * never appear in the tab currently selected (so filters keep combining).
+   */
+  const selectStatus = (v: string) => {
+    setStatusFilter(v);
+    if (v === "all") return;
+    const cls = classifyStatus(v);
+    const tabAllows =
+      activeTab === "all" ||
+      (activeTab === "closed" && cls === "closed") ||
+      (activeTab === "completed" && cls === "completed") ||
+      (activeTab === "ongoing" && cls === "active") ||
+      ((activeTab === "within" || activeTab === "walkin") && cls !== "closed" && cls !== "completed");
+    if (!tabAllows) {
+      setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+    }
+  };
+
   const clearAllFilters = () => {
     setDeviceTypeFilter("all");
     setStatusFilter("all");
