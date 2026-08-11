@@ -1108,7 +1108,15 @@ const ManageClient = () => {
         repair_time_frame: updateRepairTimeFrame || null,
         internal_admin_notes: updateAdminNotesInternal,
         remarks: updateAdminNotes,
-        ...(reopenApproval ? { client_approved_at: null, approval_locked: false } : {}),
+        ...(reopenApproval
+          ? {
+              approval_locked: false,
+              approved_services: stillApproved,
+              pending_services: prunedPending,
+              ...(stillApproved.length === 0 ? { client_approved_at: null } : {}),
+            }
+          : {}),
+
         ...(disableAutoApprove ? { auto_approve_diagnosis: false } : {}),
 
         last_updated: saveStamp,
