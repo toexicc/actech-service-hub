@@ -1200,15 +1200,34 @@ const ServiceTracking = () => {
 
 
                     {approvalRecord && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-sm font-medium text-foreground">{approvalRecord.text}</p>
-                        {serviceData.approvalLocked && (
+                      <div
+                        className={`rounded-lg border p-3 ${
+                          approvalSuperseded
+                            ? "border-amber-300/60 bg-amber-50/60"
+                            : "border-primary/20 bg-primary/5"
+                        }`}
+                      >
+                        <p
+                          className={`text-sm font-medium ${
+                            approvalSuperseded ? "text-amber-800 line-through" : "text-foreground"
+                          }`}
+                        >
+                          {approvalRecord.text}
+                        </p>
+                        {approvalSuperseded && (
+                          <p className="text-xs text-amber-800 mt-1">
+                            After further checking, the recommended service changed — your previous approval no longer
+                            covers the current quote below. Please review and approve again.
+                          </p>
+                        )}
+                        {!approvalSuperseded && serviceData.approvalLocked && (
                           <p className="text-xs text-muted-foreground mt-1">
                             We'll contact you shortly to confirm the remaining services.
                           </p>
                         )}
                       </div>
                     )}
+
 
                     {canRespond && (
                       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
