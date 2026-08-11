@@ -952,6 +952,19 @@ const ManageClient = () => {
       setQuotedProblems({});
     }
 
+    // Clients approve the quoted breakdown on /track, so there must be at least
+    // one priced line before the ticket is handed to them.
+    if (updateStatus === "Waiting to Proceed" && !offPathMove && quotedLines.length === 0) {
+      toast({
+        title: "Service Breakdown required",
+        description:
+          "Add the quoted services with their amounts (Approve the AI diagnosis to fill them in) before moving to Waiting to Proceed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+
 
 
 
