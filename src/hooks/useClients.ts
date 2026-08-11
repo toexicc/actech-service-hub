@@ -144,15 +144,24 @@ export const ensureClient = async (input: EnsureClientInput): Promise<string> =>
     if (data?.client_id) return backfill(data.client_id, data.username);
   }
 
+  // A shared phone number (family / same household) is NOT enough to reuse a
+  // customer profile - the name or email must line up too, otherwise two
+  // different people end up merged under one client ID.
   if (phone) {
     const { data } = await supabase
       .from("clients")
-      .select("client_id, username")
+      .select("client_id, username, name, email")
       .eq("contact_number", phone)
-      .limit(1)
-      .maybeSingle();
-    if (data?.client_id) return backfill(data.client_id, data.username);
+      .limit(20);
+    const norm = (v: any) => String(v ?? "").trim().toLowerCase();
+    const match = (data ?? []).find(
+      (c: any) =>
+        (name && norm(c.name) === norm(name)) ||
+        (email && norm(c.email) === norm(email)),
+    );
+    if (match?.client_id) return backfill(match.client_id, match.username);
   }
+
 
   if (!phone && name && email) {
     const { data } = await supabase
