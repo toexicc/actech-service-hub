@@ -971,6 +971,13 @@ const ServiceTracking = () => {
             "Cancelled": { label: "Cancelled", tone: "bg-destructive/15 text-destructive border-destructive/30" },
           };
           const currentStatus = serviceData.status || "";
+          const isClosed = isClosedStatus(currentStatus);
+          const CLOSED_BANNER: Record<string, string> = {
+            "RTO": "This device has been returned to its owner. Please contact the shop if you have questions.",
+            "Cancelled": "This service has been cancelled. Please contact the shop for details.",
+            "On Hold": "This service is currently on hold. Please contact the shop for an update.",
+          };
+          const closedBanner = isClosed ? (CLOSED_BANNER[currentStatus] ?? CLOSED_BANNER["On Hold"]) : "";
           const offPath = OFF_PATH[currentStatus];
           const statusToStep = (s: string): number => {
             if (!s) return 1;
