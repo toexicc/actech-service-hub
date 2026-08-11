@@ -1015,9 +1015,23 @@ const Reports = () => {
                 </SelectContent>
               </Select>
             </div>
-            {actorRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No logged activity for this selection.</p>
+            {loadingLogs ? (
+              <p className="text-sm text-muted-foreground">Loading activity log…</p>
+            ) : logsFailed ? (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive">
+                  Couldn't load the activity log, so output can't be measured.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => refetchLogs()}>
+                  Retry
+                </Button>
+              </div>
+            ) : actorRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No moves logged in this period for this selection.
+              </p>
             ) : (
+
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
