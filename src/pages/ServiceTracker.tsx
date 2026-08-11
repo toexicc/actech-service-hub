@@ -1122,7 +1122,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <CalendarComponent
                       mode="single"
                       selected={startDate}
-                      onSelect={setStartDate}
+                      onSelect={(d) => { setStartDate(d); setActivePreset(null); }}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
