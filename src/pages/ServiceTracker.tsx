@@ -502,10 +502,24 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     );
   }, [staffList]);
 
-  const applyDatePreset = (preset: string) => {
+  const applyDatePreset = (preset: DatePreset) => {
     const today = new Date();
-    
+
     switch (preset) {
+      case "today":
+        setStartDate(today);
+        setEndDate(today);
+        break;
+      case "yesterday": {
+        const y = subDays(today, 1);
+        setStartDate(y);
+        setEndDate(y);
+        break;
+      }
+      case "thisWeek":
+        setStartDate(startOfWeek(today, { weekStartsOn: 1 }));
+        setEndDate(endOfWeek(today, { weekStartsOn: 1 }));
+        break;
       case "last7":
         setStartDate(subDays(today, 7));
         setEndDate(today);
@@ -522,6 +536,22 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         setStartDate(undefined);
         setEndDate(undefined);
         break;
+    }
+    setActivePreset(preset === "clear" ? null : preset);
+  };
+
+  /** Manual refresh: actually refetch and tell the user what happened. */
+  const handleRefresh = async () => {
+    try {
+      const result = await refetchServices();
+      if (result.error) throw result.error;
+      toast({ title: "Tickets refreshed" });
+    } catch (err: any) {
+      toast({
+        title: "Refresh failed",
+        description: err?.message || "The connection dropped while fetching services.",
+        variant: "destructive",
+      });
     }
   };
 
