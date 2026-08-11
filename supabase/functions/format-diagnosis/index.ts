@@ -58,11 +58,13 @@ const OTHER_SECTION =
 const AMOUNT_PLACEHOLDER = "Php {Enter Amount}";
 const WARRANTY_PLACEHOLDER = "{Enter Warranty Duration}";
 
+const isOptionLine = (s: string) => /^option\s+[a-z]\b/i.test(stripDecor(s));
+
 const enforceAmountPlaceholders = (text: string): string => {
   const lines = String(text ?? "").split("\n");
   let inBreakdown = false;
 
-  const out = lines.map((line) => {
+  const out = lines.map((line, idx) => {
     const bare = stripDecor(line);
 
     // Enter the breakdown section on any heading mentioning it
@@ -101,6 +103,19 @@ const enforceAmountPlaceholders = (text: string): string => {
     // Collapse duplicated placeholders and normalise prefix
     out = out.replace(/(?:Php\s*)?\{Enter Amount\}(?:\s*(?:Php\s*)?\{Enter Amount\})+/g, AMOUNT_PLACEHOLDER);
     out = out.replace(/(?<!Php )\{Enter Amount\}/g, AMOUNT_PLACEHOLDER);
+
+    // A parent service line that is followed by Option lines carries no amount.
+    if (!isOptionLine(line)) {
+      let next = idx + 1;
+      while (next < lines.length && stripDecor(lines[next]) === "") next++;
+      const nextBare = next < lines.length ? stripDecor(lines[next]) : "";
+      if (nextBare && !OTHER_SECTION.test(nextBare) && isOptionLine(nextBare)) {
+        return out
+          .replace(/(?:Php\s*)?\{Enter Amount\}/g, "")
+          .replace(/[\s\-–:]+$/, "")
+          .trimEnd();
+      }
+    }
 
     if (!out.includes(AMOUNT_PLACEHOLDER)) {
       out = `${out.replace(/[\s\-–:]+$/, "")} - ${AMOUNT_PLACEHOLDER}`;
