@@ -84,6 +84,7 @@ const ServiceTracker = () => {
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
   const [dueDateFilter, setDueDateFilter] = useState("all");
+  const [activePreset, setActivePreset] = useState<DatePreset | null>(null);
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardService, setForwardService] = useState<ServiceRecord | null>(null);
   const [forwardRecipient, setForwardRecipient] = useState("");
