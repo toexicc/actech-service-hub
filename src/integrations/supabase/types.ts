@@ -1042,6 +1042,9 @@ export type Database = {
           device_report_folder_url: string | null
           device_type: string | null
           diagnosis: string | null
+          diagnosis_other_notes: string | null
+          diagnosis_summary: string | null
+          diagnosis_warranty: string | null
           discount: number
           drive_folder_url: string | null
           email: string | null
@@ -1115,6 +1118,9 @@ export type Database = {
           device_report_folder_url?: string | null
           device_type?: string | null
           diagnosis?: string | null
+          diagnosis_other_notes?: string | null
+          diagnosis_summary?: string | null
+          diagnosis_warranty?: string | null
           discount?: number
           drive_folder_url?: string | null
           email?: string | null
@@ -1188,6 +1194,9 @@ export type Database = {
           device_report_folder_url?: string | null
           device_type?: string | null
           diagnosis?: string | null
+          diagnosis_other_notes?: string | null
+          diagnosis_summary?: string | null
+          diagnosis_warranty?: string | null
           discount?: number
           drive_folder_url?: string | null
           email?: string | null
