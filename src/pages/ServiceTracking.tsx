@@ -729,7 +729,7 @@ const ServiceTracking = () => {
 
   // Pre-tick whatever the shop marked as selected, plus anything already approved.
   useEffect(() => {
-    const lines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+    const lines = quotedLines;
     const approved = new Set(
       (Array.isArray((serviceData as any)?.approvedServices) ? (serviceData as any).approvedServices : []).map(
         (n: string) => normKey(n),
@@ -1146,7 +1146,11 @@ const ServiceTracking = () => {
                 {/* AI Diagnosis */}
                 {showAiDiagnosis && (
                   <div className="space-y-6">
-                    <AiReportCard report={serviceData.aiDiagnosis} title="Service Diagnosis" />
+                    <AiReportCard
+                      report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
+                      title="Service Diagnosis"
+                    />
+
 
 
                     {approvalRecord && (
