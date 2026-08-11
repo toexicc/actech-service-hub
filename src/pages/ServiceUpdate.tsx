@@ -1528,21 +1528,25 @@ const ServiceUpdate = () => {
                                 if (!aiSid) return;
                                 setIsFormattingAI(true);
                                 try {
-                                  const formattedDiagnosis = await formatDiagnosisWithAI({
+                                  const sections = await formatDiagnosisSections({
                                     rawDiagnosis,
                                     customerName: serviceData?.clientName || '',
                                     deviceType: serviceData?.deviceType || '',
                                     model: serviceData?.device || '',
                                     serviceId: activeServiceId,
                                   });
+                                  const formattedDiagnosis = sections.diagnosis;
 
                                   if (formattedDiagnosis) {
-                                    setUpdateAIDiagnosis(formattedDiagnosis);
+                                    setUpdateAIDiagnosis(sections.diagnosis);
+                                    setUpdateDiagWarranty(sections.warranty);
+                                    setUpdateDiagSummary(sections.summary);
                                     logAiFormatActivity(aiSid, "diagnosis", {
                                       source: "/service-update",
                                       before: rawDiagnosis,
                                       after: formattedDiagnosis,
                                     });
+
                                     
                                     await notifyAiDiagnosisGenerated({
                                       serviceId: activeServiceId,
