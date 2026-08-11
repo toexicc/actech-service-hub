@@ -1214,6 +1214,7 @@ const ServiceTracking = () => {
                                 <div className="space-y-2 pt-1">
                                   {quotedLines.map((line, i) => {
                                     const locked = isLineLocked(line, i);
+                                    const approvedLine = isLineApproved(line);
                                     const checked = selectedIdx.includes(i);
                                     const chosen = optionChoice[i] ?? "";
                                     return (
