@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
 import { ReleaseQueuePanel } from "@/components/ReleaseQueuePanel";
@@ -111,6 +112,7 @@ const QueueAdmin = () => {
   const { entries, loading, error, refetch, realtimeState, realtimeMessage } =
     useQueueEntries({ activeOnly: true });
   const { toast } = useToast();
+  const { isAdminOrManagement } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
