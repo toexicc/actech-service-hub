@@ -638,7 +638,7 @@ const Reports = () => {
               <PopoverTrigger asChild>
                 <Button variant={mode === "range" ? "default" : "outline"} size="sm" className="gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  {mode === "range" && rangeFrom && rangeTo ? period.label : "Date range"}
+                  {mode === "range" && rangeFrom ? period.label : "Date range"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -647,20 +647,26 @@ const Reports = () => {
                   selected={{ from: rangeFrom, to: rangeTo }}
                   onSelect={(r: any) => {
                     setRangeFrom(r?.from);
-                    setRangeTo(r?.to);
+                    setRangeTo(r?.to ?? r?.from);
                     setMode("range");
                   }}
                   numberOfMonths={2}
                   className="pointer-events-auto p-3"
                 />
+                <div className="border-t p-2 text-center text-xs text-muted-foreground">
+                  {rangeFrom && !rangeTo ? "Pick an end date, or keep the single day" : "Click one day, or a start and end date"}
+                </div>
               </PopoverContent>
             </Popover>
 
             <div className="flex flex-wrap gap-1">
               {([
+                { k: "today", l: "Today" },
+                { k: "yesterday", l: "Yesterday" },
                 { k: "7", l: "7d" },
                 { k: "30", l: "30d" },
                 { k: "90", l: "90d" },
+                { k: "month", l: "This month" },
                 { k: "year", l: "YTD" },
                 { k: "all", l: "All" },
               ] as const).map((p) => (
@@ -669,14 +675,17 @@ const Reports = () => {
                   size="sm"
                   variant={mode === "preset" && preset === p.k ? "default" : "outline"}
                   onClick={() => {
-                    setPreset(p.k as any);
+                    setPreset(p.k);
                     setMode("preset");
+                    setRangeFrom(undefined);
+                    setRangeTo(undefined);
                   }}
                 >
                   {p.l}
                 </Button>
               ))}
             </div>
+
           </div>
         </div>
 
