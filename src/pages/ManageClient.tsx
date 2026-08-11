@@ -522,7 +522,6 @@ const ManageClient = () => {
           setRawDiagnosis(merged.technicianDiagnosis || "");
           setTechnicianReport(merged.technicianReport || "");
           setUpdateServiceReport(merged.aiReport || "");
-          setIsEditingAIDiagnosis(false);
           setIsEditingServiceReport(false);
 
           const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
@@ -615,7 +614,6 @@ const ManageClient = () => {
       setRawDiagnosis(merged.technicianDiagnosis || "");
       setTechnicianReport(merged.technicianReport || "");
       setUpdateServiceReport(merged.aiReport || "");
-      setIsEditingAIDiagnosis(false);
       setIsEditingServiceReport(false);
 
       const serviceCostNum = sanitizeNumber(String(merged.serviceCost ?? "0"));
@@ -819,7 +817,6 @@ const ManageClient = () => {
         setUpdateDiagBreakdown(sections.breakdownText);
         setUpdateDiagWarranty(sections.warranty);
         setUpdateDiagSummary(sections.summary);
-        setIsEditingAIDiagnosis(false);
         logAiFormatActivity(aiSid, "diagnosis", {
           source: "/manage-client",
           before: rawDiagnosis,
