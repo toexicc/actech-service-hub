@@ -70,6 +70,8 @@ import {
 } from "@/lib/reportMetrics";
 
 type FilterMode = "month" | "range" | "preset";
+type PresetKey = "today" | "yesterday" | "7" | "30" | "90" | "month" | "year" | "all";
+
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
