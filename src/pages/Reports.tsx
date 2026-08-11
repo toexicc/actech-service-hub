@@ -247,25 +247,47 @@ const Reports = () => {
       return monthPeriod(y, m);
     }
     if (mode === "range") {
-      if (rangeFrom && rangeTo) {
+      // A single clicked day is a valid one-day range — apply it right away
+      // instead of silently widening the report to all time.
+      const from = rangeFrom;
+      const to = rangeTo ?? rangeFrom;
+      if (from && to) {
+        const a = from <= to ? from : to;
+        const b = from <= to ? to : from;
+        const same = a.toDateString() === b.toDateString();
         return {
-          start: startOfDay(rangeFrom),
-          end: endOfDay(rangeTo),
-          label: `${rangeFrom.toLocaleDateString("en-US")} – ${rangeTo.toLocaleDateString("en-US")}`,
+          start: startOfDay(a),
+          end: endOfDay(b),
+          label: same
+            ? a.toLocaleDateString("en-US")
+            : `${a.toLocaleDateString("en-US")} – ${b.toLocaleDateString("en-US")}`,
         };
       }
-      return { start: null, end: null, label: "Pick a date range" };
-    }
-    if (preset === "all") return { start: null, end: null, label: "All time" };
-    if (preset === "year") {
-      const now = new Date();
-      return { start: new Date(now.getFullYear(), 0, 1), end: endOfDay(now), label: `${now.getFullYear()}` };
     }
     const now = new Date();
+    if (mode === "range" || preset === "30") {
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      return { start: startOfDay(start), end: endOfDay(now), label: "Last 30 days" };
+    }
+    if (preset === "all") return { start: null, end: null, label: "All time" };
+    if (preset === "today") {
+      return { start: startOfDay(now), end: endOfDay(now), label: "Today" };
+    }
+    if (preset === "yesterday") {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return { start: startOfDay(y), end: endOfDay(y), label: "Yesterday" };
+    }
+    if (preset === "month") return monthPeriod(now.getFullYear(), now.getMonth());
+    if (preset === "year") {
+      return { start: new Date(now.getFullYear(), 0, 1), end: endOfDay(now), label: `${now.getFullYear()}` };
+    }
     const start = new Date();
     start.setDate(start.getDate() - parseInt(preset, 10));
     return { start: startOfDay(start), end: endOfDay(now), label: `Last ${preset} days` };
   }, [mode, monthKey, preset, rangeFrom, rangeTo]);
+
 
   const allServices = useMemo(
     () => [...(activeData as any[]), ...(completedData as any[])],
