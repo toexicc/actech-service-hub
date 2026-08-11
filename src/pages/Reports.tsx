@@ -489,6 +489,41 @@ const Reports = () => {
       .sort((a, b) => b.tickets - a.tickets || b.completed - a.completed);
   }, [report, timings]);
 
+  /**
+   * Real output, derived from the activity-log status transitions: who actually
+   * moved tickets forward instead of who was merely assigned to them.
+   */
+  const actorOutput = useMemo(
+    () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[]),
+    [statusLogs, report, staffList],
+  );
+
+  const actorRows = useMemo(() => {
+    const rows = actorOutput.filter((a) => {
+      if (a.moves === 0 && a.assignedUntouched === 0) return false;
+      if (outputRole === "all") return true;
+      return String(a.role || "").toLowerCase() === outputRole;
+    });
+    return [...rows].sort((a, b) => (b as any)[outputSort] - (a as any)[outputSort] || b.moves - a.moves);
+  }, [actorOutput, outputRole, outputSort]);
+
+  const actorChart = useMemo(
+    () =>
+      actorRows
+        .filter((a) => a.moves > 0)
+        .slice(0, 8)
+        .map((a) => ({
+          name: a.name,
+          diagnosed: a.diagnosed,
+          toRepair: a.toRepair,
+          released: a.released,
+          completed: a.completed,
+        })),
+    [actorRows],
+  );
+
+
+
 
 
   const countBy = (list: any[], get: (s: any) => string, limit = 8) => {
