@@ -361,6 +361,8 @@ const StaffManagement = () => {
             ? "Staff member updated and new password saved"
             : "Staff member updated successfully",
         });
+        setEditDialogOpen(false);
+        setSelectedStaff(null);
         loadStaffList();
       } else {
         toast({
