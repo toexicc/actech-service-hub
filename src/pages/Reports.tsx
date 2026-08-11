@@ -183,7 +183,7 @@ const Reports = () => {
   const months = useMemo(() => lastMonths(12), []);
   const [mode, setMode] = useState<FilterMode>("month");
   const [monthKey, setMonthKey] = useState(`${months[0].year}-${months[0].month}`);
-  const [preset, setPreset] = useState<"7" | "30" | "90" | "year" | "all">("30");
+  const [preset, setPreset] = useState<PresetKey>("30");
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
@@ -191,7 +191,13 @@ const Reports = () => {
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
-  const { data: statusLogs = [], isLoading: loadingLogs } = useServiceStatusLogs();
+  const {
+    data: statusLogs = [],
+    isLoading: loadingLogs,
+    isError: logsFailed,
+    refetch: refetchLogs,
+  } = useServiceStatusLogs();
+
   const { data: closedDates = [] } = useClosedDates();
   const { data: staffList = [] } = useStaff();
 
