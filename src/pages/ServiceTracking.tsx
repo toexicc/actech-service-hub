@@ -1254,7 +1254,7 @@ const ServiceTracking = () => {
                                               {line.required ? "Required" : "Optional"}
                                             </span>
                                           </span>
-                                          {locked && (
+                                          {approvedLine && (
                                             <Lock
                                               className="h-4 w-4 text-muted-foreground"
                                               aria-label="Already confirmed"
@@ -1279,13 +1279,14 @@ const ServiceTracking = () => {
                                           <div
                                             className={cn(
                                               "mt-2 space-y-1 pl-8 transition-opacity",
-                                              !checked && "pointer-events-none opacity-50",
+                                              !checked && !line.required && "pointer-events-none opacity-50",
+                                              approvedLine && "pointer-events-none opacity-70",
                                             )}
-                                            aria-disabled={!checked}
+                                            aria-disabled={approvedLine || (!checked && !line.required)}
                                           >
                                             {line.options.map((opt, oi) => {
-                                              const optDisabled = locked || !checked;
-                                              const isChosen = checked && chosen === opt.label;
+                                              const optDisabled = approvedLine || (!checked && !line.required);
+                                              const isChosen = chosen === opt.label;
                                               return (
                                                 <div
                                                   key={oi}
