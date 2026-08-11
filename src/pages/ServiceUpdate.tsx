@@ -790,6 +790,10 @@ const ServiceUpdate = () => {
       [updateTechnicianReport, serviceData.technicianReport || ""],
       [rawDiagnosis, serviceData.technicianDiagnosis || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
+      [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
+      [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
+
       [updateServiceReport, serviceData.aiReport || ""],
     ];
     return pairs.some(([a, b]) => String(a ?? "") !== String(b ?? ""));
