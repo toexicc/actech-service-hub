@@ -307,8 +307,8 @@ export interface ActorOutput {
 const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 
 const CONFIRMED = new Set(["confirmed diagnosis"]);
-const TO_REPAIR = new Set(["proceed repair", "ongoing service"]);
-const RELEASE = new Set(["done repair - for release"]);
+const TO_REPAIR = new Set(["waiting to proceed", "proceed repair", "ongoing service"]);
+const RELEASE = new Set(["done repair - for release", "done repair - advise client"]);
 const DONE = new Set(["completed"]);
 
 /**
@@ -332,7 +332,7 @@ export const buildActorOutput = (
     const d = toDate(raw);
     return !!d && d >= period.start && d <= period.end;
   };
-  const relevant = logs.filter((l) => !!l.to && !!l.actor && inWindow(l.createdAt));
+  const relevant = logs.filter((l) => (!!l.to || !!l.created) && !!l.actor && inWindow(l.createdAt));
 
 
   const roleByName = new Map<string, string>();
@@ -382,6 +382,10 @@ export const buildActorOutput = (
     const e = get(l.actor!, l.role);
     e.moves += 1;
     e.tickets.add(id);
+    if (l.created) {
+      e.diagnosed += 1;
+      return;
+    }
     const to = norm(l.to);
     if (CONFIRMED.has(to)) e.diagnosed += 1;
     if (TO_REPAIR.has(to)) e.toRepair += 1;
