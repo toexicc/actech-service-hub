@@ -1027,6 +1027,10 @@ const ManageClient = () => {
         chief_complaint: updateChiefComplaint,
         issue_description: updateChiefComplaint,
         diagnosis: updateAIDiagnosis,
+        diagnosis_warranty: updateDiagWarranty || null,
+        diagnosis_other_notes: updateDiagOtherNotes || null,
+        diagnosis_summary: updateDiagSummary || null,
+
 
         technician_diagnosis: rawDiagnosis,
         technician_report: technicianReport,
@@ -1410,7 +1414,13 @@ const ManageClient = () => {
         color: color?.trim() || "",
         model: serviceData.deviceModel || serviceData.model || "",
         memory: memory?.trim() || "",
-        technicianDiagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "N/A",
+        technicianDiagnosis:
+          composeClientDiagnosis({
+            diagnosis: updateAIDiagnosis || serviceData.aiDiagnosis || "",
+            warranty: updateDiagWarranty,
+            otherNotes: updateDiagOtherNotes,
+          }) || "N/A",
+
         serviceSummary: updateServices || serviceData.service || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
