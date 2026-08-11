@@ -1093,8 +1093,10 @@ const ServiceTracking = () => {
                         </div>
                       )}
                     </div>
+                    )}
 
                     {/* Step chips — two rows of 4 */}
+                    {!isClosed && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {STEPS.map((s, i) => {
                         const n = i + 1;
@@ -1119,7 +1121,8 @@ const ServiceTracking = () => {
                         );
                       })}
                     </div>
-                    {offPath && (
+                    )}
+                    {!isClosed && offPath && (
                       <div
                         title={clientStatusLabel(currentStatus)}
                         className={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border " + offPath.tone}
