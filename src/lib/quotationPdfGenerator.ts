@@ -279,14 +279,20 @@ const cleanDiagnosisText = (text: string): string => {
   cleaned = cleaned.replace(/[#*_`]/g, "");
   cleaned = cleaned.replace(/-{3,}/g, "");
 
+  // Repair letter-spaced text ("H e l l o") only. The previous heuristic fired
+  // on any line with a few one-letter words and stripped every space, which is
+  // what produced "Uponinspection,thekeyboard".
   cleaned = cleaned
     .split("\n")
     .map((line) => {
-      const matches = line.match(/\b\w\s+\w/g);
-      if (matches && matches.length > 3) return line.replace(/(\w)\s+(?=\w)/g, "$1");
-      return line;
+      const tokens = line.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length < 6) return line;
+      const singles = tokens.filter((t) => t.replace(/[^A-Za-z0-9]/g, "").length <= 1).length;
+      if (singles / tokens.length < 0.7) return line;
+      return line.replace(/(\w)\s+(?=\w)/g, "$1");
     })
     .join("\n");
+
 
   cleaned = cleaned.replace(/ {2,}/g, " ");
   cleaned = cleaned
