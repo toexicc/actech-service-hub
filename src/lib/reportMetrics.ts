@@ -316,18 +316,27 @@ const DONE = new Set(["completed"]);
  * assignment fields: how many moves each person made, how many tickets they
  * touched, and which tickets they carried all the way to Completed.
  *
- * `services` scopes the result to the tickets in the current report period,
- * and provides the assignment fields used for the "assigned but untouched"
- * idle check.
+ * Moves are scoped by *when they happened* (the log timestamp inside `period`),
+ * so work done this week on an older ticket still counts. `services` supplies
+ * the assignment fields used for the "assigned but untouched" idle check.
  */
 export const buildActorOutput = (
   logs: StatusLogEntry[],
   services: any[],
   staff: Array<{ name?: string; username?: string; role?: string }> = [],
+  period?: Period | null,
 ): ActorOutput[] => {
   const scopedIds = new Set(
     services.map((s) => String(s.serviceId || "").trim()).filter(Boolean),
   );
+
+  const inWindow = (raw: any): boolean => {
+    if (!period?.start || !period?.end) return true;
+    const d = toDate(raw);
+    return !!d && d >= period.start && d <= period.end;
+  };
+  const relevant = logs.filter((l) => !!l.to && !!l.actor && inWindow(l.createdAt));
+
 
   const roleByName = new Map<string, string>();
   staff.forEach((p) => {
