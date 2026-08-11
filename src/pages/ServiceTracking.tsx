@@ -1182,7 +1182,7 @@ const ServiceTracking = () => {
                 </Card>
 
                 {/* AI Diagnosis */}
-                {showAiDiagnosis && (
+                {showAiDiagnosis && !isClosed && (
                   <div className="space-y-6">
                     <AiReportCard
                       report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
