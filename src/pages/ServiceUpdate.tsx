@@ -1641,13 +1641,29 @@ const ServiceUpdate = () => {
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisBreakdown">Service Breakdown (draft):</Label>
+                          <Textarea
+                            readOnly={!diagnosisEditable}
+                            id="diagnosisBreakdown"
+                            placeholder={"Service name - Php {Enter Amount}\nOption A - OEM: Php {Enter Amount}"}
+                            value={updateDiagBreakdown}
+                            onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
+                            rows={4}
+                            className="min-h-[90px] resize-none font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            AI writes the breakdown here first. It only moves into the client-facing Service Breakdown once an admin approves the diagnosis.
+                          </p>
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
                             <Label htmlFor="diagnosisWarranty">Warranty:</Label>
                             <Textarea
                               readOnly={!diagnosisEditable}
                               id="diagnosisWarranty"
-                              placeholder="e.g. Screen replacement: 3 months"
+                              placeholder={"Screen replacement - {Enter Warranty Duration}"}
                               value={updateDiagWarranty}
                               onChange={(e) => setUpdateDiagWarranty(e.target.value)}
                               rows={3}
