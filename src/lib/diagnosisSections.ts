@@ -105,6 +105,7 @@ export const isLegacyDiagnosisBlob = (raw?: string | null): boolean => {
 
 export interface DiagnosisFieldValues {
   diagnosis?: string | null;
+  breakdownText?: string | null;
   warranty?: string | null;
   otherNotes?: string | null;
   summary?: string | null;
@@ -117,16 +118,18 @@ export interface DiagnosisFieldValues {
 export const diagnosisFieldsFromRecord = (record: any): Required<DiagnosisFieldValues> => {
   const stored = {
     diagnosis: String(record?.aiDiagnosis ?? record?.diagnosis ?? "").trim(),
+    breakdownText: String(record?.diagnosisBreakdownText ?? "").trim(),
     warranty: String(record?.diagnosisWarranty ?? "").trim(),
     otherNotes: String(record?.diagnosisOtherNotes ?? "").trim(),
     summary: String(record?.diagnosisSummary ?? "").trim(),
   };
-  if (stored.warranty || stored.summary || !isLegacyDiagnosisBlob(stored.diagnosis)) {
+  if (stored.breakdownText || stored.warranty || stored.summary || !isLegacyDiagnosisBlob(stored.diagnosis)) {
     return stored;
   }
   const split = splitDiagnosisText(stored.diagnosis);
   return {
     diagnosis: split.diagnosis,
+    breakdownText: split.breakdownText,
     warranty: split.warranty,
     otherNotes: stored.otherNotes,
     summary: split.summary,

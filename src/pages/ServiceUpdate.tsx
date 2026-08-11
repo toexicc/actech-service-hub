@@ -268,6 +268,7 @@ const ServiceUpdate = () => {
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagBreakdown, setUpdateDiagBreakdown] = useState("");
   const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
   const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
   const [updateDiagSummary, setUpdateDiagSummary] = useState("");
@@ -698,6 +699,7 @@ const ServiceUpdate = () => {
         {
           const seg = diagnosisFieldsFromRecord(data.data);
           setUpdateAIDiagnosis(seg.diagnosis);
+          setUpdateDiagBreakdown(seg.breakdownText);
           setUpdateDiagWarranty(seg.warranty);
           setUpdateDiagOtherNotes(seg.otherNotes);
           setUpdateDiagSummary(seg.summary);
@@ -800,6 +802,7 @@ const ServiceUpdate = () => {
       [updateTechnicianReport, serviceData.technicianReport || ""],
       [rawDiagnosis, serviceData.technicianDiagnosis || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagBreakdown, (serviceData as any).diagnosisBreakdownText || ""],
       [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
       [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
       [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
@@ -976,6 +979,7 @@ const ServiceUpdate = () => {
         // which shares the `diagnosis` field with /manage-client and /track.
         technician_diagnosis: updateTechnicianDiagnosis,
         diagnosis: (updateAIDiagnosis || "").trim() ? updateAIDiagnosis : updateTechnicianDiagnosis,
+        diagnosis_breakdown_text: updateDiagBreakdown || null,
         diagnosis_warranty: updateDiagWarranty || null,
         diagnosis_other_notes: updateDiagOtherNotes || null,
         diagnosis_summary: updateDiagSummary || null,
@@ -1036,6 +1040,7 @@ const ServiceUpdate = () => {
           { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
           { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Service Breakdown (draft)", before: (serviceData as any).diagnosisBreakdownText, after: updateDiagBreakdown },
           { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
           { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
@@ -1574,6 +1579,7 @@ const ServiceUpdate = () => {
 
                                   if (formattedDiagnosis) {
                                     setUpdateAIDiagnosis(sections.diagnosis);
+                                    setUpdateDiagBreakdown(sections.breakdownText);
                                     setUpdateDiagWarranty(sections.warranty);
                                     setUpdateDiagSummary(sections.summary);
                                     logAiFormatActivity(aiSid, "diagnosis", {
@@ -1635,13 +1641,29 @@ const ServiceUpdate = () => {
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisBreakdown">Service Breakdown (draft):</Label>
+                          <Textarea
+                            readOnly={!diagnosisEditable}
+                            id="diagnosisBreakdown"
+                            placeholder={"Service name - Php {Enter Amount}\nOption A - OEM: Php {Enter Amount}"}
+                            value={updateDiagBreakdown}
+                            onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
+                            rows={4}
+                            className="min-h-[90px] resize-none font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            AI writes the breakdown here first. It only moves into the client-facing Service Breakdown once an admin approves the diagnosis.
+                          </p>
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
                             <Label htmlFor="diagnosisWarranty">Warranty:</Label>
                             <Textarea
                               readOnly={!diagnosisEditable}
                               id="diagnosisWarranty"
-                              placeholder="e.g. Screen replacement: 3 months"
+                              placeholder={"Screen replacement - {Enter Warranty Duration}"}
                               value={updateDiagWarranty}
                               onChange={(e) => setUpdateDiagWarranty(e.target.value)}
                               rows={3}

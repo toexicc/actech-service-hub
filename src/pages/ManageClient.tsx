@@ -243,6 +243,7 @@ const ManageClient = () => {
   const [updatePriority, setUpdatePriority] = useState("");
   const [updateChiefComplaint, setUpdateChiefComplaint] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagBreakdown, setUpdateDiagBreakdown] = useState("");
   const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
   const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
   const [updateDiagSummary, setUpdateDiagSummary] = useState("");
@@ -494,7 +495,9 @@ const ManageClient = () => {
           {
             const seg = diagnosisFieldsFromRecord(merged);
             setUpdateAIDiagnosis(seg.diagnosis);
-            setUpdateDiagWarranty(seg.warranty);
+            setUpdateDiagBreakdown(seg.breakdownText);
+            setUpdateDiagBreakdown(seg.breakdownText);
+        setUpdateDiagWarranty(seg.warranty);
             setUpdateDiagOtherNotes(seg.otherNotes);
             setUpdateDiagSummary(seg.summary);
           }
@@ -588,6 +591,7 @@ const ManageClient = () => {
       {
         const seg = diagnosisFieldsFromRecord(merged);
         setUpdateAIDiagnosis(seg.diagnosis);
+        setUpdateDiagBreakdown(seg.breakdownText);
         setUpdateDiagWarranty(seg.warranty);
         setUpdateDiagOtherNotes(seg.otherNotes);
         setUpdateDiagSummary(seg.summary);
@@ -681,6 +685,7 @@ const ManageClient = () => {
       [updatePriority, serviceData.priority || ""],
       [updateChiefComplaint, serviceData.chiefComplaint || ""],
       [updateAIDiagnosis, serviceData.aiDiagnosis || ""],
+      [updateDiagBreakdown, (serviceData as any).diagnosisBreakdownText || ""],
       [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
       [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
       [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
@@ -811,12 +816,9 @@ const ManageClient = () => {
 
       if (formattedDiagnosis) {
         setUpdateAIDiagnosis(sections.diagnosis);
+        setUpdateDiagBreakdown(sections.breakdownText);
         setUpdateDiagWarranty(sections.warranty);
         setUpdateDiagSummary(sections.summary);
-        const parsed = parseQuotedBreakdown(
-          sections.breakdownText ? `Service Breakdown:\n${sections.breakdownText}` : "",
-        );
-        if (parsed.length) setQuotedLines(parsed);
         setIsEditingAIDiagnosis(false);
         logAiFormatActivity(aiSid, "diagnosis", {
           source: "/manage-client",
@@ -1068,6 +1070,7 @@ const ManageClient = () => {
         chief_complaint: updateChiefComplaint,
         issue_description: updateChiefComplaint,
         diagnosis: updateAIDiagnosis,
+        diagnosis_breakdown_text: updateDiagBreakdown || null,
         diagnosis_warranty: updateDiagWarranty || null,
         diagnosis_other_notes: updateDiagOtherNotes || null,
         diagnosis_summary: updateDiagSummary || null,
@@ -1125,6 +1128,7 @@ const ManageClient = () => {
           { label: "Priority", before: serviceData.priority, after: updatePriority },
           { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
+          { label: "Service Breakdown (draft)", before: (serviceData as any).diagnosisBreakdownText, after: updateDiagBreakdown },
           { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
           { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
@@ -2433,11 +2437,15 @@ const ManageClient = () => {
                               size="sm"
                               onClick={() => {
                                 const ok = window.confirm(
-                                  "Approve this AI Diagnosis?\n\nThe Summary will be copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
+                                  "Approve this AI Diagnosis?\n\nThe draft Service Breakdown lines will be moved into the client-facing Service Breakdown and the Summary copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
                                 );
                                 if (!ok) return;
                                 const summary = (updateDiagSummary || "").trim();
-                                const parsedLines = parseQuotedBreakdown(updateAIDiagnosis || "");
+                                const parsedLines = parseQuotedBreakdown(
+                                  updateDiagBreakdown.trim()
+                                    ? `Service Breakdown:\n${updateDiagBreakdown}`
+                                    : updateAIDiagnosis || "",
+                                );
                                 if (parsedLines.length) {
                                   setQuotedLines(parsedLines);
                                 }
@@ -2486,12 +2494,27 @@ const ManageClient = () => {
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="diagnosisBreakdown">Service Breakdown (draft):</Label>
+                          <Textarea
+                            id="diagnosisBreakdown"
+                            placeholder={"Service name - Php {Enter Amount}\nOption A - OEM: Php {Enter Amount}"}
+                            value={updateDiagBreakdown}
+                            onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
+                            rows={4}
+                            className="min-h-[90px] resize-none font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            AI writes the breakdown here first. Click Approve above to move these lines into the Service Breakdown shown to the client.
+                          </p>
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
                             <Label htmlFor="diagnosisWarranty">Warranty:</Label>
                             <Textarea
                               id="diagnosisWarranty"
-                              placeholder="e.g. Screen replacement: 3 months"
+                              placeholder={"Screen replacement - {Enter Warranty Duration}"}
                               value={updateDiagWarranty}
                               onChange={(e) => setUpdateDiagWarranty(e.target.value)}
                               rows={3}

@@ -56,7 +56,7 @@ const OTHER_SECTION =
   /^(to proceed|summary|recommendations?|findings?|cause of issue|cause|suggested solutions?|solution|note|notes|disclaimer|warranty)\b/i;
 
 const AMOUNT_PLACEHOLDER = "Php {Enter Amount}";
-const WARRANTY_LINE = "Warranty: {Enter Duration}";
+const WARRANTY_PLACEHOLDER = "{Enter Warranty Duration}";
 
 const enforceAmountPlaceholders = (text: string): string => {
   const lines = String(text ?? "").split("\n");
@@ -111,34 +111,65 @@ const enforceAmountPlaceholders = (text: string): string => {
   return out.join("\n");
 };
 
-// Guarantee a "Warranty: {Enter Duration}" line right after the Service
-// Breakdown block, regardless of what the model produced.
+// Guarantee a "Warranty:" block right after the Service Breakdown block, with
+// one line per quoted service: "<Service Name> - {Enter Warranty Duration}".
+const breakdownServiceNames = (lines: string[]): string[] => {
+  const idx = lines.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
+  if (idx === -1) return [];
+  const names: string[] = [];
+  for (let i = idx + 1; i < lines.length; i++) {
+    const bare = stripDecor(lines[i]);
+    if (bare === "") continue;
+    if (OTHER_SECTION.test(bare)) break;
+    if (/^option\s+[a-z]\b/i.test(bare)) continue;
+    const name = bare
+      .split(/\s+-\s*php/i)[0]
+      .replace(/[-:]\s*$/, "")
+      .trim();
+    if (name) names.push(name);
+  }
+  return names;
+};
+
 const enforceWarrantyLine = (text: string): string => {
   const lines = String(text ?? "").split("\n");
-  // Normalise any warranty line the model already produced.
-  let hasWarranty = false;
-  const normalised = lines.map((line) => {
-    if (/^\s*warranty\s*:/i.test(stripDecor(line))) {
-      hasWarranty = true;
-      return WARRANTY_LINE;
-    }
-    return line;
-  });
-  if (hasWarranty) return normalised.join("\n");
+  const names = breakdownServiceNames(lines);
+  const block = [
+    "Warranty:",
+    ...(names.length ? names : ["Service"]).map((n) => `${n} - ${WARRANTY_PLACEHOLDER}`),
+  ];
 
-  const headingIdx = normalised.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
-  if (headingIdx === -1) return normalised.join("\n");
+  // Drop whatever warranty block the model produced.
+  const cleaned: string[] = [];
+  let inWarranty = false;
+  for (const line of lines) {
+    const bare = stripDecor(line);
+    if (/^warranty\s*:?/i.test(bare)) {
+      inWarranty = true;
+      continue;
+    }
+    if (inWarranty) {
+      if (bare === "") continue;
+      if (OTHER_SECTION.test(bare) && !/^warranty\b/i.test(bare)) inWarranty = false;
+      else continue;
+    }
+    cleaned.push(line);
+  }
+
+  const headingIdx = cleaned.findIndex((l) => /^service breakdown\b/i.test(stripDecor(l)));
+  if (headingIdx === -1) return cleaned.join("\n");
 
   let end = headingIdx + 1;
-  while (end < normalised.length) {
-    const bare = stripDecor(normalised[end]);
+  while (end < cleaned.length) {
+    const bare = stripDecor(cleaned[end]);
     if (bare === "") break;
     if (OTHER_SECTION.test(bare)) break;
     end++;
   }
-  normalised.splice(end, 0, "", WARRANTY_LINE);
-  return normalised.join("\n");
+  cleaned.splice(end, 0, "", ...block);
+  return cleaned.join("\n");
 };
+
 
 
 
@@ -197,7 +228,9 @@ Option A - OEM: Php {Enter Amount}
 Option B - Original: Php {Enter Amount}
 
 
-Warranty: {Enter Duration}
+Warranty:
+<Service Item 1> - {Enter Warranty Duration}
+<Service Item 2> - {Enter Warranty Duration}
 
 
 
@@ -219,7 +252,7 @@ No quotation marks unless necessary.
 CRITICAL PRICING RULE: Never invent, estimate, or guess any monetary amount. For every Service Breakdown line item the price MUST be the literal placeholder "Php {Enter Amount}" so the technician fills it in. Do NOT output any numeric peso amount under any circumstance.
 List every Service Breakdown item on its own line in the format "<Service Name> - Php {Enter Amount}".
 When a service can be done with different part grades or variants (for example a battery or screen available as OEM and Original), write the service name alone on its line, then list each variant on the following lines in the exact format "Option A - <Variant>: Php {Enter Amount}", "Option B - <Variant>: Php {Enter Amount}". Never put an amount on the parent service line in that case.
-Immediately after the Service Breakdown items output the literal line "Warranty: {Enter Duration}". Never invent a warranty duration.
+Immediately after the Service Breakdown items output a "Warranty:" heading, then one line per quoted service in the exact format "<Service Name> - {Enter Warranty Duration}". Never invent a warranty duration.
 After the "To proceed with the service..." line, always add the literal line "Note: The quoted price excludes 12% VAT." on its own line.
 
 Use the exact section labels and order shown in the template. Do not add or remove sections.`;
