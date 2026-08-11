@@ -379,11 +379,10 @@ export const buildActorOutput = (
     return e;
   };
 
-  logs.forEach((l) => {
-    if (!l.to || !l.actor) return;
+  relevant.forEach((l) => {
     const id = String(l.serviceId || "").trim();
-    if (!scopedIds.has(id)) return;
-    const e = get(l.actor, l.role);
+    if (!id) return;
+    const e = get(l.actor!, l.role);
     e.moves += 1;
     e.tickets.add(id);
     const to = norm(l.to);
@@ -396,15 +395,17 @@ export const buildActorOutput = (
     }
   });
 
-  // Driven end-to-end: closed the ticket AND made at least one earlier move on it.
+  // Driven end-to-end: closed the ticket AND made at least one earlier move on
+  // it (counted across the whole log, not just the period).
   const movesPerActorTicket = new Map<string, number>();
   logs.forEach((l) => {
     if (!l.to || !l.actor) return;
     const id = String(l.serviceId || "").trim();
-    if (!scopedIds.has(id)) return;
+    if (!id) return;
     const key = `${norm(l.actor)}|${id}`;
     movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
   });
+
 
   // Assignment fields, used only for the idle check.
   const assigned = new Map<string, Set<string>>();
