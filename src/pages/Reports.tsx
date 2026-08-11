@@ -70,6 +70,8 @@ import {
 } from "@/lib/reportMetrics";
 
 type FilterMode = "month" | "range" | "preset";
+type PresetKey = "today" | "yesterday" | "7" | "30" | "90" | "month" | "year" | "all";
+
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
@@ -183,7 +185,7 @@ const Reports = () => {
   const months = useMemo(() => lastMonths(12), []);
   const [mode, setMode] = useState<FilterMode>("month");
   const [monthKey, setMonthKey] = useState(`${months[0].year}-${months[0].month}`);
-  const [preset, setPreset] = useState<"7" | "30" | "90" | "year" | "all">("30");
+  const [preset, setPreset] = useState<PresetKey>("30");
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
@@ -191,7 +193,13 @@ const Reports = () => {
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
-  const { data: statusLogs = [], isLoading: loadingLogs } = useServiceStatusLogs();
+  const {
+    data: statusLogs = [],
+    isLoading: loadingLogs,
+    isError: logsFailed,
+    refetch: refetchLogs,
+  } = useServiceStatusLogs();
+
   const { data: closedDates = [] } = useClosedDates();
   const { data: staffList = [] } = useStaff();
 
@@ -239,25 +247,47 @@ const Reports = () => {
       return monthPeriod(y, m);
     }
     if (mode === "range") {
-      if (rangeFrom && rangeTo) {
+      // A single clicked day is a valid one-day range — apply it right away
+      // instead of silently widening the report to all time.
+      const from = rangeFrom;
+      const to = rangeTo ?? rangeFrom;
+      if (from && to) {
+        const a = from <= to ? from : to;
+        const b = from <= to ? to : from;
+        const same = a.toDateString() === b.toDateString();
         return {
-          start: startOfDay(rangeFrom),
-          end: endOfDay(rangeTo),
-          label: `${rangeFrom.toLocaleDateString("en-US")} – ${rangeTo.toLocaleDateString("en-US")}`,
+          start: startOfDay(a),
+          end: endOfDay(b),
+          label: same
+            ? a.toLocaleDateString("en-US")
+            : `${a.toLocaleDateString("en-US")} – ${b.toLocaleDateString("en-US")}`,
         };
       }
-      return { start: null, end: null, label: "Pick a date range" };
-    }
-    if (preset === "all") return { start: null, end: null, label: "All time" };
-    if (preset === "year") {
-      const now = new Date();
-      return { start: new Date(now.getFullYear(), 0, 1), end: endOfDay(now), label: `${now.getFullYear()}` };
     }
     const now = new Date();
+    if (mode === "range" || preset === "30") {
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      return { start: startOfDay(start), end: endOfDay(now), label: "Last 30 days" };
+    }
+    if (preset === "all") return { start: null, end: null, label: "All time" };
+    if (preset === "today") {
+      return { start: startOfDay(now), end: endOfDay(now), label: "Today" };
+    }
+    if (preset === "yesterday") {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return { start: startOfDay(y), end: endOfDay(y), label: "Yesterday" };
+    }
+    if (preset === "month") return monthPeriod(now.getFullYear(), now.getMonth());
+    if (preset === "year") {
+      return { start: new Date(now.getFullYear(), 0, 1), end: endOfDay(now), label: `${now.getFullYear()}` };
+    }
     const start = new Date();
     start.setDate(start.getDate() - parseInt(preset, 10));
     return { start: startOfDay(start), end: endOfDay(now), label: `Last ${preset} days` };
   }, [mode, monthKey, preset, rangeFrom, rangeTo]);
+
 
   const allServices = useMemo(
     () => [...(activeData as any[]), ...(completedData as any[])],
@@ -494,8 +524,8 @@ const Reports = () => {
    * moved tickets forward instead of who was merely assigned to them.
    */
   const actorOutput = useMemo(
-    () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[]),
-    [statusLogs, report, staffList],
+    () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[], period),
+    [statusLogs, report, staffList, period],
   );
 
   const actorRows = useMemo(() => {
@@ -608,7 +638,7 @@ const Reports = () => {
               <PopoverTrigger asChild>
                 <Button variant={mode === "range" ? "default" : "outline"} size="sm" className="gap-2">
                   <CalendarIcon className="h-4 w-4" />
-                  {mode === "range" && rangeFrom && rangeTo ? period.label : "Date range"}
+                  {mode === "range" && rangeFrom ? period.label : "Date range"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -617,20 +647,26 @@ const Reports = () => {
                   selected={{ from: rangeFrom, to: rangeTo }}
                   onSelect={(r: any) => {
                     setRangeFrom(r?.from);
-                    setRangeTo(r?.to);
+                    setRangeTo(r?.to ?? r?.from);
                     setMode("range");
                   }}
                   numberOfMonths={2}
                   className="pointer-events-auto p-3"
                 />
+                <div className="border-t p-2 text-center text-xs text-muted-foreground">
+                  {rangeFrom && !rangeTo ? "Pick an end date, or keep the single day" : "Click one day, or a start and end date"}
+                </div>
               </PopoverContent>
             </Popover>
 
             <div className="flex flex-wrap gap-1">
               {([
+                { k: "today", l: "Today" },
+                { k: "yesterday", l: "Yesterday" },
                 { k: "7", l: "7d" },
                 { k: "30", l: "30d" },
                 { k: "90", l: "90d" },
+                { k: "month", l: "This month" },
                 { k: "year", l: "YTD" },
                 { k: "all", l: "All" },
               ] as const).map((p) => (
@@ -639,14 +675,17 @@ const Reports = () => {
                   size="sm"
                   variant={mode === "preset" && preset === p.k ? "default" : "outline"}
                   onClick={() => {
-                    setPreset(p.k as any);
+                    setPreset(p.k);
                     setMode("preset");
+                    setRangeFrom(undefined);
+                    setRangeTo(undefined);
                   }}
                 >
                   {p.l}
                 </Button>
               ))}
             </div>
+
           </div>
         </div>
 
@@ -912,9 +951,19 @@ const Reports = () => {
             hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
           >
             <div className="h-[320px]">
-              {actorChart.length === 0 ? (
+              {loadingLogs ? (
+                <p className="text-sm text-muted-foreground">Loading activity log…</p>
+              ) : logsFailed ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-destructive">Couldn't load the activity log.</p>
+                  <Button size="sm" variant="outline" onClick={() => refetchLogs()}>
+                    Retry
+                  </Button>
+                </div>
+              ) : actorChart.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No status changes logged in this period.</p>
               ) : (
+
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={actorChart} layout="vertical" margin={{ left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
@@ -966,9 +1015,23 @@ const Reports = () => {
                 </SelectContent>
               </Select>
             </div>
-            {actorRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No logged activity for this selection.</p>
+            {loadingLogs ? (
+              <p className="text-sm text-muted-foreground">Loading activity log…</p>
+            ) : logsFailed ? (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive">
+                  Couldn't load the activity log, so output can't be measured.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => refetchLogs()}>
+                  Retry
+                </Button>
+              </div>
+            ) : actorRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No moves logged in this period for this selection.
+              </p>
             ) : (
+
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>

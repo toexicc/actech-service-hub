@@ -316,18 +316,24 @@ const DONE = new Set(["completed"]);
  * assignment fields: how many moves each person made, how many tickets they
  * touched, and which tickets they carried all the way to Completed.
  *
- * `services` scopes the result to the tickets in the current report period,
- * and provides the assignment fields used for the "assigned but untouched"
- * idle check.
+ * Moves are scoped by *when they happened* (the log timestamp inside `period`),
+ * so work done this week on an older ticket still counts. `services` supplies
+ * the assignment fields used for the "assigned but untouched" idle check.
  */
 export const buildActorOutput = (
   logs: StatusLogEntry[],
   services: any[],
   staff: Array<{ name?: string; username?: string; role?: string }> = [],
+  period?: Period | null,
 ): ActorOutput[] => {
-  const scopedIds = new Set(
-    services.map((s) => String(s.serviceId || "").trim()).filter(Boolean),
-  );
+
+  const inWindow = (raw: any): boolean => {
+    if (!period?.start || !period?.end) return true;
+    const d = toDate(raw);
+    return !!d && d >= period.start && d <= period.end;
+  };
+  const relevant = logs.filter((l) => !!l.to && !!l.actor && inWindow(l.createdAt));
+
 
   const roleByName = new Map<string, string>();
   staff.forEach((p) => {
@@ -370,11 +376,10 @@ export const buildActorOutput = (
     return e;
   };
 
-  logs.forEach((l) => {
-    if (!l.to || !l.actor) return;
+  relevant.forEach((l) => {
     const id = String(l.serviceId || "").trim();
-    if (!scopedIds.has(id)) return;
-    const e = get(l.actor, l.role);
+    if (!id) return;
+    const e = get(l.actor!, l.role);
     e.moves += 1;
     e.tickets.add(id);
     const to = norm(l.to);
@@ -387,15 +392,17 @@ export const buildActorOutput = (
     }
   });
 
-  // Driven end-to-end: closed the ticket AND made at least one earlier move on it.
+  // Driven end-to-end: closed the ticket AND made at least one earlier move on
+  // it (counted across the whole log, not just the period).
   const movesPerActorTicket = new Map<string, number>();
   logs.forEach((l) => {
     if (!l.to || !l.actor) return;
     const id = String(l.serviceId || "").trim();
-    if (!scopedIds.has(id)) return;
+    if (!id) return;
     const key = `${norm(l.actor)}|${id}`;
     movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
   });
+
 
   // Assignment fields, used only for the idle check.
   const assigned = new Map<string, Set<string>>();
