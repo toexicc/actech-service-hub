@@ -1274,6 +1274,29 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           );
         })()}
 
+        {/* Live per-status counts — respect all filters except Status itself */}
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 mb-6">
+          {STATUS_COUNT_CARDS.map((status) => {
+            const isActive = statusFilter === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(isActive ? "all" : status)}
+                className={cn(
+                  "rounded-2xl border p-3 text-left transition-colors",
+                  isActive
+                    ? "border-primary bg-primary/10"
+                    : "border-border/60 bg-[hsl(var(--surface-glass))] hover:border-primary/40",
+                )}
+              >
+                <p className="text-2xl font-bold tabular-nums text-foreground">{statusCounts[status] ?? 0}</p>
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{status}</p>
+              </button>
+            );
+          })}
+        </div>
+
 
         {/* Services Table */}
         <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
