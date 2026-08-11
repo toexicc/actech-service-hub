@@ -1073,11 +1073,19 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   value={statusFilter}
                   onValueChange={(v) => {
                     setStatusFilter(v);
-                    // Keep the tab in sync so a status from another class
-                    // (completed / cancelled) never yields an empty list.
+                    // Only move the tab when the chosen status could never show
+                    // up in the current tab; otherwise both filters combine.
                     if (v !== "all") {
                       const cls = classifyStatus(v);
-                      setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+                      const tabAllows =
+                        activeTab === "all" ||
+                        (activeTab === "closed" && cls === "closed") ||
+                        (activeTab === "completed" && cls === "completed") ||
+                        (activeTab === "ongoing" && cls === "active") ||
+                        ((activeTab === "within" || activeTab === "walkin") && cls !== "closed" && cls !== "completed");
+                      if (!tabAllows) {
+                        setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+                      }
                     }
                   }}
                 >
