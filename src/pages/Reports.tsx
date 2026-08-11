@@ -525,7 +525,7 @@ const Reports = () => {
    */
   const actorOutput = useMemo(
     () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[], period),
-    [statusLogs, report, staffList],
+    [statusLogs, report, staffList, period],
   );
 
   const actorRows = useMemo(() => {
