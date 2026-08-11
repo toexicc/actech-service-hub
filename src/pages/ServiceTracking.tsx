@@ -727,12 +727,20 @@ const ServiceTracking = () => {
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
   // Lines the client has not approved yet — they keep the checklist available
-  // after a partial approval is re-opened by the shop.
-  const hasPendingLines = quotedLines.some((l, i) => !isLineLocked(l, i));
+  // after a partial approval is re-opened, and also when a service was replaced
+  // by a new one (a Required line the client never approved still counts).
+  const hasPendingLines = quotedLines.some((l) => !isLineApproved(l));
+  // The earlier decision no longer describes this ticket: none of the services
+  // the client approved are on the quote anymore.
+  const approvalSuperseded =
+    alreadyApproved.length > 0 &&
+    quotedLines.length > 0 &&
+    !quotedLines.some((l) => isLineApproved(l));
   const canRespond =
     isWaitingToProceed &&
     !serviceData?.approvalLocked &&
     (!approvalRecord || (approvalRecord.decision === "Approved" && hasPendingLines));
+
 
   // Pre-tick whatever the shop marked as selected, plus anything already approved.
   useEffect(() => {
