@@ -904,6 +904,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     setDueDateFilter("all");
     setStartDate(undefined);
     setEndDate(undefined);
+    setActivePreset(null);
     setSearchInput("");
     if (!isTechnician) {
       setTechnicianFilter("all");
