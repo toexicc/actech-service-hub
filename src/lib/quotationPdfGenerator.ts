@@ -986,12 +986,14 @@ export const drawQuotation = (doc: jsPDF, data: QuotationPDFData, logo: string) 
   const availableFirstPage = bottomLimit - diagTop;
   const totalH = (bs: Block[]) => bs.reduce((t, b) => t + b.gapBefore + b.h, 0) + 14;
 
-  // Shrink the diagnosis until it fits the single-page left column.
+  // Shrink the diagnosis until it fits the single-page left column, but never
+  // below 78% — squeezing further collapsed the text into an unreadable block.
   let diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7);
-  for (const sc of [0.94, 0.88, 0.82, 0.76, 0.7, 0.66, 0.6, 0.55, 0.5, 0.46, 0.42, 0.38, 0.34, 0.3]) {
+  for (const sc of [0.94, 0.9, 0.86, 0.82, 0.78]) {
     if (totalH(diagBlocks) <= availableFirstPage) break;
     diagBlocks = buildDiagnosisBlocks(doc, diagText, COL_W - 7, sc);
   }
+
 
   const rightRoom = bottomLimit - rightTop;
   const firstPage = doc.getCurrentPageInfo().pageNumber;
