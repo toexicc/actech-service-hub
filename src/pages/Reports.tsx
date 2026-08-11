@@ -524,7 +524,7 @@ const Reports = () => {
    * moved tickets forward instead of who was merely assigned to them.
    */
   const actorOutput = useMemo(
-    () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[]),
+    () => buildActorOutput(statusLogs as any[], report.scoped, staffList as any[], period),
     [statusLogs, report, staffList],
   );
 
