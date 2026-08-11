@@ -307,8 +307,8 @@ export interface ActorOutput {
 const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 
 const CONFIRMED = new Set(["confirmed diagnosis"]);
-const TO_REPAIR = new Set(["proceed repair", "ongoing service"]);
-const RELEASE = new Set(["done repair - for release"]);
+const TO_REPAIR = new Set(["waiting to proceed", "proceed repair", "ongoing service"]);
+const RELEASE = new Set(["done repair - for release", "done repair - advise client"]);
 const DONE = new Set(["completed"]);
 
 /**
