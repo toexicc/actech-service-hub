@@ -39,6 +39,19 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
   const { openTab } = useWorkbench();
   const { data: allServices = [] } = useServices();
   const [selected, setSelected] = useState<Date>(startOfDay(new Date()));
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = calendarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setCalendarHeight(el.offsetHeight));
+    ro.observe(el);
+    setCalendarHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
+
+
 
   const isTechnician = role === "technician";
 
