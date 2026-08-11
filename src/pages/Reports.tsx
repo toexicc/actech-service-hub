@@ -904,9 +904,123 @@ const Reports = () => {
           </Panel>
         </div>
 
+        {/* Real output from the activity log */}
+        <div className="mb-6 grid gap-6">
+          <Panel
+            title="Who moves tickets"
+            icon={<Users className="h-4 w-4" />}
+            hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
+          >
+            <div className="h-[320px]">
+              {actorChart.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No status changes logged in this period.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={actorChart} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                    <XAxis type="number" {...axisProps} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" {...axisProps} width={140} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="diagnosed" name="Diagnosed" stackId="a" fill="hsl(var(--info))" />
+                    <Bar dataKey="toRepair" name="To repair" stackId="a" fill="hsl(var(--primary))" />
+                    <Bar dataKey="released" name="Released" stackId="a" fill="hsl(var(--warning))" />
+                    <Bar
+                      dataKey="completed"
+                      name="Completed"
+                      stackId="a"
+                      fill="hsl(var(--success))"
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </Panel>
+
+          <Panel
+            title="Output leaderboard"
+            icon={<Users className="h-4 w-4" />}
+            hint="Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never changed its status."
+          >
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
+                <SelectTrigger className="h-9 w-[170px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="management">Management</SelectItem>
+                  <SelectItem value="technician">Technician</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={outputSort} onValueChange={(v) => setOutputSort(v as any)}>
+                <SelectTrigger className="h-9 w-[200px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="moves">Sort by moves</SelectItem>
+                  <SelectItem value="completed">Sort by completed</SelectItem>
+                  <SelectItem value="drivenEndToEnd">Sort by driven end-to-end</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {actorRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No logged activity for this selection.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Staff</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead className="text-right">Moves</TableHead>
+                      <TableHead className="text-right">Tickets touched</TableHead>
+                      <TableHead className="text-right">Diagnosed</TableHead>
+                      <TableHead className="text-right">To repair</TableHead>
+                      <TableHead className="text-right">Released</TableHead>
+                      <TableHead className="text-right">Completed</TableHead>
+                      <TableHead className="text-right">Driven end-to-end</TableHead>
+                      <TableHead className="text-right">Assigned untouched</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {actorRows.slice(0, 20).map((a) => (
+                      <TableRow key={a.name}>
+                        <TableCell className="font-medium">{a.name}</TableCell>
+                        <TableCell className="capitalize text-muted-foreground">{a.role || "—"}</TableCell>
+                        <TableCell className="text-right font-semibold">{a.moves}</TableCell>
+                        <TableCell className="text-right">{a.ticketsTouched}</TableCell>
+                        <TableCell className="text-right">{a.diagnosed}</TableCell>
+                        <TableCell className="text-right">{a.toRepair}</TableCell>
+                        <TableCell className="text-right">{a.released}</TableCell>
+                        <TableCell className="text-right">{a.completed}</TableCell>
+                        <TableCell className="text-right">{a.drivenEndToEnd}</TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right",
+                            a.assignedUntouched > 0 ? "text-warning" : "text-muted-foreground",
+                          )}
+                        >
+                          {a.assignedUntouched}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </Panel>
+        </div>
+
         {/* Admins */}
         <div className="mb-6 grid gap-6 lg:grid-cols-2">
-          <Panel title="Admin output" icon={<Users className="h-4 w-4" />}>
+          <Panel
+            title="Assignment load (admins)"
+            icon={<Users className="h-4 w-4" />}
+            hint="Based on assignment fields, not on who moved the ticket."
+          >
             <div className="h-[300px]">
               {admins.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No admin activity in this period.</p>
