@@ -35,7 +35,7 @@ const AdminDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Use React Query hooks for cached data
-  const { data: allServices = [], isLoading: isServicesLoading, refetch: refetchServices } = useServices();
+  const { data: allServices = [], isPending: isServicesLoading, refetch: refetchServices } = useServices();
 
   // Filter services for specific statuses
   const services = useMemo(() => {
