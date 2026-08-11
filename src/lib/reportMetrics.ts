@@ -13,6 +13,10 @@ export interface StatusLogEntry {
   created?: boolean;
   /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
   waitingParts?: "on" | "off";
+  /** Person who performed the logged action (from activity_logs.actor_name). */
+  actor?: string;
+  /** Role stored on the log row, when present. */
+  role?: string;
 }
 
 /**
