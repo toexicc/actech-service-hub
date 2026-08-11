@@ -332,7 +332,7 @@ export const buildActorOutput = (
     const d = toDate(raw);
     return !!d && d >= period.start && d <= period.end;
   };
-  const relevant = logs.filter((l) => !!l.to && !!l.actor && inWindow(l.createdAt));
+  const relevant = logs.filter((l) => (!!l.to || !!l.created) && !!l.actor && inWindow(l.createdAt));
 
 
   const roleByName = new Map<string, string>();
