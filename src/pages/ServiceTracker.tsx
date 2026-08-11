@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { format, differenceInDays, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { format, differenceInDays, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { displayDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,12 +57,31 @@ interface ServiceRecord {
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
 type SortOrder = "asc" | "desc";
+type DatePreset = "today" | "yesterday" | "thisWeek" | "last7" | "last30" | "thisMonth" | "clear";
+
+/** Statuses shown as live count cards under the summary row. */
+const STATUS_COUNT_CARDS = [
+  "Pending Diagnosis",
+  "Confirmed Diagnosis",
+  "Waiting to Proceed",
+  "Ongoing Service",
+  "Done Repair - For Release",
+  "Done Repair - Advise Client",
+  "Completed",
+] as const;
 
 const ServiceTracker = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { data: services = [], isLoading, error: servicesError, refetch: refetchServices } = useAllServices();
+  const {
+    data: services = [],
+    isLoading,
+    isPending,
+    isFetching,
+    error: servicesError,
+    refetch: refetchServices,
+  } = useAllServices();
   const invalidateServices = useInvalidateServices();
   const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
@@ -77,6 +96,7 @@ const ServiceTracker = () => {
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
   const [dueDateFilter, setDueDateFilter] = useState("all");
+  const [activePreset, setActivePreset] = useState<DatePreset | null>(null);
   const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
   const [forwardService, setForwardService] = useState<ServiceRecord | null>(null);
   const [forwardRecipient, setForwardRecipient] = useState("");
@@ -495,10 +515,24 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     );
   }, [staffList]);
 
-  const applyDatePreset = (preset: string) => {
+  const applyDatePreset = (preset: DatePreset) => {
     const today = new Date();
-    
+
     switch (preset) {
+      case "today":
+        setStartDate(today);
+        setEndDate(today);
+        break;
+      case "yesterday": {
+        const y = subDays(today, 1);
+        setStartDate(y);
+        setEndDate(y);
+        break;
+      }
+      case "thisWeek":
+        setStartDate(startOfWeek(today, { weekStartsOn: 1 }));
+        setEndDate(endOfWeek(today, { weekStartsOn: 1 }));
+        break;
       case "last7":
         setStartDate(subDays(today, 7));
         setEndDate(today);
@@ -515,6 +549,22 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         setStartDate(undefined);
         setEndDate(undefined);
         break;
+    }
+    setActivePreset(preset === "clear" ? null : preset);
+  };
+
+  /** Manual refresh: actually refetch and tell the user what happened. */
+  const handleRefresh = async () => {
+    try {
+      const result = await refetchServices();
+      if (result.error) throw result.error;
+      toast({ title: "Tickets refreshed" });
+    } catch (err: any) {
+      toast({
+        title: "Refresh failed",
+        description: err?.message || "The connection dropped while fetching services.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -663,112 +713,104 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return Array.from(techs).sort();
   }, [services]);
 
+  /**
+   * All filters are AND-combined. `includeStatus` lets the status count cards
+   * reuse the exact same predicate while ignoring the Status dropdown itself.
+   */
+  const passesFilters = (service: any, includeStatus: boolean): boolean => {
+    const normName = (v?: string) => (v || "").trim().toLowerCase();
+
+    // Search filter - search by Service ID or Client Name
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
+      const matchesServiceId = service.serviceId?.toLowerCase().includes(query);
+      const matchesClientName = service.clientName?.toLowerCase().includes(query);
+      if (!matchesServiceId && !matchesClientName) return false;
+    }
+
+    // Device type filter
+    if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) return false;
+
+    // Technician filter — tolerates multiple techs / spacing / casing.
+    if (technicianFilter !== "all") {
+      const assignedTechnicians = (service.technician || "").split(",").map((t: string) => normName(t));
+      if (!assignedTechnicians.includes(normName(technicianFilter))) return false;
+    }
+
+    // Department filter — applies alongside the technician filter, not instead of it.
+    if (departmentFilter !== "all") {
+      const assigned = (service.technician || "").split(",").map(normName).filter(Boolean);
+      const matchesDept =
+        assigned.some((n) =>
+          techniciansWithDept.some((t) => normName(t.name) === n && t.department === departmentFilter),
+        ) ||
+        (service.technicianDepartment || "")
+          .split(",")
+          .map((d: string) => d.trim())
+          .includes(departmentFilter);
+      if (!matchesDept) return false;
+    }
+
+    // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
+    // the "All" and "Cancelled / RTO / On Hold" tabs.
+    const cls = classifyStatus(service.status);
+    if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
+    if (activeTab === "ongoing" && cls !== "active") return false;
+    if (activeTab === "completed" && cls !== "completed") return false;
+    if (activeTab === "closed" && cls !== "closed") return false;
+    if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
+    if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
+
+    // Status filter
+    if (includeStatus && statusFilter !== "all" && service.status !== statusFilter) return false;
+
+    // Date range filter — by the ticket's service / received date.
+    if (startDate || endDate) {
+      const serviceDate =
+        parseServiceDate(service.serviceDate) ||
+        parseServiceDate(service.dateReceived) ||
+        parseServiceDate(service.timestamp);
+      if (!serviceDate) return false;
+      serviceDate.setHours(0, 0, 0, 0);
+
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (serviceDate < start) return false;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (serviceDate > end) return false;
+      }
+    }
+
+    // Due date filter
+    if (dueDateFilter !== "all") {
+      const daysUntilDue = getDaysUntilDue(service.targetDate);
+      if (dueDateFilter === "overdue") {
+        if (!isOverdue(service.targetDate, service.status)) return false;
+      } else if (dueDateFilter === "dueToday") {
+        if (daysUntilDue !== 0) return false;
+      } else if (dueDateFilter === "dueSoon") {
+        if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
+      }
+    }
+
+    return true;
+  };
+
   const filteredAndSortedServices = useMemo(() => {
-    // Don't filter while loading to prevent showing unfiltered data
-    if (isLoading) {
+    // Only suppress the list on the very first load, so filters keep working
+    // while a background refresh is in flight.
+    if (isPending) {
       return [];
     }
 
-    let filtered = services.filter(service => {
-      // Do NOT filter out any services by status - show ALL services
-
-      // Search filter - search by Service ID or Client Name
-      if (debouncedSearch.trim()) {
-        const query = debouncedSearch.toLowerCase();
-        const matchesServiceId = service.serviceId?.toLowerCase().includes(query);
-        const matchesClientName = service.clientName?.toLowerCase().includes(query);
-        
-        if (!matchesServiceId && !matchesClientName) {
-          return false;
-        }
-      }
-
-      // Device type filter
-      if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) {
-        return false;
-      }
-
-      // Technician filter - if a specific technician is selected, show services where they are assigned
-      // Supports multiple technicians (comma-separated) and tolerates spacing/casing differences.
-      if (technicianFilter !== "all") {
-        const normName = (v?: string) => (v || "").trim().toLowerCase();
-        const assignedTechnicians = (service.technician || "").split(",").map((t) => normName(t));
-        if (!assignedTechnicians.includes(normName(technicianFilter))) {
-          return false;
-        }
-      } else if (departmentFilter !== "all") {
-        // Department filter — a ticket matches when ANY assigned technician
-        // belongs to the selected department (tickets can have several techs).
-        const normName = (v?: string) => (v || "").trim().toLowerCase();
-        const assigned = (service.technician || "").split(",").map(normName).filter(Boolean);
-        const matchesDept =
-          assigned.some((n) =>
-            techniciansWithDept.some((t) => normName(t.name) === n && t.department === departmentFilter),
-          ) ||
-          (service.technicianDepartment || "")
-            .split(",")
-            .map((d) => d.trim())
-            .includes(departmentFilter);
-        if (!matchesDept) {
-          return false;
-        }
-      }
+    let filtered = services.filter((service) => passesFilters(service, true));
 
 
-      // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
-      // the "All" and "Cancelled / RTO / On Hold" tabs. They never leak into
-      // Within the Day, Walk In, Ongoing or Completed.
-      const cls = classifyStatus(service.status);
-      if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
-      if (activeTab === "ongoing" && cls !== "active") return false;
-      if (activeTab === "completed" && cls !== "completed") return false;
-      if (activeTab === "closed" && cls !== "closed") return false;
-      if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
-      if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
-      // "all" — no additional filter
-
-
-      // Status filter
-      if (statusFilter !== "all" && service.status !== statusFilter) {
-        return false;
-      }
-
-      // Date range filter — filters by the ticket's SERVICE (received) date.
-      // Tickets without a parseable service date are hidden while a range is on.
-      if (startDate || endDate) {
-        const serviceDate = parseServiceDate(service.timestamp || service.dateReceived);
-        if (!serviceDate) return false;
-        serviceDate.setHours(0, 0, 0, 0);
-
-        if (startDate) {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          if (serviceDate < start) return false;
-        }
-
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (serviceDate > end) return false;
-        }
-      }
-
-
-      // Due date filter
-      if (dueDateFilter !== "all") {
-        const daysUntilDue = getDaysUntilDue(service.targetDate);
-        
-        if (dueDateFilter === "overdue") {
-          if (!isOverdue(service.targetDate, service.status)) return false;
-        } else if (dueDateFilter === "dueToday") {
-          if (daysUntilDue !== 0) return false;
-        } else if (dueDateFilter === "dueSoon") {
-          if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
-        }
-      }
-
-      return true;
-    });
 
     // Sort: Put overdue services at the top, and completed/closed/cancelled at the bottom
     filtered.sort((a, b) => {
@@ -811,7 +853,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isLoading]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending]);
+
+  /**
+   * Live per-status counts. They respect every filter EXCEPT the Status
+   * dropdown, so the row always shows the full breakdown of the current view.
+   */
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    STATUS_COUNT_CARDS.forEach((s) => (counts[s] = 0));
+    if (isPending) return counts;
+    services.forEach((service) => {
+      if (!passesFilters(service, false)) return;
+      const status = (service.status || "").trim();
+      if (status in counts) counts[status] += 1;
+    });
+    return counts;
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending]);
 
   const departments = useMemo(() => {
     const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
@@ -840,12 +898,32 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     !!debouncedSearch.trim() ||
     (!isTechnician && (technicianFilter !== "all" || departmentFilter !== "all"));
 
+  /**
+   * Set the status filter and only move the tab when the chosen status could
+   * never appear in the tab currently selected (so filters keep combining).
+   */
+  const selectStatus = (v: string) => {
+    setStatusFilter(v);
+    if (v === "all") return;
+    const cls = classifyStatus(v);
+    const tabAllows =
+      activeTab === "all" ||
+      (activeTab === "closed" && cls === "closed") ||
+      (activeTab === "completed" && cls === "completed") ||
+      (activeTab === "ongoing" && cls === "active") ||
+      ((activeTab === "within" || activeTab === "walkin") && cls !== "closed" && cls !== "completed");
+    if (!tabAllows) {
+      setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
+    }
+  };
+
   const clearAllFilters = () => {
     setDeviceTypeFilter("all");
     setStatusFilter("all");
     setDueDateFilter("all");
     setStartDate(undefined);
     setEndDate(undefined);
+    setActivePreset(null);
     setSearchInput("");
     if (!isTechnician) {
       setTechnicianFilter("all");
@@ -910,12 +988,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => invalidateServices()}
-                disabled={isLoading}
+                onClick={handleRefresh}
+                disabled={isFetching}
                 title="Refresh data"
                 className="h-11 w-11 rounded-xl"
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </CardContent>
@@ -1012,15 +1090,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 <Label>Status</Label>
                 <Select
                   value={statusFilter}
-                  onValueChange={(v) => {
-                    setStatusFilter(v);
-                    // Keep the tab in sync so a status from another class
-                    // (completed / cancelled) never yields an empty list.
-                    if (v !== "all") {
-                      const cls = classifyStatus(v);
-                      setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
-                    }
-                  }}
+                  onValueChange={selectStatus}
                 >
 
                   <SelectTrigger>
@@ -1064,7 +1134,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <CalendarComponent
                       mode="single"
                       selected={startDate}
-                      onSelect={setStartDate}
+                      onSelect={(d) => { setStartDate(d); setActivePreset(null); }}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
@@ -1100,7 +1170,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <CalendarComponent
                       mode="single"
                       selected={endDate}
-                      onSelect={setEndDate}
+                      onSelect={(d) => { setEndDate(d); setActivePreset(null); }}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                       disabled={(date) => startDate ? date < startDate : false}
@@ -1140,29 +1210,25 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               <div className="space-y-2 lg:col-span-4">
                 <Label>Quick Date Filters</Label>
                 <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => applyDatePreset("last7")}
-                  >
-                    Last 7 Days
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => applyDatePreset("last30")}
-                  >
-                    Last 30 Days
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => applyDatePreset("thisMonth")}
-                  >
-                    This Month
-                  </Button>
-                  <Button 
-                    variant="outline" 
+                  {([
+                    ["today", "Today"],
+                    ["yesterday", "Yesterday"],
+                    ["thisWeek", "This Week"],
+                    ["last7", "Last 7 Days"],
+                    ["last30", "Last 30 Days"],
+                    ["thisMonth", "This Month"],
+                  ] as [DatePreset, string][]).map(([preset, label]) => (
+                    <Button
+                      key={preset}
+                      variant={activePreset === preset ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => applyDatePreset(preset)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => applyDatePreset("clear")}
                   >
@@ -1210,6 +1276,29 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             </div>
           );
         })()}
+
+        {/* Live per-status counts — respect all filters except Status itself */}
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 mb-6">
+          {STATUS_COUNT_CARDS.map((status) => {
+            const isActive = statusFilter === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => selectStatus(isActive ? "all" : status)}
+                className={cn(
+                  "rounded-2xl border p-3 text-left transition-colors",
+                  isActive
+                    ? "border-primary bg-primary/10"
+                    : "border-border/60 bg-[hsl(var(--surface-glass))] hover:border-primary/40",
+                )}
+              >
+                <p className="text-2xl font-bold tabular-nums text-foreground">{statusCounts[status] ?? 0}</p>
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{status}</p>
+              </button>
+            );
+          })}
+        </div>
 
 
         {/* Services Table */}

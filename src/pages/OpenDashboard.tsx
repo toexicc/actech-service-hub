@@ -39,7 +39,7 @@ const OpenDashboard = () => {
   const userRole = sessionStorage.getItem("userRole");
 
   // Use React Query hooks for cached data
-  const { data: allServices = [], isLoading: isServicesLoading, refetch: refetchServices } = useServices();
+  const { data: allServices = [], isPending: isServicesLoading, refetch: refetchServices } = useServices();
   const { data: staffList = [] } = useStaff();
 
   // Filter services for this dashboard
