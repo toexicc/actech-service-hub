@@ -185,11 +185,14 @@ const Reports = () => {
   const [preset, setPreset] = useState<"7" | "30" | "90" | "year" | "all">("30");
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
+  const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
+  const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
   const { data: statusLogs = [], isLoading: loadingLogs } = useServiceStatusLogs();
   const { data: closedDates = [] } = useClosedDates();
+  const { data: staffList = [] } = useStaff();
 
 
   const { data: transactions = [] } = useQuery({
