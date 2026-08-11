@@ -969,7 +969,13 @@ const ManageClient = () => {
 
     // Clients approve the saved Service Breakdown on /track, so the ticket
     // cannot leave the diagnosis stage until priced lines exist and are saved.
+    const breakdownRequired =
+      !!updateStatus &&
+      updateStatus !== serviceData.status &&
+      updateStatus !== "Pending Diagnosis" &&
+      updateStatus !== "Confirmed Diagnosis";
     if (!offPathMove && breakdownRequired && quotedLines.length === 0) {
+
       setBreakdownMissing(true);
       toast({
         title: "Service Breakdown required",
