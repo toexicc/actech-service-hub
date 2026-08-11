@@ -144,23 +144,9 @@ const ManageClient = () => {
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
   const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
-  // Technicians who are absent (no Time In today) or on leave are hidden so they
-  // don't get assigned. When no attendance exists yet for the day we only hide
-  // staff on leave, otherwise the list would be empty.
-  const technicians = useMemo(() => {
-    return technicianData
-      .filter((staff) => {
-        if (showUnavailableTechs || !availability) return true;
-        if (availability.isOnLeave(staff.name)) return false;
-        if (!availability.hasAttendanceToday) return true;
-        return availability.isAvailable(staff.name);
-      })
-      .map((staff) => ({
-        name: staff.name,
-        department: staff.department || "",
-        displayName: `${staff.name} - ${staff.department || ""}`,
-      }));
-  }, [technicianData, availability, showUnavailableTechs]);
+  // (technician option list is derived further below, once the assigned
+  // technician state exists, so assigned staff are never filtered out)
+
 
 
   const adminStaffOptions = useMemo(() => staffData
