@@ -37,7 +37,9 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
-import { formatDiagnosisWithAI, formatReportWithAI } from "@/lib/aiFormatters";
+import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI } from "@/lib/aiFormatters";
+import { diagnosisFieldsFromRecord, composeClientDiagnosis, APPROVAL_DISCLAIMER, VAT_DISCLAIMER } from "@/lib/diagnosisSections";
+
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
 import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
@@ -229,6 +231,10 @@ const ManageClient = () => {
   const [updatePriority, setUpdatePriority] = useState("");
   const [updateChiefComplaint, setUpdateChiefComplaint] = useState("");
   const [updateAIDiagnosis, setUpdateAIDiagnosis] = useState("");
+  const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
+  const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
+  const [updateDiagSummary, setUpdateDiagSummary] = useState("");
+
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
