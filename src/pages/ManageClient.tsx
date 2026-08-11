@@ -476,7 +476,14 @@ const ManageClient = () => {
           setUpdateClientType(merged.clientType || "");
           setUpdatePriority(merged.priority || "");
           setUpdateChiefComplaint(merged.chiefComplaint || "");
-          setUpdateAIDiagnosis(merged.aiDiagnosis || "");
+          {
+            const seg = diagnosisFieldsFromRecord(merged);
+            setUpdateAIDiagnosis(seg.diagnosis);
+            setUpdateDiagWarranty(seg.warranty);
+            setUpdateDiagOtherNotes(seg.otherNotes);
+            setUpdateDiagSummary(seg.summary);
+          }
+
           setUpdateServices(merged.service || "");
           setUpdateServiceCost(merged.serviceCost || "");
       setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
