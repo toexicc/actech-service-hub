@@ -139,7 +139,7 @@ const breakdownServiceNames = (lines: string[]): string[] => {
     const bare = stripDecor(lines[i]);
     if (bare === "") continue;
     if (OTHER_SECTION.test(bare)) break;
-    if (/^option\s+[a-z]\b/i.test(bare)) continue;
+    if (isOptionLine(bare)) continue;
     const name = bare
       .split(/\s+-\s*php/i)[0]
       .replace(/[-:]\s*$/, "")
