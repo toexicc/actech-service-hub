@@ -57,6 +57,7 @@ interface ServiceRecord {
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
 type SortOrder = "asc" | "desc";
+type DatePreset = "today" | "yesterday" | "thisWeek" | "last7" | "last30" | "thisMonth" | "clear";
 
 const ServiceTracker = () => {
   const navigate = useNavigate();
