@@ -277,39 +277,71 @@ const ManageClient = () => {
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
-  /** Clear the partial-approval hold so the client can approve again on /track. */
+  /**
+   * Resend the approval request: prune approved services that are no longer on
+   * the ticket (replaced services), recompute what is pending and unlock the
+   * client's checklist on /track. Never clears approvals that still apply.
+   */
   const handleReopenApproval = async () => {
     if (!serviceData?.serviceId || isReopeningApproval) return;
     setIsReopeningApproval(true);
     try {
-      // Idempotent: re-opening an already-open approval is a no-op, never an
-      // error, so repeated back-and-forth between shop and client is safe.
+      const sid = serviceData.serviceId;
       const { data: current } = await supabase
         .from("services")
-        .select("approval_locked")
-        .eq("service_id", serviceData.serviceId)
+        .select("approval_locked, approved_services, quoted_breakdown")
+        .eq("service_id", sid)
         .maybeSingle();
 
-      if (current && (current as any).approval_locked === false) {
-        setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
-        toast({
-          title: "Approval already open",
-          description: "The client can select the remaining services on the tracking page.",
-        });
-        return;
-      }
+      const savedLines = normalizeQuotedBreakdown((current as any)?.quoted_breakdown);
+      const savedKeys = savedLines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
+      const rawApproved = (Array.isArray((current as any)?.approved_services)
+        ? ((current as any).approved_services as string[])
+        : []
+      ).filter(Boolean);
+      const baseName = (s: string) =>
+        String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, "");
+      const stillApproved = rawApproved.filter((s) => savedKeys.includes(baseName(s)));
+      const removedApproved = rawApproved.filter((s) => !stillApproved.includes(s));
+      const pending = savedLines
+        .map((l) => l.name.trim())
+        .filter((n) => n && !stillApproved.some((s) => baseName(s) === n.toLowerCase()));
 
       const { error } = await supabase
         .from("services")
-        .update({ approval_locked: false, last_updated: new Date().toISOString() } as any)
-        .eq("service_id", serviceData.serviceId);
+        .update({
+          approval_locked: false,
+          approved_services: stillApproved,
+          pending_services: pending,
+          ...(stillApproved.length === 0 ? { client_approved_at: null } : {}),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", sid);
       if (error) throw new Error(error.message);
-      logTicketActivity(serviceData.serviceId, "Client approval re-opened on /track", {
-        "Approval lock": { from: "Locked", to: "Open" },
-        "Pending approval": (serviceData.pendingServices ?? []).join(", ") || "(none)",
+
+      logTicketActivity(sid, "Approval request resent to the client", {
+        "Approval lock": { from: (current as any)?.approval_locked ? "Locked" : "Open", to: "Open" },
+        "Approved services kept": stillApproved.join(", ") || "(none)",
+        "Removed (no longer on ticket)": removedApproved.join(", ") || "(none)",
+        "Pending approval": pending.join(", ") || "(none)",
       });
-      setServiceData((prev: any) => (prev ? { ...prev, approvalLocked: false } : prev));
-      toast({ title: "Approval re-opened", description: "The client can approve again on the tracking page." });
+      setServiceData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              approvalLocked: false,
+              approvedServices: stillApproved,
+              pendingServices: pending,
+              ...(stillApproved.length === 0 ? { clientApprovedAt: "" } : {}),
+            }
+          : prev,
+      );
+      toast({
+        title: "Approval resent",
+        description: pending.length
+          ? `The client can now approve: ${pending.join(", ")}`
+          : "The client can approve again on the tracking page.",
+      });
 
       // Pull the authoritative row back so the remark + pending list stay in sync.
       try {
@@ -318,11 +350,12 @@ const ManageClient = () => {
         /* refresh is best-effort */
       }
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message || "Could not re-open approval.", variant: "destructive" });
+      toast({ title: "Error", description: e?.message || "Could not resend the approval.", variant: "destructive" });
     } finally {
       setIsReopeningApproval(false);
     }
   };
+
 
 
   const handleToggleAutoApprove = async (next: boolean) => {
