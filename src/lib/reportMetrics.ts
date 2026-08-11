@@ -326,9 +326,6 @@ export const buildActorOutput = (
   staff: Array<{ name?: string; username?: string; role?: string }> = [],
   period?: Period | null,
 ): ActorOutput[] => {
-  const scopedIds = new Set(
-    services.map((s) => String(s.serviceId || "").trim()).filter(Boolean),
-  );
 
   const inWindow = (raw: any): boolean => {
     if (!period?.start || !period?.end) return true;
