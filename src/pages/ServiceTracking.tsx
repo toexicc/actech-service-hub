@@ -28,7 +28,7 @@ import { mapServiceRow } from "@/hooks/useServices";
 import { supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
 
 import { StatusChip } from "@/components/ui/status-chip";
-import { clientStatusLabel } from "@/lib/serviceStatus";
+import { clientStatusLabel, isClosedStatus } from "@/lib/serviceStatus";
 import { usePublicServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { Checkbox } from "@/components/ui/checkbox";
