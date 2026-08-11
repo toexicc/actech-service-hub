@@ -781,22 +781,30 @@ const ManageClient = () => {
     if (!aiSid) return;
     setIsFormattingAI(true);
     try {
-      const formattedDiagnosis = await formatDiagnosisWithAI({
+      const sections = await formatDiagnosisSections({
         rawDiagnosis,
         customerName: serviceData?.clientName || '',
         deviceType: serviceData?.deviceType || '',
         model: serviceData?.device || '',
         serviceId: aiSid,
       });
+      const formattedDiagnosis = sections.diagnosis;
 
       if (formattedDiagnosis) {
-        setUpdateAIDiagnosis(formattedDiagnosis);
+        setUpdateAIDiagnosis(sections.diagnosis);
+        setUpdateDiagWarranty(sections.warranty);
+        setUpdateDiagSummary(sections.summary);
+        const parsed = parseQuotedBreakdown(
+          sections.breakdownText ? `Service Breakdown:\n${sections.breakdownText}` : "",
+        );
+        if (parsed.length) setQuotedLines(parsed);
         setIsEditingAIDiagnosis(false);
         logAiFormatActivity(aiSid, "diagnosis", {
           source: "/manage-client",
           before: rawDiagnosis,
           after: formattedDiagnosis,
         });
+
 
         await notifyAiDiagnosisGenerated({
           serviceId: aiSid,
