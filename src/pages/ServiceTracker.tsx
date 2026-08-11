@@ -968,12 +968,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => invalidateServices()}
-                disabled={isLoading}
+                onClick={handleRefresh}
+                disabled={isFetching}
                 title="Refresh data"
                 className="h-11 w-11 rounded-xl"
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </CardContent>
