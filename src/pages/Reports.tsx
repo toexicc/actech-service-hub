@@ -1040,7 +1040,7 @@ const Reports = () => {
             </div>
           </Panel>
 
-          <Panel title="Admin leaderboard" icon={<Users className="h-4 w-4" />}>
+          <Panel title="Assignment leaderboard" icon={<Users className="h-4 w-4" />} hint="Tickets assigned to each admin — pair with the output leaderboard above.">
             {admins.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing to show yet.</p>
             ) : (
