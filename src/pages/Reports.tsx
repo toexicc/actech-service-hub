@@ -943,13 +943,14 @@ const Reports = () => {
           </Panel>
         </div>
 
-        {/* Real output from the activity log */}
-        <div className="mb-6 grid gap-6">
+        {/* Admins */}
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
           <Panel
-            title="Who moves tickets"
+            title="Admin Assignment Load"
             icon={<Users className="h-4 w-4" />}
-            hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
+            hint="Based on assignment fields, not on who moved the ticket."
           >
+
             <div className="h-[320px]">
               {loadingLogs ? (
                 <p className="text-sm text-muted-foreground">Loading activity log…</p>
