@@ -727,12 +727,20 @@ const ServiceTracking = () => {
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
   // Lines the client has not approved yet — they keep the checklist available
-  // after a partial approval is re-opened by the shop.
-  const hasPendingLines = quotedLines.some((l, i) => !isLineLocked(l, i));
+  // after a partial approval is re-opened, and also when a service was replaced
+  // by a new one (a Required line the client never approved still counts).
+  const hasPendingLines = quotedLines.some((l) => !isLineApproved(l));
+  // The earlier decision no longer describes this ticket: none of the services
+  // the client approved are on the quote anymore.
+  const approvalSuperseded =
+    alreadyApproved.length > 0 &&
+    quotedLines.length > 0 &&
+    !quotedLines.some((l) => isLineApproved(l));
   const canRespond =
     isWaitingToProceed &&
     !serviceData?.approvalLocked &&
     (!approvalRecord || (approvalRecord.decision === "Approved" && hasPendingLines));
+
 
   // Pre-tick whatever the shop marked as selected, plus anything already approved.
   useEffect(() => {
@@ -1192,15 +1200,34 @@ const ServiceTracking = () => {
 
 
                     {approvalRecord && (
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-sm font-medium text-foreground">{approvalRecord.text}</p>
-                        {serviceData.approvalLocked && (
+                      <div
+                        className={`rounded-lg border p-3 ${
+                          approvalSuperseded
+                            ? "border-amber-300/60 bg-amber-50/60"
+                            : "border-primary/20 bg-primary/5"
+                        }`}
+                      >
+                        <p
+                          className={`text-sm font-medium ${
+                            approvalSuperseded ? "text-amber-800 line-through" : "text-foreground"
+                          }`}
+                        >
+                          {approvalRecord.text}
+                        </p>
+                        {approvalSuperseded && (
+                          <p className="text-xs text-amber-800 mt-1">
+                            After further checking, the recommended service changed — your previous approval no longer
+                            covers the current quote below. Please review and approve again.
+                          </p>
+                        )}
+                        {!approvalSuperseded && serviceData.approvalLocked && (
                           <p className="text-xs text-muted-foreground mt-1">
                             We'll contact you shortly to confirm the remaining services.
                           </p>
                         )}
                       </div>
                     )}
+
 
                     {canRespond && (
                       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
