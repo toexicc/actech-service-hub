@@ -693,8 +693,13 @@ const ServiceTracking = () => {
   const normKey = (s: string) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const approvedKeys = new Set(alreadyApproved.map(normKey));
   /** Already confirmed by the client earlier — fully read-only. */
-  const isLineApproved = (line: QuotedLine) =>
-    approvedKeys.has(normKey(line.name)) || approvedKeys.has(normKey(lineDisplayName(line)));
+  const isLineApproved = (line: QuotedLine) => {
+    const base = normKey(line.name);
+    if (!base) return false;
+    if (approvedKeys.has(base) || approvedKeys.has(normKey(lineDisplayName(line)))) return true;
+    // Approved earlier with an option suffix, e.g. "Battery Replacement (OEM)".
+    return [...approvedKeys].some((k) => k === base || k.startsWith(`${base} `));
+  };
   /** Cannot untick (required lines stay ticked), but options remain selectable. */
   const isLineLocked = (line: QuotedLine, i: number) => line.required || isLineApproved(line);
 

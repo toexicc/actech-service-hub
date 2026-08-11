@@ -62,7 +62,9 @@ const amountOf = (text: string): number => {
   return m ? toNumber(m[1]) : 0;
 };
 
-const OPTION_RE = /^option\s*([A-Za-z0-9]+)?\s*[-–—:]\s*([\s\S]+)$/i;
+// Any option-style row: "Option A - OEM", "Option 1: Original", "Opt B — ...",
+// "Choice A - ...", "Variant 2 - ...". Labels may be letters, digits or both.
+const OPTION_RE = /^(?:option|opt|choice|variant|alt(?:ernative)?)\s*([A-Za-z0-9]+)?\s*[-–—:]\s*([\s\S]+)$/i;
 
 /**
  * Parse the "Service Breakdown" block of an AI diagnosis into quotation lines,

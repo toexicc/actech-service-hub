@@ -311,6 +311,16 @@ const StaffManagement = () => {
       return;
     }
 
+    const newPassword = String(selectedStaff.password ?? "").trim();
+    if (newPassword && newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Use at least 6 characters for the new password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (editSalaryType === "monthly") {
       const amt = parseFloat(String((selectedStaff as any).salary || "").replace(/[^0-9.\-]/g, ""));
       if (!amt || amt <= 0) {
@@ -334,17 +344,22 @@ const StaffManagement = () => {
         role: selectedStaff.role,
         department: selectedStaff.role === "technician" ? selectedStaff.department : undefined,
         status: selectedStaff.status,
-        password: selectedStaff.password,
+        password: newPassword || undefined,
         salary: salaryToSave,
         salaryType: editSalaryType,
       });
 
       if (success) {
-        logStaffActivity("Updated staff member", `${selectedStaff.name} (${selectedStaff.role})`);
-        
+        logStaffActivity(
+          newPassword ? "Updated staff member and password" : "Updated staff member",
+          `${selectedStaff.name} (${selectedStaff.role})`,
+        );
+
         toast({
           title: "Success",
-          description: "Staff member updated successfully",
+          description: newPassword
+            ? "Staff member updated and new password saved"
+            : "Staff member updated successfully",
         });
         setEditDialogOpen(false);
         setSelectedStaff(null);

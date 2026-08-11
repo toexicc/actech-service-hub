@@ -58,7 +58,10 @@ const OTHER_SECTION =
 const AMOUNT_PLACEHOLDER = "Php {Enter Amount}";
 const WARRANTY_PLACEHOLDER = "{Enter Warranty Duration}";
 
-const isOptionLine = (s: string) => /^option\s+[a-z]\b/i.test(stripDecor(s));
+// Any option-style row, not just "Option A": letters or digits, and the common
+// synonyms staff use ("Opt B", "Choice A", "Variant 2").
+const OPTION_LINE_RE = /^(?:option|opt|choice|variant|alt(?:ernative)?)\s*[A-Za-z0-9]+\s*[-–—:]/i;
+const isOptionLine = (s: string) => OPTION_LINE_RE.test(stripDecor(s));
 
 const enforceAmountPlaceholders = (text: string): string => {
   const lines = String(text ?? "").split("\n");
@@ -136,7 +139,7 @@ const breakdownServiceNames = (lines: string[]): string[] => {
     const bare = stripDecor(lines[i]);
     if (bare === "") continue;
     if (OTHER_SECTION.test(bare)) break;
-    if (/^option\s+[a-z]\b/i.test(bare)) continue;
+    if (isOptionLine(bare)) continue;
     const name = bare
       .split(/\s+-\s*php/i)[0]
       .replace(/[-:]\s*$/, "")
