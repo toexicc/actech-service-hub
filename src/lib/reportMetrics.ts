@@ -404,11 +404,20 @@ export const buildActorOutput = (
       e.diagnosed += 1;
       return;
     }
+    if (l.event) {
+      // Processing the payment or handing over the device closes the ticket in
+      // practice — credit Completed once per ticket per person.
+      if (!e.completedTickets.has(id)) {
+        e.completed += 1;
+        e.completedTickets.add(id);
+      }
+      return;
+    }
     const to = norm(l.to);
     if (CONFIRMED.has(to)) e.diagnosed += 1;
     if (TO_REPAIR.has(to)) e.toRepair += 1;
     if (RELEASE.has(to)) e.released += 1;
-    if (DONE.has(to)) {
+    if (DONE.has(to) && !e.completedTickets.has(id)) {
       e.completed += 1;
       e.completedTickets.add(id);
     }
@@ -418,12 +427,13 @@ export const buildActorOutput = (
   // it (counted across the whole log, not just the period).
   const movesPerActorTicket = new Map<string, number>();
   logs.forEach((l) => {
-    if (!l.to || !l.actor) return;
+    if ((!l.to && !l.event) || !l.actor) return;
     const id = String(l.serviceId || "").trim();
     if (!id) return;
     const key = `${norm(l.actor)}|${id}`;
     movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
   });
+
 
 
   // Assignment fields, used only for the idle check.
