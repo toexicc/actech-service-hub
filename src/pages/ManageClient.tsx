@@ -3433,6 +3433,45 @@ const ManageClient = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Waiting for Parts still on while moving into repair / done repair */}
+      <Dialog open={partsModalOpen} onOpenChange={setPartsModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Turn off Waiting for Parts?</DialogTitle>
+            <DialogDescription>
+              Moving this ticket to {updateStatus} usually means the parts are already available.
+              Should the Waiting for Parts flag be turned off?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPartsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPartsModalOpen(false);
+                partsConfirmRef.current = true;
+                clearPartsRef.current = false;
+                handleUpdate();
+              }}
+            >
+              Keep it on
+            </Button>
+            <Button
+              onClick={() => {
+                setPartsModalOpen(false);
+                partsConfirmRef.current = true;
+                clearPartsRef.current = true;
+                handleUpdate();
+              }}
+            >
+              Turn off & save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
