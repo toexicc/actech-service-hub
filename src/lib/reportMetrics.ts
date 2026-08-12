@@ -13,6 +13,9 @@ export interface StatusLogEntry {
   created?: boolean;
   /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
   waitingParts?: "on" | "off";
+  /** Non-status work events that still count as real output. */
+  event?: "payment" | "release";
+
   /** Person who performed the logged action (from activity_logs.actor_name). */
   actor?: string;
   /** Role stored on the log row, when present. */
@@ -252,6 +255,11 @@ export const bucketLabel = (key: string, mode: BucketMode): string => {
 
 const STATUS_RE = /Status:\s*(.+?)\s*(?:→|->)\s*([^,]+)/;
 const WAITING_PARTS_RE = /waiting\s*for\s*parts[^a-z]*(on|off|enabled|disabled)/i;
+/** POS payment entries, e.g. "POS: Recorded Full Payment of Php 6500.00 via Cash (TXN…)". */
+const PAYMENT_RE = /^POS:\s*Recorded\b.*\bpayment\b/i;
+/** Device release confirmations from the release queue or a manual release. */
+const RELEASE_EVENT_RE = /device\s+released\s+to\s+client/i;
+
 
 export const parseStatusLog = (row: any): StatusLogEntry | null => {
   const action = String(row?.action ?? "");
@@ -284,7 +292,14 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   if (/^New service created/i.test(action)) {
     return { serviceId, createdAt: row.created_at, created: true, actor, role };
   }
+  if (PAYMENT_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "payment", actor, role };
+  }
+  if (RELEASE_EVENT_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "release", actor, role };
+  }
   return null;
+
 };
 
 /* ------------------------------------------------------------------
@@ -332,7 +347,10 @@ export const buildActorOutput = (
     const d = toDate(raw);
     return !!d && d >= period.start && d <= period.end;
   };
-  const relevant = logs.filter((l) => (!!l.to || !!l.created) && !!l.actor && inWindow(l.createdAt));
+  const relevant = logs.filter(
+    (l) => (!!l.to || !!l.created || !!l.event) && !!l.actor && inWindow(l.createdAt),
+  );
+
 
 
   const roleByName = new Map<string, string>();
@@ -386,11 +404,20 @@ export const buildActorOutput = (
       e.diagnosed += 1;
       return;
     }
+    if (l.event) {
+      // Processing the payment or handing over the device closes the ticket in
+      // practice — credit Completed once per ticket per person.
+      if (!e.completedTickets.has(id)) {
+        e.completed += 1;
+        e.completedTickets.add(id);
+      }
+      return;
+    }
     const to = norm(l.to);
     if (CONFIRMED.has(to)) e.diagnosed += 1;
     if (TO_REPAIR.has(to)) e.toRepair += 1;
     if (RELEASE.has(to)) e.released += 1;
-    if (DONE.has(to)) {
+    if (DONE.has(to) && !e.completedTickets.has(id)) {
       e.completed += 1;
       e.completedTickets.add(id);
     }
@@ -400,12 +427,13 @@ export const buildActorOutput = (
   // it (counted across the whole log, not just the period).
   const movesPerActorTicket = new Map<string, number>();
   logs.forEach((l) => {
-    if (!l.to || !l.actor) return;
+    if ((!l.to && !l.event) || !l.actor) return;
     const id = String(l.serviceId || "").trim();
     if (!id) return;
     const key = `${norm(l.actor)}|${id}`;
     movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
   });
+
 
 
   // Assignment fields, used only for the idle check.

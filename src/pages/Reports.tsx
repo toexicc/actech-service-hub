@@ -1008,7 +1008,7 @@ const Reports = () => {
           <Panel
             title="Who moves tickets"
             icon={<Users className="h-4 w-4" />}
-            hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
+            hint="Counted from the activity log — each bar is real work the person did on tickets in this period. Completed also includes processing the payment and releasing the device."
           >
             <div className="h-[320px]">
               {loadingLogs ? (
@@ -1050,7 +1050,7 @@ const Reports = () => {
           <Panel
             title="Output leaderboard"
             icon={<Users className="h-4 w-4" />}
-            hint="Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never changed its status."
+            hint="Completed counts closing, paying, or releasing a ticket. Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never worked on it."
           >
             <div className="mb-3 flex flex-wrap gap-2">
               <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
