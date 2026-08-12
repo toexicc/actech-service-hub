@@ -77,8 +77,7 @@ const STATUS_COUNT_CARDS = [
   "RTO",
 ] as const;
 
-const isCompletedStatus = (s: any) =>
-  String(s?.status || "").trim().toLowerCase() === "completed";
+const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
 
 /** Flag cards — tickets whose toggles are on, regardless of status. */
 type FlagKey = "waitingParts" | "backjob" | "completedBackjob" | "rush";
