@@ -2797,6 +2797,7 @@ const ManageClient = () => {
                               {isEditingServiceReport ? "Lock" : "Edit"}
                             </Button>
                           </div>
+                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
                           <Textarea
                             id="aiReportDisplay"
                             placeholder="AI Service Report"
