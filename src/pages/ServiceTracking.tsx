@@ -1096,7 +1096,14 @@ const ServiceTracking = () => {
 
                         </div>
                       </div>
-                      <StatusChip status={clientStatusLabel(serviceData.status || "Pending Diagnosis")} className="text-sm px-3 py-1.5" />
+                      <div className="flex items-center gap-2">
+                        {rushRequested && !isClosed && (
+                          <span className="rounded-full border border-orange-400/40 bg-orange-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-orange-600">
+                            Rush
+                          </span>
+                        )}
+                        <StatusChip status={clientStatusLabel(serviceData.status || "Pending Diagnosis")} className="text-sm px-3 py-1.5" />
+                      </div>
                     </div>
 
                     <div>
