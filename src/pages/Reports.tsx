@@ -1103,7 +1103,10 @@ const Reports = () => {
                       <TableHead className="text-right">Diagnosed</TableHead>
                       <TableHead className="text-right">To repair</TableHead>
                       <TableHead className="text-right">Released</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Handed over</TableHead>
                       <TableHead className="text-right">Completed</TableHead>
+
                       <TableHead className="text-right">Driven end-to-end</TableHead>
                       <TableHead className="text-right">Assigned untouched</TableHead>
                     </TableRow>
