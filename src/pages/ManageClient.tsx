@@ -2552,8 +2552,8 @@ const ManageClient = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <div className="flex flex-wrap gap-2 mb-2">
+
                             <Button
                               type="button"
                               variant="secondary"
