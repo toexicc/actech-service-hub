@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { logActivityAsync } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TransactionTracker from "@/pages/TransactionTracker";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -56,6 +58,8 @@ const FUND_TYPES = ["Money In Bank", "Savings (General)", "Savings (Tax)", "Othe
 
 const PointOfSales = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"pos" | "transactions">("pos");
   const { toast } = useToast();
   const userRole = sessionStorage.getItem("userRole");
   const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Unknown";
@@ -136,6 +140,24 @@ const PointOfSales = () => {
       setIsSearching(false);
     }
   };
+
+  // Deep link from /manage-client: preselect Full Payment and look the ticket up.
+  const deepLinkRef = useRef<string>("");
+  useEffect(() => {
+    const sid = (searchParams.get("serviceId") || "").trim();
+    if (!sid || deepLinkRef.current === sid) return;
+    deepLinkRef.current = sid;
+    setActiveTab("pos");
+    setTransactionType("Full Payment");
+    setSearchServiceId(sid);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!deepLinkRef.current || searchServiceId !== deepLinkRef.current) return;
+    if (serviceData?.serviceId === searchServiceId) return;
+    handleSearchService();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchServiceId]);
 
   const generateTransactionId = () => `TXN${Date.now()}`;
 
@@ -336,6 +358,13 @@ const PointOfSales = () => {
           <p className="text-muted-foreground">Record client payments and transactions</p>
         </div>
 
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "pos" | "transactions")}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="pos">Point of Sale</TabsTrigger>
+            <TabsTrigger value="transactions">Transaction Tracker</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pos">
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Column - Transaction Type & Service Info */}
           <div className="lg:col-span-1 space-y-6">
@@ -544,10 +573,12 @@ const PointOfSales = () => {
             </Card>
           </div>
         </div>
+          </TabsContent>
 
-        <div className="text-center mt-8 text-sm text-muted-foreground">
-          
-        </div>
+          <TabsContent value="transactions">
+            <TransactionTracker embedded />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, type QuotedLine } from "@/lib/serviceApproval";
 import { diagnosisFieldsFromRecord, composeClientDiagnosis } from "@/lib/diagnosisSections";
 
 
@@ -712,8 +712,9 @@ const ServiceTracking = () => {
   const selectedTotal = quotedSelectedTotal(liveLines);
   const trackDiscount = Number(String((serviceData as any)?.discount ?? "0").replace(/[^0-9.-]/g, "")) || 0;
   const trackVatRequested = !!(serviceData as any)?.vatRequested;
-  const selectedVat = vatAmount(selectedTotal, trackDiscount, trackVatRequested);
-  const selectedTotalWithVat = computeFinalCost(selectedTotal, trackDiscount, trackVatRequested);
+  const trackRushFee = !!(serviceData as any)?.rushFee;
+  const selectedVat = vatAmount(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
+  const selectedTotalWithVat = computeFinalCost(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
   const validation = validateQuotedLines(liveLines);
   // Required (locked) lines gate the advance to Proceed Repair.
   const requiredOk = requiredLinesSatisfied(liveLines);
@@ -1004,7 +1005,21 @@ const ServiceTracking = () => {
           const vatCost = vatRequested
             ? Math.round((totalCost - totalCost / 1.12) * 100) / 100
             : 0;
+          const rushRequested = !!(serviceData as any).rushFee;
+          const rushCost = rushRequested
+            ? rushAmount(
+                Number(serviceData.serviceCost || 0),
+                Number(String((serviceData as any).discount ?? "0").replace(/[^0-9.-]/g, "")) || 0,
+                true,
+              )
+            : 0;
           const netCost = Math.round((totalCost - vatCost) * 100) / 100;
+          const rtoKind = /^rto/i.test(currentStatus)
+            ? currentStatus.toLowerCase().includes("client")
+              ? "client"
+              : "actech"
+            : null;
+          const rtoReason = String((serviceData as any).rtoReason || "").trim();
           const totals = derivePaymentTotals(
             totalCost,
             Number(serviceData.initialPayment || 0),
@@ -1046,9 +1061,27 @@ const ServiceTracking = () => {
                           {offPath.label}
                         </span>
                       )}
-                      <p className="text-sm text-amber-900">{closedBanner}</p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-amber-900">{closedBanner}</p>
+                        {rtoKind && rtoReason && (
+                          <div className="rounded-xl border border-amber-300/60 bg-white/70 p-3">
+                            <p className="text-[11px] uppercase tracking-wider font-semibold text-amber-800">
+                              Reason
+                            </p>
+                            <p className="mt-1 whitespace-pre-line text-sm text-amber-900">{rtoReason}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+                )}
+
+                {/* RTO - ACTech: the diagnosis stays visible alongside the reason. */}
+                {rtoKind === "actech" && (serviceData.aiDiagnosis || "").trim() && (
+                  <AiReportCard
+                    report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
+                    title="Service Diagnosis"
+                  />
                 )}
 
                 {/* Repair Ticket card */}
@@ -1484,6 +1517,12 @@ const ServiceTracking = () => {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Discount</span>
                         <span>-₱{trackDiscount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {showMoney && rushCost > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Rush fee (10%)</span>
+                        <span>₱{rushCost.toLocaleString()}</span>
                       </div>
                     )}
                     {showMoney && vatRequested && (

@@ -101,7 +101,9 @@ export const STATUS_OPTIONS = [
   "Done Repair - For Release",
   "Done Repair - Advise Client",
   "Completed",
-  "RTO",
+  "RTO - ACTech",
+  "RTO - Client",
+
   "On Hold",
   "Cancelled"
 ] as const;

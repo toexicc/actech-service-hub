@@ -85,6 +85,9 @@ const CLIENT_STATUS_LABELS: Record<string, string> = {
   "Done Repair - For Release": "Under Observation",
   "Done Repair - Advise Client": "For Release",
   RTO: "Return to Owner",
+  "RTO - ACTech": "Return to Owner",
+  "RTO - Client": "Return to Owner",
+
 };
 
 export const clientStatusLabel = (status?: string): string => {

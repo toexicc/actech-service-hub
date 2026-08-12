@@ -474,3 +474,74 @@ export const notifyServiceNotesUpdate = async (
     console.error('Error sending notes notification:', error);
   }
 };
+
+/** Purchasing/management staff who must know when a ticket starts waiting for parts. */
+const PARTS_WATCHERS = ['Jane Espedido', 'Romar Badilles'];
+
+/**
+ * Waiting for Parts turned ON — alert the parts watchers (never the person who
+ * toggled it) so procurement can start.
+ */
+export const notifyWaitingForPartsOn = async (
+  service: ServiceInfo,
+  byName: string,
+  note?: string,
+): Promise<void> => {
+  try {
+    const staffList = await fetchStaffList();
+    const device = service.device || service.deviceType || 'device';
+    const actor = normalizeStaffName(byName || '').toLowerCase();
+    const seen = new Set<string>();
+    const recipients = PARTS_WATCHERS
+      .map((name) => findStaffByName(staffList, name))
+      .filter((s): s is StaffMember => !!s?.staffId)
+      .filter((s) => normalizeStaffName(s.name).toLowerCase() !== actor)
+      .filter((s) => (seen.has(s.staffId) ? false : (seen.add(s.staffId), true)))
+      .map((s) => ({
+        userId: s.staffId,
+        title: `Waiting for Parts: ${service.serviceId}`,
+        message:
+          `${service.clientName}'s ${device} is waiting for parts` +
+          `${byName ? ` (flagged by ${byName})` : ''}.` +
+          `${note ? ` Update: ${note}` : ' Please source the required parts/supplies.'}`,
+        serviceId: service.serviceId,
+      }));
+    if (recipients.length) await sendViaEdge(recipients);
+  } catch {
+    // Toggling must not fail because an alert could not be delivered.
+  }
+};
+
+/**
+ * Waiting for Parts turned OFF — tell the assigned admin(s) and technician(s)
+ * that parts are available and the repair can continue.
+ */
+export const notifyPartsAvailable = async (
+  service: ServiceInfo,
+  byName: string,
+): Promise<void> => {
+  try {
+    const staffList = await fetchStaffList();
+    const device = service.device || service.deviceType || 'device';
+    const names = [
+      ...(service.adminRep || '').split(','),
+      ...(service.technician || '').split(','),
+    ]
+      .map((n) => n.trim())
+      .filter(Boolean);
+    const seen = new Set<string>();
+    const recipients = names
+      .map((n) => findStaffByName(staffList, n))
+      .filter((s): s is StaffMember => !!s?.staffId)
+      .filter((s) => (seen.has(s.staffId) ? false : (seen.add(s.staffId), true)))
+      .map((s) => ({
+        userId: s.staffId,
+        title: `Parts available: ${service.serviceId}`,
+        message: `Parts for ${service.clientName}'s ${device} are already available — please proceed to repair.${byName ? ` (Cleared by ${byName})` : ''}`,
+        serviceId: service.serviceId,
+      }));
+    if (recipients.length) await sendViaEdge(recipients);
+  } catch {
+    // Non-blocking.
+  }
+};

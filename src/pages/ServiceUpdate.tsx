@@ -31,6 +31,8 @@ import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
+import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
+
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
@@ -1484,21 +1486,13 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
-                <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-300/60 bg-amber-50/60 p-3">
-                  <div>
-                    <p className="text-sm font-semibold">Waiting for Parts</p>
-                    <p className="text-xs text-muted-foreground">
-                      {serviceData.waitingForParts
-                        ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
-                        : "Turn on when the repair is paused while parts/supplies are being procured."}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={!!serviceData.waitingForParts}
-                    disabled={isTogglingWaitingParts}
-                    onCheckedChange={handleToggleWaitingForParts}
-                  />
-                </div>
+                <TicketFlagsPanel
+                  service={serviceData}
+                  onChange={(patch) =>
+                    setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                  }
+                />
+
 
 
 
