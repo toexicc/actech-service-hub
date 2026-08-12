@@ -14,7 +14,8 @@ export interface StatusLogEntry {
   /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
   waitingParts?: "on" | "off";
   /** Non-status work events that still count as real output. */
-  event?: "payment" | "release";
+  event?: "payment" | "release" | "void";
+
 
   /** Person who performed the logged action (from activity_logs.actor_name). */
   actor?: string;
