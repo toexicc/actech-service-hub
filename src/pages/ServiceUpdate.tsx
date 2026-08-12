@@ -610,6 +610,9 @@ const ServiceUpdate = () => {
   // Rebuild the stored quotation from the client's approved lines when the
   // approval is newer than the stored file.
   const syncedQuotationRef = useRef<string>("");
+  const [partsModalOpen, setPartsModalOpen] = useState(false);
+  const partsConfirmRef = useRef(false);
+  const clearPartsRef = useRef(false);
   useEffect(() => {
     const sid = serviceData?.serviceId;
     if (!sid || syncedQuotationRef.current === sid) return;
