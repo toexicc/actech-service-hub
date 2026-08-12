@@ -182,8 +182,15 @@ export const DeviceReportPhotos = ({
               Take Photo
             </Button>
           </div>
+          {progress && (
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {progress} Keep this page open until it finishes.
+            </p>
+          )}
         </>
       )}
+
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
