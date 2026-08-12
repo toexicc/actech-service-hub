@@ -82,7 +82,7 @@ const InventoryManagement = () => {
     }
     // Management has full access, admin has view-only access
     if (userRole !== "management" && userRole !== "admin") {
-      navigate("/admin-portal");
+      navigate("/menu", { replace: true });
     }
   }, [navigate, userRole]);
   

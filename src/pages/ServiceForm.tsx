@@ -1785,7 +1785,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                 )}
               </Button>
               {!isPublic && (
-                <Button type="button" variant="outline" onClick={() => navigate("/admin-portal")}>
+                <Button type="button" variant="outline" onClick={() => navigate("/menu")}>
                   Cancel
                 </Button>
               )}

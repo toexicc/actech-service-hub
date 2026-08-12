@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 
 import BrowserFlags from "@/components/BrowserFlags";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -83,6 +83,9 @@ const App = () => (
               <Route path="/attendance-overview" element={<WorkbenchShell />} />
               <Route path="/reports" element={<WorkbenchShell />} />
               <Route path="/queueing" element={<WorkbenchShell />} />
+              {/* Legacy links from older portal pages should return to the
+                  current dashboard instead of falling through to Not Found. */}
+              <Route path="/admin-portal" element={<Navigate to="/menu" replace />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

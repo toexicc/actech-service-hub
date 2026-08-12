@@ -53,7 +53,7 @@ const StaffManagement = () => {
       navigate("/");
     }
     if (userRole !== "management") {
-      navigate("/admin-portal");
+      navigate("/menu", { replace: true });
     }
   }, [navigate, userRole]);
 
