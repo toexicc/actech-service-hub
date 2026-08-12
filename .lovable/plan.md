@@ -48,5 +48,6 @@ Replace the single-photo preview dialog in both photo panels with a shared galle
 - `ServiceUpdate.tsx`: derive `isWithinTheDay` from `serviceData.priority` and `isRtoActech` from status/selection; fold both into `diagnosisEditable`, `reportEditable`, `reportStageReached`, `showDiagnosisStage`, `showReportStage`, `showReportEditors`.
 - `src/lib/serviceStatus.ts`: `technicianAllowedNextStatuses` always appends `RTO - ACTech`.
 - `MAX_PHOTOS = 9` in both photo components.
-- `ServiceTracking.tsx`: swap the `rtoKind === "actech"` card to render `serviceData.aiReport` with title "Service Report".
+- `ServiceTracking.tsx`: swap the `rtoKind === "actech"` card to render `serviceData.aiReport` with title "Service Report" (diagnosis as fallback), and render read-only `DeviceReportPhotos` for that case.
+- Button relocation is a JSX reorder inside the existing diagnosis/report blocks — no logic changes.
 - No database or backend changes needed.
