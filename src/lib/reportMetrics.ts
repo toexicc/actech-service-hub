@@ -14,7 +14,8 @@ export interface StatusLogEntry {
   /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
   waitingParts?: "on" | "off";
   /** Non-status work events that still count as real output. */
-  event?: "payment" | "release";
+  event?: "payment" | "release" | "void";
+
 
   /** Person who performed the logged action (from activity_logs.actor_name). */
   actor?: string;
@@ -259,6 +260,9 @@ const WAITING_PARTS_RE = /waiting\s*for\s*parts[^a-z]*(on|off|enabled|disabled)/
 const PAYMENT_RE = /^POS:\s*Recorded\b.*\bpayment\b/i;
 /** Device release confirmations from the release queue or a manual release. */
 const RELEASE_EVENT_RE = /device\s+released\s+to\s+client/i;
+/** A voided transaction cancels the payment credit for that ticket. */
+const VOID_RE = /^voided\s+transaction\b/i;
+
 
 
 export const parseStatusLog = (row: any): StatusLogEntry | null => {
@@ -298,6 +302,10 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   if (RELEASE_EVENT_RE.test(action)) {
     return { serviceId, createdAt: row.created_at, event: "release", actor, role };
   }
+  if (VOID_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "void", actor, role };
+  }
+
   return null;
 
 };
@@ -314,6 +322,10 @@ export interface ActorOutput {
   diagnosed: number;
   toRepair: number;
   released: number;
+  /** Payment events recorded by this person (voided ones excluded). */
+  paid: number;
+  /** Device hand-over events confirmed by this person. */
+  handedOver: number;
   completed: number;
   drivenEndToEnd: number;
   assignedUntouched: number;
@@ -321,10 +333,52 @@ export interface ActorOutput {
 
 const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 
+/** Automated actors must never appear on a staff leaderboard. */
+const SYSTEM_ACTOR_RE = /^system\b/i;
+
+/**
+ * Resolves the many ways one person shows up in the log to a single identity:
+ * a trailing " - Management" style suffix is stripped, login emails are matched
+ * against the staff directory, and a short first name is merged into a
+ * directory full name when it matches exactly one person.
+ */
+export const makeActorResolver = (
+  staff: Array<{ name?: string; username?: string; role?: string }> = [],
+) => {
+  const byKey = new Map<string, string>();
+  const fullNames: string[] = [];
+  staff.forEach((p) => {
+    const name = String(p.name ?? "").trim();
+    if (!name) return;
+    fullNames.push(name);
+    byKey.set(norm(name), name);
+    const username = String(p.username ?? "").trim();
+    if (username) {
+      byKey.set(norm(username), name);
+      byKey.set(norm(username.split("@")[0]), name);
+    }
+  });
+
+  return (raw: string): string => {
+    const trimmed = String(raw ?? "").trim();
+    if (!trimmed) return trimmed;
+    const stripped = trimmed.replace(/\s*[-–]\s*(admin|administrator|management|technician|tech|staff)\s*$/i, "").trim() || trimmed;
+    const direct = byKey.get(norm(stripped)) || byKey.get(norm(stripped.split("@")[0]));
+    if (direct) return direct;
+    const short = norm(stripped);
+    const prefixMatches = fullNames.filter((n) => norm(n).startsWith(`${short} `));
+    if (short && prefixMatches.length === 1) return prefixMatches[0];
+    return stripped;
+  };
+};
+
 const CONFIRMED = new Set(["confirmed diagnosis"]);
 const TO_REPAIR = new Set(["waiting to proceed", "proceed repair", "ongoing service"]);
 const RELEASE = new Set(["done repair - for release", "done repair - advise client"]);
 const DONE = new Set(["completed"]);
+
+
+
 
 /**
  * Measures real output from the activity-log status transitions instead of
@@ -341,17 +395,28 @@ export const buildActorOutput = (
   staff: Array<{ name?: string; username?: string; role?: string }> = [],
   period?: Period | null,
 ): ActorOutput[] => {
+  const resolve = makeActorResolver(staff);
+  const isPerson = (name?: string) => !!name && !SYSTEM_ACTOR_RE.test(name.trim());
 
   const inWindow = (raw: any): boolean => {
     if (!period?.start || !period?.end) return true;
     const d = toDate(raw);
     return !!d && d >= period.start && d <= period.end;
   };
+
+  // Payments later voided on the same ticket by the same person don't count.
+  const voided = new Set<string>();
+  logs.forEach((l) => {
+    if (l.event !== "void" || !l.actor) return;
+    voided.add(`${norm(resolve(l.actor))}|${String(l.serviceId || "").trim()}`);
+  });
+
   const relevant = logs.filter(
-    (l) => (!!l.to || !!l.created || !!l.event) && !!l.actor && inWindow(l.createdAt),
+    (l) =>
+      (!!l.to || !!l.created || l.event === "payment" || l.event === "release") &&
+      isPerson(l.actor) &&
+      inWindow(l.createdAt),
   );
-
-
 
   const roleByName = new Map<string, string>();
   staff.forEach((p) => {
@@ -369,11 +434,14 @@ export const buildActorOutput = (
     diagnosed: number;
     toRepair: number;
     released: number;
+    paid: number;
+    handedOver: number;
     completed: number;
     completedTickets: Set<string>;
   }
   const map = new Map<string, Acc>();
-  const get = (name: string, role?: string): Acc => {
+  const get = (rawName: string, role?: string): Acc => {
+    const name = resolve(rawName);
     const key = norm(name);
     let e = map.get(key);
     if (!e) {
@@ -385,6 +453,8 @@ export const buildActorOutput = (
         diagnosed: 0,
         toRepair: 0,
         released: 0,
+        paid: 0,
+        handedOver: 0,
         completed: 0,
         completedTickets: new Set(),
       };
@@ -398,6 +468,7 @@ export const buildActorOutput = (
     const id = String(l.serviceId || "").trim();
     if (!id) return;
     const e = get(l.actor!, l.role);
+    if (l.event === "payment" && voided.has(`${norm(e.name)}|${id}`)) return;
     e.moves += 1;
     e.tickets.add(id);
     if (l.created) {
@@ -407,6 +478,8 @@ export const buildActorOutput = (
     if (l.event) {
       // Processing the payment or handing over the device closes the ticket in
       // practice — credit Completed once per ticket per person.
+      if (l.event === "payment") e.paid += 1;
+      if (l.event === "release") e.handedOver += 1;
       if (!e.completedTickets.has(id)) {
         e.completed += 1;
         e.completedTickets.add(id);
@@ -427,12 +500,13 @@ export const buildActorOutput = (
   // it (counted across the whole log, not just the period).
   const movesPerActorTicket = new Map<string, number>();
   logs.forEach((l) => {
-    if ((!l.to && !l.event) || !l.actor) return;
+    if ((!l.to && l.event !== "payment" && l.event !== "release") || !isPerson(l.actor)) return;
     const id = String(l.serviceId || "").trim();
     if (!id) return;
-    const key = `${norm(l.actor)}|${id}`;
+    const key = `${norm(resolve(l.actor!))}|${id}`;
     movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
   });
+
 
 
 
@@ -446,13 +520,15 @@ export const buildActorOutput = (
       .map((n) => n.trim())
       .filter(Boolean);
     names.forEach((n) => {
-      const key = norm(n);
+      if (!isPerson(n)) return;
+      const key = norm(resolve(n));
       const set = assigned.get(key) || new Set<string>();
       set.add(id);
       assigned.set(key, set);
       get(n);
     });
   });
+
 
   return Array.from(map.entries())
     .map(([key, v]) => {
@@ -469,6 +545,9 @@ export const buildActorOutput = (
         diagnosed: v.diagnosed,
         toRepair: v.toRepair,
         released: v.released,
+        paid: v.paid,
+        handedOver: v.handedOver,
+
         completed: v.completed,
         drivenEndToEnd: driven,
         assignedUntouched: untouched,

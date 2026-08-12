@@ -1050,7 +1050,7 @@ const Reports = () => {
           <Panel
             title="Output leaderboard"
             icon={<Users className="h-4 w-4" />}
-            hint="Completed counts closing, paying, or releasing a ticket. Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never worked on it."
+            hint="Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid and Released show the raw event counts. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
           >
             <div className="mb-3 flex flex-wrap gap-2">
               <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
@@ -1103,7 +1103,10 @@ const Reports = () => {
                       <TableHead className="text-right">Diagnosed</TableHead>
                       <TableHead className="text-right">To repair</TableHead>
                       <TableHead className="text-right">Released</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Handed over</TableHead>
                       <TableHead className="text-right">Completed</TableHead>
+
                       <TableHead className="text-right">Driven end-to-end</TableHead>
                       <TableHead className="text-right">Assigned untouched</TableHead>
                     </TableRow>
@@ -1118,7 +1121,10 @@ const Reports = () => {
                         <TableCell className="text-right">{a.diagnosed}</TableCell>
                         <TableCell className="text-right">{a.toRepair}</TableCell>
                         <TableCell className="text-right">{a.released}</TableCell>
+                        <TableCell className="text-right">{a.paid}</TableCell>
+                        <TableCell className="text-right">{a.handedOver}</TableCell>
                         <TableCell className="text-right">{a.completed}</TableCell>
+
                         <TableCell className="text-right">{a.drivenEndToEnd}</TableCell>
                         <TableCell
                           className={cn(
