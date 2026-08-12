@@ -2024,13 +2024,15 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                <TicketFlagsPanel
-                  service={serviceData}
-                  canEditNote={userRole === "management" || userRole === "admin"}
-                  onChange={(patch) =>
-                    setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
-                  }
-                />
+                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+                  <TicketFlagsPanel
+                    service={serviceData}
+                    canEditNote={userRole === "management" || userRole === "admin"}
+                    onChange={(patch) =>
+                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                    }
+                  />
+                )}
 
 
                 <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
