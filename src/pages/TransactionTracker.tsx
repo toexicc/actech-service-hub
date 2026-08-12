@@ -91,7 +91,10 @@ const parseCurrency = (val: string | number | undefined): number => {
 
 const fmtCurrency = (val: number) => `Php ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const TransactionTracker = () => {
+const PlainShell = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
+const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
+  const Shell = embedded ? PlainShell : DashboardLayout;
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -468,12 +471,16 @@ const TransactionTracker = () => {
   const isExpenseType = EXPENSE_TYPES.includes(editForm.transactionType);
 
   return (
-    <DashboardLayout>
-      <div className="p-4 sm:p-6 animate-fade-in">
+    <Shell>
+      <div className={embedded ? "animate-fade-in" : "p-4 sm:p-6 animate-fade-in"}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Transaction Tracker</h1>
-            <p className="text-muted-foreground">View and manage all transactions</p>
+            {!embedded && (
+              <>
+                <h1 className="text-3xl font-bold text-foreground">Transaction Tracker</h1>
+                <p className="text-muted-foreground">View and manage all transactions</p>
+              </>
+            )}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
@@ -941,7 +948,7 @@ const TransactionTracker = () => {
           
         </div>
       </div>
-    </DashboardLayout>
+    </Shell>
   );
 };
 

@@ -1056,6 +1056,7 @@ export type Database = {
           initial_payment: number
           internal_admin_notes: string | null
           internal_technician_notes: string | null
+          is_backjob: boolean
           issue_description: string | null
           labor_cost: number
           last_updated: string
@@ -1073,6 +1074,8 @@ export type Database = {
           receiving_staff: string | null
           remarks: string | null
           repair_time_frame: string | null
+          rto_reason: string | null
+          rush_fee: boolean
           serial_number: string | null
           service: string | null
           service_cost: number
@@ -1090,6 +1093,7 @@ export type Database = {
           username: string | null
           vat_requested: boolean
           waiting_for_parts: boolean
+          waiting_parts_note: string | null
         }
         Insert: {
           acknowledgements?: Json
@@ -1133,6 +1137,7 @@ export type Database = {
           initial_payment?: number
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
+          is_backjob?: boolean
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
@@ -1150,6 +1155,8 @@ export type Database = {
           receiving_staff?: string | null
           remarks?: string | null
           repair_time_frame?: string | null
+          rto_reason?: string | null
+          rush_fee?: boolean
           serial_number?: string | null
           service?: string | null
           service_cost?: number
@@ -1167,6 +1174,7 @@ export type Database = {
           username?: string | null
           vat_requested?: boolean
           waiting_for_parts?: boolean
+          waiting_parts_note?: string | null
         }
         Update: {
           acknowledgements?: Json
@@ -1210,6 +1218,7 @@ export type Database = {
           initial_payment?: number
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
+          is_backjob?: boolean
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
@@ -1227,6 +1236,8 @@ export type Database = {
           receiving_staff?: string | null
           remarks?: string | null
           repair_time_frame?: string | null
+          rto_reason?: string | null
+          rush_fee?: boolean
           serial_number?: string | null
           service?: string | null
           service_cost?: number
@@ -1244,6 +1255,7 @@ export type Database = {
           username?: string | null
           vat_requested?: boolean
           waiting_for_parts?: boolean
+          waiting_parts_note?: string | null
         }
         Relationships: []
       }
@@ -1498,6 +1510,8 @@ export type Database = {
         | "RTO"
         | "On Hold"
         | "Cancelled"
+        | "RTO - ACTech"
+        | "RTO - Client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1648,6 +1662,8 @@ export const Constants = {
         "RTO",
         "On Hold",
         "Cancelled",
+        "RTO - ACTech",
+        "RTO - Client",
       ],
     },
   },

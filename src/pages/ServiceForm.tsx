@@ -1065,6 +1065,9 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                               <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
                               <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
                               <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
+                              <SelectItem value="Delivery - AC Tech">Delivery - AC Tech</SelectItem>
+                              <SelectItem value="Delivery - Courier">Delivery - Courier</SelectItem>
+
                             </SelectContent>
                           </Select>
                           <FormMessage />

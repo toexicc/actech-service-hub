@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { STATUS_OPTIONS } from "@/lib/constants";
@@ -19,6 +20,8 @@ interface TicketWorkspaceHeroProps {
   showShare?: boolean;
   /** Realtime watch is connected for this ticket. */
   isLive?: boolean;
+  /** Extra action buttons rendered beside the share actions. */
+  actions?: ReactNode;
 }
 
 
@@ -45,7 +48,7 @@ const currency = (n: any) => {
   return `₱${v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export function TicketWorkspaceHero({ service, showShare = false, isLive = false }: TicketWorkspaceHeroProps) {
+export function TicketWorkspaceHero({ service, showShare = false, isLive = false, actions }: TicketWorkspaceHeroProps) {
   if (!service) return null;
   const status = service.status || "Pending Diagnosis";
   const info = STAGE_MAP[status] || STAGE_MAP["Pending Diagnosis"];
@@ -97,6 +100,7 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
               {showShare && service.serviceId && (
                 <TrackingShareActions serviceId={service.serviceId} />
               )}
+              {actions}
             </div>
 
             <p className="mt-1 text-sm text-muted-foreground">

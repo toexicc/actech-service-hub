@@ -36,7 +36,7 @@ const PAGES: Array<{ label: string; path: string; roles?: string[]; iconName: st
   { label: "Service Tracker", path: "/service-tracker", iconName: "ClipboardList" },
   { label: "Inventory Management", path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
   { label: "Completed Services", path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
-  { label: "Transaction Tracker", path: "/transaction-tracker", roles: ["management"], iconName: "DollarSign" },
+  { label: "Transaction Tracker", path: "/pos", roles: ["management"], iconName: "DollarSign" },
   { label: "Salary Disbursement", path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
   { label: "Staff Management", path: "/staff-management", roles: ["management"], iconName: "Settings" },
   { label: "Attendance", path: "/attendance-overview", roles: ["management"], iconName: "Clock" },

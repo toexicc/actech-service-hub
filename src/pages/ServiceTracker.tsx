@@ -53,6 +53,10 @@ interface ServiceRecord {
   adminRepresentative?: string;
   serviceCost?: string;
   transactionStatus?: string;
+  serviceDate?: string;
+  waitingForParts?: boolean;
+  isBackjob?: boolean;
+  rushFee?: boolean;
 }
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
@@ -64,11 +68,22 @@ const STATUS_COUNT_CARDS = [
   "Pending Diagnosis",
   "Confirmed Diagnosis",
   "Waiting to Proceed",
+  "Proceed Repair",
   "Ongoing Service",
+  "Done Repair - Under Observation",
   "Done Repair - For Release",
   "Done Repair - Advise Client",
   "Completed",
+  "RTO",
 ] as const;
+
+/** Flag cards — tickets whose toggles are on, regardless of status. */
+type FlagKey = "waitingParts" | "backjob" | "rush";
+const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
+  { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
+  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob },
+  { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
+];
 
 const ServiceTracker = () => {
   const navigate = useNavigate();
@@ -88,6 +103,7 @@ const ServiceTracker = () => {
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [flagFilter, setFlagFilter] = useState<FlagKey | "all">("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [sortField, setSortField] = useState<SortField>("targetDate");
@@ -603,37 +619,31 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   /**
    * Planned service span: Service Date -> Estimated Target Date.
    */
-  const calculateInServiceDays = (timestamp: string, status?: string, targetDate?: string): number => {
+  const calculateInServiceDays = (timestamp: string, status?: string, serviceDate?: string): number => {
     if (status && status.toLowerCase().includes("completed")) return 0;
-    if (!timestamp) return 0;
-    try {
-      const [datePart] = timestamp.split(", ");
+    const parseDay = (value?: string): Date | null => {
+      if (!value) return null;
+      const [datePart] = String(value).split(", ");
       const parts = datePart.split(/[-/]/);
-      if (parts.length !== 3) return 0;
-      const [month, day, year] = parts[0].length === 4
-        ? [parts[1], parts[2], parts[0]]
-        : [parts[0], parts[1], parts[2]];
-      const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      serviceDate.setHours(0, 0, 0, 0);
-      if (isNaN(serviceDate.getTime())) return 0;
-
-      let endDate: Date | null = null;
-      const tp = (targetDate || "").split(/[-/]/);
-      if (tp.length === 3) {
-        const [tm, td, ty] = tp[0].length === 4 ? [tp[1], tp[2], tp[0]] : [tp[0], tp[1], tp[2]];
-        const parsed = new Date(parseInt(ty), parseInt(tm) - 1, parseInt(td));
-        parsed.setHours(0, 0, 0, 0);
-        if (!isNaN(parsed.getTime())) endDate = parsed;
-      }
-      if (!endDate) {
-        endDate = new Date();
-        endDate.setHours(0, 0, 0, 0);
-      }
-
-      return Math.max(0, differenceInDays(endDate, serviceDate));
-    } catch (error) {
-      return 0;
+      if (parts.length !== 3) return null;
+      const [m, d, y] = parts[0].length === 4 ? [parts[1], parts[2], parts[0]] : [parts[0], parts[1], parts[2]];
+      const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+      dt.setHours(0, 0, 0, 0);
+      return isNaN(dt.getTime()) ? null : dt;
+    };
+    const start = parseDay(serviceDate) || parseDay(timestamp);
+    if (!start) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (today <= start) return 0;
+    // Elapsed calendar days since the service date, Sundays not counted.
+    let days = 0;
+    const cursor = new Date(start);
+    while (cursor < today) {
+      cursor.setDate(cursor.getDate() + 1);
+      if (cursor.getDay() !== 0) days += 1;
     }
+    return days;
   };
 
   // Accepts both MM/dd/yyyy (legacy) and yyyy-MM-dd (database) target dates.
@@ -761,8 +771,18 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
     if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
 
-    // Status filter
-    if (includeStatus && statusFilter !== "all" && service.status !== statusFilter) return false;
+    // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
+    if (includeStatus && statusFilter !== "all") {
+      const st = String(service.status || "").trim();
+      const ok = statusFilter === "RTO" ? /^rto/i.test(st) : st === statusFilter;
+      if (!ok) return false;
+    }
+
+    // Flag card filter (Waiting for Parts / Backjob / Rush)
+    if (includeStatus && flagFilter !== "all") {
+      const flag = FLAG_COUNT_CARDS.find((f) => f.key === flagFilter);
+      if (flag && !flag.match(service)) return false;
+    }
 
     // Date range filter — by the ticket's service / received date.
     if (startDate || endDate) {
@@ -842,7 +862,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           compareValue = (a.technician || "").localeCompare(b.technician || "");
           break;
         case "inService":
-          compareValue = calculateInServiceDays(a.timestamp, a.status, a.targetDate) - calculateInServiceDays(b.timestamp, b.status, b.targetDate);
+          compareValue = calculateInServiceDays(a.timestamp, a.status, a.serviceDate) - calculateInServiceDays(b.timestamp, b.status, b.serviceDate);
           break;
         case "targetDate":
           compareValue = (a.targetDate || "").localeCompare(b.targetDate || "");
@@ -853,7 +873,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending, flagFilter]);
 
   /**
    * Live per-status counts. They respect every filter EXCEPT the Status
@@ -862,14 +882,19 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     STATUS_COUNT_CARDS.forEach((s) => (counts[s] = 0));
+    FLAG_COUNT_CARDS.forEach((f) => (counts[f.key] = 0));
     if (isPending) return counts;
     services.forEach((service) => {
       if (!passesFilters(service, false)) return;
       const status = (service.status || "").trim();
-      if (status in counts) counts[status] += 1;
+      if (/^rto/i.test(status)) counts["RTO"] += 1;
+      else if (status in counts) counts[status] += 1;
+      FLAG_COUNT_CARDS.forEach((f) => {
+        if (f.match(service)) counts[f.key] += 1;
+      });
     });
     return counts;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending]);
+  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, startDate, endDate, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending, flagFilter]);
 
   const departments = useMemo(() => {
     const depts = new Set(techniciansWithDept.map(t => t.department).filter(Boolean));
@@ -892,6 +917,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   const hasActiveFilters =
     deviceTypeFilter !== "all" ||
     statusFilter !== "all" ||
+    flagFilter !== "all" ||
     dueDateFilter !== "all" ||
     !!startDate ||
     !!endDate ||
@@ -902,8 +928,15 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
    * Set the status filter and only move the tab when the chosen status could
    * never appear in the tab currently selected (so filters keep combining).
    */
+  const selectFlag = (key: FlagKey) => {
+    setStatusFilter("all");
+    setFlagFilter((prev) => (prev === key ? "all" : key));
+    setActiveTab("all");
+  };
+
   const selectStatus = (v: string) => {
     setStatusFilter(v);
+    setFlagFilter("all");
     if (v === "all") return;
     const cls = classifyStatus(v);
     const tabAllows =
@@ -1278,7 +1311,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         })()}
 
         {/* Live per-status counts — respect all filters except Status itself */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 mb-6">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-6">
+          {FLAG_COUNT_CARDS.map((flag) => {
+            const isActive = flagFilter === flag.key;
+            return (
+              <button
+                key={flag.key}
+                type="button"
+                onClick={() => selectFlag(flag.key)}
+                className={cn(
+                  "rounded-2xl border p-3 text-left transition-colors",
+                  isActive
+                    ? "border-primary bg-primary/10"
+                    : "border-border/60 bg-[hsl(var(--surface-glass))] hover:border-primary/40",
+                )}
+              >
+                <p className="text-2xl font-bold tabular-nums text-foreground">{statusCounts[flag.key] ?? 0}</p>
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{flag.label}</p>
+              </button>
+            );
+          })}
           {STATUS_COUNT_CARDS.map((status) => {
             const isActive = statusFilter === status;
             return (
@@ -1407,7 +1459,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 </div>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                   {paginatedServices.map((service) => {
-                    const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.targetDate);
+                    const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
                     const overdueStatus = isOverdue(service.targetDate, service.status);
                     const isCompleted = (service.status || "").toLowerCase().includes("completed");
                     return (
@@ -1427,6 +1479,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
                             </div>
                             <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {(service as any).rushFee && (
+                                <span className="rounded-full border border-orange-400/40 bg-orange-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
+                                  Rush
+                                </span>
+                              )}
+                              {(service as any).isBackjob && (
+                                <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-destructive">
+                                  Backjob
+                                </span>
+                              )}
+                              {(service as any).waitingForParts && (
+                                <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600">
+                                  Waiting for Parts
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <span className={cn("text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border font-medium whitespace-nowrap", getStatusTextColor(service.status || ""), "border-current/30")}>
                             {service.status || "N/A"}
@@ -1563,7 +1632,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   </TableHeader>
                   <TableBody>
                     {paginatedServices.map((service) => {
-                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.targetDate);
+                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
                        const overdueStatus = isOverdue(service.targetDate, service.status);
                        const isCompleted = (service.status || "").toLowerCase().includes("completed");
 

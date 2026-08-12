@@ -23,7 +23,12 @@ export interface ServiceRecord {
   clientApprovedAt?: string;
   autoApproveDiagnosis?: boolean;
   waitingForParts?: boolean;
+  waitingPartsNote?: string;
+  isBackjob?: boolean;
+  rushFee?: boolean;
+  rtoReason?: string;
   vatRequested?: boolean;
+
   approvalLocked?: boolean;
   approvedServices?: string[];
   pendingServices?: string[];
@@ -72,6 +77,7 @@ export interface ServiceRecord {
   finalCost?: string;
   partsCost?: string;
   estimatedCost?: string;
+  serviceDate?: string;
   discount?: string;
   clientType?: string;
   priority?: string;
@@ -121,7 +127,13 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   clientApprovedAt: r.client_approved_at ?? "",
   autoApproveDiagnosis: !!r.auto_approve_diagnosis,
   waitingForParts: !!(r as any).waiting_for_parts,
+  waitingPartsNote: (r as any).waiting_parts_note ?? "",
+  isBackjob: !!(r as any).is_backjob,
+  rushFee: !!(r as any).rush_fee,
+  serviceDate: (r as any).service_date ?? "",
+  rtoReason: (r as any).rto_reason ?? "",
   vatRequested: !!(r as any).vat_requested,
+
   approvalLocked: !!r.approval_locked,
   approvedServices: Array.isArray(r.approved_services) ? r.approved_services : [],
   pendingServices: Array.isArray(r.pending_services) ? r.pending_services : [],

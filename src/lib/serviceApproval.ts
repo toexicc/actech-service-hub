@@ -207,19 +207,46 @@ export const requiredLinesSatisfied = (lines: QuotedLine[]): boolean =>
 /** Philippine VAT rate applied when the client requests an invoice. */
 export const VAT_RATE = 0.12;
 
+/** Rush surcharge applied on top of the discounted amount. */
+export const RUSH_RATE = 0.1;
+
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
 /** Net (VAT-exclusive) amount after discount. */
 export const netAfterDiscount = (serviceCost: number, discount: number) =>
   Math.max(0, round2((Number(serviceCost) || 0) - (Number(discount) || 0)));
 
-/** 12% VAT on the discounted amount, or 0 when no invoice is requested. */
-export const vatAmount = (serviceCost: number, discount: number, vatRequested: boolean) =>
-  vatRequested ? round2(netAfterDiscount(serviceCost, discount) * VAT_RATE) : 0;
+/** 10% rush surcharge on the discounted amount, or 0 when not a rush job. */
+export const rushAmount = (serviceCost: number, discount: number, rushFee?: boolean) =>
+  rushFee ? round2(netAfterDiscount(serviceCost, discount) * RUSH_RATE) : 0;
 
-/** Final (payable) cost: net after discount, plus VAT when requested. */
-export const computeFinalCost = (serviceCost: number, discount: number, vatRequested: boolean) =>
-  round2(netAfterDiscount(serviceCost, discount) + vatAmount(serviceCost, discount, vatRequested));
+/** 12% VAT on the discounted amount (incl. rush fee), or 0 when no invoice is requested. */
+export const vatAmount = (
+  serviceCost: number,
+  discount: number,
+  vatRequested: boolean,
+  rushFee?: boolean,
+) =>
+  vatRequested
+    ? round2(
+        (netAfterDiscount(serviceCost, discount) + rushAmount(serviceCost, discount, rushFee)) *
+          VAT_RATE,
+      )
+    : 0;
+
+/** Final (payable) cost: net after discount, plus rush fee, plus VAT when requested. */
+export const computeFinalCost = (
+  serviceCost: number,
+  discount: number,
+  vatRequested: boolean,
+  rushFee?: boolean,
+) =>
+  round2(
+    netAfterDiscount(serviceCost, discount) +
+      rushAmount(serviceCost, discount, rushFee) +
+      vatAmount(serviceCost, discount, vatRequested, rushFee),
+  );
+
 
 
 

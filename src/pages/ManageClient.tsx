@@ -10,10 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
+import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
+
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
 
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
-import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, computeFinalCost, vatAmount, type QuotedLine } from "@/lib/serviceApproval";
+import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, computeFinalCost, vatAmount, rushAmount, type QuotedLine } from "@/lib/serviceApproval";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
@@ -263,6 +265,18 @@ const ManageClient = () => {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [finalCost, setFinalCost] = useState(0);
   const [vatRequested, setVatRequested] = useState(false);
+  // Rush jobs carry a 10% surcharge on top of the discounted amount.
+  const [rushFee, setRushFee] = useState(false);
+  // RTO always captures a client-visible reason before the status is saved.
+  const [rtoModalOpen, setRtoModalOpen] = useState(false);
+  const [rtoReasonInput, setRtoReasonInput] = useState("");
+  const rtoConfirmRef = useRef(false);
+  /** Cost helpers bound to the current rush-fee selection. */
+  const calcFinal = (cost: number, disc: number, vat: boolean, rush: boolean = rushFee) =>
+    computeFinalCost(cost, disc, vat, rush);
+  const calcVat = (cost: number, disc: number, vat: boolean, rush: boolean = rushFee) =>
+    vatAmount(cost, disc, vat, rush);
+
   // Finalized quotation lines shown to the client on /track.
   const [quotedLines, setQuotedLines] = useState<QuotedLine[]>([]);
   const [quotedProblems, setQuotedProblems] = useState<Record<number, string>>({});
@@ -562,13 +576,15 @@ const ManageClient = () => {
           const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
           const savedVat = !!(merged as any).vatRequested;
           setVatRequested(savedVat);
+          const savedRush = !!(merged as any).rushFee;
+          setRushFee(savedRush);
           setDiscountAmount(savedDiscountNum);
           setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
           setDiscountType("amount");
           if (savedFinalCost > 0) {
             setFinalCost(savedFinalCost);
           } else {
-            setFinalCost(computeFinalCost(serviceCostNum, savedDiscountNum, savedVat));
+            setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
           }
           toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
         } catch {
@@ -654,13 +670,15 @@ const ManageClient = () => {
       const savedFinalCost = sanitizeNumber(String(merged.finalCost ?? "0"));
       const savedVat = !!(merged as any).vatRequested;
       setVatRequested(savedVat);
+      const savedRush = !!(merged as any).rushFee;
+      setRushFee(savedRush);
       setDiscountAmount(savedDiscountNum);
       setDiscountValue(savedDiscountNum > 0 ? savedDiscountNum.toString() : "");
       setDiscountType("amount");
       if (savedFinalCost > 0) {
         setFinalCost(savedFinalCost);
       } else {
-        setFinalCost(computeFinalCost(serviceCostNum, savedDiscountNum, savedVat));
+        setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to fetch service data", variant: "destructive" });
@@ -695,7 +713,8 @@ const ManageClient = () => {
 
   /** Off-path / terminal statuses skip the client-approval guards. */
   const isOffPathStatus = (status?: string): boolean =>
-    ["RTO", "Cancelled", "On Hold", "Pending Diagnosis"].includes((status || "").trim());
+    /^RTO/i.test((status || "").trim()) ||
+    ["Cancelled", "On Hold", "Pending Diagnosis"].includes((status || "").trim());
 
   // ---- Live ticket watch: detect updates made elsewhere -------------------
   const isTabActive = useIsTabActive();
@@ -955,7 +974,17 @@ const ManageClient = () => {
     // Diagnosis) must always be possible, so they bypass the client-approval
     // guards below.
     const offPathMove = isOffPathStatus(updateStatus) && updateStatus !== serviceData.status;
-    if (offPathMove && (updateStatus === "RTO" || updateStatus === "Cancelled")) {
+    const isRtoMove = /^RTO/i.test(updateStatus || "") && updateStatus !== serviceData.status;
+
+    // RTO always needs a reason the client can read on /track.
+    if (isRtoMove && !rtoConfirmRef.current) {
+      setRtoReasonInput((serviceData as any).rtoReason || "");
+      setRtoModalOpen(true);
+      return;
+    }
+    rtoConfirmRef.current = false;
+
+    if (offPathMove && updateStatus === "Cancelled") {
       const proceed = window.confirm(
         `Set ${sid} to ${updateStatus}?\n\nThis takes the ticket off the repair workflow. Continue?`
       );
@@ -1054,7 +1083,7 @@ const ManageClient = () => {
       formData.append("services", updateServices);
       formData.append("serviceCost", updateServiceCost);
       formData.append("discount", discountAmount.toString());
-      formData.append("vat", vatAmount(sanitizeNumber(updateServiceCost), discountAmount, vatRequested).toFixed(2));
+      formData.append("vat", calcVat(sanitizeNumber(updateServiceCost), discountAmount, vatRequested).toFixed(2));
       formData.append("finalCost", finalCost.toString());
       formData.append("targetDate", updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "");
       formData.append("adminNotes", updateAdminNotes);
@@ -1135,6 +1164,8 @@ const ManageClient = () => {
         quoted_breakdown: quotedLines as any,
         discount: discountAmount,
         vat_requested: vatRequested,
+        rush_fee: rushFee,
+        ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         estimated_completion: updateTimeFrame || null,
@@ -1197,6 +1228,7 @@ const ManageClient = () => {
           { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost },
           { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
           { label: "VAT Requested", before: (serviceData as any).vatRequested ? "Yes" : "No", after: vatRequested ? "Yes" : "No" },
+          { label: "Rush Fee (10%)", before: (serviceData as any).rushFee ? "Yes" : "No", after: rushFee ? "Yes" : "No" },
           { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
           { label: "Diagnostic Time Frame", before: serviceData.timeFrame, after: updateTimeFrame },
           { label: "Repair Time Frame", before: (serviceData as any).repairTimeFrame, after: updateRepairTimeFrame },
@@ -1555,13 +1587,13 @@ const ManageClient = () => {
         vat: (() => {
           const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
           const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
-          const v = vatAmount(costNum, disc, vatRequested);
+          const v = calcVat(costNum, disc, vatRequested);
           return v > 0 ? v.toFixed(2) : undefined;
         })(),
         totalCost: (() => {
           const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
           const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
-          const computed = computeFinalCost(costNum, disc, vatRequested);
+          const computed = calcFinal(costNum, disc, vatRequested);
           return computed > 0 || costNum > 0
             ? computed.toFixed(2)
             : String(serviceData.finalCost || serviceData.serviceCost || "0.00");
@@ -1795,7 +1827,35 @@ const ManageClient = () => {
               onDismiss={dismissRemoteChange}
             />
           )}
-          <TicketWorkspaceHero service={serviceData} showShare isLive={isLive} />
+          <TicketWorkspaceHero
+            service={serviceData}
+            showShare
+            isLive={isLive}
+            actions={
+              serviceData.serviceId ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    onClick={() =>
+                      navigate(`/pos?serviceId=${encodeURIComponent(serviceData.serviceId)}&type=full`)
+                    }
+                  >
+                    POS
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-orange-500 text-white hover:bg-orange-600"
+                    onClick={() =>
+                      navigate(`/queueing?release=${encodeURIComponent(serviceData.serviceId)}`)
+                    }
+                  >
+                    RELEASE
+                  </Button>
+                </div>
+              ) : null
+            }
+          />
 
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
@@ -1947,21 +2007,14 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                <div className="flex items-start justify-between gap-4 rounded-xl border border-amber-300/60 bg-amber-50/60 p-3">
-                  <div>
-                    <p className="text-sm font-semibold">Waiting for Parts</p>
-                    <p className="text-xs text-muted-foreground">
-                      {serviceData.waitingForParts
-                        ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
-                        : "Turn on when the repair is paused while parts/supplies are being procured."}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={!!serviceData.waitingForParts}
-                    disabled={isTogglingWaitingParts}
-                    onCheckedChange={handleToggleWaitingForParts}
-                  />
-                </div>
+                <TicketFlagsPanel
+                  service={serviceData}
+                  canEditNote={userRole === "management" || userRole === "admin"}
+                  onChange={(patch) =>
+                    setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                  }
+                />
+
 
                 <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
                   <CollapsibleTrigger asChild>
@@ -2411,6 +2464,9 @@ const ManageClient = () => {
                       <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
                       <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
                       <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
+                      <SelectItem value="Delivery - AC Tech">Delivery - AC Tech</SelectItem>
+                      <SelectItem value="Delivery - Courier">Delivery - Courier</SelectItem>
+
 
                     </SelectContent>
                   </Select>
@@ -2554,7 +2610,7 @@ const ManageClient = () => {
                                       ? (total * (parseFloat(discountValue) || 0)) / 100
                                       : parseFloat(discountValue) || 0;
                                   setDiscountAmount(disc);
-                                  setFinalCost(computeFinalCost(total, disc, vatRequested));
+                                  setFinalCost(calcFinal(total, disc, vatRequested));
                                 }
                                 if (summary) {
                                   setUpdateServices(summary);
@@ -3033,7 +3089,7 @@ const ManageClient = () => {
                                 ? (total * (parseFloat(discountValue) || 0)) / 100
                                 : parseFloat(discountValue) || 0;
                             setDiscountAmount(disc);
-                            setFinalCost(computeFinalCost(total, disc, vatRequested));
+                            setFinalCost(calcFinal(total, disc, vatRequested));
                           }}
                         >
                           Apply to Service Cost
@@ -3067,7 +3123,7 @@ const ManageClient = () => {
                         discount = parseFloat(discountValue) || 0;
                       }
                       setDiscountAmount(discount);
-                      setFinalCost(computeFinalCost(costNum, discount, vatRequested));
+                      setFinalCost(calcFinal(costNum, discount, vatRequested));
                     }}
                   />
                 </div>
@@ -3083,7 +3139,7 @@ const ManageClient = () => {
                         setDiscountType("amount");
                         setDiscountValue("");
                         setDiscountAmount(0);
-                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), 0, vatRequested));
+                        setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), 0, vatRequested));
                       }}
                       className="flex-1"
                     >
@@ -3097,7 +3153,7 @@ const ManageClient = () => {
                         setDiscountType("percentage");
                         setDiscountValue("");
                         setDiscountAmount(0);
-                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), 0, vatRequested));
+                        setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), 0, vatRequested));
                       }}
                       className="flex-1"
                     >
@@ -3128,7 +3184,7 @@ const ManageClient = () => {
                         }
                         
                         setDiscountAmount(discount);
-                        setFinalCost(computeFinalCost(costNum, discount, vatRequested));
+                        setFinalCost(calcFinal(costNum, discount, vatRequested));
                       }}
                       className="flex-1"
                     />
@@ -3147,17 +3203,40 @@ const ManageClient = () => {
                       onCheckedChange={(checked) => {
                         const next = checked === true;
                         setVatRequested(next);
-                        setFinalCost(computeFinalCost(sanitizeNumber(updateServiceCost), discountAmount, next));
+                        setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), discountAmount, next));
                       }}
                     />
                     <span>Requesting Invoice (Add VAT to Total Cost)</span>
                   </label>
                   {vatRequested && (
                     <p className="pl-6 text-sm font-semibold text-muted-foreground">
-                      VAT (12%): Php {vatAmount(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
+                      VAT (12%): Php {calcVat(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
                     </p>
                   )}
                 </div>
+
+                <div className="space-y-2 rounded-md border border-border/60 p-3">
+                  <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                    <Checkbox
+                      checked={rushFee}
+                      onCheckedChange={(checked) => {
+                        const next = checked === true;
+                        setRushFee(next);
+                        setFinalCost(
+                          calcFinal(sanitizeNumber(updateServiceCost), discountAmount, vatRequested, next),
+                        );
+                      }}
+                    />
+                    <span>Rush Fee (Add 10% to Total Cost)</span>
+                  </label>
+                  {rushFee && (
+                    <p className="pl-6 text-sm font-semibold text-muted-foreground">
+                      Rush fee (10%): Php{" "}
+                      {rushAmount(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+
 
 
 
@@ -3299,6 +3378,40 @@ const ManageClient = () => {
             </Button>
             <Button onClick={handleSendConcern} disabled={concernSending || !concernMessage.trim() || !serviceData}>
               {concernSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>) : "Send Concern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* RTO reason — shown to the client on /track */}
+      <Dialog open={rtoModalOpen} onOpenChange={setRtoModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reason for {updateStatus}</DialogTitle>
+            <DialogDescription>
+              This reason is shown to the client on their tracking page. Please be clear and factual.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={rtoReasonInput}
+            onChange={(e) => setRtoReasonInput(e.target.value.slice(0, 700))}
+            placeholder="e.g. Client opted not to proceed with the repair and requested the device back."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRtoModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!rtoReasonInput.trim()}
+              onClick={() => {
+                setRtoModalOpen(false);
+                rtoConfirmRef.current = true;
+                handleUpdate();
+              }}
+            >
+              Save reason & set {updateStatus}
             </Button>
           </DialogFooter>
         </DialogContent>

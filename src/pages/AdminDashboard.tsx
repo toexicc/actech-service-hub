@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { PaidNotCompletedAlerts } from "@/components/PaidNotCompletedAlerts";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { isSameDay, isBefore, startOfDay, format } from "date-fns";
@@ -173,6 +174,10 @@ const AdminDashboard = () => {
             <AlertCircle className="mr-2 h-4 w-4" />
             Overdue
           </Button>
+        </div>
+
+        <div className="mb-6">
+          <PaidNotCompletedAlerts />
         </div>
 
         {/* Main Content */}

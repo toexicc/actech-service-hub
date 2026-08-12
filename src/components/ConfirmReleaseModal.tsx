@@ -31,6 +31,8 @@ interface Props {
   entry?: QueueEntry | null;
   /** Manual release mode (no queue entry) — modal is open while true. */
   manual?: boolean;
+  /** Manual mode: look this ticket up automatically. */
+  prefillServiceId?: string;
   onOpenChange: (open: boolean) => void;
   onReleased?: () => void;
 }
@@ -59,7 +61,7 @@ const Row = ({ label, value }: { label: string; value?: string | null }) => (
  * action. Captures device custody (released from / by / received by) and writes
  * the hand-over to the ticket's activity log.
  */
-export const ConfirmReleaseModal = ({ entry, manual, onOpenChange, onReleased }: Props) => {
+export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenChange, onReleased }: Props) => {
   const { toast } = useToast();
   const { profile, user } = useAuth();
   const open = !!entry || !!manual;
@@ -119,6 +121,23 @@ export const ConfirmReleaseModal = ({ entry, manual, onOpenChange, onReleased }:
       active = false;
     };
   }, [entry?.service_id, entry]);
+
+  // Manual mode deep link: hydrate straight from the passed Service ID.
+  useEffect(() => {
+    const sid = (prefillServiceId || "").trim();
+    if (!manual || !sid) return;
+    setLookupId(sid);
+    setLookupError(null);
+    setLooking(true);
+    loadTicket(sid)
+      .then((t) => {
+        setTicket(t);
+        if (!t) setLookupError(`No ticket found for ${sid}.`);
+      })
+      .catch(() => setLookupError("Lookup failed. Please try again."))
+      .finally(() => setLooking(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manual, prefillServiceId]);
 
   const summary = useMemo(() => {
     if (entry) {

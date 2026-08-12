@@ -21,6 +21,9 @@ const CLIENT_TYPE_OPTIONS = [
   "New Client - Pickup",
   "Returning Client - Walk In",
   "Returning Client - Pickup",
+  "Delivery - AC Tech",
+  "Delivery - Courier",
+
 ];
 
 const CONDITION_FIELDS: { key: string; label: string }[] = [

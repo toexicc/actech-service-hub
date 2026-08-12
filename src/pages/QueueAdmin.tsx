@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueueEntries, moveQueueEntry, type QueueEntry } from "@/hooks/useQueueEntries";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,11 +114,22 @@ const QueueAdmin = () => {
   const { toast } = useToast();
   const { isAdminOrManagement } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
   const [completing, setCompleting] = useState<QueueEntry | null>(null);
   const [releasing, setReleasing] = useState<QueueEntry | null>(null);
   const [manualRelease, setManualRelease] = useState(false);
+  const [manualServiceId, setManualServiceId] = useState("");
+
+  // Deep link from /manage-client: open manual release with the ticket loaded.
+  useEffect(() => {
+    const sid = (searchParams.get("release") || "").trim();
+    if (!sid) return;
+    setActiveTab("queue");
+    setManualServiceId(sid);
+    setManualRelease(true);
+  }, [searchParams]);
 
 
   const filtered = useMemo(() => {
@@ -409,10 +420,12 @@ const QueueAdmin = () => {
         <ConfirmReleaseModal
           entry={releasing}
           manual={manualRelease}
+          prefillServiceId={manualServiceId}
           onOpenChange={(open) => {
             if (!open) {
               setReleasing(null);
               setManualRelease(false);
+              setManualServiceId("");
             }
           }}
           onReleased={() => refetch()}
