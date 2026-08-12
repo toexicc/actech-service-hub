@@ -1050,7 +1050,7 @@ const Reports = () => {
           <Panel
             title="Output leaderboard"
             icon={<Users className="h-4 w-4" />}
-            hint="Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never changed its status."
+            hint="Completed counts closing, paying, or releasing a ticket. Driven end-to-end = the person closed the ticket and also moved it at least once earlier. Assigned untouched = assigned to them but they never worked on it."
           >
             <div className="mb-3 flex flex-wrap gap-2">
               <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
