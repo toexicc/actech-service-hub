@@ -77,11 +77,18 @@ const STATUS_COUNT_CARDS = [
   "RTO",
 ] as const;
 
+const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
+
 /** Flag cards — tickets whose toggles are on, regardless of status. */
-type FlagKey = "waitingParts" | "backjob" | "rush";
+type FlagKey = "waitingParts" | "backjob" | "completedBackjob" | "rush";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
-  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob },
+  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
+  {
+    key: "completedBackjob",
+    label: "Completed - Backjob",
+    match: (s) => !!s.isBackjob && isDoneCompleted(s),
+  },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
 ];
 
@@ -772,9 +779,15 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
 
     // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
+    // Completed backjobs live in their own card, so keep them out of "Completed".
     if (includeStatus && statusFilter !== "all") {
       const st = String(service.status || "").trim();
-      const ok = statusFilter === "RTO" ? /^rto/i.test(st) : st === statusFilter;
+      const ok =
+        statusFilter === "RTO"
+          ? /^rto/i.test(st)
+          : statusFilter === "Completed"
+          ? st === "Completed" && !service.isBackjob
+          : st === statusFilter;
       if (!ok) return false;
     }
 
@@ -888,7 +901,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       if (!passesFilters(service, false)) return;
       const status = (service.status || "").trim();
       if (/^rto/i.test(status)) counts["RTO"] += 1;
-      else if (status in counts) counts[status] += 1;
+      else if (status === "Completed" && (service as any).isBackjob) {
+        /* counted by the Completed - Backjob card only */
+      } else if (status in counts) counts[status] += 1;
       FLAG_COUNT_CARDS.forEach((f) => {
         if (f.match(service)) counts[f.key] += 1;
       });

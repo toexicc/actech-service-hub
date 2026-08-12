@@ -271,6 +271,9 @@ const ManageClient = () => {
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
   const [rtoReasonInput, setRtoReasonInput] = useState("");
   const rtoConfirmRef = useRef(false);
+  const [partsModalOpen, setPartsModalOpen] = useState(false);
+  const partsConfirmRef = useRef(false);
+  const clearPartsRef = useRef(false);
   /** Cost helpers bound to the current rush-fee selection. */
   const calcFinal = (cost: number, disc: number, vat: boolean, rush: boolean = rushFee) =>
     computeFinalCost(cost, disc, vat, rush);
@@ -984,6 +987,19 @@ const ManageClient = () => {
     }
     rtoConfirmRef.current = false;
 
+    // Moving into active repair / done-repair means the parts arrived — ask
+    // before leaving the Waiting for Parts flag on.
+    const partsActiveMove =
+      updateStatus !== serviceData.status &&
+      (/^ongoing service/i.test(updateStatus || "") || /^done repair/i.test(updateStatus || ""));
+    if (partsActiveMove && (serviceData as any).waitingForParts && !partsConfirmRef.current) {
+      setPartsModalOpen(true);
+      return;
+    }
+    const clearWaitingParts = clearPartsRef.current;
+    partsConfirmRef.current = false;
+    clearPartsRef.current = false;
+
     if (offPathMove && updateStatus === "Cancelled") {
       const proceed = window.confirm(
         `Set ${sid} to ${updateStatus}?\n\nThis takes the ticket off the repair workflow. Continue?`
@@ -1166,6 +1182,7 @@ const ManageClient = () => {
         vat_requested: vatRequested,
         rush_fee: rushFee,
         ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
+        ...(clearWaitingParts ? { waiting_for_parts: false } : {}),
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         estimated_completion: updateTimeFrame || null,
@@ -2007,13 +2024,15 @@ const ManageClient = () => {
                   </div>
                 )}
 
-                <TicketFlagsPanel
-                  service={serviceData}
-                  canEditNote={userRole === "management" || userRole === "admin"}
-                  onChange={(patch) =>
-                    setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
-                  }
-                />
+                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+                  <TicketFlagsPanel
+                    service={serviceData}
+                    canEditNote={userRole === "management" || userRole === "admin"}
+                    onChange={(patch) =>
+                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                    }
+                  />
+                )}
 
 
                 <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
@@ -3412,6 +3431,45 @@ const ManageClient = () => {
               }}
             >
               Save reason & set {updateStatus}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Waiting for Parts still on while moving into repair / done repair */}
+      <Dialog open={partsModalOpen} onOpenChange={setPartsModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Turn off Waiting for Parts?</DialogTitle>
+            <DialogDescription>
+              Moving this ticket to {updateStatus} usually means the parts are already available.
+              Should the Waiting for Parts flag be turned off?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPartsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPartsModalOpen(false);
+                partsConfirmRef.current = true;
+                clearPartsRef.current = false;
+                handleUpdate();
+              }}
+            >
+              Keep it on
+            </Button>
+            <Button
+              onClick={() => {
+                setPartsModalOpen(false);
+                partsConfirmRef.current = true;
+                clearPartsRef.current = true;
+                handleUpdate();
+              }}
+            >
+              Turn off & save
             </Button>
           </DialogFooter>
         </DialogContent>

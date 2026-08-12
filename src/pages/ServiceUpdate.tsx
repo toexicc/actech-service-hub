@@ -610,6 +610,9 @@ const ServiceUpdate = () => {
   // Rebuild the stored quotation from the client's approved lines when the
   // approval is newer than the stored file.
   const syncedQuotationRef = useRef<string>("");
+  const [partsModalOpen, setPartsModalOpen] = useState(false);
+  const partsConfirmRef = useRef(false);
+  const clearPartsRef = useRef(false);
   useEffect(() => {
     const sid = serviceData?.serviceId;
     if (!sid || syncedQuotationRef.current === sid) return;
@@ -881,6 +884,20 @@ const ServiceUpdate = () => {
     if (!sid) return;
     if (!serviceData) return;
 
+    // Moving into active repair / done repair means the parts arrived — ask
+    // before leaving the Waiting for Parts flag on.
+    const partsActiveMove =
+      updateStatus !== serviceData.status &&
+      (/^ongoing service/i.test(updateStatus || "") || /^done repair/i.test(updateStatus || ""));
+    if (partsActiveMove && (serviceData as any).waitingForParts && !partsConfirmRef.current) {
+      setPartsModalOpen(true);
+      return;
+    }
+    const clearWaitingParts = clearPartsRef.current;
+    partsConfirmRef.current = false;
+    clearPartsRef.current = false;
+
+
     setIsUpdating(true);
     try {
       const actualCost = calculateActualCost();
@@ -975,6 +992,7 @@ const ServiceUpdate = () => {
       const saveStamp = new Date().toISOString();
       const { data: updatedRows, error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
+        ...(clearWaitingParts ? { waiting_for_parts: false } : {}),
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
         technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
         // Raw technician notes stay separate from the AI-formatted diagnosis,
@@ -1486,12 +1504,14 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
-                <TicketFlagsPanel
-                  service={serviceData}
-                  onChange={(patch) =>
-                    setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
-                  }
-                />
+                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+                  <TicketFlagsPanel
+                    service={serviceData}
+                    onChange={(patch) =>
+                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                    }
+                  />
+                )}
 
 
 
@@ -2253,7 +2273,44 @@ const ServiceUpdate = () => {
         </DialogContent>
       </Dialog>
 
-
+      {/* Waiting for Parts still on while moving into repair / done repair */}
+      <Dialog open={partsModalOpen} onOpenChange={setPartsModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Turn off Waiting for Parts?</DialogTitle>
+            <DialogDescription>
+              Moving this ticket to {updateStatus} usually means the parts are already available.
+              Should the Waiting for Parts flag be turned off?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPartsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPartsModalOpen(false);
+                partsConfirmRef.current = true;
+                clearPartsRef.current = false;
+                handleUpdate();
+              }}
+            >
+              Keep it on
+            </Button>
+            <Button
+              onClick={() => {
+                setPartsModalOpen(false);
+                partsConfirmRef.current = true;
+                clearPartsRef.current = true;
+                handleUpdate();
+              }}
+            >
+              Turn off & save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </DashboardLayout>
   );
