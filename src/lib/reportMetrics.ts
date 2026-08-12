@@ -322,6 +322,10 @@ export interface ActorOutput {
   diagnosed: number;
   toRepair: number;
   released: number;
+  /** Payment events recorded by this person (voided ones excluded). */
+  paid: number;
+  /** Device hand-over events confirmed by this person. */
+  handedOver: number;
   completed: number;
   drivenEndToEnd: number;
   assignedUntouched: number;
@@ -329,10 +333,45 @@ export interface ActorOutput {
 
 const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 
-const CONFIRMED = new Set(["confirmed diagnosis"]);
-const TO_REPAIR = new Set(["waiting to proceed", "proceed repair", "ongoing service"]);
-const RELEASE = new Set(["done repair - for release", "done repair - advise client"]);
-const DONE = new Set(["completed"]);
+/** Automated actors must never appear on a staff leaderboard. */
+const SYSTEM_ACTOR_RE = /^system\b/i;
+
+/**
+ * Resolves the many ways one person shows up in the log to a single identity:
+ * a trailing " - Management" style suffix is stripped, login emails are matched
+ * against the staff directory, and a short first name is merged into a
+ * directory full name when it matches exactly one person.
+ */
+export const makeActorResolver = (
+  staff: Array<{ name?: string; username?: string; role?: string }> = [],
+) => {
+  const byKey = new Map<string, string>();
+  const fullNames: string[] = [];
+  staff.forEach((p) => {
+    const name = String(p.name ?? "").trim();
+    if (!name) return;
+    fullNames.push(name);
+    byKey.set(norm(name), name);
+    const username = String(p.username ?? "").trim();
+    if (username) {
+      byKey.set(norm(username), name);
+      byKey.set(norm(username.split("@")[0]), name);
+    }
+  });
+
+  return (raw: string): string => {
+    const trimmed = String(raw ?? "").trim();
+    if (!trimmed) return trimmed;
+    const stripped = trimmed.replace(/\s*[-–]\s*(admin|administrator|management|technician|tech|staff)\s*$/i, "").trim() || trimmed;
+    const direct = byKey.get(norm(stripped)) || byKey.get(norm(stripped.split("@")[0]));
+    if (direct) return direct;
+    const short = norm(stripped);
+    const prefixMatches = fullNames.filter((n) => norm(n).startsWith(`${short} `));
+    if (short && prefixMatches.length === 1) return prefixMatches[0];
+    return stripped;
+  };
+};
+
 
 /**
  * Measures real output from the activity-log status transitions instead of
