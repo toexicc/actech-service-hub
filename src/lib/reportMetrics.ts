@@ -520,13 +520,15 @@ export const buildActorOutput = (
       .map((n) => n.trim())
       .filter(Boolean);
     names.forEach((n) => {
-      const key = norm(n);
+      if (!isPerson(n)) return;
+      const key = norm(resolve(n));
       const set = assigned.get(key) || new Set<string>();
       set.add(id);
       assigned.set(key, set);
       get(n);
     });
   });
+
 
   return Array.from(map.entries())
     .map(([key, v]) => {
