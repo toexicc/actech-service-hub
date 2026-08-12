@@ -975,6 +975,7 @@ const ServiceUpdate = () => {
       const saveStamp = new Date().toISOString();
       const { data: updatedRows, error: sbUpdateError } = await supabase.from("services").update({
         status: updateStatus as any,
+        ...(clearWaitingParts ? { waiting_for_parts: false } : {}),
         technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
         technician_departments: departments.split(",").map(s => s.trim()).filter(Boolean),
         // Raw technician notes stay separate from the AI-formatted diagnosis,
