@@ -3,14 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
+import { PhotoGalleryDialog } from "@/components/PhotoGalleryDialog";
 
 interface DiagnosisPhotosProps {
   serviceId: string;
@@ -19,7 +14,7 @@ interface DiagnosisPhotosProps {
 }
 
 const BUCKET = "diagnosis-photos";
-const MAX_PHOTOS = 10;
+const MAX_PHOTOS = 9;
 
 interface PhotoEntry {
   id: string;
