@@ -26,6 +26,14 @@ Normal-priority tickets keep the existing status-first behavior unchanged.
 
 On the public tracking page, `RTO - ACTech` currently renders the Service Diagnosis card below the ticket card. Replace that with the Service Report (AI report) card, falling back to the diagnosis only if no report exists yet.
 
+Also show the Device Report photos on /track for `RTO - ACTech` tickets (read-only, opened with the gallery viewer below), so the client can see the photos backing the RTO report.
+
+## 4b. Format with AI button placement
+
+In both the AI Diagnosis and AI Report blocks on /service-update (and the matching blocks on /manage-client), move the "Format with AI" and "Clear" buttons from above the technician diagnosis/report field to directly below that field, so the flow reads: type notes -> Format with AI -> review the formatted output.
+
+
+
 ## 5. Gallery-style photo viewer everywhere
 
 Replace the single-photo preview dialog in both photo panels with a shared gallery viewer used on /manage-client, /service-update and /track:
@@ -40,5 +48,6 @@ Replace the single-photo preview dialog in both photo panels with a shared galle
 - `ServiceUpdate.tsx`: derive `isWithinTheDay` from `serviceData.priority` and `isRtoActech` from status/selection; fold both into `diagnosisEditable`, `reportEditable`, `reportStageReached`, `showDiagnosisStage`, `showReportStage`, `showReportEditors`.
 - `src/lib/serviceStatus.ts`: `technicianAllowedNextStatuses` always appends `RTO - ACTech`.
 - `MAX_PHOTOS = 9` in both photo components.
-- `ServiceTracking.tsx`: swap the `rtoKind === "actech"` card to render `serviceData.aiReport` with title "Service Report".
+- `ServiceTracking.tsx`: swap the `rtoKind === "actech"` card to render `serviceData.aiReport` with title "Service Report" (diagnosis as fallback), and render read-only `DeviceReportPhotos` for that case.
+- Button relocation is a JSX reorder inside the existing diagnosis/report blocks — no logic changes.
 - No database or backend changes needed.
