@@ -2647,6 +2647,7 @@ const ManageClient = () => {
                               Approve
                             </Button>
                           </div>
+                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <Textarea
                             id="aiDiagnosisDisplay"
                             placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
