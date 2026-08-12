@@ -302,6 +302,10 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   if (RELEASE_EVENT_RE.test(action)) {
     return { serviceId, createdAt: row.created_at, event: "release", actor, role };
   }
+  if (VOID_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "void", actor, role };
+  }
+
   return null;
 
 };
