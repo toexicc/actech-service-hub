@@ -779,9 +779,15 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
 
     // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
+    // Completed backjobs live in their own card, so keep them out of "Completed".
     if (includeStatus && statusFilter !== "all") {
       const st = String(service.status || "").trim();
-      const ok = statusFilter === "RTO" ? /^rto/i.test(st) : st === statusFilter;
+      const ok =
+        statusFilter === "RTO"
+          ? /^rto/i.test(st)
+          : statusFilter === "Completed"
+          ? st === "Completed" && !service.isBackjob
+          : st === statusFilter;
       if (!ok) return false;
     }
 
