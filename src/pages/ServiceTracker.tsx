@@ -901,7 +901,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       if (!passesFilters(service, false)) return;
       const status = (service.status || "").trim();
       if (/^rto/i.test(status)) counts["RTO"] += 1;
-      else if (status in counts) counts[status] += 1;
+      else if (status === "Completed" && (service as any).isBackjob) {
+        /* counted by the Completed - Backjob card only */
+      } else if (status in counts) counts[status] += 1;
       FLAG_COUNT_CARDS.forEach((f) => {
         if (f.match(service)) counts[f.key] += 1;
       });
