@@ -1008,7 +1008,7 @@ const Reports = () => {
           <Panel
             title="Who moves tickets"
             icon={<Users className="h-4 w-4" />}
-            hint="Counted from the activity log — each bar is a status change the person actually made on tickets in this period."
+            hint="Counted from the activity log — each bar is real work the person did on tickets in this period. Completed also includes processing the payment and releasing the device."
           >
             <div className="h-[320px]">
               {loadingLogs ? (
