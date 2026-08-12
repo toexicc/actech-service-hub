@@ -220,7 +220,7 @@ const PointOfSales = () => {
         });
 
 
-        // Fully paid service at a release stage → auto-complete the ticket.
+        // Fully paid service → auto-complete the ticket (any stage).
         if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL") {
           try {
             const completed = await completeServiceIfFullyPaid({
