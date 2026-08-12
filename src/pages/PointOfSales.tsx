@@ -256,6 +256,12 @@ const PointOfSales = () => {
                 title: "Service Completed",
                 description: `${serviceId} is fully paid and was moved to Completed.`,
               });
+            } else if (previousPayments + amountNum + 0.01 >= parseCurrency(finalCostClean) && parseCurrency(finalCostClean) > 0) {
+              toast({
+                title: "Paid but not Completed",
+                description: `${serviceId} is fully paid but its status did not move to Completed. Please review the ticket.`,
+                variant: "destructive",
+              });
             }
           } catch { /* non-blocking */ }
         }
