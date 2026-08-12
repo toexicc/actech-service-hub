@@ -5,6 +5,7 @@ import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
 
 interface Props {
   serviceId: string;
@@ -14,7 +15,6 @@ interface Props {
 
 const BUCKET = "device-reports";
 const MAX_PHOTOS = 6;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 interface PhotoEntry {
   id: string;
@@ -23,45 +23,6 @@ interface PhotoEntry {
   signedUrl: string;
 }
 
-const compressImage = (file: File): Promise<File> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let { width, height } = img;
-        const maxDim = 1920;
-        if (width > height && width > maxDim) {
-          height = (height * maxDim) / width;
-          width = maxDim;
-        } else if (height > maxDim) {
-          width = (width * maxDim) / height;
-          height = maxDim;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) return reject(new Error("blank canvas"));
-            resolve(
-              new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-                type: "image/jpeg",
-                lastModified: Date.now(),
-              }),
-            );
-          },
-          "image/jpeg",
-          0.85,
-        );
-      };
-      img.onerror = reject;
-    };
-    reader.onerror = reject;
-  });
 
 export const DeviceReportPhotos = ({
   serviceId,
@@ -74,7 +35,9 @@ export const DeviceReportPhotos = ({
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
 
   const refresh = useCallback(async () => {
     if (!serviceId) {
@@ -117,52 +80,44 @@ export const DeviceReportPhotos = ({
       return;
     }
     const list = Array.from(files).slice(0, remaining);
+    if (list.length === 0) return;
+
     setUploading(true);
+    setProgress(`Uploading 1 of ${list.length}…`);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      for (const file of list) {
-        if (!file.type.startsWith("image/")) continue;
-        if (file.size > MAX_FILE_SIZE) {
-          toast({ title: "Too large", description: `${file.name} exceeds 5MB`, variant: "destructive" });
-          continue;
-        }
-        const compressed = await compressImage(file);
-        const path = `${serviceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-        const { error: upErr } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, compressed, { contentType: "image/jpeg", upsert: false });
-        if (upErr) throw upErr;
-        const { error: insErr } = await supabase.from("service_files").insert({
-          service_id: serviceId,
-          kind: "device_report" as any,
-          bucket: BUCKET,
-          storage_path: path,
-          filename: compressed.name,
-          mime_type: "image/jpeg",
-          size_bytes: compressed.size,
-          uploaded_by: user?.id ?? null,
-        });
-        if (insErr) throw insErr;
-      }
+      const result = await uploadServicePhotos({
+        bucket: BUCKET,
+        serviceId,
+        kind: "device_report",
+        files: list,
+        onProgress: (current, total) => setProgress(`Uploading ${current} of ${total}…`),
+      });
       await refresh();
-      toast({ title: "Uploaded", description: "Device report photo(s) saved" });
+      const summary = describeUploadResult(result);
+      toast({
+        title: summary.title,
+        description: summary.description,
+        variant: summary.failed ? "destructive" : undefined,
+      });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err?.message ?? "Try again", variant: "destructive" });
     } finally {
       setUploading(false);
+      setProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
+
   };
 
   const remove = async (entry: PhotoEntry) => {
     if (!editable) return;
     if (!window.confirm("Remove this photo?")) return;
     try {
+      const { error } = await supabase.from("service_files").delete().eq("id", entry.id);
+      if (error) throw error;
       await supabase.storage.from(entry.bucket).remove([entry.storagePath]);
-      await supabase.from("service_files").delete().eq("id", entry.id);
+
       setPhotos((p) => p.filter((x) => x.id !== entry.id));
     } catch (err: any) {
       toast({ title: "Delete failed", description: err?.message ?? "Try again", variant: "destructive" });
@@ -193,7 +148,7 @@ export const DeviceReportPhotos = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               multiple
               onChange={(e) => handleFiles(e.target.files)}
               className="hidden"
@@ -227,8 +182,15 @@ export const DeviceReportPhotos = ({
               Take Photo
             </Button>
           </div>
+          {progress && (
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {progress} Keep this page open until it finishes.
+            </p>
+          )}
         </>
       )}
+
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
