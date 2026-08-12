@@ -1176,6 +1176,8 @@ const ServiceTracking = () => {
                       </div>
                     )}
 
+                    {!isClosed && (
+                      <>
                     <Separator />
 
                     {/* Client + device + complaint */}
@@ -1222,8 +1224,19 @@ const ServiceTracking = () => {
                         </p>
                       </div>
                     </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
+
+                {/* RTO - ACTech: the diagnosis stays visible, below the ticket card. */}
+                {rtoKind === "actech" && (serviceData.aiDiagnosis || "").trim() && (
+                  <AiReportCard
+                    report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
+                    title="Service Diagnosis"
+                  />
+                )}
+
 
                 {/* AI Diagnosis */}
                 {showAiDiagnosis && !isClosed && (
