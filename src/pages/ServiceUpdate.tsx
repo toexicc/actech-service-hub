@@ -1504,12 +1504,14 @@ const ServiceUpdate = () => {
                   </Select>
                 </div>
 
-                <TicketFlagsPanel
-                  service={serviceData}
-                  onChange={(patch) =>
-                    setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
-                  }
-                />
+                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+                  <TicketFlagsPanel
+                    service={serviceData}
+                    onChange={(patch) =>
+                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                    }
+                  />
+                )}
 
 
 
