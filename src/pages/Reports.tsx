@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useServices, useCompletedServices } from "@/hooks/useServices";
 import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
