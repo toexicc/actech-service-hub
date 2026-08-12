@@ -287,7 +287,14 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   if (/^New service created/i.test(action)) {
     return { serviceId, createdAt: row.created_at, created: true, actor, role };
   }
+  if (PAYMENT_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "payment", actor, role };
+  }
+  if (RELEASE_EVENT_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "release", actor, role };
+  }
   return null;
+
 };
 
 /* ------------------------------------------------------------------
