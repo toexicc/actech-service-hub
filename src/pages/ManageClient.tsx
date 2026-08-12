@@ -2754,7 +2754,7 @@ const ManageClient = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
+                          
                           <div className="flex flex-wrap gap-2 mb-2">
                             <Button
                               type="button"
