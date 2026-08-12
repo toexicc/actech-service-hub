@@ -260,6 +260,9 @@ const WAITING_PARTS_RE = /waiting\s*for\s*parts[^a-z]*(on|off|enabled|disabled)/
 const PAYMENT_RE = /^POS:\s*Recorded\b.*\bpayment\b/i;
 /** Device release confirmations from the release queue or a manual release. */
 const RELEASE_EVENT_RE = /device\s+released\s+to\s+client/i;
+/** A voided transaction cancels the payment credit for that ticket. */
+const VOID_RE = /^voided\s+transaction\b/i;
+
 
 
 export const parseStatusLog = (row: any): StatusLogEntry | null => {
