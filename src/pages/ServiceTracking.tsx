@@ -1076,13 +1076,6 @@ const ServiceTracking = () => {
                   </div>
                 )}
 
-                {/* RTO - ACTech: the diagnosis stays visible alongside the reason. */}
-                {rtoKind === "actech" && (serviceData.aiDiagnosis || "").trim() && (
-                  <AiReportCard
-                    report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
-                    title="Service Diagnosis"
-                  />
-                )}
 
                 {/* Repair Ticket card */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] rounded-2xl overflow-hidden">
