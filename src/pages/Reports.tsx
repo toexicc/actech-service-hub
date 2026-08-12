@@ -1121,7 +1121,10 @@ const Reports = () => {
                         <TableCell className="text-right">{a.diagnosed}</TableCell>
                         <TableCell className="text-right">{a.toRepair}</TableCell>
                         <TableCell className="text-right">{a.released}</TableCell>
+                        <TableCell className="text-right">{a.paid}</TableCell>
+                        <TableCell className="text-right">{a.handedOver}</TableCell>
                         <TableCell className="text-right">{a.completed}</TableCell>
+
                         <TableCell className="text-right">{a.drivenEndToEnd}</TableCell>
                         <TableCell
                           className={cn(
