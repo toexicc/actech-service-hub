@@ -1106,7 +1106,10 @@ const ServiceTracking = () => {
                       {updatedAt && (
                         <p className="text-xs text-muted-foreground mt-1">Updated {displayDate(updatedAt, "MMM dd, yyyy · hh:mm a")}</p>
                       )}
-                      {(serviceData as any).waitingForParts && (
+                      {(serviceData as any).waitingForParts &&
+                        !isClosed &&
+                        !/completed/i.test(currentStatus) &&
+                        !/^done repair/i.test(currentStatus) && (
                         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
                           <span className="h-2 w-2 rounded-full bg-amber-500" />
                           Waiting for Parts — the required parts/supplies are being procured for your repair
