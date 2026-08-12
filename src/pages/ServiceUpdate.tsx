@@ -1539,7 +1539,7 @@ const ServiceUpdate = () => {
 
 
 
-                {!statusChanged ? (
+                {!statusChanged && !isWithinTheDay && !isRtoActech ? (
                   <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
                     <p className="text-sm font-semibold text-primary">Set the status first</p>
                     <p className="text-xs text-muted-foreground mt-1">
