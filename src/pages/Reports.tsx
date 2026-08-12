@@ -530,14 +530,23 @@ const Reports = () => {
     [statusLogs, report, staffList, period],
   );
 
+  const staffOptions = useMemo(
+    () =>
+      actorOutput
+        .map((a) => ({ label: a.name, value: a.name }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [actorOutput],
+  );
+
   const actorRows = useMemo(() => {
     const rows = actorOutput.filter((a) => {
       if (a.moves === 0 && a.assignedUntouched === 0) return false;
-      if (outputRole === "all") return true;
-      return String(a.role || "").toLowerCase() === outputRole;
+      if (outputRole !== "all" && String(a.role || "").toLowerCase() !== outputRole) return false;
+      if (selectedStaff.length > 0 && !selectedStaff.includes(a.name)) return false;
+      return true;
     });
     return [...rows].sort((a, b) => (b as any)[outputSort] - (a as any)[outputSort] || b.moves - a.moves);
-  }, [actorOutput, outputRole, outputSort]);
+  }, [actorOutput, outputRole, outputSort, selectedStaff]);
 
   const actorChart = useMemo(
     () =>
