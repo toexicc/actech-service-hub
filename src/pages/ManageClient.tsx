@@ -984,6 +984,19 @@ const ManageClient = () => {
     }
     rtoConfirmRef.current = false;
 
+    // Moving into active repair / done-repair means the parts arrived — ask
+    // before leaving the Waiting for Parts flag on.
+    const partsActiveMove =
+      updateStatus !== serviceData.status &&
+      (/^ongoing service/i.test(updateStatus || "") || /^done repair/i.test(updateStatus || ""));
+    if (partsActiveMove && (serviceData as any).waitingForParts && !partsConfirmRef.current) {
+      setPartsModalOpen(true);
+      return;
+    }
+    const clearWaitingParts = clearPartsRef.current;
+    partsConfirmRef.current = false;
+    clearPartsRef.current = false;
+
     if (offPathMove && updateStatus === "Cancelled") {
       const proceed = window.confirm(
         `Set ${sid} to ${updateStatus}?\n\nThis takes the ticket off the repair workflow. Continue?`
