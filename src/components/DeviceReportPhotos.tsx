@@ -114,8 +114,10 @@ export const DeviceReportPhotos = ({
     if (!editable) return;
     if (!window.confirm("Remove this photo?")) return;
     try {
+      const { error } = await supabase.from("service_files").delete().eq("id", entry.id);
+      if (error) throw error;
       await supabase.storage.from(entry.bucket).remove([entry.storagePath]);
-      await supabase.from("service_files").delete().eq("id", entry.id);
+
       setPhotos((p) => p.filter((x) => x.id !== entry.id));
     } catch (err: any) {
       toast({ title: "Delete failed", description: err?.message ?? "Try again", variant: "destructive" });
