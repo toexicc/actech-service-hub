@@ -389,6 +389,10 @@ const ServiceUpdate = () => {
   const showPartsStage = stageStatus === "Ongoing Service";
 
   const stageHint = (() => {
+    if (isWithinTheDay)
+      return "Within The Day priority — the diagnosis, report and photo uploads stay open at every stage for a fast turnaround.";
+    if (isRtoActech)
+      return "RTO - ACTech — write the report explaining why the device is being returned, then click Update.";
     if (showDiagnosisStage)
       return "Enter the technician diagnosis and run the AI formatter, then click Update to save it with this status.";
     if (showPartsStage) return "Select the parts used from inventory, then click Update.";
