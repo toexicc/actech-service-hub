@@ -35,7 +35,9 @@ export const DeviceReportPhotos = ({
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
 
   const refresh = useCallback(async () => {
     if (!serviceId) {
