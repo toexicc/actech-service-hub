@@ -191,6 +191,7 @@ const Reports = () => {
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
   const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
