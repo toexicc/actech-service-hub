@@ -1016,6 +1016,20 @@ const Reports = () => {
 
         {/* Real output from the activity log */}
         <div className="mb-6 grid gap-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <MultiSelect
+              options={staffOptions}
+              selected={selectedStaff}
+              onChange={setSelectedStaff}
+              placeholder="Filter by staff…"
+              className="w-[280px]"
+            />
+            {selectedStaff.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => setSelectedStaff([])}>
+                Clear
+              </Button>
+            )}
+          </div>
           <Panel
             title="Who moves tickets"
             icon={<Users className="h-4 w-4" />}
