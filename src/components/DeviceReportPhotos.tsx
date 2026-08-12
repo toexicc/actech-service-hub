@@ -148,7 +148,7 @@ export const DeviceReportPhotos = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               multiple
               onChange={(e) => handleFiles(e.target.files)}
               className="hidden"
