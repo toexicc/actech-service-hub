@@ -1479,6 +1479,23 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
                             </div>
                             <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {(service as any).rushFee && (
+                                <span className="rounded-full border border-orange-400/40 bg-orange-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
+                                  Rush
+                                </span>
+                              )}
+                              {(service as any).isBackjob && (
+                                <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-destructive">
+                                  Backjob
+                                </span>
+                              )}
+                              {(service as any).waitingForParts && (
+                                <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600">
+                                  Waiting for Parts
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <span className={cn("text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border font-medium whitespace-nowrap", getStatusTextColor(service.status || ""), "border-current/30")}>
                             {service.status || "N/A"}
