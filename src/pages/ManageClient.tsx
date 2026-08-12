@@ -1182,6 +1182,7 @@ const ManageClient = () => {
         vat_requested: vatRequested,
         rush_fee: rushFee,
         ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
+        ...(clearWaitingParts ? { waiting_for_parts: false } : {}),
         final_cost: finalCost,
         target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
         estimated_completion: updateTimeFrame || null,
