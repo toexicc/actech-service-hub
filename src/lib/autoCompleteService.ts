@@ -3,14 +3,10 @@ import { logSystemTicketActivity } from "@/lib/activityLogger";
 
 
 /**
- * A service is only auto-completed by a full payment once it has already
- * reached one of these release stages. This prevents payments on early-stage
- * tickets from skipping the repair workflow.
+ * Statuses that already mean the ticket is closed out — a payment on these
+ * never needs to change anything.
  */
-export const AUTO_COMPLETE_ELIGIBLE_STATUSES = [
-  "Done Repair - For Release",
-  "Done Repair - Advise Client",
-] as const;
+const ALREADY_CLOSED = ["Completed", "Cancelled", "RTO"] as const;
 
 interface Args {
   serviceId: string;
@@ -21,8 +17,9 @@ interface Args {
 }
 
 /**
- * Flip a service to Completed when its outstanding balance reaches zero and
- * the ticket is already at a release stage. Returns true when it changed.
+ * Flip a service to Completed once its outstanding balance reaches zero,
+ * whatever stage it is at. This covers backfilled/old-system tickets that are
+ * recorded straight from intake and paid in full.
  */
 export const completeServiceIfFullyPaid = async ({
   serviceId,
@@ -39,13 +36,14 @@ export const completeServiceIfFullyPaid = async ({
     .maybeSingle();
   if (!row) return false;
 
-  if (!(AUTO_COMPLETE_ELIGIBLE_STATUSES as readonly string[]).includes(row.status as string)) {
+  if ((ALREADY_CLOSED as readonly string[]).includes(row.status as string)) {
     return false;
   }
 
   const due = Number(row.final_cost) || Number(row.total_cost) || Number(row.service_cost) || 0;
   if (due <= 0) return false;
   if (totalPaid + 0.01 < due) return false;
+
 
   const { error } = await supabase
     .from("services")
