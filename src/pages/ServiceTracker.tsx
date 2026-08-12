@@ -83,11 +83,11 @@ const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
 type FlagKey = "waitingParts" | "backjob" | "completedBackjob" | "rush";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
-  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isCompletedStatus(s) },
+  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
   {
     key: "completedBackjob",
     label: "Completed - Backjob",
-    match: (s) => !!s.isBackjob && isCompletedStatus(s),
+    match: (s) => !!s.isBackjob && isDoneCompleted(s),
   },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
 ];
