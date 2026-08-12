@@ -372,6 +372,13 @@ export const makeActorResolver = (
   };
 };
 
+const CONFIRMED = new Set(["confirmed diagnosis"]);
+const TO_REPAIR = new Set(["waiting to proceed", "proceed repair", "ongoing service"]);
+const RELEASE = new Set(["done repair - for release", "done repair - advise client"]);
+const DONE = new Set(["completed"]);
+
+
+
 
 /**
  * Measures real output from the activity-log status transitions instead of
