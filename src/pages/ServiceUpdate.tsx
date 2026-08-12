@@ -343,12 +343,28 @@ const ServiceUpdate = () => {
   const stageStatus = statusChanged ? savedStatus : "";
   // Technicians can only step forward one stage at a time (no bypassing statuses).
   const allowedNext = technicianAllowedNextStatuses(savedStatus);
+
+  // Fast-track: "Within The Day" tickets need diagnosis + report available at any
+  // point, without waiting for a status change first.
+  const isWithinTheDay =
+    String(serviceData?.priority || "").trim().toLowerCase() === "within the day";
+  // RTO - ACTech tickets always get the report tools so the technician can
+  // document why the device is being returned.
+  const isRtoActech =
+    savedStatus === "RTO - ACTech" || updateStatus === "RTO - ACTech";
+
   // AI sections stay visible once their stage has been reached, but become
   // read-only for technicians after that stage is over.
-  const diagnosisEditable = savedStatus === "Pending Diagnosis";
-  const reportStageReached = statusRank(savedStatus) >= statusRank("Done Repair - Under Observation");
+  const diagnosisEditable = savedStatus === "Pending Diagnosis" || isWithinTheDay;
+  const reportStageReached =
+    statusRank(savedStatus) >= statusRank("Done Repair - Under Observation") ||
+    isWithinTheDay ||
+    isRtoActech;
   const reportEditable =
-    savedStatus === "Done Repair - Under Observation" || savedStatus === "Done Repair - Observation";
+    savedStatus === "Done Repair - Under Observation" ||
+    savedStatus === "Done Repair - Observation" ||
+    isWithinTheDay ||
+    isRtoActech;
 
 
   const DONE_REPAIR_STAGES = [
@@ -362,15 +378,21 @@ const ServiceUpdate = () => {
   ];
 
   const showDiagnosisStage =
-    stageStatus === "Pending Diagnosis" || stageStatus === "Confirmed Diagnosis";
-  const showReportStage = DONE_REPAIR_STAGES.includes(stageStatus);
+    stageStatus === "Pending Diagnosis" || stageStatus === "Confirmed Diagnosis" || isWithinTheDay;
+  const showReportStage = DONE_REPAIR_STAGES.includes(stageStatus) || isWithinTheDay || isRtoActech;
   const showReportEditors =
     stageStatus === "Done Repair - Under Observation" ||
     stageStatus === "Done Repair - Observation" ||
-    stageStatus === "Done Repair - For Release";
+    stageStatus === "Done Repair - For Release" ||
+    isWithinTheDay ||
+    isRtoActech;
   const showPartsStage = stageStatus === "Ongoing Service";
 
   const stageHint = (() => {
+    if (isWithinTheDay)
+      return "Within The Day priority — the diagnosis, report and photo uploads stay open at every stage for a fast turnaround.";
+    if (isRtoActech)
+      return "RTO - ACTech — write the report explaining why the device is being returned, then click Update.";
     if (showDiagnosisStage)
       return "Enter the technician diagnosis and run the AI formatter, then click Update to save it with this status.";
     if (showPartsStage) return "Select the parts used from inventory, then click Update.";
@@ -1517,7 +1539,7 @@ const ServiceUpdate = () => {
 
 
 
-                {!statusChanged ? (
+                {!statusChanged && !isWithinTheDay && !isRtoActech ? (
                   <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
                     <p className="text-sm font-semibold text-primary">Set the status first</p>
                     <p className="text-xs text-muted-foreground mt-1">

@@ -70,8 +70,16 @@ export const TECHNICIAN_TRANSITIONS: Record<string, string[]> = {
   "Done Repair - For Release": [],
 };
 
-export const technicianAllowedNextStatuses = (current?: string): string[] =>
-  TECHNICIAN_TRANSITIONS[(current || "").trim()] ?? [];
+/** Technicians may always flag a ticket as RTO - ACTech, from any status. */
+export const ALWAYS_ALLOWED_TECHNICIAN_STATUS = "RTO - ACTech";
+
+export const technicianAllowedNextStatuses = (current?: string): string[] => {
+  const base = TECHNICIAN_TRANSITIONS[(current || "").trim()] ?? [];
+  if ((current || "").trim() === ALWAYS_ALLOWED_TECHNICIAN_STATUS) return base;
+  return base.includes(ALWAYS_ALLOWED_TECHNICIAN_STATUS)
+    ? base
+    : [...base, ALWAYS_ALLOWED_TECHNICIAN_STATUS];
+};
 
 /**
  * Label shown to the CLIENT on the public /track page.

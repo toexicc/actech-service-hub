@@ -2552,8 +2552,8 @@ const ManageClient = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <div className="flex flex-wrap gap-2 mb-2">
+
                             <Button
                               type="button"
                               variant="secondary"
@@ -2647,6 +2647,7 @@ const ManageClient = () => {
                               Approve
                             </Button>
                           </div>
+                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
                           <Textarea
                             id="aiDiagnosisDisplay"
                             placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
@@ -2753,7 +2754,7 @@ const ManageClient = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
+                          
                           <div className="flex flex-wrap gap-2 mb-2">
                             <Button
                               type="button"
@@ -2796,6 +2797,7 @@ const ManageClient = () => {
                               {isEditingServiceReport ? "Lock" : "Edit"}
                             </Button>
                           </div>
+                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
                           <Textarea
                             id="aiReportDisplay"
                             placeholder="AI Service Report"

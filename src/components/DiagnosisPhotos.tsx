@@ -3,14 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
+import { PhotoGalleryDialog } from "@/components/PhotoGalleryDialog";
 
 interface DiagnosisPhotosProps {
   serviceId: string;
@@ -19,7 +14,7 @@ interface DiagnosisPhotosProps {
 }
 
 const BUCKET = "diagnosis-photos";
-const MAX_PHOTOS = 10;
+const MAX_PHOTOS = 9;
 
 interface PhotoEntry {
   id: string;
@@ -39,7 +34,7 @@ export const DiagnosisPhotos = ({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
     if (!serviceId) {
@@ -171,8 +166,8 @@ export const DiagnosisPhotos = ({
         </div>
       ) : photos.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {photos.map((p) => (
-            <div key={p.id} className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setPreviewUrl(p.signedUrl)}>
+          {photos.map((p, i) => (
+            <div key={p.id} className="relative group aspect-square rounded-lg overflow-hidden border cursor-pointer" onClick={() => setPreviewIndex(i)}>
               <img src={p.signedUrl} alt="Diagnosis" loading="lazy" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
               {editable && (
                 <Button
@@ -192,16 +187,13 @@ export const DiagnosisPhotos = ({
         <p className="text-sm text-muted-foreground">No diagnosis photos yet.</p>
       ) : null}
 
-      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Photo Preview</DialogTitle>
-          </DialogHeader>
-          {previewUrl && (
-            <img src={previewUrl} alt="Preview" className="max-w-full max-h-[70vh] object-contain mx-auto rounded-lg" />
-          )}
-        </DialogContent>
-      </Dialog>
+      <PhotoGalleryDialog
+        photos={photos.map((p) => ({ id: p.id, url: p.signedUrl }))}
+        index={previewIndex}
+        onIndexChange={setPreviewIndex}
+        title="Diagnosis Photo"
+        alt="Diagnosis"
+      />
     </div>
   );
 };
