@@ -545,6 +545,9 @@ export const buildActorOutput = (
         diagnosed: v.diagnosed,
         toRepair: v.toRepair,
         released: v.released,
+        paid: v.paid,
+        handedOver: v.handedOver,
+
         completed: v.completed,
         drivenEndToEnd: driven,
         assignedUntouched: untouched,
