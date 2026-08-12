@@ -77,6 +77,7 @@ export interface ServiceRecord {
   finalCost?: string;
   partsCost?: string;
   estimatedCost?: string;
+  serviceDate?: string;
   discount?: string;
   clientType?: string;
   priority?: string;
@@ -129,6 +130,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   waitingPartsNote: (r as any).waiting_parts_note ?? "",
   isBackjob: !!(r as any).is_backjob,
   rushFee: !!(r as any).rush_fee,
+  serviceDate: (r as any).service_date ?? "",
   rtoReason: (r as any).rto_reason ?? "",
   vatRequested: !!(r as any).vat_requested,
 
