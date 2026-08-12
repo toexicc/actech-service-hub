@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useServices, useCompletedServices } from "@/hooks/useServices";
 import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
@@ -190,6 +191,7 @@ const Reports = () => {
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
   const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
@@ -528,14 +530,23 @@ const Reports = () => {
     [statusLogs, report, staffList, period],
   );
 
+  const staffOptions = useMemo(
+    () =>
+      actorOutput
+        .map((a) => ({ label: a.name, value: a.name }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [actorOutput],
+  );
+
   const actorRows = useMemo(() => {
     const rows = actorOutput.filter((a) => {
       if (a.moves === 0 && a.assignedUntouched === 0) return false;
-      if (outputRole === "all") return true;
-      return String(a.role || "").toLowerCase() === outputRole;
+      if (outputRole !== "all" && String(a.role || "").toLowerCase() !== outputRole) return false;
+      if (selectedStaff.length > 0 && !selectedStaff.includes(a.name)) return false;
+      return true;
     });
     return [...rows].sort((a, b) => (b as any)[outputSort] - (a as any)[outputSort] || b.moves - a.moves);
-  }, [actorOutput, outputRole, outputSort]);
+  }, [actorOutput, outputRole, outputSort, selectedStaff]);
 
   const actorChart = useMemo(
     () =>
@@ -1005,6 +1016,20 @@ const Reports = () => {
 
         {/* Real output from the activity log */}
         <div className="mb-6 grid gap-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <MultiSelect
+              options={staffOptions}
+              selected={selectedStaff}
+              onChange={setSelectedStaff}
+              placeholder="Filter by staff…"
+              className="w-[280px]"
+            />
+            {selectedStaff.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => setSelectedStaff([])}>
+                Clear
+              </Button>
+            )}
+          </div>
           <Panel
             title="Who moves tickets"
             icon={<Users className="h-4 w-4" />}
