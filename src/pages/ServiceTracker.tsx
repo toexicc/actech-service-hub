@@ -77,11 +77,19 @@ const STATUS_COUNT_CARDS = [
   "RTO",
 ] as const;
 
+const isCompletedStatus = (s: any) =>
+  String(s?.status || "").trim().toLowerCase() === "completed";
+
 /** Flag cards — tickets whose toggles are on, regardless of status. */
-type FlagKey = "waitingParts" | "backjob" | "rush";
+type FlagKey = "waitingParts" | "backjob" | "completedBackjob" | "rush";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
-  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob },
+  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isCompletedStatus(s) },
+  {
+    key: "completedBackjob",
+    label: "Completed - Backjob",
+    match: (s) => !!s.isBackjob && isCompletedStatus(s),
+  },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
 ];
 
