@@ -881,6 +881,20 @@ const ServiceUpdate = () => {
     if (!sid) return;
     if (!serviceData) return;
 
+    // Moving into active repair / done repair means the parts arrived — ask
+    // before leaving the Waiting for Parts flag on.
+    const partsActiveMove =
+      updateStatus !== serviceData.status &&
+      (/^ongoing service/i.test(updateStatus || "") || /^done repair/i.test(updateStatus || ""));
+    if (partsActiveMove && (serviceData as any).waitingForParts && !partsConfirmRef.current) {
+      setPartsModalOpen(true);
+      return;
+    }
+    const clearWaitingParts = clearPartsRef.current;
+    partsConfirmRef.current = false;
+    clearPartsRef.current = false;
+
+
     setIsUpdating(true);
     try {
       const actualCost = calculateActualCost();
