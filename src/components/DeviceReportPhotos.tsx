@@ -78,44 +78,34 @@ export const DeviceReportPhotos = ({
       return;
     }
     const list = Array.from(files).slice(0, remaining);
+    if (list.length === 0) return;
+
     setUploading(true);
+    setProgress(`Uploading 1 of ${list.length}…`);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      for (const file of list) {
-        if (!file.type.startsWith("image/")) continue;
-        if (file.size > MAX_FILE_SIZE) {
-          toast({ title: "Too large", description: `${file.name} exceeds 5MB`, variant: "destructive" });
-          continue;
-        }
-        const compressed = await compressImage(file);
-        const path = `${serviceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-        const { error: upErr } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, compressed, { contentType: "image/jpeg", upsert: false });
-        if (upErr) throw upErr;
-        const { error: insErr } = await supabase.from("service_files").insert({
-          service_id: serviceId,
-          kind: "device_report" as any,
-          bucket: BUCKET,
-          storage_path: path,
-          filename: compressed.name,
-          mime_type: "image/jpeg",
-          size_bytes: compressed.size,
-          uploaded_by: user?.id ?? null,
-        });
-        if (insErr) throw insErr;
-      }
+      const result = await uploadServicePhotos({
+        bucket: BUCKET,
+        serviceId,
+        kind: "device_report",
+        files: list,
+        onProgress: (current, total) => setProgress(`Uploading ${current} of ${total}…`),
+      });
       await refresh();
-      toast({ title: "Uploaded", description: "Device report photo(s) saved" });
+      const summary = describeUploadResult(result);
+      toast({
+        title: summary.title,
+        description: summary.description,
+        variant: summary.failed ? "destructive" : undefined,
+      });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err?.message ?? "Try again", variant: "destructive" });
     } finally {
       setUploading(false);
+      setProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
+
   };
 
   const remove = async (entry: PhotoEntry) => {
