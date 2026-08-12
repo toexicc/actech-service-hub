@@ -255,6 +255,11 @@ export const bucketLabel = (key: string, mode: BucketMode): string => {
 
 const STATUS_RE = /Status:\s*(.+?)\s*(?:→|->)\s*([^,]+)/;
 const WAITING_PARTS_RE = /waiting\s*for\s*parts[^a-z]*(on|off|enabled|disabled)/i;
+/** POS payment entries, e.g. "POS: Recorded Full Payment of Php 6500.00 via Cash (TXN…)". */
+const PAYMENT_RE = /^POS:\s*Recorded\b.*\bpayment\b/i;
+/** Device release confirmations from the release queue or a manual release. */
+const RELEASE_EVENT_RE = /device\s+released\s+to\s+client/i;
+
 
 export const parseStatusLog = (row: any): StatusLogEntry | null => {
   const action = String(row?.action ?? "");
