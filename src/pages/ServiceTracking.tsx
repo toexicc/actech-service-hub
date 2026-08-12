@@ -1229,13 +1229,24 @@ const ServiceTracking = () => {
                   </CardContent>
                 </Card>
 
-                {/* RTO - ACTech: the diagnosis stays visible, below the ticket card. */}
-                {rtoKind === "actech" && (serviceData.aiDiagnosis || "").trim() && (
-                  <AiReportCard
-                    report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
-                    title="Service Diagnosis"
-                  />
-                )}
+                {/* RTO - ACTech: show the service report (diagnosis only as fallback). */}
+                {rtoKind === "actech" &&
+                  ((serviceData.aiReport || "").trim() ? (
+                    <div className="space-y-6">
+                      <AiReportCard report={serviceData.aiReport} title="Service Report" />
+                      {serviceData.serviceId && (
+                        <DeviceReportPhotos
+                          serviceId={serviceData.serviceId}
+                          title="Device Report - Photos"
+                        />
+                      )}
+                    </div>
+                  ) : (serviceData.aiDiagnosis || "").trim() ? (
+                    <AiReportCard
+                      report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
+                      title="Service Diagnosis"
+                    />
+                  ) : null)}
 
 
                 {/* AI Diagnosis */}
