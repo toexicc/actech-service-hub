@@ -395,17 +395,28 @@ export const buildActorOutput = (
   staff: Array<{ name?: string; username?: string; role?: string }> = [],
   period?: Period | null,
 ): ActorOutput[] => {
+  const resolve = makeActorResolver(staff);
+  const isPerson = (name?: string) => !!name && !SYSTEM_ACTOR_RE.test(name.trim());
 
   const inWindow = (raw: any): boolean => {
     if (!period?.start || !period?.end) return true;
     const d = toDate(raw);
     return !!d && d >= period.start && d <= period.end;
   };
+
+  // Payments later voided on the same ticket by the same person don't count.
+  const voided = new Set<string>();
+  logs.forEach((l) => {
+    if (l.event !== "void" || !l.actor) return;
+    voided.add(`${norm(resolve(l.actor))}|${String(l.serviceId || "").trim()}`);
+  });
+
   const relevant = logs.filter(
-    (l) => (!!l.to || !!l.created || !!l.event) && !!l.actor && inWindow(l.createdAt),
+    (l) =>
+      (!!l.to || !!l.created || l.event === "payment" || l.event === "release") &&
+      isPerson(l.actor) &&
+      inWindow(l.createdAt),
   );
-
-
 
   const roleByName = new Map<string, string>();
   staff.forEach((p) => {
@@ -423,11 +434,14 @@ export const buildActorOutput = (
     diagnosed: number;
     toRepair: number;
     released: number;
+    paid: number;
+    handedOver: number;
     completed: number;
     completedTickets: Set<string>;
   }
   const map = new Map<string, Acc>();
-  const get = (name: string, role?: string): Acc => {
+  const get = (rawName: string, role?: string): Acc => {
+    const name = resolve(rawName);
     const key = norm(name);
     let e = map.get(key);
     if (!e) {
@@ -439,6 +453,8 @@ export const buildActorOutput = (
         diagnosed: 0,
         toRepair: 0,
         released: 0,
+        paid: 0,
+        handedOver: 0,
         completed: 0,
         completedTickets: new Set(),
       };
@@ -452,6 +468,7 @@ export const buildActorOutput = (
     const id = String(l.serviceId || "").trim();
     if (!id) return;
     const e = get(l.actor!, l.role);
+    if (l.event === "payment" && voided.has(`${norm(e.name)}|${id}`)) return;
     e.moves += 1;
     e.tickets.add(id);
     if (l.created) {
@@ -461,6 +478,8 @@ export const buildActorOutput = (
     if (l.event) {
       // Processing the payment or handing over the device closes the ticket in
       // practice — credit Completed once per ticket per person.
+      if (l.event === "payment") e.paid += 1;
+      if (l.event === "release") e.handedOver += 1;
       if (!e.completedTickets.has(id)) {
         e.completed += 1;
         e.completedTickets.add(id);
@@ -481,12 +500,13 @@ export const buildActorOutput = (
   // it (counted across the whole log, not just the period).
   const movesPerActorTicket = new Map<string, number>();
   logs.forEach((l) => {
-    if ((!l.to && !l.event) || !l.actor) return;
+    if ((!l.to && l.event !== "payment" && l.event !== "release") || !isPerson(l.actor)) return;
     const id = String(l.serviceId || "").trim();
     if (!id) return;
-    const key = `${norm(l.actor)}|${id}`;
+    const key = `${norm(resolve(l.actor!))}|${id}`;
     movesPerActorTicket.set(key, (movesPerActorTicket.get(key) || 0) + 1);
   });
+
 
 
 
