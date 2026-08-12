@@ -271,6 +271,9 @@ const ManageClient = () => {
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
   const [rtoReasonInput, setRtoReasonInput] = useState("");
   const rtoConfirmRef = useRef(false);
+  const [partsModalOpen, setPartsModalOpen] = useState(false);
+  const partsConfirmRef = useRef(false);
+  const clearPartsRef = useRef(false);
   /** Cost helpers bound to the current rush-fee selection. */
   const calcFinal = (cost: number, disc: number, vat: boolean, rush: boolean = rushFee) =>
     computeFinalCost(cost, disc, vat, rush);
