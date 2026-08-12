@@ -5,6 +5,7 @@ import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
 
 interface Props {
   serviceId: string;
@@ -14,7 +15,6 @@ interface Props {
 
 const BUCKET = "device-reports";
 const MAX_PHOTOS = 6;
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 interface PhotoEntry {
   id: string;
@@ -23,45 +23,6 @@ interface PhotoEntry {
   signedUrl: string;
 }
 
-const compressImage = (file: File): Promise<File> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let { width, height } = img;
-        const maxDim = 1920;
-        if (width > height && width > maxDim) {
-          height = (height * maxDim) / width;
-          width = maxDim;
-        } else if (height > maxDim) {
-          width = (width * maxDim) / height;
-          height = maxDim;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d")?.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) return reject(new Error("blank canvas"));
-            resolve(
-              new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-                type: "image/jpeg",
-                lastModified: Date.now(),
-              }),
-            );
-          },
-          "image/jpeg",
-          0.85,
-        );
-      };
-      img.onerror = reject;
-    };
-    reader.onerror = reject;
-  });
 
 export const DeviceReportPhotos = ({
   serviceId,
