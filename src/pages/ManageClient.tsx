@@ -977,9 +977,13 @@ const ManageClient = () => {
     // Diagnosis) must always be possible, so they bypass the client-approval
     // guards below.
     const offPathMove = isOffPathStatus(updateStatus) && updateStatus !== serviceData.status;
-    const isRtoMove = /^RTO/i.test(updateStatus || "") && updateStatus !== serviceData.status;
+    const isRtoMove =
+      (/^RTO/i.test(updateStatus || "") ||
+        /^cancelled$/i.test((updateStatus || "").trim()) ||
+        /^on hold$/i.test((updateStatus || "").trim())) &&
+      updateStatus !== serviceData.status;
 
-    // RTO always needs a reason the client can read on /track.
+    // RTO / Cancelled / On Hold always need a reason the client can read on /track.
     if (isRtoMove && !rtoConfirmRef.current) {
       setRtoReasonInput((serviceData as any).rtoReason || "");
       setRtoModalOpen(true);

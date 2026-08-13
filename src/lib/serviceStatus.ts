@@ -86,6 +86,7 @@ export const technicianAllowedNextStatuses = (current?: string): string[] => {
  * Internal statuses stay as-is everywhere else.
  */
 const CLIENT_STATUS_LABELS: Record<string, string> = {
+  "Confirmed Diagnosis": "Finalizing Diagnosis",
   "Proceed Repair": "Under Repair",
   "Ongoing Service": "Under Repair",
   "Done Repair - Under Observation": "Under Repair",
