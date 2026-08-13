@@ -26,6 +26,7 @@ import QRCode from "qrcode";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
 import { logInventoryActivity } from "@/lib/activityLogger";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InventoryItem {
   partId: string;
