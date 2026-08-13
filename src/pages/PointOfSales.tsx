@@ -109,16 +109,28 @@ const PointOfSales = () => {
       );
       const result = await response.json();
       if (result.status === "found" && result.data) {
+        const finalCostRaw = result.data.finalCost || result.data.serviceCost || "0";
+        if (parseCurrency(finalCostRaw) <= 0) {
+          toast({
+            title: "Final cost required",
+            description: `${searchServiceId} has no final cost yet. Set the final cost on the ticket before recording a payment.`,
+            variant: "destructive",
+          });
+          setServiceData(null);
+          setPreviousPayments(0);
+          return;
+        }
         setServiceData({
           serviceId: searchServiceId,
           clientName: result.data.clientName || "",
           device: result.data.device || "",
           serviceCost: result.data.serviceCost || "0",
-          finalCost: result.data.finalCost || result.data.serviceCost || "0",
+          finalCost: finalCostRaw,
           partsCost: result.data.partsCost || "0",
           partsUsed: result.data.partsUsed || "",
           status: result.data.status || "",
         });
+
 
         const txnResponse = await fetch(`${DATA_BRIDGE_URL}?action=getServicePayments&serviceId=${encodeURIComponent(searchServiceId)}`);
         const txnResult = await txnResponse.json();

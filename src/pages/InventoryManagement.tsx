@@ -26,6 +26,7 @@ import QRCode from "qrcode";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
 import { logInventoryActivity } from "@/lib/activityLogger";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InventoryItem {
   partId: string;
@@ -598,82 +599,69 @@ const InventoryManagement = () => {
       return;
     }
 
+    const originalQty = inventory.find((i) => i.partId === editingPart.partId)?.quantity ?? 0;
+    const nextQty = Math.max(0, Math.floor(Number(editingPart.quantity) || 0));
+    const qtyChanged = nextQty !== originalQty;
+
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("action", "updateInventoryItem");
-      formData.append("partId", editingPart.partId);
-      formData.append("partName", editingPart.partName);
-      formData.append("deviceType", editingPart.deviceType);
-      formData.append("brand", editingPart.brand || "");
-      formData.append("model", editingPart.model || "");
-      formData.append("partType", editingPart.partType || "");
-      formData.append("supplier", editingPart.supplier || "");
-      formData.append("dateOrdered", editingPart.dateOrdered || "");
-      formData.append("costPerUnit", editingPart.costPerUnit || "");
-      formData.append("remarks", editingPart.remarks || "");
-      formData.append("updatedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
-      formData.append("color", editingPart.color || "");
+      const { error } = await supabase
+        .from("inventory_parts")
+        .update({
+          part_name: editingPart.partName,
+          category: editingPart.deviceType,
+          brand: editingPart.brand || "",
+          device_model: editingPart.model || "",
+          part_type: editingPart.partType || "",
+          color: editingPart.color || "",
+          supplier: editingPart.supplier || "",
+          date_ordered: editingPart.dateOrdered || null,
+          cost_price: sanitizeNumber(String(editingPart.costPerUnit ?? "0")),
+          notes: editingPart.remarks || "",
+          quantity: nextQty,
+          ...(qtyChanged ? { status: nextQty === 0 ? "Out of Stock" : "In Stock" } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("part_id", editingPart.partId);
 
-      const response = await fetch(DATA_BRIDGE_URL, {
-        method: "POST",
-        body: formData,
+      if (error) throw error;
+
+      const performedBy =
+        sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin";
+
+      await supabase.from("part_logs").insert({
+        part_id: editingPart.partId,
+        action: "EDIT",
+        quantity: qtyChanged ? nextQty - originalQty : 0,
+        performed_by_name: performedBy,
+        notes: qtyChanged
+          ? `Item edited — stock ${originalQty} → ${nextQty}`
+          : "Item edited",
       });
 
-      let result: any = null;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.warn("Could not parse edit part response (likely CORS), assuming success:", parseError);
-      }
+      logInventoryActivity(
+        editingPart.partId,
+        qtyChanged
+          ? `Edited ${editingPart.partName} — stock ${originalQty} → ${nextQty}`
+          : `Edited ${editingPart.partName}`,
+      );
 
-      const isSuccess =
-        (result && (result.result === "success" || result.status === "success")) ||
-        (response.ok && result === null);
-
-      if (isSuccess) {
-        toast({
-          title: "Success",
-          description: "Part updated successfully",
-        });
-        setIsEditDialogOpen(false);
-        setEditingPart(null);
-        fetchInventory();
-        fetchInventoryLogs();
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update part",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
-
-      if (isCorsFetchError) {
-        console.warn("Edit part fetch error (likely CORS after successful POST):", error);
-        toast({
-          title: "Success",
-          description: "Part updated successfully",
-        });
-        setIsEditDialogOpen(false);
-        setEditingPart(null);
-        fetchInventory();
-        fetchInventoryLogs();
-        return;
-      }
-
-      console.error("Error updating part:", error);
       toast({
-        title: "Error",
-        description: "Failed to update part",
-        variant: "destructive",
+        title: "Success",
+        description: qtyChanged
+          ? `Part updated — stock set to ${nextQty}`
+          : "Part updated successfully",
       });
+      setIsEditDialogOpen(false);
+      setEditingPart(null);
+      invalidateAll();
+    } catch (error) {
+      handleError(error, "Failed to update part");
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   const handleDeletePart = async () => {
     if (!selectedPart) return;
@@ -2329,6 +2317,24 @@ const InventoryManagement = () => {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-quantity">Stock Quantity</Label>
+                  <Input
+                    id="edit-quantity"
+                    type="number"
+                    min={0}
+                    value={String(editingPart.quantity ?? 0)}
+                    onChange={(e) =>
+                      setEditingPart({ ...editingPart, quantity: Number(e.target.value) } as any)
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Editing the stock directly is temporary — changes are logged.
+                  </p>
+                </div>
+
+
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-dateOrdered">Date Ordered</Label>

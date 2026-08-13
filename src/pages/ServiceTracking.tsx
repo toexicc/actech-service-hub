@@ -1020,6 +1020,7 @@ const ServiceTracking = () => {
               : "actech"
             : null;
           const rtoReason = String((serviceData as any).rtoReason || "").trim();
+          const showReasonCard = isClosed && !!rtoReason;
           const totals = derivePaymentTotals(
             totalCost,
             Number(serviceData.initialPayment || 0),
@@ -1063,15 +1064,8 @@ const ServiceTracking = () => {
                       )}
                       <div className="space-y-2">
                         <p className="text-sm text-amber-900">{closedBanner}</p>
-                        {rtoKind && rtoReason && (
-                          <div className="rounded-xl border border-amber-300/60 bg-white/70 p-3">
-                            <p className="text-[11px] uppercase tracking-wider font-semibold text-amber-800">
-                              Reason
-                            </p>
-                            <p className="mt-1 whitespace-pre-line text-sm text-amber-900">{rtoReason}</p>
-                          </div>
-                        )}
                       </div>
+
                     </div>
                   </div>
                 )}
@@ -1228,6 +1222,20 @@ const ServiceTracking = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Reason for RTO / Cancelled / On Hold */}
+                {showReasonCard && (
+                  <Card className="border-amber-300/60 bg-amber-50/70 rounded-2xl shadow-[var(--shadow-soft)]">
+                    <CardContent className="p-6">
+                      <p className="text-[11px] uppercase tracking-wider font-semibold text-amber-800">
+                        Reason for {clientStatusLabel(currentStatus)}
+                      </p>
+                      <p className="mt-2 whitespace-pre-line text-sm text-amber-900">{rtoReason}</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+
 
                 {/* RTO - ACTech: show the service report (diagnosis only as fallback). */}
                 {rtoKind === "actech" &&
