@@ -418,7 +418,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
     reader.readAsDataURL(blob);
   });
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: FormValues, linkChoice?: "link" | "walkin") => {
     // Public /intake path: submit into the queue instead of creating a full service.
     // Front-desk staff will complete it into a real service from /queueing.
     if (isPublic) {
@@ -476,7 +476,23 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       return;
     }
 
+    // Guard: never stamp a ticket onto a queue entry that belongs to someone else.
+    const linkQueueId = linkChoice === "walkin" ? null : queueId;
+    if (linkQueueId && linkedEntry && !linkChoice) {
+      const norm = (v?: string | null) => (v || "").trim().toLowerCase();
+      const digits = (v?: string | null) => (v || "").replace(/\D/g, "");
+      const nameMismatch =
+        !!linkedEntry.client_name && norm(linkedEntry.client_name) !== norm(data.clientName);
+      const phoneMismatch =
+        !!linkedEntry.contact_number && digits(linkedEntry.contact_number) !== digits(data.phone);
+      if (nameMismatch || phoneMismatch) {
+        setMismatchData(data);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
+
 
     // Auto-assign technicians (internal form only) via round-robin across
     // the technicians of each selected department. Fair rotation is achieved
