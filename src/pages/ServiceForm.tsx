@@ -240,8 +240,17 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
   // Prefill from a queue entry when admin completes a public intake into a real service.
   const [prefilledQueueId, setPrefilledQueueId] = useState<string | null>(null);
+  const [linkedEntry, setLinkedEntry] = useState<{
+    id: string;
+    display_code: string;
+    client_name: string;
+    contact_number: string | null;
+  } | null>(null);
+  // Set when the form's client no longer matches the linked queue entry.
+  const [mismatchData, setMismatchData] = useState<FormValues | null>(null);
   useEffect(() => {
     if (!queueId || isPublic || prefilledQueueId === queueId) return;
+
     (async () => {
       const { data: entry } = await supabase
         .from("queue_entries")
@@ -280,7 +289,14 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       if (entry.brand) form.setValue("brand", entry.brand);
       if (entry.model) form.setValue("model", entry.model);
       if (entry.chief_complaint) form.setValue("chiefComplaint", entry.chief_complaint);
+      setLinkedEntry({
+        id: entry.id,
+        display_code: entry.display_code ?? "",
+        client_name: entry.client_name ?? "",
+        contact_number: entry.contact_number ?? null,
+      });
       setPrefilledQueueId(queueId);
+
       toast({
         title: `Completing ${entry.display_code}`,
         description: "Customer's details are pre-filled. Add staff, priority, and diagnostic info.",
