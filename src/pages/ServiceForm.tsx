@@ -240,8 +240,17 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
   // Prefill from a queue entry when admin completes a public intake into a real service.
   const [prefilledQueueId, setPrefilledQueueId] = useState<string | null>(null);
+  const [linkedEntry, setLinkedEntry] = useState<{
+    id: string;
+    display_code: string;
+    client_name: string;
+    contact_number: string | null;
+  } | null>(null);
+  // Set when the form's client no longer matches the linked queue entry.
+  const [mismatchData, setMismatchData] = useState<FormValues | null>(null);
   useEffect(() => {
     if (!queueId || isPublic || prefilledQueueId === queueId) return;
+
     (async () => {
       const { data: entry } = await supabase
         .from("queue_entries")
@@ -280,7 +289,14 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       if (entry.brand) form.setValue("brand", entry.brand);
       if (entry.model) form.setValue("model", entry.model);
       if (entry.chief_complaint) form.setValue("chiefComplaint", entry.chief_complaint);
+      setLinkedEntry({
+        id: entry.id,
+        display_code: entry.display_code ?? "",
+        client_name: entry.client_name ?? "",
+        contact_number: entry.contact_number ?? null,
+      });
       setPrefilledQueueId(queueId);
+
       toast({
         title: `Completing ${entry.display_code}`,
         description: "Customer's details are pre-filled. Add staff, priority, and diagnostic info.",
@@ -402,7 +418,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
     reader.readAsDataURL(blob);
   });
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: FormValues, linkChoice?: "link" | "walkin") => {
     // Public /intake path: submit into the queue instead of creating a full service.
     // Front-desk staff will complete it into a real service from /queueing.
     if (isPublic) {
@@ -460,7 +476,23 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       return;
     }
 
+    // Guard: never stamp a ticket onto a queue entry that belongs to someone else.
+    const linkQueueId = linkChoice === "walkin" ? null : queueId;
+    if (linkQueueId && linkedEntry && !linkChoice) {
+      const norm = (v?: string | null) => (v || "").trim().toLowerCase();
+      const digits = (v?: string | null) => (v || "").replace(/\D/g, "");
+      const nameMismatch =
+        !!linkedEntry.client_name && norm(linkedEntry.client_name) !== norm(data.clientName);
+      const phoneMismatch =
+        !!linkedEntry.contact_number && digits(linkedEntry.contact_number) !== digits(data.phone);
+      if (nameMismatch || phoneMismatch) {
+        setMismatchData(data);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
+
 
     // Auto-assign technicians (internal form only) via round-robin across
     // the technicians of each selected department. Fair rotation is achieved
@@ -582,7 +614,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
       const { data: createdServiceId, error: createError } = await supabase.rpc("create_service_atomic", {
         _payload: servicePayload,
-        _queue_id: queueId || undefined,
+        _queue_id: linkQueueId || undefined,
       });
       if (createError || !createdServiceId) {
         throw new Error(createError?.message || "Could not create the service ticket.");
@@ -871,6 +903,22 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
   const content = (
       <div className="p-4 md:p-8 animate-fade-in pb-8">
+        {linkedEntry && (
+          <div className="sticky top-0 z-20 -mt-2 mb-4 rounded-xl border border-blue-300/70 bg-blue-50/95 px-4 py-2.5 backdrop-blur">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-700">
+              Completing queue entry {linkedEntry.display_code}
+            </div>
+            <div className="text-sm font-medium text-foreground">
+              {linkedEntry.client_name || "—"}
+              {linkedEntry.contact_number ? ` • ${linkedEntry.contact_number}` : ""}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              This ticket will be attached to {linkedEntry.display_code}. Close this form if that is
+              not the customer in front of you.
+            </div>
+          </div>
+        )}
+
         <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50 mb-0">
         
         <div className="text-center mb-8">
@@ -915,7 +963,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit((values) => onSubmit(values))} className="space-y-8">
             {!isPublic && (
             <div className="grid md:grid-cols-2 gap-4">
               <FormField
@@ -1823,6 +1871,65 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Client on the form no longer matches the linked queue entry. */}
+        <Dialog open={!!mismatchData} onOpenChange={(open) => !open && setMismatchData(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>This doesn't look like the same customer</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                You're completing queue entry{" "}
+                <span className="font-semibold text-foreground">{linkedEntry?.display_code}</span>,
+                but the details on this form belong to someone else.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Queue entry
+                  </div>
+                  <div className="font-medium">{linkedEntry?.client_name || "—"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {linkedEntry?.contact_number || "—"}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    This form
+                  </div>
+                  <div className="font-medium">{mismatchData?.clientName || "—"}</div>
+                  <div className="text-xs text-muted-foreground">{mismatchData?.phone || "—"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setMismatchData(null)}>
+                Go back
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const d = mismatchData;
+                  setMismatchData(null);
+                  if (d) onSubmit(d, "walkin");
+                }}
+              >
+                Create as walk-in (keep {linkedEntry?.display_code} in queue)
+              </Button>
+              <Button
+                onClick={() => {
+                  const d = mismatchData;
+                  setMismatchData(null);
+                  if (d) onSubmit(d, "link");
+                }}
+              >
+                Link to {linkedEntry?.display_code} anyway
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         </div>
       </div>
   );

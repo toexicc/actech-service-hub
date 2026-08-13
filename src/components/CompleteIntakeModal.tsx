@@ -28,8 +28,10 @@ export const CompleteIntakeModal = ({
       <div className="flex-1 overflow-y-auto">
         {queueId && (
           <ServiceForm
+            key={queueId}
             embedded
             embeddedQueueId={queueId}
+
             onCompleted={(serviceId) => {
               onCompleted?.(serviceId);
               onOpenChange(false);
