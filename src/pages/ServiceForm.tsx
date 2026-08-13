@@ -903,6 +903,22 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
   const content = (
       <div className="p-4 md:p-8 animate-fade-in pb-8">
+        {linkedEntry && (
+          <div className="sticky top-0 z-20 -mt-2 mb-4 rounded-xl border border-blue-300/70 bg-blue-50/95 px-4 py-2.5 backdrop-blur">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-blue-700">
+              Completing queue entry {linkedEntry.display_code}
+            </div>
+            <div className="text-sm font-medium text-foreground">
+              {linkedEntry.client_name || "—"}
+              {linkedEntry.contact_number ? ` • ${linkedEntry.contact_number}` : ""}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              This ticket will be attached to {linkedEntry.display_code}. Close this form if that is
+              not the customer in front of you.
+            </div>
+          </div>
+        )}
+
         <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50 mb-0">
         
         <div className="text-center mb-8">
