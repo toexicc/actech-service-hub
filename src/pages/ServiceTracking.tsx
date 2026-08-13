@@ -1064,15 +1064,8 @@ const ServiceTracking = () => {
                       )}
                       <div className="space-y-2">
                         <p className="text-sm text-amber-900">{closedBanner}</p>
-                        {rtoKind && rtoReason && (
-                          <div className="rounded-xl border border-amber-300/60 bg-white/70 p-3">
-                            <p className="text-[11px] uppercase tracking-wider font-semibold text-amber-800">
-                              Reason
-                            </p>
-                            <p className="mt-1 whitespace-pre-line text-sm text-amber-900">{rtoReason}</p>
-                          </div>
-                        )}
                       </div>
+
                     </div>
                   </div>
                 )}
