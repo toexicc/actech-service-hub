@@ -947,7 +947,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit((values) => onSubmit(values))} className="space-y-8">
             {!isPublic && (
             <div className="grid md:grid-cols-2 gap-4">
               <FormField
