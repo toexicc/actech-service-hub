@@ -1223,6 +1223,20 @@ const ServiceTracking = () => {
                   </CardContent>
                 </Card>
 
+                {/* Reason for RTO / Cancelled / On Hold */}
+                {showReasonCard && (
+                  <Card className="border-amber-300/60 bg-amber-50/70 rounded-2xl shadow-[var(--shadow-soft)]">
+                    <CardContent className="p-6">
+                      <p className="text-[11px] uppercase tracking-wider font-semibold text-amber-800">
+                        Reason for {clientStatusLabel(currentStatus)}
+                      </p>
+                      <p className="mt-2 whitespace-pre-line text-sm text-amber-900">{rtoReason}</p>
+                    </CardContent>
+                  </Card>
+                )}
+
+
+
                 {/* RTO - ACTech: show the service report (diagnosis only as fallback). */}
                 {rtoKind === "actech" &&
                   ((serviceData.aiReport || "").trim() ? (
