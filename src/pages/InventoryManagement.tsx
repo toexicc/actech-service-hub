@@ -2319,6 +2319,24 @@ const InventoryManagement = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="edit-quantity">Stock Quantity</Label>
+                  <Input
+                    id="edit-quantity"
+                    type="number"
+                    min={0}
+                    value={String(editingPart.quantity ?? 0)}
+                    onChange={(e) =>
+                      setEditingPart({ ...editingPart, quantity: Number(e.target.value) } as any)
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Editing the stock directly is temporary — changes are logged.
+                  </p>
+                </div>
+
+
+
+                <div className="space-y-2">
                   <Label htmlFor="edit-dateOrdered">Date Ordered</Label>
                   <Input
                     id="edit-dateOrdered"
