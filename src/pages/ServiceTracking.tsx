@@ -1020,6 +1020,7 @@ const ServiceTracking = () => {
               : "actech"
             : null;
           const rtoReason = String((serviceData as any).rtoReason || "").trim();
+          const showReasonCard = isClosed && !!rtoReason;
           const totals = derivePaymentTotals(
             totalCost,
             Number(serviceData.initialPayment || 0),
