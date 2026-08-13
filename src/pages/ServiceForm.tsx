@@ -614,7 +614,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
       const { data: createdServiceId, error: createError } = await supabase.rpc("create_service_atomic", {
         _payload: servicePayload,
-        _queue_id: queueId || undefined,
+        _queue_id: linkQueueId || undefined,
       });
       if (createError || !createdServiceId) {
         throw new Error(createError?.message || "Could not create the service ticket.");
