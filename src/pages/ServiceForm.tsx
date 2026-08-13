@@ -1871,6 +1871,65 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Client on the form no longer matches the linked queue entry. */}
+        <Dialog open={!!mismatchData} onOpenChange={(open) => !open && setMismatchData(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>This doesn't look like the same customer</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                You're completing queue entry{" "}
+                <span className="font-semibold text-foreground">{linkedEntry?.display_code}</span>,
+                but the details on this form belong to someone else.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Queue entry
+                  </div>
+                  <div className="font-medium">{linkedEntry?.client_name || "—"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {linkedEntry?.contact_number || "—"}
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    This form
+                  </div>
+                  <div className="font-medium">{mismatchData?.clientName || "—"}</div>
+                  <div className="text-xs text-muted-foreground">{mismatchData?.phone || "—"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setMismatchData(null)}>
+                Go back
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const d = mismatchData;
+                  setMismatchData(null);
+                  if (d) onSubmit(d, "walkin");
+                }}
+              >
+                Create as walk-in (keep {linkedEntry?.display_code} in queue)
+              </Button>
+              <Button
+                onClick={() => {
+                  const d = mismatchData;
+                  setMismatchData(null);
+                  if (d) onSubmit(d, "link");
+                }}
+              >
+                Link to {linkedEntry?.display_code} anyway
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         </div>
       </div>
   );
