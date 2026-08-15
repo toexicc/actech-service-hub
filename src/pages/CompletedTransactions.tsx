@@ -40,7 +40,7 @@ const CompletedTransactions = () => {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [commissionRate, setCommissionRate] = useState(0);
-  const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
+  
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
