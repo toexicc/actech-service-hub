@@ -48,13 +48,13 @@ const CompletedTransactions = () => {
 
   const filteredServices = useMemo(() => {
     return services.filter((service) => {
-      // Technician filter
-      if (technicianFilter !== "all" && service.technician !== technicianFilter) {
+      // Technician filter — match if the tech is among the assigned technicians
+      if (technicianFilter !== "all" && !(service.technicianList ?? []).includes(technicianFilter)) {
         return false;
       }
 
-      // Department filter
-      if (departmentFilter !== "all" && service.department !== departmentFilter) {
+      // Department filter — match if the department is among the assigned departments
+      if (departmentFilter !== "all" && !(service.departmentList ?? []).includes(departmentFilter)) {
         return false;
       }
 
@@ -134,11 +134,11 @@ const CompletedTransactions = () => {
   );
 
   const uniqueTechnicians = useMemo(() => {
-    return Array.from(new Set(services.map((s) => s.technician))).filter(Boolean);
+    return Array.from(new Set(services.flatMap((s) => s.technicianList ?? []))).filter(Boolean).sort();
   }, [services]);
 
   const uniqueDepartments = useMemo(() => {
-    return Array.from(new Set(services.map((s) => s.department))).filter(Boolean);
+    return Array.from(new Set(services.flatMap((s) => s.departmentList ?? []))).filter(Boolean).sort();
   }, [services]);
 
   return (
