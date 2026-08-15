@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, differenceInDays, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, getManilaDate } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -91,16 +91,14 @@ const cardDate = (value?: string | null): Date | null => {
   return isNaN(fallback.getTime()) ? null : fallback;
 };
 
-/** True when the ticket was taken in today (intake / service date). */
+/** True when the ticket's intake/service date is today (Manila) and it is not completed. */
 const isTodayService = (s: any): boolean => {
-  const d = cardDate(s?.serviceDate) || cardDate(s?.dateReceived) || cardDate(s?.timestamp);
-  if (!d) return false;
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
+  if (isCompletedStatus(String(s?.status || ""))) return false;
+  const raw = String(s?.serviceDate || "").trim();
+  if (!raw) return false;
+  const serviceDateStr = raw.split("T")[0];
+  const todayStr = format(getManilaDate(), "yyyy-MM-dd");
+  return serviceDateStr === todayStr;
 };
 
 /** Flag cards — tickets whose toggles are on, regardless of status. */
