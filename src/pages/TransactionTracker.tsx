@@ -236,17 +236,7 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
   // Filter transactions for dashboard by date range
   const dashTransactions = useMemo(() => {
     if (!dashStartDate && !dashEndDate) return transactions;
-    return transactions.filter((t) => {
-      const txDate = t.timestamp ? new Date(t.timestamp) : null;
-      if (!txDate || isNaN(txDate.getTime())) return false;
-      if (dashStartDate && txDate < dashStartDate) return false;
-      if (dashEndDate) {
-        const end = new Date(dashEndDate);
-        end.setHours(23, 59, 59, 999);
-        if (txDate > end) return false;
-      }
-      return true;
-    });
+    return transactions.filter((t) => inManilaDayRange(t.timestamp, dashStartDate, dashEndDate));
   }, [transactions, dashStartDate, dashEndDate]);
 
   // Dashboard stats - Fund accumulators
