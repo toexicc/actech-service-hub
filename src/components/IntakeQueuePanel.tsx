@@ -21,7 +21,7 @@ import {
 import { Search, RotateCcw, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { logActivityAsync } from "@/lib/activityLogger";
+import { logTicketActivity } from "@/lib/activityLogger";
 
 
 const PAGE_SIZE = 10;
@@ -92,13 +92,11 @@ export const IntakeQueuePanel = () => {
         title: "Back on the queue",
         description: `${entry.client_name} is now ${code || "waiting"}.`,
       });
-      logActivityAsync({
-        serviceId: "SYSTEM",
-        username: "",
-        role: "",
-        activity: `Resent cancelled intake ${entry.display_code} to the queue as ${code}`,
-        details: { Client: entry.client_name, From: entry.display_code, To: code },
-      });
+      logTicketActivity(
+        "SYSTEM",
+        `Resent cancelled intake ${entry.display_code} to the queue as ${code}`,
+        { Client: entry.client_name, From: entry.display_code, To: code },
+      );
       refetch();
     } catch (e: any) {
       toast({
