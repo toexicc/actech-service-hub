@@ -145,9 +145,13 @@ const Attendance = () => {
             <p className="text-sm text-muted-foreground">
               A management user must sign in on this device and pair it under Kiosk Devices.
             </p>
+            <Button className="w-full" onClick={() => navigate("/kiosk-devices")}>
+              Pair this device
+            </Button>
             <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
               Back to sign in
             </Button>
+
           </CardContent>
         </Card>
       </div>
