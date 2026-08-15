@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, parseManilaDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Ban, Plus, RefreshCw,
   ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
