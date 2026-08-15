@@ -198,3 +198,27 @@ export function useQueueEntries(opts: { activeOnly?: boolean; kind?: QueueKind }
 export async function moveQueueEntry(id: string, status: QueueStatus) {
   return supabase.from("queue_entries").update({ status }).eq("id", id);
 }
+
+/**
+ * Put a cancelled (or completed) submission back on the board as a brand new
+ * waiting entry — returning walk-ins keep their details and get a fresh queue
+ * number instead of re-typing the intake form.
+ */
+export async function requeueEntry(entry: QueueEntry) {
+  return supabase
+    .from("queue_entries")
+    .insert({
+      kind: entry.kind,
+      status: "waiting",
+      client_name: entry.client_name,
+      contact_number: entry.contact_number,
+      device_type: entry.device_type,
+      brand: entry.brand,
+      model: entry.model,
+      chief_complaint: entry.chief_complaint,
+      form_payload: entry.form_payload ?? {},
+    } as any)
+    .select()
+    .single();
+}
+
