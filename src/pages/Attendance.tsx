@@ -37,6 +37,8 @@ const Attendance = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
   const [now, setNow] = useState(new Date());
+  const [kiosk] = useState(() => getKioskCredential());
+
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
