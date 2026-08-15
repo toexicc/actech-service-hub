@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-import { displayDate } from "@/lib/timezone";
+import { format, startOfDay } from "date-fns";
+import { displayDate, parseManilaDate } from "@/lib/timezone";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,19 +58,15 @@ const CompletedTransactions = () => {
         return false;
       }
 
-      // Date range filter
+      // Date range filter — based on the completion timestamp (Manila day)
       if (startDate || endDate) {
-        try {
-          const [datePart] = service.timestamp.split(" ");
-          const [month, day, year] = datePart.split(/[-/]/);
-          const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-
-          if (startDate && serviceDate < startDate) return false;
-          if (endDate && serviceDate > endDate) return false;
-        } catch (error) {
-          return false;
-        }
+        const parsed = parseManilaDate(service.timestamp || "");
+        if (!parsed) return false;
+        const day = startOfDay(parsed);
+        if (startDate && day < startOfDay(startDate)) return false;
+        if (endDate && day > startOfDay(endDate)) return false;
       }
+
 
       return true;
     });
