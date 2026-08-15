@@ -27,6 +27,19 @@ function manilaParts(d: Date) {
   };
 }
 
+function callerIp(req: Request) {
+  const fwd = req.headers.get("x-forwarded-for") || "";
+  const first = fwd.split(",")[0]?.trim();
+  return first || req.headers.get("cf-connecting-ip") || "";
+}
+
+async function sha256(v: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -38,6 +51,47 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const kioskId = req.headers.get("x-kiosk-device") || body?.kioskDeviceId || "";
+    const kioskKey = req.headers.get("x-kiosk-key") || body?.kioskKey || "";
+    const ip = callerIp(req);
+
+    const gate = createClient(SUPABASE_URL, SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    if (!kioskId || !kioskKey) {
+      return new Response(JSON.stringify({ error: "device_not_paired" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: device } = await gate
+      .from("kiosk_devices")
+      .select("id, token_hash, allowed_ip, is_active")
+      .eq("id", kioskId)
+      .maybeSingle();
+
+    if (!device || !device.is_active || device.token_hash !== (await sha256(kioskKey))) {
+      return new Response(JSON.stringify({ error: "device_not_allowed" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (device.allowed_ip && device.allowed_ip !== ip) {
+      return new Response(JSON.stringify({ error: "network_not_allowed" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    await gate
+      .from("kiosk_devices")
+      .update({ last_seen_at: new Date().toISOString(), last_seen_ip: ip })
+      .eq("id", device.id);
+
 
     const admin0 = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
