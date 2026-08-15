@@ -489,6 +489,48 @@ export type Database = {
         }
         Relationships: []
       }
+      kiosk_devices: {
+        Row: {
+          allowed_ip: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          label: string
+          last_seen_at: string | null
+          last_seen_ip: string | null
+          purpose: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_ip?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          last_seen_at?: string | null
+          last_seen_ip?: string | null
+          purpose?: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_ip?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_seen_at?: string | null
+          last_seen_ip?: string | null
+          purpose?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachment_kind: string | null
