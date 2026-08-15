@@ -390,11 +390,17 @@ const CompletedTransactions = () => {
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <span
                               className="text-orange-600 font-medium"
-                              title={allocated ? "Total allocated in the service breakdown" : "Profit x commission rate"}
+                              title={allocated ? "Manually allocated in the service breakdown — overrides the rate" : "Profit x commission rate"}
                             >
                               ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
+                            {allocated && (
+                              <span className="ml-2 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 align-middle">
+                                Allocated
+                              </span>
+                            )}
                           </TableCell>
+
 
                         </TableRow>
                         {isOpen && (

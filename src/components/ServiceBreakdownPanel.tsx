@@ -210,7 +210,26 @@ export const ServiceBreakdownPanel = ({
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {rows.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={save.isPending}
+            onClick={async () => {
+              try {
+                await save.mutateAsync({ serviceId, rows: [] });
+                setDraft([{ serviceName: "", technicianId: null, technicianName: "", cost: 0 }]);
+                toast({ title: "Allocations cleared", description: "Commission now follows the rate." });
+              } catch (e: any) {
+                toast({ title: "Failed to clear", description: e?.message, variant: "destructive" });
+              }
+            }}
+          >
+            Clear Allocations
+          </Button>
+        )}
+
         <Button
           size="sm"
           disabled={save.isPending || !isDirty}
