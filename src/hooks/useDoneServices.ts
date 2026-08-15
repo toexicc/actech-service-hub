@@ -5,7 +5,9 @@ interface DoneService {
   serviceId: string;
   timestamp: string;
   technician: string;
+  technicianList: string[];
   department: string;
+  departmentList: string[];
   clientName: string;
   service: string;
   quotedPrice: number;
@@ -21,18 +23,27 @@ const fetchDoneServices = async (): Promise<DoneService[]> => {
     .order("date_completed", { ascending: false })
     .limit(1000);
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
-    serviceId: r.service_id ?? "",
-    timestamp: r.date_completed ?? r.last_updated ?? "",
-    technician: Array.isArray(r.technicians) ? r.technicians.join(", ") : "",
-    department: Array.isArray(r.technician_departments) ? r.technician_departments.join(", ") : "",
-    clientName: r.client_name ?? "",
-    service: r.service ?? "",
-    quotedPrice: Number(r.service_cost ?? 0),
-    discount: Number(r.discount ?? 0),
-    partsCost: Number(r.parts_cost ?? 0),
-
-  }));
+  return (data ?? []).map((r: any) => {
+    const technicianList: string[] = Array.isArray(r.technicians)
+      ? r.technicians.map((t: any) => String(t ?? "").trim()).filter(Boolean)
+      : [];
+    const departmentList: string[] = Array.isArray(r.technician_departments)
+      ? r.technician_departments.map((d: any) => String(d ?? "").trim()).filter(Boolean)
+      : [];
+    return {
+      serviceId: r.service_id ?? "",
+      timestamp: r.date_completed ?? r.last_updated ?? "",
+      technician: technicianList.join(", "),
+      technicianList,
+      department: departmentList.join(", "),
+      departmentList,
+      clientName: r.client_name ?? "",
+      service: r.service ?? "",
+      quotedPrice: Number(r.service_cost ?? 0),
+      discount: Number(r.discount ?? 0),
+      partsCost: Number(r.parts_cost ?? 0),
+    };
+  });
 };
 
 export const useDoneServices = () => useQuery({
