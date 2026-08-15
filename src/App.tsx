@@ -16,6 +16,8 @@ import ServiceTracking from "./pages/ServiceTracking";
 import ServiceForm from "./pages/ServiceForm";
 import Install from "./pages/Install";
 import Attendance from "./pages/Attendance";
+import KioskDevices from "./pages/KioskDevices";
+
 import NotFound from "./pages/NotFound";
 import QueueDisplay from "./pages/QueueDisplay";
 import PublicRelease from "./pages/PublicRelease";
