@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueueEntries, type QueueEntry } from "@/hooks/useQueueEntries";
+import { useQueueEntries, requeueEntry, type QueueEntry } from "@/hooks/useQueueEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Search, RotateCcw, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { logActivityAsync } from "@/lib/activityLogger";
+
 
 const PAGE_SIZE = 10;
 
