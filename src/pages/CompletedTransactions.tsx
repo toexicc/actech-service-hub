@@ -83,80 +83,45 @@ const CompletedTransactions = () => {
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
 
+  // Single source of truth: no hidden department formulas.
+  // Profit = quoted price - discount - parts cost. Commission = profit x rate%.
+  const computeRow = (service: (typeof services)[number]) => {
+    const partsCost = service.partsCost || 0;
+    const discount = service.discount || 0;
+    const profit = (service.quotedPrice || 0) - discount - partsCost;
+    const allocated = hasAllocation(service.serviceId);
+    const commission = allocated
+      ? allocatedFor(service.serviceId)
+      : Math.max(0, (profit * (commissionRate || 0)) / 100);
+    return { partsCost, discount, profit, allocated, commission };
+  };
 
   const financialSummary = useMemo(() => {
     let totalCommission = 0;
-    let adjustedTotalCosts = 0;
-    const totalDiscounts = filteredServices.reduce(
-      (sum, s) => sum + (s.discount || 0),
-      0
-    );
-    const grossSales = filteredServices.reduce(
-      (sum, s) => sum + (s.quotedPrice || 0),
-      0
-    );
+    let totalCosts = 0;
+    let totalDiscounts = 0;
+    let grossSales = 0;
 
-    const isMobileLogicBoardOnly =
-      departmentFilter === "Mobile (Logic Board)";
-
-    // Calculate costs and commissions based on department
-    let anyAllocation = false;
     filteredServices.forEach((service) => {
-      let adjustedCost = service.partsCost || 0;
-      let serviceCommission = 0;
-
-      if (service.department === "Laptop (Daily Repairs)") {
-        // Add 10% to part cost
-        adjustedCost = adjustedCost * 1.1;
-      }
-
-      if (hasAllocation(service.serviceId)) {
-        // Actual allocated amounts from the service breakdown win over formulas.
-        anyAllocation = true;
-        serviceCommission = allocatedFor(service.serviceId);
-      } else if (service.department === "Laptop (Daily Repairs)") {
-        // Commission is 30% on net sales for this service
-        const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
-        serviceCommission = netSales * 0.3;
-      } else if (service.department === "Laptop (Screens)") {
-        // Commission is editable per row
-        serviceCommission = screenCommissions[service.serviceId] || 0;
-      } else if (service.department === "Mobile (Logic Board)") {
-        // For Mobile (Logic Board), net profit is gross sales - discount - parts cost
-        const departmentNetProfit = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
-        // Commission is 50% of that net profit
-        serviceCommission = departmentNetProfit * 0.5;
-      } else {
-        // Default: use the global commission rate on net sales
-        const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
-        serviceCommission = (netSales * commissionRate) / 100;
-      }
-
-      adjustedTotalCosts += adjustedCost;
-      totalCommission += serviceCommission;
+      const { partsCost, discount, commission } = computeRow(service);
+      grossSales += service.quotedPrice || 0;
+      totalDiscounts += discount;
+      totalCosts += partsCost;
+      totalCommission += commission;
     });
 
-    let netProfit = grossSales - totalDiscounts - adjustedTotalCosts;
-    let commissionTotal = totalCommission;
-    let profitAfterCommission = netProfit - commissionTotal;
-
-    if (isMobileLogicBoardOnly && !anyAllocation) {
-      // For Mobile (Logic Board), apply special sharing logic:
-      const netAfterCosts = grossSales - totalDiscounts - adjustedTotalCosts;
-      netProfit = netAfterCosts * 0.5;
-      commissionTotal = netProfit * 0.5;
-      profitAfterCommission = netProfit - commissionTotal;
-    }
+    const netProfit = grossSales - totalDiscounts - totalCosts;
 
     return {
       grossSales,
       totalDiscounts,
-      totalCosts: adjustedTotalCosts,
+      totalCosts,
       netProfit,
-      commission: commissionTotal,
-      profitAfterCommission,
+      commission: totalCommission,
+      profitAfterCommission: netProfit - totalCommission,
     };
-  }, [filteredServices, commissionRate, screenCommissions, departmentFilter, breakdownMap]);
+  }, [filteredServices, commissionRate, breakdownMap]);
+
 
 
   // Reset to the first page whenever the filters change the result set.
