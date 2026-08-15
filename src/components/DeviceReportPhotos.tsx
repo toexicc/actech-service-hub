@@ -46,6 +46,25 @@ export const DeviceReportPhotos = ({
     }
     setLoading(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      // Public visitors (e.g. clients on /track) can't sign storage URLs, so a
+      // public edge function resolves them server-side.
+      if (!sessionData?.session) {
+        const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-service-photos?serviceId=${encodeURIComponent(
+          serviceId,
+        )}&kind=device_report`;
+        const res = await fetch(endpoint, {
+          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
+        });
+        const body = await res.json().catch(() => ({}));
+        const list = (body?.photos ?? []) as { id: string; url: string }[];
+        setPhotos(
+          list.map((p) => ({ id: p.id, storagePath: "", bucket: BUCKET, signedUrl: p.url })),
+        );
+        return;
+      }
+
       const { data: rows } = await supabase
         .from("service_files")
         .select("id, storage_path, bucket")

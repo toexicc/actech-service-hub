@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.get-service-payments]
 verify_jwt = false
+
+[functions.get-service-photos]
+verify_jwt = false
