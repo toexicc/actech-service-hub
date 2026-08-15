@@ -218,20 +218,14 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       }
       if (mopFilter !== "all" && t.modeOfPayment !== mopFilter) return false;
 
-      if (startDate || endDate) {
-        const txDate = t.timestamp ? new Date(t.timestamp) : null;
-        if (!txDate || isNaN(txDate.getTime())) return false;
-        if (startDate && txDate < startDate) return false;
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (txDate > end) return false;
-        }
-      }
+      // Table honours its own range; falls back to the dashboard range when unset.
+      const from = startDate ?? dashStartDate;
+      const to = endDate ?? dashEndDate;
+      if (!inManilaDayRange(t.timestamp, from, to)) return false;
 
       return true;
     });
-  }, [tabFilteredTransactions, searchQuery, mopFilter, startDate, endDate]);
+  }, [tabFilteredTransactions, searchQuery, mopFilter, startDate, endDate, dashStartDate, dashEndDate]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
   const paginatedTransactions = filteredTransactions.slice(
