@@ -36,7 +36,10 @@ export const completeServiceIfFullyPaid = async ({
     .maybeSingle();
   if (!row) return false;
 
-  if ((ALREADY_CLOSED as readonly string[]).includes(row.status as string)) {
+  if (
+    (ALREADY_CLOSED as readonly string[]).includes(row.status as string) ||
+    /^rto/i.test(String(row.status ?? "").trim())
+  ) {
     return false;
   }
 
@@ -50,6 +53,7 @@ export const completeServiceIfFullyPaid = async ({
     .update({
       status: "Completed",
       payment_status: "Paid",
+      waiting_for_parts: false,
       date_completed: new Date().toISOString(),
     })
     .eq("service_id", serviceId);
