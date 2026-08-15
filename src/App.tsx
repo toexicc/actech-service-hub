@@ -58,6 +58,15 @@ const App = () => (
               <Route path="/track/:serviceId" element={<ServiceTracking />} />
               <Route path="/install" element={<Install />} />
               <Route path="/attendance" element={<Attendance />} />
+              <Route
+                path="/kiosk-devices"
+                element={
+                  <ProtectedRoute roles={["management"]}>
+                    <KioskDevices />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="/intake" element={<ServiceForm />} />
               <Route path="/queue" element={<QueueDisplay />} />
               <Route path="/release" element={<PublicRelease />} />
