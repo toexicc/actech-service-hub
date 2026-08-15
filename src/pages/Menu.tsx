@@ -32,6 +32,8 @@ import {
   ShoppingCart,
   CalendarCheck,
   LayoutDashboard,
+  ShieldCheck,
+
 } from "lucide-react";
 import { DueDateCalendar } from "@/components/DueDateCalendar";
 
@@ -351,11 +353,18 @@ const Menu = () => {
           path: "/attendance-overview",
         },
         {
+          title: "Kiosk Devices",
+          description: "Pair the attendance iPad",
+          icon: ShieldCheck,
+          path: "/kiosk-devices",
+        },
+        {
           title: "Inventory",
           description: "Track parts & materials",
           icon: Package,
           path: "/inventory-management",
         },
+
         {
           title: "Completed Services",
           description: "View completed service reports",

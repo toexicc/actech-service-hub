@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, LogIn, LogOut, ArrowLeft, Loader2 } from "lucide-react";
+import { Clock, LogIn, LogOut, ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
+import { getKioskCredential, kioskHeaders } from "@/lib/kioskDevice";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
+
 
 interface DirectoryEntry {
   id: string;
@@ -35,6 +37,8 @@ const Attendance = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState<"in" | "out" | null>(null);
   const [now, setNow] = useState(new Date());
+  const [kiosk] = useState(() => getKioskCredential());
+
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -86,6 +90,7 @@ const Attendance = () => {
         headers: {
           "Content-Type": "application/json",
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...kioskHeaders(),
         },
         body: JSON.stringify({ staffId, email, password, action }),
       });
@@ -97,6 +102,9 @@ const Attendance = () => {
           already_timed_in: "You already timed in today.",
           already_timed_out: "You already timed out today.",
           invalid_input: "Please complete all fields.",
+          device_not_paired: "This device is not paired for attendance.",
+          device_not_allowed: "This device is not allowed to record attendance.",
+          network_not_allowed: "You must be on the shop WiFi to record attendance.",
         };
         toast({
           title: "Could not record",
@@ -120,6 +128,33 @@ const Attendance = () => {
       setSubmitting(null);
     }
   };
+
+  if (!kiosk) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-4 bg-background">
+        <Card className="w-full max-w-md shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <ShieldAlert className="h-5 w-5 text-destructive" /> Device not paired
+            </CardTitle>
+            <CardDescription>
+              Attendance can only be recorded on the shop's paired kiosk device while connected to the shop WiFi.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              A management user must sign in on this device and pair it under Kiosk Devices.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
+              Back to sign in
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-4 bg-background">

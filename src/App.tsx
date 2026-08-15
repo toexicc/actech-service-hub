@@ -16,6 +16,8 @@ import ServiceTracking from "./pages/ServiceTracking";
 import ServiceForm from "./pages/ServiceForm";
 import Install from "./pages/Install";
 import Attendance from "./pages/Attendance";
+import KioskDevices from "./pages/KioskDevices";
+
 import NotFound from "./pages/NotFound";
 import QueueDisplay from "./pages/QueueDisplay";
 import PublicRelease from "./pages/PublicRelease";
@@ -58,6 +60,15 @@ const App = () => (
               <Route path="/track/:serviceId" element={<ServiceTracking />} />
               <Route path="/install" element={<Install />} />
               <Route path="/attendance" element={<Attendance />} />
+              <Route
+                path="/kiosk-devices"
+                element={
+                  <ProtectedRoute roles={["management"]}>
+                    <KioskDevices />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="/intake" element={<ServiceForm />} />
               <Route path="/queue" element={<QueueDisplay />} />
               <Route path="/release" element={<PublicRelease />} />
