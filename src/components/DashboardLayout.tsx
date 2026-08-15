@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  Monitor, Menu, ShoppingCart, Loader2, Clock, Search, BarChart3,
+  Monitor, Menu, ShoppingCart, Loader2, Clock, Search, BarChart3, ShieldCheck,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,6 +39,7 @@ const adminSection: NavSection = {
     { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"], iconName: "Settings" },
     { title: "Attendance", icon: Clock, path: "/attendance-overview", roles: ["management"], iconName: "Clock" },
+    { title: "Kiosk Devices", icon: ShieldCheck, path: "/kiosk-devices", roles: ["management"], iconName: "ShieldCheck" },
     { title: "Reports", icon: BarChart3, path: "/reports", roles: ["management"], iconName: "BarChart3" },
     { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"], iconName: "LayoutDashboard" },
   ],
