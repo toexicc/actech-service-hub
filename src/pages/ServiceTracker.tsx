@@ -94,7 +94,7 @@ const cardDate = (value?: string | null): Date | null => {
 /** True when the ticket's intake/service date is today (Manila) and it is not completed. */
 const isTodayService = (s: any): boolean => {
   if (isCompletedStatus(String(s?.status || ""))) return false;
-  const parsed = parseServiceDate(String(s?.serviceDate || "").trim());
+  const parsed = cardDate(s?.serviceDate) || cardDate(s?.timestamp);
   if (!parsed) return false;
   return format(parsed, "yyyy-MM-dd") === format(getManilaDate(), "yyyy-MM-dd");
 };
