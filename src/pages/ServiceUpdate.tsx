@@ -906,6 +906,12 @@ const ServiceUpdate = () => {
     if (!sid) return;
     if (!serviceData) return;
 
+    // Closed tickets (RTO / Cancelled / Completed) never wait for parts.
+    const closedStatusMove =
+      /^rto/i.test((updateStatus || "").trim()) ||
+      /^cancelled$/i.test((updateStatus || "").trim()) ||
+      /^completed$/i.test((updateStatus || "").trim());
+
     // Moving into active repair / done repair means the parts arrived — ask
     // before leaving the Waiting for Parts flag on.
     const partsActiveMove =
@@ -915,9 +921,10 @@ const ServiceUpdate = () => {
       setPartsModalOpen(true);
       return;
     }
-    const clearWaitingParts = clearPartsRef.current;
+    const clearWaitingParts = clearPartsRef.current || closedStatusMove;
     partsConfirmRef.current = false;
     clearPartsRef.current = false;
+
 
 
     setIsUpdating(true);
