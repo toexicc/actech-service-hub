@@ -1489,8 +1489,36 @@ const ServiceTracking = () => {
                                         </div>
                                       </>
                                     )}
+                                    {quotedDiscount > 0 && (
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">Bundle discount</span>
+                                        <span
+                                          className={
+                                            bundleDiscountWaived
+                                              ? "text-muted-foreground line-through"
+                                              : "text-emerald-600 font-medium"
+                                          }
+                                        >
+                                          - ₱{quotedDiscount.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
+                                {showBundleNotice && (
+                                  <p
+                                    className={`rounded-xl border px-3 py-2 text-xs leading-relaxed ${
+                                      bundleDiscountWaived
+                                        ? "border-amber-300 bg-amber-50 text-amber-800"
+                                        : "border-border/60 bg-muted/40 text-muted-foreground"
+                                    }`}
+                                  >
+                                    {bundleDiscountWaived
+                                      ? `Discount waived — ${BUNDLE_DISCOUNT_NOTICE}`
+                                      : BUNDLE_DISCOUNT_NOTICE}
+                                  </p>
+                                )}
+
                               </div>
                             )}
                             <div className="flex flex-col sm:flex-row gap-3">
