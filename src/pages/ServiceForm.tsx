@@ -598,6 +598,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         estimated_completion: data.timeFrame || null,
         client_type: data.clientType,
         priority: data.priority,
+        rush_fee: data.priority === "Rush (with 10% Rush Fee)",
         receiving_staff: data.receivingStaff || null,
         technicians: techNamesArr,
         admin_reps: adminRepsArr,
