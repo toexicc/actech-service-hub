@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, parseManilaDate } from "@/lib/timezone";
 import {
   Search, Loader2, DollarSign, Edit, Ban, Plus, RefreshCw,
   ChevronLeft, ChevronRight, CreditCard, Landmark, Wallet,
@@ -24,7 +24,18 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { logActivityAsync } from "@/lib/activityLogger";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
+
+// Compare a stored timestamp against a picked date range on the Manila calendar day.
+const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
+  if (!start && !end) return true;
+  const parsed = parseManilaDate(ts || "");
+  if (!parsed) return false;
+  const day = startOfDay(parsed);
+  if (start && day < startOfDay(start)) return false;
+  if (end && day > startOfDay(end)) return false;
+  return true;
+};
 import { cn } from "@/lib/utils";
 
 interface Transaction {
@@ -207,20 +218,14 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       }
       if (mopFilter !== "all" && t.modeOfPayment !== mopFilter) return false;
 
-      if (startDate || endDate) {
-        const txDate = t.timestamp ? new Date(t.timestamp) : null;
-        if (!txDate || isNaN(txDate.getTime())) return false;
-        if (startDate && txDate < startDate) return false;
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (txDate > end) return false;
-        }
-      }
+      // Table honours its own range; falls back to the dashboard range when unset.
+      const from = startDate ?? dashStartDate;
+      const to = endDate ?? dashEndDate;
+      if (!inManilaDayRange(t.timestamp, from, to)) return false;
 
       return true;
     });
-  }, [tabFilteredTransactions, searchQuery, mopFilter, startDate, endDate]);
+  }, [tabFilteredTransactions, searchQuery, mopFilter, startDate, endDate, dashStartDate, dashEndDate]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage));
   const paginatedTransactions = filteredTransactions.slice(
@@ -231,17 +236,7 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
   // Filter transactions for dashboard by date range
   const dashTransactions = useMemo(() => {
     if (!dashStartDate && !dashEndDate) return transactions;
-    return transactions.filter((t) => {
-      const txDate = t.timestamp ? new Date(t.timestamp) : null;
-      if (!txDate || isNaN(txDate.getTime())) return false;
-      if (dashStartDate && txDate < dashStartDate) return false;
-      if (dashEndDate) {
-        const end = new Date(dashEndDate);
-        end.setHours(23, 59, 59, 999);
-        if (txDate > end) return false;
-      }
-      return true;
-    });
+    return transactions.filter((t) => inManilaDayRange(t.timestamp, dashStartDate, dashEndDate));
   }, [transactions, dashStartDate, dashEndDate]);
 
   // Dashboard stats - Fund accumulators
