@@ -231,7 +231,7 @@ const CompletedTransactions = () => {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
-                <Label>Commission Rate (%)</Label>
+                <Label>Commission Rate (% of profit)</Label>
                 <Input
                   type="number"
                   value={commissionRate}
@@ -240,7 +240,11 @@ const CompletedTransactions = () => {
                   max="100"
                   step="0.5"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Applied to Quoted Price − Discount − Parts Cost for the filtered tickets.
+                </p>
               </div>
+
 
               <div className="space-y-2">
                 <Label>Technician</Label>
