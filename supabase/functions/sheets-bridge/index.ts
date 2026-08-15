@@ -627,6 +627,7 @@ async function createIntake(b: Record<string, any>) {
       estimated_completion: b["Time Frame"] || "",
       estimated_cost: num(b["Estimated Cost"]),
       priority: b["Priority"] || "",
+      rush_fee: b["Priority"] === "Rush (with 10% Rush Fee)",
       source: "Legacy Bridge Intake",
     },
   });
