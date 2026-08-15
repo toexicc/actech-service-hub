@@ -32,6 +32,8 @@ import {
   ShoppingCart,
   CalendarCheck,
   LayoutDashboard,
+  ShieldCheck,
+
 } from "lucide-react";
 import { DueDateCalendar } from "@/components/DueDateCalendar";
 
