@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, LogIn, LogOut, ArrowLeft, Loader2 } from "lucide-react";
+import { Clock, LogIn, LogOut, ArrowLeft, Loader2, ShieldAlert } from "lucide-react";
+import { getKioskCredential, kioskHeaders } from "@/lib/kioskDevice";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
+
 
 interface DirectoryEntry {
   id: string;
