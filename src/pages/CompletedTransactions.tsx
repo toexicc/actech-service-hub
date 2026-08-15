@@ -57,19 +57,15 @@ const CompletedTransactions = () => {
         return false;
       }
 
-      // Date range filter
+      // Date range filter — based on the completion timestamp (Manila day)
       if (startDate || endDate) {
-        try {
-          const [datePart] = service.timestamp.split(" ");
-          const [month, day, year] = datePart.split(/[-/]/);
-          const serviceDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-
-          if (startDate && serviceDate < startDate) return false;
-          if (endDate && serviceDate > endDate) return false;
-        } catch (error) {
-          return false;
-        }
+        const parsed = parseManilaDate(service.timestamp || "");
+        if (!parsed) return false;
+        const day = startOfDay(parsed);
+        if (startDate && day < startOfDay(startDate)) return false;
+        if (endDate && day > startOfDay(endDate)) return false;
       }
+
 
       return true;
     });
