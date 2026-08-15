@@ -360,30 +360,7 @@ const CompletedTransactions = () => {
                   </TableHeader>
                   <TableBody>
                     {pagedServices.map((service) => {
-                      let adjustedCost = service.partsCost || 0;
-                      const discount = service.discount || 0;
-                      let profit = (service.quotedPrice || 0) - discount - adjustedCost;
-                      let commission = 0;
-                      const allocated = hasAllocation(service.serviceId);
-
-                      if (service.department === "Laptop (Daily Repairs)") {
-                        adjustedCost = adjustedCost * 1.1;
-                        profit = (service.quotedPrice || 0) - discount - adjustedCost;
-                      }
-
-                      if (allocated) {
-                        commission = allocatedFor(service.serviceId);
-                      } else if (service.department === "Laptop (Daily Repairs)") {
-                        commission = profit * 0.3;
-                      } else if (service.department === "Laptop (Screens)") {
-                        commission = screenCommissions[service.serviceId] || 0;
-                      } else if (service.department === "Mobile (Logic Board)") {
-                        commission = profit * 0.5;
-                      } else {
-                        commission = (profit * commissionRate) / 100;
-                      }
-
-                      
+                      const { partsCost, discount, profit, allocated, commission } = computeRow(service);
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
                       return (
@@ -402,37 +379,17 @@ const CompletedTransactions = () => {
                           <TableCell>{service.department}</TableCell>
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-right">₱{adjustedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">₱{partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            {allocated ? (
-                              <span className="text-orange-600 font-medium" title="Total allocated in the service breakdown">
-                                ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                            ) : service.department === "Laptop (Screens)" ? (
-                              <div className="relative w-32 ml-auto">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
-                                <Input
-                                  className="pl-5 text-right"
-                                  inputMode="decimal"
-                                  placeholder="0.00"
-                                  value={screenCommissions[service.serviceId] ? String(screenCommissions[service.serviceId]) : ""}
-                                  onChange={(e) => {
-                                    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
-                                    setScreenCommissions((prev) => ({
-                                      ...prev,
-                                      [service.serviceId]: parseFloat(cleaned) || 0,
-                                    }));
-                                  }}
-                                />
-                              </div>
-                            ) : service.department === "Mobile (Logic Board)" ? (
-                              <span className="text-muted-foreground">-</span>
-                            ) : (
-                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            )}
+                            <span
+                              className="text-orange-600 font-medium"
+                              title={allocated ? "Total allocated in the service breakdown" : "Profit x commission rate"}
+                            >
+                              ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </TableCell>
 
                         </TableRow>
@@ -441,12 +398,15 @@ const CompletedTransactions = () => {
                             <TableCell colSpan={11} className="bg-muted/10">
                               <ServiceBreakdownPanel
                                 serviceId={service.serviceId}
-                                totalCost={service.quotedPrice || 0}
+                                totalCost={(service.quotedPrice || 0) - discount}
                                 defaultTechnicians={techList}
+                                partsCost={partsCost}
+                                commissionRate={commissionRate}
                               />
                             </TableCell>
                           </TableRow>
                         )}
+
                         </Fragment>
                       );
                     })}
