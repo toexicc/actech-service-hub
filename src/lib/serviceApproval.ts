@@ -247,9 +247,26 @@ export const computeFinalCost = (
       vatAmount(serviceCost, discount, vatRequested, rushFee),
   );
 
+/**
+ * A quoted discount is a bundle discount: it only holds when the client takes
+ * the whole quotation. When any line (locked or optional) is left out — or an
+ * option line has no option chosen — the discount is waived.
+ */
+export const allLinesSelected = (lines: QuotedLine[]): boolean =>
+  lines.length > 0 &&
+  lines.every((l) => l.selected && (!l.options?.length || !!l.selectedOption));
 
+/** Discount that actually applies to the client's current selection. */
+export const effectiveDiscount = (lines: QuotedLine[], discount: number): number =>
+  lines.length === 0 || allLinesSelected(lines) ? Number(discount) || 0 : 0;
 
+/** True when a bundle discount exists that the client could still lose. */
+export const discountIsConditional = (lines: QuotedLine[], discount: number): boolean =>
+  (Number(discount) || 0) > 0 && lines.length > 1;
 
+/** Shared client-facing wording for the bundle-discount rule. */
+export const BUNDLE_DISCOUNT_NOTICE =
+  "A discount is applied because of the bundled services. If you proceed with one option only, the discount is waived. You may message us on this page if you have any questions.";
 
 
 export interface ApprovalRemark {

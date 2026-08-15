@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, effectiveDiscount, discountIsConditional, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
 import { diagnosisFieldsFromRecord, composeClientDiagnosis } from "@/lib/diagnosisSections";
 
 
@@ -710,7 +710,11 @@ const ServiceTracking = () => {
     selectedOption: l.options?.length ? optionChoice[i] ?? "" : l.selectedOption,
   }));
   const selectedTotal = quotedSelectedTotal(liveLines);
-  const trackDiscount = Number(String((serviceData as any)?.discount ?? "0").replace(/[^0-9.-]/g, "")) || 0;
+  const quotedDiscount = Number(String((serviceData as any)?.discount ?? "0").replace(/[^0-9.-]/g, "")) || 0;
+  // Bundle rule: the discount only holds when the whole quotation is taken.
+  const trackDiscount = effectiveDiscount(liveLines, quotedDiscount);
+  const bundleDiscountWaived = quotedDiscount > 0 && trackDiscount === 0;
+  const showBundleNotice = discountIsConditional(quotedLines, quotedDiscount);
   const trackVatRequested = !!(serviceData as any)?.vatRequested;
   const trackRushFee = !!(serviceData as any)?.rushFee;
   const selectedVat = vatAmount(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
@@ -1485,8 +1489,36 @@ const ServiceTracking = () => {
                                         </div>
                                       </>
                                     )}
+                                    {quotedDiscount > 0 && (
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">Bundle discount</span>
+                                        <span
+                                          className={
+                                            bundleDiscountWaived
+                                              ? "text-muted-foreground line-through"
+                                              : "text-emerald-600 font-medium"
+                                          }
+                                        >
+                                          - ₱{quotedDiscount.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
+                                {showBundleNotice && (
+                                  <p
+                                    className={`rounded-xl border px-3 py-2 text-xs leading-relaxed ${
+                                      bundleDiscountWaived
+                                        ? "border-amber-300 bg-amber-50 text-amber-800"
+                                        : "border-border/60 bg-muted/40 text-muted-foreground"
+                                    }`}
+                                  >
+                                    {bundleDiscountWaived
+                                      ? `Discount waived — ${BUNDLE_DISCOUNT_NOTICE}`
+                                      : BUNDLE_DISCOUNT_NOTICE}
+                                  </p>
+                                )}
+
                               </div>
                             )}
                             <div className="flex flex-col sm:flex-row gap-3">

@@ -79,9 +79,34 @@ const STATUS_COUNT_CARDS = [
 
 const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
 
+/** Loose date parser for the count cards (ISO or legacy "MM/dd/yyyy, hh:mm a"). */
+const cardDate = (value?: string | null): Date | null => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  const mdy = raw.split(",")[0].trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return new Date(Number(mdy[3]), Number(mdy[1]) - 1, Number(mdy[2]));
+  const fallback = new Date(raw);
+  return isNaN(fallback.getTime()) ? null : fallback;
+};
+
+/** True when the ticket was taken in today (intake / service date). */
+const isTodayService = (s: any): boolean => {
+  const d = cardDate(s?.serviceDate) || cardDate(s?.dateReceived) || cardDate(s?.timestamp);
+  if (!d) return false;
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
+};
+
 /** Flag cards — tickets whose toggles are on, regardless of status. */
-type FlagKey = "waitingParts" | "backjob" | "completedBackjob" | "rush";
+type FlagKey = "today" | "waitingParts" | "backjob" | "completedBackjob" | "rush";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
+  { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
   { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
   {
@@ -91,6 +116,7 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
   },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
 ];
+
 
 const ServiceTracker = () => {
   const navigate = useNavigate();

@@ -268,12 +268,19 @@ serve(async (req) => {
       if (relined.length) {
         const total = relined.reduce((sum, l) => sum + (l.selected ? Number(l.cost) || 0 : 0), 0);
         update.quoted_breakdown = relined;
-        const discount = Number(row.discount ?? 0) || 0;
+        // Bundle rule: the quoted discount only applies when the client takes
+        // every line. Any line left out waives it.
+        const allSelected = relined.every(
+          (l) => l.selected && (!l.options?.length || !!l.selectedOption),
+        );
+        const discount = allSelected ? Number(row.discount ?? 0) || 0 : 0;
+        if (!allSelected && (Number(row.discount ?? 0) || 0) > 0) update.discount = 0;
         const net = Math.max(0, Math.round((total - discount) * 100) / 100);
         const vat = row.vat_requested ? Math.round(net * 12) / 100 : 0;
         update.service_cost = total;
         update.final_cost = Math.round((net + vat) * 100) / 100;
       }
+
       update.pending_services = pendingItems;
       update.client_approved_at = nowIso;
       if (approvedItems.length) update.service = approvedItems.join(", ");

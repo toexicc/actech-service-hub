@@ -348,6 +348,9 @@ const ServiceUpdate = () => {
   // point, without waiting for a status change first.
   const isWithinTheDay =
     String(serviceData?.priority || "").trim().toLowerCase() === "within the day";
+  // Rush jobs (10% rush fee) get the same fast-track treatment.
+  const isRush = !!(serviceData as any)?.rushFee;
+  const isFastTrack = isWithinTheDay || isRush;
   // RTO - ACTech tickets always get the report tools so the technician can
   // document why the device is being returned.
   const isRtoActech =
@@ -355,15 +358,15 @@ const ServiceUpdate = () => {
 
   // AI sections stay visible once their stage has been reached, but become
   // read-only for technicians after that stage is over.
-  const diagnosisEditable = savedStatus === "Pending Diagnosis" || isWithinTheDay;
+  const diagnosisEditable = savedStatus === "Pending Diagnosis" || isFastTrack;
   const reportStageReached =
     statusRank(savedStatus) >= statusRank("Done Repair - Under Observation") ||
-    isWithinTheDay ||
+    isFastTrack ||
     isRtoActech;
   const reportEditable =
     savedStatus === "Done Repair - Under Observation" ||
     savedStatus === "Done Repair - Observation" ||
-    isWithinTheDay ||
+    isFastTrack ||
     isRtoActech;
 
 
@@ -378,19 +381,21 @@ const ServiceUpdate = () => {
   ];
 
   const showDiagnosisStage =
-    stageStatus === "Pending Diagnosis" || stageStatus === "Confirmed Diagnosis" || isWithinTheDay;
-  const showReportStage = DONE_REPAIR_STAGES.includes(stageStatus) || isWithinTheDay || isRtoActech;
+    stageStatus === "Pending Diagnosis" || stageStatus === "Confirmed Diagnosis" || isFastTrack;
+  const showReportStage = DONE_REPAIR_STAGES.includes(stageStatus) || isFastTrack || isRtoActech;
   const showReportEditors =
     stageStatus === "Done Repair - Under Observation" ||
     stageStatus === "Done Repair - Observation" ||
     stageStatus === "Done Repair - For Release" ||
-    isWithinTheDay ||
+    isFastTrack ||
     isRtoActech;
   const showPartsStage = stageStatus === "Ongoing Service";
 
   const stageHint = (() => {
     if (isWithinTheDay)
       return "Within The Day priority — the diagnosis, report and photo uploads stay open at every stage for a fast turnaround.";
+    if (isRush)
+      return "Rush job (10% rush fee) — the diagnosis, interim report and photo uploads stay open at every stage for a fast turnaround.";
     if (isRtoActech)
       return "RTO - ACTech — write the report explaining why the device is being returned, then click Update.";
     if (showDiagnosisStage)
@@ -400,6 +405,7 @@ const ServiceUpdate = () => {
       return "Enter the technician report and run the AI formatter, then click Update.";
     return "Add any remarks or notes for this stage, then click Update.";
   })();
+
 
   const NEXT_STATUS: Record<string, string> = {
     "Pending Diagnosis": "Confirmed Diagnosis",
@@ -1546,7 +1552,7 @@ const ServiceUpdate = () => {
 
 
 
-                {!statusChanged && !isWithinTheDay && !isRtoActech ? (
+                {!statusChanged && !isFastTrack && !isRtoActech ? (
                   <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
                     <p className="text-sm font-semibold text-primary">Set the status first</p>
                     <p className="text-xs text-muted-foreground mt-1">

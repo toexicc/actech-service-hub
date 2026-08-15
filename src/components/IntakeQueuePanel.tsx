@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueueEntries, type QueueEntry } from "@/hooks/useQueueEntries";
+import { useQueueEntries, requeueEntry, type QueueEntry } from "@/hooks/useQueueEntries";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Search, RotateCcw, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { logTicketActivity } from "@/lib/activityLogger";
+
 
 const PAGE_SIZE = 10;
 
@@ -62,17 +66,49 @@ const inDateRange = (iso: string, from: string, to: string) => {
 
 
 /**
- * Intake tracker — read-only table of every public /intake submission with
- * search, status, device type, and date range filters.
+ * Intake tracker — table of every public /intake submission with search,
+ * status, device type, and date range filters. Cancelled submissions can be
+ * put back on the queue when the client returns.
  */
 export const IntakeQueuePanel = () => {
-  const { entries, loading } = useQueueEntries({ activeOnly: false, kind: "intake" });
+  const { entries, loading, refetch } = useQueueEntries({ activeOnly: false, kind: "intake" });
+  const { isAdminOrManagement } = useAuth();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [deviceType, setDeviceType] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
+  const [resending, setResending] = useState<string | null>(null);
+
+  const handleResend = async (entry: QueueEntry) => {
+    setResending(entry.id);
+    try {
+      const { data, error } = await requeueEntry(entry);
+      if (error) throw new Error(error.message);
+      const code = (data as any)?.display_code ?? "";
+      toast({
+        title: "Back on the queue",
+        description: `${entry.client_name} is now ${code || "waiting"}.`,
+      });
+      logTicketActivity(
+        "SYSTEM",
+        `Resent cancelled intake ${entry.display_code} to the queue as ${code}`,
+        { Client: entry.client_name, From: entry.display_code, To: code },
+      );
+      refetch();
+    } catch (e: any) {
+      toast({
+        title: "Could not resend to queue",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResending(null);
+    }
+  };
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -202,18 +238,19 @@ export const IntakeQueuePanel = () => {
               <TableHead>Complaint</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Service ID</TableHead>
+              {isAdminOrManagement && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={isAdminOrManagement ? 8 : 7} className="py-10 text-center text-sm text-muted-foreground">
                   Loading intake records…
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={isAdminOrManagement ? 8 : 7} className="py-10 text-center text-sm text-muted-foreground">
                   No intake submissions match these filters.
                 </TableCell>
               </TableRow>
@@ -242,6 +279,27 @@ export const IntakeQueuePanel = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">{e.service_id || "—"}</TableCell>
+                    {isAdminOrManagement && (
+                      <TableCell className="text-right">
+                        {e.status === "cancelled" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={resending === e.id}
+                            onClick={() => handleResend(e)}
+                          >
+                            {resending === e.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            )}
+                            <span className="ml-1.5">Resend to Queue</span>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
