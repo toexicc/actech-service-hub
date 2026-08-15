@@ -238,18 +238,19 @@ export const IntakeQueuePanel = () => {
               <TableHead>Complaint</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Service ID</TableHead>
+              {isAdminOrManagement && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={isAdminOrManagement ? 8 : 7} className="py-10 text-center text-sm text-muted-foreground">
                   Loading intake records…
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={isAdminOrManagement ? 8 : 7} className="py-10 text-center text-sm text-muted-foreground">
                   No intake submissions match these filters.
                 </TableCell>
               </TableRow>
@@ -278,6 +279,27 @@ export const IntakeQueuePanel = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">{e.service_id || "—"}</TableCell>
+                    {isAdminOrManagement && (
+                      <TableCell className="text-right">
+                        {e.status === "cancelled" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={resending === e.id}
+                            onClick={() => handleResend(e)}
+                          >
+                            {resending === e.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            )}
+                            <span className="ml-1.5">Resend to Queue</span>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })
