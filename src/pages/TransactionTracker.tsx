@@ -24,7 +24,18 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { logActivityAsync } from "@/lib/activityLogger";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
+
+// Compare a stored timestamp against a picked date range on the Manila calendar day.
+const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
+  if (!start && !end) return true;
+  const parsed = parseManilaDate(ts || "");
+  if (!parsed) return false;
+  const day = startOfDay(parsed);
+  if (start && day < startOfDay(start)) return false;
+  if (end && day > startOfDay(end)) return false;
+  return true;
+};
 import { cn } from "@/lib/utils";
 
 interface Transaction {
