@@ -40,7 +40,7 @@ const CompletedTransactions = () => {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [commissionRate, setCommissionRate] = useState(0);
-  const [screenCommissions, setScreenCommissions] = useState<Record<string, number>>({});
+  
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -83,80 +83,45 @@ const CompletedTransactions = () => {
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
 
+  // Single source of truth: no hidden department formulas.
+  // Profit = quoted price - discount - parts cost. Commission = profit x rate%.
+  const computeRow = (service: (typeof services)[number]) => {
+    const partsCost = service.partsCost || 0;
+    const discount = service.discount || 0;
+    const profit = (service.quotedPrice || 0) - discount - partsCost;
+    const allocated = hasAllocation(service.serviceId);
+    const commission = allocated
+      ? allocatedFor(service.serviceId)
+      : Math.max(0, (profit * (commissionRate || 0)) / 100);
+    return { partsCost, discount, profit, allocated, commission };
+  };
 
   const financialSummary = useMemo(() => {
     let totalCommission = 0;
-    let adjustedTotalCosts = 0;
-    const totalDiscounts = filteredServices.reduce(
-      (sum, s) => sum + (s.discount || 0),
-      0
-    );
-    const grossSales = filteredServices.reduce(
-      (sum, s) => sum + (s.quotedPrice || 0),
-      0
-    );
+    let totalCosts = 0;
+    let totalDiscounts = 0;
+    let grossSales = 0;
 
-    const isMobileLogicBoardOnly =
-      departmentFilter === "Mobile (Logic Board)";
-
-    // Calculate costs and commissions based on department
-    let anyAllocation = false;
     filteredServices.forEach((service) => {
-      let adjustedCost = service.partsCost || 0;
-      let serviceCommission = 0;
-
-      if (service.department === "Laptop (Daily Repairs)") {
-        // Add 10% to part cost
-        adjustedCost = adjustedCost * 1.1;
-      }
-
-      if (hasAllocation(service.serviceId)) {
-        // Actual allocated amounts from the service breakdown win over formulas.
-        anyAllocation = true;
-        serviceCommission = allocatedFor(service.serviceId);
-      } else if (service.department === "Laptop (Daily Repairs)") {
-        // Commission is 30% on net sales for this service
-        const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
-        serviceCommission = netSales * 0.3;
-      } else if (service.department === "Laptop (Screens)") {
-        // Commission is editable per row
-        serviceCommission = screenCommissions[service.serviceId] || 0;
-      } else if (service.department === "Mobile (Logic Board)") {
-        // For Mobile (Logic Board), net profit is gross sales - discount - parts cost
-        const departmentNetProfit = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
-        // Commission is 50% of that net profit
-        serviceCommission = departmentNetProfit * 0.5;
-      } else {
-        // Default: use the global commission rate on net sales
-        const netSales = (service.quotedPrice || 0) - (service.discount || 0) - adjustedCost;
-        serviceCommission = (netSales * commissionRate) / 100;
-      }
-
-      adjustedTotalCosts += adjustedCost;
-      totalCommission += serviceCommission;
+      const { partsCost, discount, commission } = computeRow(service);
+      grossSales += service.quotedPrice || 0;
+      totalDiscounts += discount;
+      totalCosts += partsCost;
+      totalCommission += commission;
     });
 
-    let netProfit = grossSales - totalDiscounts - adjustedTotalCosts;
-    let commissionTotal = totalCommission;
-    let profitAfterCommission = netProfit - commissionTotal;
-
-    if (isMobileLogicBoardOnly && !anyAllocation) {
-      // For Mobile (Logic Board), apply special sharing logic:
-      const netAfterCosts = grossSales - totalDiscounts - adjustedTotalCosts;
-      netProfit = netAfterCosts * 0.5;
-      commissionTotal = netProfit * 0.5;
-      profitAfterCommission = netProfit - commissionTotal;
-    }
+    const netProfit = grossSales - totalDiscounts - totalCosts;
 
     return {
       grossSales,
       totalDiscounts,
-      totalCosts: adjustedTotalCosts,
+      totalCosts,
       netProfit,
-      commission: commissionTotal,
-      profitAfterCommission,
+      commission: totalCommission,
+      profitAfterCommission: netProfit - totalCommission,
     };
-  }, [filteredServices, commissionRate, screenCommissions, departmentFilter, breakdownMap]);
+  }, [filteredServices, commissionRate, breakdownMap]);
+
 
 
   // Reset to the first page whenever the filters change the result set.
@@ -266,7 +231,7 @@ const CompletedTransactions = () => {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
-                <Label>Commission Rate (%)</Label>
+                <Label>Commission Rate (% of profit)</Label>
                 <Input
                   type="number"
                   value={commissionRate}
@@ -275,7 +240,11 @@ const CompletedTransactions = () => {
                   max="100"
                   step="0.5"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Applied to Quoted Price − Discount − Parts Cost for the filtered tickets.
+                </p>
               </div>
+
 
               <div className="space-y-2">
                 <Label>Technician</Label>
@@ -395,30 +364,7 @@ const CompletedTransactions = () => {
                   </TableHeader>
                   <TableBody>
                     {pagedServices.map((service) => {
-                      let adjustedCost = service.partsCost || 0;
-                      const discount = service.discount || 0;
-                      let profit = (service.quotedPrice || 0) - discount - adjustedCost;
-                      let commission = 0;
-                      const allocated = hasAllocation(service.serviceId);
-
-                      if (service.department === "Laptop (Daily Repairs)") {
-                        adjustedCost = adjustedCost * 1.1;
-                        profit = (service.quotedPrice || 0) - discount - adjustedCost;
-                      }
-
-                      if (allocated) {
-                        commission = allocatedFor(service.serviceId);
-                      } else if (service.department === "Laptop (Daily Repairs)") {
-                        commission = profit * 0.3;
-                      } else if (service.department === "Laptop (Screens)") {
-                        commission = screenCommissions[service.serviceId] || 0;
-                      } else if (service.department === "Mobile (Logic Board)") {
-                        commission = profit * 0.5;
-                      } else {
-                        commission = (profit * commissionRate) / 100;
-                      }
-
-                      
+                      const { partsCost, discount, profit, allocated, commission } = computeRow(service);
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
                       return (
@@ -437,37 +383,17 @@ const CompletedTransactions = () => {
                           <TableCell>{service.department}</TableCell>
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-right">₱{adjustedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">₱{partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            {allocated ? (
-                              <span className="text-orange-600 font-medium" title="Total allocated in the service breakdown">
-                                ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                            ) : service.department === "Laptop (Screens)" ? (
-                              <div className="relative w-32 ml-auto">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
-                                <Input
-                                  className="pl-5 text-right"
-                                  inputMode="decimal"
-                                  placeholder="0.00"
-                                  value={screenCommissions[service.serviceId] ? String(screenCommissions[service.serviceId]) : ""}
-                                  onChange={(e) => {
-                                    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
-                                    setScreenCommissions((prev) => ({
-                                      ...prev,
-                                      [service.serviceId]: parseFloat(cleaned) || 0,
-                                    }));
-                                  }}
-                                />
-                              </div>
-                            ) : service.department === "Mobile (Logic Board)" ? (
-                              <span className="text-muted-foreground">-</span>
-                            ) : (
-                              <span className="text-orange-600 font-medium">₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            )}
+                            <span
+                              className="text-orange-600 font-medium"
+                              title={allocated ? "Total allocated in the service breakdown" : "Profit x commission rate"}
+                            >
+                              ₱{commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </TableCell>
 
                         </TableRow>
@@ -476,12 +402,15 @@ const CompletedTransactions = () => {
                             <TableCell colSpan={11} className="bg-muted/10">
                               <ServiceBreakdownPanel
                                 serviceId={service.serviceId}
-                                totalCost={service.quotedPrice || 0}
+                                totalCost={(service.quotedPrice || 0) - discount}
                                 defaultTechnicians={techList}
+                                partsCost={partsCost}
+                                commissionRate={commissionRate}
                               />
                             </TableCell>
                           </TableRow>
                         )}
+
                         </Fragment>
                       );
                     })}

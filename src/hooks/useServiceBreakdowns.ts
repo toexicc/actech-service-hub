@@ -66,6 +66,24 @@ export const useSaveServiceBreakdowns = () => {
   });
 };
 
+/** Persist the actual parts cost of a ticket (used for payout profit math). */
+export const useSaveServicePartsCost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ serviceId, partsCost }: { serviceId: string; partsCost: number }) => {
+      const { error } = await supabase
+        .from("services")
+        .update({ parts_cost: partsCost })
+        .eq("service_id", serviceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["doneServices"] });
+      queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+  });
+};
+
 /**
  * Fetch breakdown allocations for many services at once.
  * Returns a map of serviceId -> rows, plus helpers for totals.
