@@ -66,17 +66,51 @@ const inDateRange = (iso: string, from: string, to: string) => {
 
 
 /**
- * Intake tracker — read-only table of every public /intake submission with
- * search, status, device type, and date range filters.
+ * Intake tracker — table of every public /intake submission with search,
+ * status, device type, and date range filters. Cancelled submissions can be
+ * put back on the queue when the client returns.
  */
 export const IntakeQueuePanel = () => {
-  const { entries, loading } = useQueueEntries({ activeOnly: false, kind: "intake" });
+  const { entries, loading, refetch } = useQueueEntries({ activeOnly: false, kind: "intake" });
+  const { isAdminOrManagement } = useAuth();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [deviceType, setDeviceType] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
+  const [resending, setResending] = useState<string | null>(null);
+
+  const handleResend = async (entry: QueueEntry) => {
+    setResending(entry.id);
+    try {
+      const { data, error } = await requeueEntry(entry);
+      if (error) throw new Error(error.message);
+      const code = (data as any)?.display_code ?? "";
+      toast({
+        title: "Back on the queue",
+        description: `${entry.client_name} is now ${code || "waiting"}.`,
+      });
+      logActivityAsync({
+        serviceId: "SYSTEM",
+        username: "",
+        role: "",
+        activity: `Resent cancelled intake ${entry.display_code} to the queue as ${code}`,
+        details: { Client: entry.client_name, From: entry.display_code, To: code },
+      });
+      refetch();
+    } catch (e: any) {
+      toast({
+        title: "Could not resend to queue",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResending(null);
+    }
+  };
+
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
