@@ -22,6 +22,25 @@ interface DirectoryEntry {
   role: string | null;
 }
 
+/** Shop clock always shows Manila time, regardless of the kiosk device timezone. */
+const manilaTime = (d: Date) =>
+  d.toLocaleTimeString("en-US", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+const manilaDate = (d: Date) =>
+  d.toLocaleDateString("en-US", {
+    timeZone: "Asia/Manila",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
 const ROLE_GROUPS: { key: string; label: string }[] = [
   { key: "admin", label: "Admin" },
   { key: "management", label: "Management" },
@@ -118,7 +137,7 @@ const Attendance = () => {
       if (action === "out" && data.overtime) tagBits.push("OVERTIME");
       toast({
         title: action === "in" ? "Time In recorded" : "Time Out recorded",
-        description: `${data.staffName} • ${new Date().toLocaleTimeString()}${tagBits.length ? ` • ${tagBits.join(", ")}` : ""}`,
+        description: `${data.staffName} • ${manilaTime(new Date())}${tagBits.length ? ` • ${tagBits.join(", ")}` : ""}`,
       });
       setPassword("");
       setStaffId("");
@@ -182,9 +201,9 @@ const Attendance = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Clock className="h-5 w-5 text-primary" />
-              {now.toLocaleTimeString()}
+              {manilaTime(now)}
             </CardTitle>
-            <CardDescription>{now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</CardDescription>
+            <CardDescription>{manilaDate(now)} • Manila time</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
