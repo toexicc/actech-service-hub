@@ -201,9 +201,9 @@ const Attendance = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Clock className="h-5 w-5 text-primary" />
-              {now.toLocaleTimeString()}
+              {manilaTime(now)}
             </CardTitle>
-            <CardDescription>{now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</CardDescription>
+            <CardDescription>{manilaDate(now)} • Manila time</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
