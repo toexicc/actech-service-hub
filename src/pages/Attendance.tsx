@@ -22,6 +22,25 @@ interface DirectoryEntry {
   role: string | null;
 }
 
+/** Shop clock always shows Manila time, regardless of the kiosk device timezone. */
+const manilaTime = (d: Date) =>
+  d.toLocaleTimeString("en-US", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+const manilaDate = (d: Date) =>
+  d.toLocaleDateString("en-US", {
+    timeZone: "Asia/Manila",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
 const ROLE_GROUPS: { key: string; label: string }[] = [
   { key: "admin", label: "Admin" },
   { key: "management", label: "Management" },
