@@ -118,7 +118,7 @@ const Attendance = () => {
       if (action === "out" && data.overtime) tagBits.push("OVERTIME");
       toast({
         title: action === "in" ? "Time In recorded" : "Time Out recorded",
-        description: `${data.staffName} • ${new Date().toLocaleTimeString()}${tagBits.length ? ` • ${tagBits.join(", ")}` : ""}`,
+        description: `${data.staffName} • ${manilaTime(new Date())}${tagBits.length ? ` • ${tagBits.join(", ")}` : ""}`,
       });
       setPassword("");
       setStaffId("");
