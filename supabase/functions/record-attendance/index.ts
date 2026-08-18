@@ -80,7 +80,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (device.allowed_ip && device.allowed_ip !== ip) {
+    // The shop's ISP hands out a dynamic address, so allow anything on the same
+    // /24 network as the paired address instead of requiring an exact match.
+    const sameNetwork = (a: string, b: string) => {
+      if (!a || !b) return false;
+      if (a === b) return true;
+      const pa = a.split("."), pb = b.split(".");
+      if (pa.length !== 4 || pb.length !== 4) return false;
+      return pa[0] === pb[0] && pa[1] === pb[1] && pa[2] === pb[2];
+    };
+
+    if (device.allowed_ip && !sameNetwork(device.allowed_ip, ip)) {
       return new Response(JSON.stringify({ error: "network_not_allowed" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
