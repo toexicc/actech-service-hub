@@ -552,7 +552,10 @@ const SalaryDisbursement = () => {
                                   value={daysPresent[staff.staffId] || ""}
                                   onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
-                                <div className="text-[10px] text-muted-foreground mt-1">attd: {attendanceByStaffId[staff.userId] ?? 0}/{workdaysInPeriod}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1">
+                                  attd: {attendanceByStaffId[staff.userId] ?? 0}/{workdaysInPeriod}
+                                  {" · "}{(hoursByStaffId[staff.userId] ?? 0).toFixed(2)}h
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
