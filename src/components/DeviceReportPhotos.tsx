@@ -5,6 +5,7 @@ import { Camera, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
+import { logTicketActivity } from "@/lib/activityLogger";
 import { PhotoGalleryDialog } from "@/components/PhotoGalleryDialog";
 
 interface Props {
@@ -113,6 +114,10 @@ export const DeviceReportPhotos = ({
       });
       await refresh();
       const summary = describeUploadResult(result);
+      const uploaded = list.length - (summary.failed ?? 0);
+      if (uploaded > 0) {
+        logTicketActivity(serviceId, `Device report photos uploaded (${uploaded})`, { count: uploaded, kind: "device_report" });
+      }
       toast({
         title: summary.title,
         description: summary.description,
