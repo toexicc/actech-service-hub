@@ -1946,13 +1946,21 @@ const ManageClient = () => {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                  <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
-                </div>
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
+                <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
+                {/^RTO/i.test(String(serviceData?.status || "")) && (
+                  <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
+                    <p className="text-sm text-foreground">
+                      {serviceData.rtoReason?.trim() ? serviceData.rtoReason.trim() : "No reason recorded."}
+                    </p>
+                  </div>
+                )}
+              </div>
 
 
-                <Separator />
+              <Separator />
 
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
