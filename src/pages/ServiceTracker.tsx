@@ -1104,10 +1104,18 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         {/* Filters */}
         <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Filters
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Filters
+              </CardTitle>
+              {userRole === "management" && (
+                <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download CSV
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {/* Filters */}
@@ -1121,6 +1129,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   <SelectContent>
                     <SelectItem value="all">All Services</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="onTrack">On Track</SelectItem>
                     <SelectItem value="dueToday">Due Today</SelectItem>
                     <SelectItem value="dueSoon">Due Soon (&lt;2 days)</SelectItem>
                   </SelectContent>
