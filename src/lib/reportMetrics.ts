@@ -378,8 +378,10 @@ export interface ActorOutput {
   aiReports: number;
   /** Quotations generated or regenerated. */
   quotations: number;
-  /** Photo batches uploaded (diagnosis or device report). */
+  /** Diagnosis photo batches uploaded. */
   photos: number;
+  /** Device report photo batches uploaded. */
+  reportPhotos: number;
   /** Backjobs raised by this person. */
   backjobs: number;
   /** Client approvals captured on the public tracker. */
@@ -498,6 +500,7 @@ export const buildActorOutput = (
     aiReports: number;
     quotations: number;
     photos: number;
+    reportPhotos: number;
     backjobs: number;
     approvals: number;
     completed: number;
@@ -523,6 +526,7 @@ export const buildActorOutput = (
         aiReports: 0,
         quotations: 0,
         photos: 0,
+        reportPhotos: 0,
         backjobs: 0,
         approvals: 0,
         completed: 0,
@@ -630,6 +634,7 @@ export const buildActorOutput = (
         aiReports: v.aiReports,
         quotations: v.quotations,
         photos: v.photos,
+        reportPhotos: v.reportPhotos,
         backjobs: v.backjobs,
         approvals: v.approvals,
         paid: v.paid,
