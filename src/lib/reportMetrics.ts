@@ -546,12 +546,13 @@ export const buildActorOutput = (
       return;
     }
     if (l.event) {
-      // Processing the payment or handing over the device closes the ticket in
-      // practice — credit Completed once per ticket per person.
-      if (l.event === "ai_diagnosis") e.aiDiagnosis += 1;
-      if (l.event === "ai_report") e.aiReports += 1;
-      if (l.event === "quotation") e.quotations += 1;
-      if (l.event === "photos") e.photos += 1;
+      // Diagnosis-stage support work rolls into Diagnosed; report-stage support
+      // work rolls into Released, so the chart matches the leaderboard totals.
+      if (l.event === "ai_diagnosis") { e.aiDiagnosis += 1; e.diagnosed += 1; }
+      if (l.event === "quotation") { e.quotations += 1; e.diagnosed += 1; }
+      if (l.event === "photos_diagnosis") { e.photos += 1; e.diagnosed += 1; }
+      if (l.event === "ai_report") { e.aiReports += 1; e.released += 1; }
+      if (l.event === "photos_report") { e.reportPhotos += 1; e.released += 1; }
       if (l.event === "backjob") e.backjobs += 1;
       if (l.event === "approval") e.approvals += 1;
       if (l.event === "payment") e.paid += 1;
