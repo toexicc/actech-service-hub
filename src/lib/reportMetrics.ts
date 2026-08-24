@@ -21,7 +21,8 @@ export interface StatusLogEntry {
     | "ai_diagnosis"
     | "ai_report"
     | "quotation"
-    | "photos"
+    | "photos_diagnosis"
+    | "photos_report"
     | "backjob"
     | "approval";
 
@@ -326,7 +327,14 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
     return { serviceId, createdAt: row.created_at, event: "void", actor, role };
   }
   if (PHOTO_RE.test(action)) {
-    return { serviceId, createdAt: row.created_at, event: "photos", actor, role };
+    const isReport = /device report/i.test(action);
+    return {
+      serviceId,
+      createdAt: row.created_at,
+      event: isReport ? "photos_report" : "photos_diagnosis",
+      actor,
+      role,
+    };
   }
   if (QUOTATION_RE.test(action)) {
     return { serviceId, createdAt: row.created_at, event: "quotation", actor, role };
@@ -370,8 +378,10 @@ export interface ActorOutput {
   aiReports: number;
   /** Quotations generated or regenerated. */
   quotations: number;
-  /** Photo batches uploaded (diagnosis or device report). */
+  /** Diagnosis photo batches uploaded. */
   photos: number;
+  /** Device report photo batches uploaded. */
+  reportPhotos: number;
   /** Backjobs raised by this person. */
   backjobs: number;
   /** Client approvals captured on the public tracker. */
@@ -490,6 +500,7 @@ export const buildActorOutput = (
     aiReports: number;
     quotations: number;
     photos: number;
+    reportPhotos: number;
     backjobs: number;
     approvals: number;
     completed: number;
@@ -515,6 +526,7 @@ export const buildActorOutput = (
         aiReports: 0,
         quotations: 0,
         photos: 0,
+        reportPhotos: 0,
         backjobs: 0,
         approvals: 0,
         completed: 0,
@@ -538,12 +550,13 @@ export const buildActorOutput = (
       return;
     }
     if (l.event) {
-      // Processing the payment or handing over the device closes the ticket in
-      // practice — credit Completed once per ticket per person.
-      if (l.event === "ai_diagnosis") e.aiDiagnosis += 1;
-      if (l.event === "ai_report") e.aiReports += 1;
-      if (l.event === "quotation") e.quotations += 1;
-      if (l.event === "photos") e.photos += 1;
+      // Diagnosis-stage support work rolls into Diagnosed; report-stage support
+      // work rolls into Released, so the chart matches the leaderboard totals.
+      if (l.event === "ai_diagnosis") { e.aiDiagnosis += 1; e.diagnosed += 1; }
+      if (l.event === "quotation") { e.quotations += 1; e.diagnosed += 1; }
+      if (l.event === "photos_diagnosis") { e.photos += 1; e.diagnosed += 1; }
+      if (l.event === "ai_report") { e.aiReports += 1; e.released += 1; }
+      if (l.event === "photos_report") { e.reportPhotos += 1; e.released += 1; }
       if (l.event === "backjob") e.backjobs += 1;
       if (l.event === "approval") e.approvals += 1;
       if (l.event === "payment") e.paid += 1;
@@ -621,6 +634,7 @@ export const buildActorOutput = (
         aiReports: v.aiReports,
         quotations: v.quotations,
         photos: v.photos,
+        reportPhotos: v.reportPhotos,
         backjobs: v.backjobs,
         approvals: v.approvals,
         paid: v.paid,

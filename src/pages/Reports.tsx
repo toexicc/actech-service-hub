@@ -1075,7 +1075,7 @@ const Reports = () => {
           <Panel
             title="Output leaderboard"
             icon={<Users className="h-4 w-4" />}
-            hint="Diagnosis stage also counts AI diagnosis runs and quotations; repair stage counts AI reports and photo uploads. Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid and Released show the raw event counts. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
+            hint="Diagnosed includes AI diagnosis runs, quotations and diagnosis photos; Released includes AI reports and device report photos — the sub-columns (·) are already part of the total, so these match the 'Who moves tickets' chart. Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid and Released show the raw event counts. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
           >
             <div className="mb-3 flex flex-wrap gap-2">
               <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
@@ -1126,12 +1126,13 @@ const Reports = () => {
                       <TableHead className="text-right">Moves</TableHead>
                       <TableHead className="text-right">Tickets touched</TableHead>
                       <TableHead className="text-right">Diagnosed</TableHead>
-                      <TableHead className="text-right">AI diagnosis</TableHead>
-                      <TableHead className="text-right">Quotations</TableHead>
+                      <TableHead className="text-right">· AI diagnosis</TableHead>
+                      <TableHead className="text-right">· Quotations</TableHead>
+                      <TableHead className="text-right">· Diagnosis photos</TableHead>
                       <TableHead className="text-right">To repair</TableHead>
-                      <TableHead className="text-right">AI reports</TableHead>
-                      <TableHead className="text-right">Photos</TableHead>
                       <TableHead className="text-right">Released</TableHead>
+                      <TableHead className="text-right">· AI reports</TableHead>
+                      <TableHead className="text-right">· Report photos</TableHead>
                       <TableHead className="text-right">Paid</TableHead>
                       <TableHead className="text-right">Handed over</TableHead>
                       <TableHead className="text-right">Approvals</TableHead>
@@ -1149,13 +1150,14 @@ const Reports = () => {
                         <TableCell className="capitalize text-muted-foreground">{a.role || "—"}</TableCell>
                         <TableCell className="text-right font-semibold">{a.moves}</TableCell>
                         <TableCell className="text-right">{a.ticketsTouched}</TableCell>
-                        <TableCell className="text-right">{a.diagnosed}</TableCell>
-                        <TableCell className="text-right">{a.aiDiagnosis}</TableCell>
-                        <TableCell className="text-right">{a.quotations}</TableCell>
+                        <TableCell className="text-right font-semibold">{a.diagnosed}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{a.aiDiagnosis}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{a.quotations}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{a.photos}</TableCell>
                         <TableCell className="text-right">{a.toRepair}</TableCell>
-                        <TableCell className="text-right">{a.aiReports}</TableCell>
-                        <TableCell className="text-right">{a.photos}</TableCell>
-                        <TableCell className="text-right">{a.released}</TableCell>
+                        <TableCell className="text-right font-semibold">{a.released}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{a.aiReports}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{a.reportPhotos}</TableCell>
                         <TableCell className="text-right">{a.paid}</TableCell>
                         <TableCell className="text-right">{a.handedOver}</TableCell>
                         <TableCell className="text-right">{a.approvals}</TableCell>
