@@ -868,6 +868,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         if (daysUntilDue !== 0) return false;
       } else if (dueDateFilter === "dueSoon") {
         if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
+      } else if (dueDateFilter === "onTrack") {
+        // On track = has a target date, still in the workflow, not overdue.
+        if (!service.targetDate) return false;
+        if (isOverdue(service.targetDate, service.status)) return false;
+        if (classifyStatus(service.status) !== "active") return false;
       }
     }
 
