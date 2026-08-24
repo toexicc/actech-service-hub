@@ -164,10 +164,10 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  type TrackerTab = "all" | "within" | "walkin" | "ongoing" | "completed" | "closed";
+  type TrackerTab = "all" | "walkin" | "ongoing" | "completed" | "closed";
   const initialTab = ((): TrackerTab => {
     const t = searchParams.get("tab") as TrackerTab | null;
-    if (t && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(t)) return t;
+    if (t && ["all", "walkin", "ongoing", "completed", "closed"].includes(t)) return t;
     const s = searchParams.get("status");
     if (s) {
       const c = classifyStatus(s);
@@ -809,7 +809,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "ongoing" && cls !== "active") return false;
     if (activeTab === "completed" && cls !== "completed") return false;
     if (activeTab === "closed" && cls !== "closed") return false;
-    if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
     if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
 
     // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
@@ -995,7 +994,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       (activeTab === "closed" && cls === "closed") ||
       (activeTab === "completed" && cls === "completed") ||
       (activeTab === "ongoing" && cls === "active") ||
-      ((activeTab === "within" || activeTab === "walkin") && cls !== "closed" && cls !== "completed");
+      (activeTab === "walkin" && cls !== "closed" && cls !== "completed");
     if (!tabAllows) {
       setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
     }
@@ -1341,7 +1340,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             activeTab === "completed" ? "Completed shown"
             : activeTab === "closed" ? "Cancelled / RTO / On Hold"
             : activeTab === "all" ? "All shown"
-            : activeTab === "within" ? "Within the day"
             : activeTab === "walkin" ? "Walk-in shown"
             : "Total ongoing";
           return (
@@ -1421,8 +1419,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 ? "Cancelled / RTO / On Hold"
                 : activeTab === "all"
                 ? "All Services"
-                : activeTab === "within"
-                ? "Within The Day"
+  
                 : activeTab === "walkin"
                 ? "Walk-In Services"
                 : "Ongoing Services"}
