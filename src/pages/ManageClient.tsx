@@ -1928,14 +1928,6 @@ const ManageClient = () => {
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
 
-          {canEditAdminRep && !isEditingDetails && (
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit details
-              </Button>
-            </div>
-          )}
 
           <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
