@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
+import ServicesCsvExportDialog from "@/components/ServicesCsvExportDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
@@ -178,6 +179,7 @@ const ServiceTracker = () => {
   })();
   const [activeTab, setActiveTab] = useState<TrackerTab>(initialTab);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -809,7 +811,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "ongoing" && cls !== "active") return false;
     if (activeTab === "completed" && cls !== "completed") return false;
     if (activeTab === "closed" && cls !== "closed") return false;
-    if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
+    if (activeTab === "walkin") {
+      // Walk-in tab: only today's intakes whose client type is a walk-in variant.
+      const type = String(service.clientType || "").toLowerCase();
+      const isWalkInType = /(new client|returning client)\s*-\s*walk\s*in/.test(type);
+      const parsed = cardDate(service.serviceDate) || cardDate(service.timestamp);
+      const isToday = !!parsed && format(parsed, "yyyy-MM-dd") === format(getManilaDate(), "yyyy-MM-dd");
+      if (!isWalkInType || !isToday) return false;
+    }
 
     // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
     // Completed backjobs live in their own card, so keep them out of "Completed".
@@ -861,6 +870,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         if (daysUntilDue !== 0) return false;
       } else if (dueDateFilter === "dueSoon") {
         if (daysUntilDue < 0 || daysUntilDue >= 2) return false;
+      } else if (dueDateFilter === "onTrack") {
+        // On track = has a target date, still in the workflow, not overdue.
+        if (!service.targetDate) return false;
+        if (isOverdue(service.targetDate, service.status)) return false;
+        if (classifyStatus(service.status) !== "active") return false;
       }
     }
 
@@ -976,6 +990,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
    * Set the status filter and only move the tab when the chosen status could
    * never appear in the tab currently selected (so filters keep combining).
    */
+  /** Overdue / On Track summary cards act as due-date filters. */
+  const selectDueFilter = (key: "overdue" | "onTrack") => {
+    setDueDateFilter((prev) => (prev === key ? "all" : key));
+    setCurrentPage(1);
+  };
+
   const selectFlag = (key: FlagKey) => {
     setStatusFilter("all");
     setStatusLockedByCard(false);
@@ -1086,10 +1106,18 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         {/* Filters */}
         <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Filters
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Filters
+              </CardTitle>
+              {userRole === "management" && (
+                <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download CSV
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {/* Filters */}
@@ -1103,6 +1131,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   <SelectContent>
                     <SelectItem value="all">All Services</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="onTrack">On Track</SelectItem>
                     <SelectItem value="dueToday">Due Today</SelectItem>
                     <SelectItem value="dueSoon">Due Soon (&lt;2 days)</SelectItem>
                   </SelectContent>
@@ -1350,18 +1379,37 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 tone="primary"
                 icon={<Clock className="h-5 w-5" />}
               />
-              <StatCard
-                label="Overdue"
-                value={overdueCount}
-                tone="destructive"
-                icon={<AlertCircle className="h-5 w-5" />}
-              />
-              <StatCard
-                label="On Track"
-                value={onTrackCount}
-                tone="success"
-                icon={<Calendar className="h-5 w-5" />}
-              />
+              <button
+                type="button"
+                onClick={() => selectDueFilter("overdue")}
+                className={cn(
+                  "rounded-2xl text-left transition-shadow",
+                  dueDateFilter === "overdue" && "ring-2 ring-destructive/50",
+                )}
+              >
+                <StatCard
+                  label="Overdue"
+                  value={overdueCount}
+                  tone="destructive"
+                  icon={<AlertCircle className="h-5 w-5" />}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => selectDueFilter("onTrack")}
+                className={cn(
+                  "rounded-2xl text-left transition-shadow",
+                  dueDateFilter === "onTrack" && "ring-2 ring-primary/50",
+                )}
+              >
+                <StatCard
+                  label="On Track"
+                  value={onTrackCount}
+                  tone="success"
+                  icon={<Calendar className="h-5 w-5" />}
+                />
+              </button>
+
             </div>
           );
         })()}
@@ -2008,6 +2056,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ServicesCsvExportDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} />
     </DashboardLayout>
 
   );
