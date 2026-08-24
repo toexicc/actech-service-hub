@@ -563,6 +563,7 @@ const Reports = () => {
           toRepair: a.toRepair,
           released: a.released,
           completed: a.completed,
+          exceptions: a.exceptions,
         })),
     [actorRows],
   );
@@ -1080,6 +1081,12 @@ const Reports = () => {
                     <Bar dataKey="toRepair" name="To repair" stackId="a" fill="hsl(var(--primary))" />
                     <Bar dataKey="released" name="Released" stackId="a" fill="hsl(var(--warning))" />
                     <Bar
+                      dataKey="exceptions"
+                      name="Cancelled / hold / RTO"
+                      stackId="a"
+                      fill="hsl(var(--muted-foreground))"
+                    />
+                    <Bar
                       dataKey="completed"
                       name="Completed"
                       stackId="a"
@@ -1156,6 +1163,7 @@ const Reports = () => {
                       <TableHead className="text-right whitespace-nowrap">Handed over</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Approvals</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Backjobs</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Cancelled / hold / RTO</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Completed</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Driven end-to-end</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Assigned untouched</TableHead>
