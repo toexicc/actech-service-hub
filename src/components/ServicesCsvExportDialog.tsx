@@ -7,9 +7,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
+import { useTechnicians } from "@/hooks/useStaff";
+import { DEPARTMENTS, DEVICE_TYPES, STATUS_OPTIONS } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+
 
 /** Exportable columns of the services table, in a sensible reading order. */
 const EXPORT_COLUMNS: { key: string; label: string }[] = [
@@ -104,8 +108,21 @@ export function ServicesCsvExportDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [statuses, setStatuses] = useState<string[]>([]);
+  const [technicians, setTechnicians] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>(DEFAULT_KEYS);
   const [exporting, setExporting] = useState(false);
+
+  const { data: techList } = useTechnicians();
+  const technicianOptions = useMemo(
+    () => (techList ?? []).map((t) => ({ label: t.name, value: t.name })),
+    [techList],
+  );
+  const statusOptions = useMemo(() => STATUS_OPTIONS.map((s) => ({ label: s, value: s })), []);
+  const departmentOptions = useMemo(() => DEPARTMENTS.map((d) => ({ label: d, value: d })), []);
+  const deviceTypeOptions = useMemo(() => DEVICE_TYPES.map((d) => ({ label: d, value: d })), []);
 
   const allSelected = selected.length === EXPORT_COLUMNS.length;
   const columns = useMemo(
@@ -133,6 +150,11 @@ export function ServicesCsvExportDialog({ open, onOpenChange }: Props) {
           .range(from, from + pageSize - 1);
         if (startDate) query = query.gte("service_date", format(startDate, "yyyy-MM-dd"));
         if (endDate) query = query.lte("service_date", format(endDate, "yyyy-MM-dd"));
+        if (statuses.length) query = query.in("status", statuses as any);
+        if (deviceTypes.length) query = query.in("device_type", deviceTypes);
+        if (technicians.length) query = query.overlaps("technicians", technicians);
+        if (departments.length) query = query.overlaps("technician_departments", departments);
+
         const { data, error } = await query;
         if (error) throw error;
         const batch = (data ?? []) as any[];
@@ -220,6 +242,45 @@ export function ServicesCsvExportDialog({ open, onOpenChange }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <DatePickerField label="Service date from" value={startDate} onChange={setStartDate} />
             <DatePickerField label="Service date to" value={endDate} onChange={setEndDate} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <MultiSelect
+                options={statusOptions}
+                selected={statuses}
+                onChange={setStatuses}
+                placeholder="All statuses"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Technician</Label>
+              <MultiSelect
+                options={technicianOptions}
+                selected={technicians}
+                onChange={setTechnicians}
+                placeholder="All technicians"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Technician Department</Label>
+              <MultiSelect
+                options={departmentOptions}
+                selected={departments}
+                onChange={setDepartments}
+                placeholder="All departments"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Device Type</Label>
+              <MultiSelect
+                options={deviceTypeOptions}
+                selected={deviceTypes}
+                onChange={setDeviceTypes}
+                placeholder="All device types"
+              />
+            </div>
           </div>
 
           <div className="space-y-3">

@@ -1348,6 +1348,15 @@ const ServiceUpdate = () => {
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Status</p>
                     <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
+                    {/^RTO/i.test(String(serviceData?.status || "")) && (
+                      <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
+                        <p className="text-sm text-foreground">
+                          {(serviceData as any).rtoReason?.trim() ? (serviceData as any).rtoReason.trim() : "No reason recorded."}
+                        </p>
+                      </div>
+                    )}
+
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button onClick={handleViewPDF} variant="outline" size="sm" disabled={!serviceData?.pdfUrl}>
@@ -1552,14 +1561,6 @@ const ServiceUpdate = () => {
                       ))}
                   </SelectContent>
                 </Select>
-                {/^RTO/i.test(String(serviceData?.status || "")) && (
-                  <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
-                    <p className="text-sm text-foreground">
-                      {(serviceData as any).rtoReason?.trim() ? (serviceData as any).rtoReason.trim() : "No reason recorded."}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (

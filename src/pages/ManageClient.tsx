@@ -1928,14 +1928,6 @@ const ManageClient = () => {
             showFinal={serviceData.status !== "Pending Diagnosis"}
           />
 
-          {canEditAdminRep && !isEditingDetails && (
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit details
-              </Button>
-            </div>
-          )}
 
           <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
@@ -2150,8 +2142,17 @@ const ManageClient = () => {
                 />
                 ) : (
                 <div className="space-y-4">
+                  {canEditAdminRep && (
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit details
+                      </Button>
+                    </div>
+                  )}
                   <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</p>
+
                     <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
                       <WorkspaceField label="Client Name" value={serviceData.clientName} />
                       <WorkspaceField label="Client ID" value={serviceData.clientId} />
