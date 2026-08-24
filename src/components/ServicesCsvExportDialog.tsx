@@ -7,9 +7,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
+import { useTechnicians } from "@/hooks/useStaff";
+import { DEPARTMENTS, DEVICE_TYPES, STATUS_OPTIONS } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+
 
 /** Exportable columns of the services table, in a sensible reading order. */
 const EXPORT_COLUMNS: { key: string; label: string }[] = [
