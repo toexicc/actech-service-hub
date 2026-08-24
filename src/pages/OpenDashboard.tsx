@@ -301,6 +301,7 @@ const OpenDashboard = () => {
                                 </div>
                                 {service.service && (
                                   <div className="text-xs text-muted-foreground text-center mt-1">
+                                    <span className="font-semibold text-foreground">Service/s:</span>{" "}
                                     {service.service}
                                   </div>
                                 )}
