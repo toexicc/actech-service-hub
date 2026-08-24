@@ -804,9 +804,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     }
 
     // Tab filter — Cancelled / RTO / On Hold tickets are only ever visible in
-    // the "All" and "Cancelled / RTO / On Hold" tabs.
+    // the "All" and "Cancelled / RTO / On Hold" tabs, except on the Walk In tab
+    // where we want every today's walk-in intake regardless of closure status.
     const cls = classifyStatus(service.status);
-    if (activeTab !== "all" && activeTab !== "closed" && cls === "closed") return false;
+    if (activeTab !== "all" && activeTab !== "closed" && activeTab !== "walkin" && cls === "closed") return false;
     if (activeTab === "ongoing" && cls !== "active") return false;
     if (activeTab === "completed" && cls !== "completed") return false;
     if (activeTab === "closed" && cls !== "closed") return false;
