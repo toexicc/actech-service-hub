@@ -1362,18 +1362,37 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 tone="primary"
                 icon={<Clock className="h-5 w-5" />}
               />
-              <StatCard
-                label="Overdue"
-                value={overdueCount}
-                tone="destructive"
-                icon={<AlertCircle className="h-5 w-5" />}
-              />
-              <StatCard
-                label="On Track"
-                value={onTrackCount}
-                tone="success"
-                icon={<Calendar className="h-5 w-5" />}
-              />
+              <button
+                type="button"
+                onClick={() => selectDueFilter("overdue")}
+                className={cn(
+                  "rounded-2xl text-left transition-shadow",
+                  dueDateFilter === "overdue" && "ring-2 ring-destructive/50",
+                )}
+              >
+                <StatCard
+                  label="Overdue"
+                  value={overdueCount}
+                  tone="destructive"
+                  icon={<AlertCircle className="h-5 w-5" />}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => selectDueFilter("onTrack")}
+                className={cn(
+                  "rounded-2xl text-left transition-shadow",
+                  dueDateFilter === "onTrack" && "ring-2 ring-primary/50",
+                )}
+              >
+                <StatCard
+                  label="On Track"
+                  value={onTrackCount}
+                  tone="success"
+                  icon={<Calendar className="h-5 w-5" />}
+                />
+              </button>
+
             </div>
           );
         })()}
