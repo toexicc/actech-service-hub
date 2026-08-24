@@ -51,6 +51,8 @@ const OpenDashboard = () => {
       "RTO - Client",
       "RTO",
       "On Hold",
+      "Done Repair - For Release",
+      "Done Repair - Advise Client",
     ];
 
     return allServices.filter(
