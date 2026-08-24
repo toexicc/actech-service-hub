@@ -1590,11 +1590,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           <div className="flex flex-col">
                             <span className="text-muted-foreground">Service date</span>
                             <span className="font-medium">
-                              {(() => {
-                                // Older tickets predate the service_date column — fall back to intake.
-                                const raw = service.serviceDate || service.dateReceived || service.timestamp;
-                                return raw ? displayDate(raw, "MMM dd, yyyy") : "—";
-                              })()}
+                              {service.serviceDate ? displayDate(service.serviceDate, "MMM dd, yyyy") : "—"}
                             </span>
                           </div>
                           <div className="flex flex-col">
