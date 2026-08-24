@@ -916,6 +916,16 @@ const ServiceUpdate = () => {
     if (!sid) return;
     if (!serviceData) return;
 
+    // RTO - ACTech needs a reason before the status is saved.
+    const isRtoMove =
+      /^RTO/i.test((updateStatus || "").trim()) && updateStatus !== serviceData.status;
+    if (isRtoMove && !rtoConfirmRef.current) {
+      setRtoReasonInput((serviceData as any).rtoReason || "");
+      setRtoModalOpen(true);
+      return;
+    }
+    rtoConfirmRef.current = false;
+
     // Closed tickets (RTO / Cancelled / Completed) never wait for parts.
     const closedStatusMove =
       /^rto/i.test((updateStatus || "").trim()) ||
