@@ -214,116 +214,116 @@ const OpenDashboard = () => {
   const filteredServices = filterServicesByDate(services);
   const groupedServices = groupServicesByCategory(filteredServices);
 
+  const totalCount = filteredServices.length;
+
   return (
-    <DashboardLayout>
-      <div className="p-6 lg:p-8 animate-fade-in">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Tech Service Dashboard</h1>
-          <p className="text-muted-foreground">
-            {format(currentTime, "EEEE, MMMM d, yyyy")} • {format(currentTime, "h:mm:ss a")}
+    <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 px-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <div className="min-w-0">
+          <h1 className="text-base font-bold text-foreground leading-none">Tech Service Dashboard</h1>
+          <p className="text-[11px] text-muted-foreground leading-tight">
+            {format(currentTime, "EEE, MMM d")} • {format(currentTime, "h:mm:ss a")} • {totalCount} ticket{totalCount === 1 ? "" : "s"}
           </p>
         </div>
-
-        {/* Toggle */}
-        <div className="flex gap-3 justify-center py-3 mb-6">
+        <div className="ml-auto flex gap-2">
           <Button
+            size="sm"
             onClick={() => setViewMode("dueToday")}
             className={cn(
-              "rounded-full px-6 py-2 text-sm font-semibold",
+              "rounded-full h-7 px-3 text-xs font-semibold",
               viewMode === "dueToday"
                 ? "bg-primary hover:bg-primary/90 text-primary-foreground"
                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
             )}
           >
-            <Clock className="mr-2 h-4 w-4" />
+            <Clock className="mr-1 h-3.5 w-3.5" />
             Due Today
           </Button>
           <Button
+            size="sm"
             onClick={() => setViewMode("overdue")}
             className={cn(
-              "rounded-full px-6 py-2 text-sm font-semibold",
+              "rounded-full h-7 px-3 text-xs font-semibold",
               viewMode === "overdue"
                 ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
             )}
           >
-            <AlertCircle className="mr-2 h-4 w-4" />
+            <AlertCircle className="mr-1 h-3.5 w-3.5" />
             Overdue
           </Button>
         </div>
-
-        {/* Main Content */}
-        <div className="overflow-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center text-2xl py-12">Loading...</div>
-          ) : (
-            <div className="bg-card rounded-xl p-4 shadow-lg border border-border">
-              {Object.entries(groupedServices).map(([category, departments]) => (
-                <div key={category} className="mb-6 last:mb-0">
-                  <div className="flex justify-center mb-3">
-                    <span className="inline-flex items-center px-12 py-2 rounded-full bg-primary text-primary-foreground text-lg font-black">
-                      {category}
-                  </span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Object.entries(departments).map(([department, serviceList]) => (
-                      <div
-                        key={department}
-                        className="border border-border rounded-lg p-3"
-                      >
-                        <div className="flex justify-center mb-3">
-                          <span className="inline-flex items-center px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-bold text-center">
-                            {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
-                          </span>
-                        </div>
-                        {serviceList.length === 0 ? (
-                          <div className="text-center text-muted-foreground text-xs py-4">No services</div>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            {serviceList.map((service, idx) => (
-                              <div
-                                key={idx}
-                                className={cn(
-                                  "rounded-lg p-3 flex flex-col",
-                                  viewMode === "overdue" 
-                                    ? "bg-destructive/10 border border-destructive/30" 
-                                    : "bg-primary/5 border border-primary/20"
-                                )}
-                              >
-                                <div className={cn(
-                                  "font-mono text-lg font-black text-center leading-tight break-all mb-1",
-                                  viewMode === "overdue" ? "text-destructive" : "text-primary"
-                                )}>
-                                  {service.serviceId}
-                                </div>
-                                <div className="text-sm text-muted-foreground text-center font-medium">
-                                  {service.technician || "Unassigned"}
-                                </div>
-                                {service.service && (
-                                  <div className="text-xs text-muted-foreground text-center mt-1">
-                                    <span className="font-semibold text-foreground">Service/s:</span>{" "}
-                                    {service.service}
-                                  </div>
-                                )}
-
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="text-center mt-8 text-sm text-muted-foreground">
-          
-        </div>
       </div>
-    </DashboardLayout>
+
+      {/* Main Content — everything fits on one screen */}
+      <div className="flex-1 min-h-0 overflow-hidden p-2">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center text-lg">Loading...</div>
+        ) : (
+          <div className="grid h-full grid-rows-2 gap-2">
+            {Object.entries(groupedServices).map(([category, departments]) => (
+              <div key={category} className="min-h-0 flex flex-col">
+                <div className="flex items-center gap-2 mb-1 shrink-0">
+                  <span className="inline-flex items-center px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-[11px] font-black tracking-wide">
+                    {category}
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <div className="grid flex-1 min-h-0 grid-cols-2 md:grid-cols-4 gap-2">
+                  {Object.entries(departments).map(([department, serviceList]) => (
+                    <div
+                      key={department}
+                      className="border border-border rounded-md p-1.5 flex flex-col min-h-0"
+                    >
+                      <div className="flex items-center justify-between mb-1 shrink-0">
+                        <span className="text-[11px] font-bold text-foreground truncate">
+                          {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
+                        </span>
+                        <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+                          {serviceList.length}
+                        </span>
+                      </div>
+                      {serviceList.length === 0 ? (
+                        <div className="text-center text-muted-foreground text-[10px] py-2">—</div>
+                      ) : (
+                        <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1 content-start pr-0.5">
+                          {serviceList.map((service, idx) => (
+                            <div
+                              key={idx}
+                              className={cn(
+                                "rounded px-1 py-0.5 text-center",
+                                viewMode === "overdue"
+                                  ? "bg-destructive/10 border border-destructive/30"
+                                  : "bg-primary/5 border border-primary/20"
+                              )}
+                            >
+                              <div className={cn(
+                                "font-mono text-[11px] font-black leading-tight truncate",
+                                viewMode === "overdue" ? "text-destructive" : "text-primary"
+                              )}>
+                                {service.serviceId}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground leading-tight truncate">
+                                {service.technician || "Unassigned"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
