@@ -552,7 +552,7 @@ const Reports = () => {
     () =>
       actorRows
         .filter((a) => a.moves > 0)
-        .slice(0, 6)
+        .slice(0, 20)
         .map((a) => ({
           name: a.name,
           diagnosed: a.diagnosed,
@@ -1035,7 +1035,10 @@ const Reports = () => {
             icon={<Users className="h-4 w-4" />}
             hint="Counted from the activity log — each bar is real work the person did on tickets in this period. Completed also includes processing the payment and releasing the device."
           >
-            <div className="h-[240px] w-full min-w-0 max-w-full overflow-hidden">
+            <div
+              className="w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden"
+              style={{ height: Math.min(520, Math.max(240, actorChart.length * 34 + 60)) }}
+            >
               {loadingLogs ? (
                 <p className="text-sm text-muted-foreground">Loading activity log…</p>
               ) : logsFailed ? (
@@ -1050,7 +1053,7 @@ const Reports = () => {
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={actorChart.slice(0, 6)}
+                    data={actorChart}
                     layout="vertical"
                     margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
                     barSize={18}
