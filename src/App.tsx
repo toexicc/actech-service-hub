@@ -88,7 +88,11 @@ const App = () => (
               <Route path="/staff-management" element={<WorkbenchShell />} />
               <Route path="/completed-transactions" element={<WorkbenchShell />} />
               <Route path="/transaction-tracker" element={<WorkbenchShell />} />
-              <Route path="/tech-dashboard" element={<OpenDashboard />} />
+              <Route path="/tech-dashboard" element={
+                <ProtectedRoute>
+                  <OpenDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/admin-dashboard" element={<WorkbenchShell />} />
               <Route path="/request-for-parts" element={<WorkbenchShell />} />
               <Route path="/salary-disbursement" element={<WorkbenchShell />} />
