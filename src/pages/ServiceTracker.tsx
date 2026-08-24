@@ -809,7 +809,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "ongoing" && cls !== "active") return false;
     if (activeTab === "completed" && cls !== "completed") return false;
     if (activeTab === "closed" && cls !== "closed") return false;
-    if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
+    if (activeTab === "walkin") {
+      // Walk-in tab: only today's intakes whose client type is a walk-in variant.
+      const type = String(service.clientType || "").toLowerCase();
+      const isWalkInType = /(new client|returning client)\s*-\s*walk\s*in/.test(type);
+      const parsed = cardDate(service.serviceDate) || cardDate(service.timestamp);
+      const isToday = !!parsed && format(parsed, "yyyy-MM-dd") === format(getManilaDate(), "yyyy-MM-dd");
+      if (!isWalkInType || !isToday) return false;
+    }
 
     // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
     // Completed backjobs live in their own card, so keep them out of "Completed".
