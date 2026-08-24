@@ -45,13 +45,14 @@ const OpenDashboard = () => {
   // Filter services for this dashboard
   const services = useMemo(() => {
     const excludedStatuses = [
-      "For Pickup",
       "Completed",
-      "Backjob",
+      "Cancelled",
+      "RTO - ACTech",
+      "RTO - Client",
       "RTO",
       "On Hold",
-      "Cancelled"
     ];
+
     return allServices.filter(
       (service: any) => !excludedStatuses.includes(service.status)
     );
