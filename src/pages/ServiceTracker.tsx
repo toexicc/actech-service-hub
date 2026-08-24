@@ -202,7 +202,7 @@ const ServiceTracker = () => {
     if (!urlStatusFilter && !urlStatus && !urlTab) return;
 
     const next = new URLSearchParams(searchParams);
-    if (urlTab && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(urlTab)) {
+    if (urlTab && ["all", "walkin", "ongoing", "completed", "closed"].includes(urlTab)) {
       setActiveTab(urlTab as TrackerTab);
       next.delete('tab');
     }
