@@ -2056,6 +2056,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ServicesCsvExportDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} />
     </DashboardLayout>
 
   );
