@@ -1011,10 +1011,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     const cls = classifyStatus(v);
     const tabAllows =
       activeTab === "all" ||
+      activeTab === "walkin" ||
       (activeTab === "closed" && cls === "closed") ||
       (activeTab === "completed" && cls === "completed") ||
-      (activeTab === "ongoing" && cls === "active") ||
-      (activeTab === "walkin" && cls !== "closed" && cls !== "completed");
+      (activeTab === "ongoing" && cls === "active");
     if (!tabAllows) {
       setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
     }
