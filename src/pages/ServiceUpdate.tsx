@@ -2331,6 +2331,40 @@ const ServiceUpdate = () => {
         </DialogContent>
       </Dialog>
 
+      {/* RTO reason — shown to the client on /track */}
+      <Dialog open={rtoModalOpen} onOpenChange={setRtoModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reason for {updateStatus}</DialogTitle>
+            <DialogDescription>
+              This reason is shown to the client on their tracking page. Please be clear and factual.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={rtoReasonInput}
+            onChange={(e) => setRtoReasonInput(e.target.value.slice(0, 700))}
+            placeholder="e.g. Device could not be repaired and is being returned to the client."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRtoModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!rtoReasonInput.trim()}
+              onClick={() => {
+                setRtoModalOpen(false);
+                rtoConfirmRef.current = true;
+                handleUpdate();
+              }}
+            >
+              Save reason & set {updateStatus}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Waiting for Parts still on while moving into repair / done repair */}
       <Dialog open={partsModalOpen} onOpenChange={setPartsModalOpen}>
         <DialogContent className="sm:max-w-md">
