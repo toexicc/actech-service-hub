@@ -1109,6 +1109,14 @@ const ServiceTracking = () => {
                       {updatedAt && (
                         <p className="text-xs text-muted-foreground mt-1">Updated {displayDate(updatedAt, "MMM dd, yyyy · hh:mm a")}</p>
                       )}
+                      {/^RTO/i.test(String(serviceData?.status || "")) && (
+                        <div className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-4">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
+                          <p className="text-sm text-foreground">
+                            {(serviceData as any).rtoReason?.trim() ? (serviceData as any).rtoReason.trim() : "No reason recorded."}
+                          </p>
+                        </div>
+                      )}
                       {(serviceData as any).waitingForParts &&
                         !isClosed &&
                         !/completed/i.test(currentStatus) &&

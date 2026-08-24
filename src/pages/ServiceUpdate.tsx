@@ -238,6 +238,10 @@ const ServiceUpdate = () => {
   const [addlRepairOpen, setAddlRepairOpen] = useState(false);
   const [addlRepairReason, setAddlRepairReason] = useState("");
   const [addlRepairSending, setAddlRepairSending] = useState(false);
+  // RTO - ACTech needs a client-visible reason before the status is saved.
+  const [rtoReasonInput, setRtoReasonInput] = useState("");
+  const [rtoModalOpen, setRtoModalOpen] = useState(false);
+  const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
   // Absent / on-leave technicians are hidden so they don't get assigned, but
   // technicians already on this ticket are always kept so the field never blanks.
@@ -912,6 +916,16 @@ const ServiceUpdate = () => {
     if (!sid) return;
     if (!serviceData) return;
 
+    // RTO - ACTech needs a reason before the status is saved.
+    const isRtoMove =
+      /^RTO/i.test((updateStatus || "").trim()) && updateStatus !== serviceData.status;
+    if (isRtoMove && !rtoConfirmRef.current) {
+      setRtoReasonInput((serviceData as any).rtoReason || "");
+      setRtoModalOpen(true);
+      return;
+    }
+    rtoConfirmRef.current = false;
+
     // Closed tickets (RTO / Cancelled / Completed) never wait for parts.
     const closedStatusMove =
       /^rto/i.test((updateStatus || "").trim()) ||
@@ -1046,6 +1060,7 @@ const ServiceUpdate = () => {
         parts_cost: actualCost,
         discount: discountAmount,
         final_cost: finalCost,
+        ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
         last_updated: saveStamp,
       }).eq("service_id", sid).select("service_id");
       // Don't let our own write raise the "updated elsewhere" banner.
@@ -1535,11 +1550,19 @@ const ServiceUpdate = () => {
                           {status}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  </SelectContent>
+                </Select>
+                {/^RTO/i.test(String(serviceData?.status || "")) && (
+                  <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
+                    <p className="text-sm text-foreground">
+                      {(serviceData as any).rtoReason?.trim() ? (serviceData as any).rtoReason.trim() : "No reason recorded."}
+                    </p>
+                  </div>
+                )}
+              </div>
 
-                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+              {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
                   <TicketFlagsPanel
                     service={serviceData}
                     onChange={(patch) =>
@@ -2303,6 +2326,40 @@ const ServiceUpdate = () => {
             </Button>
             <Button onClick={handleAdditionalRepair} disabled={addlRepairSending || !addlRepairReason.trim() || !serviceData}>
               {addlRepairSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>) : "Back to Pending Diagnosis"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* RTO reason — shown to the client on /track */}
+      <Dialog open={rtoModalOpen} onOpenChange={setRtoModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reason for {updateStatus}</DialogTitle>
+            <DialogDescription>
+              This reason is shown to the client on their tracking page. Please be clear and factual.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={rtoReasonInput}
+            onChange={(e) => setRtoReasonInput(e.target.value.slice(0, 700))}
+            placeholder="e.g. Device could not be repaired and is being returned to the client."
+            rows={5}
+          />
+          <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRtoModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!rtoReasonInput.trim()}
+              onClick={() => {
+                setRtoModalOpen(false);
+                rtoConfirmRef.current = true;
+                handleUpdate();
+              }}
+            >
+              Save reason & set {updateStatus}
             </Button>
           </DialogFooter>
         </DialogContent>
