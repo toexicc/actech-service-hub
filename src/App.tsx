@@ -17,6 +17,7 @@ import ServiceForm from "./pages/ServiceForm";
 import Install from "./pages/Install";
 import Attendance from "./pages/Attendance";
 import KioskDevices from "./pages/KioskDevices";
+import OpenDashboard from "./pages/OpenDashboard";
 
 import NotFound from "./pages/NotFound";
 import QueueDisplay from "./pages/QueueDisplay";
