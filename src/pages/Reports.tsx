@@ -1188,6 +1188,8 @@ const Reports = () => {
                         <TableCell className="text-right whitespace-nowrap">{a.handedOver}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.approvals}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.backjobs}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.exceptions}</TableCell>
+
                         <TableCell className="text-right whitespace-nowrap">{a.completed}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.drivenEndToEnd}</TableCell>
                         <TableCell
