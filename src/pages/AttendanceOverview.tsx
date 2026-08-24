@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatWorkedTime } from "@/lib/attendanceHours";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -70,12 +71,8 @@ const toHHmm = (iso: string | null) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-const computeHours = (ti: string | null, to: string | null): string => {
-  if (!ti || !to) return "—";
-  const ms = new Date(to).getTime() - new Date(ti).getTime();
-  if (ms <= 0) return "—";
-  return `${(ms / 3_600_000).toFixed(2)} h`;
-};
+/** Worked time as "8h 05m", excluding the unpaid 12:00-1:00 PM lunch break. */
+const computeHours = (ti: string | null, to: string | null): string => formatWorkedTime(ti, to);
 
 /** Build an ISO timestamp for a "HH:mm" input on a given calendar day. */
 const isoFor = (day: string, hhmm: string) => (hhmm ? new Date(`${day}T${hhmm}:00`).toISOString() : null);

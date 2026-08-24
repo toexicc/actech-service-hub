@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { workedHours, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -150,13 +151,13 @@ const SalaryDisbursement = () => {
     };
   }, [salaryPeriod]);
 
-  // Pull attendance for the active period and count days present per staff (Time In present).
+  // Pull attendance for the active period and count days present per staff.
   const { data: periodAttendance = [] } = useQuery({
     queryKey: ["attendance", periodRange.start, periodRange.end],
     queryFn: async () => {
       const { data } = await supabase
         .from("attendance_logs")
-        .select("staff_id,log_date,time_in")
+        .select("staff_id,log_date,time_in,time_out")
         .gte("log_date", periodRange.start)
         .lte("log_date", periodRange.end);
       return data || [];
@@ -164,10 +165,30 @@ const SalaryDisbursement = () => {
     staleTime: 60 * 1000,
   });
 
+  /**
+   * Days present per staff, derived from worked hours (unpaid 12-1 PM lunch
+   * excluded, 8 hours = one full day). Days with a Time In but no Time Out
+   * still count as a full day so payroll is not penalised by a missing tap-out.
+   */
   const attendanceByStaffId = useMemo(() => {
     const m: Record<string, number> = {};
     periodAttendance.forEach((r: any) => {
-      if (r.time_in) m[r.staff_id] = (m[r.staff_id] || 0) + 1;
+      if (!r.time_in) return;
+      const hrs = workedHours(r.time_in, r.time_out);
+      const dayValue = r.time_out
+        ? Math.min(1, Math.round((hrs / FULL_SHIFT_HOURS) * 100) / 100)
+        : 1;
+      m[r.staff_id] = Math.round(((m[r.staff_id] || 0) + dayValue) * 100) / 100;
+    });
+    return m;
+  }, [periodAttendance]);
+
+  /** Total worked hours per staff for the period (lunch excluded). */
+  const hoursByStaffId = useMemo(() => {
+    const m: Record<string, number> = {};
+    periodAttendance.forEach((r: any) => {
+      if (!r.time_in || !r.time_out) return;
+      m[r.staff_id] = Math.round(((m[r.staff_id] || 0) + workedHours(r.time_in, r.time_out)) * 100) / 100;
     });
     return m;
   }, [periodAttendance]);
@@ -531,7 +552,10 @@ const SalaryDisbursement = () => {
                                   value={daysPresent[staff.staffId] || ""}
                                   onChange={(e) => setDaysPresent((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
-                                <div className="text-[10px] text-muted-foreground mt-1">attd: {attendanceByStaffId[staff.userId] ?? 0}/{workdaysInPeriod}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1">
+                                  attd: {attendanceByStaffId[staff.userId] ?? 0}/{workdaysInPeriod}
+                                  {" · "}{(hoursByStaffId[staff.userId] ?? 0).toFixed(2)}h
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
