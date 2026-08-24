@@ -297,11 +297,12 @@ const OpenDashboard = () => {
                                 <div className="text-sm text-muted-foreground text-center font-medium">
                                   {service.technician || "Unassigned"}
                                 </div>
-                                {service.internalTechnicianNotes && (
-                                  <div className="text-xs text-muted-foreground text-center mt-1 italic">
-                                    {service.internalTechnicianNotes}
+                                {service.service && (
+                                  <div className="text-xs text-muted-foreground text-center mt-1">
+                                    {service.service}
                                   </div>
                                 )}
+
                               </div>
                             ))}
                           </div>
