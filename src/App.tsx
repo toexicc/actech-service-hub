@@ -93,7 +93,6 @@ const App = () => (
                   <OpenDashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/admin-dashboard" element={<WorkbenchShell />} />
               <Route path="/request-for-parts" element={<WorkbenchShell />} />
               <Route path="/salary-disbursement" element={<WorkbenchShell />} />
               <Route path="/attendance-overview" element={<WorkbenchShell />} />
