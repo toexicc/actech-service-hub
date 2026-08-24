@@ -386,6 +386,8 @@ export interface ActorOutput {
   backjobs: number;
   /** Client approvals captured on the public tracker. */
   approvals: number;
+  /** Cancelled / On Hold / RTO / Backjob moves. */
+  exceptions: number;
   completed: number;
   drivenEndToEnd: number;
   assignedUntouched: number;
@@ -443,9 +445,22 @@ export const makeActorResolver = (
   };
 };
 
-const CONFIRMED = new Set(["confirmed diagnosis"]);
+const CONFIRMED = new Set(["confirmed diagnosis", "pending diagnosis"]);
 const TO_REPAIR = new Set(["waiting to proceed", "proceed repair", "ongoing service"]);
-const RELEASE = new Set(["done repair - for release", "done repair - advise client"]);
+const RELEASE = new Set([
+  "done repair - for release",
+  "done repair - advise client",
+  "done repair - under observation",
+]);
+/** Exception handling: nothing moves forward, but it is still real work. */
+const EXCEPTIONS = new Set([
+  "on hold",
+  "cancelled",
+  "backjob",
+  "rto",
+  "rto - actech",
+  "rto - client",
+]);
 const DONE = new Set(["completed"]);
 
 
@@ -514,6 +529,7 @@ export const buildActorOutput = (
     reportPhotos: number;
     backjobs: number;
     approvals: number;
+    exceptions: number;
     completed: number;
     completedTickets: Set<string>;
   }
@@ -540,6 +556,7 @@ export const buildActorOutput = (
         reportPhotos: 0,
         backjobs: 0,
         approvals: 0,
+        exceptions: 0,
         completed: 0,
         completedTickets: new Set(),
       };
@@ -568,15 +585,13 @@ export const buildActorOutput = (
       if (l.event === "photos_diagnosis") { e.photos += 1; e.diagnosed += 1; }
       if (l.event === "ai_report") { e.aiReports += 1; e.released += 1; }
       if (l.event === "photos_report") { e.reportPhotos += 1; e.released += 1; }
-      if (l.event === "backjob") e.backjobs += 1;
-      if (l.event === "approval") e.approvals += 1;
+      if (l.event === "backjob") { e.backjobs += 1; e.exceptions += 1; }
+      if (l.event === "approval") { e.approvals += 1; e.diagnosed += 1; }
       if (l.event === "payment") e.paid += 1;
       if (l.event === "release") e.handedOver += 1;
-      // Only payment and hand-over close a ticket in practice.
-      if (
-        (l.event === "payment" || l.event === "release") &&
-        !e.completedTickets.has(id)
-      ) {
+      // Every payment and hand-over counts as closing work so the stacked
+      // chart total always equals the move count.
+      if (l.event === "payment" || l.event === "release") {
         e.completed += 1;
         e.completedTickets.add(id);
       }
@@ -586,7 +601,8 @@ export const buildActorOutput = (
     if (CONFIRMED.has(to)) e.diagnosed += 1;
     if (TO_REPAIR.has(to)) e.toRepair += 1;
     if (RELEASE.has(to)) e.released += 1;
-    if (DONE.has(to) && !e.completedTickets.has(id)) {
+    if (EXCEPTIONS.has(to)) e.exceptions += 1;
+    if (DONE.has(to)) {
       e.completed += 1;
       e.completedTickets.add(id);
     }
@@ -648,6 +664,7 @@ export const buildActorOutput = (
         reportPhotos: v.reportPhotos,
         backjobs: v.backjobs,
         approvals: v.approvals,
+        exceptions: v.exceptions,
         paid: v.paid,
         handedOver: v.handedOver,
 
