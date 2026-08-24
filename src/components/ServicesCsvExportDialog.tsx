@@ -108,8 +108,21 @@ export function ServicesCsvExportDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [statuses, setStatuses] = useState<string[]>([]);
+  const [technicians, setTechnicians] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>(DEFAULT_KEYS);
   const [exporting, setExporting] = useState(false);
+
+  const { data: techList } = useTechnicians();
+  const technicianOptions = useMemo(
+    () => (techList ?? []).map((t) => ({ label: t.name, value: t.name })),
+    [techList],
+  );
+  const statusOptions = useMemo(() => STATUS_OPTIONS.map((s) => ({ label: s, value: s })), []);
+  const departmentOptions = useMemo(() => DEPARTMENTS.map((d) => ({ label: d, value: d })), []);
+  const deviceTypeOptions = useMemo(() => DEVICE_TYPES.map((d) => ({ label: d, value: d })), []);
 
   const allSelected = selected.length === EXPORT_COLUMNS.length;
   const columns = useMemo(
@@ -137,6 +150,11 @@ export function ServicesCsvExportDialog({ open, onOpenChange }: Props) {
           .range(from, from + pageSize - 1);
         if (startDate) query = query.gte("service_date", format(startDate, "yyyy-MM-dd"));
         if (endDate) query = query.lte("service_date", format(endDate, "yyyy-MM-dd"));
+        if (statuses.length) query = query.in("status", statuses as any);
+        if (deviceTypes.length) query = query.in("device_type", deviceTypes);
+        if (technicians.length) query = query.overlaps("technicians", technicians);
+        if (departments.length) query = query.overlaps("technician_departments", departments);
+
         const { data, error } = await query;
         if (error) throw error;
         const batch = (data ?? []) as any[];
