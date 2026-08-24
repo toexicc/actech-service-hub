@@ -1162,7 +1162,7 @@ const Reports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {actorRows.slice(0, 10).map((a) => (
+                    {actorRows.map((a) => (
                       <TableRow key={a.name}>
                         <TableCell className="font-medium whitespace-nowrap">{a.name}</TableCell>
                         <TableCell className="capitalize text-muted-foreground whitespace-nowrap">{a.role || "—"}</TableCell>
