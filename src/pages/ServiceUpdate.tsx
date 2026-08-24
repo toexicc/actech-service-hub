@@ -1552,14 +1552,6 @@ const ServiceUpdate = () => {
                       ))}
                   </SelectContent>
                 </Select>
-                {/^RTO/i.test(String(serviceData?.status || "")) && (
-                  <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
-                    <p className="text-sm text-foreground">
-                      {(serviceData as any).rtoReason?.trim() ? (serviceData as any).rtoReason.trim() : "No reason recorded."}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
