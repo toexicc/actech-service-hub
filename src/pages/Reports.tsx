@@ -552,7 +552,7 @@ const Reports = () => {
     () =>
       actorRows
         .filter((a) => a.moves > 0)
-        .slice(0, 8)
+        .slice(0, 6)
         .map((a) => ({
           name: a.name,
           diagnosed: a.diagnosed,
@@ -1035,7 +1035,7 @@ const Reports = () => {
             icon={<Users className="h-4 w-4" />}
             hint="Counted from the activity log — each bar is real work the person did on tickets in this period. Completed also includes processing the payment and releasing the device."
           >
-            <div className="h-[320px]">
+            <div className="h-[240px] w-full overflow-hidden">
               {loadingLogs ? (
                 <p className="text-sm text-muted-foreground">Loading activity log…</p>
               ) : logsFailed ? (
@@ -1050,12 +1050,26 @@ const Reports = () => {
               ) : (
 
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={actorChart} layout="vertical" margin={{ left: 20 }}>
+                  <BarChart
+                    data={actorChart}
+                    layout="vertical"
+                    margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                    barSize={14}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
                     <XAxis type="number" {...axisProps} allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" {...axisProps} width={140} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      {...axisProps}
+                      width={96}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(v: string) =>
+                        String(v).length > 14 ? `${String(v).slice(0, 13)}…` : String(v)
+                      }
+                    />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} iconSize={8} />
                     <Bar dataKey="diagnosed" name="Diagnosed" stackId="a" fill="hsl(var(--info))" />
                     <Bar dataKey="toRepair" name="To repair" stackId="a" fill="hsl(var(--primary))" />
                     <Bar dataKey="released" name="Released" stackId="a" fill="hsl(var(--warning))" />
