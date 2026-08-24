@@ -1035,7 +1035,7 @@ const Reports = () => {
             icon={<Users className="h-4 w-4" />}
             hint="Counted from the activity log — each bar is real work the person did on tickets in this period. Completed also includes processing the payment and releasing the device."
           >
-            <div className="h-[240px] w-full overflow-hidden">
+            <div className="h-[240px] w-full min-w-0 max-w-full overflow-hidden">
               {loadingLogs ? (
                 <p className="text-sm text-muted-foreground">Loading activity log…</p>
               ) : logsFailed ? (
@@ -1048,13 +1048,12 @@ const Reports = () => {
               ) : actorChart.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No status changes logged in this period.</p>
               ) : (
-
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={actorChart}
+                    data={actorChart.slice(0, 6)}
                     layout="vertical"
                     margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-                    barSize={14}
+                    barSize={18}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
                     <XAxis type="number" {...axisProps} allowDecimals={false} />
@@ -1062,10 +1061,10 @@ const Reports = () => {
                       type="category"
                       dataKey="name"
                       {...axisProps}
-                      width={96}
+                      width={90}
                       tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                       tickFormatter={(v: string) =>
-                        String(v).length > 14 ? `${String(v).slice(0, 13)}…` : String(v)
+                        String(v).length > 13 ? `${String(v).slice(0, 12)}…` : String(v)
                       }
                     />
                     <Tooltip contentStyle={tooltipStyle} />
