@@ -1060,6 +1060,7 @@ const ServiceUpdate = () => {
         parts_cost: actualCost,
         discount: discountAmount,
         final_cost: finalCost,
+        ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
         last_updated: saveStamp,
       }).eq("service_id", sid).select("service_id");
       // Don't let our own write raise the "updated elsewhere" banner.
