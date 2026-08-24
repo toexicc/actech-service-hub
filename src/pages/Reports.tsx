@@ -552,7 +552,7 @@ const Reports = () => {
     () =>
       actorRows
         .filter((a) => a.moves > 0)
-        .slice(0, 8)
+        .slice(0, 6)
         .map((a) => ({
           name: a.name,
           diagnosed: a.diagnosed,
