@@ -238,6 +238,10 @@ const ServiceUpdate = () => {
   const [addlRepairOpen, setAddlRepairOpen] = useState(false);
   const [addlRepairReason, setAddlRepairReason] = useState("");
   const [addlRepairSending, setAddlRepairSending] = useState(false);
+  // RTO - ACTech needs a client-visible reason before the status is saved.
+  const [rtoReasonInput, setRtoReasonInput] = useState("");
+  const [rtoModalOpen, setRtoModalOpen] = useState(false);
+  const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
   // Absent / on-leave technicians are hidden so they don't get assigned, but
   // technicians already on this ticket are always kept so the field never blanks.
