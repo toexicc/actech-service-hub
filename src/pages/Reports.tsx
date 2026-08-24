@@ -112,7 +112,7 @@ const Panel = ({
   className?: string;
   children: React.ReactNode;
 }) => (
-  <Card className={cn("border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl rounded-2xl", className)}>
+  <Card className={cn("border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl rounded-2xl min-w-0 overflow-hidden", className)}>
     <CardHeader className="pb-2">
       <CardTitle className="flex items-center gap-2 text-base">
         {icon}
@@ -120,7 +120,7 @@ const Panel = ({
       </CardTitle>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </CardHeader>
-    <CardContent>{children}</CardContent>
+    <CardContent className="min-w-0">{children}</CardContent>
   </Card>
 );
 
