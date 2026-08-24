@@ -21,7 +21,8 @@ export interface StatusLogEntry {
     | "ai_diagnosis"
     | "ai_report"
     | "quotation"
-    | "photos"
+    | "photos_diagnosis"
+    | "photos_report"
     | "backjob"
     | "approval";
 
