@@ -40,7 +40,6 @@ const PAGES: Array<{ label: string; path: string; roles?: string[]; iconName: st
   { label: "Salary Disbursement", path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
   { label: "Staff Management", path: "/staff-management", roles: ["management"], iconName: "Settings" },
   { label: "Attendance", path: "/attendance-overview", roles: ["management"], iconName: "Clock" },
-  { label: "Admin Dashboard", path: "/admin-dashboard", roles: ["management"], iconName: "LayoutDashboard" },
   { label: "Service Update", path: "/service-update", iconName: "Wrench" },
   { label: "Tech Dashboard", path: "/tech-dashboard", roles: ["management"], iconName: "Monitor" },
   { label: "Request for Parts", path: "/request-for-parts", iconName: "ShoppingCart" },

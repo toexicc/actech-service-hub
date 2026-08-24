@@ -324,12 +324,6 @@ const Menu = () => {
         path: "/pos",
       },
       {
-        title: "Admin Dashboard",
-        description: "Admin overview",
-        icon: LayoutDashboard,
-        path: "/admin-dashboard",
-      },
-      {
         title: "Tech Dashboard",
         description: "Department overview",
         icon: Monitor,

@@ -13,7 +13,6 @@ import StaffManagement from "@/pages/StaffManagement";
 import CompletedTransactions from "@/pages/CompletedTransactions";
 import TransactionTracker from "@/pages/TransactionTracker";
 import OpenDashboard from "@/pages/OpenDashboard";
-import AdminDashboard from "@/pages/AdminDashboard";
 import RequestForParts from "@/pages/RequestForParts";
 import SalaryDisbursement from "@/pages/SalaryDisbursement";
 import AttendanceOverview from "@/pages/AttendanceOverview";
@@ -41,7 +40,6 @@ export const workbenchRoutes: WorkbenchRouteDef[] = [
   { path: "/completed-transactions", element: <ProtectedRoute><CompletedTransactions /></ProtectedRoute> },
   { path: "/transaction-tracker", element: <ProtectedRoute><TransactionTracker /></ProtectedRoute> },
   { path: "/tech-dashboard", element: <ProtectedRoute><OpenDashboard /></ProtectedRoute> },
-  { path: "/admin-dashboard", element: <ProtectedRoute roles={["admin", "management"]}><AdminDashboard /></ProtectedRoute> },
   { path: "/request-for-parts", element: <ProtectedRoute><RequestForParts /></ProtectedRoute> },
   { path: "/salary-disbursement", element: <ProtectedRoute roles={["admin", "management"]}><SalaryDisbursement /></ProtectedRoute> },
   { path: "/attendance-overview", element: <ProtectedRoute roles={["management"]}><AttendanceOverview /></ProtectedRoute> },

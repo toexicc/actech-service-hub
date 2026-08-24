@@ -79,6 +79,9 @@ const STATUS_COUNT_CARDS = [
 
 const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
 
+/** True when the ticket priority is the "Within the Day" fast-track. */
+const isWithinDay = (s: any) => String(s?.priority || "").trim().toLowerCase() === "within the day";
+
 /** Loose date parser for the count cards (ISO or legacy "MM/dd/yyyy, hh:mm a"). */
 const cardDate = (value?: string | null): Date | null => {
   const raw = String(value || "").trim();
@@ -101,7 +104,7 @@ const isTodayService = (s: any): boolean => {
 
 
 /** Flag cards — tickets whose toggles are on, regardless of status. */
-type FlagKey = "today" | "waitingParts" | "backjob" | "completedBackjob" | "rush";
+type FlagKey = "today" | "waitingParts" | "backjob" | "completedBackjob" | "withinDay" | "rush";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
@@ -110,6 +113,11 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
     key: "completedBackjob",
     label: "Completed - Backjob",
     match: (s) => !!s.isBackjob && isDoneCompleted(s),
+  },
+  {
+    key: "withinDay",
+    label: "Within the Day",
+    match: (s) => isWithinDay(s) && !isDoneCompleted(s),
   },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
 ];
@@ -133,6 +141,9 @@ const ServiceTracker = () => {
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  // Set when a status count card drives the filter — the dropdown is then locked
+  // so the card and the dropdown can't disagree.
+  const [statusLockedByCard, setStatusLockedByCard] = useState(false);
   const [flagFilter, setFlagFilter] = useState<FlagKey | "all">("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -153,10 +164,10 @@ const ServiceTracker = () => {
   const [notifyService, setNotifyService] = useState<ServiceRecord | null>(null);
   const [notifyMessage, setNotifyMessage] = useState("");
   const [notifySending, setNotifySending] = useState(false);
-  type TrackerTab = "all" | "within" | "walkin" | "ongoing" | "completed" | "closed";
+  type TrackerTab = "all" | "walkin" | "ongoing" | "completed" | "closed";
   const initialTab = ((): TrackerTab => {
     const t = searchParams.get("tab") as TrackerTab | null;
-    if (t && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(t)) return t;
+    if (t && ["all", "walkin", "ongoing", "completed", "closed"].includes(t)) return t;
     const s = searchParams.get("status");
     if (s) {
       const c = classifyStatus(s);
@@ -191,7 +202,7 @@ const ServiceTracker = () => {
     if (!urlStatusFilter && !urlStatus && !urlTab) return;
 
     const next = new URLSearchParams(searchParams);
-    if (urlTab && ["all", "within", "walkin", "ongoing", "completed", "closed"].includes(urlTab)) {
+    if (urlTab && ["all", "walkin", "ongoing", "completed", "closed"].includes(urlTab)) {
       setActiveTab(urlTab as TrackerTab);
       next.delete('tab');
     }
@@ -798,7 +809,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (activeTab === "ongoing" && cls !== "active") return false;
     if (activeTab === "completed" && cls !== "completed") return false;
     if (activeTab === "closed" && cls !== "closed") return false;
-    if (activeTab === "within" && (cls === "completed" || String(service.priority || "").trim().toLowerCase() !== "within the day")) return false;
     if (activeTab === "walkin" && (cls === "completed" || !String(service.clientType || "").toLowerCase().includes("walk in"))) return false;
 
     // Status filter — "RTO" matches both RTO - ACTech and RTO - Client.
@@ -968,12 +978,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
    */
   const selectFlag = (key: FlagKey) => {
     setStatusFilter("all");
+    setStatusLockedByCard(false);
     setFlagFilter((prev) => (prev === key ? "all" : key));
     setActiveTab("all");
   };
 
-  const selectStatus = (v: string) => {
+  const selectStatus = (v: string, fromCard = false) => {
     setStatusFilter(v);
+    setStatusLockedByCard(v !== "all" && fromCard);
     setFlagFilter("all");
     if (v === "all") return;
     const cls = classifyStatus(v);
@@ -982,7 +994,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       (activeTab === "closed" && cls === "closed") ||
       (activeTab === "completed" && cls === "completed") ||
       (activeTab === "ongoing" && cls === "active") ||
-      ((activeTab === "within" || activeTab === "walkin") && cls !== "closed" && cls !== "completed");
+      (activeTab === "walkin" && cls !== "closed" && cls !== "completed");
     if (!tabAllows) {
       setActiveTab(cls === "completed" ? "completed" : cls === "closed" ? "closed" : "ongoing");
     }
@@ -991,6 +1003,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   const clearAllFilters = () => {
     setDeviceTypeFilter("all");
     setStatusFilter("all");
+    setStatusLockedByCard(false);
     setDueDateFilter("all");
     setStartDate(undefined);
     setEndDate(undefined);
@@ -1161,7 +1174,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 <Label>Status</Label>
                 <Select
                   value={statusFilter}
-                  onValueChange={selectStatus}
+                  onValueChange={(v) => selectStatus(v)}
+                  disabled={statusLockedByCard}
                 >
 
                   <SelectTrigger>
@@ -1174,6 +1188,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     ))}
                   </SelectContent>
                 </Select>
+                {statusLockedByCard && (
+                  <p className="text-xs text-muted-foreground">
+                    Set by the status card — click the card again to unlock.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1321,7 +1340,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             activeTab === "completed" ? "Completed shown"
             : activeTab === "closed" ? "Cancelled / RTO / On Hold"
             : activeTab === "all" ? "All shown"
-            : activeTab === "within" ? "Within the day"
             : activeTab === "walkin" ? "Walk-in shown"
             : "Total ongoing";
           return (
@@ -1375,7 +1393,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               <button
                 key={status}
                 type="button"
-                onClick={() => selectStatus(isActive ? "all" : status)}
+                onClick={() => selectStatus(isActive ? "all" : status, true)}
                 className={cn(
                   "rounded-2xl border p-3 text-left transition-colors",
                   isActive
@@ -1401,8 +1419,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 ? "Cancelled / RTO / On Hold"
                 : activeTab === "all"
                 ? "All Services"
-                : activeTab === "within"
-                ? "Within The Day"
+  
                 : activeTab === "walkin"
                 ? "Walk-In Services"
                 : "Ongoing Services"}
@@ -1410,7 +1427,6 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
               <TabsList className="flex flex-wrap gap-1">
                 <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="within">Within the Day</TabsTrigger>
                 <TabsTrigger value="walkin">Walk In</TabsTrigger>
                 <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
@@ -1518,6 +1534,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             </div>
                             <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
                             <div className="mt-1 flex flex-wrap gap-1">
+                              {isWithinDay(service) && (
+                                <span className="rounded-full border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-600">
+                                  Within the Day
+                                </span>
+                              )}
                               {(service as any).rushFee && (
                                 <span className="rounded-full border border-orange-400/40 bg-orange-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
                                   Rush
@@ -1566,6 +1587,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                         </div>
 
                         <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground">Service date</span>
+                            <span className="font-medium">
+                              {service.serviceDate ? displayDate(service.serviceDate, "MMM dd, yyyy") : "—"}
+                            </span>
+                          </div>
                           <div className="flex flex-col">
                             <span className="text-muted-foreground">Target</span>
                             <span className={cn("font-medium", overdueStatus && "text-destructive")}>

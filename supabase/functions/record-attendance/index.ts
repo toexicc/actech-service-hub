@@ -154,8 +154,8 @@ Deno.serve(async (req) => {
     const { date, hour, minute } = manilaParts(now);
     const logDate = date;
 
-    // Late if Time In after 10:00 AM Manila; Overtime if Time Out after 7:00 PM Manila.
-    const lateNow = action === "in" && (hour > 10 || (hour === 10 && minute > 0));
+    // Late if Time In after 10:10 AM Manila (10-minute grace); Overtime if Time Out after 7:00 PM Manila.
+    const lateNow = action === "in" && (hour > 10 || (hour === 10 && minute > 10));
     const overtimeNow = action === "out" && (hour > 19 || (hour === 19 && minute > 0));
 
     // Upsert: one row per staff per day.

@@ -41,7 +41,6 @@ const adminSection: NavSection = {
     { title: "Attendance", icon: Clock, path: "/attendance-overview", roles: ["management"], iconName: "Clock" },
     { title: "Kiosk Devices", icon: ShieldCheck, path: "/kiosk-devices", roles: ["management"], iconName: "ShieldCheck" },
     { title: "Reports", icon: BarChart3, path: "/reports", roles: ["management"], iconName: "BarChart3" },
-    { title: "Admin Dashboard", icon: LayoutDashboard, path: "/admin-dashboard", roles: ["management"], iconName: "LayoutDashboard" },
   ],
   roles: ["admin", "management"],
 };

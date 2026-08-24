@@ -1088,6 +1088,11 @@ const ServiceTracking = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        {String((serviceData as any)?.priority || "").trim().toLowerCase() === "within the day" && !isClosed && (
+                          <span className="rounded-full border border-sky-400/40 bg-sky-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-sky-600">
+                            Within the Day
+                          </span>
+                        )}
                         {rushRequested && !isClosed && (
                           <span className="rounded-full border border-orange-400/40 bg-orange-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-orange-600">
                             Rush
