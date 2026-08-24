@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { workedHours, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
