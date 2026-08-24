@@ -1129,58 +1129,55 @@ const Reports = () => {
                 No moves logged in this period for this selection.
               </p>
             ) : (
-
-              <div className="overflow-x-auto">
-                <Table>
+              <div className="min-w-0 max-w-full overflow-x-auto">
+                <Table className="w-full text-xs">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Staff</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead className="text-right">Moves</TableHead>
-                      <TableHead className="text-right">Tickets touched</TableHead>
-                      <TableHead className="text-right">Diagnosed</TableHead>
-                      <TableHead className="text-right">· AI diagnosis</TableHead>
-                      <TableHead className="text-right">· Quotations</TableHead>
-                      <TableHead className="text-right">· Diagnosis photos</TableHead>
-                      <TableHead className="text-right">To repair</TableHead>
-                      <TableHead className="text-right">Released</TableHead>
-                      <TableHead className="text-right">· AI reports</TableHead>
-                      <TableHead className="text-right">· Report photos</TableHead>
-                      <TableHead className="text-right">Paid</TableHead>
-                      <TableHead className="text-right">Handed over</TableHead>
-                      <TableHead className="text-right">Approvals</TableHead>
-                      <TableHead className="text-right">Backjobs</TableHead>
-                      <TableHead className="text-right">Completed</TableHead>
-
-                      <TableHead className="text-right">Driven end-to-end</TableHead>
-                      <TableHead className="text-right">Assigned untouched</TableHead>
+                      <TableHead className="whitespace-nowrap">Staff</TableHead>
+                      <TableHead className="whitespace-nowrap">Role</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Moves</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Tickets touched</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Diagnosed</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">· AI diagnosis</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">· Quotations</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">· Diagnosis photos</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">To repair</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Released</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">· AI reports</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">· Report photos</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Paid</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Handed over</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Approvals</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Backjobs</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Completed</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Driven end-to-end</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Assigned untouched</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {actorRows.slice(0, 20).map((a) => (
                       <TableRow key={a.name}>
-                        <TableCell className="font-medium">{a.name}</TableCell>
-                        <TableCell className="capitalize text-muted-foreground">{a.role || "—"}</TableCell>
-                        <TableCell className="text-right font-semibold">{a.moves}</TableCell>
-                        <TableCell className="text-right">{a.ticketsTouched}</TableCell>
-                        <TableCell className="text-right font-semibold">{a.diagnosed}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{a.aiDiagnosis}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{a.quotations}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{a.photos}</TableCell>
-                        <TableCell className="text-right">{a.toRepair}</TableCell>
-                        <TableCell className="text-right font-semibold">{a.released}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{a.aiReports}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{a.reportPhotos}</TableCell>
-                        <TableCell className="text-right">{a.paid}</TableCell>
-                        <TableCell className="text-right">{a.handedOver}</TableCell>
-                        <TableCell className="text-right">{a.approvals}</TableCell>
-                        <TableCell className="text-right">{a.backjobs}</TableCell>
-                        <TableCell className="text-right">{a.completed}</TableCell>
-
-                        <TableCell className="text-right">{a.drivenEndToEnd}</TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{a.name}</TableCell>
+                        <TableCell className="capitalize text-muted-foreground whitespace-nowrap">{a.role || "—"}</TableCell>
+                        <TableCell className="text-right font-semibold whitespace-nowrap">{a.moves}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.ticketsTouched}</TableCell>
+                        <TableCell className="text-right font-semibold whitespace-nowrap">{a.diagnosed}</TableCell>
+                        <TableCell className="text-right text-muted-foreground whitespace-nowrap">{a.aiDiagnosis}</TableCell>
+                        <TableCell className="text-right text-muted-foreground whitespace-nowrap">{a.quotations}</TableCell>
+                        <TableCell className="text-right text-muted-foreground whitespace-nowrap">{a.photos}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.toRepair}</TableCell>
+                        <TableCell className="text-right font-semibold whitespace-nowrap">{a.released}</TableCell>
+                        <TableCell className="text-right text-muted-foreground whitespace-nowrap">{a.aiReports}</TableCell>
+                        <TableCell className="text-right text-muted-foreground whitespace-nowrap">{a.reportPhotos}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.paid}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.handedOver}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.approvals}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.backjobs}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.completed}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.drivenEndToEnd}</TableCell>
                         <TableCell
                           className={cn(
-                            "text-right",
+                            "text-right whitespace-nowrap",
                             a.assignedUntouched > 0 ? "text-warning" : "text-muted-foreground",
                           )}
                         >
