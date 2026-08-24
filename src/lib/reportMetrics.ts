@@ -14,7 +14,16 @@ export interface StatusLogEntry {
   /** "on" / "off" when the entry is a Waiting-for-Parts toggle event. */
   waitingParts?: "on" | "off";
   /** Non-status work events that still count as real output. */
-  event?: "payment" | "release" | "void";
+  event?:
+    | "payment"
+    | "release"
+    | "void"
+    | "ai_diagnosis"
+    | "ai_report"
+    | "quotation"
+    | "photos"
+    | "backjob"
+    | "approval";
 
 
   /** Person who performed the logged action (from activity_logs.actor_name). */
@@ -262,6 +271,17 @@ const PAYMENT_RE = /^POS:\s*Recorded\b.*\bpayment\b/i;
 const RELEASE_EVENT_RE = /device\s+released\s+to\s+client/i;
 /** A voided transaction cancels the payment credit for that ticket. */
 const VOID_RE = /^voided\s+transaction\b/i;
+/** AI diagnosis / report generation (a real diagnosis-stage work event). */
+const AI_DIAGNOSIS_RE = /(format with ai \(ai diagnosis\)|ai diagnosis (updated|generated))/i;
+const AI_REPORT_RE = /(format with ai \(ai service report\)|ai (service )?report (updated|generated))/i;
+/** Quotation generated / regenerated / stored. */
+const QUOTATION_RE = /service quotation (form )?(generated|updated|auto-regenerated|document stored)/i;
+/** Photo uploads on the diagnosis or device report galleries. */
+const PHOTO_RE = /(diagnosis|device report)\s+photos?\b.*\b(uploaded|added)/i;
+/** Backjob raised on a ticket. */
+const BACKJOB_RE = /^marked as backjob/i;
+/** Client approval captured on the public tracker. */
+const APPROVAL_RE = /client approved on \/track/i;
 
 
 
@@ -305,6 +325,24 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   if (VOID_RE.test(action)) {
     return { serviceId, createdAt: row.created_at, event: "void", actor, role };
   }
+  if (PHOTO_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "photos", actor, role };
+  }
+  if (QUOTATION_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "quotation", actor, role };
+  }
+  if (AI_REPORT_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "ai_report", actor, role };
+  }
+  if (AI_DIAGNOSIS_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "ai_diagnosis", actor, role };
+  }
+  if (BACKJOB_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "backjob", actor, role };
+  }
+  if (APPROVAL_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "approval", actor, role };
+  }
 
   return null;
 
@@ -326,6 +364,18 @@ export interface ActorOutput {
   paid: number;
   /** Device hand-over events confirmed by this person. */
   handedOver: number;
+  /** AI diagnosis generations (diagnosis stage support work). */
+  aiDiagnosis: number;
+  /** AI service report generations (repair stage support work). */
+  aiReports: number;
+  /** Quotations generated or regenerated. */
+  quotations: number;
+  /** Photo batches uploaded (diagnosis or device report). */
+  photos: number;
+  /** Backjobs raised by this person. */
+  backjobs: number;
+  /** Client approvals captured on the public tracker. */
+  approvals: number;
   completed: number;
   drivenEndToEnd: number;
   assignedUntouched: number;
@@ -413,7 +463,7 @@ export const buildActorOutput = (
 
   const relevant = logs.filter(
     (l) =>
-      (!!l.to || !!l.created || l.event === "payment" || l.event === "release") &&
+      (!!l.to || !!l.created || (!!l.event && l.event !== "void")) &&
       isPerson(l.actor) &&
       inWindow(l.createdAt),
   );
@@ -436,6 +486,12 @@ export const buildActorOutput = (
     released: number;
     paid: number;
     handedOver: number;
+    aiDiagnosis: number;
+    aiReports: number;
+    quotations: number;
+    photos: number;
+    backjobs: number;
+    approvals: number;
     completed: number;
     completedTickets: Set<string>;
   }
@@ -455,6 +511,12 @@ export const buildActorOutput = (
         released: 0,
         paid: 0,
         handedOver: 0,
+        aiDiagnosis: 0,
+        aiReports: 0,
+        quotations: 0,
+        photos: 0,
+        backjobs: 0,
+        approvals: 0,
         completed: 0,
         completedTickets: new Set(),
       };
@@ -478,9 +540,19 @@ export const buildActorOutput = (
     if (l.event) {
       // Processing the payment or handing over the device closes the ticket in
       // practice — credit Completed once per ticket per person.
+      if (l.event === "ai_diagnosis") e.aiDiagnosis += 1;
+      if (l.event === "ai_report") e.aiReports += 1;
+      if (l.event === "quotation") e.quotations += 1;
+      if (l.event === "photos") e.photos += 1;
+      if (l.event === "backjob") e.backjobs += 1;
+      if (l.event === "approval") e.approvals += 1;
       if (l.event === "payment") e.paid += 1;
       if (l.event === "release") e.handedOver += 1;
-      if (!e.completedTickets.has(id)) {
+      // Only payment and hand-over close a ticket in practice.
+      if (
+        (l.event === "payment" || l.event === "release") &&
+        !e.completedTickets.has(id)
+      ) {
         e.completed += 1;
         e.completedTickets.add(id);
       }
