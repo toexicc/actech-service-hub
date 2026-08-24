@@ -1075,7 +1075,7 @@ const Reports = () => {
           <Panel
             title="Output leaderboard"
             icon={<Users className="h-4 w-4" />}
-            hint="Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid and Released show the raw event counts. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
+            hint="Diagnosis stage also counts AI diagnosis runs and quotations; repair stage counts AI reports and photo uploads. Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid and Released show the raw event counts. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
           >
             <div className="mb-3 flex flex-wrap gap-2">
               <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
@@ -1126,10 +1126,16 @@ const Reports = () => {
                       <TableHead className="text-right">Moves</TableHead>
                       <TableHead className="text-right">Tickets touched</TableHead>
                       <TableHead className="text-right">Diagnosed</TableHead>
+                      <TableHead className="text-right">AI diagnosis</TableHead>
+                      <TableHead className="text-right">Quotations</TableHead>
                       <TableHead className="text-right">To repair</TableHead>
+                      <TableHead className="text-right">AI reports</TableHead>
+                      <TableHead className="text-right">Photos</TableHead>
                       <TableHead className="text-right">Released</TableHead>
                       <TableHead className="text-right">Paid</TableHead>
                       <TableHead className="text-right">Handed over</TableHead>
+                      <TableHead className="text-right">Approvals</TableHead>
+                      <TableHead className="text-right">Backjobs</TableHead>
                       <TableHead className="text-right">Completed</TableHead>
 
                       <TableHead className="text-right">Driven end-to-end</TableHead>
@@ -1144,10 +1150,16 @@ const Reports = () => {
                         <TableCell className="text-right font-semibold">{a.moves}</TableCell>
                         <TableCell className="text-right">{a.ticketsTouched}</TableCell>
                         <TableCell className="text-right">{a.diagnosed}</TableCell>
+                        <TableCell className="text-right">{a.aiDiagnosis}</TableCell>
+                        <TableCell className="text-right">{a.quotations}</TableCell>
                         <TableCell className="text-right">{a.toRepair}</TableCell>
+                        <TableCell className="text-right">{a.aiReports}</TableCell>
+                        <TableCell className="text-right">{a.photos}</TableCell>
                         <TableCell className="text-right">{a.released}</TableCell>
                         <TableCell className="text-right">{a.paid}</TableCell>
                         <TableCell className="text-right">{a.handedOver}</TableCell>
+                        <TableCell className="text-right">{a.approvals}</TableCell>
+                        <TableCell className="text-right">{a.backjobs}</TableCell>
                         <TableCell className="text-right">{a.completed}</TableCell>
 
                         <TableCell className="text-right">{a.drivenEndToEnd}</TableCell>

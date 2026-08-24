@@ -114,7 +114,7 @@ export const DeviceReportPhotos = ({
       });
       await refresh();
       const summary = describeUploadResult(result);
-      const uploaded = list.length - (summary.failed ?? 0);
+      const uploaded = result.uploaded;
       if (uploaded > 0) {
         logTicketActivity(serviceId, `Device report photos uploaded (${uploaded})`, { count: uploaded, kind: "device_report" });
       }
