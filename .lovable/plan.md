@@ -36,13 +36,36 @@ Currently tracked from the activity log, per staff member, within the selected d
 - Completed: tickets they moved to Completed
 - Idle check: tickets assigned to them with no activity
 
-Candidate additions (not built yet — pick any and I will add them):
-- Average time a ticket sits with each person before they move it
-- Intake count (tickets they created) and queue entries they processed
-- Photos / reports uploaded, AI diagnosis generated
-- Backjob rate (tickets they completed that later returned as backjob)
-- Rush / Within-the-Day SLA hit rate (moved within the promised window)
-- Parts requests raised and received
+Additions to build, grouped under each existing stage column:
+
+**Diagnosed**
+- AI diagnosis generated (count of tickets where they ran the AI diagnosis)
+- Technician diagnosis written (manual diagnosis text saved)
+- Diagnosis photos uploaded
+- Time from intake to their Confirmed Diagnosis (average hours)
+
+**To repair**
+- Device report photos uploaded
+- Technician report written / saved
+- Quotation generated (Service Quotation PDF created)
+- Parts requested and parts received on their tickets
+- Waiting-for-Parts flags they raised and cleared
+
+**Released**
+- Release-ready turnaround: hours from Ongoing Service to their release move
+- Observation passes (moves into Done Repair - Under Observation)
+- Client advised count (moves into Done Repair - Advise Client)
+
+**Completed**
+- Revenue completed (final cost of tickets they closed)
+- Backjob rate: tickets they completed that later returned as Backjob
+- Rush / Within-the-Day SLA hit rate (closed within the promised window)
+- Average full turnaround for tickets they closed (service date to completion, Sundays excluded)
+
+**Cross-stage (new small columns)**
+- Intake created (tickets they opened) and queue entries they processed
+- Reopened/declined approvals they handled
+
 
 ## Technical notes
 - Files touched: `src/App.tsx`, `src/components/DashboardLayout.tsx`, `src/components/CommandPalette.tsx`, `src/components/workbench/workbenchRoutes.tsx`, `src/pages/Menu.tsx`, `src/pages/ServiceTracker.tsx`, `src/pages/ServiceTracking.tsx`, `src/pages/AttendanceOverview.tsx`, `src/components/ConfirmReleaseModal.tsx`, `supabase/functions/record-attendance/index.ts`, plus a new `supabase/functions/within-day-stale-alerts` function.
