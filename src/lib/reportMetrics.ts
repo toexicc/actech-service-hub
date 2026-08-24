@@ -617,6 +617,12 @@ export const buildActorOutput = (
         diagnosed: v.diagnosed,
         toRepair: v.toRepair,
         released: v.released,
+        aiDiagnosis: v.aiDiagnosis,
+        aiReports: v.aiReports,
+        quotations: v.quotations,
+        photos: v.photos,
+        backjobs: v.backjobs,
+        approvals: v.approvals,
         paid: v.paid,
         handedOver: v.handedOver,
 
