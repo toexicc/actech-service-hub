@@ -1053,7 +1053,7 @@ const Reports = () => {
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={actorChart.slice(0, 6)}
+                    data={actorChart}
                     layout="vertical"
                     margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
                     barSize={18}
