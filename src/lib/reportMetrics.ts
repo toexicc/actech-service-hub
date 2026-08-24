@@ -327,7 +327,14 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
     return { serviceId, createdAt: row.created_at, event: "void", actor, role };
   }
   if (PHOTO_RE.test(action)) {
-    return { serviceId, createdAt: row.created_at, event: "photos", actor, role };
+    const isReport = /device report/i.test(action);
+    return {
+      serviceId,
+      createdAt: row.created_at,
+      event: isReport ? "photos_report" : "photos_diagnosis",
+      actor,
+      role,
+    };
   }
   if (QUOTATION_RE.test(action)) {
     return { serviceId, createdAt: row.created_at, event: "quotation", actor, role };
