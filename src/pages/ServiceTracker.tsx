@@ -988,6 +988,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
    * Set the status filter and only move the tab when the chosen status could
    * never appear in the tab currently selected (so filters keep combining).
    */
+  /** Overdue / On Track summary cards act as due-date filters. */
+  const selectDueFilter = (key: "overdue" | "onTrack") => {
+    setDueDateFilter((prev) => (prev === key ? "all" : key));
+    setCurrentPage(1);
+  };
+
   const selectFlag = (key: FlagKey) => {
     setStatusFilter("all");
     setStatusLockedByCard(false);
