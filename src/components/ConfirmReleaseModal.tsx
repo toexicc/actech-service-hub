@@ -26,6 +26,8 @@ import { fetchStaffList, type StaffMember } from "@/lib/staffList";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Search } from "lucide-react";
 
+const DELIVERY_OPTION = "AC Tech Delivery - Harly";
+
 interface Props {
   /** Queue-driven release. Modal is open while this is non-null. */
   entry?: QueueEntry | null;
@@ -67,6 +69,8 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
   const open = !!entry || !!manual;
 
   const [releasedFrom, setReleasedFrom] = useState("");
+  // When the device is handed to the courier, we also record which staff released it to them.
+  const [releasedFromSecondary, setReleasedFromSecondary] = useState("");
   const [receivedBy, setReceivedBy] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -194,6 +198,10 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
       toast({ title: "Select who holds the device", variant: "destructive" });
       return;
     }
+    if (releasedFrom === DELIVERY_OPTION && !releasedFromSecondary) {
+      toast({ title: "Select the staff who handed the device to delivery", variant: "destructive" });
+      return;
+    }
     const serviceId = entry?.service_id || ticket?.serviceId || null;
     if (!entry && !serviceId) {
       toast({ title: "Search a Service ID first", variant: "destructive" });
@@ -224,7 +232,10 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
           assigned_admin: ticket?.adminReps || null,
           assigned_technician: ticket?.technicians || null,
           handling_staff: ticket?.receivingStaff || null,
-          released_from: releasedFrom,
+          released_from:
+            releasedFrom === DELIVERY_OPTION
+              ? `${DELIVERY_OPTION} (via ${releasedFromSecondary})`
+              : releasedFrom,
           released_by: releasedBy,
           received_by: receivedBy.trim() || summary.clientName,
           release_notes: notes.trim() || null,
@@ -307,6 +318,7 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
                   <SelectValue placeholder="Select staff" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={DELIVERY_OPTION}>{DELIVERY_OPTION}</SelectItem>
                   {staff.map((s) => (
                     <SelectItem key={s.id} value={s.name}>
                       {s.name}
@@ -319,6 +331,28 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
                 Who holds the device before releasing.
               </p>
             </div>
+
+            {releasedFrom === DELIVERY_OPTION && (
+              <div className="space-y-1">
+                <Label htmlFor="released-from-secondary">Handed to delivery by</Label>
+                <Select value={releasedFromSecondary} onValueChange={setReleasedFromSecondary}>
+                  <SelectTrigger id="released-from-secondary">
+                    <SelectValue placeholder="Select staff" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staff.map((s) => (
+                      <SelectItem key={`sec-${s.id}`} value={s.name}>
+                        {s.name}
+                        {s.role ? ` — ${s.role}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Required when the device leaves through AC Tech delivery.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1">
               <Label htmlFor="released-by">Released by</Label>
@@ -354,7 +388,7 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
           </Button>
           <Button
             onClick={confirm}
-            disabled={saving || !releasedFrom || (!entry && !ticket)}
+            disabled={saving || !releasedFrom || (releasedFrom === DELIVERY_OPTION && !releasedFromSecondary) || (!entry && !ticket)}
           >
             {saving ? "Releasing…" : "Confirm release"}
           </Button>
