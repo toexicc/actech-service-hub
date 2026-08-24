@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { isSameDay, isBefore, startOfDay, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEPARTMENTS } from "@/lib/constants";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
