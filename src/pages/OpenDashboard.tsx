@@ -225,8 +225,8 @@ const OpenDashboard = () => {
           Back
         </Button>
         <div className="min-w-0">
-          <h1 className="text-base font-bold text-foreground leading-none">Tech Service Dashboard</h1>
-          <p className="text-[11px] text-muted-foreground leading-tight">
+          <h1 className="text-lg font-bold text-foreground leading-none">Tech Service Dashboard</h1>
+          <p className="text-xs text-muted-foreground leading-tight">
             {format(currentTime, "EEE, MMM d")} • {format(currentTime, "h:mm:ss a")} • {totalCount} ticket{totalCount === 1 ? "" : "s"}
           </p>
         </div>
@@ -235,7 +235,7 @@ const OpenDashboard = () => {
             size="sm"
             onClick={() => setViewMode("dueToday")}
             className={cn(
-              "rounded-full h-7 px-3 text-xs font-semibold",
+              "rounded-full h-8 px-4 text-xs font-semibold",
               viewMode === "dueToday"
                 ? "bg-primary hover:bg-primary/90 text-primary-foreground"
                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
@@ -248,7 +248,7 @@ const OpenDashboard = () => {
             size="sm"
             onClick={() => setViewMode("overdue")}
             className={cn(
-              "rounded-full h-7 px-3 text-xs font-semibold",
+              "rounded-full h-8 px-4 text-xs font-semibold",
               viewMode === "overdue"
                 ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
@@ -261,54 +261,54 @@ const OpenDashboard = () => {
       </div>
 
       {/* Main Content — everything fits on one screen */}
-      <div className="flex-1 min-h-0 overflow-hidden p-2">
+      <div className="flex-1 min-h-0 overflow-hidden p-3">
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-lg">Loading...</div>
         ) : (
-          <div className="grid h-full grid-rows-2 gap-2">
+          <div className="grid h-full grid-rows-2 gap-3">
             {Object.entries(groupedServices).map(([category, departments]) => (
               <div key={category} className="min-h-0 flex flex-col">
-                <div className="flex items-center gap-2 mb-1 shrink-0">
-                  <span className="inline-flex items-center px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-[11px] font-black tracking-wide">
+                <div className="flex items-center gap-2 mb-2 shrink-0">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-black tracking-wide">
                     {category}
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                <div className="grid flex-1 min-h-0 grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid flex-1 min-h-0 grid-cols-2 md:grid-cols-4 gap-3">
                   {Object.entries(departments).map(([department, serviceList]) => (
                     <div
                       key={department}
-                      className="border border-border rounded-md p-1.5 flex flex-col min-h-0"
+                      className="border border-border rounded-lg p-2 flex flex-col min-h-0"
                     >
-                      <div className="flex items-center justify-between mb-1 shrink-0">
-                        <span className="text-[11px] font-bold text-foreground truncate">
+                      <div className="flex items-center justify-between mb-2 shrink-0">
+                        <span className="text-xs font-bold text-foreground truncate">
                           {department.replace("Laptop (", "").replace("Mobile (", "").replace(")", "")}
                         </span>
-                        <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">
+                        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
                           {serviceList.length}
                         </span>
                       </div>
                       {serviceList.length === 0 ? (
-                        <div className="text-center text-muted-foreground text-[10px] py-2">—</div>
+                        <div className="text-center text-muted-foreground text-xs py-2">—</div>
                       ) : (
-                        <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1 content-start pr-0.5">
+                        <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-1.5 content-start pr-0.5">
                           {serviceList.map((service, idx) => (
                             <div
                               key={idx}
                               className={cn(
-                                "rounded px-1 py-0.5 text-center",
+                                "rounded px-1.5 py-1 text-center",
                                 viewMode === "overdue"
                                   ? "bg-destructive/10 border border-destructive/30"
                                   : "bg-primary/5 border border-primary/20"
                               )}
                             >
                               <div className={cn(
-                                "font-mono text-[11px] font-black leading-tight truncate",
+                                "font-mono text-sm font-black leading-tight truncate",
                                 viewMode === "overdue" ? "text-destructive" : "text-primary"
                               )}>
                                 {service.serviceId}
                               </div>
-                              <div className="text-[9px] text-muted-foreground leading-tight truncate">
+                              <div className="text-xs text-muted-foreground leading-tight truncate">
                                 {service.technician || "Unassigned"}
                               </div>
                             </div>
