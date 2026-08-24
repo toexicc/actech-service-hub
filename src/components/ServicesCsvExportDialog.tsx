@@ -244,6 +244,45 @@ export function ServicesCsvExportDialog({ open, onOpenChange }: Props) {
             <DatePickerField label="Service date to" value={endDate} onChange={setEndDate} />
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <MultiSelect
+                options={statusOptions}
+                selected={statuses}
+                onChange={setStatuses}
+                placeholder="All statuses"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Technician</Label>
+              <MultiSelect
+                options={technicianOptions}
+                selected={technicians}
+                onChange={setTechnicians}
+                placeholder="All technicians"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Technician Department</Label>
+              <MultiSelect
+                options={departmentOptions}
+                selected={departments}
+                onChange={setDepartments}
+                placeholder="All departments"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Device Type</Label>
+              <MultiSelect
+                options={deviceTypeOptions}
+                selected={deviceTypes}
+                onChange={setDeviceTypes}
+                placeholder="All device types"
+              />
+            </div>
+          </div>
+
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Columns ({selected.length}/{EXPORT_COLUMNS.length})</Label>
