@@ -209,7 +209,7 @@ const AttendanceOverview = () => {
     return seen;
   }, [filtered]);
 
-  const DAYS_PER_PAGE = 3;
+  const DAYS_PER_PAGE = 1;
   const pageCount = Math.max(1, Math.ceil(days.length / DAYS_PER_PAGE));
   const currentPage = Math.min(page, pageCount - 1);
   const pageDays = days.slice(currentPage * DAYS_PER_PAGE, currentPage * DAYS_PER_PAGE + DAYS_PER_PAGE);
@@ -286,7 +286,7 @@ const AttendanceOverview = () => {
           log_date: bulkDate,
           time_in: timeIn,
           time_out: isoFor(bulkDate, entry.timeOut),
-          is_late: entry.timeIn > "09:15",
+          is_late: entry.timeIn > "10:10",
           is_overtime: !!entry.timeOut && entry.timeOut > "18:00",
         };
       });
