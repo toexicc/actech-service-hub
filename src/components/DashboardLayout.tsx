@@ -308,44 +308,41 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
-      <div className="origin-top-left h-[125vh] w-[125vw] overflow-hidden [transform:scale(0.8)]">
-        <aside
-          className={cn(
-            "fixed left-3 top-3 bottom-3 z-40 glass-sidebar rounded-2xl transition-all",
-            collapsed ? "w-[68px]" : "w-64",
-          )}
+      <aside
+        className={cn(
+          "fixed left-3 top-3 bottom-3 z-40 glass-sidebar rounded-2xl transition-all",
+          collapsed ? "w-[68px]" : "w-64",
+        )}
+      >
+        {sidebarContent}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90 z-10"
         >
-          {sidebarContent}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90 z-10"
-          >
-            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
-          </button>
-        </aside>
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
+      </aside>
 
-        <main className={cn("flex flex-col h-[125vh] min-w-0 transition-all", collapsed ? "ml-[88px]" : "ml-[280px]")}>
-          <header className={cn(
-            "fixed top-3 right-3 z-40 flex h-14 items-center justify-between gap-3 pl-3 pr-2 glass-panel rounded-2xl",
-            collapsed ? "left-[88px]" : "left-[280px]",
-          )}>
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <TabBar />
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {searchTrigger}
-              <div className="glass-panel rounded-full flex items-center">
-                <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
-                <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
-              </div>
-            </div>
-          </header>
-          <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain pt-[76px] px-3 pb-3">
-            <div className="min-h-full w-full">{children}</div>
+      <main className={cn("fixed top-3 right-3 bottom-3 left-[280px] flex flex-col min-w-0 transition-all rounded-2xl overflow-hidden", collapsed ? "left-[88px]" : "left-[280px]")}>
+        <header className={cn(
+          "absolute top-0 right-0 left-0 z-40 flex h-14 items-center justify-between gap-3 pl-3 pr-2 glass-panel rounded-t-2xl",
+        )}>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <TabBar />
           </div>
-        </main>
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {searchTrigger}
+            <div className="glass-panel rounded-full flex items-center">
+              <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
+              <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 min-w-0 w-full overflow-auto overscroll-contain pt-14 px-3 pb-3">
+          <div className="min-h-full w-full">{children}</div>
+        </div>
+      </main>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
 }
