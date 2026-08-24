@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import ActivityLogRow from "@/components/ActivityLogRow";
+import ServicesCsvExportDialog from "@/components/ServicesCsvExportDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
@@ -178,6 +179,7 @@ const ServiceTracker = () => {
   })();
   const [activeTab, setActiveTab] = useState<TrackerTab>(initialTab);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
