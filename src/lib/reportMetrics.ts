@@ -396,6 +396,17 @@ const norm = (s: any) => String(s ?? "").trim().toLowerCase();
 /** Automated actors must never appear on a staff leaderboard. */
 const SYSTEM_ACTOR_RE = /^system\b/i;
 
+/** Accounts that must never be reported as staff output (shared/admin logins). */
+const EXCLUDED_ACTOR_NAMES = new Set(["ac tech admin", "actech admin", "exi baclayon"]);
+
+/** True when the name is a real, reportable staff member. */
+export const isReportableActor = (name?: string): boolean => {
+  const trimmed = String(name ?? "").trim();
+  if (!trimmed) return false;
+  if (SYSTEM_ACTOR_RE.test(trimmed)) return false;
+  return !EXCLUDED_ACTOR_NAMES.has(trimmed.toLowerCase());
+};
+
 /**
  * Resolves the many ways one person shows up in the log to a single identity:
  * a trailing " - Management" style suffix is stripped, login emails are matched
@@ -456,7 +467,7 @@ export const buildActorOutput = (
   period?: Period | null,
 ): ActorOutput[] => {
   const resolve = makeActorResolver(staff);
-  const isPerson = (name?: string) => !!name && !SYSTEM_ACTOR_RE.test(name.trim());
+  const isPerson = (name?: string) => isReportableActor(name);
 
   const inWindow = (raw: any): boolean => {
     if (!period?.start || !period?.end) return true;

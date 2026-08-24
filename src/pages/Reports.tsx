@@ -64,6 +64,7 @@ import {
   bucketLabel,
   buildTimings,
   buildActorOutput,
+  isReportableActor,
   bucketTurnaround,
   avg,
   startOfDay,
@@ -471,6 +472,7 @@ const Reports = () => {
       });
     });
     return Array.from(map.entries())
+      .filter(([name]) => isReportableActor(name))
       .map(([name, v]) => ({
         name,
         completed: v.completed,
@@ -510,6 +512,7 @@ const Reports = () => {
       });
     });
     return Array.from(map.entries())
+      .filter(([name]) => isReportableActor(name))
       .map(([name, v]) => ({
         name,
         tickets: v.tickets,
@@ -540,6 +543,7 @@ const Reports = () => {
 
   const actorRows = useMemo(() => {
     const rows = actorOutput.filter((a) => {
+      if (!isReportableActor(a.name)) return false;
       if (a.moves === 0 && a.assignedUntouched === 0) return false;
       if (outputRole !== "all" && String(a.role || "").toLowerCase() !== outputRole) return false;
       if (selectedStaff.length > 0 && !selectedStaff.includes(a.name)) return false;
@@ -552,7 +556,7 @@ const Reports = () => {
     () =>
       actorRows
         .filter((a) => a.moves > 0)
-        .slice(0, 20)
+        .slice(0, 10)
         .map((a) => ({
           name: a.name,
           diagnosed: a.diagnosed,
@@ -1158,7 +1162,7 @@ const Reports = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {actorRows.slice(0, 20).map((a) => (
+                    {actorRows.slice(0, 10).map((a) => (
                       <TableRow key={a.name}>
                         <TableCell className="font-medium whitespace-nowrap">{a.name}</TableCell>
                         <TableCell className="capitalize text-muted-foreground whitespace-nowrap">{a.role || "—"}</TableCell>
