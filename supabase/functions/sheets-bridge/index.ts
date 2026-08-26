@@ -29,6 +29,7 @@ const PUBLIC_ACTIONS = new Set<string>([
   "getDeviceReportPhotos",
   "getServiceLogs",
   "getServicePayments",
+  "submitReleaseQueue",
 ]);
 
 // Actions that require admin or management role on top of authentication
@@ -102,6 +103,8 @@ const num = (v: any): number => {
   const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
+
+const CLIENT_PAYMENT_TYPES = new Set(["Down Payment", "Full Payment", "Partial Payment"]);
 
 const genId = (prefix: string, len = 11) =>
   prefix + String(Math.floor(Math.random() * 10 ** len)).padStart(len, "0");
@@ -285,12 +288,98 @@ async function getTransactions() {
 async function getServicePayments(serviceId: string) {
   const { data } = await sb
     .from("transactions")
-    .select("amount,type")
+    .select("amount,type,status")
     .eq("service_id", serviceId);
   const totalPaid = (data ?? [])
-    .filter((t: any) => t.type !== "Refund")
+    .filter((t: any) => CLIENT_PAYMENT_TYPES.has(String(t.type ?? "")))
+    .filter((t: any) => !["voided", "cancelled", "canceled"].includes(String(t.status ?? "").toLowerCase()))
     .reduce((s: number, t: any) => s + num(t.amount), 0);
   return json({ status: "success", totalPaid });
+}
+
+async function submitReleaseQueue(b: Record<string, any>) {
+  const serviceId = String(b.serviceId ?? b.service_id ?? "").trim().toUpperCase();
+  const submittedLast4 = String(b.last4 ?? "").replace(/\D/g, "").slice(-4);
+  if (!serviceId) return err("Service ID is required");
+  if (submittedLast4.length !== 4) return err("Last 4 digits are required");
+
+  const { data: svc, error: svcError } = await sb
+    .from("services")
+    .select("service_id,client_name,contact_number,device_type,brand,model,chief_complaint,color,memory,service,status,repair_time_frame,date_received,service_date")
+    .eq("service_id", serviceId)
+    .maybeSingle();
+  if (svcError) return err(svcError.message, 500);
+  if (!svc) return err("Ticket not found", 404);
+
+  const expectedLast4 = String((svc as any).contact_number ?? "").replace(/\D/g, "").slice(-4);
+  if (expectedLast4.length !== 4 || submittedLast4 !== expectedLast4) {
+    return err("Verification failed", 403);
+  }
+
+  const { data: existing, error: existingError } = await sb
+    .from("queue_entries")
+    .select("id,display_code,status")
+    .eq("kind", "release")
+    .eq("service_id", serviceId)
+    .in("status", ["waiting", "proceed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError) return err(existingError.message, 500);
+  if (existing) {
+    return json({ status: "success", displayCode: existing.display_code, queueId: existing.id, reused: true });
+  }
+
+  const summary = {
+    service_id: (svc as any).service_id,
+    client_name: (svc as any).client_name,
+    contact_number: (svc as any).contact_number,
+    device_type: (svc as any).device_type,
+    brand: (svc as any).brand,
+    model: (svc as any).model,
+    chief_complaint: (svc as any).chief_complaint,
+    color: (svc as any).color,
+    memory: (svc as any).memory,
+    service: (svc as any).service,
+    status: (svc as any).status,
+    repair_time_frame: (svc as any).repair_time_frame,
+    date_received: (svc as any).date_received,
+    service_date: (svc as any).service_date,
+  };
+
+  const { data: inserted, error: insertError } = await sb
+    .from("queue_entries")
+    .insert({
+      kind: "release",
+      client_name: summary.client_name,
+      contact_number: summary.contact_number,
+      device_type: summary.device_type,
+      brand: summary.brand,
+      model: summary.model,
+      chief_complaint: summary.chief_complaint,
+      service_id: summary.service_id,
+      form_payload: summary,
+    })
+    .select("id,display_code,status")
+    .single();
+
+  if (insertError) {
+    const { data: fallback } = await sb
+      .from("queue_entries")
+      .select("id,display_code,status")
+      .eq("kind", "release")
+      .eq("service_id", serviceId)
+      .in("status", ["waiting", "proceed"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (fallback) {
+      return json({ status: "success", displayCode: fallback.display_code, queueId: fallback.id, reused: true });
+    }
+    return err(insertError.message, 500);
+  }
+
+  return json({ status: "success", displayCode: inserted.display_code, queueId: inserted.id, reused: false });
 }
 
 async function getServiceLogs(serviceId: string, limit = 50) {
@@ -1257,6 +1346,8 @@ async function serve() {
           return await getTransactions();
         case "getServicePayments":
           return await getServicePayments(params.get("serviceId") ?? "");
+        case "submitReleaseQueue":
+          return await submitReleaseQueue(body);
         case "getServiceLogs":
           return await getServiceLogs(
             params.get("serviceId") ?? "",

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
-import { format, parse } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +54,7 @@ import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
 import { RemoteUpdateBanner } from "@/components/workspace/RemoteUpdateBanner";
+import { displayDate } from "@/lib/timezone";
 
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
@@ -71,16 +71,6 @@ const getAnnotationImageUrl = (url: string): string => {
     return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
   }
   return url;
-};
-
-const parseServiceTimestamp = (ts: string | undefined | null): Date | null => {
-  if (!ts) return null;
-  try {
-    const parsed = parse(ts, "MM-dd-yyyy, H:mm", new Date());
-    return isNaN(parsed.getTime()) ? null : parsed;
-  } catch {
-    return null;
-  }
 };
 
 interface InventoryItem {
@@ -1427,10 +1417,7 @@ const ServiceUpdate = () => {
                   <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
                     <WorkspaceField
                       label="Service Date"
-                      value={(() => {
-                        const parsed = parseServiceTimestamp(serviceData.timestamp);
-                        return parsed ? format(parsed, "MM/dd/yyyy, HH:mm") : serviceData.timestamp;
-                      })()}
+                      value={serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : ""}
                     />
                     <WorkspaceField label="Diagnostic Time Frame" value={serviceData.timeFrame} />
                     <WorkspaceField label="Repair Time Frame" value={(serviceData as any).repairTimeFrame} />
