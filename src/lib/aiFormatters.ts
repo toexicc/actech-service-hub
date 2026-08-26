@@ -20,26 +20,19 @@ interface ReportArgs {
   serviceCost?: string | number;
 }
 
-const unwrap = async (error: any) => {
-  const ctx = (error as any)?.context;
-  if (ctx?.text) {
-    try {
-      const text = await ctx.text();
-      const parsed = JSON.parse(text);
-      return parsed?.error || text;
-    } catch {
-      /* fall through */
-    }
-  }
-  return error?.message || "AI request failed";
-};
+/**
+ * Every AI failure (gateway error, exhausted credits, rate limit, timeout,
+ * unauthorized, empty response) is surfaced to staff with one message. Real
+ * details stay in the backend function logs.
+ */
+export const AI_ERROR_MESSAGE = "AI Network Error - Contact Administrator";
 
 /** Format raw technician notes into the customer-facing diagnosis report. */
 export const formatDiagnosisWithAI = async (args: DiagnosisArgs): Promise<string> => {
   const { data, error } = await supabase.functions.invoke("format-diagnosis", { body: args });
-  if (error) throw new Error(await unwrap(error));
+  if (error) throw new Error(AI_ERROR_MESSAGE);
   const text = (data as any)?.formattedDiagnosis;
-  if (!text) throw new Error("No formatted diagnosis received from the AI service");
+  if (!text) throw new Error(AI_ERROR_MESSAGE);
   return text as string;
 };
 
@@ -56,8 +49,9 @@ export const formatDiagnosisSections = async (args: DiagnosisArgs): Promise<Diag
 /** Format the technician report into the customer-facing service report. */
 export const formatReportWithAI = async (args: ReportArgs): Promise<string> => {
   const { data, error } = await supabase.functions.invoke("format-report", { body: args });
-  if (error) throw new Error(await unwrap(error));
+  if (error) throw new Error(AI_ERROR_MESSAGE);
   const text = (data as any)?.formattedReport;
-  if (!text) throw new Error("No formatted report received from the AI service");
+  if (!text) throw new Error(AI_ERROR_MESSAGE);
   return text as string;
 };
+
