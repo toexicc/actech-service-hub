@@ -230,8 +230,12 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
     };
 
     pollTyping();
-    const interval = setInterval(pollTyping, 2000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      pollTyping();
+    }, 5000);
     return () => clearInterval(interval);
+
   }, [typingConversationId, selectedGroupId, userId, username, staffList]);
 
   // Clear typing on unmount or conversation change
