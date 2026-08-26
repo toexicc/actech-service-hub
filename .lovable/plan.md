@@ -1,4 +1,4 @@
-# Fix raw service date on Service Update + wrong "Previous Payments" in POS
+# Fix raw service date, wrong POS payments, and public release duplicate queue
 
 ## 1. Service Date shows a raw timestamp on /service-update
 
@@ -19,8 +19,23 @@ Fix: restrict that total to actual client payment types (payment / deposit / dow
 
 Effect after the fix: on this ticket POS shows Previous Payments Php 13,585.00 (the recorded payment) and Remaining Balance Php 0.00; before that payment existed it would have shown Php 0.00.
 
+## 3. Public release duplicate key on AC240826017
+
+Verified AC240826017 already has an active release queue entry:
+
+- `Q-0940`, release queue, status `waiting`, created Aug 26, 2026
+- It also has its older intake queue entry `Q-0829`, already completed
+
+The database has a unique guard that allows only one active release queue row per Service ID. That is correct, but the public release page currently always tries to create a new row when the customer confirms. If the same ticket was already added to the release queue, the insert hits the unique guard and the customer sees a duplicate-key error.
+
+Fix: make the public release flow idempotent. Before creating a release queue row, it should reuse the existing active release row for the same Service ID and show the existing queue number. If a duplicate happens because two submits race at the same time, catch it and show the existing queue number instead of an error.
+
+Because older active queue rows may be blocked from anonymous reads by the public queue read policy, the safer implementation is a small backend function/RPC that performs "find existing active release queue entry, otherwise create one" as one server-side action.
+
 ## Technical notes
 
 - `src/pages/ServiceUpdate.tsx` (~line 1429): replace the inline `parseServiceTimestamp` + raw fallback with `displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a")`.
 - `supabase/functions/sheets-bridge/index.ts` `getServicePayments`: replace `type !== "Refund"` sum with the payment/refund type predicates from `src/hooks/useServicePayments.ts`, and exclude rows whose status is voided/cancelled.
-- No schema changes, no data changes.
+- Add a database RPC for public release queue submission that returns `{ id, display_code, status }`, reusing active `waiting` / `proceed` rows and inserting only when none exists.
+- Update `src/pages/PublicRelease.tsx` to call that RPC instead of directly inserting into `queue_entries`.
+- No data cleanup is needed for AC240826017; it already has the active release queue number `Q-0940`.
