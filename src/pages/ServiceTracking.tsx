@@ -1037,11 +1037,11 @@ const ServiceTracking = () => {
           const PRE_QUOTE_STATUSES = ["Pending Diagnosis", "Confirmed Diagnosis"];
           const showMoney = !PRE_QUOTE_STATUSES.includes(currentStatus);
           
-          // Service date = when the client approved the diagnosis.
-          const serviceDateDisplay = approvalRecord?.decision === "Approved"
-            ? approvalRecord.at
-            : serviceData.serviceDate
+          // Service date = the ticket's recorded service date (same value shown internally).
+          const serviceDateDisplay = serviceData.serviceDate
             ? displayDate(serviceData.serviceDate, "MMM dd, yyyy")
+            : serviceData.dateReceived
+            ? displayDate(serviceData.dateReceived, "MMM dd, yyyy")
             : "N/A";
 
           const shopAddress = "Unit 103, 1st Flr, FBR Arcade Katipunan, Quezon City";
