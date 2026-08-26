@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
  * caches (breakdowns, inventory logs, ...), because each refetch is real egress.
  */
 const TABLE_KEYS: Record<string, string[][]> = {
-  services: [["services"]],
+  services: [["services"], ["doneServices"]],
   part_requests: [["partRequests"], ["part-requests"]],
   inventory_parts: [["inventory"]],
   fast_moving_parts: [["fastMovingParts"]],
