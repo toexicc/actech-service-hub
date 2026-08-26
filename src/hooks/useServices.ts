@@ -192,6 +192,29 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
 });
 
 /**
+ * Columns the list views (tracker, dashboards, cards, reports) actually render.
+ * The heavy free-text columns (AI diagnosis, technician report, internal notes,
+ * annotations, quoted breakdown, conditions) are deliberately excluded — the
+ * detail pages load those per ticket. Selecting `*` here downloaded the entire
+ * table (~6 KB per row) on every refresh, which is the main egress cost.
+ */
+const LIST_COLUMNS = [
+  "service_id","client_id","client_name","contact_number","email",
+  "device_type","brand","model","serial_number","color","memory",
+  "service","status","priority","client_type","source",
+  "technicians","technician_departments","admin_reps","receiving_staff",
+  "date_received","service_date","target_date","estimated_completion",
+  "date_completed","repair_time_frame","last_updated","created_at",
+  "parts_used","labor_cost","service_cost","total_cost","final_cost",
+  "parts_cost","estimated_cost","discount","initial_payment","payment_status",
+  "mode_of_transfer","remarks","ai_toggle","pre_order","part_id",
+  "drive_folder_url","device_report_folder_url","username",
+  "waiting_for_parts","is_backjob","rush_fee","vat_requested","rto_reason",
+  "approval_locked","approved_services","pending_services",
+  "client_approved_at","auto_approve_diagnosis",
+].join(",");
+
+/**
  * Single authoritative fetch for every ticket. All tracker / dashboard views are
  * derived from this one cache entry so a view can never render a partial list
  * because a second request failed independently.
@@ -199,7 +222,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
 const fetchServiceRows = async (): Promise<ServiceRecord[]> => {
   const { data, error } = await supabase
     .from("services")
-    .select("*")
+    .select(LIST_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(5000);
   if (error) throw error;
@@ -210,10 +233,13 @@ const useServiceRows = <T,>(select: (rows: ServiceRecord[]) => T) =>
   useQuery({
     queryKey: ["services"],
     queryFn: fetchServiceRows,
-    staleTime: 5 * 1000,
-    gcTime: 5 * 60 * 1000,
+    // Realtime invalidation keeps this fresh; the long stale window stops
+    // every mount/navigation from re-downloading the list.
+    staleTime: 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     select,
   });
+
 
 const isCompleted = (s: ServiceRecord) =>
   (s.status || "").trim().toLowerCase().includes("completed");
