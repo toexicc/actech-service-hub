@@ -174,7 +174,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       initialPayment: pick(sb.initialPayment, sheetData.initialPayment),
       discount: pick(sb.discount, sheetData.discount),
       vatRequested: !!(row as any).vat_requested,
-      serviceDate: pick((row as any).client_approved_at, pick((row as any).service_date, sheetData.serviceDate)),
+      serviceDate: pick((row as any).service_date, pick(sheetData.serviceDate, (row as any).date_received)),
       dateCompleted: pick(sb.dateCompleted, sheetData.dateCompleted),
       conditions: sb.conditions && Object.keys(sb.conditions).length ? sb.conditions : sheetData.conditions,
       // Status, AI diagnosis and the approval trail live in the database.
