@@ -81,11 +81,16 @@ const OpenDashboard = () => {
     }
   }, [navigate]);
 
-  // Auto-refresh every 60 seconds
+  // Slow safety-net refresh (realtime handles live updates); stays quiet while
+  // the board is not on screen.
   useEffect(() => {
-    const interval = setInterval(() => refetchServices(), 60000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      refetchServices();
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [refetchServices]);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
