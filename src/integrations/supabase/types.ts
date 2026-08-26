@@ -1528,7 +1528,6 @@ export type Database = {
           username: string
         }[]
       }
-      submit_release_queue: { Args: { _summary: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "technician" | "management"
