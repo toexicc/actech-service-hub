@@ -1346,6 +1346,8 @@ async function serve() {
           return await getTransactions();
         case "getServicePayments":
           return await getServicePayments(params.get("serviceId") ?? "");
+        case "submitReleaseQueue":
+          return await submitReleaseQueue(body);
         case "getServiceLogs":
           return await getServiceLogs(
             params.get("serviceId") ?? "",
