@@ -1393,8 +1393,8 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                           }
                         } catch (e) {
                           toast({
-                            title: "Formatter failed",
-                            description: e instanceof Error ? e.message : "Try again.",
+                            title: "AI Network Error - Contact Administrator",
+                            description: "AI Network Error - Contact Administrator",
                             variant: "destructive",
                           });
                         } finally {
