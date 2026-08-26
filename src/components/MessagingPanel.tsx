@@ -279,9 +279,13 @@ export const MessagingPanel = forwardRef<MessagingPanelRef, MessagingPanelProps>
     fetchReceipts();
     markMessagesRead();
 
-    // Poll for new read receipts every 10 seconds
-    const interval = setInterval(fetchReceipts, 10000);
+    // Read receipts only matter while the thread is open and visible.
+    const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      fetchReceipts();
+    }, 30000);
     return () => clearInterval(interval);
+
   }, [selectedGroupId, userId, userName, groupMessages]);
 
   const conversations = getConversations();
