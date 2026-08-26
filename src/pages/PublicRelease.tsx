@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle2, PackageCheck } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { ShareLinkActions } from "@/components/ShareLinkActions";
+import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 
 const RELEASE_URL = "https://actechrepair-service.com/release";
 
@@ -118,23 +119,16 @@ const PublicRelease = () => {
     setSubmitting(true);
 
     try {
-      const { data, error } = await supabase
-        .from("queue_entries")
-        .insert({
-          kind: "release",
-          client_name: summary.client_name,
-          contact_number: summary.contact_number,
-          device_type: summary.device_type,
-          brand: summary.brand,
-          model: summary.model,
-          chief_complaint: summary.chief_complaint,
-          service_id: summary.service_id,
-          form_payload: summary as any,
-        } as any)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      setQueueCode((data as any).display_code);
+      const response = await fetch(`${DATA_BRIDGE_URL}?action=submitReleaseQueue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId: summary.service_id, last4 }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.status !== "success") {
+        throw new Error(result.message || "Please approach the front desk.");
+      }
+      setQueueCode(result.displayCode);
     } catch (e) {
       toast({
         title: "Could not join the queue",
