@@ -115,13 +115,16 @@ export const useMessaging = (
 
     loadMessages();
     loadGroupChats();
-    // Poll every 15 seconds for messages
+    // Realtime delivers new messages; this is only a slow safety net and it
+    // stays quiet while the tab is in the background.
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       loadMessages();
       loadGroupChats();
-    }, 15000);
+    }, 120000);
     return () => clearInterval(interval);
   }, [enabled, loadMessages, loadGroupChats]);
+
 
   const sendMessage = async (receiverId: string, receiverName: string, senderName: string, content: string) => {
     if (!userId) return false;

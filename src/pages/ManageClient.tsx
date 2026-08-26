@@ -39,7 +39,7 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
-import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI } from "@/lib/aiFormatters";
+import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI, AI_ERROR_MESSAGE } from "@/lib/aiFormatters";
 import { diagnosisFieldsFromRecord, composeClientDiagnosis, APPROVAL_DISCLAIMER, VAT_DISCLAIMER } from "@/lib/diagnosisSections";
 
 import { generateServicePDF } from "@/lib/pdfGenerator";
@@ -891,13 +891,13 @@ const ManageClient = () => {
           description: "⚠️ Please double-check and proofread the generated diagnosis before approving.",
         });
       } else {
-        throw new Error("No formatted diagnosis received from AI service");
+        throw new Error(AI_ERROR_MESSAGE);
       }
     } catch (error: any) {
       // Error formatting diagnosis
       toast({
         title: "Error",
-        description: error.message || "Failed to format diagnosis with AI.",
+        description: AI_ERROR_MESSAGE,
         variant: "destructive",
       });
     } finally {
@@ -950,13 +950,13 @@ const ManageClient = () => {
           description: "⚠️ Please double-check and proofread the generated report before approving.",
         });
       } else {
-        throw new Error("No formatted report received from AI service");
+        throw new Error(AI_ERROR_MESSAGE);
       }
     } catch (error: any) {
       // Error formatting service report
       toast({
         title: "Error",
-        description: error.message || "Failed to format service report with AI.",
+        description: AI_ERROR_MESSAGE,
         variant: "destructive",
       });
     } finally {

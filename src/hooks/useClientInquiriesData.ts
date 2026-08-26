@@ -55,11 +55,13 @@ export const useClientInquiriesData = (enabled: boolean = true) => useQuery({
   queryKey: ["clientInquiriesData"],
   queryFn: fetchClientInquiriesData,
   enabled,
-  staleTime: 30 * 1000,
-  gcTime: 5 * 60 * 1000,
-  refetchInterval: enabled ? 30000 : false,
-
+  staleTime: 2 * 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+  // Realtime invalidation does the live updating; this is only a safety net.
+  refetchInterval: enabled ? 2 * 60 * 1000 : false,
+  refetchIntervalInBackground: false,
 });
+
 
 export const useInvalidateClientInquiriesData = () => {
   const queryClient = useQueryClient();

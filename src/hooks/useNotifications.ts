@@ -115,12 +115,14 @@ export const useNotifications = (userId: string | null, _enabled: boolean = true
       return data;
     },
     enabled: !!userId && enabled,
-    staleTime: 10 * 1000,
+    staleTime: 60 * 1000,
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
-    refetchInterval: enabled ? 60000 : false, // Safety-net poll; realtime does the heavy lifting
+    refetchInterval: enabled ? 3 * 60 * 1000 : false, // Safety-net poll; realtime does the heavy lifting
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true, // Refetch when user returns to app
     refetchOnMount: false, // Don't refetch on every mount - use cached data
   });
+
 
   // Realtime: instant delivery of new/updated notifications for this user.
   useEffect(() => {

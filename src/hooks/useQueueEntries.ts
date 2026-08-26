@@ -173,12 +173,17 @@ export function useQueueEntries(opts: { activeOnly?: boolean; kind?: QueueKind }
     return unsubscribe;
   }, []);
 
-  // Fallback polling: fast while realtime is degraded, slow safety net when live.
+  // Fallback polling: only a safety net (realtime is the live path) and it never
+  // polls while the tab is hidden.
   useEffect(() => {
-    const delay = realtimeState === "live" ? 30000 : 15000;
-    const id = setInterval(() => refetchRef.current(), delay);
+    const delay = realtimeState === "live" ? 120000 : 30000;
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      refetchRef.current();
+    }, delay);
     return () => clearInterval(id);
   }, [realtimeState]);
+
 
   return {
     entries,

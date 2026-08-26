@@ -21,23 +21,50 @@ const actorName = (): string => {
   }
 };
 
+/**
+ * Keep log payloads small: long before/after text blocks (AI diagnosis,
+ * reports, notes) previously made activity_logs the largest table in the
+ * database and every read of the timeline expensive.
+ */
+const MAX_ACTION = 500;
+const MAX_DETAIL = 300;
+
+const trimDetails = (details?: Record<string, any>): Record<string, any> => {
+  const out: Record<string, any> = {};
+  Object.entries(details ?? {}).forEach(([k, v]) => {
+    if (typeof v === "string") {
+      const s = v.replace(/\s+/g, " ").trim();
+      out[k] = s.length > MAX_DETAIL ? `${s.slice(0, MAX_DETAIL)}…` : s;
+    } else if (v && typeof v === "object") {
+      const s = JSON.stringify(v);
+      out[k] = s.length > MAX_DETAIL ? `${s.slice(0, MAX_DETAIL)}…` : v;
+    } else {
+      out[k] = v;
+    }
+  });
+  return out;
+};
+
 const sendLog = async (
   log: Omit<ActivityLog, "logId" | "timestamp"> & { details?: Record<string, any> },
 ) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Local session read (no network round trip per log entry).
+    const { data: { session } } = await supabase.auth.getSession();
+    const action = String(log.activity ?? "");
     await supabase.from("activity_logs").insert({
-      action: log.activity,
-      actor_id: user?.id ?? null,
+      action: action.length > MAX_ACTION ? `${action.slice(0, MAX_ACTION)}…` : action,
+      actor_id: session?.user?.id ?? null,
       actor_name: log.username,
       entity_type: "service",
       entity_id: log.serviceId,
-      changes: { role: log.role || null, ...(log.details ?? {}) },
+      changes: { role: log.role || null, ...trimDetails(log.details) },
     });
     return true;
   } catch {
     return false;
   }
+
 };
 
 export const logActivity = sendLog;
