@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS activity_logs_entity_type_created_at_idx ON public.activity_logs (entity_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS activity_logs_entity_id_created_at_idx ON public.activity_logs (entity_id, created_at DESC);
