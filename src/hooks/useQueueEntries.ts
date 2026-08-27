@@ -18,11 +18,18 @@ export interface QueueEntry {
   brand: string | null;
   model: string | null;
   chief_complaint: string | null;
-  form_payload: Record<string, any>;
+  form_payload?: Record<string, any>;
   service_id: string | null;
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * The board never renders `form_payload` (a full intake form as JSON); it is only
+ * needed when completing or requeueing one entry, which fetch it by id.
+ */
+const LIST_COLUMNS =
+  "id,kind,queue_number,display_code,status,client_name,contact_number,device_type,brand,model,chief_complaint,service_id,created_at,updated_at";
 
 type Listener = { onChange: () => void; onStatus: (s: RealtimeState) => void };
 export type RealtimeState = "connecting" | "live" | "reconnecting" | "offline";
@@ -133,7 +140,7 @@ export function useQueueEntries(opts: { activeOnly?: boolean; kind?: QueueKind }
   const refetch = useCallback(async () => {
     let query = supabase
       .from("queue_entries")
-      .select("*")
+      .select(LIST_COLUMNS)
       .order("created_at", { ascending: true });
     if (activeOnly) query = query.in("status", ["waiting", "proceed"]);
     if (kind) query = query.eq("kind", kind);
@@ -210,6 +217,12 @@ export async function moveQueueEntry(id: string, status: QueueStatus) {
  * number instead of re-typing the intake form.
  */
 export async function requeueEntry(entry: QueueEntry) {
+  // The list query omits form_payload, so pull it for this one row.
+  const { data: full } = await supabase
+    .from("queue_entries")
+    .select("form_payload")
+    .eq("id", entry.id)
+    .maybeSingle();
   return supabase
     .from("queue_entries")
     .insert({
@@ -221,7 +234,7 @@ export async function requeueEntry(entry: QueueEntry) {
       brand: entry.brand,
       model: entry.model,
       chief_complaint: entry.chief_complaint,
-      form_payload: entry.form_payload ?? {},
+      form_payload: (full?.form_payload as any) ?? entry.form_payload ?? {},
     } as any)
     .select()
     .single();

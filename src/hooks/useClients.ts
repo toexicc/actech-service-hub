@@ -31,7 +31,7 @@ const fetchClients = async (): Promise<ClientRecord[]> => {
   const [{ data, error }, { data: svcs }] = await Promise.all([
     supabase
       .from("clients")
-      .select("*")
+      .select("client_id, name, username, contact_number, email, address, created_at")
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase
@@ -62,7 +62,7 @@ const fetchClients = async (): Promise<ClientRecord[]> => {
 const fetchClientInquiries = async (): Promise<ClientInquiry[]> => {
   const { data, error } = await supabase
     .from("client_inquiries")
-    .select("*")
+    .select("inquiry_id, client_name, contact_number, email, device_type, brand, model, issue_description, status, notes, created_at, updated_at")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;

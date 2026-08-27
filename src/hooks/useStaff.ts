@@ -20,7 +20,7 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
   // their own row from the profiles table due to RLS, so we fall back to the
   // safe `get_staff_directory` RPC which excludes salary fields.
   const [profilesResp, { data: roles, error: rErr }] = await Promise.all([
-    supabase.from("profiles").select("*").order("name", { ascending: true }),
+    supabase.from("profiles").select("id, staff_id, username, name, department, status, salary, salary_type").order("name", { ascending: true }),
     supabase.from("user_roles").select("user_id, role"),
   ]);
   if (profilesResp.error) throw profilesResp.error;

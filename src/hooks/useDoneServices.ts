@@ -15,10 +15,15 @@ interface DoneService {
   partsCost: number;
 }
 
+/** Only the columns this view maps — the full row is ~6 KB of unused text. */
+const DONE_COLUMNS =
+  "service_id,client_name,service,status,technicians,technician_departments," +
+  "date_completed,last_updated,service_cost,discount,parts_cost";
+
 const fetchDoneServices = async (): Promise<DoneService[]> => {
   const { data, error } = await supabase
     .from("services")
-    .select("*")
+    .select(DONE_COLUMNS)
     .eq("status", "Completed")
     .order("date_completed", { ascending: false })
     .limit(1000);

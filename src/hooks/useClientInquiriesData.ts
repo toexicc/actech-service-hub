@@ -25,7 +25,7 @@ interface ClientInquiry {
 const fetchClientInquiriesData = async (): Promise<ClientInquiry[]> => {
   const { data, error } = await supabase
     .from("client_inquiries")
-    .select("*")
+    .select("id, service_id, client_name, contact_number, mode_of_transfer, device_type, brand, model, issue_description, ai_toggle, pre_order, initial_payment, part_id, created_at")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;
