@@ -133,7 +133,7 @@ export function useQueueEntries(opts: { activeOnly?: boolean; kind?: QueueKind }
   const refetch = useCallback(async () => {
     let query = supabase
       .from("queue_entries")
-      .select("*")
+      .select(LIST_COLUMNS)
       .order("created_at", { ascending: true });
     if (activeOnly) query = query.in("status", ["waiting", "proceed"]);
     if (kind) query = query.eq("kind", kind);
