@@ -215,18 +215,41 @@ const LIST_COLUMNS = [
 ].join(",");
 
 /**
- * Single authoritative fetch for every ticket. All tracker / dashboard views are
- * derived from this one cache entry so a view can never render a partial list
- * because a second request failed independently.
+ * Completed tickets older than this are no longer part of day-to-day work; they
+ * stay reachable through Completed Services, the CSV export and Reports, each of
+ * which runs its own date-scoped query. Keeping them out of the shared list stops
+ * the backlog from being re-downloaded by every session, every day.
+ */
+const COMPLETED_WINDOW_DAYS = 60;
+
+/**
+ * Single authoritative fetch for every active ticket (plus recently completed
+ * ones). All tracker / dashboard views are derived from this one cache entry so a
+ * view can never render a partial list because a second request failed
+ * independently.
  */
 const fetchServiceRows = async (): Promise<ServiceRecord[]> => {
-  const { data, error } = await supabase
-    .from("services")
-    .select(LIST_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(5000);
-  if (error) throw error;
-  return (data ?? []).map(mapServiceRow);
+  const since = new Date(Date.now() - COMPLETED_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const [active, recentDone] = await Promise.all([
+    supabase
+      .from("services")
+      .select(LIST_COLUMNS)
+      .neq("status", "Completed")
+      .order("created_at", { ascending: false })
+      .limit(5000),
+    supabase
+      .from("services")
+      .select(LIST_COLUMNS)
+      .eq("status", "Completed")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(5000),
+  ]);
+  if (active.error) throw active.error;
+  if (recentDone.error) throw recentDone.error;
+  const rows = [...(active.data ?? []), ...(recentDone.data ?? [])];
+  rows.sort((a: any, b: any) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")));
+  return rows.map(mapServiceRow);
 };
 
 const useServiceRows = <T,>(select: (rows: ServiceRecord[]) => T) =>
