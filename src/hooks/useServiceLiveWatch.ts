@@ -29,6 +29,13 @@ const WATCHED_FIELDS: Array<{ key: string; label: string }> = [
   { key: "target_date", label: "Estimated target date" },
 ];
 
+/**
+ * Only the fields the watcher diffs (plus the row keys). Selecting `*` here
+ * downloaded the whole ticket - AI diagnosis, reports, notes - three times per
+ * ticket open, purely to compare 16 values.
+ */
+const WATCH_COLUMNS = ["service_id", "last_updated", ...WATCHED_FIELDS.map((f) => f.key)].join(",");
+
 const norm = (v: any) => (Array.isArray(v) ? v.join(", ") : v === null || v === undefined ? "" : String(v));
 
 const diffRows = (prev: any, next: any): string[] => {
@@ -51,7 +58,7 @@ export function useServiceLiveWatch(serviceId: string | null | undefined, active
   const syncBaseline = useCallback(async (markSelfWrite?: string) => {
     if (markSelfWrite) selfWritesRef.current.add(markSelfWrite);
     if (!serviceId) return;
-    const { data } = await supabase.from("services").select("*").eq("service_id", serviceId).maybeSingle();
+    const { data } = await supabase.from("services").select(WATCH_COLUMNS).eq("service_id", serviceId).maybeSingle();
     if (data) baselineRef.current = data;
     setChange(null);
   }, [serviceId]);
@@ -86,7 +93,7 @@ export function useServiceLiveWatch(serviceId: string | null | undefined, active
     if (!serviceId) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("services").select("*").eq("service_id", serviceId).maybeSingle();
+      const { data } = await supabase.from("services").select(WATCH_COLUMNS).eq("service_id", serviceId).maybeSingle();
       if (!cancelled && data) baselineRef.current = data;
     })();
     return () => { cancelled = true; };
@@ -117,7 +124,7 @@ export function useServiceLiveWatch(serviceId: string | null | undefined, active
   useEffect(() => {
     if (!serviceId || !active) return;
     const check = async () => {
-      const { data } = await supabase.from("services").select("*").eq("service_id", serviceId).maybeSingle();
+      const { data } = await supabase.from("services").select(WATCH_COLUMNS).eq("service_id", serviceId).maybeSingle();
       if (data) handleRow(data);
     };
     const onVisible = () => { if (document.visibilityState === "visible") check(); };

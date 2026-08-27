@@ -34,7 +34,7 @@ const fetchPartRequests = async (): Promise<FastMovingPart[]> => {
   // Read from part_requests (the canonical Pre-Ordered Parts source)
   const { data, error } = await supabase
     .from("part_requests")
-    .select("*")
+    .select("id, request_id, part_name, brand, device_model, quantity, status, service_id, requested_by_name, notes, updated_at, created_at")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;

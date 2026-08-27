@@ -37,7 +37,7 @@ interface InventoryLog {
 const fetchInventory = async (): Promise<InventoryItem[]> => {
   const { data, error } = await supabase
     .from("inventory_parts")
-    .select("*")
+    .select("part_id, part_name, category, brand, device_model, part_type, color, quantity, date_ordered, supplier, cost_price, status, notes, updated_at, created_at")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;
@@ -64,7 +64,7 @@ const fetchInventoryLogs = async (): Promise<InventoryLog[]> => {
   const [{ data, error }, { data: parts }, { data: fastParts }] = await Promise.all([
     supabase
       .from("part_logs")
-      .select("*")
+      .select("id, part_id, action, quantity, notes, performed_by_name, created_at")
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase.from("inventory_parts").select("part_id,part_name,category").limit(2000),
