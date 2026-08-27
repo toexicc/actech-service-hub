@@ -29,8 +29,7 @@ export interface QueueEntry {
  * needed when completing or requeueing one entry, which fetch it by id.
  */
 const LIST_COLUMNS =
-  "id,kind,queue_number,display_code,status,client_name,contact_number," +
-  "device_type,brand,model,chief_complaint,service_id,created_at,updated_at";
+  "id,kind,queue_number,display_code,status,client_name,contact_number,device_type,brand,model,chief_complaint,service_id,created_at,updated_at";
 
 type Listener = { onChange: () => void; onStatus: (s: RealtimeState) => void };
 export type RealtimeState = "connecting" | "live" | "reconnecting" | "offline";
