@@ -318,11 +318,27 @@ const SalaryDisbursement = () => {
   const getAllocatedCommission = (name: string) => {
     const target = (name || "").trim().toLowerCase();
     if (!target) return 0;
-    return (Object.values(breakdownMap) as ServiceBreakdown[][])
-      .flat()
-      .filter((r) => (r.technicianName || "").trim().toLowerCase() === target)
-      .reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
-
+    return Object.entries(breakdownMap as Record<string, ServiceBreakdown[]>).reduce(
+      (sum, [serviceId, rows]) => {
+        // Allocation lines with no technician fall back to the ticket's technician
+        // when it has exactly one, so no peso goes unclaimed.
+        const ticketTechs = (periodServices.find((s) => s.serviceId === serviceId)?.technician || "")
+          .split(",")
+          .map((n) => n.trim())
+          .filter(Boolean);
+        const soleTech = ticketTechs.length === 1 ? ticketTechs[0].toLowerCase() : "";
+        return (
+          sum +
+          (rows || [])
+            .filter((r) => {
+              const rowTech = (r.technicianName || "").trim().toLowerCase();
+              return rowTech ? rowTech === target : soleTech === target;
+            })
+            .reduce((s, r) => s + (Number(r.cost) || 0), 0)
+        );
+      },
+      0,
+    );
   };
 
 
