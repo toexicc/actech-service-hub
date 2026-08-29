@@ -62,7 +62,7 @@ const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
 const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
   const { data, error } = await supabase
     .from("services")
-    .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status")
+    .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status, date_completed, last_updated")
     .limit(2000);
   if (error) return [];
   return (data ?? []).map((s: any) => ({
@@ -74,6 +74,7 @@ const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
     partsCost: String(s.parts_cost ?? 0),
     technician: Array.isArray(s.technicians) ? s.technicians.join(", ") : (s.technicians ?? ""),
     status: s.status ?? "",
+    timestamp: s.date_completed ?? s.last_updated ?? "",
   }));
 };
 
