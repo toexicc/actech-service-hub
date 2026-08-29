@@ -636,6 +636,9 @@ const SalaryDisbursement = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Service Based Employees</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Commissions and service costs count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}).
+                </p>
               </CardHeader>
               <CardContent>
                 {serviceBasedStaff.length === 0 ? (
