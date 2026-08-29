@@ -20,7 +20,7 @@ import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight } from "lucide
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, parseManilaDate } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllServiceBreakdowns, type ServiceBreakdown } from "@/hooks/useServiceBreakdowns";
 
@@ -62,7 +62,7 @@ const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
 const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
   const { data, error } = await supabase
     .from("services")
-    .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status")
+    .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status, date_completed, last_updated")
     .limit(2000);
   if (error) return [];
   return (data ?? []).map((s: any) => ({
@@ -74,6 +74,7 @@ const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
     partsCost: String(s.parts_cost ?? 0),
     technician: Array.isArray(s.technicians) ? s.technicians.join(", ") : (s.technicians ?? ""),
     status: s.status ?? "",
+    timestamp: s.date_completed ?? s.last_updated ?? "",
   }));
 };
 
@@ -281,17 +282,37 @@ const SalaryDisbursement = () => {
     return s === "done" || s.includes("completed");
   };
 
+  // Completed within the selected salary period (1-15 or 16-end), by completion date.
+  const isInPeriod = (timestamp?: string) => {
+    const d = parseManilaDate(timestamp || "");
+    if (!d) return false;
+    const start = parseManilaDate(periodRange.start);
+    const end = parseManilaDate(periodRange.end);
+    if (!start || !end) return false;
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    return (
+      day >= new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime() &&
+      day <= new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime()
+    );
+  };
+
+  const periodServices = useMemo(
+    () => allServices.filter((s) => isDoneStatus(s.status) && isInPeriod((s as any).timestamp)),
+    [allServices, periodRange],
+  );
+
   const getServicesForStaff = (name: string) =>
-    allServices.filter((s) => isAssignedTo(s.technician, name) && isDoneStatus(s.status));
+    periodServices.filter((s) => isAssignedTo(s.technician, name));
 
   const getServiceCostTotal = (name: string) => {
     return getServicesForStaff(name).reduce((sum, s) => sum + parseCurrency(s.finalCost), 0);
   };
 
-  // Allocated commissions saved in the Completed Transactions breakdown panel
+  // Allocated commissions saved in the Completed Transactions breakdown panel,
+  // limited to tickets completed within the active salary period.
   const doneServiceIds = useMemo(
-    () => allServices.filter((s) => isDoneStatus(s.status)).map((s) => s.serviceId).filter(Boolean),
-    [allServices],
+    () => periodServices.map((s) => s.serviceId).filter(Boolean),
+    [periodServices],
   );
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(doneServiceIds);
   const getAllocatedCommission = (name: string) => {
@@ -303,6 +324,7 @@ const SalaryDisbursement = () => {
       .reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
 
   };
+
 
 
   const computeFixedFinal = (staff: any) => {
@@ -614,6 +636,9 @@ const SalaryDisbursement = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Service Based Employees</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Commissions and service costs count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}).
+                </p>
               </CardHeader>
               <CardContent>
                 {serviceBasedStaff.length === 0 ? (
