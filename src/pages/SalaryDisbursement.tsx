@@ -20,7 +20,7 @@ import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight } from "lucide
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, parseManilaDate } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllServiceBreakdowns, type ServiceBreakdown } from "@/hooks/useServiceBreakdowns";
 
