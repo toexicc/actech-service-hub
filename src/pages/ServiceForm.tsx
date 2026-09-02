@@ -1059,15 +1059,16 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     })
                     .map((dept) => ({ label: dept, value: dept }));
 
-                  // Live preview of the tech that would be auto-assigned per department.
+                  // Preview of the pool each department will rotate within. The
+                  // exact pick is decided on submit from live workload.
                   const preview = selectedDepts
                     .map((dept) => {
                       const pool = technicianList.filter((t) => t.department === dept);
                       if (pool.length === 0) return `${dept}: (no active technicians)`;
-                      const pick = [...pool].sort((a, b) => a.name.localeCompare(b.name))[0].name;
-                      return `${dept} → ${pick}`;
+                      return `${dept} → ${pool.map((t) => t.name).sort().join(" / ")}`;
                     })
                     .join(" • ");
+
 
                   return (
                     <FormItem>
