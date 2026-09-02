@@ -495,9 +495,12 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
 
 
     // Auto-assign technicians (internal form only) via round-robin across
-    // the technicians of each selected department. Fair rotation is achieved
-    // by picking the technician with the fewest active services (excluding
-    // Completed / Cancelled / RTO), tie-breaking alphabetically for determinism.
+    // the technicians of each selected department. Fairness is measured on the
+    // technician's *live* workload only: tickets that are already closed out
+    // (Completed / Cancelled / any RTO) or that have been dropped back to the
+    // client (Done Repair - Advise Client) are dead weight and must not make a
+    // technician look permanently overloaded. We also ignore anything older
+    // than 45 days so a stale backlog can't freeze the rotation.
     if (!isPublic) {
       const depts = (data.technicianDepartments || "")
         .split(",")
@@ -505,10 +508,20 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         .filter(Boolean);
       if (depts.length > 0) {
         try {
+          const CLOSED = [
+            "Completed",
+            "Cancelled",
+            "RTO",
+            "RTO - ACTech",
+            "RTO - Client",
+            "Done Repair - Advise Client",
+          ];
+          const since = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
           const { data: rows } = await supabase
             .from("services")
             .select("technicians,status")
-            .not("status", "in", "(Completed,Cancelled,RTO)");
+            .not("status", "in", `(${CLOSED.map((s) => `"${s}"`).join(",")})`)
+            .gte("date_received", since);
           const loadCount = new Map<string, number>();
           (rows ?? []).forEach((r: any) => {
             (r.technicians ?? []).forEach((t: string) => {
@@ -517,6 +530,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
               loadCount.set(key, (loadCount.get(key) ?? 0) + 1);
             });
           });
+
           const assigned: string[] = [];
           for (const dept of depts) {
             const pool = technicianList.filter((t) => t.department === dept);
@@ -1045,15 +1059,16 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                     })
                     .map((dept) => ({ label: dept, value: dept }));
 
-                  // Live preview of the tech that would be auto-assigned per department.
+                  // Preview of the pool each department will rotate within. The
+                  // exact pick is decided on submit from live workload.
                   const preview = selectedDepts
                     .map((dept) => {
                       const pool = technicianList.filter((t) => t.department === dept);
                       if (pool.length === 0) return `${dept}: (no active technicians)`;
-                      const pick = [...pool].sort((a, b) => a.name.localeCompare(b.name))[0].name;
-                      return `${dept} → ${pick}`;
+                      return `${dept} → ${pool.map((t) => t.name).sort().join(" / ")}`;
                     })
                     .join(" • ");
+
 
                   return (
                     <FormItem>
@@ -1080,9 +1095,10 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                       </FormControl>
                       {preview && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Will assign: {preview} (final tech picked by lowest active-service load)
+                          Rotation pool: {preview} — the technician with the lightest live workload is picked on submit
                         </p>
                       )}
+
                       <FormMessage />
                     </FormItem>
                   );
