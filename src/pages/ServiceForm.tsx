@@ -1095,9 +1095,10 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
                       </FormControl>
                       {preview && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Will assign: {preview} (final tech picked by lowest active-service load)
+                          Rotation pool: {preview} — the technician with the lightest live workload is picked on submit
                         </p>
                       )}
+
                       <FormMessage />
                     </FormItem>
                   );
