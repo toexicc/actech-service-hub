@@ -26,6 +26,9 @@ export interface ServiceRecord {
   waitingPartsNote?: string;
   isBackjob?: boolean;
   rushFee?: boolean;
+  isReleased?: boolean;
+  releasedAt?: string;
+  hasPreOrder?: boolean;
   rtoReason?: string;
   vatRequested?: boolean;
 
@@ -130,6 +133,9 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   waitingPartsNote: (r as any).waiting_parts_note ?? "",
   isBackjob: !!(r as any).is_backjob,
   rushFee: !!(r as any).rush_fee,
+  isReleased: !!(r as any).is_released,
+  releasedAt: (r as any).released_at ?? "",
+  hasPreOrder: !!(r as any).has_pre_order,
   serviceDate: (r as any).service_date ?? "",
   rtoReason: (r as any).rto_reason ?? "",
   vatRequested: !!(r as any).vat_requested,
@@ -210,6 +216,7 @@ const LIST_COLUMNS = [
   "mode_of_transfer","remarks","ai_toggle","pre_order","part_id",
   "drive_folder_url","device_report_folder_url","username",
   "waiting_for_parts","is_backjob","rush_fee","vat_requested","rto_reason",
+  "is_released","released_at","has_pre_order",
   "approval_locked","approved_services","pending_services",
   "client_approved_at","auto_approve_diagnosis",
 ].join(",");
