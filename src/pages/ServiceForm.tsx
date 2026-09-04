@@ -1012,9 +1012,10 @@ const ServiceForm = ({
         {!isPublic && (
         <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
-          <div className="flex gap-2">
+          <p className="text-xs text-green-700/70 mb-2">Search by Client ID or customer name.</p>
+          <div className="relative flex gap-2">
             <Input
-              placeholder="Enter Client ID or customer name"
+              placeholder="Enter Client ID or customer name (e.g. CL1234, Yannie)"
               value={searchClientId}
               onChange={(e) => setSearchClientId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearchClientId()}
@@ -1029,6 +1030,13 @@ const ServiceForm = ({
               <Search className="mr-2 h-4 w-4" />
               {isSearchingClient ? "Searching..." : "Search"}
             </Button>
+            <ClientSearchSuggestions
+              term={searchClientId}
+              onPick={(id) => {
+                setSearchClientId(id);
+                handleSearchClientId(id);
+              }}
+            />
           </div>
           {clientMatches.length > 0 && (
             <div className="mt-3 space-y-1 rounded-lg border border-green-200 bg-white p-2">
@@ -1060,6 +1068,39 @@ const ServiceForm = ({
             <p className="mt-2 text-sm text-green-600 font-medium">
               Loaded Client ID: {form.watch("clientId")}
             </p>
+          )}
+          {embeddedQueueMatches && embeddedQueueMatches.length > 0 && (
+            <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">
+                This name matches existing customers — link the ticket instead of creating a new
+                Client ID.
+              </p>
+              <div className="mt-2 space-y-1">
+                {embeddedQueueMatches.map((m) => (
+                  <button
+                    key={m.client_id}
+                    type="button"
+                    onClick={() => onQueueMatchLink?.(m.client_id)}
+                    className="flex w-full flex-col items-start rounded-md bg-white px-3 py-2 text-left hover:bg-amber-100"
+                  >
+                    <span className="text-sm font-medium">
+                      {m.name || "No name"} — {m.client_id}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {[m.contact_number, m.email].filter(Boolean).join(" · ")}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => onQueueMatchDismiss?.()}
+              >
+                New customer, skip linking
+              </Button>
+            </div>
           )}
         </div>
         )}
