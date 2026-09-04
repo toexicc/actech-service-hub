@@ -153,6 +153,8 @@ const AUTHORITATIVE_KEYS = new Set<string>([
   "waitingPartsNote",
   "isBackjob",
   "rushFee",
+  "isReleased",
+  "hasPreOrder",
   "rtoReason",
   "vatRequested",
 

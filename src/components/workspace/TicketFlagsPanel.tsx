@@ -14,6 +14,8 @@ interface TicketFlagsPanelProps {
   onChange: (patch: Record<string, any>) => void;
   /** Management can write the Waiting for Parts update note; others read it. */
   canEditNote?: boolean;
+  /** Only management may switch Waiting for Parts; admins see it read-only. */
+  canToggleWaitingForParts?: boolean;
 }
 
 const actorName = () => {
@@ -30,11 +32,17 @@ const actorName = () => {
  * Waiting for Parts (toggle + shared update note) and Backjob flag. Shared by
  * /manage-client and /service-update so every role sees the same state.
  */
-export function TicketFlagsPanel({ service, onChange, canEditNote = false }: TicketFlagsPanelProps) {
+export function TicketFlagsPanel({
+  service,
+  onChange,
+  canEditNote = false,
+  canToggleWaitingForParts = true,
+}: TicketFlagsPanelProps) {
   const { toast } = useToast();
   const serviceId: string = service?.serviceId || "";
   const [busyParts, setBusyParts] = useState(false);
   const [busyBackjob, setBusyBackjob] = useState(false);
+  const [busyPreOrder, setBusyPreOrder] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [note, setNote] = useState<string>(service?.waitingPartsNote || "");
 
@@ -83,6 +91,29 @@ export function TicketFlagsPanel({ service, onChange, canEditNote = false }: Tic
       });
     } finally {
       setBusyParts(false);
+    }
+  };
+
+  const togglePreOrder = async (next: boolean) => {
+    if (!serviceId || busyPreOrder) return;
+    setBusyPreOrder(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ has_pre_order: next, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceId);
+      if (error) throw new Error(error.message);
+      onChange({ hasPreOrder: next });
+      logTicketActivity(serviceId, next ? "Marked as Pre-Order" : "Pre-Order flag removed");
+      toast({ title: next ? "Pre-Order flagged" : "Pre-Order flag removed" });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Pre-Order flag.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyPreOrder(false);
     }
   };
 
@@ -138,18 +169,32 @@ export function TicketFlagsPanel({ service, onChange, canEditNote = false }: Tic
   return (
     <div className="space-y-3">
       <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 p-3 space-y-3">
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-background/70 p-2.5">
+          <div>
+            <p className="text-sm font-semibold">Pre-Order</p>
+            <p className="text-xs text-muted-foreground">
+              {service?.hasPreOrder
+                ? "This ticket has a pre-order."
+                : "Turn on when this ticket has a pre-order."}
+            </p>
+          </div>
+          <Switch checked={!!service?.hasPreOrder} disabled={busyPreOrder} onCheckedChange={togglePreOrder} />
+        </div>
+
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold">Waiting for Parts</p>
             <p className="text-xs text-muted-foreground">
               {service?.waitingForParts
                 ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
-                : "Turn on when the repair is paused while parts/supplies are being procured."}
+                : canToggleWaitingForParts
+                  ? "Turn on when the repair is paused while parts/supplies are being procured."
+                  : "Only management can switch this on or off."}
             </p>
           </div>
           <Switch
             checked={!!service?.waitingForParts}
-            disabled={busyParts}
+            disabled={busyParts || !canToggleWaitingForParts}
             onCheckedChange={toggleWaitingForParts}
           />
         </div>
