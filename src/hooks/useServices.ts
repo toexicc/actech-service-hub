@@ -263,6 +263,41 @@ const useServiceRows = <T,>(select: (rows: ServiceRecord[]) => T) =>
     select,
   });
 
+/** Cut-off used by both the live list and the archive query below. */
+export const completedWindowStart = () =>
+  new Date(Date.now() - COMPLETED_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+/**
+ * Completed tickets older than the live window. Loaded on demand (Reports with
+ * an older period, Service Tracker's completed tab / searches) so historical
+ * numbers and old ticket lookups stay correct without every session paying for
+ * the whole backlog.
+ */
+export const useArchivedCompletedServices = (enabled: boolean, since?: Date | null) => {
+  const sinceKey = since ? since.toISOString().slice(0, 10) : "all";
+  return useQuery({
+    queryKey: ["services", "archive", sinceKey],
+    enabled,
+    queryFn: async (): Promise<ServiceRecord[]> => {
+      let q = supabase
+        .from("services")
+        .select(LIST_COLUMNS)
+        .eq("status", "Completed")
+        .lt("created_at", completedWindowStart().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(10000);
+      if (since) q = q.gte("created_at", since.toISOString());
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []).map(mapServiceRow);
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+
 
 const isCompleted = (s: ServiceRecord) =>
   (s.status || "").trim().toLowerCase().includes("completed");
