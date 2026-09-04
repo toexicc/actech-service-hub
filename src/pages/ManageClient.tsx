@@ -291,6 +291,8 @@ const ManageClient = () => {
   const [isPartsUsedOpen, setIsPartsUsedOpen] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
   const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
+  const [isTogglingRush, setIsTogglingRush] = useState(false);
+  const [isTogglingReleased, setIsTogglingReleased] = useState(false);
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
@@ -464,6 +466,84 @@ const ManageClient = () => {
       setIsTogglingWaitingParts(false);
     }
   };
+
+  /**
+   * Rush flag: persists the 10% rush fee and keeps the "Rush Fee" pricing
+   * option ticked so the surcharge lands in the final cost right away.
+   */
+  const handleToggleRush = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingRush) return;
+    setIsTogglingRush(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ rush_fee: next, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+      setServiceData((prev: any) => (prev ? { ...prev, rushFee: next } : prev));
+      setRushFee(next);
+      setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), discountAmount, vatRequested, next));
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next ? "Rush turned on (10% rush fee)" : "Rush turned off",
+      });
+      toast({
+        title: next ? "Rush turned on" : "Rush turned off",
+        description: next
+          ? "A 10% rush fee is now included in the total cost."
+          : "The 10% rush fee was removed from the total cost.",
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Rush flag.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingRush(false);
+    }
+  };
+
+  /** Released flag — also set automatically by the release queue / manual release. */
+  const handleToggleReleased = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingReleased) return;
+    setIsTogglingReleased(true);
+    try {
+      const releasedAt = next ? new Date().toISOString() : null;
+      const { error } = await supabase
+        .from("services")
+        .update({ is_released: next, released_at: releasedAt, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+      setServiceData((prev: any) => (prev ? { ...prev, isReleased: next, releasedAt: releasedAt || "" } : prev));
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next ? "Marked as Released" : "Released flag removed",
+      });
+      toast({ title: next ? "Marked as Released" : "Released flag removed" });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Released flag.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTogglingReleased(false);
+    }
+  };
+
+  /** Choosing the Rush priority switches the Rush flag on automatically. */
+  useEffect(() => {
+    if (!serviceData?.serviceId) return;
+    if (!/rush/i.test(updatePriority || "")) return;
+    if (serviceData.rushFee) return;
+    handleToggleRush(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updatePriority, serviceData?.serviceId]);
 
 
 
@@ -2036,10 +2116,45 @@ const ManageClient = () => {
                   </div>
                 )}
 
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-start justify-between gap-4 rounded-xl border border-orange-300/60 bg-orange-50/60 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Rush</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceData.rushFee
+                          ? "Rush job — 10% rush fee added to the total cost."
+                          : "Turn on for a rush job (adds a 10% rush fee)."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!serviceData.rushFee}
+                      disabled={isTogglingRush}
+                      onCheckedChange={handleToggleRush}
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">Released</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceData.isReleased
+                          ? "The device has been released to the client."
+                          : "Turns on automatically when the device is released."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!serviceData.isReleased}
+                      disabled={isTogglingReleased}
+                      onCheckedChange={handleToggleReleased}
+                    />
+                  </div>
+                </div>
+
                 {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
                   <TicketFlagsPanel
                     service={serviceData}
                     canEditNote={userRole === "management" || userRole === "admin"}
+                    canToggleWaitingForParts={userRole === "management"}
                     onChange={(patch) =>
                       setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
                     }
