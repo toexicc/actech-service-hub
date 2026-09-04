@@ -5,9 +5,9 @@ import { parseStatusLog, StatusLogEntry } from "@/lib/reportMetrics";
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 30;
 /**
- * Reports never look further back than a few months, so the log window is
- * bounded. Pulling the whole table on every visit was the single largest
- * network cost in the app.
+ * Default window when the caller does not ask for a specific period. Reports
+ * passes the selected period start (or null for "All time") so historical
+ * reviews are complete instead of silently truncated.
  */
 const WINDOW_DAYS = 120;
 
@@ -19,19 +19,23 @@ const WINDOW_DAYS = 120;
  * Fetched in pages so a large log never gets silently truncated by the API row
  * cap, and errors are surfaced to the caller instead of looking like "no data".
  */
-export const useServiceStatusLogs = () => {
+export const useServiceStatusLogs = (since?: Date | null) => {
+  const explicit = since !== undefined;
+  const sinceIso = explicit
+    ? (since ? since.toISOString() : null)
+    : new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   return useQuery({
-    queryKey: ["activity-logs", "service-status"],
+    queryKey: ["activity-logs", "service-status", sinceIso ?? "all"],
     queryFn: async (): Promise<StatusLogEntry[]> => {
-      const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
       const out: StatusLogEntry[] = [];
       for (let page = 0; page < MAX_PAGES; page++) {
         const from = page * PAGE_SIZE;
-        const { data, error } = await supabase
+        let q = supabase
           .from("activity_logs")
           .select("action, entity_id, created_at, actor_name, changes")
-          .eq("entity_type", "service")
-          .gte("created_at", since)
+          .eq("entity_type", "service");
+        if (sinceIso) q = q.gte("created_at", sinceIso);
+        const { data, error } = await q
           .order("created_at", { ascending: true })
           .range(from, from + PAGE_SIZE - 1);
         if (error) throw error;
@@ -51,4 +55,5 @@ export const useServiceStatusLogs = () => {
     refetchOnWindowFocus: false,
   });
 };
+
 
