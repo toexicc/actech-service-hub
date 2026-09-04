@@ -30,7 +30,7 @@ import ActivityLogRow from "@/components/ActivityLogRow";
 import ServicesCsvExportDialog from "@/components/ServicesCsvExportDialog";
 import { useAuth } from "@/hooks/useAuth";
 
-import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
+import { useAllServices, useInvalidateServices, useArchivedCompletedServices, completedWindowStart } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
@@ -128,13 +128,14 @@ const ServiceTracker = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const {
-    data: services = [],
+    data: liveServices = [],
     isLoading,
     isPending,
     isFetching,
     error: servicesError,
     refetch: refetchServices,
   } = useAllServices();
+
   const invalidateServices = useInvalidateServices();
   const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
@@ -754,6 +755,20 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       return 999;
     }
   };
+
+  // The shared list only keeps recent completed tickets. Pull the older
+  // completed backlog in when the user is actually looking for it: the
+  // Completed tab, a ticket search, or a date filter reaching further back.
+  const needsArchive =
+    activeTab === "completed" ||
+    debouncedSearch.trim().length >= 3 ||
+    (!!startDate && startDate < completedWindowStart());
+  const { data: archivedServices = [] } = useArchivedCompletedServices(needsArchive);
+  const services = useMemo<any[]>(
+    () => (archivedServices.length ? [...liveServices, ...archivedServices] : liveServices),
+    [liveServices, archivedServices],
+  );
+
 
   const deviceTypes = useMemo(() => {
     const types = new Set(services.map(s => s.deviceType).filter(Boolean));
