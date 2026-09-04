@@ -81,6 +81,9 @@ export const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) =>
   waitingPartsNote: (sb as any).waitingPartsNote || "",
   isBackjob: !!(sb as any).isBackjob,
   rushFee: !!(sb as any).rushFee,
+  isReleased: !!(sb as any).isReleased,
+  releasedAt: (sb as any).releasedAt || "",
+  hasPreOrder: !!(sb as any).hasPreOrder,
   rtoReason: (sb as any).rtoReason || "",
   vatRequested: !!(sb as any).vatRequested,
 
@@ -150,6 +153,8 @@ const AUTHORITATIVE_KEYS = new Set<string>([
   "waitingPartsNote",
   "isBackjob",
   "rushFee",
+  "isReleased",
+  "hasPreOrder",
   "rtoReason",
   "vatRequested",
 

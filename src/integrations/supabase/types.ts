@@ -1094,11 +1094,13 @@ export type Database = {
           estimated_completion: string | null
           estimated_cost: number
           final_cost: number
+          has_pre_order: boolean
           id: string
           initial_payment: number
           internal_admin_notes: string | null
           internal_technician_notes: string | null
           is_backjob: boolean
+          is_released: boolean
           issue_description: string | null
           labor_cost: number
           last_updated: string
@@ -1114,6 +1116,7 @@ export type Database = {
           priority: string | null
           quoted_breakdown: Json
           receiving_staff: string | null
+          released_at: string | null
           remarks: string | null
           repair_time_frame: string | null
           rto_reason: string | null
@@ -1175,11 +1178,13 @@ export type Database = {
           estimated_completion?: string | null
           estimated_cost?: number
           final_cost?: number
+          has_pre_order?: boolean
           id?: string
           initial_payment?: number
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
           is_backjob?: boolean
+          is_released?: boolean
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
@@ -1195,6 +1200,7 @@ export type Database = {
           priority?: string | null
           quoted_breakdown?: Json
           receiving_staff?: string | null
+          released_at?: string | null
           remarks?: string | null
           repair_time_frame?: string | null
           rto_reason?: string | null
@@ -1256,11 +1262,13 @@ export type Database = {
           estimated_completion?: string | null
           estimated_cost?: number
           final_cost?: number
+          has_pre_order?: boolean
           id?: string
           initial_payment?: number
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
           is_backjob?: boolean
+          is_released?: boolean
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
@@ -1276,6 +1284,7 @@ export type Database = {
           priority?: string | null
           quoted_breakdown?: Json
           receiving_staff?: string | null
+          released_at?: string | null
           remarks?: string | null
           repair_time_frame?: string | null
           rto_reason?: string | null

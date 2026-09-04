@@ -1,3 +1,4 @@
+import TicketSearchSuggestions from "@/components/TicketSearchSuggestions";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -1256,6 +1257,13 @@ const ServiceUpdate = () => {
                     }
                   }}
                   className="pl-9 h-11 rounded-xl bg-background/60"
+                />
+                <TicketSearchSuggestions
+                  term={serviceId}
+                  onPick={(id) => {
+                    setServiceId(id);
+                    searchService(id);
+                  }}
                 />
               </div>
             </div>

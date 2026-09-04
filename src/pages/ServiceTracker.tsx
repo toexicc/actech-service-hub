@@ -26,6 +26,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
+import TicketFlagChips from "@/components/workspace/TicketFlagChips";
 import ActivityLogRow from "@/components/ActivityLogRow";
 import ServicesCsvExportDialog from "@/components/ServicesCsvExportDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -1505,7 +1506,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <TableRow>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Txn Status</TableHead>
+                      <TableHead>Flags</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead>Service Date</TableHead>
                       <TableHead>Admin</TableHead>
@@ -1596,28 +1597,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
                             </div>
                             <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {isWithinDay(service) && (
-                                <span className="rounded-full border border-sky-400/40 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-600">
-                                  Within the Day
-                                </span>
-                              )}
-                              {(service as any).rushFee && (
-                                <span className="rounded-full border border-orange-400/40 bg-orange-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-orange-600">
-                                  Rush
-                                </span>
-                              )}
-                              {(service as any).isBackjob && (
-                                <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-destructive">
-                                  Backjob
-                                </span>
-                              )}
-                              {(service as any).waitingForParts && (
-                                <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600">
-                                  Waiting for Parts
-                                </span>
-                              )}
-                            </div>
+                            <TicketFlagChips
+                              service={service}
+                              showWithinDay={activeTab !== "closed"}
+                              className="mt-1"
+                            />
                           </div>
                           <span className={cn("text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border font-medium whitespace-nowrap", getStatusTextColor(service.status || ""), "border-current/30")}>
                             {service.status || "N/A"}
@@ -1727,7 +1711,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     <TableRow>
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Txn Status</TableHead>
+                      <TableHead>Flags</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("timestamp")}>
                         <div className="flex items-center gap-1">
@@ -1792,9 +1776,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span className="text-xs">
-                                {(service as any).transactionStatus || "-"}
-                              </span>
+                              <TicketFlagChips service={service} showWithinDay={activeTab !== "closed"} />
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
                            <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>

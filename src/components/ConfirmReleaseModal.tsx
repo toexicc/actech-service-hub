@@ -220,6 +220,16 @@ export const ConfirmReleaseModal = ({ entry, manual, prefillServiceId, onOpenCha
     setSaving(false);
 
     if (serviceId) {
+      // Flags the ticket as Released so it shows up as such everywhere.
+      await supabase
+        .from("services")
+        .update({
+          is_released: true,
+          released_at: new Date().toISOString(),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", serviceId);
+
       logTicketActivity(
         serviceId,
         entry
