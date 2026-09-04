@@ -45,27 +45,88 @@ const trimDetails = (details?: Record<string, any>): Record<string, any> => {
   return out;
 };
 
+const PENDING_KEY = "pendingActivityLogs";
+const MAX_PENDING = 50;
+
+const readPending = (): any[] => {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+};
+
+const writePending = (rows: any[]) => {
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify(rows.slice(-MAX_PENDING)));
+  } catch {
+    /* storage full or unavailable — nothing else to do */
+  }
+};
+
+const insertRows = async (rows: any[]): Promise<boolean> => {
+  if (!rows.length) return true;
+  const { error } = await supabase.from("activity_logs").insert(rows);
+  return !error;
+};
+
+/**
+ * Inserts a log row. If the session has expired the request is rejected by the
+ * database security rules, so the session is refreshed and the write retried;
+ * if it still fails the entry is buffered locally and flushed with the next
+ * successful write instead of being lost from the timeline.
+ */
 const sendLog = async (
   log: Omit<ActivityLog, "logId" | "timestamp"> & { details?: Record<string, any> },
 ) => {
+  const action = String(log.activity ?? "");
+  let row: any;
   try {
-    // Local session read (no network round trip per log entry).
     const { data: { session } } = await supabase.auth.getSession();
-    const action = String(log.activity ?? "");
-    await supabase.from("activity_logs").insert({
+    row = {
       action: action.length > MAX_ACTION ? `${action.slice(0, MAX_ACTION)}…` : action,
       actor_id: session?.user?.id ?? null,
       actor_name: log.username,
       entity_type: "service",
       entity_id: log.serviceId,
       changes: { role: log.role || null, ...trimDetails(log.details) },
-    });
-    return true;
+    };
   } catch {
     return false;
   }
 
+  try {
+    const pending = readPending();
+    if (await insertRows([...pending, row])) {
+      if (pending.length) writePending([]);
+      return true;
+    }
+
+    // Most likely cause: the access token expired mid-action, so the request
+    // arrived as anonymous. Refresh and try once more.
+    await supabase.auth.refreshSession();
+    const { data: { session: fresh } } = await supabase.auth.getSession();
+    if (fresh?.user?.id) row.actor_id = fresh.user.id;
+    if (fresh && (await insertRows([...pending, row]))) {
+      if (pending.length) writePending([]);
+      return true;
+    }
+
+    writePending([...pending, row]);
+    return false;
+  } catch {
+    try {
+      writePending([...readPending(), row]);
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+
 };
+
 
 export const logActivity = sendLog;
 
