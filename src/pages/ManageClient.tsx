@@ -1,3 +1,4 @@
+import TicketSearchSuggestions from "@/components/TicketSearchSuggestions";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -114,6 +115,9 @@ const ManageClient = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
+  // Set when staff pick a ticket from the search suggestions; the effect below
+  // runs the lookup once the input has caught up.
+  const [pendingSearchId, setPendingSearchId] = useState<string | null>(null);
   const [serviceData, setServiceData] = useState<any>(null);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
@@ -680,6 +684,14 @@ const ManageClient = () => {
     }
   }, [searchParams]);
   
+  useEffect(() => {
+    if (pendingSearchId && serviceId === pendingSearchId) {
+      setPendingSearchId(null);
+      handleSearch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSearchId, serviceId]);
+
   const handleSearch = async () => {
     if (!serviceId) {
       toast({
@@ -1911,6 +1923,13 @@ const ManageClient = () => {
                     }
                   }}
                   className="pl-9 h-11 rounded-xl bg-background/60"
+                />
+                <TicketSearchSuggestions
+                  term={serviceId}
+                  onPick={(id) => {
+                    setServiceId(id);
+                    setPendingSearchId(id);
+                  }}
                 />
               </div>
             </div>
