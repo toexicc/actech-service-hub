@@ -756,6 +756,20 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     }
   };
 
+  // The shared list only keeps recent completed tickets. Pull the older
+  // completed backlog in when the user is actually looking for it: the
+  // Completed tab, a ticket search, or a date filter reaching further back.
+  const needsArchive =
+    activeTab === "completed" ||
+    debouncedSearch.trim().length >= 3 ||
+    (!!startDate && startDate < completedWindowStart());
+  const { data: archivedServices = [] } = useArchivedCompletedServices(needsArchive);
+  const services = useMemo<ServiceRecord[]>(
+    () => (archivedServices.length ? [...liveServices, ...archivedServices] : liveServices),
+    [liveServices, archivedServices],
+  );
+
+
   const deviceTypes = useMemo(() => {
     const types = new Set(services.map(s => s.deviceType).filter(Boolean));
     return Array.from(types).sort();
