@@ -286,11 +286,27 @@ const Reports = () => {
     return { start: startOfDay(start), end: endOfDay(now), label: `Last ${preset} days` };
   }, [mode, monthKey, preset, rangeFrom, rangeTo]);
 
+  // Logs and the completed backlog are loaded for exactly the selected period,
+  // so older months / "This year" / "All time" are complete instead of being
+  // silently cut off by the live list's rolling window.
+  const {
+    data: statusLogs = [],
+    isLoading: loadingLogs,
+    isError: logsFailed,
+    refetch: refetchLogs,
+  } = useServiceStatusLogs(period.start ?? null);
+
+  const needsArchive = !period.start || period.start < completedWindowStart();
+  const { data: archivedData = [] } = useArchivedCompletedServices(
+    needsArchive,
+    period.start ?? null,
+  );
 
   const allServices = useMemo(
-    () => [...(activeData as any[]), ...(completedData as any[])],
-    [activeData, completedData],
+    () => [...(activeData as any[]), ...(completedData as any[]), ...(archivedData as any[])],
+    [activeData, completedData, archivedData],
   );
+
 
   // Durations count working time only (10:00-19:00 Manila minus a 1.5h break),
   // and skip days the shop was closed.
