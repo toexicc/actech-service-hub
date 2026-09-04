@@ -95,9 +95,11 @@ export interface ServiceFormProps {
   embedded?: boolean;
   /** Called after an embedded submission succeeds. */
   onCompleted?: (serviceId: string) => void;
+  /** Existing customer chosen before the intake opens (queue linking). */
+  prefillClientId?: string;
 }
 
-const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProps = {}) => {
+const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }: ServiceFormProps = {}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -436,6 +438,20 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
     }
   };
 
+
+  /** Loads the customer picked in the queue panel as soon as the form opens. */
+  useEffect(() => {
+    if (!prefillClientId) return;
+    setSearchClientId(prefillClientId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillClientId]);
+
+  useEffect(() => {
+    if (prefillClientId && searchClientId === prefillClientId && !form.getValues("clientId")) {
+      handleSearchClientId();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillClientId, searchClientId]);
 
   // Helper to convert blob to base64 (defined outside for reuse)
   const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
