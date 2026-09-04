@@ -105,10 +105,12 @@ const isTodayService = (s: any): boolean => {
 
 
 /** Flag cards — tickets whose toggles are on, regardless of status. */
-type FlagKey = "today" | "waitingParts" | "backjob" | "completedBackjob" | "withinDay" | "rush";
+type FlagKey = "today" | "waitingParts" | "preOrder" | "backjob" | "completedBackjob" | "withinDay" | "rush";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
+  { key: "preOrder", label: "Pre-Order", match: (s) => !!s.hasPreOrder },
+
   { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
   {
     key: "completedBackjob",
