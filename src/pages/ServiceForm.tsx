@@ -28,6 +28,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
+import { ClientSearchSuggestions } from "@/components/ClientSearchSuggestions";
 import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
@@ -97,9 +98,29 @@ export interface ServiceFormProps {
   onCompleted?: (serviceId: string) => void;
   /** Existing customer chosen before the intake opens (queue linking). */
   prefillClientId?: string;
+  /** Queue-entry matches shown below the Client ID Search so staff can link
+   *  the ticket to an existing customer instead of creating a new ID. */
+  embeddedQueueMatches?: QueueClientMatch[];
+  onQueueMatchLink?: (clientId: string) => void;
+  onQueueMatchDismiss?: () => void;
 }
 
-const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }: ServiceFormProps = {}) => {
+export interface QueueClientMatch {
+  client_id: string;
+  name: string | null;
+  contact_number: string | null;
+  email: string | null;
+}
+
+const ServiceForm = ({
+  embeddedQueueId,
+  embedded,
+  onCompleted,
+  prefillClientId,
+  embeddedQueueMatches,
+  onQueueMatchLink,
+  onQueueMatchDismiss,
+}: ServiceFormProps = {}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -328,8 +349,9 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }
   }, [kioskCode]);
 
 
-  const handleSearchClientId = async () => {
-    if (!searchClientId.trim()) {
+  const handleSearchClientId = async (overrideTerm?: string) => {
+    const term = (overrideTerm ?? searchClientId).trim();
+    if (!term) {
       toast({
         title: "Error",
         description: "Please enter a Client ID to search",
@@ -340,7 +362,6 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }
 
     setIsSearchingClient(true);
     try {
-      const term = searchClientId.trim();
       const { data: client } = await supabase
         .from("clients")
         .select("*")
@@ -991,9 +1012,10 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }
         {!isPublic && (
         <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
-          <div className="flex gap-2">
+          <p className="text-xs text-green-700/70 mb-2">Search by Client ID or customer name.</p>
+          <div className="relative flex gap-2">
             <Input
-              placeholder="Enter Client ID or customer name"
+              placeholder="Enter Client ID or customer name (e.g. CL1234, Yannie)"
               value={searchClientId}
               onChange={(e) => setSearchClientId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearchClientId()}
@@ -1001,13 +1023,20 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }
             />
             <Button
               type="button"
-              onClick={handleSearchClientId}
+              onClick={() => handleSearchClientId()}
               disabled={isSearchingClient}
               className="bg-green-600 hover:bg-green-700"
             >
               <Search className="mr-2 h-4 w-4" />
               {isSearchingClient ? "Searching..." : "Search"}
             </Button>
+            <ClientSearchSuggestions
+              term={searchClientId}
+              onPick={(id) => {
+                setSearchClientId(id);
+                handleSearchClientId(id);
+              }}
+            />
           </div>
           {clientMatches.length > 0 && (
             <div className="mt-3 space-y-1 rounded-lg border border-green-200 bg-white p-2">
@@ -1039,6 +1068,39 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }
             <p className="mt-2 text-sm text-green-600 font-medium">
               Loaded Client ID: {form.watch("clientId")}
             </p>
+          )}
+          {embeddedQueueMatches && embeddedQueueMatches.length > 0 && (
+            <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">
+                This name matches existing customers — link the ticket instead of creating a new
+                Client ID.
+              </p>
+              <div className="mt-2 space-y-1">
+                {embeddedQueueMatches.map((m) => (
+                  <button
+                    key={m.client_id}
+                    type="button"
+                    onClick={() => onQueueMatchLink?.(m.client_id)}
+                    className="flex w-full flex-col items-start rounded-md bg-white px-3 py-2 text-left hover:bg-amber-100"
+                  >
+                    <span className="text-sm font-medium">
+                      {m.name || "No name"} — {m.client_id}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {[m.contact_number, m.email].filter(Boolean).join(" · ")}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => onQueueMatchDismiss?.()}
+              >
+                New customer, skip linking
+              </Button>
+            </div>
           )}
         </div>
         )}
