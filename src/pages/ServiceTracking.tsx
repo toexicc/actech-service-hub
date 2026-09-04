@@ -191,6 +191,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       customerNotes: pick(sb.remarks ?? (row as any).remarks, sheetData.customerNotes ?? sheetData.remarks),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
       waitingForParts: !!((sb as any).waitingForParts ?? (row as any).waiting_for_parts),
+      hasPreOrder: !!(row as any).has_pre_order,
+      isReleased: !!(row as any).is_released,
       approvalLocked: !!(row as any).approval_locked,
       approvedServices: Array.isArray((row as any).approved_services) ? (row as any).approved_services : [],
       pendingServices: Array.isArray((row as any).pending_services) ? (row as any).pending_services : [],
