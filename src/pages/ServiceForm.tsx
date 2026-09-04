@@ -349,8 +349,9 @@ const ServiceForm = ({
   }, [kioskCode]);
 
 
-  const handleSearchClientId = async () => {
-    if (!searchClientId.trim()) {
+  const handleSearchClientId = async (overrideTerm?: string) => {
+    const term = (overrideTerm ?? searchClientId).trim();
+    if (!term) {
       toast({
         title: "Error",
         description: "Please enter a Client ID to search",
@@ -361,7 +362,7 @@ const ServiceForm = ({
 
     setIsSearchingClient(true);
     try {
-      const term = searchClientId.trim();
+      const searchTerm = term;
       const { data: client } = await supabase
         .from("clients")
         .select("*")
