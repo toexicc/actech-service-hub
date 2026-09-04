@@ -128,13 +128,14 @@ const ServiceTracker = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const {
-    data: services = [],
+    data: liveServices = [],
     isLoading,
     isPending,
     isFetching,
     error: servicesError,
     refetch: refetchServices,
   } = useAllServices();
+
   const invalidateServices = useInvalidateServices();
   const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
