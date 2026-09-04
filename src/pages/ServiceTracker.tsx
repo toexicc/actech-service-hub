@@ -57,8 +57,11 @@ interface ServiceRecord {
   transactionStatus?: string;
   serviceDate?: string;
   waitingForParts?: boolean;
+  hasPreOrder?: boolean;
+  isReleased?: boolean;
   isBackjob?: boolean;
   rushFee?: boolean;
+
 }
 
 type SortField = "timestamp" | "technician" | "inService" | "targetDate";
