@@ -30,7 +30,7 @@ import ActivityLogRow from "@/components/ActivityLogRow";
 import ServicesCsvExportDialog from "@/components/ServicesCsvExportDialog";
 import { useAuth } from "@/hooks/useAuth";
 
-import { useAllServices, useInvalidateServices } from "@/hooks/useServices";
+import { useAllServices, useInvalidateServices, useArchivedCompletedServices, completedWindowStart } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
@@ -764,7 +764,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     debouncedSearch.trim().length >= 3 ||
     (!!startDate && startDate < completedWindowStart());
   const { data: archivedServices = [] } = useArchivedCompletedServices(needsArchive);
-  const services = useMemo<ServiceRecord[]>(
+  const services = useMemo<any[]>(
     () => (archivedServices.length ? [...liveServices, ...archivedServices] : liveServices),
     [liveServices, archivedServices],
   );
