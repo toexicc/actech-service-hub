@@ -113,6 +113,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
+  const [clientMatches, setClientMatches] = useState<any[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
   const [searchClientId, setSearchClientId] = useState("");
   const [signatureUrl, setSignatureUrl] = useState("");
@@ -376,6 +377,32 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
         }
       }
 
+      // No exact Client ID: treat the text as a customer name and offer matches.
+      if (!customer) {
+        const { data: byName } = await supabase
+          .from("clients")
+          .select("client_id, name, username, contact_number, email, address")
+          .ilike("name", `%${term}%`)
+          .order("created_at", { ascending: false })
+          .limit(8);
+        if ((byName ?? []).length === 1) {
+          const c: any = byName![0];
+          customer = {
+            clientId: c.client_id,
+            clientName: c.name ?? "",
+            username: c.username ?? "",
+            phone: c.contact_number ?? "",
+            email: c.email ?? "",
+            address: c.address ?? "",
+          };
+        } else if ((byName ?? []).length > 1) {
+          setClientMatches(byName as any[]);
+          toast({ title: "Multiple customers found", description: "Pick the right one from the list." });
+          return;
+        }
+      }
+      setClientMatches([]);
+
       if (customer) {
         form.setValue("clientId", customer.clientId || term);
         form.setValue("clientName", customer.clientName || "");
@@ -392,7 +419,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
       } else {
         toast({
           title: "Not Found",
-          description: "Client ID not found in database",
+          description: "No customer found for that Client ID or name",
           variant: "destructive",
         });
       }
@@ -950,7 +977,7 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
           <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
           <div className="flex gap-2">
             <Input
-              placeholder="Enter Client ID to load client information"
+              placeholder="Enter Client ID or customer name"
               value={searchClientId}
               onChange={(e) => setSearchClientId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearchClientId()}
@@ -966,6 +993,32 @@ const ServiceForm = ({ embeddedQueueId, embedded, onCompleted }: ServiceFormProp
               {isSearchingClient ? "Searching..." : "Search"}
             </Button>
           </div>
+          {clientMatches.length > 0 && (
+            <div className="mt-3 space-y-1 rounded-lg border border-green-200 bg-white p-2">
+              {clientMatches.map((c: any) => (
+                <button
+                  key={c.client_id}
+                  type="button"
+                  onClick={() => {
+                    form.setValue("clientId", c.client_id);
+                    form.setValue("clientName", c.name || "");
+                    form.setValue("username", c.username || "");
+                    form.setValue("phone", c.contact_number || "");
+                    form.setValue("email", c.email || "");
+                    if (c.address) form.setValue("address" as any, c.address);
+                    form.setValue("clientType", "Returning Client - Walk In");
+                    setClientMatches([]);
+                  }}
+                  className="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-green-50"
+                >
+                  <span className="text-sm font-medium">{c.name || "No name"} — {c.client_id}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {[c.contact_number, c.email].filter(Boolean).join(" · ")}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           {form.watch("clientId") && (
             <p className="mt-2 text-sm text-green-600 font-medium">
               Loaded Client ID: {form.watch("clientId")}
