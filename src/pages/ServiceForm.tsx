@@ -98,9 +98,29 @@ export interface ServiceFormProps {
   onCompleted?: (serviceId: string) => void;
   /** Existing customer chosen before the intake opens (queue linking). */
   prefillClientId?: string;
+  /** Queue-entry matches shown below the Client ID Search so staff can link
+   *  the ticket to an existing customer instead of creating a new ID. */
+  embeddedQueueMatches?: QueueClientMatch[];
+  onQueueMatchLink?: (clientId: string) => void;
+  onQueueMatchDismiss?: () => void;
 }
 
-const ServiceForm = ({ embeddedQueueId, embedded, onCompleted, prefillClientId }: ServiceFormProps = {}) => {
+export interface QueueClientMatch {
+  client_id: string;
+  name: string | null;
+  contact_number: string | null;
+  email: string | null;
+}
+
+const ServiceForm = ({
+  embeddedQueueId,
+  embedded,
+  onCompleted,
+  prefillClientId,
+  embeddedQueueMatches,
+  onQueueMatchLink,
+  onQueueMatchDismiss,
+}: ServiceFormProps = {}) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const location = useLocation();
