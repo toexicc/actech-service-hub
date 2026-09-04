@@ -196,12 +196,7 @@ const Reports = () => {
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
   const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
-  const {
-    data: statusLogs = [],
-    isLoading: loadingLogs,
-    isError: logsFailed,
-    refetch: refetchLogs,
-  } = useServiceStatusLogs();
+
 
   const { data: closedDates = [] } = useClosedDates();
   const { data: staffList = [] } = useStaff();
