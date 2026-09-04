@@ -1023,7 +1023,7 @@ const ServiceForm = ({
             />
             <Button
               type="button"
-              onClick={handleSearchClientId}
+              onClick={() => handleSearchClientId()}
               disabled={isSearchingClient}
               className="bg-green-600 hover:bg-green-700"
             >
