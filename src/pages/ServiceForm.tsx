@@ -362,7 +362,6 @@ const ServiceForm = ({
 
     setIsSearchingClient(true);
     try {
-      const searchTerm = term;
       const { data: client } = await supabase
         .from("clients")
         .select("*")
