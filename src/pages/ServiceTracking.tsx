@@ -1098,6 +1098,16 @@ const ServiceTracking = () => {
                             Rush
                           </span>
                         )}
+                        {(serviceData as any)?.hasPreOrder && (
+                          <span className="rounded-full border border-indigo-400/40 bg-indigo-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-600">
+                            Pre-Order
+                          </span>
+                        )}
+                        {(serviceData as any)?.isReleased && (
+                          <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-600">
+                            Released
+                          </span>
+                        )}
                         <StatusChip status={clientStatusLabel(serviceData.status || "Pending Diagnosis")} className="text-sm px-3 py-1.5" />
                       </div>
                     </div>
