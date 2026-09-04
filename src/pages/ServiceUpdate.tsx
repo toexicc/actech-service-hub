@@ -1238,11 +1238,12 @@ const ServiceUpdate = () => {
           <CardContent className="pt-6">
             <div className="space-y-2">
               <Label htmlFor="serviceId" className="text-sm font-medium">Service ID</Label>
+              <p className="text-xs text-muted-foreground">Search by Service ID, customer name, or device (brand/model).</p>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="serviceId"
-                  placeholder="Enter service ID (e.g. AC1234)"
+                  placeholder="Enter Service ID, name, or device (e.g. AC1234, iPhone 15)"
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
                   onKeyDown={(e) => {
