@@ -57,7 +57,7 @@ export const ClientSearchSuggestions = ({ term, onPick }: Props) => {
   if (!open) return null;
 
   return (
-    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border/60 bg-popover shadow-lg">
+    <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border/60 bg-popover shadow-lg">
       {matches.map((m) => (
         <button
           key={m.clientId}
