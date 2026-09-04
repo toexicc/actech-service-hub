@@ -110,15 +110,13 @@ const PointOfSales = () => {
       const result = await response.json();
       if (result.status === "found" && result.data) {
         const finalCostRaw = result.data.finalCost || result.data.serviceCost || "0";
+        // Tickets without a final cost yet can still take money in — it is held
+        // as a credit and deducted once the final cost is set.
         if (parseCurrency(finalCostRaw) <= 0) {
           toast({
-            title: "Final cost required",
-            description: `${searchServiceId} has no final cost yet. Set the final cost on the ticket before recording a payment.`,
-            variant: "destructive",
+            title: "No final cost yet",
+            description: `${searchServiceId} has no final cost yet. Any amount recorded now is kept as a credit on this ticket.`,
           });
-          setServiceData(null);
-          setPreviousPayments(0);
-          return;
         }
         setServiceData({
           serviceId: searchServiceId,
