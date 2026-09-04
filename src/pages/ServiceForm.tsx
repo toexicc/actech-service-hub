@@ -28,6 +28,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
+import { ClientSearchSuggestions } from "@/components/ClientSearchSuggestions";
 import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
