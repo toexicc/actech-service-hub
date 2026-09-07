@@ -4,8 +4,29 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate } from "@/lib/timezone";
-import { CalendarIcon, Eye, EyeOff, Loader2, ExternalLink, UserCog, Search, Pencil, Lock, LockOpen, AlertTriangle, ChevronDown, Send } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  CalendarIcon,
+  Eye,
+  EyeOff,
+  Loader2,
+  ExternalLink,
+  UserCog,
+  Search,
+  Pencil,
+  Lock,
+  LockOpen,
+  AlertTriangle,
+  ChevronDown,
+  Send,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { notifyAdminConcern } from "@/lib/serviceNotifications";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,12 +37,22 @@ import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
 
 import ApprovalRemarkBlock from "@/components/workspace/ApprovalRemarkBlock";
-import { parseQuotedBreakdown, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, validateQuotedLines, computeFinalCost, vatAmount, rushAmount, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
+import {
+  parseQuotedBreakdown,
+  normalizeQuotedBreakdown,
+  quotedSelectedTotal,
+  lineEffectiveCost,
+  validateQuotedLines,
+  computeFinalCost,
+  vatAmount,
+  rushAmount,
+  BUNDLE_DISCOUNT_NOTICE,
+  type QuotedLine,
+} from "@/lib/serviceApproval";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
 import { RemoteUpdateBanner } from "@/components/workspace/RemoteUpdateBanner";
-
 
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
@@ -40,23 +71,49 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
-import { formatDiagnosisWithAI, formatDiagnosisSections, formatReportWithAI, AI_ERROR_MESSAGE } from "@/lib/aiFormatters";
-import { diagnosisFieldsFromRecord, composeClientDiagnosis, APPROVAL_DISCLAIMER, VAT_DISCLAIMER } from "@/lib/diagnosisSections";
+import {
+  formatDiagnosisWithAI,
+  formatDiagnosisSections,
+  formatReportWithAI,
+  AI_ERROR_MESSAGE,
+} from "@/lib/aiFormatters";
+import {
+  diagnosisFieldsFromRecord,
+  composeClientDiagnosis,
+  APPROVAL_DISCLAIMER,
+  VAT_DISCLAIMER,
+} from "@/lib/diagnosisSections";
 
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { generateQuotationPDF } from "@/lib/quotationPdfGenerator";
-import { uploadServicePdf, getServicePdfSignedUrl, getServiceImageDataUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
+import {
+  uploadServicePdf,
+  getServicePdfSignedUrl,
+  getServiceImageDataUrl,
+  servicePdfDownloadName,
+} from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { logActivity, logAiFormatActivity, logTicketActivity, diffFields } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated } from "@/lib/serviceNotifications";
+import {
+  notifyServiceStatusChange,
+  notifyNewServiceAssignment,
+  notifyAiDiagnosisGenerated,
+  notifyAiOutputGenerated,
+} from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { FileText, RefreshCw } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { STATUS_OPTIONS, TIME_FRAME_OPTIONS, PRIORITY_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
+import {
+  STATUS_OPTIONS,
+  TIME_FRAME_OPTIONS,
+  PRIORITY_OPTIONS,
+  DEVICE_TYPES_BY_DEPARTMENT,
+  DEVICE_TYPES,
+} from "@/lib/constants";
 import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
 import { sanitizeInput, sanitizeNumber, isValidServiceId } from "@/lib/validation";
@@ -67,8 +124,6 @@ import { StatusProgressBar } from "@/components/StatusProgressBar";
 import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
-
-
 
 const parseDateMMDDYYYY = (value: string | undefined | null): Date | undefined => {
   if (!value) return undefined;
@@ -110,7 +165,6 @@ const buildFallbackDiagnosis = (raw: string): string => {
 // Supabase-authoritative payload builders live in a shared module so
 // /manage-client and /service-update behave identically.
 
-
 const ManageClient = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -129,8 +183,8 @@ const ManageClient = () => {
   const [isUpdatingQuotation, setIsUpdatingQuotation] = useState(false);
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
-  
-  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem('actech_openai_key') || '');
+
+  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem("actech_openai_key") || "");
   const [technicianReport, setTechnicianReport] = useState("");
   const [updateServiceReport, setUpdateServiceReport] = useState("");
   const [isFormattingReport, setIsFormattingReport] = useState(false);
@@ -146,30 +200,32 @@ const ManageClient = () => {
   const { data: staffData = [] } = useStaff();
   const userRole = (sessionStorage.getItem("userRole") || "").toLowerCase();
   const canEditAdminRep = userRole === "admin" || userRole === "management";
-  
+
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
   const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // (technician option list is derived further below, once the assigned
   // technician state exists, so assigned staff are never filtered out)
 
-
-
-  const adminStaffOptions = useMemo(() => staffData
-    .filter((staff) => {
-      const role = staff.role?.trim().toLowerCase();
-      return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
-    })
-    .sort((a, b) => {
-      const rank = (role?: string) => role?.trim().toLowerCase() === "admin" ? 0 : 1;
-      const roleDiff = rank(a.role) - rank(b.role);
-      return roleDiff || a.name.localeCompare(b.name);
-    })
-    .map((staff) => ({
-      label: staff.name,
-      value: staff.name,
-      group: staff.role?.trim().toLowerCase() === "management" ? "Management" : "Admin",
-    })), [staffData]);
+  const adminStaffOptions = useMemo(
+    () =>
+      staffData
+        .filter((staff) => {
+          const role = staff.role?.trim().toLowerCase();
+          return (role === "admin" || role === "management") && staff.status?.toLowerCase() !== "inactive";
+        })
+        .sort((a, b) => {
+          const rank = (role?: string) => (role?.trim().toLowerCase() === "admin" ? 0 : 1);
+          const roleDiff = rank(a.role) - rank(b.role);
+          return roleDiff || a.name.localeCompare(b.name);
+        })
+        .map((staff) => ({
+          label: staff.name,
+          value: staff.name,
+          group: staff.role?.trim().toLowerCase() === "management" ? "Management" : "Admin",
+        })),
+    [staffData],
+  );
 
   // Update form fields
   const [updateStatus, setUpdateStatus] = useState("");
@@ -184,7 +240,7 @@ const ManageClient = () => {
     if (!serviceData || !body) return;
     setConcernSending(true);
     try {
-      const fromName = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
+      const fromName = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin";
       await notifyAdminConcern(
         {
           serviceId: serviceData.serviceId,
@@ -290,7 +346,6 @@ const ManageClient = () => {
   // Set when a status change was blocked because the Service Breakdown is empty.
   const [breakdownMissing, setBreakdownMissing] = useState(false);
 
-
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isPartsUsedOpen, setIsPartsUsedOpen] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
@@ -318,12 +373,14 @@ const ManageClient = () => {
 
       const savedLines = normalizeQuotedBreakdown((current as any)?.quoted_breakdown);
       const savedKeys = savedLines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
-      const rawApproved = (Array.isArray((current as any)?.approved_services)
-        ? ((current as any).approved_services as string[])
-        : []
+      const rawApproved = (
+        Array.isArray((current as any)?.approved_services) ? ((current as any).approved_services as string[]) : []
       ).filter(Boolean);
       const baseName = (s: string) =>
-        String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, "");
+        String(s)
+          .trim()
+          .toLowerCase()
+          .replace(/\s*\([^)]*\)\s*$/, "");
       const stillApproved = rawApproved.filter((s) => savedKeys.includes(baseName(s)));
       const removedApproved = rawApproved.filter((s) => !stillApproved.includes(s));
       const pending = savedLines
@@ -379,12 +436,15 @@ const ManageClient = () => {
     }
   };
 
-
-
   const handleToggleAutoApprove = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingAutoApprove) return;
 
-    if (!next && serviceData.status && serviceData.status !== "Pending Diagnosis" && serviceData.status !== "Confirmed Diagnosis") {
+    if (
+      !next &&
+      serviceData.status &&
+      serviceData.status !== "Pending Diagnosis" &&
+      serviceData.status !== "Confirmed Diagnosis"
+    ) {
       const confirmed = window.confirm(
         "This ticket is already past diagnosis. Turning pre-approval off means the client will need to approve the diagnosis again on the tracking page. Continue?",
       );
@@ -549,15 +609,13 @@ const ManageClient = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updatePriority, serviceData?.serviceId]);
 
-
-
   const fetchApiKey = async () => {
     try {
       const response = await fetch(`${DATA_BRIDGE_URL}?action=getApiKey`);
       const data = await response.json();
       if (data.status === "success" && data.apiKey) {
         setOpenAIKey(data.apiKey);
-        localStorage.setItem('actech_openai_key', data.apiKey);
+        localStorage.setItem("actech_openai_key", data.apiKey);
       }
     } catch {
       // Error fetching API key - ignore
@@ -565,9 +623,7 @@ const ManageClient = () => {
   };
 
   const handleViewPDF = async () => {
-    const signed = serviceData?.serviceId
-      ? await getServicePdfSignedUrl(serviceData.serviceId, "intake")
-      : null;
+    const signed = serviceData?.serviceId ? await getServicePdfSignedUrl(serviceData.serviceId, "intake") : null;
     const url = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview") : null);
     if (!url) {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
@@ -584,7 +640,7 @@ const ManageClient = () => {
     setPdfModalTitle("Client Intake Form");
     setPdfModalOpen(true);
   };
-  
+
   useEffect(() => {
     fetchApiKey();
     // Preload PDF assets for faster generation
@@ -603,9 +659,7 @@ const ManageClient = () => {
           let sheetData: any = {};
           let foundFromSheets = false;
           try {
-            const response = await fetch(
-              `${DATA_BRIDGE_URL}?action=searchService&serviceId=${urlServiceId}`,
-            );
+            const response = await fetch(`${DATA_BRIDGE_URL}?action=searchService&serviceId=${urlServiceId}`);
             const data = await response.json();
             if (data.status === "found") {
               sheetData = data.data || {};
@@ -631,14 +685,14 @@ const ManageClient = () => {
             setUpdateAIDiagnosis(seg.diagnosis);
             setUpdateDiagBreakdown(seg.breakdownText);
             setUpdateDiagBreakdown(seg.breakdownText);
-        setUpdateDiagWarranty(seg.warranty);
+            setUpdateDiagWarranty(seg.warranty);
             setUpdateDiagOtherNotes(seg.otherNotes);
             setUpdateDiagSummary(seg.summary);
           }
 
           setUpdateServices(merged.service || "");
           setUpdateServiceCost(merged.serviceCost || "");
-      setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
+          setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
           setUpdateTimeFrame(merged.timeFrame || "");
           setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
@@ -683,7 +737,7 @@ const ManageClient = () => {
       autoSearch();
     }
   }, [searchParams]);
-  
+
   useEffect(() => {
     if (pendingSearchId && serviceId === pendingSearchId) {
       setPendingSearchId(null);
@@ -707,9 +761,7 @@ const ManageClient = () => {
       let sheetData: any = {};
       let foundFromSheets = false;
       try {
-        const response = await fetch(
-          `${DATA_BRIDGE_URL}?action=searchService&serviceId=${serviceId}`,
-        );
+        const response = await fetch(`${DATA_BRIDGE_URL}?action=searchService&serviceId=${serviceId}`);
         const data = await response.json();
         if (data.status === "found") {
           sheetData = data.data || {};
@@ -719,7 +771,11 @@ const ManageClient = () => {
 
       const merged = await mergeWithSupabase(serviceId, sheetData);
       if (!foundFromSheets && (!merged || !merged.serviceId)) {
-        toast({ title: "Not Found", description: "No service found with the provided details", variant: "destructive" });
+        toast({
+          title: "Not Found",
+          description: "No service found with the provided details",
+          variant: "destructive",
+        });
         setServiceData(null);
         return;
       }
@@ -792,7 +848,11 @@ const ManageClient = () => {
   const requireLoadedTicket = (): string | null => {
     const typed = (serviceId || "").trim().toUpperCase();
     if (!activeServiceId) {
-      toast({ title: "Load the ticket first", description: "Search for a Service ID before continuing.", variant: "destructive" });
+      toast({
+        title: "Load the ticket first",
+        description: "Search for a Service ID before continuing.",
+        variant: "destructive",
+      });
       return null;
     }
     if (typed && typed !== activeServiceId.trim().toUpperCase()) {
@@ -814,8 +874,12 @@ const ManageClient = () => {
   // ---- Live ticket watch: detect updates made elsewhere -------------------
   const isTabActive = useIsTabActive();
   const loadedServiceId = serviceData?.serviceId || null;
-  const { change: remoteChange, isLive, dismiss: dismissRemoteChange, syncBaseline } =
-    useServiceLiveWatch(loadedServiceId, isTabActive);
+  const {
+    change: remoteChange,
+    isLive,
+    dismiss: dismissRemoteChange,
+    syncBaseline,
+  } = useServiceLiveWatch(loadedServiceId, isTabActive);
   const [isReloadingTicket, setIsReloadingTicket] = useState(false);
 
   /** True when the form holds edits that a silent refresh would discard. */
@@ -880,7 +944,6 @@ const ManageClient = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remoteChange]);
 
-
   // Fallback: if Sheets didn't return a quotationPdfUrl but Supabase Storage
   // already has a generated quotation for this service, mark it so the button
   // shows "Update Form" instead of "Generate PDF".
@@ -894,7 +957,9 @@ const ManageClient = () => {
         setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, quotationPdfUrl: url } : prev));
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [serviceData?.serviceId, serviceData?.quotationPdfUrl]);
 
   // Keep the stored quotation form in sync with the client's approval: when a
@@ -933,7 +998,9 @@ const ManageClient = () => {
         setServiceData((prev: any) => (prev && prev.serviceId === sid ? { ...prev, pdfUrl: url } : prev));
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [serviceData?.serviceId, serviceData?.pdfUrl]);
 
   const handleFormatWithAI = async () => {
@@ -952,9 +1019,9 @@ const ManageClient = () => {
     try {
       const sections = await formatDiagnosisSections({
         rawDiagnosis,
-        customerName: serviceData?.clientName || '',
-        deviceType: serviceData?.deviceType || '',
-        model: serviceData?.device || '',
+        customerName: serviceData?.clientName || "",
+        deviceType: serviceData?.deviceType || "",
+        model: serviceData?.device || "",
         serviceId: aiSid,
       });
       const formattedDiagnosis = sections.diagnosis;
@@ -970,14 +1037,13 @@ const ManageClient = () => {
           after: formattedDiagnosis,
         });
 
-
         await notifyAiDiagnosisGenerated({
           serviceId: aiSid,
           clientName: serviceData?.clientName || "Client",
           technician: serviceData?.technician || "",
           adminRep: serviceData?.adminRep || "",
         });
-        
+
         toast({
           title: "AI Formatting Complete",
           description: "⚠️ Please double-check and proofread the generated diagnosis before approving.",
@@ -1013,11 +1079,11 @@ const ManageClient = () => {
     try {
       const formattedReport = await formatReportWithAI({
         technicianReport,
-        customerName: serviceData?.clientName || '',
-        deviceType: serviceData?.deviceType || '',
-        model: serviceData?.device || '',
+        customerName: serviceData?.clientName || "",
+        deviceType: serviceData?.deviceType || "",
+        model: serviceData?.device || "",
         serviceId: aiReportSid,
-        finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || '0',
+        finalCost: serviceData?.finalCost || updateServiceCost || serviceData?.serviceCost || "0",
       });
 
       if (formattedReport) {
@@ -1030,13 +1096,16 @@ const ManageClient = () => {
         });
 
         // Notify the acting staff member plus assigned admins and technicians.
-        await notifyAiOutputGenerated({
-          serviceId: aiReportSid,
-          clientName: serviceData?.clientName || "Client",
-          technician: serviceData?.technician || "",
-          adminRep: serviceData?.adminRep || "",
-        }, 'report');
-        
+        await notifyAiOutputGenerated(
+          {
+            serviceId: aiReportSid,
+            clientName: serviceData?.clientName || "Client",
+            technician: serviceData?.technician || "",
+            adminRep: serviceData?.adminRep || "",
+          },
+          "report",
+        );
+
         toast({
           title: "AI Formatting Complete",
           description: "⚠️ Please double-check and proofread the generated report before approving.",
@@ -1104,7 +1173,7 @@ const ManageClient = () => {
 
     if (offPathMove && updateStatus === "Cancelled") {
       const proceed = window.confirm(
-        `Set ${sid} to ${updateStatus}?\n\nThis takes the ticket off the repair workflow. Continue?`
+        `Set ${sid} to ${updateStatus}?\n\nThis takes the ticket off the repair workflow. Continue?`,
       );
       if (!proceed) return;
     }
@@ -1154,7 +1223,6 @@ const ManageClient = () => {
       updateStatus !== "Pending Diagnosis" &&
       updateStatus !== "Confirmed Diagnosis";
     if (!offPathMove && breakdownRequired && quotedLines.length === 0) {
-
       setBreakdownMissing(true);
       toast({
         title: "Service Breakdown required",
@@ -1165,11 +1233,6 @@ const ManageClient = () => {
       return;
     }
     setBreakdownMissing(false);
-
-
-
-
-
 
     setIsUpdatingClientInfo(true);
     try {
@@ -1182,11 +1245,11 @@ const ManageClient = () => {
       formData.append("adminRep", updateAdminRep);
       formData.append("Admin Representative", updateAdminRep);
       formData.append("technician", updateTechnician);
-      
+
       // Get ALL technicians' departments (keep duplicates so each technician's department is visible)
       const techNames = updateTechnician.split(", ").filter(Boolean);
       const techDept = techNames
-        .map(name => technicians.find(t => t.name === name)?.department)
+        .map((name) => technicians.find((t) => t.name === name)?.department)
         .filter(Boolean)
         .join(", ");
       formData.append("technicianDepartment", techDept);
@@ -1213,7 +1276,10 @@ const ManageClient = () => {
       // A service line added beyond what the client already had/approved must
       // re-open approval — pre-approval cannot cover the new work.
       const approvedNames = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-        String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
+        String(s)
+          .trim()
+          .toLowerCase()
+          .replace(/\s*\([^)]*\)\s*$/, ""),
       );
       const savedNames = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
         l.name.trim().toLowerCase(),
@@ -1227,7 +1293,12 @@ const ManageClient = () => {
       // Approved services that are no longer part of the ticket (replaced).
       const rawApproved = ((serviceData?.approvedServices ?? []) as string[]).filter(Boolean);
       const stillApproved = rawApproved.filter((s) =>
-        currentNames.includes(String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, "")),
+        currentNames.includes(
+          String(s)
+            .trim()
+            .toLowerCase()
+            .replace(/\s*\([^)]*\)\s*$/, ""),
+        ),
       );
       const removedApproved = rawApproved.filter((s) => !stillApproved.includes(s));
       // Any prior approval state counts as a baseline: an explicit client
@@ -1247,67 +1318,78 @@ const ManageClient = () => {
               (n) =>
                 n &&
                 !stillApproved.some(
-                  (s) => String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, "") === n.toLowerCase(),
+                  (s) =>
+                    String(s)
+                      .trim()
+                      .toLowerCase()
+                      .replace(/\s*\([^)]*\)\s*$/, "") === n.toLowerCase(),
                 ),
             )
         : [];
 
-
-
       // Mirror to Supabase so dashboards / search reflect the change immediately
       const saveStamp = new Date().toISOString();
-      const { error: sbUpdateError } = await supabase.from("services").update({
+      const { error: sbUpdateError } = await supabase
+        .from("services")
+        .update({
+          status: updateStatus as any,
+          admin_reps: updateAdminRep
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          technicians: updateTechnician
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          technician_departments: techDept
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          device_type: updateDeviceType,
+          client_type: updateClientType,
+          priority: updatePriority,
+          chief_complaint: updateChiefComplaint,
+          issue_description: updateChiefComplaint,
+          diagnosis: updateAIDiagnosis,
+          diagnosis_breakdown_text: updateDiagBreakdown || null,
+          diagnosis_warranty: updateDiagWarranty || null,
+          diagnosis_other_notes: updateDiagOtherNotes || null,
+          diagnosis_summary: updateDiagSummary || null,
 
-        status: updateStatus as any,
-        admin_reps: updateAdminRep.split(",").map(s => s.trim()).filter(Boolean),
-        technicians: updateTechnician.split(",").map(s => s.trim()).filter(Boolean),
-        technician_departments: techDept.split(",").map(s => s.trim()).filter(Boolean),
-        device_type: updateDeviceType,
-        client_type: updateClientType,
-        priority: updatePriority,
-        chief_complaint: updateChiefComplaint,
-        issue_description: updateChiefComplaint,
-        diagnosis: updateAIDiagnosis,
-        diagnosis_breakdown_text: updateDiagBreakdown || null,
-        diagnosis_warranty: updateDiagWarranty || null,
-        diagnosis_other_notes: updateDiagOtherNotes || null,
-        diagnosis_summary: updateDiagSummary || null,
+          technician_diagnosis: rawDiagnosis,
+          technician_report: technicianReport,
+          ai_report: updateServiceReport,
+          service: updateServices,
+          service_cost: Number(updateServiceCost) || 0,
+          quoted_breakdown: quotedLines as any,
+          discount: discountAmount,
+          vat_requested: vatRequested,
+          rush_fee: rushFee,
+          ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
+          ...(clearWaitingParts ? { waiting_for_parts: false } : {}),
+          final_cost: finalCost,
+          target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
+          estimated_completion: updateTimeFrame || null,
+          repair_time_frame: updateRepairTimeFrame || null,
+          internal_admin_notes: updateAdminNotesInternal,
+          remarks: updateAdminNotes,
+          ...(reopenApproval
+            ? {
+                approval_locked: false,
+                approved_services: stillApproved,
+                pending_services: prunedPending,
+                ...(stillApproved.length === 0 ? { client_approved_at: null } : {}),
+              }
+            : {}),
 
+          ...(disableAutoApprove ? { auto_approve_diagnosis: false } : {}),
 
-        technician_diagnosis: rawDiagnosis,
-        technician_report: technicianReport,
-        ai_report: updateServiceReport,
-        service: updateServices,
-        service_cost: Number(updateServiceCost) || 0,
-        quoted_breakdown: quotedLines as any,
-        discount: discountAmount,
-        vat_requested: vatRequested,
-        rush_fee: rushFee,
-        ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
-        ...(clearWaitingParts ? { waiting_for_parts: false } : {}),
-        final_cost: finalCost,
-        target_date: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : null,
-        estimated_completion: updateTimeFrame || null,
-        repair_time_frame: updateRepairTimeFrame || null,
-        internal_admin_notes: updateAdminNotesInternal,
-        remarks: updateAdminNotes,
-        ...(reopenApproval
-          ? {
-              approval_locked: false,
-              approved_services: stillApproved,
-              pending_services: prunedPending,
-              ...(stillApproved.length === 0 ? { client_approved_at: null } : {}),
-            }
-          : {}),
-
-        ...(disableAutoApprove ? { auto_approve_diagnosis: false } : {}),
-
-        last_updated: saveStamp,
-      } as any).eq("service_id", sid);
+          last_updated: saveStamp,
+        } as any)
+        .eq("service_id", sid);
 
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
-
 
       // Fire-and-forget mirror to the data bridge (non-blocking, ignore failures)
       try {
@@ -1316,7 +1398,9 @@ const ManageClient = () => {
         fetch(DATA_BRIDGE_URL, { method: "POST", body: formData, signal: controller.signal })
           .catch(() => {})
           .finally(() => clearTimeout(timeoutId));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       let result: any = null;
       // Success is now determined by Supabase, the source of truth
@@ -1324,7 +1408,7 @@ const ManageClient = () => {
 
       if (isSuccess) {
         // Log only the fields that actually changed
-        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
+        const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
         const prevTarget = serviceData.targetDate || "";
         const newTarget = updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : "";
@@ -1337,7 +1421,11 @@ const ManageClient = () => {
           { label: "Priority", before: serviceData.priority, after: updatePriority },
           { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
-          { label: "Service Breakdown (draft)", before: (serviceData as any).diagnosisBreakdownText, after: updateDiagBreakdown },
+          {
+            label: "Service Breakdown (draft)",
+            before: (serviceData as any).diagnosisBreakdownText,
+            after: updateDiagBreakdown,
+          },
           { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
           { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
@@ -1346,15 +1434,27 @@ const ManageClient = () => {
           { label: "Services", before: serviceData.service, after: updateServices },
           { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost },
           { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
-          { label: "VAT Requested", before: (serviceData as any).vatRequested ? "Yes" : "No", after: vatRequested ? "Yes" : "No" },
-          { label: "Rush Fee (10%)", before: (serviceData as any).rushFee ? "Yes" : "No", after: rushFee ? "Yes" : "No" },
+          {
+            label: "VAT Requested",
+            before: (serviceData as any).vatRequested ? "Yes" : "No",
+            after: vatRequested ? "Yes" : "No",
+          },
+          {
+            label: "Rush Fee (10%)",
+            before: (serviceData as any).rushFee ? "Yes" : "No",
+            after: rushFee ? "Yes" : "No",
+          },
           { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
           { label: "Diagnostic Time Frame", before: serviceData.timeFrame, after: updateTimeFrame },
           { label: "Repair Time Frame", before: (serviceData as any).repairTimeFrame, after: updateRepairTimeFrame },
           { label: "Target Date", before: prevTarget, after: newTarget },
           { label: "Notes from the Team", before: serviceData.adminNotes, after: updateAdminNotes },
           { label: "Internal Notes", before: serviceData.adminNotesInternal, after: updateAdminNotesInternal },
-          { label: "Service Breakdown", before: JSON.stringify(serviceData.quotedBreakdown ?? []), after: JSON.stringify(quotedLines ?? []) },
+          {
+            label: "Service Breakdown",
+            before: JSON.stringify(serviceData.quotedBreakdown ?? []),
+            after: JSON.stringify(quotedLines ?? []),
+          },
         ]);
         const changes: string[] = [...summaries];
 
@@ -1371,10 +1471,7 @@ const ManageClient = () => {
         if (reopenApproval) {
           const names = additionalLines.map((l) => l.name).join(", ");
           const removedNames = removedApproved.join(", ");
-          const reason = [
-            names ? `added: ${names}` : "",
-            removedNames ? `replaced/removed: ${removedNames}` : "",
-          ]
+          const reason = [names ? `added: ${names}` : "", removedNames ? `replaced/removed: ${removedNames}` : ""]
             .filter(Boolean)
             .join(" | ");
           await logActivity({
@@ -1411,9 +1508,6 @@ const ManageClient = () => {
           });
         }
 
-
-
-
         // Send notifications for status changes
         const userFullName = sessionStorage.getItem("userFullName") || username;
         const userRole = sessionStorage.getItem("userRole");
@@ -1430,7 +1524,7 @@ const ManageClient = () => {
             serviceData.status,
             updateStatus,
             userFullName,
-            userRole || undefined
+            userRole || undefined,
           );
         }
 
@@ -1446,7 +1540,7 @@ const ManageClient = () => {
               device: serviceData.device,
             },
             updateTechnician,
-            userFullName
+            userFullName,
           );
         }
 
@@ -1466,7 +1560,7 @@ const ManageClient = () => {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
-      const isAbortError = error instanceof Error && error.name === 'AbortError';
+      const isAbortError = error instanceof Error && error.name === "AbortError";
 
       if (isCorsFetchError) {
         // Update client info fetch error (likely CORS after successful POST)
@@ -1478,10 +1572,10 @@ const ManageClient = () => {
         return;
       }
 
-      const errorMessage = isAbortError 
+      const errorMessage = isAbortError
         ? "Request timed out - your Google Script may be taking too long to process the update"
         : "Failed to update client information";
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -1499,7 +1593,7 @@ const ManageClient = () => {
     try {
       // Map service data to PDF format with updated fields
       const [color, memory] = (serviceData.colorMemory || " | ").split(" | ");
-      
+
       const pdfData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
@@ -1543,7 +1637,7 @@ const ManageClient = () => {
           (serviceData as any).signaturePath || undefined,
         ),
       };
-      
+
       const pdfBlob = await generateServicePDF(pdfData);
 
       // Build updated filename with timestamp for new PDF version
@@ -1605,11 +1699,10 @@ const ManageClient = () => {
       }
 
       const isSuccess =
-        (result && (result.result === "success" || result.status === "success")) ||
-        (response.ok && result === null);
+        (result && (result.result === "success" || result.status === "success")) || (response.ok && result === null);
 
       if (isSuccess) {
-        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
+        const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
 
         await logActivity({
@@ -1634,10 +1727,11 @@ const ManageClient = () => {
       }
     } catch (error) {
       // Update form error
-      const errorMessage = error instanceof Error && error.name === 'AbortError' 
-        ? "Request timed out - PDF generation may be taking too long"
-        : "Failed to update PDF form";
-      
+      const errorMessage =
+        error instanceof Error && error.name === "AbortError"
+          ? "Request timed out - PDF generation may be taking too long"
+          : "Failed to update PDF form";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -1666,12 +1760,10 @@ const ManageClient = () => {
       setQuotedProblems({});
     }
 
-
-
     setIsUpdatingQuotation(true);
     try {
       const [color, memory] = (serviceData.colorMemory || "").split("|").map((s) => s.trim());
-      
+
       const quotationData = {
         serviceId: serviceId,
         timestamp: serviceData.timestamp || format(new Date(), "MM-dd-yyyy, HH:mm"),
@@ -1700,9 +1792,7 @@ const ManageClient = () => {
         serviceSummary: updateServices || serviceData.service || "N/A",
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
-        discount: (discountAmount > 0
-          ? discountAmount.toFixed(2)
-          : String(serviceData.discount ?? "0.00")),
+        discount: discountAmount > 0 ? discountAmount.toFixed(2) : String(serviceData.discount ?? "0.00"),
         vat: (() => {
           const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
           const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
@@ -1721,7 +1811,7 @@ const ManageClient = () => {
         serviceBreakdown: quotedLines.length ? quotedLineItems(quotedLines) : undefined,
         isUpdated: !!serviceData.quotationPdfUrl,
       };
-      
+
       // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateQuotationPDF(quotationData);
 
@@ -1732,7 +1822,7 @@ const ManageClient = () => {
       const safeServiceId = safe(serviceId || "");
       const safeClient = safe(serviceData.clientName || "");
       const safeDevice = safe(serviceData.device || "");
-      const fileName = serviceData.quotationPdfUrl 
+      const fileName = serviceData.quotationPdfUrl
         ? `${safeServiceId}_${safeClient}_${safeDevice} - QUOTATION UPDATED (${tsForName}).pdf`
         : `${safeServiceId}_${safeClient}_${safeDevice} - QUOTATION.pdf`;
 
@@ -1744,7 +1834,7 @@ const ManageClient = () => {
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
-      
+
       const pdfBase64Promise = blobToBase64(pdfBlob);
 
       const formData = new FormData();
@@ -1782,7 +1872,7 @@ const ManageClient = () => {
       });
 
       clearTimeout(timeoutId);
-      
+
       let result: any = null;
       try {
         result = await response.json();
@@ -1790,9 +1880,8 @@ const ManageClient = () => {
         // CORS may block reading response
       }
 
-      const isSuccess = 
-        (result && (result.result === "success" || result.status === "success")) ||
-        (response.ok && result === null);
+      const isSuccess =
+        (result && (result.result === "success" || result.status === "success")) || (response.ok && result === null);
 
       if (isSuccess) {
         // Immediately swap the button to "Update Form" without waiting for reload
@@ -1802,13 +1891,13 @@ const ManageClient = () => {
           setServiceData((prev: any) =>
             prev && prev.serviceId === serviceId
               ? { ...prev, quotationPdfUrl: signed || prev.quotationPdfUrl || "generated" }
-              : prev
+              : prev,
           );
         } catch {
           setServiceData((prev: any) =>
             prev && prev.serviceId === serviceId
               ? { ...prev, quotationPdfUrl: prev.quotationPdfUrl || "generated" }
-              : prev
+              : prev,
           );
         }
         toast({
@@ -1821,15 +1910,13 @@ const ManageClient = () => {
         handleSearch();
 
         // Fire-and-forget: log activity without blocking
-        const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin";
+        const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin";
         const role = sessionStorage.getItem("userRole") || "admin";
         logActivity({
           serviceId: serviceId,
           username: username,
           role: role,
-          activity: serviceData.quotationPdfUrl 
-            ? "Service quotation form updated" 
-            : "Service quotation form generated",
+          activity: serviceData.quotationPdfUrl ? "Service quotation form updated" : "Service quotation form generated",
         }).catch(() => {});
       } else {
         toast({
@@ -1842,8 +1929,8 @@ const ManageClient = () => {
       // Quotation generation error
       const msg = error instanceof Error ? error.message : String(error);
       const isCorsFetchError = msg.toLowerCase().includes("failed to fetch");
-      const isAbort = error instanceof Error && error.name === 'AbortError';
-      
+      const isAbort = error instanceof Error && error.name === "AbortError";
+
       if (isCorsFetchError) {
         // CORS error likely means success
         toast({
@@ -1853,11 +1940,11 @@ const ManageClient = () => {
         handleSearch();
         return;
       }
-      
-      const errorMessage = isAbort 
+
+      const errorMessage = isAbort
         ? "Request timed out - PDF generation may be taking too long"
         : "Failed to generate quotation form";
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -1869,12 +1956,16 @@ const ManageClient = () => {
   };
 
   const handleViewQuotationPDF = async () => {
-    const signed = serviceData?.serviceId
-      ? await getServicePdfSignedUrl(serviceData.serviceId, "quotation")
-      : null;
-    const url = signed || (serviceData?.quotationPdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview") : null);
+    const signed = serviceData?.serviceId ? await getServicePdfSignedUrl(serviceData.serviceId, "quotation") : null;
+    const url =
+      signed ||
+      (serviceData?.quotationPdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.quotationPdfUrl, "preview") : null);
     if (!url) {
-      toast({ title: "No Quotation PDF Available", description: "Quotation PDF has not been generated yet", variant: "destructive" });
+      toast({
+        title: "No Quotation PDF Available",
+        description: "Quotation PDF has not been generated yet",
+        variant: "destructive",
+      });
       return;
     }
     setPdfModalUrl(url);
@@ -1898,13 +1989,16 @@ const ManageClient = () => {
           icon={<UserCog className="h-5 w-5" />}
         />
 
-
         {/* Search Form */}
         <Card className="mb-8 rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <Label htmlFor="serviceId" className="text-sm font-medium">Service ID</Label>
-              <p className="text-xs text-muted-foreground">Search by Service ID, customer name, or device (brand/model).</p>
+              <Label htmlFor="serviceId" className="text-sm font-medium">
+                Service Search
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Search by Service ID, customer name, or device (brand/model).
+              </p>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -1913,7 +2007,7 @@ const ManageClient = () => {
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       handleSearch();
                     }
                   }}
@@ -1936,7 +2030,14 @@ const ManageClient = () => {
             </div>
 
             <Button onClick={handleSearch} disabled={isLoading} className="w-full mt-6 h-11 rounded-xl">
-              {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Searching...</>) : "Search Client"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                "Search Client"
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -1944,1604 +2045,1602 @@ const ManageClient = () => {
         {/* Service Details and Update Form */}
         {serviceData && (
           <div className="space-y-8">
-          {remoteChange && (
-            <RemoteUpdateBanner
-              changedFields={remoteChange.changedFields}
-              newStatus={remoteChange.newStatus}
-              isDirty={isFormDirty}
-              isReloading={isReloadingTicket}
-              onReload={reloadTicket}
-              onDismiss={dismissRemoteChange}
+            {remoteChange && (
+              <RemoteUpdateBanner
+                changedFields={remoteChange.changedFields}
+                newStatus={remoteChange.newStatus}
+                isDirty={isFormDirty}
+                isReloading={isReloadingTicket}
+                onReload={reloadTicket}
+                onDismiss={dismissRemoteChange}
+              />
+            )}
+            <TicketWorkspaceHero
+              service={serviceData}
+              showShare
+              isLive={isLive}
+              actions={
+                serviceData.serviceId ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                      onClick={() => navigate(`/pos?serviceId=${encodeURIComponent(serviceData.serviceId)}&type=full`)}
+                    >
+                      POS
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-orange-500 text-white hover:bg-orange-600"
+                      onClick={() => navigate(`/queueing?release=${encodeURIComponent(serviceData.serviceId)}`)}
+                    >
+                      RELEASE
+                    </Button>
+                  </div>
+                ) : null
+              }
             />
-          )}
-          <TicketWorkspaceHero
-            service={serviceData}
-            showShare
-            isLive={isLive}
-            actions={
-              serviceData.serviceId ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                    onClick={() =>
-                      navigate(`/pos?serviceId=${encodeURIComponent(serviceData.serviceId)}&type=full`)
-                    }
-                  >
-                    POS
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-orange-500 text-white hover:bg-orange-600"
-                    onClick={() =>
-                      navigate(`/queueing?release=${encodeURIComponent(serviceData.serviceId)}`)
-                    }
-                  >
-                    RELEASE
-                  </Button>
-                </div>
-              ) : null
-            }
-          />
 
-          <StatusProgressBar
-            serviceId={serviceData.serviceId || ""}
-            clientName={serviceData.clientName || ""}
-            technician={serviceData.technician}
-            adminRep={serviceData.adminRep}
-            device={serviceData.device || serviceData.deviceType}
-            currentStatus={serviceData.status || ""}
-          />
-          <TicketOverviewRow
-            status={serviceData.status}
-            serviceId={serviceData.serviceId}
+            <StatusProgressBar
+              serviceId={serviceData.serviceId || ""}
+              clientName={serviceData.clientName || ""}
+              technician={serviceData.technician}
+              adminRep={serviceData.adminRep}
+              device={serviceData.device || serviceData.deviceType}
+              currentStatus={serviceData.status || ""}
+            />
+            <TicketOverviewRow
+              status={serviceData.status}
+              serviceId={serviceData.serviceId}
+              guidance={
+                serviceData.autoApproveDiagnosis && serviceData.status === "Confirmed Diagnosis"
+                  ? "Client pre-approved the diagnosis at intake — generate the quotation, then move straight to Proceed Repair."
+                  : getStatusGuidance(
+                      serviceData.status || "",
+                      {
+                        serviceId: serviceData.serviceId || "",
+                        clientName: serviceData.clientName || "",
+                        technician: serviceData.technician ?? "",
+                        adminRep: serviceData.adminRep,
+                        device: serviceData.device || serviceData.deviceType,
+                      },
+                      "admin",
+                      /(^|\n)\s*Declined by /i.test(serviceData.adminNotesInternal || ""),
+                    )
+              }
+              technician={serviceData.technician}
+              adminRep={serviceData.adminRep}
+              receivingStaff={(serviceData as any).receivingStaff}
+              serviceCost={serviceData.serviceCost}
+              discount={serviceData.discount}
+              finalCost={serviceData.finalCost}
+              vatRequested={!!serviceData.vatRequested}
+              initialPayment={serviceData.initialPayment}
+              paymentStatus={serviceData.paymentStatus}
+              showCharges={serviceData.status !== "Pending Diagnosis"}
+              showServiceCost={
+                serviceData.status === "Confirmed Diagnosis" ||
+                Number(String(serviceData.finalCost ?? "0").replace(/[^0-9.-]/g, "")) > 0
+              }
+              showDiscount={
+                serviceData.status === "Confirmed Diagnosis" ||
+                Number(String(serviceData.discount ?? "0").replace(/[^0-9.-]/g, "")) > 0
+              }
+              showFinal={serviceData.status !== "Pending Diagnosis"}
+            />
 
-            guidance={
-              serviceData.autoApproveDiagnosis && serviceData.status === "Confirmed Diagnosis"
-                ? "Client pre-approved the diagnosis at intake — generate the quotation, then move straight to Proceed Repair."
-                : getStatusGuidance(
-                    serviceData.status || "",
-                    {
-                      serviceId: serviceData.serviceId || "",
-                      clientName: serviceData.clientName || "",
-                      technician: serviceData.technician ?? "",
-                      adminRep: serviceData.adminRep,
-                      device: serviceData.device || serviceData.deviceType,
-                    },
-                    "admin",
-                    /(^|\n)\s*Declined by /i.test(serviceData.adminNotesInternal || ""),
-                  )
-            }
+            <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
+              {/* Client Information */}
+              <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+                <CardHeader className="border-b border-border/50">
+                  <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
+                </CardHeader>
 
-            technician={serviceData.technician}
-            adminRep={serviceData.adminRep}
-            receivingStaff={(serviceData as any).receivingStaff}
-            serviceCost={serviceData.serviceCost}
-            discount={serviceData.discount}
-            finalCost={serviceData.finalCost}
-            vatRequested={!!serviceData.vatRequested}
-            initialPayment={serviceData.initialPayment}
-            paymentStatus={serviceData.paymentStatus}
-            showCharges={serviceData.status !== "Pending Diagnosis"}
-            showServiceCost={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.finalCost ?? "0").replace(/[^0-9.-]/g, "")) > 0}
-            showDiscount={serviceData.status === "Confirmed Diagnosis" || Number(String(serviceData.discount ?? "0").replace(/[^0-9.-]/g, "")) > 0}
-            showFinal={serviceData.status !== "Pending Diagnosis"}
-          />
-
-
-          <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
-
-
-            {/* Client Information */}
-            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
-              <CardHeader className="border-b border-border/50">
-                <CardTitle className="text-2xl tracking-tight">Client Information</CardTitle>
-              </CardHeader>
-
-
-              <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
-                <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
-                {/^RTO/i.test(String(serviceData?.status || "")) && (
-                  <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Reason</h4>
-                    <p className="text-sm text-foreground">
-                      {serviceData.rtoReason?.trim() ? serviceData.rtoReason.trim() : "No reason recorded."}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-
-              <Separator />
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleUpdateForm} 
-                      variant="outline" 
-                      className="flex-1" 
-                      disabled={isUpdatingForm}
-                    >
-                      {isUpdatingForm ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Update Form
-                        </>
-                      )}
-                    </Button>
-                    <Button onClick={handleViewPDF} variant="outline" className="flex-1" disabled={!serviceData?.pdfUrl}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      View PDF
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleGenerateQuotation} 
-                      variant="outline" 
-                      className="flex-1" 
-                      disabled={isUpdatingQuotation}
-                    >
-                      {isUpdatingQuotation ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {serviceData.quotationPdfUrl ? "Updating..." : "Generating..."}
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          {serviceData.quotationPdfUrl ? "Update Form" : "Generate PDF"}
-                        </>
-                      )}
-                    </Button>
-                    <Button onClick={handleViewQuotationPDF} variant="outline" className="flex-1" disabled={!serviceData?.quotationPdfUrl}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      View PDF
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Client approval is handled on the public /track page. */}
-
-                <Separator />
-
-                {canEditAdminRep && (
-                  <div className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-background/60 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">Client pre-approves diagnosis</p>
-                      <p className="text-xs text-muted-foreground">
-                        {serviceData.autoApproveDiagnosis
-                          ? "Approval skipped — ticket moves straight to Proceed Repair."
-                          : "Client must approve the diagnosis on the tracking page."}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={!!serviceData.autoApproveDiagnosis}
-                      disabled={isTogglingAutoApprove}
-                      onCheckedChange={handleToggleAutoApprove}
-                    />
-                  </div>
-                )}
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-start justify-between gap-4 rounded-xl border border-orange-300/60 bg-orange-50/60 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">Rush</p>
-                      <p className="text-xs text-muted-foreground">
-                        {serviceData.rushFee
-                          ? "Rush job — 10% rush fee added to the total cost."
-                          : "Turn on for a rush job (adds a 10% rush fee)."}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={!!serviceData.rushFee}
-                      disabled={isTogglingRush}
-                      onCheckedChange={handleToggleRush}
-                    />
+                <CardContent className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-1">Status:</h3>
+                    <p className="text-lg font-bold text-primary">{serviceData.status || "Pending Diagnosis"}</p>
+                    {/^RTO/i.test(String(serviceData?.status || "")) && (
+                      <div className="mt-3 rounded-xl border border-border/60 bg-muted/30 p-3">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          Reason
+                        </h4>
+                        <p className="text-sm text-foreground">
+                          {serviceData.rtoReason?.trim() ? serviceData.rtoReason.trim() : "No reason recorded."}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">Released</p>
-                      <p className="text-xs text-muted-foreground">
-                        {serviceData.isReleased
-                          ? "The device has been released to the client."
-                          : "Turns on automatically when the device is released."}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={!!serviceData.isReleased}
-                      disabled={isTogglingReleased}
-                      onCheckedChange={handleToggleReleased}
-                    />
-                  </div>
-                </div>
+                  <Separator />
 
-                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
-                  <TicketFlagsPanel
-                    service={serviceData}
-                    canEditNote={userRole === "management" || userRole === "admin"}
-                    canToggleWaitingForParts={userRole === "management"}
-                    onChange={(patch) =>
-                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
-                    }
-                  />
-                )}
-
-
-                <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      <span>
-                        Parts Used
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          {Array.isArray(serviceData.partsUsed) && serviceData.partsUsed.length > 0
-                            ? `${serviceData.partsUsed.length} item(s)`
-                            : "none recorded"}
-                        </span>
-                      </span>
-                      <ChevronDown className={cn("h-4 w-4 transition-transform", isPartsUsedOpen && "rotate-180")} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4">
-                    <PartsUsedPanel
-                      serviceId={serviceData.serviceId}
-                      partsUsed={serviceData.partsUsed}
-                      onSaved={handleSearch}
-                    />
-                  </CollapsibleContent>
-                </Collapsible>
-
-
-
-
-
-
-
-                <ApprovalRemarkBlock
-                  adminNotes={serviceData.adminNotesInternal}
-                  pendingServices={(serviceData as any).pendingServices}
-                  approvalLocked={serviceData.approvalLocked}
-                  onReopen={canEditAdminRep ? handleReopenApproval : undefined}
-                />
-
-                {(() => {
-                  const rawApproved = ((serviceData?.approvedServices ?? []) as string[]).filter(Boolean);
-                  const approved = rawApproved.map((s) =>
-                    String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
-                  );
-                  const savedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
-                  const savedKeys = savedLines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
-                  const savedUnapproved = savedLines.filter(
-                    (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
-                  );
-                  // Services the client approved that are no longer on the ticket.
-                  const replacedApproved = rawApproved.filter(
-                    (s, i) => !savedKeys.includes(approved[i]),
-                  );
-                  const hadApproval =
-                    approved.length > 0 ||
-                    !!(serviceData as any)?.clientApprovedAt ||
-                    !!(serviceData as any)?.approvalLocked;
-                  if (!hadApproval || (savedUnapproved.length === 0 && replacedApproved.length === 0)) return null;
-
-                  return (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
-                      <p className="text-xs text-amber-800">
-                        {replacedApproved.length > 0
-                          ? `The services changed since the client approved (${replacedApproved.join(", ")} ${
-                              replacedApproved.length > 1 ? "are" : "is"
-                            } no longer on this ticket). Resend the approval so the client can approve the current quote.`
-                          : `${savedUnapproved.length} saved service line(s) haven't been approved yet. Resend the approval so the client can approve the new items — already approved services stay approved.`}
-                      </p>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
+                    <div className="flex gap-2">
+                      <Button onClick={handleUpdateForm} variant="outline" className="flex-1" disabled={isUpdatingForm}>
+                        {isUpdatingForm ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Update Form
+                          </>
+                        )}
+                      </Button>
                       <Button
-                        type="button"
-                        size="sm"
+                        onClick={handleViewPDF}
                         variant="outline"
-                        disabled={isReopeningApproval}
-                        onClick={handleReopenApproval}
+                        className="flex-1"
+                        disabled={!serviceData?.pdfUrl}
                       >
-                        <Send className="mr-2 h-4 w-4" />
-                        {isReopeningApproval ? "Sending…" : "Resend approval to client"}
+                        <FileText className="mr-2 h-4 w-4" />
+                        View PDF
                       </Button>
                     </div>
-                  );
-                })()}
+                  </div>
 
+                  <Separator />
 
+                  <div>
+                    <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleGenerateQuotation}
+                        variant="outline"
+                        className="flex-1"
+                        disabled={isUpdatingQuotation}
+                      >
+                        {isUpdatingQuotation ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {serviceData.quotationPdfUrl ? "Updating..." : "Generating..."}
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            {serviceData.quotationPdfUrl ? "Update Form" : "Generate PDF"}
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleViewQuotationPDF}
+                        variant="outline"
+                        className="flex-1"
+                        disabled={!serviceData?.quotationPdfUrl}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        View PDF
+                      </Button>
+                    </div>
+                  </div>
 
+                  {/* Client approval is handled on the public /track page. */}
 
+                  <Separator />
 
-
-                {isEditingDetails && canEditAdminRep ? (
-                <ServiceDetailsEditor
-                  serviceData={serviceData}
-                  onCancel={() => setIsEditingDetails(false)}
-                  onSaved={() => {
-                    setIsEditingDetails(false);
-                    handleSearch();
-                  }}
-                />
-                ) : (
-                <div className="space-y-4">
                   {canEditAdminRep && (
-                    <div className="flex justify-end">
-                      <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit details
-                      </Button>
+                    <div className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-background/60 p-3">
+                      <div>
+                        <p className="text-sm font-semibold">Client pre-approves diagnosis</p>
+                        <p className="text-xs text-muted-foreground">
+                          {serviceData.autoApproveDiagnosis
+                            ? "Approval skipped — ticket moves straight to Proceed Repair."
+                            : "Client must approve the diagnosis on the tracking page."}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!!serviceData.autoApproveDiagnosis}
+                        disabled={isTogglingAutoApprove}
+                        onCheckedChange={handleToggleAutoApprove}
+                      />
                     </div>
                   )}
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</p>
 
-                    <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
-                      <WorkspaceField label="Client Name" value={serviceData.clientName} />
-                      <WorkspaceField label="Client ID" value={serviceData.clientId} />
-                      <WorkspaceField label="Contact Number" value={serviceData.contactNumber || serviceData.phone} />
-                      <WorkspaceField label="Email" value={serviceData.email} />
-                      <WorkspaceField label="Client Type" value={serviceData.clientType} />
-                      <WorkspaceField label="Priority" value={serviceData.priority} />
-                      <WorkspaceField label="Admin Rep" value={serviceData.adminRep || "Unassigned"} />
-                      <WorkspaceField label="Technician" value={serviceData.technician} />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex items-start justify-between gap-4 rounded-xl border border-orange-300/60 bg-orange-50/60 p-3">
+                      <div>
+                        <p className="text-sm font-semibold">Rush</p>
+                        <p className="text-xs text-muted-foreground">
+                          {serviceData.rushFee
+                            ? "Rush job — 10% rush fee added to the total cost."
+                            : "Turn on for a rush job (adds a 10% rush fee)."}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!!serviceData.rushFee}
+                        disabled={isTogglingRush}
+                        onCheckedChange={handleToggleRush}
+                      />
+                    </div>
+
+                    <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3">
+                      <div>
+                        <p className="text-sm font-semibold">Released</p>
+                        <p className="text-xs text-muted-foreground">
+                          {serviceData.isReleased
+                            ? "The device has been released to the client."
+                            : "Turns on automatically when the device is released."}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!!serviceData.isReleased}
+                        disabled={isTogglingReleased}
+                        onCheckedChange={handleToggleReleased}
+                      />
                     </div>
                   </div>
 
-                  <Separator />
-
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Device</p>
-                    <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
-                      <WorkspaceField label="Device Type" value={serviceData.deviceType} />
-                      <WorkspaceField label="Device Model" value={serviceData.device} />
-                      <WorkspaceField label="Serial Number" value={serviceData.serialNumber} />
-                      <WorkspaceField
-                        label="Storage & Color"
-                        value={(() => {
-                          const mem = (serviceData.memory || "").trim();
-                          const col = (serviceData.color || "").trim();
-                          return [mem, col].filter(Boolean).join(" | ") || serviceData.colorMemory || "";
-                        })()}
-                      />
-                      {serviceData.devicePassword && (
-                        <div className="space-y-0.5 min-w-0">
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                            Device Password
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type={showPassword ? "text" : "password"}
-                              value={serviceData.devicePassword}
-                              readOnly
-                              className="h-8 text-sm"
-                            />
-                            <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setShowPassword(!showPassword)}>
-                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                      <WorkspaceField label="Device Conditions" value={describeDeviceConditions(serviceData)} />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule & Costs</p>
-                    <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
-                      <WorkspaceField
-                        label="Service Date"
-                        value={serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : ""}
-                      />
-                      <WorkspaceField label="Diagnostic Time Frame" value={serviceData.timeFrame} />
-                      <WorkspaceField label="Repair Time Frame" value={(serviceData as any).repairTimeFrame} />
-                      <WorkspaceField
-                        label="Estimated Cost"
-                        value={`Php ${parseFloat(serviceData.estimatedCost || 0).toFixed(2)}`}
-                      />
-                      {serviceData.status !== "Pending Diagnosis" && (
-                        <WorkspaceField
-                          label="Estimated Target Date"
-                          value={serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : ""}
-                        />
-                      )}
-                      {serviceData.status === "Confirmed Diagnosis" && (
-                        <>
-                          <WorkspaceField label="Service Cost" value={`Php ${serviceData.serviceCost}`} />
-                          <WorkspaceField label="Discount" value={`Php ${discountAmount.toFixed(2)}`} />
-                        </>
-                      )}
-                      {serviceData.status !== "Pending Diagnosis" && (
-                        <WorkspaceField
-                          label="Final Cost"
-                          value={`Php ${(finalCost > 0 ? finalCost : sanitizeNumber(String(serviceData.serviceCost ?? "0"))).toFixed(2)}`}
-                          valueClassName="font-semibold text-primary"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="grid gap-x-4 gap-y-3 grid-cols-1 md:grid-cols-2">
-                    <WorkspaceField label="Service/s" value={serviceData.service} valueClassName="whitespace-pre-line" />
-                    <WorkspaceField
-                      label="Technician Notes (Internal)"
-                      value={serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : ""}
-                      valueClassName="whitespace-pre-line"
+                  {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+                    <TicketFlagsPanel
+                      service={serviceData}
+                      canEditNote={userRole === "management" || userRole === "admin"}
+                      canToggleWaitingForParts={userRole === "management"}
+                      onChange={(patch) => setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))}
                     />
-                  </div>
-                </div>
-
-                )}
-
-              </CardContent>
-            </Card>
-
-            {/* Update Client Information */}
-            <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
-              <CardHeader className="border-b border-border/50">
-                <CardTitle className="text-2xl tracking-tight">Update Client Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assignment</p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
-                    onClick={() => setConcernOpen(true)}
-                  >
-                    <AlertTriangle className="h-4 w-4" />
-                    Raise Concern
-                  </Button>
-                </div>
-
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status:</Label>
-                  <Select value={updateStatus} onValueChange={setUpdateStatus}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.filter(status =>
-                        // Pre-approved tickets skip the client approval stage.
-                        !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
-                      ).map(status => (
-                        <SelectItem key={status} value={status}>{status}</SelectItem>
-                      ))}
-
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {canEditAdminRep && (
-                  <div className="space-y-2">
-                    <Label htmlFor="adminRep">Admin Rep:</Label>
-                    <MultiSelect
-                      options={adminStaffOptions}
-                      selected={updateAdminRep ? updateAdminRep.split(", ").filter(Boolean) : []}
-                      onChange={(values) => setUpdateAdminRep(values.join(", "))}
-                      placeholder="Select Admin Rep"
-                      grouped
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="technician">Technician:</Label>
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        className="h-3.5 w-3.5 accent-primary"
-                        checked={showUnavailableTechs}
-                        onChange={(e) => setShowUnavailableTechs(e.target.checked)}
-                      />
-                      Show unavailable staff
-                    </label>
-                  </div>
-
-                  <MultiSelect
-                    options={(() => {
-                      // Filter technicians based on device type
-                      const deviceType = serviceData?.deviceType;
-
-                      // Always available for special cases, regardless of device type / department
-                      const SPECIAL_CASE_TECH = "John Paul Espedido";
-                      const specialOption = {
-                        label: SPECIAL_CASE_TECH,
-                        value: SPECIAL_CASE_TECH,
-                        group: "Special Cases",
-                      };
-                      const toOption = (tech: { name: string; department: string }) => ({
-                        label: tech.name,
-                        value: tech.name,
-                        group: tech.department,
-                      });
-                      const withSpecial = (opts: { label: string; value: string; group: string }[]) => [
-                        specialOption,
-                        ...opts.filter((o) => o.value !== SPECIAL_CASE_TECH),
-                      ];
-
-                      // Check if device type is in the predefined list
-                      const isPreDefinedDeviceType = deviceType && 
-                        (DEVICE_TYPES as readonly string[]).includes(deviceType);
-                      
-                      // If no device type or custom device (not in predefined list), show all technicians
-                      if (!deviceType || !isPreDefinedDeviceType) {
-                        return withSpecial(technicians.map(toOption));
-                      }
-                      
-                      // Filter by department only for predefined device types
-                      const filteredTechs = technicians.filter(tech => {
-                        const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
-                        return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
-                      });
-                      
-                      return withSpecial(filteredTechs.map(toOption));
-                    })()}
-                    selected={updateTechnician ? updateTechnician.split(", ") : []}
-                    onChange={(values) => setUpdateTechnician(values.join(", "))}
-                    placeholder="Select Technicians"
-                    grouped
-                  />
-                </div>
-                </div>
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Classification</p>
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                <div className="space-y-2">
-
-                  <Label htmlFor="deviceType">Device Type:</Label>
-                  {showOtherDeviceInput ? (
-                    <Input
-                      value={updateDeviceType}
-                      onChange={(e) => {
-                        setUpdateDeviceType(e.target.value);
-                      }}
-                      placeholder="Enter custom device type"
-                      onBlur={() => {
-                        if (!updateDeviceType) {
-                          setShowOtherDeviceInput(false);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <Select
-                      value={updateDeviceType}
-                      onValueChange={(value) => {
-                        if (value === "Others") {
-                          setShowOtherDeviceInput(true);
-                          setUpdateDeviceType("");
-                        } else {
-                          setUpdateDeviceType(value);
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select device type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(() => {
-                          const currentDeviceType = updateDeviceType.trim();
-
-                          // Get selected technicians' departments
-                          const selectedTechNames = updateTechnician?.split(", ").filter(Boolean) || [];
-                          const selectedTechDepartments = selectedTechNames
-                            .map((name) => technicians.find((t) => t.name === name)?.department)
-                            .filter(Boolean) as string[];
-
-                          // If no technicians selected, still show the saved device type (including custom ones)
-                          if (selectedTechDepartments.length === 0) {
-                            if (currentDeviceType) {
-                              return (
-                                <>
-                                  <SelectItem value={currentDeviceType}>{currentDeviceType}</SelectItem>
-                                  <SelectItem value="Others">Others</SelectItem>
-                                  <SelectItem value="_disabled_hint" disabled>
-                                    Select technician first to change device type
-                                  </SelectItem>
-                                </>
-                              );
-                            }
-
-                            return (
-                              <>
-                                <SelectItem value="Others">Others</SelectItem>
-                                <SelectItem value="_disabled_hint" disabled>
-                                  Select technician first
-                                </SelectItem>
-                              </>
-                            );
-                          }
-
-                          // Get available device types based on selected departments
-                          let availableDeviceTypes = Array.from(
-                            new Set(
-                              selectedTechDepartments.flatMap((dept) =>
-                                DEVICE_TYPES_BY_DEPARTMENT[dept] || []
-                              )
-                            )
-                          );
-
-                          // Remove "Others" from the list if it exists (we'll add it at the end)
-                          availableDeviceTypes = availableDeviceTypes.filter(type => type !== "Others");
-
-                          // Ensure the currently saved device type is visible, even if it's custom
-                          if (
-                            currentDeviceType &&
-                            !availableDeviceTypes.includes(currentDeviceType) &&
-                            currentDeviceType !== "Others"
-                          ) {
-                            availableDeviceTypes = [currentDeviceType, ...availableDeviceTypes];
-                          }
-                          
-                          // Also ensure the original custom device type is always available
-                          if (
-                            originalCustomDeviceType &&
-                            !availableDeviceTypes.includes(originalCustomDeviceType) &&
-                            originalCustomDeviceType !== "Others"
-                          ) {
-                            availableDeviceTypes = [originalCustomDeviceType, ...availableDeviceTypes];
-                          }
-
-                          if (availableDeviceTypes.length === 0) {
-                            return (
-                              <>
-                                <SelectItem value="Others">Others</SelectItem>
-                                <SelectItem value="_disabled_hint" disabled>
-                                  No device types available for selected technicians
-                                </SelectItem>
-                              </>
-                            );
-                          }
-
-                          return (
-                            <>
-                              {availableDeviceTypes.map((deviceType) => (
-                                <SelectItem key={deviceType} value={deviceType}>
-                                  {deviceType}
-                                </SelectItem>
-                              ))}
-                              <SelectItem value="Others">Others</SelectItem>
-                            </>
-                          );
-                        })()}
-                      </SelectContent>
-                    </Select>
                   )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="clientType">Client Type:</Label>
-                  <Select value={updateClientType} onValueChange={setUpdateClientType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="New Client - Walk In">New Client - Walk In</SelectItem>
-                      <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
-                      <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
-                      <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
-                      <SelectItem value="Delivery - AC Tech">Delivery - AC Tech</SelectItem>
-                      <SelectItem value="Delivery - Courier">Delivery - Courier</SelectItem>
-
-
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priority:</Label>
-                  <Select value={updatePriority} onValueChange={setUpdatePriority}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRIORITY_OPTIONS.map((priority) => (
-                        <SelectItem key={priority} value={priority}>
-                          {priority}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                </div>
-
-                <div className="space-y-2">
-
-                  <Label htmlFor="chiefComplaint">Chief Complaint:</Label>
-                  <Textarea
-                    id="chiefComplaint"
-                    placeholder="Enter chief complaint"
-                    value={updateChiefComplaint}
-                    onChange={(e) => setUpdateChiefComplaint(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                {/* (Diagnosis photos moved below AI Diagnosis section) */}
-
-
-
-
-                {/* Diagnosis Display - always visible */}
-                {(
-                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="font-semibold">AI Diagnosis</span>
-                          <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
-                          <Textarea
-                            id="technicianDiagnosis"
-                            placeholder="Enter technician diagnosis"
-                            value={rawDiagnosis}
-                            onChange={(e) => {
-                              setRawDiagnosis(e.target.value);
-                              setUpdateTechDiagnosis(e.target.value);
-                            }}
-                            rows={4}
-                            className="min-h-[80px] resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2 mb-2">
-
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              disabled={isFormattingAI}
-                              onClick={() => {
-                                const ok = window.confirm(
-                                  "AI Diagnosis Formatter\n\nThis reformats the technician's raw diagnosis. AI output may contain mistakes - review every section (especially Service Breakdown amounts and warranty) before saving or sharing with the client.\n\nProceed?"
-                                );
-                                if (ok) handleFormatWithAI();
-                              }}
-                            >
-                              {isFormattingAI ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Formatting...
-                                </>
-                              ) : (
-                                "Format with AI"
-                              )}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(updateAIDiagnosis);
-                                toast({ title: "Copied to clipboard" });
-                              }}
-                            >
-                              Copy
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (!window.confirm("Clear all AI Diagnosis fields?")) return;
-                                setUpdateAIDiagnosis("");
-                                setUpdateDiagBreakdown("");
-                                setUpdateDiagWarranty("");
-                                setUpdateDiagOtherNotes("");
-                                setUpdateDiagSummary("");
-                                toast({ title: "AI Diagnosis fields cleared" });
-                              }}
-                            >
-                              Clear
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                const ok = window.confirm(
-                                  "Approve this AI Diagnosis?\n\nThe draft Service Breakdown lines will be moved into the client-facing Service Breakdown and the Summary copied into Service/s. AI output may be inaccurate — please review carefully before proceeding."
-                                );
-                                if (!ok) return;
-                                const summary = (updateDiagSummary || "").trim();
-                                const parsedLines = parseQuotedBreakdown(
-                                  updateDiagBreakdown.trim()
-                                    ? `Service Breakdown:\n${updateDiagBreakdown}`
-                                    : updateAIDiagnosis || "",
-                                );
-                                if (parsedLines.length) {
-                                  setQuotedLines(parsedLines);
-                                }
-                                const total = quotedSelectedTotal(
-                                  parsedLines.length ? parsedLines : quotedLines,
-                                );
-                                if (total > 0) {
-                                  setUpdateServiceCost(total.toFixed(2));
-                                  const disc =
-                                    discountType === "percentage"
-                                      ? (total * (parseFloat(discountValue) || 0)) / 100
-                                      : parseFloat(discountValue) || 0;
-                                  setDiscountAmount(disc);
-                                  setFinalCost(calcFinal(total, disc, vatRequested));
-                                }
-                                if (summary) {
-                                  setUpdateServices(summary);
-                                  toast({ title: "Summary copied to Service/s" });
-                                } else {
-                                  toast({
-                                    title: "Summary is empty",
-                                    description: "Fill in the Summary field, then approve again.",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              Approve
-                            </Button>
-                          </div>
-                          <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
-                          <Textarea
-                            id="aiDiagnosisDisplay"
-                            placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
-                            value={updateAIDiagnosis}
-                            onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
-                            className="min-h-[100px] resize-none"
-                            style={{ 
-                              minHeight: '100px',
-                              height: `${Math.max(100, (updateAIDiagnosis.split('\n').length + 1) * 24)}px`
-                            }}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="diagnosisBreakdown">Service Breakdown (draft):</Label>
-                          <Textarea
-                            id="diagnosisBreakdown"
-                            placeholder={"Service name - Php {Enter Amount}\nOption A - OEM: Php {Enter Amount}"}
-                            value={updateDiagBreakdown}
-                            onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
-                            rows={4}
-                            className="min-h-[90px] resize-none"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            AI writes the breakdown here first. Click Approve above to move these lines into the Service Breakdown shown to the client.
-                          </p>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="diagnosisWarranty">Warranty:</Label>
-                            <Textarea
-                              id="diagnosisWarranty"
-                              placeholder={"Screen replacement - {Enter Warranty Duration}"}
-                              value={updateDiagWarranty}
-                              onChange={(e) => setUpdateDiagWarranty(e.target.value)}
-                              rows={3}
-                              className="min-h-[70px] resize-none"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="diagnosisOtherNotes">Other Notes:</Label>
-                            <Textarea
-                              id="diagnosisOtherNotes"
-                              placeholder="Anything else the client should know"
-                              value={updateDiagOtherNotes}
-                              onChange={(e) => setUpdateDiagOtherNotes(e.target.value)}
-                              rows={3}
-                              className="min-h-[70px] resize-none"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="diagnosisSummary">Summary:</Label>
-                          <Textarea
-                            id="diagnosisSummary"
-                            placeholder="One-line summary of the repair needed (internal / Service/s field)"
-                            value={updateDiagSummary}
-                            onChange={(e) => setUpdateDiagSummary(e.target.value)}
-                            rows={2}
-                            className="min-h-[60px] resize-none"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            The Summary is not shown to the client on the quotation form or the tracking page.
-                          </p>
-                        </div>
-
-                        <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
-                          {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
-                        </div>
-
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
-
-                {/* Device Diagnosis Photos - shown only on Confirmed Diagnosis, BELOW AI Diagnosis */}
-                {serviceData?.status === "Confirmed Diagnosis" && serviceData?.serviceId && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
-                )}
-
-                {/* Report Display - always visible */}
-                {(
-                  <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="font-semibold">AI Report</span>
-                          <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="technicianReport">Technician Report:</Label>
-                          <Textarea
-                            id="technicianReport"
-                            placeholder="Enter technician report"
-                            value={technicianReport}
-                            onChange={(e) => setTechnicianReport(e.target.value)}
-                            rows={4}
-                            className="min-h-[80px] resize-none"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          
-                          <div className="flex flex-wrap gap-2 mb-2">
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              disabled={isFormattingReport}
-                              onClick={() => {
-                                const ok = window.confirm(
-                                  "AI Report Formatter\n\nThis reformats the technician's report. AI output may contain mistakes - review it carefully before saving or sharing with the client.\n\nProceed?"
-                                );
-                                if (ok) handleFormatReportWithAI();
-                              }}
-                            >
-                              {isFormattingReport ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Formatting...
-                                </>
-                              ) : (
-                                "Format with AI"
-                              )}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(updateServiceReport);
-                                toast({ title: "Copied to clipboard" });
-                              }}
-                            >
-                              Copy
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setIsEditingServiceReport(!isEditingServiceReport)}
-                            >
-                              {isEditingServiceReport ? "Lock" : "Edit"}
-                            </Button>
-                          </div>
-                          <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
-                          <Textarea
-                            id="aiReportDisplay"
-                            placeholder="AI Service Report"
-                            value={updateServiceReport}
-                            onChange={(e) => setUpdateServiceReport(e.target.value)}
-                            disabled={!isEditingServiceReport}
-                            className={cn(
-                              "min-h-[100px] resize-none",
-                              !isEditingServiceReport && "bg-muted cursor-not-allowed opacity-75"
-                            )}
-                            style={{ 
-                              minHeight: '100px',
-                              height: `${Math.max(100, (updateServiceReport.split('\n').length + 1) * 24)}px`
-                            }}
-                          />
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )}
-
-                {/* Device Report Photos - shown only on Done Repair - For Release, BELOW AI Report */}
-                {serviceData?.status === "Done Repair - For Release" && serviceData?.serviceId && (
-                  <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="services">Service/s:</Label>
-                  <Textarea
-                    id="services"
-                    placeholder="Enter service(s)"
-                    value={updateServices}
-                    onChange={(e) => setUpdateServices(e.target.value)}
-                    className="min-h-[100px] resize-none"
-                    style={{ 
-                      minHeight: '100px',
-                      height: `${Math.max(100, (updateServices.split('\n').length + 1) * 24)}px`
-                    }}
-                  />
-                </div>
-
-                <div
-                  className={cn(
-                    "space-y-2 rounded-xl border p-3",
-                    breakdownMissing && quotedLines.length === 0
-                      ? "border-destructive/60 bg-destructive/5"
-                      : "border-primary/20 bg-primary/5",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <Label>Service Breakdown (shown to the client on /track):</Label>
-                    <div className="flex items-center gap-2">
-                      {breakdownMissing && quotedLines.length === 0 && (
-                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                          Required before status change
+                  <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        <span>
+                          Parts Used
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            {Array.isArray(serviceData.partsUsed) && serviceData.partsUsed.length > 0
+                              ? `${serviceData.partsUsed.length} item(s)`
+                              : "none recorded"}
+                          </span>
                         </span>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true, required: false }])
-                        }
-                      >
-                        Add Line
+                        <ChevronDown className={cn("h-4 w-4 transition-transform", isPartsUsedOpen && "rotate-180")} />
                       </Button>
-                    </div>
-                  </div>
-                  {quotedLines.length === 0 ? (
-                    <p
-                      className={cn(
-                        "text-xs",
-                        breakdownMissing ? "text-destructive" : "text-muted-foreground",
-                      )}
-                    >
-                      Click Approve on the AI Diagnosis to pull the service breakdown here, or add lines manually.
-                      This must be filled in and saved before the status can move past the diagnosis stage.
-                    </p>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-4">
+                      <PartsUsedPanel
+                        serviceId={serviceData.serviceId}
+                        partsUsed={serviceData.partsUsed}
+                        onSaved={handleSearch}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  <ApprovalRemarkBlock
+                    adminNotes={serviceData.adminNotesInternal}
+                    pendingServices={(serviceData as any).pendingServices}
+                    approvalLocked={serviceData.approvalLocked}
+                    onReopen={canEditAdminRep ? handleReopenApproval : undefined}
+                  />
+
+                  {(() => {
+                    const rawApproved = ((serviceData?.approvedServices ?? []) as string[]).filter(Boolean);
+                    const approved = rawApproved.map((s) =>
+                      String(s)
+                        .trim()
+                        .toLowerCase()
+                        .replace(/\s*\([^)]*\)\s*$/, ""),
+                    );
+                    const savedLines = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+                    const savedKeys = savedLines.map((l) => l.name.trim().toLowerCase()).filter(Boolean);
+                    const savedUnapproved = savedLines.filter(
+                      (l) => l.name.trim() && !approved.includes(l.name.trim().toLowerCase()),
+                    );
+                    // Services the client approved that are no longer on the ticket.
+                    const replacedApproved = rawApproved.filter((s, i) => !savedKeys.includes(approved[i]));
+                    const hadApproval =
+                      approved.length > 0 ||
+                      !!(serviceData as any)?.clientApprovedAt ||
+                      !!(serviceData as any)?.approvalLocked;
+                    if (!hadApproval || (savedUnapproved.length === 0 && replacedApproved.length === 0)) return null;
+
+                    return (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300/60 bg-amber-50/60 p-2">
+                        <p className="text-xs text-amber-800">
+                          {replacedApproved.length > 0
+                            ? `The services changed since the client approved (${replacedApproved.join(", ")} ${
+                                replacedApproved.length > 1 ? "are" : "is"
+                              } no longer on this ticket). Resend the approval so the client can approve the current quote.`
+                            : `${savedUnapproved.length} saved service line(s) haven't been approved yet. Resend the approval so the client can approve the new items — already approved services stay approved.`}
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={isReopeningApproval}
+                          onClick={handleReopenApproval}
+                        >
+                          <Send className="mr-2 h-4 w-4" />
+                          {isReopeningApproval ? "Sending…" : "Resend approval to client"}
+                        </Button>
+                      </div>
+                    );
+                  })()}
+
+                  {isEditingDetails && canEditAdminRep ? (
+                    <ServiceDetailsEditor
+                      serviceData={serviceData}
+                      onCancel={() => setIsEditingDetails(false)}
+                      onSaved={() => {
+                        setIsEditingDetails(false);
+                        handleSearch();
+                      }}
+                    />
                   ) : (
+                    <div className="space-y-4">
+                      {canEditAdminRep && (
+                        <div className="flex justify-end">
+                          <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit details
+                          </Button>
+                        </div>
+                      )}
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Client
+                        </p>
+
+                        <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                          <WorkspaceField label="Client Name" value={serviceData.clientName} />
+                          <WorkspaceField label="Client ID" value={serviceData.clientId} />
+                          <WorkspaceField
+                            label="Contact Number"
+                            value={serviceData.contactNumber || serviceData.phone}
+                          />
+                          <WorkspaceField label="Email" value={serviceData.email} />
+                          <WorkspaceField label="Client Type" value={serviceData.clientType} />
+                          <WorkspaceField label="Priority" value={serviceData.priority} />
+                          <WorkspaceField label="Admin Rep" value={serviceData.adminRep || "Unassigned"} />
+                          <WorkspaceField label="Technician" value={serviceData.technician} />
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Device
+                        </p>
+                        <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                          <WorkspaceField label="Device Type" value={serviceData.deviceType} />
+                          <WorkspaceField label="Device Model" value={serviceData.device} />
+                          <WorkspaceField label="Serial Number" value={serviceData.serialNumber} />
+                          <WorkspaceField
+                            label="Storage & Color"
+                            value={(() => {
+                              const mem = (serviceData.memory || "").trim();
+                              const col = (serviceData.color || "").trim();
+                              return [mem, col].filter(Boolean).join(" | ") || serviceData.colorMemory || "";
+                            })()}
+                          />
+                          {serviceData.devicePassword && (
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                                Device Password
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  value={serviceData.devicePassword}
+                                  readOnly
+                                  className="h-8 text-sm"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          <WorkspaceField label="Device Conditions" value={describeDeviceConditions(serviceData)} />
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Schedule & Costs
+                        </p>
+                        <div className="grid gap-x-4 gap-y-3 grid-cols-2 lg:grid-cols-3">
+                          <WorkspaceField
+                            label="Service Date"
+                            value={
+                              serviceData.timestamp ? displayDate(serviceData.timestamp, "MMM dd, yyyy, hh:mm a") : ""
+                            }
+                          />
+                          <WorkspaceField label="Diagnostic Time Frame" value={serviceData.timeFrame} />
+                          <WorkspaceField label="Repair Time Frame" value={(serviceData as any).repairTimeFrame} />
+                          <WorkspaceField
+                            label="Estimated Cost"
+                            value={`Php ${parseFloat(serviceData.estimatedCost || 0).toFixed(2)}`}
+                          />
+                          {serviceData.status !== "Pending Diagnosis" && (
+                            <WorkspaceField
+                              label="Estimated Target Date"
+                              value={serviceData.targetDate ? displayDate(serviceData.targetDate, "MMM dd, yyyy") : ""}
+                            />
+                          )}
+                          {serviceData.status === "Confirmed Diagnosis" && (
+                            <>
+                              <WorkspaceField label="Service Cost" value={`Php ${serviceData.serviceCost}`} />
+                              <WorkspaceField label="Discount" value={`Php ${discountAmount.toFixed(2)}`} />
+                            </>
+                          )}
+                          {serviceData.status !== "Pending Diagnosis" && (
+                            <WorkspaceField
+                              label="Final Cost"
+                              value={`Php ${(finalCost > 0 ? finalCost : sanitizeNumber(String(serviceData.serviceCost ?? "0"))).toFixed(2)}`}
+                              valueClassName="font-semibold text-primary"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="grid gap-x-4 gap-y-3 grid-cols-1 md:grid-cols-2">
+                        <WorkspaceField
+                          label="Service/s"
+                          value={serviceData.service}
+                          valueClassName="whitespace-pre-line"
+                        />
+                        <WorkspaceField
+                          label="Technician Notes (Internal)"
+                          value={serviceData.technicianNotesInternal?.trim() ? serviceData.technicianNotesInternal : ""}
+                          valueClassName="whitespace-pre-line"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Update Client Information */}
+              <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+                <CardHeader className="border-b border-border/50">
+                  <CardTitle className="text-2xl tracking-tight">Update Client Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assignment</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="gap-1.5 bg-gradient-destructive text-white border-0 shadow-lg hover:brightness-110"
+                      onClick={() => setConcernOpen(true)}
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      Raise Concern
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status:</Label>
+                      <Select value={updateStatus} onValueChange={setUpdateStatus}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.filter(
+                            (status) =>
+                              // Pre-approved tickets skip the client approval stage.
+                              !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
+                          ).map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {canEditAdminRep && (
+                      <div className="space-y-2">
+                        <Label htmlFor="adminRep">Admin Rep:</Label>
+                        <MultiSelect
+                          options={adminStaffOptions}
+                          selected={updateAdminRep ? updateAdminRep.split(", ").filter(Boolean) : []}
+                          onChange={(values) => setUpdateAdminRep(values.join(", "))}
+                          placeholder="Select Admin Rep"
+                          grouped
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-2">
-                      {quotedLines.map((line, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "space-y-2 rounded-lg p-1",
-                            quotedProblems[i] && "border border-destructive/50 bg-destructive/5",
-                          )}
-                        >
-                        <div className="grid grid-cols-12 items-center gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label htmlFor="technician">Technician:</Label>
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
                           <input
                             type="checkbox"
-                            className="col-span-1 h-4 w-4 accent-primary"
-                            checked={line.selected}
-                            onChange={(e) =>
-                              setQuotedLines((prev) =>
-                                prev.map((l, idx) => (idx === i ? { ...l, selected: e.target.checked } : l)),
-                              )
-                            }
+                            className="h-3.5 w-3.5 accent-primary"
+                            checked={showUnavailableTechs}
+                            onChange={(e) => setShowUnavailableTechs(e.target.checked)}
                           />
-                          <Input
-                            className="col-span-6"
-                            placeholder="Repair / service"
-                            value={line.name}
-                            onChange={(e) =>
-                              setQuotedLines((prev) =>
-                                prev.map((l, idx) => (idx === i ? { ...l, name: e.target.value } : l)),
-                              )
+                          Show unavailable staff
+                        </label>
+                      </div>
+
+                      <MultiSelect
+                        options={(() => {
+                          // Filter technicians based on device type
+                          const deviceType = serviceData?.deviceType;
+
+                          // Always available for special cases, regardless of device type / department
+                          const SPECIAL_CASE_TECH = "John Paul Espedido";
+                          const specialOption = {
+                            label: SPECIAL_CASE_TECH,
+                            value: SPECIAL_CASE_TECH,
+                            group: "Special Cases",
+                          };
+                          const toOption = (tech: { name: string; department: string }) => ({
+                            label: tech.name,
+                            value: tech.name,
+                            group: tech.department,
+                          });
+                          const withSpecial = (opts: { label: string; value: string; group: string }[]) => [
+                            specialOption,
+                            ...opts.filter((o) => o.value !== SPECIAL_CASE_TECH),
+                          ];
+
+                          // Check if device type is in the predefined list
+                          const isPreDefinedDeviceType =
+                            deviceType && (DEVICE_TYPES as readonly string[]).includes(deviceType);
+
+                          // If no device type or custom device (not in predefined list), show all technicians
+                          if (!deviceType || !isPreDefinedDeviceType) {
+                            return withSpecial(technicians.map(toOption));
+                          }
+
+                          // Filter by department only for predefined device types
+                          const filteredTechs = technicians.filter((tech) => {
+                            const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
+                            return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
+                          });
+
+                          return withSpecial(filteredTechs.map(toOption));
+                        })()}
+                        selected={updateTechnician ? updateTechnician.split(", ") : []}
+                        onChange={(values) => setUpdateTechnician(values.join(", "))}
+                        placeholder="Select Technicians"
+                        grouped
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Classification</p>
+                  <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="deviceType">Device Type:</Label>
+                      {showOtherDeviceInput ? (
+                        <Input
+                          value={updateDeviceType}
+                          onChange={(e) => {
+                            setUpdateDeviceType(e.target.value);
+                          }}
+                          placeholder="Enter custom device type"
+                          onBlur={() => {
+                            if (!updateDeviceType) {
+                              setShowOtherDeviceInput(false);
                             }
-                          />
-                          {line.options?.length ? (
-                            <div className="col-span-3 text-right text-sm font-medium text-muted-foreground">
-                              {lineEffectiveCost(line) > 0
-                                ? `Php ${lineEffectiveCost(line).toFixed(2)}`
-                                : "Choose option"}
-                            </div>
-                          ) : (
-                            <Input
-                              className="col-span-3 text-right"
-                              inputMode="decimal"
-                              placeholder="0.00"
-                              value={line.cost ? String(line.cost) : ""}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
-                                setQuotedLines((prev) =>
-                                  prev.map((l, idx) => (idx === i ? { ...l, cost: val } : l)),
+                          }}
+                        />
+                      ) : (
+                        <Select
+                          value={updateDeviceType}
+                          onValueChange={(value) => {
+                            if (value === "Others") {
+                              setShowOtherDeviceInput(true);
+                              setUpdateDeviceType("");
+                            } else {
+                              setUpdateDeviceType(value);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select device type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(() => {
+                              const currentDeviceType = updateDeviceType.trim();
+
+                              // Get selected technicians' departments
+                              const selectedTechNames = updateTechnician?.split(", ").filter(Boolean) || [];
+                              const selectedTechDepartments = selectedTechNames
+                                .map((name) => technicians.find((t) => t.name === name)?.department)
+                                .filter(Boolean) as string[];
+
+                              // If no technicians selected, still show the saved device type (including custom ones)
+                              if (selectedTechDepartments.length === 0) {
+                                if (currentDeviceType) {
+                                  return (
+                                    <>
+                                      <SelectItem value={currentDeviceType}>{currentDeviceType}</SelectItem>
+                                      <SelectItem value="Others">Others</SelectItem>
+                                      <SelectItem value="_disabled_hint" disabled>
+                                        Select technician first to change device type
+                                      </SelectItem>
+                                    </>
+                                  );
+                                }
+
+                                return (
+                                  <>
+                                    <SelectItem value="Others">Others</SelectItem>
+                                    <SelectItem value="_disabled_hint" disabled>
+                                      Select technician first
+                                    </SelectItem>
+                                  </>
                                 );
+                              }
+
+                              // Get available device types based on selected departments
+                              let availableDeviceTypes = Array.from(
+                                new Set(
+                                  selectedTechDepartments.flatMap((dept) => DEVICE_TYPES_BY_DEPARTMENT[dept] || []),
+                                ),
+                              );
+
+                              // Remove "Others" from the list if it exists (we'll add it at the end)
+                              availableDeviceTypes = availableDeviceTypes.filter((type) => type !== "Others");
+
+                              // Ensure the currently saved device type is visible, even if it's custom
+                              if (
+                                currentDeviceType &&
+                                !availableDeviceTypes.includes(currentDeviceType) &&
+                                currentDeviceType !== "Others"
+                              ) {
+                                availableDeviceTypes = [currentDeviceType, ...availableDeviceTypes];
+                              }
+
+                              // Also ensure the original custom device type is always available
+                              if (
+                                originalCustomDeviceType &&
+                                !availableDeviceTypes.includes(originalCustomDeviceType) &&
+                                originalCustomDeviceType !== "Others"
+                              ) {
+                                availableDeviceTypes = [originalCustomDeviceType, ...availableDeviceTypes];
+                              }
+
+                              if (availableDeviceTypes.length === 0) {
+                                return (
+                                  <>
+                                    <SelectItem value="Others">Others</SelectItem>
+                                    <SelectItem value="_disabled_hint" disabled>
+                                      No device types available for selected technicians
+                                    </SelectItem>
+                                  </>
+                                );
+                              }
+
+                              return (
+                                <>
+                                  {availableDeviceTypes.map((deviceType) => (
+                                    <SelectItem key={deviceType} value={deviceType}>
+                                      {deviceType}
+                                    </SelectItem>
+                                  ))}
+                                  <SelectItem value="Others">Others</SelectItem>
+                                </>
+                              );
+                            })()}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="clientType">Client Type:</Label>
+                      <Select value={updateClientType} onValueChange={setUpdateClientType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select client type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="New Client - Walk In">New Client - Walk In</SelectItem>
+                          <SelectItem value="New Client - Pickup">New Client - Pickup</SelectItem>
+                          <SelectItem value="Returning Client - Walk In">Returning Client - Walk In</SelectItem>
+                          <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
+                          <SelectItem value="Delivery - AC Tech">Delivery - AC Tech</SelectItem>
+                          <SelectItem value="Delivery - Courier">Delivery - Courier</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Priority:</Label>
+                      <Select value={updatePriority} onValueChange={setUpdatePriority}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRIORITY_OPTIONS.map((priority) => (
+                            <SelectItem key={priority} value={priority}>
+                              {priority}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="chiefComplaint">Chief Complaint:</Label>
+                    <Textarea
+                      id="chiefComplaint"
+                      placeholder="Enter chief complaint"
+                      value={updateChiefComplaint}
+                      onChange={(e) => setUpdateChiefComplaint(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* (Diagnosis photos moved below AI Diagnosis section) */}
+
+                  {/* Diagnosis Display - always visible */}
+                  {
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            <span className="font-semibold">AI Diagnosis</span>
+                            <span className="text-xs">{isDiagnosisOpen ? "▼" : "▶"}</span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="technicianDiagnosis">Technician Diagnosis:</Label>
+                            <Textarea
+                              id="technicianDiagnosis"
+                              placeholder="Enter technician diagnosis"
+                              value={rawDiagnosis}
+                              onChange={(e) => {
+                                setRawDiagnosis(e.target.value);
+                                setUpdateTechDiagnosis(e.target.value);
+                              }}
+                              rows={4}
+                              className="min-h-[80px] resize-none"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                disabled={isFormattingAI}
+                                onClick={() => {
+                                  const ok = window.confirm(
+                                    "AI Diagnosis Formatter\n\nThis reformats the technician's raw diagnosis. AI output may contain mistakes - review every section (especially Service Breakdown amounts and warranty) before saving or sharing with the client.\n\nProceed?",
+                                  );
+                                  if (ok) handleFormatWithAI();
+                                }}
+                              >
+                                {isFormattingAI ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Formatting...
+                                  </>
+                                ) : (
+                                  "Format with AI"
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(updateAIDiagnosis);
+                                  toast({ title: "Copied to clipboard" });
+                                }}
+                              >
+                                Copy
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (!window.confirm("Clear all AI Diagnosis fields?")) return;
+                                  setUpdateAIDiagnosis("");
+                                  setUpdateDiagBreakdown("");
+                                  setUpdateDiagWarranty("");
+                                  setUpdateDiagOtherNotes("");
+                                  setUpdateDiagSummary("");
+                                  toast({ title: "AI Diagnosis fields cleared" });
+                                }}
+                              >
+                                Clear
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  const ok = window.confirm(
+                                    "Approve this AI Diagnosis?\n\nThe draft Service Breakdown lines will be moved into the client-facing Service Breakdown and the Summary copied into Service/s. AI output may be inaccurate — please review carefully before proceeding.",
+                                  );
+                                  if (!ok) return;
+                                  const summary = (updateDiagSummary || "").trim();
+                                  const parsedLines = parseQuotedBreakdown(
+                                    updateDiagBreakdown.trim()
+                                      ? `Service Breakdown:\n${updateDiagBreakdown}`
+                                      : updateAIDiagnosis || "",
+                                  );
+                                  if (parsedLines.length) {
+                                    setQuotedLines(parsedLines);
+                                  }
+                                  const total = quotedSelectedTotal(parsedLines.length ? parsedLines : quotedLines);
+                                  if (total > 0) {
+                                    setUpdateServiceCost(total.toFixed(2));
+                                    const disc =
+                                      discountType === "percentage"
+                                        ? (total * (parseFloat(discountValue) || 0)) / 100
+                                        : parseFloat(discountValue) || 0;
+                                    setDiscountAmount(disc);
+                                    setFinalCost(calcFinal(total, disc, vatRequested));
+                                  }
+                                  if (summary) {
+                                    setUpdateServices(summary);
+                                    toast({ title: "Summary copied to Service/s" });
+                                  } else {
+                                    toast({
+                                      title: "Summary is empty",
+                                      description: "Fill in the Summary field, then approve again.",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                Approve
+                              </Button>
+                            </div>
+                            <Label htmlFor="aiDiagnosisDisplay">AI Diagnosis:</Label>
+                            <Textarea
+                              id="aiDiagnosisDisplay"
+                              placeholder="Findings, Cause of Issue, Suggested Solution, Recommendations"
+                              value={updateAIDiagnosis}
+                              onChange={(e) => setUpdateAIDiagnosis(e.target.value)}
+                              className="min-h-[100px] resize-none"
+                              style={{
+                                minHeight: "100px",
+                                height: `${Math.max(100, (updateAIDiagnosis.split("\n").length + 1) * 24)}px`,
                               }}
                             />
-                          )}
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant={line.required ? "secondary" : "ghost"}
-                            className="col-span-1 h-9 w-9"
-                            aria-label={line.required ? "Make service optional" : "Make service required"}
-                            title={line.required ? "Required service — click to unlock" : "Optional service — click to require"}
-                            onClick={() =>
-                              setQuotedLines((prev) =>
-                                prev.map((l, idx) => idx === i ? { ...l, required: !l.required, selected: !l.required || l.selected } : l),
-                              )
-                            }
-                          >
-                            {line.required ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="col-span-1 text-destructive"
-                            onClick={() => setQuotedLines((prev) => prev.filter((_, idx) => idx !== i))}
-                          >
-                            X
-                          </Button>
-                        </div>
+                          </div>
 
-                        {/* Options (e.g. OEM vs Original) */}
-                        <div className="pl-8 space-y-1">
-                          {(line.options ?? []).map((opt, oi) => (
-                            <div key={oi} className="grid grid-cols-12 items-center gap-2">
-                              <input
-                                type="radio"
-                                className="col-span-1 h-4 w-4 accent-primary"
-                                checked={line.selectedOption === opt.label}
-                                onChange={() =>
-                                  setQuotedLines((prev) =>
-                                    prev.map((l, idx) => (idx === i ? { ...l, selectedOption: opt.label } : l)),
-                                  )
-                                }
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisBreakdown">Service Breakdown (draft):</Label>
+                            <Textarea
+                              id="diagnosisBreakdown"
+                              placeholder={"Service name - Php {Enter Amount}\nOption A - OEM: Php {Enter Amount}"}
+                              value={updateDiagBreakdown}
+                              onChange={(e) => setUpdateDiagBreakdown(e.target.value)}
+                              rows={4}
+                              className="min-h-[90px] resize-none"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              AI writes the breakdown here first. Click Approve above to move these lines into the
+                              Service Breakdown shown to the client.
+                            </p>
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="diagnosisWarranty">Warranty:</Label>
+                              <Textarea
+                                id="diagnosisWarranty"
+                                placeholder={"Screen replacement - {Enter Warranty Duration}"}
+                                value={updateDiagWarranty}
+                                onChange={(e) => setUpdateDiagWarranty(e.target.value)}
+                                rows={3}
+                                className="min-h-[70px] resize-none"
                               />
-                              <Input
-                                className="col-span-5 h-8 text-sm"
-                                placeholder="Option label (e.g. OEM)"
-                                value={opt.label}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="diagnosisOtherNotes">Other Notes:</Label>
+                              <Textarea
+                                id="diagnosisOtherNotes"
+                                placeholder="Anything else the client should know"
+                                value={updateDiagOtherNotes}
+                                onChange={(e) => setUpdateDiagOtherNotes(e.target.value)}
+                                rows={3}
+                                className="min-h-[70px] resize-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="diagnosisSummary">Summary:</Label>
+                            <Textarea
+                              id="diagnosisSummary"
+                              placeholder="One-line summary of the repair needed (internal / Service/s field)"
+                              value={updateDiagSummary}
+                              onChange={(e) => setUpdateDiagSummary(e.target.value)}
+                              rows={2}
+                              className="min-h-[60px] resize-none"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              The Summary is not shown to the client on the quotation form or the tracking page.
+                            </p>
+                          </div>
+
+                          <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
+                            {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  }
+
+                  {/* Device Diagnosis Photos - shown only on Confirmed Diagnosis, BELOW AI Diagnosis */}
+                  {serviceData?.status === "Confirmed Diagnosis" && serviceData?.serviceId && (
+                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
+                  )}
+
+                  {/* Report Display - always visible */}
+                  {
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            <span className="font-semibold">AI Report</span>
+                            <span className="text-xs">{isReportOpen ? "▼" : "▶"}</span>
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="technicianReport">Technician Report:</Label>
+                            <Textarea
+                              id="technicianReport"
+                              placeholder="Enter technician report"
+                              value={technicianReport}
+                              onChange={(e) => setTechnicianReport(e.target.value)}
+                              rows={4}
+                              className="min-h-[80px] resize-none"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                disabled={isFormattingReport}
+                                onClick={() => {
+                                  const ok = window.confirm(
+                                    "AI Report Formatter\n\nThis reformats the technician's report. AI output may contain mistakes - review it carefully before saving or sharing with the client.\n\nProceed?",
+                                  );
+                                  if (ok) handleFormatReportWithAI();
+                                }}
+                              >
+                                {isFormattingReport ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Formatting...
+                                  </>
+                                ) : (
+                                  "Format with AI"
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(updateServiceReport);
+                                  toast({ title: "Copied to clipboard" });
+                                }}
+                              >
+                                Copy
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsEditingServiceReport(!isEditingServiceReport)}
+                              >
+                                {isEditingServiceReport ? "Lock" : "Edit"}
+                              </Button>
+                            </div>
+                            <Label htmlFor="aiReportDisplay">AI Service Report:</Label>
+                            <Textarea
+                              id="aiReportDisplay"
+                              placeholder="AI Service Report"
+                              value={updateServiceReport}
+                              onChange={(e) => setUpdateServiceReport(e.target.value)}
+                              disabled={!isEditingServiceReport}
+                              className={cn(
+                                "min-h-[100px] resize-none",
+                                !isEditingServiceReport && "bg-muted cursor-not-allowed opacity-75",
+                              )}
+                              style={{
+                                minHeight: "100px",
+                                height: `${Math.max(100, (updateServiceReport.split("\n").length + 1) * 24)}px`,
+                              }}
+                            />
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  }
+
+                  {/* Device Report Photos - shown only on Done Repair - For Release, BELOW AI Report */}
+                  {serviceData?.status === "Done Repair - For Release" && serviceData?.serviceId && (
+                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="services">Service/s:</Label>
+                    <Textarea
+                      id="services"
+                      placeholder="Enter service(s)"
+                      value={updateServices}
+                      onChange={(e) => setUpdateServices(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                      style={{
+                        minHeight: "100px",
+                        height: `${Math.max(100, (updateServices.split("\n").length + 1) * 24)}px`,
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    className={cn(
+                      "space-y-2 rounded-xl border p-3",
+                      breakdownMissing && quotedLines.length === 0
+                        ? "border-destructive/60 bg-destructive/5"
+                        : "border-primary/20 bg-primary/5",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <Label>Service Breakdown (shown to the client on /track):</Label>
+                      <div className="flex items-center gap-2">
+                        {breakdownMissing && quotedLines.length === 0 && (
+                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                            Required before status change
+                          </span>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true, required: false }])
+                          }
+                        >
+                          Add Line
+                        </Button>
+                      </div>
+                    </div>
+                    {quotedLines.length === 0 ? (
+                      <p className={cn("text-xs", breakdownMissing ? "text-destructive" : "text-muted-foreground")}>
+                        Click Approve on the AI Diagnosis to pull the service breakdown here, or add lines manually.
+                        This must be filled in and saved before the status can move past the diagnosis stage.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {quotedLines.map((line, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "space-y-2 rounded-lg p-1",
+                              quotedProblems[i] && "border border-destructive/50 bg-destructive/5",
+                            )}
+                          >
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="col-span-1 h-4 w-4 accent-primary"
+                                checked={line.selected}
                                 onChange={(e) =>
                                   setQuotedLines((prev) =>
-                                    prev.map((l, idx) => {
-                                      if (idx !== i) return l;
-                                      const options = (l.options ?? []).map((o, x) =>
-                                        x === oi ? { ...o, label: e.target.value } : o,
-                                      );
-                                      const selectedOption =
-                                        l.selectedOption === opt.label ? e.target.value : l.selectedOption;
-                                      return { ...l, options, selectedOption };
-                                    }),
+                                    prev.map((l, idx) => (idx === i ? { ...l, selected: e.target.checked } : l)),
                                   )
                                 }
                               />
                               <Input
-                                className="col-span-3 h-8 text-right text-sm"
-                                inputMode="decimal"
-                                placeholder="0.00"
-                                value={opt.cost ? String(opt.cost) : ""}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
+                                className="col-span-6"
+                                placeholder="Repair / service"
+                                value={line.name}
+                                onChange={(e) =>
+                                  setQuotedLines((prev) =>
+                                    prev.map((l, idx) => (idx === i ? { ...l, name: e.target.value } : l)),
+                                  )
+                                }
+                              />
+                              {line.options?.length ? (
+                                <div className="col-span-3 text-right text-sm font-medium text-muted-foreground">
+                                  {lineEffectiveCost(line) > 0
+                                    ? `Php ${lineEffectiveCost(line).toFixed(2)}`
+                                    : "Choose option"}
+                                </div>
+                              ) : (
+                                <Input
+                                  className="col-span-3 text-right"
+                                  inputMode="decimal"
+                                  placeholder="0.00"
+                                  value={line.cost ? String(line.cost) : ""}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
+                                    setQuotedLines((prev) =>
+                                      prev.map((l, idx) => (idx === i ? { ...l, cost: val } : l)),
+                                    );
+                                  }}
+                                />
+                              )}
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant={line.required ? "secondary" : "ghost"}
+                                className="col-span-1 h-9 w-9"
+                                aria-label={line.required ? "Make service optional" : "Make service required"}
+                                title={
+                                  line.required
+                                    ? "Required service — click to unlock"
+                                    : "Optional service — click to require"
+                                }
+                                onClick={() =>
+                                  setQuotedLines((prev) =>
+                                    prev.map((l, idx) =>
+                                      idx === i
+                                        ? { ...l, required: !l.required, selected: !l.required || l.selected }
+                                        : l,
+                                    ),
+                                  )
+                                }
+                              >
+                                {line.required ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="col-span-1 text-destructive"
+                                onClick={() => setQuotedLines((prev) => prev.filter((_, idx) => idx !== i))}
+                              >
+                                X
+                              </Button>
+                            </div>
+
+                            {/* Options (e.g. OEM vs Original) */}
+                            <div className="pl-8 space-y-1">
+                              {(line.options ?? []).map((opt, oi) => (
+                                <div key={oi} className="grid grid-cols-12 items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    className="col-span-1 h-4 w-4 accent-primary"
+                                    checked={line.selectedOption === opt.label}
+                                    onChange={() =>
+                                      setQuotedLines((prev) =>
+                                        prev.map((l, idx) => (idx === i ? { ...l, selectedOption: opt.label } : l)),
+                                      )
+                                    }
+                                  />
+                                  <Input
+                                    className="col-span-5 h-8 text-sm"
+                                    placeholder="Option label (e.g. OEM)"
+                                    value={opt.label}
+                                    onChange={(e) =>
+                                      setQuotedLines((prev) =>
+                                        prev.map((l, idx) => {
+                                          if (idx !== i) return l;
+                                          const options = (l.options ?? []).map((o, x) =>
+                                            x === oi ? { ...o, label: e.target.value } : o,
+                                          );
+                                          const selectedOption =
+                                            l.selectedOption === opt.label ? e.target.value : l.selectedOption;
+                                          return { ...l, options, selectedOption };
+                                        }),
+                                      )
+                                    }
+                                  />
+                                  <Input
+                                    className="col-span-3 h-8 text-right text-sm"
+                                    inputMode="decimal"
+                                    placeholder="0.00"
+                                    value={opt.cost ? String(opt.cost) : ""}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value.replace(/[^0-9.]/g, "")) || 0;
+                                      setQuotedLines((prev) =>
+                                        prev.map((l, idx) =>
+                                          idx === i
+                                            ? {
+                                                ...l,
+                                                options: (l.options ?? []).map((o, x) =>
+                                                  x === oi ? { ...o, cost: val } : o,
+                                                ),
+                                              }
+                                            : l,
+                                        ),
+                                      );
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="col-span-2 h-8 text-destructive text-xs"
+                                    onClick={() =>
+                                      setQuotedLines((prev) =>
+                                        prev.map((l, idx) => {
+                                          if (idx !== i) return l;
+                                          const options = (l.options ?? []).filter((_, x) => x !== oi);
+                                          return {
+                                            ...l,
+                                            options: options.length ? options : undefined,
+                                            selectedOption: l.selectedOption === opt.label ? "" : l.selectedOption,
+                                          };
+                                        }),
+                                      )
+                                    }
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs"
+                                onClick={() =>
                                   setQuotedLines((prev) =>
                                     prev.map((l, idx) =>
                                       idx === i
                                         ? {
                                             ...l,
-                                            options: (l.options ?? []).map((o, x) =>
-                                              x === oi ? { ...o, cost: val } : o,
-                                            ),
+                                            options: [...(l.options ?? []), { label: "", cost: 0 }],
                                           }
                                         : l,
                                     ),
-                                  );
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="col-span-2 h-8 text-destructive text-xs"
-                                onClick={() =>
-                                  setQuotedLines((prev) =>
-                                    prev.map((l, idx) => {
-                                      if (idx !== i) return l;
-                                      const options = (l.options ?? []).filter((_, x) => x !== oi);
-                                      return {
-                                        ...l,
-                                        options: options.length ? options : undefined,
-                                        selectedOption:
-                                          l.selectedOption === opt.label ? "" : l.selectedOption,
-                                      };
-                                    }),
                                   )
                                 }
                               >
-                                Remove
+                                + Add option (e.g. OEM / Original)
                               </Button>
                             </div>
-                          ))}
+                            {quotedProblems[i] && <p className="pl-8 text-xs text-destructive">{quotedProblems[i]}</p>}
+                          </div>
+                        ))}
+
+                        {!quotedLines.some((l) => l.required) && (
+                          <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                            Lock at least one required service (padlock icon). The client's approval of the required
+                            service(s) is what moves the ticket to Proceed Repair — optional services left unticked will
+                            simply stay pending.
+                          </p>
+                        )}
+
+                        {(() => {
+                          const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
+                            String(s)
+                              .trim()
+                              .toLowerCase()
+                              .replace(/\s*\([^)]*\)\s*$/, ""),
+                          );
+                          const saved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
+                            l.name.trim().toLowerCase(),
+                          );
+                          const unsavedNew = quotedLines.filter((l) => {
+                            const n = l.name.trim().toLowerCase();
+                            return n && !approved.includes(n) && !saved.includes(n);
+                          });
+                          const hasBaseline =
+                            approved.length > 0 ||
+                            saved.length > 0 ||
+                            !!(serviceData as any)?.approvalLocked ||
+                            !!(serviceData as any)?.clientApprovedAt;
+                          if (!hasBaseline || unsavedNew.length === 0) return null;
+
+                          return (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50/60 px-2.5 py-1 text-xs font-medium text-amber-800">
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              {unsavedNew.length} unsaved new service line(s) — save to resend approval
+                            </span>
+                          );
+                        })()}
+
+                        <div className="flex items-center justify-between pt-1 text-sm">
+                          <span className="font-semibold">
+                            Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
+                          </span>
                           <Button
                             type="button"
                             size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs"
-                            onClick={() =>
-                              setQuotedLines((prev) =>
-                                prev.map((l, idx) =>
-                                  idx === i
-                                    ? {
-                                        ...l,
-                                        options: [...(l.options ?? []), { label: "", cost: 0 }],
-                                      }
-                                    : l,
-                                ),
-                              )
-                            }
+                            onClick={() => {
+                              const total = quotedSelectedTotal(quotedLines);
+                              setUpdateServiceCost(total.toFixed(2));
+                              const disc =
+                                discountType === "percentage"
+                                  ? (total * (parseFloat(discountValue) || 0)) / 100
+                                  : parseFloat(discountValue) || 0;
+                              setDiscountAmount(disc);
+                              setFinalCost(calcFinal(total, disc, vatRequested));
+                            }}
                           >
-                            + Add option (e.g. OEM / Original)
+                            Apply to Service Cost
                           </Button>
                         </div>
-                        {quotedProblems[i] && (
-                          <p className="pl-8 text-xs text-destructive">{quotedProblems[i]}</p>
+
+                        {discountAmount > 0 && quotedLines.length > 1 && (
+                          <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                            Bundle discount rule: {BUNDLE_DISCOUNT_NOTICE} The client sees this note on their tracking
+                            page, and the discount is removed automatically if they approve only part of the quotation.
+                          </p>
                         )}
-                        </div>
-                      ))}
-
-                      {!quotedLines.some((l) => l.required) && (
-                        <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
-                          Lock at least one required service (padlock icon). The client's approval of the required
-                          service(s) is what moves the ticket to Proceed Repair — optional services left unticked
-                          will simply stay pending.
-                        </p>
-                      )}
-
-                      {(() => {
-                        const approved = ((serviceData?.approvedServices ?? []) as string[]).map((s) =>
-                          String(s).trim().toLowerCase().replace(/\s*\([^)]*\)\s*$/, ""),
-                        );
-                        const saved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown).map((l) =>
-                          l.name.trim().toLowerCase(),
-                        );
-                        const unsavedNew = quotedLines.filter((l) => {
-                          const n = l.name.trim().toLowerCase();
-                          return n && !approved.includes(n) && !saved.includes(n);
-                        });
-                        const hasBaseline =
-                          approved.length > 0 ||
-                          saved.length > 0 ||
-                          !!(serviceData as any)?.approvalLocked ||
-                          !!(serviceData as any)?.clientApprovedAt;
-                        if (!hasBaseline || unsavedNew.length === 0) return null;
-
-                        return (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-50/60 px-2.5 py-1 text-xs font-medium text-amber-800">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            {unsavedNew.length} unsaved new service line(s) — save to resend approval
-                          </span>
-                        );
-                      })()}
-
-
-                      <div className="flex items-center justify-between pt-1 text-sm">
-
-                        <span className="font-semibold">
-                          Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            const total = quotedSelectedTotal(quotedLines);
-                            setUpdateServiceCost(total.toFixed(2));
-                            const disc =
-                              discountType === "percentage"
-                                ? (total * (parseFloat(discountValue) || 0)) / 100
-                                : parseFloat(discountValue) || 0;
-                            setDiscountAmount(disc);
-                            setFinalCost(calcFinal(total, disc, vatRequested));
-                          }}
-                        >
-                          Apply to Service Cost
-                        </Button>
-                      </div>
-
-                      {discountAmount > 0 && quotedLines.length > 1 && (
-                        <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                          Bundle discount rule: {BUNDLE_DISCOUNT_NOTICE} The client sees this note on
-                          their tracking page, and the discount is removed automatically if they
-                          approve only part of the quotation.
-                        </p>
-                      )}
-
-                    </div>
-                  )}
-
-                </div>
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pricing</p>
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                <div className="space-y-2">
-
-                  <Label htmlFor="serviceCost">Service Cost:</Label>
-                  <Input
-                    id="serviceCost"
-                    placeholder="Enter service cost"
-                    value={updateServiceCost}
-                    onChange={(e) => {
-                      const cost = e.target.value;
-                      setUpdateServiceCost(cost);
-                      const costNum = sanitizeNumber(cost);
-                      
-                      // Recalculate discount and final cost
-                      let discount = 0;
-                      if (discountType === "percentage") {
-                        const percent = parseFloat(discountValue) || 0;
-                        discount = (costNum * percent) / 100;
-                      } else {
-                        discount = parseFloat(discountValue) || 0;
-                      }
-                      setDiscountAmount(discount);
-                      setFinalCost(calcFinal(costNum, discount, vatRequested));
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Discount (Optional):</Label>
-                  <div className="flex gap-2 mb-2">
-                    <Button
-                      type="button"
-                      variant={discountType === "amount" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setDiscountType("amount");
-                        setDiscountValue("");
-                        setDiscountAmount(0);
-                        setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), 0, vatRequested));
-                      }}
-                      className="flex-1"
-                    >
-                      Amount
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={discountType === "percentage" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setDiscountType("percentage");
-                        setDiscountValue("");
-                        setDiscountAmount(0);
-                        setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), 0, vatRequested));
-                      }}
-                      className="flex-1"
-                    >
-                      Percentage
-                    </Button>
-                  </div>
-                  
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      placeholder={discountType === "percentage" ? "Enter %" : "Enter Amount"}
-                      value={discountValue}
-                      type="number"
-                      min="0"
-                      step={discountType === "percentage" ? "0.01" : "1"}
-                      max={discountType === "percentage" ? "100" : undefined}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setDiscountValue(value);
-                        
-                        const costNum = sanitizeNumber(updateServiceCost);
-                        let discount = 0;
-                        
-                        if (discountType === "percentage") {
-                          const percent = parseFloat(value) || 0;
-                          discount = (costNum * percent) / 100;
-                        } else {
-                          discount = parseFloat(value) || 0;
-                        }
-                        
-                        setDiscountAmount(discount);
-                        setFinalCost(calcFinal(costNum, discount, vatRequested));
-                      }}
-                      className="flex-1"
-                    />
-                    {discountType === "percentage" && discountValue && (
-                      <div className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                        = Php {discountAmount.toFixed(2)}
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div className="space-y-2 rounded-md border border-border/60 p-3">
-                  <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
-                    <Checkbox
-                      checked={vatRequested}
-                      onCheckedChange={(checked) => {
-                        const next = checked === true;
-                        setVatRequested(next);
-                        setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), discountAmount, next));
-                      }}
-                    />
-                    <span>Requesting Invoice (Add VAT to Total Cost)</span>
-                  </label>
-                  {vatRequested && (
-                    <p className="pl-6 text-sm font-semibold text-muted-foreground">
-                      VAT (12%): Php {calcVat(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
-                    </p>
-                  )}
-                </div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pricing</p>
+                  <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="serviceCost">Service Cost:</Label>
+                      <Input
+                        id="serviceCost"
+                        placeholder="Enter service cost"
+                        value={updateServiceCost}
+                        onChange={(e) => {
+                          const cost = e.target.value;
+                          setUpdateServiceCost(cost);
+                          const costNum = sanitizeNumber(cost);
 
-                <div className="space-y-2 rounded-md border border-border/60 p-3">
-                  <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
-                    <Checkbox
-                      checked={rushFee}
-                      onCheckedChange={(checked) => {
-                        const next = checked === true;
-                        setRushFee(next);
-                        setFinalCost(
-                          calcFinal(sanitizeNumber(updateServiceCost), discountAmount, vatRequested, next),
-                        );
-                      }}
-                    />
-                    <span>Rush Fee (Add 10% to Total Cost)</span>
-                  </label>
-                  {rushFee && (
-                    <p className="pl-6 text-sm font-semibold text-muted-foreground">
-                      Rush fee (10%): Php{" "}
-                      {rushAmount(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-
-
-
-
-                <div className="space-y-2">
-                  <Label>Final Cost:</Label>
-                  <div className="text-2xl font-bold text-primary">
-                    Php {finalCost.toFixed(2)}
-                  </div>
-                </div>
-                </div>
-
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</p>
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                <div className="space-y-2">
-
-                  <Label htmlFor="timeFrame">Diagnostic Time Frame:</Label>
-                  <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time frame" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_FRAME_OPTIONS.map(timeFrame => (
-                        <SelectItem key={timeFrame} value={timeFrame}>{timeFrame}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="repairTimeFrame">Repair Time Frame:</Label>
-                  <Select value={updateRepairTimeFrame} onValueChange={setUpdateRepairTimeFrame}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time frame" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_FRAME_OPTIONS.map(tf => (
-                        <SelectItem key={tf} value={tf}>{tf}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-
-                <div className="space-y-2">
-                  <Label htmlFor="targetDate">Estimated Target Date:</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !updateTargetDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={updateTargetDate}
-                        onSelect={setUpdateTargetDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
+                          // Recalculate discount and final cost
+                          let discount = 0;
+                          if (discountType === "percentage") {
+                            const percent = parseFloat(discountValue) || 0;
+                            discount = (costNum * percent) / 100;
+                          } else {
+                            discount = parseFloat(discountValue) || 0;
+                          }
+                          setDiscountAmount(discount);
+                          setFinalCost(calcFinal(costNum, discount, vatRequested));
+                        }}
                       />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                </div>
+                    </div>
 
-                <div className="space-y-2">
+                    <div className="space-y-2">
+                      <Label>Discount (Optional):</Label>
+                      <div className="flex gap-2 mb-2">
+                        <Button
+                          type="button"
+                          variant={discountType === "amount" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setDiscountType("amount");
+                            setDiscountValue("");
+                            setDiscountAmount(0);
+                            setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), 0, vatRequested));
+                          }}
+                          className="flex-1"
+                        >
+                          Amount
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={discountType === "percentage" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setDiscountType("percentage");
+                            setDiscountValue("");
+                            setDiscountAmount(0);
+                            setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), 0, vatRequested));
+                          }}
+                          className="flex-1"
+                        >
+                          Percentage
+                        </Button>
+                      </div>
 
-                  <Label htmlFor="adminNotes">Admin Notes (Customer):</Label>
-                  <Textarea
-                    id="adminNotes"
-                    placeholder="Enter admin notes"
-                    value={updateAdminNotes}
-                    onChange={(e) => setUpdateAdminNotes(e.target.value)}
-                    rows={4}
-                  />
-                </div>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder={discountType === "percentage" ? "Enter %" : "Enter Amount"}
+                          value={discountValue}
+                          type="number"
+                          min="0"
+                          step={discountType === "percentage" ? "0.01" : "1"}
+                          max={discountType === "percentage" ? "100" : undefined}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setDiscountValue(value);
 
-                <div className="space-y-2">
-                  <Label htmlFor="adminNotesInternal">Admin Notes (Internal):</Label>
-                  <Textarea
-                    id="adminNotesInternal"
-                    placeholder="Enter internal admin notes"
-                    value={updateAdminNotesInternal}
-                    onChange={(e) => setUpdateAdminNotesInternal(e.target.value)}
-                    rows={4}
-                  />
-                </div>
+                            const costNum = sanitizeNumber(updateServiceCost);
+                            let discount = 0;
 
-                <Button onClick={handleUpdate} disabled={isUpdatingClientInfo} className="w-full">
-                  {isUpdatingClientInfo ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update"
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                            if (discountType === "percentage") {
+                              const percent = parseFloat(value) || 0;
+                              discount = (costNum * percent) / 100;
+                            } else {
+                              discount = parseFloat(value) || 0;
+                            }
 
-          <ActivityTimeline serviceId={serviceData.serviceId} />
+                            setDiscountAmount(discount);
+                            setFinalCost(calcFinal(costNum, discount, vatRequested));
+                          }}
+                          className="flex-1"
+                        />
+                        {discountType === "percentage" && discountValue && (
+                          <div className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                            = Php {discountAmount.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-md border border-border/60 p-3">
+                      <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                        <Checkbox
+                          checked={vatRequested}
+                          onCheckedChange={(checked) => {
+                            const next = checked === true;
+                            setVatRequested(next);
+                            setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), discountAmount, next));
+                          }}
+                        />
+                        <span>Requesting Invoice (Add VAT to Total Cost)</span>
+                      </label>
+                      {vatRequested && (
+                        <p className="pl-6 text-sm font-semibold text-muted-foreground">
+                          VAT (12%): Php {calcVat(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 rounded-md border border-border/60 p-3">
+                      <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                        <Checkbox
+                          checked={rushFee}
+                          onCheckedChange={(checked) => {
+                            const next = checked === true;
+                            setRushFee(next);
+                            setFinalCost(
+                              calcFinal(sanitizeNumber(updateServiceCost), discountAmount, vatRequested, next),
+                            );
+                          }}
+                        />
+                        <span>Rush Fee (Add 10% to Total Cost)</span>
+                      </label>
+                      {rushFee && (
+                        <p className="pl-6 text-sm font-semibold text-muted-foreground">
+                          Rush fee (10%): Php{" "}
+                          {rushAmount(sanitizeNumber(updateServiceCost), discountAmount, true).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Final Cost:</Label>
+                      <div className="text-2xl font-bold text-primary">Php {finalCost.toFixed(2)}</div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</p>
+                  <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="timeFrame">Diagnostic Time Frame:</Label>
+                      <Select value={updateTimeFrame} onValueChange={setUpdateTimeFrame}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time frame" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_FRAME_OPTIONS.map((timeFrame) => (
+                            <SelectItem key={timeFrame} value={timeFrame}>
+                              {timeFrame}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="repairTimeFrame">Repair Time Frame:</Label>
+                      <Select value={updateRepairTimeFrame} onValueChange={setUpdateRepairTimeFrame}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time frame" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_FRAME_OPTIONS.map((tf) => (
+                            <SelectItem key={tf} value={tf}>
+                              {tf}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="targetDate">Estimated Target Date:</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !updateTargetDate && "text-muted-foreground",
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {updateTargetDate ? format(updateTargetDate, "MM-dd-yyyy") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={updateTargetDate}
+                            onSelect={setUpdateTargetDate}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="adminNotes">Admin Notes (Customer):</Label>
+                    <Textarea
+                      id="adminNotes"
+                      placeholder="Enter admin notes"
+                      value={updateAdminNotes}
+                      onChange={(e) => setUpdateAdminNotes(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="adminNotesInternal">Admin Notes (Internal):</Label>
+                    <Textarea
+                      id="adminNotesInternal"
+                      placeholder="Enter internal admin notes"
+                      value={updateAdminNotesInternal}
+                      onChange={(e) => setUpdateAdminNotesInternal(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  <Button onClick={handleUpdate} disabled={isUpdatingClientInfo} className="w-full">
+                    {isUpdatingClientInfo ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update"
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <ActivityTimeline serviceId={serviceData.serviceId} />
           </div>
         )}
-
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground"></div>
       </div>
-      <PdfViewerModal open={pdfModalOpen} onOpenChange={setPdfModalOpen} url={pdfModalUrl} title={pdfModalTitle} filename={pdfModalFilename} />
+      <PdfViewerModal
+        open={pdfModalOpen}
+        onOpenChange={setPdfModalOpen}
+        url={pdfModalUrl}
+        title={pdfModalTitle}
+        filename={pdfModalFilename}
+      />
 
-      <Dialog open={concernOpen} onOpenChange={(o) => { if (!concernSending) setConcernOpen(o); }}>
+      <Dialog
+        open={concernOpen}
+        onOpenChange={(o) => {
+          if (!concernSending) setConcernOpen(o);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Raise a Concern</DialogTitle>
@@ -3563,7 +3662,14 @@ const ManageClient = () => {
               Cancel
             </Button>
             <Button onClick={handleSendConcern} disabled={concernSending || !concernMessage.trim() || !serviceData}>
-              {concernSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>) : "Send Concern"}
+              {concernSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Concern"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3609,8 +3715,8 @@ const ManageClient = () => {
           <DialogHeader>
             <DialogTitle>Turn off Waiting for Parts?</DialogTitle>
             <DialogDescription>
-              Moving this ticket to {updateStatus} usually means the parts are already available.
-              Should the Waiting for Parts flag be turned off?
+              Moving this ticket to {updateStatus} usually means the parts are already available. Should the Waiting for
+              Parts flag be turned off?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
