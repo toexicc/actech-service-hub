@@ -16,11 +16,16 @@ export interface ServicePaymentsSummary {
 }
 
 export const isRefundType = (type: string) => /refund/i.test(type || "");
+export const isVoidType = (type: string) => /^\s*void/i.test(type || "");
+export const isVoidedStatus = (status: string) =>
+  ["voided", "cancelled", "canceled"].includes(String(status || "").toLowerCase());
 export const isPaymentType = (type: string) =>
   /payment|deposit|down\s*payment|balance|installment/i.test(type || "");
 
 export const summarizePayments = (rows: any[]): ServicePaymentsSummary => {
   const payments = (rows ?? [])
+    .filter((r) => !isVoidType(r.type) && !isVoidedStatus(r.status))
+    .filter((r) => Math.abs(Number(r.amount ?? 0)) > 0)
     .filter((r) => isPaymentType(r.type) || isRefundType(r.type))
     .map((r) => ({
       id: r.id,
