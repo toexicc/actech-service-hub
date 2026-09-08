@@ -411,34 +411,31 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
     setIsVoiding(true);
     try {
       const originalAmount = parseCurrency(voidTarget.amount);
-      const voidId = `VOID${Date.now()}`;
       const params = new URLSearchParams();
-      params.append("action", "addTransaction");
-      params.append("transactionId", voidId);
-      params.append("serviceId", voidTarget.serviceId || "");
-      params.append("transactionType", `Void - ${voidTarget.transactionType}`);
-      params.append("modeOfPayment", voidTarget.modeOfPayment || "N/A");
-      params.append("name", voidTarget.name || "");
-      params.append("device", voidTarget.device || "");
-      params.append("amount", (-Math.abs(originalAmount)).toFixed(2));
-      params.append("serviceCost", "0");
-      params.append("attendant", username);
-      params.append("remarks", `Void of ${voidTarget.transactionId}: ${voidReason.trim()}`);
-      params.append("partsCost", "0");
-      params.append("finalCost", "0");
-      params.append("previousPayments", "0");
-      if (voidTarget.fundSource) params.append("fundSource", voidTarget.fundSource);
+      params.append("action", "deleteTransaction");
+      params.append("transactionId", voidTarget.transactionId);
 
       const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       const result = await response.json();
 
       if (result.status === "success") {
-        toast({ title: "Voided", description: `Transaction ${voidTarget.transactionId} has been voided.` });
+        toast({ title: "Voided", description: `Transaction ${voidTarget.transactionId} has been removed.` });
         logActivityAsync({
           serviceId: voidTarget.serviceId || "TRACKER",
           username,
           role: userRole || "",
-          activity: `Voided transaction ${voidTarget.transactionId} (${voidTarget.transactionType}, ${fmtCurrency(originalAmount)}) — Reason: ${voidReason.trim()}`,
+          activity: `Voided (removed) transaction ${voidTarget.transactionId} (${voidTarget.transactionType}, ${fmtCurrency(originalAmount)}, ${voidTarget.modeOfPayment || "N/A"}) — Reason: ${voidReason.trim()}`,
+          details: {
+            transactionId: voidTarget.transactionId,
+            type: voidTarget.transactionType,
+            amount: fmtCurrency(originalAmount),
+            modeOfPayment: voidTarget.modeOfPayment || "",
+            serviceId: voidTarget.serviceId || "",
+            name: voidTarget.name || "",
+            fundSource: voidTarget.fundSource || "",
+            reason: voidReason.trim(),
+            voidedBy: username,
+          },
         });
         setVoidDialog(false);
         setVoidReason("");
