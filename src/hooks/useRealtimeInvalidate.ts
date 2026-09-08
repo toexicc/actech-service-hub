@@ -14,7 +14,7 @@ const TABLE_KEYS: Record<string, string[][]> = {
   part_requests: [["partRequests"], ["part-requests"]],
   inventory_parts: [["inventory"]],
   fast_moving_parts: [["fastMovingParts"]],
-  transactions: [["transactions"]],
+  transactions: [["transactions"], ["fundTransactions"]],
   expenses: [["expenses"]],
   client_inquiries: [["clientInquiriesData"]],
   clients: [["clients"]],

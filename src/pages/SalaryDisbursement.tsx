@@ -236,7 +236,7 @@ const SalaryDisbursement = () => {
     staleTime: 60 * 1000,
   });
   const { data: allTransactions = [] } = useQuery({
-    queryKey: ["transactions"],
+    queryKey: ["fundTransactions"],
     queryFn: fetchTransactions,
     staleTime: 60 * 1000,
   });
