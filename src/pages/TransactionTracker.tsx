@@ -864,7 +864,7 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><Ban className="h-5 w-5 text-destructive" /> Void Transaction</DialogTitle>
               <DialogDescription>
-                Voiding posts a reversing entry that cancels this transaction. The original record stays in the books for audit. This cannot be undone.
+                Voiding removes this transaction from the ledger. A full record of it — amount, type, ticket, who voided it and the reason — is kept in the activity log only. This cannot be undone.
               </DialogDescription>
             </DialogHeader>
             {voidTarget && (
