@@ -291,6 +291,8 @@ async function getServicePayments(serviceId: string) {
     .select("amount,type,status")
     .eq("service_id", serviceId);
   const totalPaid = (data ?? [])
+    .filter((t: any) => !/^\s*void/i.test(String(t.type ?? "")))
+    .filter((t: any) => Math.abs(num(t.amount)) > 0)
     .filter((t: any) => CLIENT_PAYMENT_TYPES.has(String(t.type ?? "")))
     .filter((t: any) => !["voided", "cancelled", "canceled"].includes(String(t.status ?? "").toLowerCase()))
     .reduce((s: number, t: any) => s + num(t.amount), 0);
