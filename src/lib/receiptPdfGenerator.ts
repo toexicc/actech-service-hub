@@ -262,7 +262,7 @@ export const generateReceiptPDF = async (data: ReceiptPDFData): Promise<Blob> =>
     }
   }
 
-  let y = drawLetterhead(doc, logo, "Official Receipt");
+  let y = drawLetterhead(doc, logo, "Service Invoice - Receipt");
   drawQr(doc, qr);
 
   y = drawMetaCard(

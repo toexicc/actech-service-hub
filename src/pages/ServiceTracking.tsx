@@ -1849,8 +1849,8 @@ const ServiceTracking = () => {
                         },
                         posDocs.receipt && {
                           kind: "receipt" as const,
-                          title: "Official Receipt",
-                          label: "Official Receipt",
+                          title: "Service Invoice - Receipt",
+                          label: "Service Invoice - Receipt",
                           hint: "Approved services and payments",
                           legacy: undefined,
                         },
