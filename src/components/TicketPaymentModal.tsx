@@ -105,6 +105,8 @@ export const TicketPaymentModal = ({
   const amountNum = parseCurrency(amount);
   const remainingAfter = totals.total > 0 ? Math.max(0, totals.balance - amountNum) : 0;
 
+  const fullyPaidAfter = totals.total > 0 && remainingAfter <= 0.01;
+
   useEffect(() => {
     if (!open) {
       setType("Full Payment");
@@ -112,8 +114,19 @@ export const TicketPaymentModal = ({
       setOtherMethod("");
       setAmount("");
       setRemarks("");
+      setWarrantyEnabled(true);
+      return;
     }
-  }, [open]);
+    let alive = true;
+    fetchTicketDocumentContext(serviceId).then((ctx) => {
+      if (!alive || !ctx) return;
+      setApprovedLines(ctx.approvedLines);
+      setWarrantyTerms(ctx.warrantyTerms);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open, serviceId]);
 
   const submit = async () => {
     const finalMethod = method === "Others" ? otherMethod.trim() : method;
