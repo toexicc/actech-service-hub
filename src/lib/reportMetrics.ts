@@ -354,6 +354,9 @@ export const parseStatusLog = (row: any): StatusLogEntry | null => {
   if (APPROVAL_RE.test(action)) {
     return { serviceId, createdAt: row.created_at, event: "approval", actor, role };
   }
+  if (DOCUMENT_RE.test(action)) {
+    return { serviceId, createdAt: row.created_at, event: "document", actor, role };
+  }
 
   return null;
 
