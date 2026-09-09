@@ -246,6 +246,11 @@ const ServiceTracking = () => {
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
   const [pdfModalFilename, setPdfModalFilename] = useState("document.pdf");
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  /** Which POS documents exist for this ticket (receipt / warranty card). */
+  const [posDocs, setPosDocs] = useState<{ receipt: boolean; warranty: boolean }>({
+    receipt: false,
+    warranty: false,
+  });
   const [termsModalOpen, setTermsModalOpen] = useState(false);
 
   // Approve / Decline flow (Waiting to Proceed)
@@ -515,10 +520,26 @@ const ServiceTracking = () => {
     return "bg-white hover:bg-gray-50";
   };
 
+  const publicPdfUrl = async (sid: string, kind: string): Promise<string | null> => {
+    try {
+      const base = (import.meta as any).env?.VITE_SUPABASE_URL || "";
+      const anon = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+      const r = await fetch(
+        `${base}/functions/v1/get-service-pdf?serviceId=${encodeURIComponent(sid)}&kind=${kind}`,
+        { headers: { apikey: anon, Authorization: `Bearer ${anon}` } },
+      );
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j?.url ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   const openPdf = async (
     legacyUrl: string | undefined,
     sid: string | undefined,
-    kind: "intake" | "quotation",
+    kind: "intake" | "quotation" | "receipt" | "warranty",
     title: string,
   ) => {
     let signed: string | null = null;
