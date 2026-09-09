@@ -60,6 +60,10 @@ interface Props {
   serviceCost?: string | number;
   partsCost?: string | number;
   initialPayment?: string | number;
+  /** Transaction type selected when the modal opens (e.g. "Down Payment"). */
+  presetType?: string;
+  /** Amount pre-filled when the modal opens; editable by staff. */
+  presetAmount?: string;
   /** Called after a payment is recorded so the host page can refresh. */
   onRecorded?: () => void;
 }
