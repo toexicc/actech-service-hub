@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatWorkedTime } from "@/lib/attendanceHours";
+import { formatWorkedTime, formatPayableTime } from "@/lib/attendanceHours";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,6 +42,7 @@ interface AttendanceRow {
   time_out: string | null;
   is_late: boolean;
   is_overtime: boolean;
+  overtime_status?: string | null;
   notes?: string | null;
   is_holiday?: boolean | null;
   holiday_label?: string | null;
@@ -73,6 +74,10 @@ const toHHmm = (iso: string | null) => {
 
 /** Worked time as "8h 05m", excluding the unpaid 12:00-1:00 PM lunch break. */
 const computeHours = (ti: string | null, to: string | null): string => formatWorkedTime(ti, to);
+
+/** Paid time: extra hours only count when the overtime was approved. */
+const countedHours = (r: AttendanceRow): string =>
+  formatPayableTime(r.time_in, r.time_out, r.overtime_status);
 
 /** Build an ISO timestamp for a "HH:mm" input on a given calendar day. */
 const isoFor = (day: string, hhmm: string) => (hhmm ? new Date(`${day}T${hhmm}:00`).toISOString() : null);
@@ -230,7 +235,10 @@ const AttendanceOverview = () => {
   };
 
   const exportCsv = () => {
-    const header = ["Date", "Employee", "Time In", "Late", "Time Out", "Overtime", "Hours"].join(",");
+    const header = [
+      "Date", "Employee", "Time In", "Late", "Time Out", "Overtime",
+      "Overtime Status", "Clocked Hours", "Counted Hours",
+    ].join(",");
     const lines = filtered.map((r) =>
       [
         r.log_date,
@@ -239,7 +247,9 @@ const AttendanceOverview = () => {
         r.is_late ? "Yes" : "No",
         fmtTime(r.time_out),
         r.is_overtime ? "Yes" : "No",
+        r.overtime_status || "none",
         computeHours(r.time_in, r.time_out),
+        countedHours(r),
       ].join(","),
     );
     const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
@@ -345,6 +355,35 @@ const AttendanceOverview = () => {
       toast({ title: "Error", description: e?.message || "Could not declare the holiday.", variant: "destructive" });
     } finally {
       setHolidaySaving(false);
+    }
+  };
+
+  // ---------- overtime review (management only) ----------
+  const isManagement = (sessionStorage.getItem("userRole") || "").toLowerCase() === "management";
+  const [otSaving, setOtSaving] = useState<string | null>(null);
+
+  const reviewOvertime = async (r: AttendanceRow, status: "approved" | "rejected") => {
+    setOtSaving(r.id);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("attendance_logs")
+        .update({
+          overtime_status: status,
+          overtime_reviewed_by: auth?.user?.id ?? null,
+          overtime_reviewed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", r.id);
+      if (error) throw new Error(error.message);
+      setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, overtime_status: status } : x)));
+      toast({
+        title: status === "approved" ? "Overtime approved" : "Overtime rejected",
+        description: `${r.staff_name} • ${r.log_date}`,
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not update overtime.", variant: "destructive" });
+    } finally {
+      setOtSaving(null);
     }
   };
 
@@ -698,7 +737,9 @@ const AttendanceOverview = () => {
                                     </TableCell>
                                     <TableCell>{fmtTime(r.time_in)}</TableCell>
                                     <TableCell>{fmtTime(r.time_out)}</TableCell>
-                                    <TableCell>{computeHours(r.time_in, r.time_out)}</TableCell>
+                                    <TableCell title={`Clocked: ${computeHours(r.time_in, r.time_out)}`}>
+                                      {countedHours(r)}
+                                    </TableCell>
                                     <TableCell className="space-x-1">
                                       {r.is_holiday && (
                                         <Badge variant="outline" className="border-amber-400 text-amber-700">
@@ -706,7 +747,45 @@ const AttendanceOverview = () => {
                                         </Badge>
                                       )}
                                       {r.is_late && <Badge variant="destructive">Late</Badge>}
-                                      {r.is_overtime && <Badge>Overtime</Badge>}
+                                      {r.is_overtime && (
+                                        <>
+                                          {(r.overtime_status || "pending") === "approved" && (
+                                            <Badge className="bg-emerald-600">Overtime approved</Badge>
+                                          )}
+                                          {r.overtime_status === "rejected" && (
+                                            <Badge variant="outline" className="text-muted-foreground">
+                                              Overtime rejected
+                                            </Badge>
+                                          )}
+                                          {(!r.overtime_status || r.overtime_status === "pending" || r.overtime_status === "none") && (
+                                            <Badge variant="outline" className="border-amber-400 text-amber-700">
+                                              Overtime pending
+                                            </Badge>
+                                          )}
+                                          {isManagement && r.overtime_status !== "approved" && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 px-2 text-xs"
+                                              disabled={otSaving === r.id}
+                                              onClick={() => reviewOvertime(r, "approved")}
+                                            >
+                                              Approve
+                                            </Button>
+                                          )}
+                                          {isManagement && r.overtime_status !== "rejected" && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-6 px-2 text-xs text-destructive"
+                                              disabled={otSaving === r.id}
+                                              onClick={() => reviewOvertime(r, "rejected")}
+                                            >
+                                              Reject
+                                            </Button>
+                                          )}
+                                        </>
+                                      )}
                                     </TableCell>
                                     <TableCell>
                                       <div className="flex gap-1">

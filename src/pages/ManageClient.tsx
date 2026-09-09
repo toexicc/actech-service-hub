@@ -94,6 +94,8 @@ import {
 } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
+import { TicketPaymentModal } from "@/components/TicketPaymentModal";
 import { logActivity, logAiFormatActivity, logTicketActivity, diffFields } from "@/lib/activityLogger";
 import {
   notifyServiceStatusChange,
@@ -352,6 +354,8 @@ const ManageClient = () => {
   const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
   const [isTogglingRush, setIsTogglingRush] = useState(false);
   const [isTogglingReleased, setIsTogglingReleased] = useState(false);
+  const [releaseModalOpen, setReleaseModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
@@ -570,8 +574,8 @@ const ManageClient = () => {
     }
   };
 
-  /** Released flag — also set automatically by the release queue / manual release. */
-  const handleToggleReleased = async (next: boolean) => {
+  /** Writes the Released flag directly (used when clearing it, or after a release). */
+  const setReleasedFlag = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingReleased) return;
     setIsTogglingReleased(true);
     try {
@@ -600,14 +604,25 @@ const ManageClient = () => {
     }
   };
 
-  /** Choosing the Rush priority switches the Rush flag on automatically. */
-  useEffect(() => {
-    if (!serviceData?.serviceId) return;
-    if (!/rush/i.test(updatePriority || "")) return;
-    if (serviceData.rushFee) return;
-    handleToggleRush(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updatePriority, serviceData?.serviceId]);
+  /**
+   * Switching Released on opens the release confirmation here on the page so the
+   * custody details are captured; switching it off just clears the flag.
+   */
+  const handleToggleReleased = (next: boolean) => {
+    if (next) {
+      if (serviceData?.isReleased) return;
+      setReleaseModalOpen(true);
+      return;
+    }
+    void setReleasedFlag(false);
+  };
+
+
+  /**
+   * The Rush priority option was retired — rush is now driven only by the Rush
+   * toggle, so there is no longer a priority-based auto-switch here.
+   */
+
 
   const fetchApiKey = async () => {
     try {
@@ -2065,14 +2080,14 @@ const ManageClient = () => {
                     <Button
                       size="sm"
                       className="bg-emerald-600 text-white hover:bg-emerald-700"
-                      onClick={() => navigate(`/pos?serviceId=${encodeURIComponent(serviceData.serviceId)}&type=full`)}
+                      onClick={() => setPaymentModalOpen(true)}
                     >
                       POS
                     </Button>
                     <Button
                       size="sm"
                       className="bg-orange-500 text-white hover:bg-orange-600"
-                      onClick={() => navigate(`/queueing?release=${encodeURIComponent(serviceData.serviceId)}`)}
+                      onClick={() => setReleaseModalOpen(true)}
                     >
                       RELEASE
                     </Button>
@@ -3747,6 +3762,35 @@ const ManageClient = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Release + payment happen in place so the page never navigates away. */}
+      {serviceData?.serviceId && (
+        <>
+          <ConfirmReleaseModal
+            manual={releaseModalOpen}
+            prefillServiceId={serviceData.serviceId}
+            onOpenChange={(open) => setReleaseModalOpen(open)}
+            onReleased={() => {
+              setServiceData((prev: any) =>
+                prev ? { ...prev, isReleased: true, releasedAt: new Date().toISOString() } : prev,
+              );
+              void reloadTicket();
+            }}
+          />
+          <TicketPaymentModal
+            open={paymentModalOpen}
+            onOpenChange={setPaymentModalOpen}
+            serviceId={serviceData.serviceId}
+            clientName={serviceData.clientName}
+            device={[serviceData.deviceType, serviceData.brand, serviceData.deviceModel].filter(Boolean).join(" ")}
+            finalCost={serviceData.finalCost}
+            serviceCost={serviceData.serviceCost}
+            partsCost={serviceData.partsCost}
+            initialPayment={serviceData.initialPayment}
+            onRecorded={() => void reloadTicket()}
+          />
+        </>
+      )}
     </DashboardLayout>
   );
 };

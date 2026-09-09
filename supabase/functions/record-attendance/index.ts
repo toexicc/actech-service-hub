@@ -179,6 +179,8 @@ Deno.serve(async (req) => {
       } else {
         insertRow.time_out = now.toISOString();
         insertRow.is_overtime = overtimeNow;
+        // Overtime only counts once management approves it.
+        insertRow.overtime_status = overtimeNow ? "pending" : "none";
       }
       const { data, error } = await admin
         .from("attendance_logs")
@@ -207,6 +209,7 @@ Deno.serve(async (req) => {
         }
         update.time_out = now.toISOString();
         update.is_overtime = overtimeNow;
+        update.overtime_status = overtimeNow ? "pending" : "none";
       }
       const { data, error } = await admin
         .from("attendance_logs")
