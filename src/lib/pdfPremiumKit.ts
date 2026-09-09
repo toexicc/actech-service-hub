@@ -328,7 +328,7 @@ export const drawLetterhead = (doc: jsPDF, logo: string, title: string, isUpdate
     doc.text("*** UPDATED VERSION ***", PAGE_W / 2, y, { align: "center" });
   }
 
-  return y + 4;
+  return y + 9;
 };
 
 /** Boxed disclaimer + navy contact bar pinned to the bottom of the page. */
