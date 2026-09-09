@@ -176,7 +176,14 @@ export const regenerateTicketDocuments = async (
       : {};
   const mergedTerms: Record<string, string> = { ...savedTerms, ...(warrantyTerms ?? {}) };
 
-  if (warrantyTerms && Object.keys(warrantyTerms).length) {
+  // Make sure every approved line has an explicit term stored, so a later
+  // regeneration reproduces exactly the same card.
+  approved.forEach((l) => {
+    const chosen = (mergedTerms[l.label] ?? "").trim();
+    mergedTerms[l.label] = chosen || WARRANTY_TERM_PRESETS[0];
+  });
+
+  if (approved.length || (warrantyTerms && Object.keys(warrantyTerms).length)) {
     await supabase.from("services").update({ warranty_terms: mergedTerms }).eq("service_id", serviceId);
   }
 
