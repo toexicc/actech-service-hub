@@ -170,7 +170,7 @@ const buildFallbackDiagnosis = (raw: string): string => {
 
 const ManageClient = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   // Set when staff pick a ticket from the search suggestions; the effect below
   // runs the lookup once the input has caught up.
@@ -661,6 +661,8 @@ const ManageClient = () => {
     setPdfModalOpen(true);
   };
 
+  const autoLoadedRef = useRef<string | null>(null);
+
   useEffect(() => {
     fetchApiKey();
     // Preload PDF assets for faster generation
@@ -670,7 +672,8 @@ const ManageClient = () => {
   // Handle serviceId from URL params (from Service Tracker redirect)
   useEffect(() => {
     const urlServiceId = searchParams.get("serviceId");
-    if (urlServiceId) {
+    if (urlServiceId && autoLoadedRef.current !== urlServiceId) {
+      autoLoadedRef.current = urlServiceId;
       setServiceId(urlServiceId);
       // Auto-search after setting the service ID
       const autoSearch = async () => {
@@ -748,12 +751,17 @@ const ManageClient = () => {
             setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
           }
           toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
-          // Pre-Order intakes arrive with a payment window request.
+          // Pre-Order intakes arrive with a payment window request (open once).
           if (searchParams.get("pos") === "1") {
             setPaymentPresetType(searchParams.get("posType") || "Down Payment");
             setPaymentPresetAmount(searchParams.get("posAmount") || "");
             setPaymentPrepayment(true);
             setPaymentModalOpen(true);
+            const next = new URLSearchParams(searchParams);
+            next.delete("pos");
+            next.delete("posType");
+            next.delete("posAmount");
+            setSearchParams(next, { replace: true });
           }
         } catch {
           // Error auto-searching service
