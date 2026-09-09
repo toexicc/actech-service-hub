@@ -2,11 +2,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { logTicketActivity } from "@/lib/activityLogger";
 
 
-export type ServicePdfKind = "intake" | "quotation";
+export type ServicePdfKind = "intake" | "quotation" | "receipt" | "warranty";
 
 const BUCKETS: Record<ServicePdfKind, string> = {
   intake: "intake-forms",
   quotation: "quotation-forms",
+  receipt: "receipts",
+  warranty: "warranty-cards",
+};
+
+const KIND_LABELS: Record<ServicePdfKind, string> = {
+  intake: "Client Intake Form",
+  quotation: "Service Quotation Form",
+  receipt: "Official Receipt",
+  warranty: "Warranty Card",
 };
 
 const sanitize = (s: string) => (s || "").replace(/[^a-zA-Z0-9]/g, "_");
@@ -45,11 +54,10 @@ export const uploadServicePdf = async (params: {
     size_bytes: blob.size,
     uploaded_by: userRes?.user?.id ?? null,
   });
-  logTicketActivity(
-    serviceId,
-    `${kind === "intake" ? "Client Intake Form" : "Service Quotation Form"} document stored`,
-    { File: fileName, Size: `${Math.round(blob.size / 1024)} KB` },
-  );
+  logTicketActivity(serviceId, `${KIND_LABELS[kind]} document stored`, {
+    File: fileName,
+    Size: `${Math.round(blob.size / 1024)} KB`,
+  });
   return { path, bucket };
 };
 
