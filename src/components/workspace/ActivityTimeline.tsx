@@ -135,13 +135,24 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
     return () => {
       cancelled = true;
     };
-  }, [serviceId, take]);
+  }, [serviceId, take, reloadKey]);
 
   return (
     <WorkspacePanel
       title="Activity"
       icon={<Activity className="h-4 w-4" />}
       bodyClassName="p-0"
+      action={
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-[11px]"
+          onClick={() => setReloadKey((k) => k + 1)}
+        >
+          <RefreshCw className={`mr-1 h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      }
     >
       {loading && rows.length === 0 ? (
         <div className="flex items-center justify-center py-6">
