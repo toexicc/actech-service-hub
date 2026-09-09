@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Printer, Download, Loader2 } from "lucide-react";
+import { FileText, Printer, Download, Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import {
@@ -11,10 +11,19 @@ import {
 import { downloadPdfFromUrl, printPdfFromUrl } from "@/lib/pdfActions";
 import { regenerateTicketDocuments } from "@/lib/posDocuments";
 
-const DOCS: { kind: Extract<ServicePdfKind, "receipt" | "warranty">; title: string; hint: string }[] = [
+const POS_DOCS: { kind: Extract<ServicePdfKind, "receipt" | "warranty">; title: string; hint: string }[] = [
   { kind: "receipt", title: "Service Invoice - Receipt", hint: "Approved services and payments" },
   { kind: "warranty", title: "Warranty Card", hint: "Coverage per approved service" },
 ];
+
+interface FormDoc {
+  kind: Extract<ServicePdfKind, "intake" | "quotation">;
+  title: string;
+  hint: string;
+  /** Generates or updates the form document. */
+  onGenerate?: () => void | Promise<void>;
+  generating?: boolean;
+}
 
 interface Props {
   serviceId?: string;
@@ -22,13 +31,22 @@ interface Props {
   serviceDate?: string | null;
   /** Bump to re-check which documents exist (e.g. after recording a payment). */
   refreshKey?: number;
+  /** Optional intake / quotation rows shown above the POS documents. */
+  formDocs?: FormDoc[];
 }
 
 /**
- * View / print / download the POS documents of a ticket. Used on the POS page
- * and inside the in-page payment window.
+ * View / print / download the documents of a ticket. Used on the POS page,
+ * inside the in-page payment window and on the manage-client page.
  */
-export const PosDocumentActions = ({ serviceId, clientName, serviceDate, refreshKey = 0 }: Props) => {
+export const PosDocumentActions = ({
+  serviceId,
+  clientName,
+  serviceDate,
+  refreshKey = 0,
+  formDocs = [],
+}: Props) => {
+
   const { toast } = useToast();
   const [available, setAvailable] = useState<Record<string, boolean>>({});
   const [checking, setChecking] = useState(false);
