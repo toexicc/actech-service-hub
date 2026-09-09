@@ -30,6 +30,7 @@ interface Props {
 export const PosDocumentActions = ({ serviceId, clientName, serviceDate, refreshKey = 0 }: Props) => {
   const { toast } = useToast();
   const [available, setAvailable] = useState<Record<string, boolean>>({});
+  const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerTitle, setViewerTitle] = useState("Document");
@@ -42,13 +43,17 @@ export const PosDocumentActions = ({ serviceId, clientName, serviceDate, refresh
       return;
     }
     let alive = true;
+    setChecking(true);
     (async () => {
       const found: Record<string, boolean> = {};
       for (const d of DOCS) {
         const url = await getServicePdfSignedUrl(serviceId, d.kind);
         found[d.kind] = !!url;
       }
-      if (alive) setAvailable(found);
+      if (alive) {
+        setAvailable(found);
+        setChecking(false);
+      }
     })();
     return () => {
       alive = false;
@@ -90,36 +95,59 @@ export const PosDocumentActions = ({ serviceId, clientName, serviceDate, refresh
     }
   };
 
-  const rows = DOCS.filter((d) => available[d.kind]);
-  if (!serviceId || serviceId === "MANUAL" || !rows.length) return null;
+  const rows = DOCS;
+  if (!serviceId || serviceId === "MANUAL") return null;
 
   return (
     <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Ticket documents
       </p>
-      {rows.map((d) => (
-        <div
-          key={d.kind}
-          className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/60 p-2"
-        >
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{d.title}</p>
-            <p className="truncate text-xs text-muted-foreground">{d.hint}</p>
+      {rows.map((d) => {
+        const ready = !!available[d.kind];
+        return (
+          <div
+            key={d.kind}
+            className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/60 p-2"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{d.title}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {ready ? d.hint : checking ? "Checking availability..." : "Not available yet"}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!ready}
+                aria-label={`View ${d.title}`}
+                onClick={() => run(d.kind, "view", d.title)}
+              >
+                {busy === `${d.kind}-view` ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!ready}
+                aria-label={`Print ${d.title}`}
+                onClick={() => run(d.kind, "print", d.title)}
+              >
+                {busy === `${d.kind}-print` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!ready}
+                aria-label={`Download ${d.title}`}
+                onClick={() => run(d.kind, "download", d.title)}
+              >
+                {busy === `${d.kind}-download` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
-          <div className="flex shrink-0 gap-1">
-            <Button size="sm" variant="outline" onClick={() => run(d.kind, "view", d.title)}>
-              {busy === `${d.kind}-view` ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            </Button>
-            <Button size="sm" variant="outline" aria-label={`Print ${d.title}`} onClick={() => run(d.kind, "print", d.title)}>
-              {busy === `${d.kind}-print` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-            </Button>
-            <Button size="sm" variant="outline" aria-label={`Download ${d.title}`} onClick={() => run(d.kind, "download", d.title)}>
-              {busy === `${d.kind}-download` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
       <PdfViewerModal
         open={viewerOpen}
         onOpenChange={setViewerOpen}
