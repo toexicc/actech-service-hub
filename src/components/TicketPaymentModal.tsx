@@ -64,6 +64,8 @@ interface Props {
   presetType?: string;
   /** Amount pre-filled when the modal opens; editable by staff. */
   presetAmount?: string;
+  /** Pre-payment (pre-order down payment): no service lines, no warranty card. */
+  prepaymentMode?: boolean;
   /** Called after a payment is recorded so the host page can refresh. */
   onRecorded?: () => void;
 }
