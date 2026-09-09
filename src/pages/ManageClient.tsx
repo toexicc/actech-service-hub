@@ -170,7 +170,7 @@ const buildFallbackDiagnosis = (raw: string): string => {
 
 const ManageClient = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   // Set when staff pick a ticket from the search suggestions; the effect below
   // runs the lookup once the input has caught up.
