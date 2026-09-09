@@ -350,7 +350,7 @@ export const TicketPaymentModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-3xl">
+      <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-5xl">
         <DialogHeader className="shrink-0">
           <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
