@@ -10,6 +10,8 @@ const corsHeaders = {
 const BUCKETS: Record<string, string> = {
   intake: "intake-forms",
   quotation: "quotation-forms",
+  receipt: "receipts",
+  warranty: "warranty-cards",
 };
 
 Deno.serve(async (req) => {
@@ -18,7 +20,7 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const serviceId = url.searchParams.get("serviceId") ?? "";
-    const kind = (url.searchParams.get("kind") ?? "intake") as "intake" | "quotation";
+    const kind = url.searchParams.get("kind") ?? "intake";
     if (!serviceId || !BUCKETS[kind]) {
       return new Response(JSON.stringify({ url: null }), {
         status: 400,
