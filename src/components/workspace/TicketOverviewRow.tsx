@@ -89,6 +89,9 @@ export function TicketOverviewRow({
   const paid = totals.paid;
   const balance = totals.balance;
   const paymentRows = paymentsSummary?.payments ?? [];
+  // Even before a final cost exists, any recorded payment (e.g. a pre-order down
+  // payment) must be visible instead of "No charges yet".
+  const hasMoney = paid > 0 || paymentRows.length > 0;
 
 
   const assignees = [
@@ -152,7 +155,7 @@ export function TicketOverviewRow({
 
         {/* Payment / Charges */}
         <WorkspacePanel title="Payment" icon={<Wallet className="h-4 w-4" />} bodyClassName="p-0">
-          {!showCharges ? (
+          {!showCharges && !hasMoney ? (
             <p className="text-sm text-muted-foreground italic px-4 py-4">No charges yet.</p>
           ) : (
             <div className="divide-y divide-border/50">

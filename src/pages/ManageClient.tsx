@@ -3804,6 +3804,7 @@ const ManageClient = () => {
                 setPaymentPrepayment(false);
                 setPaymentPresetType(undefined);
                 setPaymentPresetAmount(undefined);
+                setPosDocsKey((k) => k + 1);
               }
             }}
             serviceId={serviceData.serviceId}
