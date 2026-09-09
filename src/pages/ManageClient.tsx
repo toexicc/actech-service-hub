@@ -94,6 +94,8 @@ import {
 } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
+import ConfirmReleaseModal from "@/components/ConfirmReleaseModal";
+import { TicketPaymentModal } from "@/components/TicketPaymentModal";
 import { logActivity, logAiFormatActivity, logTicketActivity, diffFields } from "@/lib/activityLogger";
 import {
   notifyServiceStatusChange,
@@ -352,6 +354,8 @@ const ManageClient = () => {
   const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
   const [isTogglingRush, setIsTogglingRush] = useState(false);
   const [isTogglingReleased, setIsTogglingReleased] = useState(false);
+  const [releaseModalOpen, setReleaseModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
