@@ -661,6 +661,8 @@ const ManageClient = () => {
     setPdfModalOpen(true);
   };
 
+  const autoLoadedRef = useRef<string | null>(null);
+
   useEffect(() => {
     fetchApiKey();
     // Preload PDF assets for faster generation
