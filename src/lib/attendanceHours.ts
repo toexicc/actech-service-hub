@@ -45,3 +45,34 @@ export const formatWorkedTime = (ti: string | null, to: string | null): string =
   const m = mins % 60;
   return `${h}h ${String(m).padStart(2, "0")}m`;
 };
+
+/** Overtime only counts once management approves it. */
+export const isOvertimeApproved = (overtimeStatus?: string | null) =>
+  String(overtimeStatus || "").toLowerCase() === "approved";
+
+/**
+ * Hours that actually count for pay: extra time beyond the normal shift is only
+ * included when the overtime request was approved, otherwise it is capped at the
+ * standard 8-hour shift.
+ */
+export const payableHours = (
+  ti: string | null,
+  to: string | null,
+  overtimeStatus?: string | null,
+): number => {
+  const hrs = workedHours(ti, to);
+  return isOvertimeApproved(overtimeStatus) ? hrs : Math.min(hrs, FULL_SHIFT_HOURS);
+};
+
+/** Human readable payable time ("8h 00m"), overtime only when approved. */
+export const formatPayableTime = (
+  ti: string | null,
+  to: string | null,
+  overtimeStatus?: string | null,
+): string => {
+  const mins = Math.round(payableHours(ti, to, overtimeStatus) * 60);
+  if (!ti || !to || mins <= 0) return "—";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m`;
+};
