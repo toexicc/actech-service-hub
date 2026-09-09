@@ -88,6 +88,8 @@ export const TicketPaymentModal = ({
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [docsKey, setDocsKey] = useState(0);
+  const [recorded, setRecorded] = useState(false);
   const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
 
@@ -116,6 +118,7 @@ export const TicketPaymentModal = ({
       setAmount("");
       setRemarks("");
       setWarrantyEnabled(true);
+      setRecorded(false);
       return;
     }
     let alive = true;
