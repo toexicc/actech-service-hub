@@ -18,6 +18,7 @@ import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import { PosDocumentActions } from "@/components/PosDocumentActions";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
@@ -626,6 +627,15 @@ const PointOfSales = () => {
                           fullyPaid={finalCostNum > 0 && remaining <= 0.01}
                         />
                       )}
+
+                    {/* View / print / download the ticket's POS documents */}
+                    {serviceData?.serviceId && (
+                      <PosDocumentActions
+                        serviceId={serviceData.serviceId}
+                        clientName={serviceData.clientName}
+                        refreshKey={docsKey}
+                      />
+                    )}
 
                     {/* Remarks */}
                     <div className="space-y-2">
