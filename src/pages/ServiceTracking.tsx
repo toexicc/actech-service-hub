@@ -1114,7 +1114,9 @@ const ServiceTracking = () => {
           // Money figures only become meaningful once a quotation exists, i.e.
           // from "Waiting to Proceed" onward.
           const PRE_QUOTE_STATUSES = ["Pending Diagnosis", "Confirmed Diagnosis"];
-          const showMoney = !PRE_QUOTE_STATUSES.includes(currentStatus);
+          // Show money as soon as a quotation exists, or whenever the client has
+          // already paid something (e.g. a pre-order down payment).
+          const showMoney = !PRE_QUOTE_STATUSES.includes(currentStatus) || deposit > 0;
           
           // Service date = the ticket's recorded service date (same value shown internally).
           const serviceDateDisplay = serviceData.serviceDate
