@@ -2080,14 +2080,14 @@ const ManageClient = () => {
                     <Button
                       size="sm"
                       className="bg-emerald-600 text-white hover:bg-emerald-700"
-                      onClick={() => navigate(`/pos?serviceId=${encodeURIComponent(serviceData.serviceId)}&type=full`)}
+                      onClick={() => setPaymentModalOpen(true)}
                     >
                       POS
                     </Button>
                     <Button
                       size="sm"
                       className="bg-orange-500 text-white hover:bg-orange-600"
-                      onClick={() => navigate(`/queueing?release=${encodeURIComponent(serviceData.serviceId)}`)}
+                      onClick={() => setReleaseModalOpen(true)}
                     >
                       RELEASE
                     </Button>
