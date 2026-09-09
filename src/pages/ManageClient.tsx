@@ -750,6 +750,7 @@ const ManageClient = () => {
           if (searchParams.get("pos") === "1") {
             setPaymentPresetType(searchParams.get("posType") || "Down Payment");
             setPaymentPresetAmount(searchParams.get("posAmount") || "");
+            setPaymentPrepayment(true);
             setPaymentModalOpen(true);
           }
         } catch {
