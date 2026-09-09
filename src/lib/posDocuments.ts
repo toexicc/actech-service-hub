@@ -23,7 +23,7 @@ import {
 
 const TRACK_BASE = "https://actechrepair-service.com/track";
 
-export const WARRANTY_TERM_PRESETS = ["1 month", "30 days", "45 days", "6 months", "No warranty"];
+export const WARRANTY_TERM_PRESETS = ["3 months", "1 month", "30 days", "45 days", "6 months", "No warranty"];
 
 export interface ApprovedLine {
   /** Display name, including the chosen option. */

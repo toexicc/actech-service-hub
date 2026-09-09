@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   ChevronDown,
   Send,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -203,6 +204,37 @@ const ManageClient = () => {
   const { data: staffData = [] } = useStaff();
   const userRole = (sessionStorage.getItem("userRole") || "").toLowerCase();
   const canEditAdminRep = userRole === "admin" || userRole === "management";
+  const canDeleteService = userRole === "management";
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [isDeletingService, setIsDeletingService] = useState(false);
+
+  const handleDeleteService = async () => {
+    const sid = String(serviceData?.serviceId ?? "").trim();
+    if (!sid || deleteConfirm.trim().toUpperCase() !== sid.toUpperCase()) return;
+    setIsDeletingService(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-service", {
+        body: { serviceId: sid },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Delete failed");
+
+      toast({ title: "Service deleted", description: `${sid} and its related records were permanently removed.` });
+      setDeleteDialogOpen(false);
+      setDeleteConfirm("");
+      setServiceData(null);
+      setServiceId("");
+      navigate("/service-tracker", { replace: true });
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Could not permanently delete this service.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingService(false);
+    }
+  };
 
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
@@ -2409,12 +2441,20 @@ const ManageClient = () => {
                     />
                   ) : (
                     <div className="space-y-4">
-                      {canEditAdminRep && (
-                        <div className="flex justify-end">
+                      {(canEditAdminRep || canDeleteService) && (
+                        <div className="flex justify-end gap-2">
+                          {canDeleteService && (
+                            <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete service
+                            </Button>
+                          )}
+                          {canEditAdminRep && (
                           <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit details
                           </Button>
+                          )}
                         </div>
                       )}
                       <div>
@@ -3712,6 +3752,51 @@ const ManageClient = () => {
               ) : (
                 "Send Concern"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!isDeletingService) {
+            setDeleteDialogOpen(open);
+            if (!open) setDeleteConfirm("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete service permanently</DialogTitle>
+            <DialogDescription>
+              This removes the ticket, payments, linked records, and documents. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-service-confirm">Type {serviceData?.serviceId} to confirm</Label>
+            <Input
+              id="delete-service-confirm"
+              value={deleteConfirm}
+              onChange={(event) => setDeleteConfirm(event.target.value)}
+              placeholder={serviceData?.serviceId || "Service ID"}
+              autoComplete="off"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeletingService}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteService}
+              disabled={
+                isDeletingService ||
+                deleteConfirm.trim().toUpperCase() !== String(serviceData?.serviceId ?? "").toUpperCase()
+              }
+            >
+              {isDeletingService ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete permanently
             </Button>
           </DialogFooter>
         </DialogContent>

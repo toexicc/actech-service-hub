@@ -9,6 +9,7 @@ import {
   type ServicePdfKind,
 } from "@/lib/servicePdfStorage";
 import { downloadPdfFromUrl, printPdfFromUrl } from "@/lib/pdfActions";
+import { regenerateTicketDocuments } from "@/lib/posDocuments";
 
 const DOCS: { kind: Extract<ServicePdfKind, "receipt" | "warranty">; title: string; hint: string }[] = [
   { kind: "receipt", title: "Service Invoice - Receipt", hint: "Approved services and payments" },
@@ -49,6 +50,20 @@ export const PosDocumentActions = ({ serviceId, clientName, serviceDate, refresh
       for (const d of DOCS) {
         const url = await getServicePdfSignedUrl(serviceId, d.kind);
         found[d.kind] = !!url;
+      }
+      // Older fully-paid tickets may have completed before warranty generation
+      // was available or may have missed a transient upload. Repair that state
+      // once when the document panel is opened.
+      if (found.receipt && !found.warranty) {
+        const regenerated = await regenerateTicketDocuments({
+          serviceId,
+          actorName:
+            sessionStorage.getItem("userFullName") ||
+            sessionStorage.getItem("username") ||
+            "Management",
+          createWarranty: true,
+        });
+        if (regenerated.warranty) found.warranty = true;
       }
       if (alive) {
         setAvailable(found);

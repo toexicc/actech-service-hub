@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.delete_service_permanently(text) FROM anon;
