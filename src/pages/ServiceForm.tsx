@@ -441,7 +441,7 @@ const ServiceForm = ({
         form.setValue("email", customer.email || "");
         if (customer.address) form.setValue("address" as any, customer.address);
         form.setValue("clientType", "Returning Client - Walk In");
-        form.setValue("priority", "Loyalty");
+        form.setValue("priority", "Normal");
         toast({
           title: "Success",
           description: "Client information loaded successfully!",
@@ -1311,8 +1311,6 @@ const ServiceForm = ({
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="Within The Day">Within The Day</SelectItem>
-                              
-                              <SelectItem value="Loyalty">Loyalty</SelectItem>
                               <SelectItem value="Normal">Normal</SelectItem>
                             </SelectContent>
                           </Select>
