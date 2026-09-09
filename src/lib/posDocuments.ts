@@ -155,6 +155,7 @@ export const regenerateTicketDocuments = async (
       memory: String(s.memory ?? ""),
       serial: String(s.serial_number ?? ""),
       lines: approved,
+      serviceSummary: String(s.diagnosis_summary ?? ""),
       subtotal: subtotal || serviceCost,
       discount,
       rushFee: rush,
