@@ -214,25 +214,10 @@ const ManageClient = () => {
     if (!sid || deleteConfirm.trim().toUpperCase() !== sid.toUpperCase()) return;
     setIsDeletingService(true);
     try {
-      const { data: indexedFiles } = await supabase
-        .from("service_files")
-        .select("bucket, storage_path")
-        .eq("service_id", sid);
-
-      const { error } = await (supabase.rpc as any)("delete_service_permanently", { _service_id: sid });
-      if (error) throw error;
-
-      const byBucket = new Map<string, string[]>();
-      for (const file of indexedFiles ?? []) {
-        const paths = byBucket.get(file.bucket) ?? [];
-        paths.push(file.storage_path);
-        byBucket.set(file.bucket, paths);
-      }
-      await Promise.all(
-        Array.from(byBucket.entries()).map(([bucket, paths]) =>
-          supabase.storage.from(bucket).remove(paths),
-        ),
-      );
+      const { data, error } = await supabase.functions.invoke("delete-service", {
+        body: { serviceId: sid },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Delete failed");
 
       toast({ title: "Service deleted", description: `${sid} and its related records were permanently removed.` });
       setDeleteDialogOpen(false);
