@@ -241,7 +241,14 @@ export const TicketPaymentModal = ({
       params.append("name", clientName || "");
       params.append("device", device || "");
       params.append("amount", amountClean);
-      params.append("serviceCost", parseCurrency(serviceCost).toFixed(2));
+      params.append(
+        "serviceCost",
+        (lines.length
+          ? computeLineTotals(lines, pricing.discount, pricing.vatRequested, pricing.rushFee)
+              .subtotal
+          : parseCurrency(serviceCost)
+        ).toFixed(2),
+      );
       params.append("attendant", username);
       params.append("remarks", remarks);
       params.append("partsCost", parseCurrency(partsCost).toFixed(2));
