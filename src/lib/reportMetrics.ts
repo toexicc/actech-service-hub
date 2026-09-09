@@ -24,7 +24,8 @@ export interface StatusLogEntry {
     | "photos_diagnosis"
     | "photos_report"
     | "backjob"
-    | "approval";
+    | "approval"
+    | "document";
 
 
   /** Person who performed the logged action (from activity_logs.actor_name). */
