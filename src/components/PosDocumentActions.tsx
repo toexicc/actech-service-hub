@@ -56,6 +56,34 @@ export const PosDocumentActions = ({
   const [viewerName, setViewerName] = useState("document.pdf");
   const [viewerOpen, setViewerOpen] = useState(false);
 
+  const checkAvailability = useCallback(
+    async (repair: boolean) => {
+      if (!serviceId || serviceId === "MANUAL") return null;
+      const found: Record<string, boolean> = {};
+      const kinds: ServicePdfKind[] = [...formDocs.map((f) => f.kind), ...POS_DOCS.map((d) => d.kind)];
+      for (const kind of kinds) {
+        const url = await getServicePdfSignedUrl(serviceId, kind);
+        found[kind] = !!url;
+      }
+      // Older fully-paid tickets may have completed before warranty generation
+      // was available or may have missed a transient upload. Repair that state
+      // once when the document panel is opened.
+      if (repair && found.receipt && !found.warranty) {
+        const regenerated = await regenerateTicketDocuments({
+          serviceId,
+          actorName:
+            sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Management",
+          createWarranty: true,
+        });
+        if (regenerated.warranty) found.warranty = true;
+      }
+      return found;
+    },
+    // formDocs is a literal array from the parent; only its kinds matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serviceId, formDocs.map((f) => f.kind).join(",")],
+  );
+
   useEffect(() => {
     if (!serviceId || serviceId === "MANUAL") {
       setAvailable({});
@@ -64,26 +92,8 @@ export const PosDocumentActions = ({
     let alive = true;
     setChecking(true);
     (async () => {
-      const found: Record<string, boolean> = {};
-      for (const d of DOCS) {
-        const url = await getServicePdfSignedUrl(serviceId, d.kind);
-        found[d.kind] = !!url;
-      }
-      // Older fully-paid tickets may have completed before warranty generation
-      // was available or may have missed a transient upload. Repair that state
-      // once when the document panel is opened.
-      if (found.receipt && !found.warranty) {
-        const regenerated = await regenerateTicketDocuments({
-          serviceId,
-          actorName:
-            sessionStorage.getItem("userFullName") ||
-            sessionStorage.getItem("username") ||
-            "Management",
-          createWarranty: true,
-        });
-        if (regenerated.warranty) found.warranty = true;
-      }
-      if (alive) {
+      const found = await checkAvailability(true);
+      if (alive && found) {
         setAvailable(found);
         setChecking(false);
       }
@@ -91,13 +101,13 @@ export const PosDocumentActions = ({
     return () => {
       alive = false;
     };
-  }, [serviceId, refreshKey]);
+  }, [serviceId, refreshKey, checkAvailability]);
 
   const nameFor = (kind: ServicePdfKind) =>
     servicePdfDownloadName(kind, { serviceDate, clientName, serviceId });
 
   const run = async (
-    kind: Extract<ServicePdfKind, "receipt" | "warranty">,
+    kind: ServicePdfKind,
     action: "view" | "print" | "download",
     title: string,
   ) => {
@@ -128,7 +138,59 @@ export const PosDocumentActions = ({
     }
   };
 
-  const rows = DOCS;
+  /** Generate or refresh the POS documents of this ticket. */
+  const regeneratePos = async (kind: "receipt" | "warranty", title: string) => {
+    if (!serviceId) return;
+    setBusy(`${kind}-generate`);
+    try {
+      const result = await regenerateTicketDocuments({
+        serviceId,
+        actorName:
+          sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Management",
+        createWarranty: true,
+      });
+      const found = await checkAvailability(false);
+      if (found) setAvailable(found);
+      const ok = kind === "receipt" ? !!result.receipt : !!result.warranty;
+      toast({
+        title: ok ? `${title} updated` : `${title} not created`,
+        description: ok
+          ? "The latest ticket details are now on the document."
+          : result.message || "This ticket must be fully paid before the document is created.",
+        variant: ok ? "default" : "destructive",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  type Row = {
+    kind: ServicePdfKind;
+    title: string;
+    hint: string;
+    onGenerate: () => void | Promise<void>;
+    generating: boolean;
+  };
+
+  const rows: Row[] = [
+    ...formDocs
+      .filter((f) => !!f.onGenerate)
+      .map((f) => ({
+        kind: f.kind,
+        title: f.title,
+        hint: f.hint,
+        onGenerate: () => f.onGenerate?.(),
+        generating: !!f.generating,
+      })),
+    ...POS_DOCS.map((d) => ({
+      kind: d.kind as ServicePdfKind,
+      title: d.title,
+      hint: d.hint,
+      onGenerate: () => regeneratePos(d.kind, d.title),
+      generating: busy === `${d.kind}-generate`,
+    })),
+  ];
+
   if (!serviceId || serviceId === "MANUAL") return null;
 
   return (
@@ -150,6 +212,16 @@ export const PosDocumentActions = ({
               </p>
             </div>
             <div className="flex shrink-0 gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={d.generating}
+                aria-label={`${ready ? "Update" : "Generate"} ${d.title}`}
+                title={`${ready ? "Update" : "Generate"} ${d.title}`}
+                onClick={() => d.onGenerate()}
+              >
+                {d.generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -181,6 +253,7 @@ export const PosDocumentActions = ({
           </div>
         );
       })}
+
       <PdfViewerModal
         open={viewerOpen}
         onOpenChange={setViewerOpen}
