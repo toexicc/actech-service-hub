@@ -1830,12 +1830,44 @@ const ServiceTracking = () => {
                           PDF
                         </Button>
                       </div>
+                       )}
+                      {posDocs.receipt && (
+                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div>
+                          <p className="text-sm font-medium">Official Receipt</p>
+                          <p className="text-xs text-muted-foreground">Approved services and payments</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openPdf(undefined, serviceData.serviceId, "receipt", "Official Receipt")}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      {posDocs.warranty && (
+                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div>
+                          <p className="text-sm font-medium">Warranty Card</p>
+                          <p className="text-xs text-muted-foreground">Coverage per approved service</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openPdf(undefined, serviceData.serviceId, "warranty", "Warranty Card")}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </div>
+                      )}
+                     </div>
+                   </CardContent>
+                 </Card>
 
-                {/* Device Photo Gallery - Diagnosis & Report */}
+                 {/* Device Photo Gallery - Diagnosis & Report */}
                 {serviceData.serviceId && [
                   "Waiting to Proceed",
                   "Proceed Repair",
