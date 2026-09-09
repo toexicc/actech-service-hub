@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatWorkedTime } from "@/lib/attendanceHours";
+import { formatWorkedTime, formatPayableTime } from "@/lib/attendanceHours";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,6 +42,7 @@ interface AttendanceRow {
   time_out: string | null;
   is_late: boolean;
   is_overtime: boolean;
+  overtime_status?: string | null;
   notes?: string | null;
   is_holiday?: boolean | null;
   holiday_label?: string | null;
@@ -73,6 +74,10 @@ const toHHmm = (iso: string | null) => {
 
 /** Worked time as "8h 05m", excluding the unpaid 12:00-1:00 PM lunch break. */
 const computeHours = (ti: string | null, to: string | null): string => formatWorkedTime(ti, to);
+
+/** Paid time: extra hours only count when the overtime was approved. */
+const countedHours = (r: AttendanceRow): string =>
+  formatPayableTime(r.time_in, r.time_out, r.overtime_status);
 
 /** Build an ISO timestamp for a "HH:mm" input on a given calendar day. */
 const isoFor = (day: string, hhmm: string) => (hhmm ? new Date(`${day}T${hhmm}:00`).toISOString() : null);
