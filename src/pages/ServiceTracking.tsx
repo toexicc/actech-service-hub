@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
+import { printPdfFromUrl, downloadPdfFromUrl } from "@/lib/pdfActions";
 import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Lock } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
@@ -563,21 +564,54 @@ const ServiceTracking = () => {
         signed = null;
       }
     }
-    const url = signed || (legacyUrl ? normalizeGoogleDrivePdfUrl(legacyUrl, "preview") : null);
+    return signed || (legacyUrl ? normalizeGoogleDrivePdfUrl(legacyUrl, "preview") : null);
+  };
+
+  const docFileName = (kind: DocKind, sid?: string) =>
+    servicePdfDownloadName(kind, {
+      serviceDate: serviceData?.dateReceived,
+      clientName: serviceData?.clientName || customerData?.clientName,
+      serviceId: sid,
+    });
+
+  const openPdf = async (
+    legacyUrl: string | undefined,
+    sid: string | undefined,
+    kind: DocKind,
+    title: string,
+  ) => {
+    const url = await resolveDocUrl(legacyUrl, sid, kind);
     if (!url) {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
     setPdfModalUrl(url);
-    setPdfModalFilename(
-      servicePdfDownloadName(kind, {
-        serviceDate: serviceData?.dateReceived,
-        clientName: serviceData?.clientName || customerData?.clientName,
-        serviceId: sid,
-      }),
-    );
+    setPdfModalFilename(docFileName(kind, sid));
     setPdfModalTitle(title);
     setPdfModalOpen(true);
+  };
+
+  /** Print or save a document straight from its row, without opening the viewer. */
+  const runDocAction = async (
+    action: "print" | "download",
+    legacyUrl: string | undefined,
+    sid: string | undefined,
+    kind: DocKind,
+    title: string,
+  ) => {
+    const url = await resolveDocUrl(legacyUrl, sid, kind);
+    const ok = url
+      ? action === "print"
+        ? await printPdfFromUrl(url, title)
+        : await downloadPdfFromUrl(url, docFileName(kind, sid))
+      : false;
+    if (!ok) {
+      toast({
+        title: action === "print" ? "Could not print" : "Could not download",
+        description: "This document isn't available right now.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewPDF = (pdfUrl: string, sid?: string) => openPdf(pdfUrl, sid, "intake", "Client Intake Form");
