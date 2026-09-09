@@ -94,7 +94,7 @@ import {
 } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import ConfirmReleaseModal from "@/components/ConfirmReleaseModal";
+import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
 import { TicketPaymentModal } from "@/components/TicketPaymentModal";
 import { logActivity, logAiFormatActivity, logTicketActivity, diffFields } from "@/lib/activityLogger";
 import {
