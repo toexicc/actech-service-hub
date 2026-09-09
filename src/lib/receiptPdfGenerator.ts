@@ -54,6 +54,8 @@ export interface ReceiptPDFData {
   serial: string;
   /** Client-approved service lines only. */
   lines: ReceiptLine[];
+  /** Short repair summary shown above the approved service lines. */
+  serviceSummary?: string;
   subtotal: number;
   discount: number;
   rushFee: number;
