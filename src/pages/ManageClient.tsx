@@ -2405,20 +2405,12 @@ const ManageClient = () => {
                     />
                   ) : (
                     <div className="space-y-4">
-                      {(canEditAdminRep || canDeleteService) && (
+                      {canEditAdminRep && (
                         <div className="flex justify-end gap-2">
-                          {canDeleteService && (
-                            <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete service
-                            </Button>
-                          )}
-                          {canEditAdminRep && (
                           <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit details
                           </Button>
-                          )}
                         </div>
                       )}
                       <div>
