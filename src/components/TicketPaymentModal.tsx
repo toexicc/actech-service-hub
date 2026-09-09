@@ -252,7 +252,7 @@ export const TicketPaymentModal = ({
       params.append("attendant", username);
       params.append("remarks", remarks);
       params.append("partsCost", parseCurrency(partsCost).toFixed(2));
-      params.append("finalCost", parseCurrency(finalCost).toFixed(2));
+      params.append("finalCost", editedFinalCost.toFixed(2));
       params.append("previousPayments", totals.paid.toFixed(2));
 
       const res = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
