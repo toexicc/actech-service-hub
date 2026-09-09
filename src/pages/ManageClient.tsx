@@ -356,6 +356,8 @@ const ManageClient = () => {
   const [isTogglingReleased, setIsTogglingReleased] = useState(false);
   const [releaseModalOpen, setReleaseModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentPresetType, setPaymentPresetType] = useState<string | undefined>(undefined);
+  const [paymentPresetAmount, setPaymentPresetAmount] = useState<string | undefined>(undefined);
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
@@ -743,6 +745,12 @@ const ManageClient = () => {
             setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
           }
           toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
+          // Pre-Order intakes arrive with a payment window request.
+          if (searchParams.get("pos") === "1") {
+            setPaymentPresetType(searchParams.get("posType") || "Down Payment");
+            setPaymentPresetAmount(searchParams.get("posAmount") || "");
+            setPaymentModalOpen(true);
+          }
         } catch {
           // Error auto-searching service
         } finally {
@@ -3787,6 +3795,8 @@ const ManageClient = () => {
             serviceCost={serviceData.serviceCost}
             partsCost={serviceData.partsCost}
             initialPayment={serviceData.initialPayment}
+            presetType={paymentPresetType}
+            presetAmount={paymentPresetAmount}
             onRecorded={() => void reloadTicket()}
           />
         </>

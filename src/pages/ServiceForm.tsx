@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureClient } from "@/hooks/useClients";
 import { IntakeShareActions } from "@/components/IntakeShareActions";
 import { useQueryClient } from "@tanstack/react-query";
+import { Switch } from "@/components/ui/switch";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
@@ -79,6 +80,9 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
   autoApproveDiagnosis: z.boolean().default(false),
+  isRush: z.boolean().default(false),
+  isBackjob: z.boolean().default(false),
+  hasPreOrder: z.boolean().default(false),
 
   enablePhotoAnnotation: z.boolean().default(false),
   annotationDeviceType: z.string().optional(),
@@ -241,6 +245,9 @@ const ServiceForm = ({
       ack2: false,
       ack3: false,
       autoApproveDiagnosis: false,
+      isRush: false,
+      isBackjob: false,
+      hasPreOrder: false,
 
       physicalSignature: false,
       enablePhotoAnnotation: false,
@@ -676,7 +683,9 @@ const ServiceForm = ({
         estimated_completion: data.timeFrame || null,
         client_type: data.clientType,
         priority: data.priority,
-        rush_fee: data.priority === "Rush (with 10% Rush Fee)",
+        rush_fee: data.priority === "Rush (with 10% Rush Fee)" || !!data.isRush,
+        is_backjob: !!data.isBackjob,
+        has_pre_order: !!data.hasPreOrder,
         receiving_staff: data.receivingStaff || null,
         technicians: techNamesArr,
         admin_reps: adminRepsArr,
@@ -778,6 +787,9 @@ const ServiceForm = ({
       
       formData.append("Time Frame", data.timeFrame || "");
       formData.append("Estimated Cost", (data.estimatedCost ?? 0).toString());
+      formData.append("Rush", data.isRush ? "Yes" : "No");
+      formData.append("Backjob", data.isBackjob ? "Yes" : "No");
+      formData.append("Pre-Order", data.hasPreOrder ? "Yes" : "No");
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
@@ -946,6 +958,20 @@ const ServiceForm = ({
         ]).catch(() => {});
 
         onCompleted?.(finalServiceId);
+
+        // Staff intake: jump straight to the new ticket. Pre-Order tickets also
+        // open the payment window with a suggested 50% down payment.
+        if (!isPublic && !embedded) {
+          const params = new URLSearchParams({ serviceId: finalServiceId });
+          if (data.hasPreOrder) {
+            params.set("pos", "1");
+            params.set("posType", "Down Payment");
+            const est = data.estimatedCost ?? 0;
+            if (est > 0) params.set("posAmount", (est / 2).toFixed(2));
+          }
+          navigate(`/manage-client?${params.toString()}`);
+        }
+
 
       } else {
         throw new Error("Failed to submit form");
@@ -1827,6 +1853,37 @@ const ServiceForm = ({
                 )}
               />
             </div>
+            )}
+
+            {/* Ticket flags — staff only (includes the queue Complete Intake form) */}
+            {!isPublic && (
+              <div>
+                <h2 className="text-xl font-semibold text-blue-600 mb-4">Ticket Flags</h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {([
+                    ["isRush", "Rush", "Adds the 10% rush fee to this ticket."],
+                    ["isBackjob", "Backjob", "Device is back for the same issue."],
+                    ["hasPreOrder", "Pre-Order", "This ticket has a pre-order."],
+                  ] as const).map(([name, label, hint]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name}
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-3 space-y-0 rounded-xl border border-border/60 bg-muted/30 p-3">
+                          <div>
+                            <FormLabel className="text-sm font-semibold">{label}</FormLabel>
+                            <p className="text-xs text-muted-foreground">{hint}</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Client Acknowledgement */}
