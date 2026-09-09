@@ -272,17 +272,66 @@ const PointOfSales = () => {
 
     const isRefund = transactionType === "Refund";
     const showsService = isServiceType || isRefund;
+    const editsLines = isServiceType && !isRefund && !!serviceData?.serviceId && lines.length > 0;
+    if (editsLines) {
+      if (lines.some((l) => !l.name.trim())) {
+        toast({ title: "Check the service lines", description: "Every service line needs a name.", variant: "destructive" });
+        return;
+      }
+      if (!lines.some((l) => l.selected)) {
+        toast({ title: "Check the service lines", description: "Include at least one service line.", variant: "destructive" });
+        return;
+      }
+    }
     const name = showsService ? (serviceData?.clientName || manualName) : "";
     const device = showsService ? (serviceData?.device || manualDevice) : "";
-    const serviceCostRaw = showsService ? parseCurrency(serviceData?.serviceCost || manualServiceCost).toFixed(2) : "0";
+    const serviceCostRaw = showsService
+      ? (editedTotals?.subtotal ?? parseCurrency(serviceData?.serviceCost || manualServiceCost)).toFixed(2)
+      : "0";
     const serviceId = showsService ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
     const partsCostRaw = showsService ? parseCurrency(serviceData?.partsCost).toFixed(2) : "0";
     const amountClean = parseCurrency(amount).toFixed(2);
-    const finalCostClean = parseCurrency(serviceData?.finalCost).toFixed(2);
+    const finalCostClean = (
+      editedTotals?.finalCost ?? parseCurrency(serviceData?.finalCost)
+    ).toFixed(2);
     const transactionId = generateTransactionId();
 
     setIsSubmitting(true);
     try {
+      // Persist any line corrections first so totals and documents agree.
+      if (editsLines) {
+        try {
+          const saved = await saveTicketServiceLines({
+            serviceId,
+            lines,
+            original: originalLines,
+            discount: pricing.discount,
+            vatRequested: pricing.vatRequested,
+            rushFee: pricing.rushFee,
+            actorName: username,
+            actorRole: userRole || "",
+          });
+          if (saved.changed) {
+            setOriginalLines(lines);
+            setServiceData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    serviceCost: String(editedTotals?.subtotal ?? prev.serviceCost),
+                    finalCost: String(saved.finalCost),
+                  }
+                : prev,
+            );
+          }
+        } catch {
+          toast({
+            title: "Service lines not saved",
+            description: "The payment will still be recorded, but the line changes did not save.",
+            variant: "destructive",
+          });
+        }
+      }
+
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
       params.append("transactionId", transactionId);
