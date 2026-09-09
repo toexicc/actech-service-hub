@@ -57,6 +57,9 @@ export type Database = {
           is_overtime: boolean
           log_date: string
           notes: string | null
+          overtime_reviewed_at: string | null
+          overtime_reviewed_by: string | null
+          overtime_status: string
           staff_id: string
           staff_name: string
           time_in: string | null
@@ -72,6 +75,9 @@ export type Database = {
           is_overtime?: boolean
           log_date: string
           notes?: string | null
+          overtime_reviewed_at?: string | null
+          overtime_reviewed_by?: string | null
+          overtime_status?: string
           staff_id: string
           staff_name: string
           time_in?: string | null
@@ -87,6 +93,9 @@ export type Database = {
           is_overtime?: boolean
           log_date?: string
           notes?: string | null
+          overtime_reviewed_at?: string | null
+          overtime_reviewed_by?: string | null
+          overtime_status?: string
           staff_id?: string
           staff_name?: string
           time_in?: string | null
