@@ -182,6 +182,7 @@ const PointOfSales = () => {
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
   const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+  const [docsKey, setDocsKey] = useState(0);
 
   useEffect(() => {
     const sid = serviceData?.serviceId;
@@ -320,6 +321,7 @@ const PointOfSales = () => {
             } else if (docs.warrantySkipped) {
               toast({ title: "Warranty Card Not Created", description: docs.warrantySkipped });
             }
+            setDocsKey((k) => k + 1);
           } catch { /* documents are best effort */ }
         }
 
