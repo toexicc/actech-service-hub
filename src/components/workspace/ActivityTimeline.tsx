@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Activity, Loader2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { displayDate } from "@/lib/timezone";
 import { WorkspacePanel } from "./WorkspacePanel";
