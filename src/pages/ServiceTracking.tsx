@@ -581,6 +581,27 @@ const ServiceTracking = () => {
 
   const handleViewPDF = (pdfUrl: string, sid?: string) => openPdf(pdfUrl, sid, "intake", "Client Intake Form");
 
+  // Only offer the receipt / warranty card when the files actually exist.
+  const posDocsServiceId = serviceData?.serviceId;
+  useEffect(() => {
+    if (!posDocsServiceId) {
+      setPosDocs({ receipt: false, warranty: false });
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const [receipt, warranty] = await Promise.all([
+        publicPdfUrl(posDocsServiceId, "receipt"),
+        publicPdfUrl(posDocsServiceId, "warranty"),
+      ]);
+      if (alive) setPosDocs({ receipt: !!receipt, warranty: !!warranty });
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posDocsServiceId]);
+
   // Pull "Service Breakdown" lines from the AI diagnosis text and return
   // just the service names (everything before " - " on each line).
   const parseServicesFromDiagnosis = (diagnosis: string): string => {
