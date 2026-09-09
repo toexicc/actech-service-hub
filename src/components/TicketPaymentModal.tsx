@@ -227,7 +227,9 @@ export const TicketPaymentModal = ({
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
       onRecorded?.();
-      onOpenChange(false);
+      // Stay open so the receipt / warranty card can be printed straight away.
+      setRecorded(true);
+      setDocsKey((k) => k + 1);
     } catch (e) {
       toast({
         title: "Could not record payment",
