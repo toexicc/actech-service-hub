@@ -959,6 +959,20 @@ const ServiceForm = ({
 
         onCompleted?.(finalServiceId);
 
+        // Staff intake: jump straight to the new ticket. Pre-Order tickets also
+        // open the payment window with a suggested 50% down payment.
+        if (!isPublic && !embedded) {
+          const params = new URLSearchParams({ serviceId: finalServiceId });
+          if (data.hasPreOrder) {
+            params.set("pos", "1");
+            params.set("posType", "Down Payment");
+            const est = data.estimatedCost ?? 0;
+            if (est > 0) params.set("posAmount", (est / 2).toFixed(2));
+          }
+          navigate(`/manage-client?${params.toString()}`);
+        }
+
+
       } else {
         throw new Error("Failed to submit form");
       }
