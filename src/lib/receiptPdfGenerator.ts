@@ -342,7 +342,7 @@ export const generateReceiptPDF = async (data: ReceiptPDFData): Promise<Blob> =>
 
   y = Math.max(clientBottom, deviceBottom) + 3.5;
 
-  y = linesCard(doc, M, y, CONTENT_W, data.lines) + 3.5;
+  y = linesCard(doc, M, y, CONTENT_W, data.lines, data.serviceSummary) + 3.5;
 
   const payBottom = paymentsCard(doc, leftX, y, COL_W, data.payments);
   const totalsBottom = totalsCard(doc, rightX, y, COL_W, data);

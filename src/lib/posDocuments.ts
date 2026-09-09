@@ -34,7 +34,7 @@ export interface ApprovedLine {
 const SERVICE_COLUMNS =
   "service_id, client_name, contact_number, email, address, device_type, brand, model, serial_number, color, memory, " +
   "quoted_breakdown, service_cost, discount, vat_requested, rush_fee, final_cost, initial_payment, " +
-  "technicians, admin_reps, receiving_staff, warranty_terms, released_at, service_date";
+  "technicians, admin_reps, receiving_staff, warranty_terms, released_at, service_date, diagnosis_summary";
 
 /** Approved (client-ticked) quotation lines with their effective amounts. */
 export const approvedLinesOf = (quotedBreakdown: unknown): ApprovedLine[] =>
@@ -73,11 +73,13 @@ export interface RegenerateResult {
   warranty: boolean;
   /** Reason the warranty card was skipped, when it was. */
   warrantySkipped?: string;
+  /** Reason the invoice-receipt was skipped, when it was. */
+  receiptSkipped?: string;
 }
 
 /**
- * Regenerates the receipt (always) and the warranty card (when requested and
- * the ticket is fully paid). Never throws — callers treat it as best effort.
+ * Regenerates the invoice-receipt and the warranty card, both only once the
+ * ticket is fully paid. Never throws — callers treat it as best effort.
  */
 export const regenerateTicketDocuments = async (
   args: RegenerateArgs,
