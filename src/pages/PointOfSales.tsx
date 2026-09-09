@@ -614,6 +614,19 @@ const PointOfSales = () => {
                       </div>
                     )}
 
+                    {/* Warranty card */}
+                    {needsServiceInfo(transactionType) && transactionType !== "Refund" &&
+                      serviceData?.serviceId && (
+                        <WarrantyCardFields
+                          enabled={warrantyEnabled}
+                          onEnabledChange={setWarrantyEnabled}
+                          lines={approvedLines}
+                          terms={warrantyTerms}
+                          onTermsChange={setWarrantyTerms}
+                          fullyPaid={finalCostNum > 0 && remaining <= 0.01}
+                        />
+                      )}
+
                     {/* Remarks */}
                     <div className="space-y-2">
                       <Label>Remarks (optional)</Label>
