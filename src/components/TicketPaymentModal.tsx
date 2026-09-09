@@ -447,14 +447,17 @@ export const TicketPaymentModal = ({
                 />
               </div>
 
-              <WarrantyCardFields
-                enabled={warrantyEnabled}
-                onEnabledChange={setWarrantyEnabled}
-                lines={approvedLines}
-                terms={warrantyTerms}
-                onTermsChange={setWarrantyTerms}
-                fullyPaid={fullyPaidAfter}
-              />
+              {!prepaymentMode && (
+                <WarrantyCardFields
+                  enabled={warrantyEnabled}
+                  onEnabledChange={setWarrantyEnabled}
+                  lines={approvedLines}
+                  terms={warrantyTerms}
+                  onTermsChange={setWarrantyTerms}
+                  fullyPaid={fullyPaidAfter}
+                />
+              )}
+
 
               <div className="space-y-1.5">
                 <Label>Remarks (optional)</Label>
