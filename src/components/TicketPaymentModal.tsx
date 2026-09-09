@@ -191,10 +191,47 @@ export const TicketPaymentModal = ({
       });
       return;
     }
+    if (lines.some((l) => !l.name.trim())) {
+      toast({
+        title: "Check the service lines",
+        description: "Every service line needs a name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (lines.length > 0 && !lines.some((l) => l.selected)) {
+      toast({
+        title: "Check the service lines",
+        description: "Include at least one service line.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
     const transactionId = `TXN${Date.now()}`;
     const amountClean = amountNum.toFixed(2);
     try {
+      // Save any line corrections first so the totals and documents agree.
+      try {
+        const saved = await saveTicketServiceLines({
+          serviceId,
+          lines,
+          original: originalLines,
+          discount: pricing.discount,
+          vatRequested: pricing.vatRequested,
+          rushFee: pricing.rushFee,
+          actorName: username,
+          actorRole: userRole,
+        });
+        if (saved.changed) setOriginalLines(lines);
+      } catch {
+        toast({
+          title: "Service lines not saved",
+          description: "The payment will still be recorded, but the line changes did not save.",
+          variant: "destructive",
+        });
+      }
+
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
       params.append("transactionId", transactionId);
