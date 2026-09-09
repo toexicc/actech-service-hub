@@ -285,70 +285,88 @@ export const TicketPaymentModal = ({
             </p>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Payment type</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Mode of payment</Label>
-              <Select value={method} onValueChange={setMethod}>
-                <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {method === "Others" && (
+          {!recorded && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Payment type</Label>
+                  <Select value={type} onValueChange={setType}>
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Mode of payment</Label>
+                  <Select value={method} onValueChange={setMethod}>
+                    <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {method === "Others" && (
+                    <Input
+                      placeholder="Specify payment method"
+                      value={otherMethod}
+                      onChange={(e) => setOtherMethod(e.target.value)}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Amount</Label>
                 <Input
-                  placeholder="Specify payment method"
-                  value={otherMethod}
-                  onChange={(e) => setOtherMethod(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                 />
-              )}
-            </div>
-          </div>
+              </div>
 
-          <div className="space-y-1.5">
-            <Label>Amount</Label>
-            <Input
-              inputMode="decimal"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
+              <WarrantyCardFields
+                enabled={warrantyEnabled}
+                onEnabledChange={setWarrantyEnabled}
+                lines={approvedLines}
+                terms={warrantyTerms}
+                onTermsChange={setWarrantyTerms}
+                fullyPaid={fullyPaidAfter}
+              />
 
-          <WarrantyCardFields
-            enabled={warrantyEnabled}
-            onEnabledChange={setWarrantyEnabled}
-            lines={approvedLines}
-            terms={warrantyTerms}
-            onTermsChange={setWarrantyTerms}
-            fullyPaid={fullyPaidAfter}
+              <div className="space-y-1.5">
+                <Label>Remarks (optional)</Label>
+                <Textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+              </div>
+            </>
+          )}
+
+          {recorded && (
+            <p className="rounded-md bg-emerald-500/10 p-2 text-xs text-emerald-700">
+              Payment recorded. You can print or save the documents below.
+            </p>
+          )}
+
+          <PosDocumentActions
+            serviceId={serviceId}
+            clientName={clientName}
+            refreshKey={docsKey}
           />
-
-          <div className="space-y-1.5">
-            <Label>Remarks (optional)</Label>
-            <Textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-          </div>
         </div>
 
         <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {recorded ? "Close" : "Cancel"}
           </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? "Recording…" : "Record payment"}
-          </Button>
+          {!recorded && (
+            <Button onClick={submit} disabled={saving}>
+              {saving ? "Recording…" : "Record payment"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
