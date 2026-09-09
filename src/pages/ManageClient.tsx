@@ -751,12 +751,17 @@ const ManageClient = () => {
             setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
           }
           toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
-          // Pre-Order intakes arrive with a payment window request.
+          // Pre-Order intakes arrive with a payment window request (open once).
           if (searchParams.get("pos") === "1") {
             setPaymentPresetType(searchParams.get("posType") || "Down Payment");
             setPaymentPresetAmount(searchParams.get("posAmount") || "");
             setPaymentPrepayment(true);
             setPaymentModalOpen(true);
+            const next = new URLSearchParams(searchParams);
+            next.delete("pos");
+            next.delete("posType");
+            next.delete("posAmount");
+            setSearchParams(next, { replace: true });
           }
         } catch {
           // Error auto-searching service
