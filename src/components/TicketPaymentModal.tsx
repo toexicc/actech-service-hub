@@ -24,6 +24,12 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import {
+  fetchTicketDocumentContext,
+  regenerateTicketDocuments,
+  type ApprovedLine,
+} from "@/lib/posDocuments";
 
 const PAYMENT_TYPES = ["Down Payment", "Partial Payment", "Full Payment"];
 const PAYMENT_METHODS = ["GCash", "Bank Transfer", "Credit Card", "Cash", "N/A", "Others"];
@@ -80,6 +86,9 @@ export const TicketPaymentModal = ({
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
+  const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
+  const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
 
   const { data: paymentsData } = useServicePayments(open ? serviceId : undefined);
 
