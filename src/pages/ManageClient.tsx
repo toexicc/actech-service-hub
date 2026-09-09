@@ -3795,6 +3795,8 @@ const ManageClient = () => {
             serviceCost={serviceData.serviceCost}
             partsCost={serviceData.partsCost}
             initialPayment={serviceData.initialPayment}
+            presetType={paymentPresetType}
+            presetAmount={paymentPresetAmount}
             onRecorded={() => void reloadTicket()}
           />
         </>
