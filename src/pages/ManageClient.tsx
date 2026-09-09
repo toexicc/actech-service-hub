@@ -2221,75 +2221,29 @@ const ManageClient = () => {
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">Client Intake Form</h3>
-                    <div className="flex gap-2">
-                      <Button onClick={handleUpdateForm} variant="outline" className="flex-1" disabled={isUpdatingForm}>
-                        {isUpdatingForm ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Update Form
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={handleViewPDF}
-                        variant="outline"
-                        className="flex-1"
-                        disabled={!serviceData?.pdfUrl}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        View PDF
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">Service Quotation Form</h3>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleGenerateQuotation}
-                        variant="outline"
-                        className="flex-1"
-                        disabled={isUpdatingQuotation}
-                      >
-                        {isUpdatingQuotation ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {serviceData.quotationPdfUrl ? "Updating..." : "Generating..."}
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            {serviceData.quotationPdfUrl ? "Update Form" : "Generate PDF"}
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={handleViewQuotationPDF}
-                        variant="outline"
-                        className="flex-1"
-                        disabled={!serviceData?.quotationPdfUrl}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        View PDF
-                      </Button>
-                    </div>
-                  </div>
-
                   <PosDocumentActions
                     serviceId={serviceData?.serviceId}
                     clientName={serviceData?.clientName}
                     serviceDate={serviceData?.serviceDate}
                     refreshKey={posDocsKey}
+                    formDocs={[
+                      {
+                        kind: "intake",
+                        title: "Client Intake Form",
+                        hint: "Device, complaint and acknowledgements",
+                        onGenerate: handleUpdateForm,
+                        generating: isUpdatingForm,
+                      },
+                      {
+                        kind: "quotation",
+                        title: "Service Quotation Form",
+                        hint: "Quoted services and pricing",
+                        onGenerate: handleGenerateQuotation,
+                        generating: isUpdatingQuotation,
+                      },
+                    ]}
                   />
+
 
                   {/* Client approval is handled on the public /track page. */}
 
