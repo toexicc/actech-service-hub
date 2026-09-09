@@ -19,11 +19,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
+import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
   type ApprovedLine,
 } from "@/lib/posDocuments";
+import {
+  fetchTicketLinesContext,
+  computeLineTotals,
+  saveTicketServiceLines,
+} from "@/lib/posServiceLines";
+import { lineDisplayName, lineEffectiveCost, type QuotedLine } from "@/lib/serviceApproval";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
