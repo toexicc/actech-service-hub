@@ -323,6 +323,9 @@ export const TicketPaymentModal = ({
         } else if (docs.warrantySkipped) {
           toast({ title: "Warranty card not created", description: docs.warrantySkipped });
         }
+        if (docs.receiptSkipped) {
+          toast({ title: "Invoice not created yet", description: docs.receiptSkipped });
+        }
       } catch {
         /* documents are best effort */
       }

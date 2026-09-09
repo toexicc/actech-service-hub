@@ -54,6 +54,8 @@ export interface ReceiptPDFData {
   serial: string;
   /** Client-approved service lines only. */
   lines: ReceiptLine[];
+  /** Short repair summary shown above the approved service lines. */
+  serviceSummary?: string;
   subtotal: number;
   discount: number;
   rushFee: number;
@@ -82,7 +84,14 @@ const dateLabel = (raw?: string) => {
 };
 
 /** Approved services table with a right-aligned amount column. */
-const linesCard = (doc: jsPDF, x: number, y: number, w: number, lines: ReceiptLine[]) => {
+const linesCard = (
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  lines: ReceiptLine[],
+  summary?: string,
+) => {
   const rows = lines.length ? lines : [{ label: "No approved service lines yet", amount: 0 }];
   const amountX = x + w - 4;
   const labelW = w - 40;
@@ -91,20 +100,35 @@ const linesCard = (doc: jsPDF, x: number, y: number, w: number, lines: ReceiptLi
   doc.setFontSize(8.4);
   const wrapped = rows.map((r) => doc.splitTextToSize(r.label || "Service", labelW));
   const heights = wrapped.map((lns) => Math.max(5.4, lns.length * 3.6 + 1.8));
-  const bodyH = 6 + heights.reduce((s, v) => s + v, 0);
+
+  const summaryText = String(summary ?? "").trim();
+  doc.setFontSize(8);
+  const summaryLines = summaryText ? doc.splitTextToSize(summaryText, w - 8) : [];
+  const summaryH = summaryLines.length ? summaryLines.length * 3.5 + 3.4 : 0;
+
+  const bodyH = 6 + summaryH + heights.reduce((s, v) => s + v, 0);
 
   return titledCard(doc, x, y, w, "Approved Services", "clipboard", bodyH, (bx, by, bw) => {
+    let headY = by;
+    if (summaryLines.length) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      setText(doc, MUTED);
+      doc.text(summaryLines, bx, headY + 2.6);
+      headY += summaryH;
+    }
+
     // Column heads
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.4);
     setText(doc, MUTED);
-    doc.text("SERVICE", bx, by + 2.4);
-    doc.text("AMOUNT", amountX, by + 2.4, { align: "right" });
+    doc.text("SERVICE", bx, headY + 2.4);
+    doc.text("AMOUNT", amountX, headY + 2.4, { align: "right" });
     setDraw(doc, BORDER);
     doc.setLineWidth(0.35);
-    doc.line(bx, by + 4.2, bx + bw, by + 4.2);
+    doc.line(bx, headY + 4.2, bx + bw, headY + 4.2);
 
-    let ry = by + 4.2;
+    let ry = headY + 4.2;
     rows.forEach((row, i) => {
       const h = heights[i];
       if (i > 0) {
@@ -318,7 +342,7 @@ export const generateReceiptPDF = async (data: ReceiptPDFData): Promise<Blob> =>
 
   y = Math.max(clientBottom, deviceBottom) + 3.5;
 
-  y = linesCard(doc, M, y, CONTENT_W, data.lines) + 3.5;
+  y = linesCard(doc, M, y, CONTENT_W, data.lines, data.serviceSummary) + 3.5;
 
   const payBottom = paymentsCard(doc, leftX, y, COL_W, data.payments);
   const totalsBottom = totalsCard(doc, rightX, y, COL_W, data);

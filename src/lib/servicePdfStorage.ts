@@ -176,7 +176,7 @@ export const servicePdfDownloadName = (
   info: { serviceDate?: string | null; clientName?: string | null; serviceId?: string | null },
 ): string => {
   const suffix =
-    kind === "quotation" ? "SQF" : kind === "receipt" ? "OR" : kind === "warranty" ? "WC" : "CIF";
+    kind === "quotation" ? "SQF" : kind === "receipt" ? "INV" : kind === "warranty" ? "WC" : "CIF";
   const date = toYyyymmdd(info.serviceDate);
   const name = cleanNamePart(info.clientName);
   const id = cleanNamePart(info.serviceId);

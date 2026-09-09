@@ -34,7 +34,7 @@ export interface ApprovedLine {
 const SERVICE_COLUMNS =
   "service_id, client_name, contact_number, email, address, device_type, brand, model, serial_number, color, memory, " +
   "quoted_breakdown, service_cost, discount, vat_requested, rush_fee, final_cost, initial_payment, " +
-  "technicians, admin_reps, receiving_staff, warranty_terms, released_at, service_date";
+  "technicians, admin_reps, receiving_staff, warranty_terms, released_at, service_date, diagnosis_summary";
 
 /** Approved (client-ticked) quotation lines with their effective amounts. */
 export const approvedLinesOf = (quotedBreakdown: unknown): ApprovedLine[] =>
@@ -73,11 +73,13 @@ export interface RegenerateResult {
   warranty: boolean;
   /** Reason the warranty card was skipped, when it was. */
   warrantySkipped?: string;
+  /** Reason the invoice-receipt was skipped, when it was. */
+  receiptSkipped?: string;
 }
 
 /**
- * Regenerates the receipt (always) and the warranty card (when requested and
- * the ticket is fully paid). Never throws — callers treat it as best effort.
+ * Regenerates the invoice-receipt and the warranty card, both only once the
+ * ticket is fully paid. Never throws — callers treat it as best effort.
  */
 export const regenerateTicketDocuments = async (
   args: RegenerateArgs,
@@ -128,8 +130,14 @@ export const regenerateTicketDocuments = async (
   const technician = Array.isArray(s.technicians) ? s.technicians.join(", ") : "";
   const adminRep = Array.isArray(s.admin_reps) ? s.admin_reps.join(", ") : "";
 
+  const fullyPaid = finalCost > 0 && totals.balance <= 0.01;
+
   // ------------------------------------------------------------- receipt
+  if (!fullyPaid) {
+    out.receiptSkipped = "Service Invoice - Receipt is created once the ticket is fully paid.";
+  }
   try {
+    if (!fullyPaid) throw new Error("not fully paid");
     const blob = await generateReceiptPDF({
       serviceId,
       timestamp: now,
@@ -147,6 +155,7 @@ export const regenerateTicketDocuments = async (
       memory: String(s.memory ?? ""),
       serial: String(s.serial_number ?? ""),
       lines: approved,
+      serviceSummary: String(s.diagnosis_summary ?? ""),
       subtotal: subtotal || serviceCost,
       discount,
       rushFee: rush,
