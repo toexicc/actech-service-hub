@@ -26,11 +26,17 @@ import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
+import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
-  type ApprovedLine,
 } from "@/lib/posDocuments";
+import {
+  fetchTicketLinesContext,
+  computeLineTotals,
+  saveTicketServiceLines,
+} from "@/lib/posServiceLines";
+import { lineDisplayName, lineEffectiveCost, type QuotedLine } from "@/lib/serviceApproval";
 
 const PAYMENT_TYPES = ["Down Payment", "Partial Payment", "Full Payment"];
 const PAYMENT_METHODS = ["GCash", "Bank Transfer", "Credit Card", "Cash", "N/A", "Others"];
