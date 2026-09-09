@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureClient } from "@/hooks/useClients";
 import { IntakeShareActions } from "@/components/IntakeShareActions";
 import { useQueryClient } from "@tanstack/react-query";
+import { Switch } from "@/components/ui/switch";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
@@ -1833,6 +1834,37 @@ const ServiceForm = ({
                 )}
               />
             </div>
+            )}
+
+            {/* Ticket flags — staff only (includes the queue Complete Intake form) */}
+            {!isPublic && (
+              <div>
+                <h2 className="text-xl font-semibold text-blue-600 mb-4">Ticket Flags</h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {([
+                    ["isRush", "Rush", "Adds the 10% rush fee to this ticket."],
+                    ["isBackjob", "Backjob", "Device is back for the same issue."],
+                    ["hasPreOrder", "Pre-Order", "This ticket has a pre-order."],
+                  ] as const).map(([name, label, hint]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name}
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-3 space-y-0 rounded-xl border border-border/60 bg-muted/30 p-3">
+                          <div>
+                            <FormLabel className="text-sm font-semibold">{label}</FormLabel>
+                            <p className="text-xs text-muted-foreground">{hint}</p>
+                          </div>
+                          <FormControl>
+                            <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Client Acknowledgement */}
