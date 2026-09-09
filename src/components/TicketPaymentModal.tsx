@@ -83,6 +83,8 @@ export const TicketPaymentModal = ({
   serviceCost,
   partsCost,
   initialPayment,
+  presetType,
+  presetAmount,
   onRecorded,
 }: Props) => {
   const { toast } = useToast();
