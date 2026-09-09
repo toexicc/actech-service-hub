@@ -166,6 +166,8 @@ export const TicketPaymentModal = ({
       setRecorded(false);
       return;
     }
+    if (presetType) setType(presetType);
+    if (presetAmount) setAmount(presetAmount);
     let alive = true;
     fetchTicketDocumentContext(serviceId).then((ctx) => {
       if (!alive || !ctx) return;
