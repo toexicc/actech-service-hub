@@ -14,7 +14,7 @@ const BUCKETS: Record<ServicePdfKind, string> = {
 const KIND_LABELS: Record<ServicePdfKind, string> = {
   intake: "Client Intake Form",
   quotation: "Service Quotation Form",
-  receipt: "Official Receipt",
+  receipt: "Service Invoice - Receipt",
   warranty: "Warranty Card",
 };
 

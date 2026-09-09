@@ -11,7 +11,7 @@ import {
 import { downloadPdfFromUrl, printPdfFromUrl } from "@/lib/pdfActions";
 
 const DOCS: { kind: Extract<ServicePdfKind, "receipt" | "warranty">; title: string; hint: string }[] = [
-  { kind: "receipt", title: "Official Receipt", hint: "Approved services and payments" },
+  { kind: "receipt", title: "Service Invoice - Receipt", hint: "Approved services and payments" },
   { kind: "warranty", title: "Warranty Card", hint: "Coverage per approved service" },
 ];
 
