@@ -1113,7 +1113,7 @@ const Reports = () => {
           <Panel
             title="Output leaderboard"
             icon={<Users className="h-4 w-4" />}
-            hint="Diagnosed includes AI diagnosis runs, quotations and diagnosis photos; Released includes AI reports and device report photos — the sub-columns (·) are already part of the total, so these match the 'Who moves tickets' chart. Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid and Released show the raw event counts. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
+            hint="Diagnosed includes AI diagnosis runs, quotations and diagnosis photos; Released includes AI reports and device report photos — the sub-columns (·) are already part of the total, so these match the 'Who moves tickets' chart. Completed = distinct tickets the person closed (by status, payment or hand-over) — a ticket counts once even if they did all three. Paid, Handed over and Documents (invoice-receipt / warranty card generated) show the raw event counts and all count as closing work. Driven end-to-end = closed a ticket they also moved earlier. Automated system actors are excluded."
           >
             <div className="mb-3 flex flex-wrap gap-2">
               <Select value={outputRole} onValueChange={(v) => setOutputRole(v as any)}>
@@ -1172,6 +1172,7 @@ const Reports = () => {
                       <TableHead className="text-right whitespace-nowrap">· Report photos</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Paid</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Handed over</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Documents</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Approvals</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Backjobs</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Cancelled / hold / RTO</TableHead>
@@ -1197,6 +1198,7 @@ const Reports = () => {
                         <TableCell className="text-right text-muted-foreground whitespace-nowrap">{a.reportPhotos}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.paid}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.handedOver}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{a.documents}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.approvals}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.backjobs}</TableCell>
                         <TableCell className="text-right whitespace-nowrap">{a.exceptions}</TableCell>
