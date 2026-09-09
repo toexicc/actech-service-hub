@@ -130,8 +130,14 @@ export const regenerateTicketDocuments = async (
   const technician = Array.isArray(s.technicians) ? s.technicians.join(", ") : "";
   const adminRep = Array.isArray(s.admin_reps) ? s.admin_reps.join(", ") : "";
 
+  const fullyPaid = finalCost > 0 && totals.balance <= 0.01;
+
   // ------------------------------------------------------------- receipt
+  if (!fullyPaid) {
+    out.receiptSkipped = "Service Invoice - Receipt is created once the ticket is fully paid.";
+  }
   try {
+    if (!fullyPaid) throw new Error("not fully paid");
     const blob = await generateReceiptPDF({
       serviceId,
       timestamp: now,
