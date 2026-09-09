@@ -79,10 +79,31 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
   const [loading, setLoading] = useState(true);
   const [take, setTake] = useState(limit);
   const [hasMore, setHasMore] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     setTake(limit);
   }, [serviceId, limit]);
+
+  /**
+   * Payments and voids are logged from the payment modal and the transaction
+   * tracker after this panel has already loaded, so listen for new rows on this
+   * ticket and pull them in without a page reload.
+   */
+  useEffect(() => {
+    if (!serviceId) return;
+    const channel = supabase
+      .channel(`activity-${serviceId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activity_logs", filter: `entity_id=eq.${serviceId}` },
+        () => setReloadKey((k) => k + 1),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [serviceId]);
 
   useEffect(() => {
     let cancelled = false;
