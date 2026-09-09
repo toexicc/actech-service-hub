@@ -79,6 +79,9 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   ack2: z.boolean().refine((val) => val === true, "You must confirm the information is correct"),
   ack3: z.boolean().refine((val) => val === true, "You must agree to the service terms"),
   autoApproveDiagnosis: z.boolean().default(false),
+  isRush: z.boolean().default(false),
+  isBackjob: z.boolean().default(false),
+  hasPreOrder: z.boolean().default(false),
 
   enablePhotoAnnotation: z.boolean().default(false),
   annotationDeviceType: z.string().optional(),
@@ -241,6 +244,9 @@ const ServiceForm = ({
       ack2: false,
       ack3: false,
       autoApproveDiagnosis: false,
+      isRush: false,
+      isBackjob: false,
+      hasPreOrder: false,
 
       physicalSignature: false,
       enablePhotoAnnotation: false,
