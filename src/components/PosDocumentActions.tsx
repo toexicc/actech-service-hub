@@ -156,7 +156,8 @@ export const PosDocumentActions = ({
         title: ok ? `${title} updated` : `${title} not created`,
         description: ok
           ? "The latest ticket details are now on the document."
-          : result.message || "This ticket must be fully paid before the document is created.",
+          : (kind === "receipt" ? result.receiptSkipped : result.warrantySkipped) ||
+            "This ticket must be fully paid before the document is created.",
         variant: ok ? "default" : "destructive",
       });
     } finally {
