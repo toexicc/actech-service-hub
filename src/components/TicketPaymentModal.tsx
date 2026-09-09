@@ -25,6 +25,7 @@ import { logActivityAsync } from "@/lib/activityLogger";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import { PosDocumentActions } from "@/components/PosDocumentActions";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
