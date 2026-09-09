@@ -305,6 +305,23 @@ const PointOfSales = () => {
           } catch { /* non-blocking */ }
         }
 
+        // Refresh the official receipt (and warranty card when fully paid).
+        if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL") {
+          try {
+            const docs = await regenerateTicketDocuments({
+              serviceId,
+              actorName: username,
+              warrantyTerms,
+              createWarranty: warrantyEnabled,
+            });
+            if (docs.warranty) {
+              toast({ title: "Warranty Card Created", description: `${serviceId} • A5 warranty card` });
+            } else if (docs.warrantySkipped) {
+              toast({ title: "Warranty Card Not Created", description: docs.warrantySkipped });
+            }
+          } catch { /* documents are best effort */ }
+        }
+
         // Refund → create technician salary deduction(s)
         if (isRefund && serviceId && serviceId !== "MANUAL") {
           const dedAmount = parseCurrency(deductionAmount || amount);
