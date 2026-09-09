@@ -87,6 +87,7 @@ export const TicketPaymentModal = ({
   initialPayment,
   presetType,
   presetAmount,
+  prepaymentMode,
   onRecorded,
 }: Props) => {
   const { toast } = useToast();
@@ -168,6 +169,7 @@ export const TicketPaymentModal = ({
       setRecorded(false);
       return;
     }
+    if (prepaymentMode) setWarrantyEnabled(false);
     if (presetType) setType(presetType);
     if (presetAmount) setAmount(presetAmount);
     let alive = true;
