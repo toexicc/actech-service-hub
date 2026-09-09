@@ -712,6 +712,20 @@ const PointOfSales = () => {
                       </div>
                     )}
 
+                    {/* Editable service lines */}
+                    {needsServiceInfo(transactionType) && transactionType !== "Refund" &&
+                      serviceData?.serviceId && serviceData.serviceId !== "MANUAL" && (
+                        <ServiceLinesEditor
+                          lines={lines}
+                          onChange={handleLinesChange}
+                          discount={pricing.discount}
+                          vatRequested={pricing.vatRequested}
+                          rushFee={pricing.rushFee}
+                          alreadyPaid={previousPayments}
+                          clientApproved={pricing.clientApproved}
+                        />
+                      )}
+
                     {/* Warranty card */}
                     {needsServiceInfo(transactionType) && transactionType !== "Refund" &&
                       serviceData?.serviceId && (
