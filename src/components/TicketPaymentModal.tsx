@@ -96,25 +96,58 @@ export const TicketPaymentModal = ({
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
   const [docsKey, setDocsKey] = useState(0);
   const [recorded, setRecorded] = useState(false);
-  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+  const [lines, setLines] = useState<QuotedLine[]>([]);
+  const [originalLines, setOriginalLines] = useState<QuotedLine[]>([]);
+  const [pricing, setPricing] = useState({
+    discount: 0,
+    vatRequested: false,
+    rushFee: false,
+    clientApproved: false,
+  });
 
   const { data: paymentsData } = useServicePayments(open ? serviceId : undefined);
+
+  /** Final cost from the (possibly edited) lines; falls back to the stored one. */
+  const editedFinalCost = useMemo(() => {
+    if (!lines.length) return parseCurrency(finalCost);
+    return computeLineTotals(lines, pricing.discount, pricing.vatRequested, pricing.rushFee)
+      .finalCost;
+  }, [lines, pricing, finalCost]);
 
   const totals = useMemo(
     () =>
       derivePaymentTotals(
-        parseCurrency(finalCost),
+        editedFinalCost,
         parseCurrency(initialPayment),
         paymentsData?.transactionsPaid ?? 0,
       ),
-    [finalCost, initialPayment, paymentsData?.transactionsPaid],
+    [editedFinalCost, initialPayment, paymentsData?.transactionsPaid],
   );
 
   const amountNum = parseCurrency(amount);
   const remainingAfter = totals.total > 0 ? Math.max(0, totals.balance - amountNum) : 0;
 
   const fullyPaidAfter = totals.total > 0 && remainingAfter <= 0.01;
+
+  const approvedLines = useMemo(
+    () =>
+      lines
+        .filter((l) => l.selected)
+        .map((l) => ({ label: lineDisplayName(l), amount: lineEffectiveCost(l) })),
+    [lines],
+  );
+
+  /** Keep a saved warranty term with its line when the line is renamed. */
+  const handleLinesChange = (next: QuotedLine[], rename?: { from: string; to: string }) => {
+    setLines(next);
+    if (rename && warrantyTerms[rename.from] !== undefined) {
+      setWarrantyTerms((prev) => {
+        const { [rename.from]: term, ...rest } = prev;
+        return { ...rest, [rename.to]: term };
+      });
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -130,8 +163,18 @@ export const TicketPaymentModal = ({
     let alive = true;
     fetchTicketDocumentContext(serviceId).then((ctx) => {
       if (!alive || !ctx) return;
-      setApprovedLines(ctx.approvedLines);
       setWarrantyTerms(ctx.warrantyTerms);
+    });
+    fetchTicketLinesContext(serviceId).then((ctx) => {
+      if (!alive || !ctx) return;
+      setLines(ctx.lines);
+      setOriginalLines(ctx.lines);
+      setPricing({
+        discount: ctx.discount,
+        vatRequested: ctx.vatRequested,
+        rushFee: ctx.rushFee,
+        clientApproved: ctx.clientApproved,
+      });
     });
     return () => {
       alive = false;
