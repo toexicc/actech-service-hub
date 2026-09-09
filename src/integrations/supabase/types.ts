@@ -1148,6 +1148,7 @@ export type Database = {
           vat_requested: boolean
           waiting_for_parts: boolean
           waiting_parts_note: string | null
+          warranty_terms: Json
         }
         Insert: {
           acknowledgements?: Json
@@ -1232,6 +1233,7 @@ export type Database = {
           vat_requested?: boolean
           waiting_for_parts?: boolean
           waiting_parts_note?: string | null
+          warranty_terms?: Json
         }
         Update: {
           acknowledgements?: Json
@@ -1316,6 +1318,7 @@ export type Database = {
           vat_requested?: boolean
           waiting_for_parts?: boolean
           waiting_parts_note?: string | null
+          warranty_terms?: Json
         }
         Relationships: []
       }
@@ -1556,6 +1559,8 @@ export type Database = {
         | "annotation"
         | "device_report"
         | "diagnosis_photo"
+        | "receipt"
+        | "warranty"
       service_status:
         | "Pending Diagnosis"
         | "Confirmed Diagnosis"
@@ -1707,6 +1712,8 @@ export const Constants = {
         "annotation",
         "device_report",
         "diagnosis_photo",
+        "receipt",
+        "warranty",
       ],
       service_status: [
         "Pending Diagnosis",

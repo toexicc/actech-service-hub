@@ -17,6 +17,12 @@ import { fetchStaffList } from "@/lib/staffList";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
+import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import {
+  fetchTicketDocumentContext,
+  regenerateTicketDocuments,
+  type ApprovedLine,
+} from "@/lib/posDocuments";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -171,6 +177,29 @@ const PointOfSales = () => {
 
   const generateTransactionId = () => `TXN${Date.now()}`;
 
+  // -------------------------------------------------- client-facing documents
+  const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
+  const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const sid = serviceData?.serviceId;
+    if (!sid || sid === "MANUAL") {
+      setApprovedLines([]);
+      setWarrantyTerms({});
+      return;
+    }
+    let alive = true;
+    fetchTicketDocumentContext(sid).then((ctx) => {
+      if (!alive || !ctx) return;
+      setApprovedLines(ctx.approvedLines);
+      setWarrantyTerms(ctx.warrantyTerms);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [serviceData?.serviceId]);
+
   const finalCostNum = parseCurrency(serviceData?.finalCost || manualServiceCost);
   const amountNum = parseCurrency(amount);
   const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
@@ -274,6 +303,23 @@ const PointOfSales = () => {
               });
             }
           } catch { /* non-blocking */ }
+        }
+
+        // Refresh the official receipt (and warranty card when fully paid).
+        if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL") {
+          try {
+            const docs = await regenerateTicketDocuments({
+              serviceId,
+              actorName: username,
+              warrantyTerms,
+              createWarranty: warrantyEnabled,
+            });
+            if (docs.warranty) {
+              toast({ title: "Warranty Card Created", description: `${serviceId} • A5 warranty card` });
+            } else if (docs.warrantySkipped) {
+              toast({ title: "Warranty Card Not Created", description: docs.warrantySkipped });
+            }
+          } catch { /* documents are best effort */ }
         }
 
         // Refund → create technician salary deduction(s)
@@ -567,6 +613,19 @@ const PointOfSales = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Warranty card */}
+                    {needsServiceInfo(transactionType) && transactionType !== "Refund" &&
+                      serviceData?.serviceId && (
+                        <WarrantyCardFields
+                          enabled={warrantyEnabled}
+                          onEnabledChange={setWarrantyEnabled}
+                          lines={approvedLines}
+                          terms={warrantyTerms}
+                          onTermsChange={setWarrantyTerms}
+                          fullyPaid={finalCostNum > 0 && remaining <= 0.01}
+                        />
+                      )}
 
                     {/* Remarks */}
                     <div className="space-y-2">

@@ -246,6 +246,11 @@ const ServiceTracking = () => {
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");
   const [pdfModalFilename, setPdfModalFilename] = useState("document.pdf");
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  /** Which POS documents exist for this ticket (receipt / warranty card). */
+  const [posDocs, setPosDocs] = useState<{ receipt: boolean; warranty: boolean }>({
+    receipt: false,
+    warranty: false,
+  });
   const [termsModalOpen, setTermsModalOpen] = useState(false);
 
   // Approve / Decline flow (Waiting to Proceed)
@@ -515,10 +520,26 @@ const ServiceTracking = () => {
     return "bg-white hover:bg-gray-50";
   };
 
+  const publicPdfUrl = async (sid: string, kind: string): Promise<string | null> => {
+    try {
+      const base = (import.meta as any).env?.VITE_SUPABASE_URL || "";
+      const anon = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+      const r = await fetch(
+        `${base}/functions/v1/get-service-pdf?serviceId=${encodeURIComponent(sid)}&kind=${kind}`,
+        { headers: { apikey: anon, Authorization: `Bearer ${anon}` } },
+      );
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j?.url ?? null;
+    } catch {
+      return null;
+    }
+  };
+
   const openPdf = async (
     legacyUrl: string | undefined,
     sid: string | undefined,
-    kind: "intake" | "quotation",
+    kind: "intake" | "quotation" | "receipt" | "warranty",
     title: string,
   ) => {
     let signed: string | null = null;
@@ -559,6 +580,27 @@ const ServiceTracking = () => {
   };
 
   const handleViewPDF = (pdfUrl: string, sid?: string) => openPdf(pdfUrl, sid, "intake", "Client Intake Form");
+
+  // Only offer the receipt / warranty card when the files actually exist.
+  const posDocsServiceId = serviceData?.serviceId;
+  useEffect(() => {
+    if (!posDocsServiceId) {
+      setPosDocs({ receipt: false, warranty: false });
+      return;
+    }
+    let alive = true;
+    (async () => {
+      const [receipt, warranty] = await Promise.all([
+        publicPdfUrl(posDocsServiceId, "receipt"),
+        publicPdfUrl(posDocsServiceId, "warranty"),
+      ]);
+      if (alive) setPosDocs({ receipt: !!receipt, warranty: !!warranty });
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posDocsServiceId]);
 
   // Pull "Service Breakdown" lines from the AI diagnosis text and return
   // just the service names (everything before " - " on each line).
@@ -1788,12 +1830,44 @@ const ServiceTracking = () => {
                           PDF
                         </Button>
                       </div>
+                       )}
+                      {posDocs.receipt && (
+                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div>
+                          <p className="text-sm font-medium">Official Receipt</p>
+                          <p className="text-xs text-muted-foreground">Approved services and payments</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openPdf(undefined, serviceData.serviceId, "receipt", "Official Receipt")}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      {posDocs.warranty && (
+                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
+                        <div>
+                          <p className="text-sm font-medium">Warranty Card</p>
+                          <p className="text-xs text-muted-foreground">Coverage per approved service</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openPdf(undefined, serviceData.serviceId, "warranty", "Warranty Card")}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                      </div>
+                      )}
+                     </div>
+                   </CardContent>
+                 </Card>
 
-                {/* Device Photo Gallery - Diagnosis & Report */}
+                 {/* Device Photo Gallery - Diagnosis & Report */}
                 {serviceData.serviceId && [
                   "Waiting to Proceed",
                   "Proceed Repair",

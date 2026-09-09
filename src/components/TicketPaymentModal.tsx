@@ -24,6 +24,12 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
+import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import {
+  fetchTicketDocumentContext,
+  regenerateTicketDocuments,
+  type ApprovedLine,
+} from "@/lib/posDocuments";
 
 const PAYMENT_TYPES = ["Down Payment", "Partial Payment", "Full Payment"];
 const PAYMENT_METHODS = ["GCash", "Bank Transfer", "Credit Card", "Cash", "N/A", "Others"];
@@ -80,6 +86,9 @@ export const TicketPaymentModal = ({
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
+  const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
+  const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
 
   const { data: paymentsData } = useServicePayments(open ? serviceId : undefined);
 
@@ -96,6 +105,8 @@ export const TicketPaymentModal = ({
   const amountNum = parseCurrency(amount);
   const remainingAfter = totals.total > 0 ? Math.max(0, totals.balance - amountNum) : 0;
 
+  const fullyPaidAfter = totals.total > 0 && remainingAfter <= 0.01;
+
   useEffect(() => {
     if (!open) {
       setType("Full Payment");
@@ -103,8 +114,19 @@ export const TicketPaymentModal = ({
       setOtherMethod("");
       setAmount("");
       setRemarks("");
+      setWarrantyEnabled(true);
+      return;
     }
-  }, [open]);
+    let alive = true;
+    fetchTicketDocumentContext(serviceId).then((ctx) => {
+      if (!alive || !ctx) return;
+      setApprovedLines(ctx.approvedLines);
+      setWarrantyTerms(ctx.warrantyTerms);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open, serviceId]);
 
   const submit = async () => {
     const finalMethod = method === "Others" ? otherMethod.trim() : method;
@@ -178,6 +200,23 @@ export const TicketPaymentModal = ({
         } catch {
           /* non-blocking */
         }
+      }
+
+      // Refresh the client-facing documents from the ticket's own record.
+      try {
+        const docs = await regenerateTicketDocuments({
+          serviceId,
+          actorName: username,
+          warrantyTerms,
+          createWarranty: warrantyEnabled,
+        });
+        if (docs.warranty) {
+          toast({ title: "Warranty card created", description: `${serviceId} • A5 warranty card` });
+        } else if (docs.warrantySkipped) {
+          toast({ title: "Warranty card not created", description: docs.warrantySkipped });
+        }
+      } catch {
+        /* documents are best effort */
       }
 
       queryClient.invalidateQueries({ queryKey: ["servicePayments", serviceId] });
@@ -281,6 +320,15 @@ export const TicketPaymentModal = ({
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>
+
+          <WarrantyCardFields
+            enabled={warrantyEnabled}
+            onEnabledChange={setWarrantyEnabled}
+            lines={approvedLines}
+            terms={warrantyTerms}
+            onTermsChange={setWarrantyTerms}
+            fullyPaid={fullyPaidAfter}
+          />
 
           <div className="space-y-1.5">
             <Label>Remarks (optional)</Label>
