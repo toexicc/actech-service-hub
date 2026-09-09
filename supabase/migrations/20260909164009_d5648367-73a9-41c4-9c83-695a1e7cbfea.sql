@@ -1,0 +1,1 @@
+UPDATE public.services SET priority = 'Normal' WHERE priority = 'Loyalty';

@@ -358,6 +358,7 @@ const ManageClient = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentPresetType, setPaymentPresetType] = useState<string | undefined>(undefined);
   const [paymentPresetAmount, setPaymentPresetAmount] = useState<string | undefined>(undefined);
+  const [paymentPrepayment, setPaymentPrepayment] = useState(false);
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
@@ -749,6 +750,7 @@ const ManageClient = () => {
           if (searchParams.get("pos") === "1") {
             setPaymentPresetType(searchParams.get("posType") || "Down Payment");
             setPaymentPresetAmount(searchParams.get("posAmount") || "");
+            setPaymentPrepayment(true);
             setPaymentModalOpen(true);
           }
         } catch {
@@ -3787,7 +3789,14 @@ const ManageClient = () => {
           />
           <TicketPaymentModal
             open={paymentModalOpen}
-            onOpenChange={setPaymentModalOpen}
+            onOpenChange={(o) => {
+              setPaymentModalOpen(o);
+              if (!o) {
+                setPaymentPrepayment(false);
+                setPaymentPresetType(undefined);
+                setPaymentPresetAmount(undefined);
+              }
+            }}
             serviceId={serviceData.serviceId}
             clientName={serviceData.clientName}
             device={[serviceData.deviceType, serviceData.brand, serviceData.deviceModel].filter(Boolean).join(" ")}
@@ -3797,6 +3806,7 @@ const ManageClient = () => {
             initialPayment={serviceData.initialPayment}
             presetType={paymentPresetType}
             presetAmount={paymentPresetAmount}
+            prepaymentMode={paymentPrepayment}
             onRecorded={() => void reloadTicket()}
           />
         </>

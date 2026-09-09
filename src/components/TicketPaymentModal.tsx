@@ -64,6 +64,8 @@ interface Props {
   presetType?: string;
   /** Amount pre-filled when the modal opens; editable by staff. */
   presetAmount?: string;
+  /** Pre-payment (pre-order down payment): no service lines, no warranty card. */
+  prepaymentMode?: boolean;
   /** Called after a payment is recorded so the host page can refresh. */
   onRecorded?: () => void;
 }
@@ -85,6 +87,7 @@ export const TicketPaymentModal = ({
   initialPayment,
   presetType,
   presetAmount,
+  prepaymentMode,
   onRecorded,
 }: Props) => {
   const { toast } = useToast();
@@ -166,6 +169,7 @@ export const TicketPaymentModal = ({
       setRecorded(false);
       return;
     }
+    if (prepaymentMode) setWarrantyEnabled(false);
     if (presetType) setType(presetType);
     if (presetAmount) setAmount(presetAmount);
     let alive = true;
@@ -388,15 +392,18 @@ export const TicketPaymentModal = ({
 
           {!recorded && (
             <>
-              <ServiceLinesEditor
-                lines={lines}
-                onChange={handleLinesChange}
-                discount={pricing.discount}
-                vatRequested={pricing.vatRequested}
-                rushFee={pricing.rushFee}
-                alreadyPaid={totals.paid}
-                clientApproved={pricing.clientApproved}
-              />
+              {!prepaymentMode && (
+                <ServiceLinesEditor
+                  lines={lines}
+                  onChange={handleLinesChange}
+                  discount={pricing.discount}
+                  vatRequested={pricing.vatRequested}
+                  rushFee={pricing.rushFee}
+                  alreadyPaid={totals.paid}
+                  clientApproved={pricing.clientApproved}
+                />
+              )}
+
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -440,14 +447,17 @@ export const TicketPaymentModal = ({
                 />
               </div>
 
-              <WarrantyCardFields
-                enabled={warrantyEnabled}
-                onEnabledChange={setWarrantyEnabled}
-                lines={approvedLines}
-                terms={warrantyTerms}
-                onTermsChange={setWarrantyTerms}
-                fullyPaid={fullyPaidAfter}
-              />
+              {!prepaymentMode && (
+                <WarrantyCardFields
+                  enabled={warrantyEnabled}
+                  onEnabledChange={setWarrantyEnabled}
+                  lines={approvedLines}
+                  terms={warrantyTerms}
+                  onTermsChange={setWarrantyTerms}
+                  fullyPaid={fullyPaidAfter}
+                />
+              )}
+
 
               <div className="space-y-1.5">
                 <Label>Remarks (optional)</Label>
