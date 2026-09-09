@@ -25,7 +25,6 @@ import { logActivityAsync } from "@/lib/activityLogger";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
-import { PosDocumentActions } from "@/components/PosDocumentActions";
 import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
 import {
   fetchTicketDocumentContext,
@@ -468,15 +467,11 @@ export const TicketPaymentModal = ({
 
           {recorded && (
             <p className="rounded-md bg-emerald-500/10 p-2 text-xs text-emerald-700">
-              Payment recorded. You can print or save the documents below.
+              Payment recorded. The receipt and warranty card are available under the Service
+              Quotation Form section.
             </p>
           )}
 
-          <PosDocumentActions
-            serviceId={serviceId}
-            clientName={clientName}
-            refreshKey={docsKey}
-          />
         </div>
 
         <DialogFooter className="shrink-0">
