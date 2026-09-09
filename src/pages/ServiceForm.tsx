@@ -683,7 +683,9 @@ const ServiceForm = ({
         estimated_completion: data.timeFrame || null,
         client_type: data.clientType,
         priority: data.priority,
-        rush_fee: data.priority === "Rush (with 10% Rush Fee)",
+        rush_fee: data.priority === "Rush (with 10% Rush Fee)" || !!data.isRush,
+        is_backjob: !!data.isBackjob,
+        has_pre_order: !!data.hasPreOrder,
         receiving_staff: data.receivingStaff || null,
         technicians: techNamesArr,
         admin_reps: adminRepsArr,
@@ -785,6 +787,9 @@ const ServiceForm = ({
       
       formData.append("Time Frame", data.timeFrame || "");
       formData.append("Estimated Cost", (data.estimatedCost ?? 0).toString());
+      formData.append("Rush", data.isRush ? "Yes" : "No");
+      formData.append("Backjob", data.isBackjob ? "Yes" : "No");
+      formData.append("Pre-Order", data.hasPreOrder ? "Yes" : "No");
       formData.append("Acknowledgement 1", data.ack1 ? "Yes" : "No");
       formData.append("Acknowledgement 2", data.ack2 ? "Yes" : "No");
       formData.append("Acknowledgement 3", data.ack3 ? "Yes" : "No");
