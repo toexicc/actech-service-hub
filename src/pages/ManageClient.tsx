@@ -3762,6 +3762,35 @@ const ManageClient = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Release + payment happen in place so the page never navigates away. */}
+      {serviceData?.serviceId && (
+        <>
+          <ConfirmReleaseModal
+            manual={releaseModalOpen}
+            prefillServiceId={serviceData.serviceId}
+            onOpenChange={(open) => setReleaseModalOpen(open)}
+            onReleased={() => {
+              setServiceData((prev: any) =>
+                prev ? { ...prev, isReleased: true, releasedAt: new Date().toISOString() } : prev,
+              );
+              void reloadTicket();
+            }}
+          />
+          <TicketPaymentModal
+            open={paymentModalOpen}
+            onOpenChange={setPaymentModalOpen}
+            serviceId={serviceData.serviceId}
+            clientName={serviceData.clientName}
+            device={[serviceData.deviceType, serviceData.brand, serviceData.deviceModel].filter(Boolean).join(" ")}
+            finalCost={serviceData.finalCost}
+            serviceCost={serviceData.serviceCost}
+            partsCost={serviceData.partsCost}
+            initialPayment={serviceData.initialPayment}
+            onRecorded={() => void reloadTicket()}
+          />
+        </>
+      )}
     </DashboardLayout>
   );
 };
