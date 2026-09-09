@@ -15,7 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { normalizeGoogleDrivePdfUrl } from "@/lib/utils";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
-import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Lock } from "lucide-react";
+import { printPdfFromUrl, downloadPdfFromUrl } from "@/lib/pdfActions";
+import { Search, User, FileText, Image as ImageIcon, CheckCircle2, XCircle, Globe, Lock, Printer, Download } from "lucide-react";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { AiReportCard } from "@/components/AiReportCard";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
@@ -536,12 +537,13 @@ const ServiceTracking = () => {
     }
   };
 
-  const openPdf = async (
+  type DocKind = "intake" | "quotation" | "receipt" | "warranty";
+
+  const resolveDocUrl = async (
     legacyUrl: string | undefined,
     sid: string | undefined,
-    kind: "intake" | "quotation" | "receipt" | "warranty",
-    title: string,
-  ) => {
+    kind: DocKind,
+  ): Promise<string | null> => {
     let signed: string | null = null;
     if (sid) {
       // /track is a public page — visitors aren't authenticated, so the
@@ -562,21 +564,54 @@ const ServiceTracking = () => {
         signed = null;
       }
     }
-    const url = signed || (legacyUrl ? normalizeGoogleDrivePdfUrl(legacyUrl, "preview") : null);
+    return signed || (legacyUrl ? normalizeGoogleDrivePdfUrl(legacyUrl, "preview") : null);
+  };
+
+  const docFileName = (kind: DocKind, sid?: string) =>
+    servicePdfDownloadName(kind, {
+      serviceDate: serviceData?.dateReceived,
+      clientName: serviceData?.clientName || customerData?.clientName,
+      serviceId: sid,
+    });
+
+  const openPdf = async (
+    legacyUrl: string | undefined,
+    sid: string | undefined,
+    kind: DocKind,
+    title: string,
+  ) => {
+    const url = await resolveDocUrl(legacyUrl, sid, kind);
     if (!url) {
       toast({ title: "No PDF Available", description: "PDF not found in storage", variant: "destructive" });
       return;
     }
     setPdfModalUrl(url);
-    setPdfModalFilename(
-      servicePdfDownloadName(kind, {
-        serviceDate: serviceData?.dateReceived,
-        clientName: serviceData?.clientName || customerData?.clientName,
-        serviceId: sid,
-      }),
-    );
+    setPdfModalFilename(docFileName(kind, sid));
     setPdfModalTitle(title);
     setPdfModalOpen(true);
+  };
+
+  /** Print or save a document straight from its row, without opening the viewer. */
+  const runDocAction = async (
+    action: "print" | "download",
+    legacyUrl: string | undefined,
+    sid: string | undefined,
+    kind: DocKind,
+    title: string,
+  ) => {
+    const url = await resolveDocUrl(legacyUrl, sid, kind);
+    const ok = url
+      ? action === "print"
+        ? await printPdfFromUrl(url, title)
+        : await downloadPdfFromUrl(url, docFileName(kind, sid))
+      : false;
+    if (!ok) {
+      toast({
+        title: action === "print" ? "Could not print" : "Could not download",
+        description: "This document isn't available right now.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewPDF = (pdfUrl: string, sid?: string) => openPdf(pdfUrl, sid, "intake", "Client Intake Form");
@@ -1797,72 +1832,81 @@ const ServiceTracking = () => {
                           View
                         </Button>
                       </div>
-                      {!isClosed && (
-                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
-                        <div>
-                          <p className="text-sm font-medium">Client Intake Form</p>
-                          <p className="text-xs text-muted-foreground">Check-in receipt</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openPdf(serviceData.pdfUrl, serviceData.serviceId, "intake", "Client Intake Form")}
-                          disabled={!serviceData.serviceId}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          PDF
-                        </Button>
-                      </div>
-                      )}
-                      {!isClosed && (
-                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
-                        <div>
-                          <p className="text-sm font-medium">Service Quotation</p>
-                          <p className="text-xs text-muted-foreground">Repair quote</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openPdf(serviceData.quotationPdfUrl, serviceData.serviceId, "quotation", "Service Quotation Form")}
-                          disabled={!serviceData.serviceId}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          PDF
-                        </Button>
-                      </div>
-                       )}
-                      {posDocs.receipt && (
-                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
-                        <div>
-                          <p className="text-sm font-medium">Official Receipt</p>
-                          <p className="text-xs text-muted-foreground">Approved services and payments</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openPdf(undefined, serviceData.serviceId, "receipt", "Official Receipt")}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          PDF
-                        </Button>
-                      </div>
-                      )}
-                      {posDocs.warranty && (
-                      <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
-                        <div>
-                          <p className="text-sm font-medium">Warranty Card</p>
-                          <p className="text-xs text-muted-foreground">Coverage per approved service</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openPdf(undefined, serviceData.serviceId, "warranty", "Warranty Card")}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          PDF
-                        </Button>
-                      </div>
-                      )}
+                      {[
+                        !isClosed && {
+                          kind: "intake" as const,
+                          title: "Client Intake Form",
+                          label: "Client Intake Form",
+                          hint: "Check-in receipt",
+                          legacy: serviceData.pdfUrl,
+                        },
+                        !isClosed && {
+                          kind: "quotation" as const,
+                          title: "Service Quotation Form",
+                          label: "Service Quotation",
+                          hint: "Repair quote",
+                          legacy: serviceData.quotationPdfUrl,
+                        },
+                        posDocs.receipt && {
+                          kind: "receipt" as const,
+                          title: "Official Receipt",
+                          label: "Official Receipt",
+                          hint: "Approved services and payments",
+                          legacy: undefined,
+                        },
+                        posDocs.warranty && {
+                          kind: "warranty" as const,
+                          title: "Warranty Card",
+                          label: "Warranty Card",
+                          hint: "Coverage per approved service",
+                          legacy: undefined,
+                        },
+                      ]
+                        .filter(Boolean)
+                        .map((doc: any) => (
+                          <div
+                            key={doc.kind}
+                            className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/60 p-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{doc.label}</p>
+                              <p className="truncate text-xs text-muted-foreground">{doc.hint}</p>
+                            </div>
+                            <div className="flex shrink-0 gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!serviceData.serviceId}
+                                onClick={() => openPdf(doc.legacy, serviceData.serviceId, doc.kind, doc.title)}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                PDF
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                aria-label={`Print ${doc.label}`}
+                                disabled={!serviceData.serviceId}
+                                onClick={() =>
+                                  runDocAction("print", doc.legacy, serviceData.serviceId, doc.kind, doc.title)
+                                }
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                aria-label={`Download ${doc.label}`}
+                                disabled={!serviceData.serviceId}
+                                onClick={() =>
+                                  runDocAction("download", doc.legacy, serviceData.serviceId, doc.kind, doc.title)
+                                }
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                      </div>
                    </CardContent>
                  </Card>

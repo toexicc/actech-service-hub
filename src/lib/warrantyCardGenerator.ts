@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import { getLogoDataUrl } from "./pdfAssets";
-import { formatPdfTimestamp, maskStaffName } from "./utils";
+import { formatPdfTimestamp } from "./utils";
 
 /**
  * A5 Warranty Card. Deliberately kept standalone from `pdfPremiumKit` (which is
@@ -155,7 +155,7 @@ export const generateWarrantyCardPDF = async (data: WarrantyCardData): Promise<B
     17,
   );
   my += 5;
-  labelValue(doc, M + 3, my, CONTENT_W / 2 - 6, "Released By:", maskStaffName(data.releasedBy), 18);
+  labelValue(doc, M + 3, my, CONTENT_W / 2 - 6, "Released By:", data.releasedBy || "N/A", 18);
   labelValue(doc, M + CONTENT_W / 2, my, CONTENT_W / 2 - 6, "Total Paid:", `PHP ${money(data.total)}`, 17);
   y += metaH + 4;
 
@@ -255,7 +255,7 @@ export const generateWarrantyCardPDF = async (data: WarrantyCardData): Promise<B
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.4);
   setText(doc, MUTED);
-  doc.text(maskStaffName(data.releasedBy) || "—", M + sigW / 2, sigY + 6.6, { align: "center" });
+  doc.text(data.releasedBy || "—", M + sigW / 2, sigY + 6.6, { align: "center" });
   doc.text(data.clientName || "—", M + CONTENT_W - sigW / 2, sigY + 6.6, { align: "center" });
 
   // ------------------------------------------------------------ footer bar

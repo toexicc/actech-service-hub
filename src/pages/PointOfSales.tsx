@@ -18,6 +18,7 @@ import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import { PosDocumentActions } from "@/components/PosDocumentActions";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
@@ -181,6 +182,7 @@ const PointOfSales = () => {
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
   const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+  const [docsKey, setDocsKey] = useState(0);
 
   useEffect(() => {
     const sid = serviceData?.serviceId;
@@ -319,6 +321,7 @@ const PointOfSales = () => {
             } else if (docs.warrantySkipped) {
               toast({ title: "Warranty Card Not Created", description: docs.warrantySkipped });
             }
+            setDocsKey((k) => k + 1);
           } catch { /* documents are best effort */ }
         }
 
@@ -626,6 +629,15 @@ const PointOfSales = () => {
                           fullyPaid={finalCostNum > 0 && remaining <= 0.01}
                         />
                       )}
+
+                    {/* View / print / download the ticket's POS documents */}
+                    {serviceData?.serviceId && (
+                      <PosDocumentActions
+                        serviceId={serviceData.serviceId}
+                        clientName={serviceData.clientName}
+                        refreshKey={docsKey}
+                      />
+                    )}
 
                     {/* Remarks */}
                     <div className="space-y-2">
