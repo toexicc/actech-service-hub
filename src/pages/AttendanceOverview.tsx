@@ -235,7 +235,10 @@ const AttendanceOverview = () => {
   };
 
   const exportCsv = () => {
-    const header = ["Date", "Employee", "Time In", "Late", "Time Out", "Overtime", "Hours"].join(",");
+    const header = [
+      "Date", "Employee", "Time In", "Late", "Time Out", "Overtime",
+      "Overtime Status", "Clocked Hours", "Counted Hours",
+    ].join(",");
     const lines = filtered.map((r) =>
       [
         r.log_date,
