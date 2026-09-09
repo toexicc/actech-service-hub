@@ -96,6 +96,7 @@ import { syncApprovedQuotation, quotedLineItems } from "@/lib/approvedQuotationS
 import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
 import { TicketPaymentModal } from "@/components/TicketPaymentModal";
+import { PosDocumentActions } from "@/components/PosDocumentActions";
 import { logActivity, logAiFormatActivity, logTicketActivity, diffFields } from "@/lib/activityLogger";
 import {
   notifyServiceStatusChange,
@@ -356,6 +357,7 @@ const ManageClient = () => {
   const [isTogglingReleased, setIsTogglingReleased] = useState(false);
   const [releaseModalOpen, setReleaseModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [posDocsKey, setPosDocsKey] = useState(0);
   const [paymentPresetType, setPaymentPresetType] = useState<string | undefined>(undefined);
   const [paymentPresetAmount, setPaymentPresetAmount] = useState<string | undefined>(undefined);
   const [paymentPrepayment, setPaymentPrepayment] = useState(false);
@@ -2241,6 +2243,13 @@ const ManageClient = () => {
                       </Button>
                     </div>
                   </div>
+
+                  <PosDocumentActions
+                    serviceId={serviceData?.serviceId}
+                    clientName={serviceData?.clientName}
+                    serviceDate={serviceData?.serviceDate}
+                    refreshKey={posDocsKey}
+                  />
 
                   {/* Client approval is handled on the public /track page. */}
 
