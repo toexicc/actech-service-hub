@@ -570,8 +570,8 @@ const ManageClient = () => {
     }
   };
 
-  /** Released flag — also set automatically by the release queue / manual release. */
-  const handleToggleReleased = async (next: boolean) => {
+  /** Writes the Released flag directly (used when clearing it, or after a release). */
+  const setReleasedFlag = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingReleased) return;
     setIsTogglingReleased(true);
     try {
@@ -599,6 +599,20 @@ const ManageClient = () => {
       setIsTogglingReleased(false);
     }
   };
+
+  /**
+   * Switching Released on opens the release confirmation here on the page so the
+   * custody details are captured; switching it off just clears the flag.
+   */
+  const handleToggleReleased = (next: boolean) => {
+    if (next) {
+      if (serviceData?.isReleased) return;
+      setReleaseModalOpen(true);
+      return;
+    }
+    void setReleasedFlag(false);
+  };
+
 
   /**
    * The Rush priority option was retired — rush is now driven only by the Rush
