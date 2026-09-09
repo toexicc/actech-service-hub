@@ -8,7 +8,7 @@ Just above the Client Acknowledgement section, a small flags block with three sw
 - **Backjob** — carried to the ticket as the Backjob flag.
 - **Pre-Order** — carried to the ticket as the Pre-Order flag.
 
-They only appear on the staff intake form, not on the public form clients fill in themselves. The same chips then show up everywhere flags already show (ticket page, Service Tracker, Service Tracking), because they are the same ticket flags.
+They appear on the staff intake form and on the Complete Intake form used in the queue console — but not on the public form clients fill in themselves. The same chips then show up everywhere flags already show (ticket page, Service Tracker, Service Tracking), because they are the same ticket flags.
 
 Since Rush is available here as a toggle, nothing changes about the priority list (Rush was already removed from it).
 
