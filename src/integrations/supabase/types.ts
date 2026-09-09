@@ -1491,6 +1491,10 @@ export type Database = {
         Args: { _payload: Json; _queue_id?: string }
         Returns: string
       }
+      delete_service_permanently: {
+        Args: { _service_id: string }
+        Returns: Json
+      }
       find_or_create_dm_thread: {
         Args: { _other_user_id: string }
         Returns: string
