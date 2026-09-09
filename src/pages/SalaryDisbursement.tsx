@@ -158,7 +158,7 @@ const SalaryDisbursement = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("attendance_logs")
-        .select("staff_id,log_date,time_in,time_out")
+        .select("staff_id,log_date,time_in,time_out,overtime_status")
         .gte("log_date", periodRange.start)
         .lte("log_date", periodRange.end);
       return data || [];
@@ -175,7 +175,7 @@ const SalaryDisbursement = () => {
     const m: Record<string, number> = {};
     periodAttendance.forEach((r: any) => {
       if (!r.time_in) return;
-      const hrs = workedHours(r.time_in, r.time_out);
+      const hrs = payableHours(r.time_in, r.time_out, r.overtime_status);
       const dayValue = r.time_out
         ? Math.min(1, Math.round((hrs / FULL_SHIFT_HOURS) * 100) / 100)
         : 1;
@@ -189,7 +189,8 @@ const SalaryDisbursement = () => {
     const m: Record<string, number> = {};
     periodAttendance.forEach((r: any) => {
       if (!r.time_in || !r.time_out) return;
-      m[r.staff_id] = Math.round(((m[r.staff_id] || 0) + workedHours(r.time_in, r.time_out)) * 100) / 100;
+      m[r.staff_id] =
+        Math.round(((m[r.staff_id] || 0) + payableHours(r.time_in, r.time_out, r.overtime_status)) * 100) / 100;
     });
     return m;
   }, [periodAttendance]);
