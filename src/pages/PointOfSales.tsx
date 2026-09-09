@@ -416,6 +416,9 @@ const PointOfSales = () => {
             } else if (docs.warrantySkipped) {
               toast({ title: "Warranty Card Not Created", description: docs.warrantySkipped });
             }
+            if (docs.receiptSkipped) {
+              toast({ title: "Invoice Not Created Yet", description: docs.receiptSkipped });
+            }
             setDocsKey((k) => k + 1);
           } catch { /* documents are best effort */ }
         }
