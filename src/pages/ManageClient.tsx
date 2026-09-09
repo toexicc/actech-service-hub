@@ -358,6 +358,7 @@ const ManageClient = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentPresetType, setPaymentPresetType] = useState<string | undefined>(undefined);
   const [paymentPresetAmount, setPaymentPresetAmount] = useState<string | undefined>(undefined);
+  const [paymentPrepayment, setPaymentPrepayment] = useState(false);
 
   const [isReopeningApproval, setIsReopeningApproval] = useState(false);
 
