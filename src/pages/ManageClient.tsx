@@ -3789,7 +3789,14 @@ const ManageClient = () => {
           />
           <TicketPaymentModal
             open={paymentModalOpen}
-            onOpenChange={setPaymentModalOpen}
+            onOpenChange={(o) => {
+              setPaymentModalOpen(o);
+              if (!o) {
+                setPaymentPrepayment(false);
+                setPaymentPresetType(undefined);
+                setPaymentPresetAmount(undefined);
+              }
+            }}
             serviceId={serviceData.serviceId}
             clientName={serviceData.clientName}
             device={[serviceData.deviceType, serviceData.brand, serviceData.deviceModel].filter(Boolean).join(" ")}
@@ -3799,6 +3806,7 @@ const ManageClient = () => {
             initialPayment={serviceData.initialPayment}
             presetType={paymentPresetType}
             presetAmount={paymentPresetAmount}
+            prepaymentMode={paymentPrepayment}
             onRecorded={() => void reloadTicket()}
           />
         </>
