@@ -536,12 +536,13 @@ const ServiceTracking = () => {
     }
   };
 
-  const openPdf = async (
+  type DocKind = "intake" | "quotation" | "receipt" | "warranty";
+
+  const resolveDocUrl = async (
     legacyUrl: string | undefined,
     sid: string | undefined,
-    kind: "intake" | "quotation" | "receipt" | "warranty",
-    title: string,
-  ) => {
+    kind: DocKind,
+  ): Promise<string | null> => {
     let signed: string | null = null;
     if (sid) {
       // /track is a public page — visitors aren't authenticated, so the
