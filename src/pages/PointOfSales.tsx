@@ -19,11 +19,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
+import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
   type ApprovedLine,
 } from "@/lib/posDocuments";
+import {
+  fetchTicketLinesContext,
+  computeLineTotals,
+  saveTicketServiceLines,
+} from "@/lib/posServiceLines";
+import { lineDisplayName, lineEffectiveCost, type QuotedLine } from "@/lib/serviceApproval";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -180,29 +187,68 @@ const PointOfSales = () => {
 
   // -------------------------------------------------- client-facing documents
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
-  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
   const [docsKey, setDocsKey] = useState(0);
+  const [lines, setLines] = useState<QuotedLine[]>([]);
+  const [originalLines, setOriginalLines] = useState<QuotedLine[]>([]);
+  const [pricing, setPricing] = useState({
+    discount: 0,
+    vatRequested: false,
+    rushFee: false,
+    clientApproved: false,
+  });
 
   useEffect(() => {
     const sid = serviceData?.serviceId;
     if (!sid || sid === "MANUAL") {
-      setApprovedLines([]);
       setWarrantyTerms({});
+      setLines([]);
+      setOriginalLines([]);
+      setPricing({ discount: 0, vatRequested: false, rushFee: false, clientApproved: false });
       return;
     }
     let alive = true;
     fetchTicketDocumentContext(sid).then((ctx) => {
       if (!alive || !ctx) return;
-      setApprovedLines(ctx.approvedLines);
       setWarrantyTerms(ctx.warrantyTerms);
+    });
+    fetchTicketLinesContext(sid).then((ctx) => {
+      if (!alive || !ctx) return;
+      setLines(ctx.lines);
+      setOriginalLines(ctx.lines);
+      setPricing({
+        discount: ctx.discount,
+        vatRequested: ctx.vatRequested,
+        rushFee: ctx.rushFee,
+        clientApproved: ctx.clientApproved,
+      });
     });
     return () => {
       alive = false;
     };
   }, [serviceData?.serviceId]);
 
-  const finalCostNum = parseCurrency(serviceData?.finalCost || manualServiceCost);
+  /** Approved lines and totals follow whatever the editor currently shows. */
+  const approvedLines: ApprovedLine[] = lines
+    .filter((l) => l.selected)
+    .map((l) => ({ label: lineDisplayName(l), amount: lineEffectiveCost(l) }));
+
+  const editedTotals = lines.length
+    ? computeLineTotals(lines, pricing.discount, pricing.vatRequested, pricing.rushFee)
+    : null;
+
+  const handleLinesChange = (next: QuotedLine[], rename?: { from: string; to: string }) => {
+    setLines(next);
+    if (rename && warrantyTerms[rename.from] !== undefined) {
+      setWarrantyTerms((prev) => {
+        const { [rename.from]: term, ...rest } = prev;
+        return { ...rest, [rename.to]: term };
+      });
+    }
+  };
+
+  const finalCostNum =
+    editedTotals?.finalCost ?? parseCurrency(serviceData?.finalCost || manualServiceCost);
   const amountNum = parseCurrency(amount);
   const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
 
@@ -226,17 +272,66 @@ const PointOfSales = () => {
 
     const isRefund = transactionType === "Refund";
     const showsService = isServiceType || isRefund;
+    const editsLines = isServiceType && !isRefund && !!serviceData?.serviceId && lines.length > 0;
+    if (editsLines) {
+      if (lines.some((l) => !l.name.trim())) {
+        toast({ title: "Check the service lines", description: "Every service line needs a name.", variant: "destructive" });
+        return;
+      }
+      if (!lines.some((l) => l.selected)) {
+        toast({ title: "Check the service lines", description: "Include at least one service line.", variant: "destructive" });
+        return;
+      }
+    }
     const name = showsService ? (serviceData?.clientName || manualName) : "";
     const device = showsService ? (serviceData?.device || manualDevice) : "";
-    const serviceCostRaw = showsService ? parseCurrency(serviceData?.serviceCost || manualServiceCost).toFixed(2) : "0";
+    const serviceCostRaw = showsService
+      ? (editedTotals?.subtotal ?? parseCurrency(serviceData?.serviceCost || manualServiceCost)).toFixed(2)
+      : "0";
     const serviceId = showsService ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
     const partsCostRaw = showsService ? parseCurrency(serviceData?.partsCost).toFixed(2) : "0";
     const amountClean = parseCurrency(amount).toFixed(2);
-    const finalCostClean = parseCurrency(serviceData?.finalCost).toFixed(2);
+    const finalCostClean = (
+      editedTotals?.finalCost ?? parseCurrency(serviceData?.finalCost)
+    ).toFixed(2);
     const transactionId = generateTransactionId();
 
     setIsSubmitting(true);
     try {
+      // Persist any line corrections first so totals and documents agree.
+      if (editsLines) {
+        try {
+          const saved = await saveTicketServiceLines({
+            serviceId,
+            lines,
+            original: originalLines,
+            discount: pricing.discount,
+            vatRequested: pricing.vatRequested,
+            rushFee: pricing.rushFee,
+            actorName: username,
+            actorRole: userRole || "",
+          });
+          if (saved.changed) {
+            setOriginalLines(lines);
+            setServiceData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    serviceCost: String(editedTotals?.subtotal ?? prev.serviceCost),
+                    finalCost: String(saved.finalCost),
+                  }
+                : prev,
+            );
+          }
+        } catch {
+          toast({
+            title: "Service lines not saved",
+            description: "The payment will still be recorded, but the line changes did not save.",
+            variant: "destructive",
+          });
+        }
+      }
+
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
       params.append("transactionId", transactionId);
@@ -616,6 +711,20 @@ const PointOfSales = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Editable service lines */}
+                    {needsServiceInfo(transactionType) && transactionType !== "Refund" &&
+                      serviceData?.serviceId && serviceData.serviceId !== "MANUAL" && (
+                        <ServiceLinesEditor
+                          lines={lines}
+                          onChange={handleLinesChange}
+                          discount={pricing.discount}
+                          vatRequested={pricing.vatRequested}
+                          rushFee={pricing.rushFee}
+                          alreadyPaid={previousPayments}
+                          clientApproved={pricing.clientApproved}
+                        />
+                      )}
 
                     {/* Warranty card */}
                     {needsServiceInfo(transactionType) && transactionType !== "Refund" &&

@@ -26,11 +26,17 @@ import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { useServicePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
+import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
 import {
   fetchTicketDocumentContext,
   regenerateTicketDocuments,
-  type ApprovedLine,
 } from "@/lib/posDocuments";
+import {
+  fetchTicketLinesContext,
+  computeLineTotals,
+  saveTicketServiceLines,
+} from "@/lib/posServiceLines";
+import { lineDisplayName, lineEffectiveCost, type QuotedLine } from "@/lib/serviceApproval";
 
 const PAYMENT_TYPES = ["Down Payment", "Partial Payment", "Full Payment"];
 const PAYMENT_METHODS = ["GCash", "Bank Transfer", "Credit Card", "Cash", "N/A", "Others"];
@@ -90,25 +96,58 @@ export const TicketPaymentModal = ({
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
   const [docsKey, setDocsKey] = useState(0);
   const [recorded, setRecorded] = useState(false);
-  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+  const [lines, setLines] = useState<QuotedLine[]>([]);
+  const [originalLines, setOriginalLines] = useState<QuotedLine[]>([]);
+  const [pricing, setPricing] = useState({
+    discount: 0,
+    vatRequested: false,
+    rushFee: false,
+    clientApproved: false,
+  });
 
   const { data: paymentsData } = useServicePayments(open ? serviceId : undefined);
+
+  /** Final cost from the (possibly edited) lines; falls back to the stored one. */
+  const editedFinalCost = useMemo(() => {
+    if (!lines.length) return parseCurrency(finalCost);
+    return computeLineTotals(lines, pricing.discount, pricing.vatRequested, pricing.rushFee)
+      .finalCost;
+  }, [lines, pricing, finalCost]);
 
   const totals = useMemo(
     () =>
       derivePaymentTotals(
-        parseCurrency(finalCost),
+        editedFinalCost,
         parseCurrency(initialPayment),
         paymentsData?.transactionsPaid ?? 0,
       ),
-    [finalCost, initialPayment, paymentsData?.transactionsPaid],
+    [editedFinalCost, initialPayment, paymentsData?.transactionsPaid],
   );
 
   const amountNum = parseCurrency(amount);
   const remainingAfter = totals.total > 0 ? Math.max(0, totals.balance - amountNum) : 0;
 
   const fullyPaidAfter = totals.total > 0 && remainingAfter <= 0.01;
+
+  const approvedLines = useMemo(
+    () =>
+      lines
+        .filter((l) => l.selected)
+        .map((l) => ({ label: lineDisplayName(l), amount: lineEffectiveCost(l) })),
+    [lines],
+  );
+
+  /** Keep a saved warranty term with its line when the line is renamed. */
+  const handleLinesChange = (next: QuotedLine[], rename?: { from: string; to: string }) => {
+    setLines(next);
+    if (rename && warrantyTerms[rename.from] !== undefined) {
+      setWarrantyTerms((prev) => {
+        const { [rename.from]: term, ...rest } = prev;
+        return { ...rest, [rename.to]: term };
+      });
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -124,8 +163,18 @@ export const TicketPaymentModal = ({
     let alive = true;
     fetchTicketDocumentContext(serviceId).then((ctx) => {
       if (!alive || !ctx) return;
-      setApprovedLines(ctx.approvedLines);
       setWarrantyTerms(ctx.warrantyTerms);
+    });
+    fetchTicketLinesContext(serviceId).then((ctx) => {
+      if (!alive || !ctx) return;
+      setLines(ctx.lines);
+      setOriginalLines(ctx.lines);
+      setPricing({
+        discount: ctx.discount,
+        vatRequested: ctx.vatRequested,
+        rushFee: ctx.rushFee,
+        clientApproved: ctx.clientApproved,
+      });
     });
     return () => {
       alive = false;
@@ -142,10 +191,47 @@ export const TicketPaymentModal = ({
       });
       return;
     }
+    if (lines.some((l) => !l.name.trim())) {
+      toast({
+        title: "Check the service lines",
+        description: "Every service line needs a name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (lines.length > 0 && !lines.some((l) => l.selected)) {
+      toast({
+        title: "Check the service lines",
+        description: "Include at least one service line.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
     const transactionId = `TXN${Date.now()}`;
     const amountClean = amountNum.toFixed(2);
     try {
+      // Save any line corrections first so the totals and documents agree.
+      try {
+        const saved = await saveTicketServiceLines({
+          serviceId,
+          lines,
+          original: originalLines,
+          discount: pricing.discount,
+          vatRequested: pricing.vatRequested,
+          rushFee: pricing.rushFee,
+          actorName: username,
+          actorRole: userRole,
+        });
+        if (saved.changed) setOriginalLines(lines);
+      } catch {
+        toast({
+          title: "Service lines not saved",
+          description: "The payment will still be recorded, but the line changes did not save.",
+          variant: "destructive",
+        });
+      }
+
       const params = new URLSearchParams();
       params.append("action", "addTransaction");
       params.append("transactionId", transactionId);
@@ -155,11 +241,18 @@ export const TicketPaymentModal = ({
       params.append("name", clientName || "");
       params.append("device", device || "");
       params.append("amount", amountClean);
-      params.append("serviceCost", parseCurrency(serviceCost).toFixed(2));
+      params.append(
+        "serviceCost",
+        (lines.length
+          ? computeLineTotals(lines, pricing.discount, pricing.vatRequested, pricing.rushFee)
+              .subtotal
+          : parseCurrency(serviceCost)
+        ).toFixed(2),
+      );
       params.append("attendant", username);
       params.append("remarks", remarks);
       params.append("partsCost", parseCurrency(partsCost).toFixed(2));
-      params.append("finalCost", parseCurrency(finalCost).toFixed(2));
+      params.append("finalCost", editedFinalCost.toFixed(2));
       params.append("previousPayments", totals.paid.toFixed(2));
 
       const res = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
@@ -287,6 +380,16 @@ export const TicketPaymentModal = ({
 
           {!recorded && (
             <>
+              <ServiceLinesEditor
+                lines={lines}
+                onChange={handleLinesChange}
+                discount={pricing.discount}
+                vatRequested={pricing.vatRequested}
+                rushFee={pricing.rushFee}
+                alreadyPaid={totals.paid}
+                clientApproved={pricing.clientApproved}
+              />
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Payment type</Label>
