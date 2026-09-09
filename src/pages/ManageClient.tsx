@@ -2129,6 +2129,16 @@ const ManageClient = () => {
               actions={
                 serviceData.serviceId ? (
                   <div className="flex items-center gap-2">
+                    {canDeleteService && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleteDialogOpen(true)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       className="bg-emerald-600 text-white hover:bg-emerald-700"
@@ -2395,20 +2405,12 @@ const ManageClient = () => {
                     />
                   ) : (
                     <div className="space-y-4">
-                      {(canEditAdminRep || canDeleteService) && (
+                      {canEditAdminRep && (
                         <div className="flex justify-end gap-2">
-                          {canDeleteService && (
-                            <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete service
-                            </Button>
-                          )}
-                          {canEditAdminRep && (
                           <Button variant="outline" size="sm" onClick={() => setIsEditingDetails(true)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit details
                           </Button>
-                          )}
                         </div>
                       )}
                       <div>
