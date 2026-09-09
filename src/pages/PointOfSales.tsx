@@ -180,29 +180,68 @@ const PointOfSales = () => {
 
   // -------------------------------------------------- client-facing documents
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
-  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
   const [docsKey, setDocsKey] = useState(0);
+  const [lines, setLines] = useState<QuotedLine[]>([]);
+  const [originalLines, setOriginalLines] = useState<QuotedLine[]>([]);
+  const [pricing, setPricing] = useState({
+    discount: 0,
+    vatRequested: false,
+    rushFee: false,
+    clientApproved: false,
+  });
 
   useEffect(() => {
     const sid = serviceData?.serviceId;
     if (!sid || sid === "MANUAL") {
-      setApprovedLines([]);
       setWarrantyTerms({});
+      setLines([]);
+      setOriginalLines([]);
+      setPricing({ discount: 0, vatRequested: false, rushFee: false, clientApproved: false });
       return;
     }
     let alive = true;
     fetchTicketDocumentContext(sid).then((ctx) => {
       if (!alive || !ctx) return;
-      setApprovedLines(ctx.approvedLines);
       setWarrantyTerms(ctx.warrantyTerms);
+    });
+    fetchTicketLinesContext(sid).then((ctx) => {
+      if (!alive || !ctx) return;
+      setLines(ctx.lines);
+      setOriginalLines(ctx.lines);
+      setPricing({
+        discount: ctx.discount,
+        vatRequested: ctx.vatRequested,
+        rushFee: ctx.rushFee,
+        clientApproved: ctx.clientApproved,
+      });
     });
     return () => {
       alive = false;
     };
   }, [serviceData?.serviceId]);
 
-  const finalCostNum = parseCurrency(serviceData?.finalCost || manualServiceCost);
+  /** Approved lines and totals follow whatever the editor currently shows. */
+  const approvedLines: ApprovedLine[] = lines
+    .filter((l) => l.selected)
+    .map((l) => ({ label: lineDisplayName(l), amount: lineEffectiveCost(l) }));
+
+  const editedTotals = lines.length
+    ? computeLineTotals(lines, pricing.discount, pricing.vatRequested, pricing.rushFee)
+    : null;
+
+  const handleLinesChange = (next: QuotedLine[], rename?: { from: string; to: string }) => {
+    setLines(next);
+    if (rename && warrantyTerms[rename.from] !== undefined) {
+      setWarrantyTerms((prev) => {
+        const { [rename.from]: term, ...rest } = prev;
+        return { ...rest, [rename.to]: term };
+      });
+    }
+  };
+
+  const finalCostNum =
+    editedTotals?.finalCost ?? parseCurrency(serviceData?.finalCost || manualServiceCost);
   const amountNum = parseCurrency(amount);
   const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
 
