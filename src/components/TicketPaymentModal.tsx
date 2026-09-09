@@ -202,6 +202,23 @@ export const TicketPaymentModal = ({
         }
       }
 
+      // Refresh the client-facing documents from the ticket's own record.
+      try {
+        const docs = await regenerateTicketDocuments({
+          serviceId,
+          actorName: username,
+          warrantyTerms,
+          createWarranty: warrantyEnabled,
+        });
+        if (docs.warranty) {
+          toast({ title: "Warranty card created", description: `${serviceId} • A5 warranty card` });
+        } else if (docs.warrantySkipped) {
+          toast({ title: "Warranty card not created", description: docs.warrantySkipped });
+        }
+      } catch {
+        /* documents are best effort */
+      }
+
       queryClient.invalidateQueries({ queryKey: ["servicePayments", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
