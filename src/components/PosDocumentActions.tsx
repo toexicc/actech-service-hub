@@ -215,13 +215,18 @@ export const PosDocumentActions = ({
             <div className="flex shrink-0 gap-1">
               <Button
                 size="sm"
-                variant="outline"
+                variant={ready ? "secondary" : "default"}
                 disabled={d.generating}
                 aria-label={`${ready ? "Update" : "Generate"} ${d.title}`}
                 title={`${ready ? "Update" : "Generate"} ${d.title}`}
                 onClick={() => d.onGenerate()}
               >
-                {d.generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {d.generating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-1">{ready ? "Update" : "Generate"}</span>
               </Button>
               <Button
                 size="sm"
