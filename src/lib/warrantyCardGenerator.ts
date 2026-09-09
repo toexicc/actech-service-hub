@@ -129,7 +129,11 @@ export const generateWarrantyCardPDF = async (data: WarrantyCardData): Promise<B
     y,
     { align: "center" },
   );
-  y += 6;
+  y += 3.4;
+  doc.setFontSize(6.6);
+  setText(doc, MUTED);
+  doc.text("MONDAY TO SATURDAY (10:00 AM - 7:00 PM)", PAGE_W / 2, y, { align: "center" });
+  y += 9;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   setText(doc, NAVY);

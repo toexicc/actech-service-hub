@@ -308,7 +308,7 @@ export const drawLetterhead = (doc: jsPDF, logo: string, title: string, isUpdate
   setText(doc, MUTED);
   doc.text("MONDAY TO SATURDAY (10:00 AM - 7:00 PM)", PAGE_W / 2, y, { align: "center" });
 
-  y += 7;
+  y += 11;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
   setText(doc, NAVY);
