@@ -16,7 +16,7 @@ Since Rush is available here as a toggle, nothing changes about the priority lis
 
 On a successful staff submission, instead of just showing the success message and clearing the form, the page opens the new ticket on Manage Client with that ticket number already loaded — no searching. The success message still names the ticket number, and the intake PDF still generates as it does today.
 
-The public form and the queue "Complete Intake" window keep their current behaviour (they stay where they are).
+The public form keeps its current behaviour. The queue "Complete Intake" window closes as it does today and the console shows the finished entry.
 
 ## 3. Pre-Order tickets open the payment window with a down payment ready
 
