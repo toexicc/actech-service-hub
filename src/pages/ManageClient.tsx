@@ -600,14 +600,11 @@ const ManageClient = () => {
     }
   };
 
-  /** Choosing the Rush priority switches the Rush flag on automatically. */
-  useEffect(() => {
-    if (!serviceData?.serviceId) return;
-    if (!/rush/i.test(updatePriority || "")) return;
-    if (serviceData.rushFee) return;
-    handleToggleRush(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updatePriority, serviceData?.serviceId]);
+  /**
+   * The Rush priority option was retired — rush is now driven only by the Rush
+   * toggle, so there is no longer a priority-based auto-switch here.
+   */
+
 
   const fetchApiKey = async () => {
     try {
