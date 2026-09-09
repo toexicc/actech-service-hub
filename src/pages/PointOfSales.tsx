@@ -17,6 +17,12 @@ import { fetchStaffList } from "@/lib/staffList";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
+import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import {
+  fetchTicketDocumentContext,
+  regenerateTicketDocuments,
+  type ApprovedLine,
+} from "@/lib/posDocuments";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -170,6 +176,29 @@ const PointOfSales = () => {
   }, [searchServiceId]);
 
   const generateTransactionId = () => `TXN${Date.now()}`;
+
+  // -------------------------------------------------- client-facing documents
+  const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [approvedLines, setApprovedLines] = useState<ApprovedLine[]>([]);
+  const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const sid = serviceData?.serviceId;
+    if (!sid || sid === "MANUAL") {
+      setApprovedLines([]);
+      setWarrantyTerms({});
+      return;
+    }
+    let alive = true;
+    fetchTicketDocumentContext(sid).then((ctx) => {
+      if (!alive || !ctx) return;
+      setApprovedLines(ctx.approvedLines);
+      setWarrantyTerms(ctx.warrantyTerms);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [serviceData?.serviceId]);
 
   const finalCostNum = parseCurrency(serviceData?.finalCost || manualServiceCost);
   const amountNum = parseCurrency(amount);
