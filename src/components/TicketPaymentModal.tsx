@@ -350,7 +350,7 @@ export const TicketPaymentModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-lg">
+      <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-3xl">
         <DialogHeader className="shrink-0">
           <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
@@ -359,122 +359,123 @@ export const TicketPaymentModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 space-y-4 overflow-y-auto py-1">
-          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
-            <div className="flex justify-between py-0.5">
-              <span className="text-muted-foreground">Amount due</span>
-              <span className="font-medium">{totals.total > 0 ? peso(totals.total) : "Not set yet"}</span>
-            </div>
-            <div className="flex justify-between py-0.5">
-              <span className="text-muted-foreground">Already paid</span>
-              <span className="font-medium">{peso(totals.paid)}</span>
-            </div>
-            <div className="flex justify-between py-0.5">
-              <span className="text-muted-foreground">Balance</span>
-              <span className="font-semibold">
-                {totals.total > 0 ? peso(totals.balance) : "—"}
-              </span>
-            </div>
-            {amountNum > 0 && (
-              <div className="mt-1 border-t border-border/60 pt-1 flex justify-between">
-                <span className="text-muted-foreground">Balance after this payment</span>
-                <span className="font-semibold">
-                  {totals.total > 0 ? peso(remainingAfter) : "Credit on ticket"}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {totals.total <= 0 && (
-            <p className="rounded-md bg-amber-500/10 p-2 text-xs text-amber-700">
-              No final cost yet — this payment is kept as credit on the ticket and will be
-              deducted once the cost is set.
-            </p>
-          )}
-
-          {!recorded && (
-            <>
-              {!prepaymentMode && (
-                <ServiceLinesEditor
-                  lines={lines}
-                  onChange={handleLinesChange}
-                  discount={pricing.discount}
-                  vatRequested={pricing.vatRequested}
-                  rushFee={pricing.rushFee}
-                  alreadyPaid={totals.paid}
-                  clientApproved={pricing.clientApproved}
-                />
-              )}
-
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Payment type</Label>
-                  <Select value={type} onValueChange={setType}>
-                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Mode of payment</Label>
-                  <Select value={method} onValueChange={setMethod}>
-                    <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_METHODS.map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {method === "Others" && (
-                    <Input
-                      placeholder="Specify payment method"
-                      value={otherMethod}
-                      onChange={(e) => setOtherMethod(e.target.value)}
-                    />
+        <div className="flex-1 overflow-y-auto py-1">
+          {!recorded ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* LEFT — summary & service lines */}
+              <div className="space-y-3">
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
+                  <div className="flex justify-between py-0.5">
+                    <span className="text-muted-foreground">Amount due</span>
+                    <span className="font-medium">{totals.total > 0 ? peso(totals.total) : "Not set yet"}</span>
+                  </div>
+                  <div className="flex justify-between py-0.5">
+                    <span className="text-muted-foreground">Already paid</span>
+                    <span className="font-medium">{peso(totals.paid)}</span>
+                  </div>
+                  <div className="flex justify-between py-0.5">
+                    <span className="text-muted-foreground">Balance</span>
+                    <span className="font-semibold">
+                      {totals.total > 0 ? peso(totals.balance) : "—"}
+                    </span>
+                  </div>
+                  {amountNum > 0 && (
+                    <div className="mt-1 border-t border-border/60 pt-1 flex justify-between">
+                      <span className="text-muted-foreground">Balance after this payment</span>
+                      <span className="font-semibold">
+                        {totals.total > 0 ? peso(remainingAfter) : "Credit on ticket"}
+                      </span>
+                    </div>
                   )}
                 </div>
+
+                {totals.total <= 0 && (
+                  <p className="rounded-md bg-amber-500/10 p-2 text-xs text-amber-700">
+                    No final cost yet — this payment is kept as credit on the ticket and will be
+                    deducted once the cost is set.
+                  </p>
+                )}
+
+                {!prepaymentMode && (
+                  <ServiceLinesEditor
+                    lines={lines}
+                    onChange={handleLinesChange}
+                    discount={pricing.discount}
+                    vatRequested={pricing.vatRequested}
+                    rushFee={pricing.rushFee}
+                    alreadyPaid={totals.paid}
+                    clientApproved={pricing.clientApproved}
+                  />
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Amount</Label>
-                <Input
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
+              {/* RIGHT — payment entry */}
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Payment type</Label>
+                    <Select value={type} onValueChange={setType}>
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Mode of payment</Label>
+                    <Select value={method} onValueChange={setMethod}>
+                      <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHODS.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {method === "Others" && (
+                      <Input
+                        placeholder="Specify payment method"
+                        value={otherMethod}
+                        onChange={(e) => setOtherMethod(e.target.value)}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Amount</Label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+
+                {!prepaymentMode && (
+                  <WarrantyCardFields
+                    enabled={warrantyEnabled}
+                    onEnabledChange={setWarrantyEnabled}
+                    lines={approvedLines}
+                    terms={warrantyTerms}
+                    onTermsChange={setWarrantyTerms}
+                    fullyPaid={fullyPaidAfter}
+                  />
+                )}
+
+                <div className="space-y-1.5">
+                  <Label>Remarks (optional)</Label>
+                  <Textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+                </div>
               </div>
-
-              {!prepaymentMode && (
-                <WarrantyCardFields
-                  enabled={warrantyEnabled}
-                  onEnabledChange={setWarrantyEnabled}
-                  lines={approvedLines}
-                  terms={warrantyTerms}
-                  onTermsChange={setWarrantyTerms}
-                  fullyPaid={fullyPaidAfter}
-                />
-              )}
-
-
-              <div className="space-y-1.5">
-                <Label>Remarks (optional)</Label>
-                <Textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-              </div>
-            </>
-          )}
-
-          {recorded && (
+            </div>
+          ) : (
             <p className="rounded-md bg-emerald-500/10 p-2 text-xs text-emerald-700">
               Payment recorded. The receipt and warranty card are available under the Service
               Quotation Form section.
             </p>
           )}
-
         </div>
 
         <DialogFooter className="shrink-0">
