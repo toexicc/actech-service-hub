@@ -392,15 +392,18 @@ export const TicketPaymentModal = ({
 
           {!recorded && (
             <>
-              <ServiceLinesEditor
-                lines={lines}
-                onChange={handleLinesChange}
-                discount={pricing.discount}
-                vatRequested={pricing.vatRequested}
-                rushFee={pricing.rushFee}
-                alreadyPaid={totals.paid}
-                clientApproved={pricing.clientApproved}
-              />
+              {!prepaymentMode && (
+                <ServiceLinesEditor
+                  lines={lines}
+                  onChange={handleLinesChange}
+                  discount={pricing.discount}
+                  vatRequested={pricing.vatRequested}
+                  rushFee={pricing.rushFee}
+                  alreadyPaid={totals.paid}
+                  clientApproved={pricing.clientApproved}
+                />
+              )}
+
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
