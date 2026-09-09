@@ -244,7 +244,9 @@ const AttendanceOverview = () => {
         r.is_late ? "Yes" : "No",
         fmtTime(r.time_out),
         r.is_overtime ? "Yes" : "No",
+        r.overtime_status || "none",
         computeHours(r.time_in, r.time_out),
+        countedHours(r),
       ].join(","),
     );
     const blob = new Blob([[header, ...lines].join("\n")], { type: "text/csv" });
@@ -732,7 +734,9 @@ const AttendanceOverview = () => {
                                     </TableCell>
                                     <TableCell>{fmtTime(r.time_in)}</TableCell>
                                     <TableCell>{fmtTime(r.time_out)}</TableCell>
-                                    <TableCell>{computeHours(r.time_in, r.time_out)}</TableCell>
+                                    <TableCell title={`Clocked: ${computeHours(r.time_in, r.time_out)}`}>
+                                      {countedHours(r)}
+                                    </TableCell>
                                     <TableCell className="space-x-1">
                                       {r.is_holiday && (
                                         <Badge variant="outline" className="border-amber-400 text-amber-700">
@@ -740,7 +744,45 @@ const AttendanceOverview = () => {
                                         </Badge>
                                       )}
                                       {r.is_late && <Badge variant="destructive">Late</Badge>}
-                                      {r.is_overtime && <Badge>Overtime</Badge>}
+                                      {r.is_overtime && (
+                                        <>
+                                          {(r.overtime_status || "pending") === "approved" && (
+                                            <Badge className="bg-emerald-600">Overtime approved</Badge>
+                                          )}
+                                          {r.overtime_status === "rejected" && (
+                                            <Badge variant="outline" className="text-muted-foreground">
+                                              Overtime rejected
+                                            </Badge>
+                                          )}
+                                          {(!r.overtime_status || r.overtime_status === "pending" || r.overtime_status === "none") && (
+                                            <Badge variant="outline" className="border-amber-400 text-amber-700">
+                                              Overtime pending
+                                            </Badge>
+                                          )}
+                                          {isManagement && r.overtime_status !== "approved" && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-6 px-2 text-xs"
+                                              disabled={otSaving === r.id}
+                                              onClick={() => reviewOvertime(r, "approved")}
+                                            >
+                                              Approve
+                                            </Button>
+                                          )}
+                                          {isManagement && r.overtime_status !== "rejected" && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-6 px-2 text-xs text-destructive"
+                                              disabled={otSaving === r.id}
+                                              onClick={() => reviewOvertime(r, "rejected")}
+                                            >
+                                              Reject
+                                            </Button>
+                                          )}
+                                        </>
+                                      )}
                                     </TableCell>
                                     <TableCell>
                                       <div className="flex gap-1">
