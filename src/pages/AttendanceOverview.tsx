@@ -353,6 +353,35 @@ const AttendanceOverview = () => {
     }
   };
 
+  // ---------- overtime review (management only) ----------
+  const isManagement = (sessionStorage.getItem("userRole") || "").toLowerCase() === "management";
+  const [otSaving, setOtSaving] = useState<string | null>(null);
+
+  const reviewOvertime = async (r: AttendanceRow, status: "approved" | "rejected") => {
+    setOtSaving(r.id);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("attendance_logs")
+        .update({
+          overtime_status: status,
+          overtime_reviewed_by: auth?.user?.id ?? null,
+          overtime_reviewed_at: new Date().toISOString(),
+        } as any)
+        .eq("id", r.id);
+      if (error) throw new Error(error.message);
+      setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, overtime_status: status } : x)));
+      toast({
+        title: status === "approved" ? "Overtime approved" : "Overtime rejected",
+        description: `${r.staff_name} • ${r.log_date}`,
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Could not update overtime.", variant: "destructive" });
+    } finally {
+      setOtSaving(null);
+    }
+  };
+
   // ---------- attendance row actions ----------
   const openEdit = (r: AttendanceRow) => {
     setEditRow(r);
