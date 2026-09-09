@@ -670,7 +670,8 @@ const ManageClient = () => {
   // Handle serviceId from URL params (from Service Tracker redirect)
   useEffect(() => {
     const urlServiceId = searchParams.get("serviceId");
-    if (urlServiceId) {
+    if (urlServiceId && autoLoadedRef.current !== urlServiceId) {
+      autoLoadedRef.current = urlServiceId;
       setServiceId(urlServiceId);
       // Auto-search after setting the service ID
       const autoSearch = async () => {
