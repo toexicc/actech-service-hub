@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateReceiptPDF, type ReceiptLine } from "@/lib/receiptPdfGenerator";
 import { generateWarrantyCardPDF, type WarrantyLine } from "@/lib/warrantyCardGenerator";
 import { uploadServicePdf } from "@/lib/servicePdfStorage";
+import { logTicketActivity } from "@/lib/activityLogger";
 import { summarizePayments, derivePaymentTotals } from "@/hooks/useServicePayments";
 import {
   normalizeQuotedBreakdown,
@@ -229,6 +230,11 @@ export const regenerateTicketDocuments = async (
   } catch {
     out.warranty = false;
   }
+
+  // Document generation is real closing work, so it lands on the ticket
+  // timeline and counts on the Reports output leaderboard.
+  if (out.receipt) logTicketActivity(serviceId, "Service Invoice - Receipt generated");
+  if (out.warranty) logTicketActivity(serviceId, "Warranty Card generated");
 
   return out;
 };

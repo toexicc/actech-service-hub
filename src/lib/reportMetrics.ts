@@ -283,6 +283,8 @@ const PHOTO_RE = /(diagnosis|device report)\s+photos?\b.*\b(uploaded|added)/i;
 const BACKJOB_RE = /^marked as backjob/i;
 /** Client approval captured on the public tracker. */
 const APPROVAL_RE = /client approved on \/track/i;
+/** POS closing documents: invoice-receipt / warranty card generation. */
+const DOCUMENT_RE = /(service invoice - receipt|warranty card)\s+generated/i;
 
 
 
