@@ -237,7 +237,6 @@ export const regenerateTicketDocuments = async (
 
   // Document generation is real closing work, so it lands on the ticket
   // timeline and counts on the Reports output leaderboard.
-  if (out.receipt) logTicketActivity(serviceId, "Service Invoice - Receipt generated");
   if (out.warranty) logTicketActivity(serviceId, "Warranty Card generated");
 
   return out;
