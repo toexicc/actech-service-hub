@@ -112,7 +112,7 @@ type FlagKey = "today" | "waitingParts" | "preOrder" | "backjob" | "completedBac
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
-  { key: "preOrder", label: "Pre-Order", match: (s) => !!s.hasPreOrder },
+  { key: "preOrder", label: "Pre-Order", match: (s) => !!s.hasPreOrder && !isDoneCompleted(s) },
 
   { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
   {
