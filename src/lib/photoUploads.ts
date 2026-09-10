@@ -183,7 +183,7 @@ export const uploadServicePhotos = async ({
       const path = `${serviceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
       await uploadOne(bucket, path, compressed);
 
-      const { error: insErr } = await supabase.from("service_files").insert({
+      const row = {
         service_id: serviceId,
         kind: kind as any,
         bucket,
@@ -192,7 +192,12 @@ export const uploadServicePhotos = async ({
         mime_type: "image/jpeg",
         size_bytes: compressed.size,
         uploaded_by: user?.id ?? null,
-      });
+      };
+      let { error: insErr } = await supabase.from("service_files").insert(row);
+      if (insErr && looksLikeAuthError(insErr.message)) {
+        await refreshSessionQuietly();
+        ({ error: insErr } = await supabase.from("service_files").insert(row));
+      }
       if (insErr) {
         // Don't leave an orphaned object behind.
         await supabase.storage.from(bucket).remove([path]);
