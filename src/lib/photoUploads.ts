@@ -99,6 +99,23 @@ export interface UploadResult {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * A long-open app tab can hold an expired login. Storage and table writes then
+ * fail with an authorization error, which looks like "upload broken" to staff.
+ * Refreshing the login once and retrying clears it.
+ */
+const looksLikeAuthError = (message?: string): boolean =>
+  /jwt|token|unauthor|not authenticated|expired|session|403|401/i.test(String(message ?? ""));
+
+export const refreshSessionQuietly = async (): Promise<boolean> => {
+  try {
+    const { data } = await supabase.auth.refreshSession();
+    return Boolean(data?.session?.access_token);
+  } catch {
+    return false;
+  }
+};
+
 const uploadOne = async (
   bucket: string,
   path: string,
@@ -109,9 +126,13 @@ const uploadOne = async (
     .from(bucket)
     .upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (!error) return;
-  // One retry for transient network/storage errors.
+
   if (attempt === 0) {
-    await sleep(800);
+    if (looksLikeAuthError(error.message)) {
+      await refreshSessionQuietly();
+    } else {
+      await sleep(800);
+    }
     return uploadOne(bucket, path, file, 1);
   }
   throw new Error(error.message || "Upload failed. Check your connection and try again");
@@ -126,6 +147,13 @@ export const uploadServicePhotos = async ({
 }: UploadOptions): Promise<UploadResult> => {
   const failures: UploadResult["failures"] = [];
   let uploaded = 0;
+
+  // Make sure the login is fresh before a batch of uploads starts.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const expiresAt = sessionData?.session?.expires_at ?? 0;
+  if (!expiresAt || expiresAt * 1000 - Date.now() < 120_000) {
+    await refreshSessionQuietly();
+  }
 
   const {
     data: { user },
@@ -155,7 +183,7 @@ export const uploadServicePhotos = async ({
       const path = `${serviceId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
       await uploadOne(bucket, path, compressed);
 
-      const { error: insErr } = await supabase.from("service_files").insert({
+      const row = {
         service_id: serviceId,
         kind: kind as any,
         bucket,
@@ -164,7 +192,12 @@ export const uploadServicePhotos = async ({
         mime_type: "image/jpeg",
         size_bytes: compressed.size,
         uploaded_by: user?.id ?? null,
-      });
+      };
+      let { error: insErr } = await supabase.from("service_files").insert(row);
+      if (insErr && looksLikeAuthError(insErr.message)) {
+        await refreshSessionQuietly();
+        ({ error: insErr } = await supabase.from("service_files").insert(row));
+      }
       if (insErr) {
         // Don't leave an orphaned object behind.
         await supabase.storage.from(bucket).remove([path]);
