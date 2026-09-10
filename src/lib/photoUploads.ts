@@ -148,6 +148,13 @@ export const uploadServicePhotos = async ({
   const failures: UploadResult["failures"] = [];
   let uploaded = 0;
 
+  // Make sure the login is fresh before a batch of uploads starts.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const expiresAt = sessionData?.session?.expires_at ?? 0;
+  if (!expiresAt || expiresAt * 1000 - Date.now() < 120_000) {
+    await refreshSessionQuietly();
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
