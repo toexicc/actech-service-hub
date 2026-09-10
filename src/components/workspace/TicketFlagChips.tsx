@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { isCompletedStatus } from "@/lib/serviceStatus";
 
 /**
  * The at-a-glance flags for a ticket (Rush, Released, Pre-Order, Backjob,
