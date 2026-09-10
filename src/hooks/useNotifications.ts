@@ -127,8 +127,9 @@ export const useNotifications = (userId: string | null, _enabled: boolean = true
   // Realtime: instant delivery of new/updated notifications for this user.
   useEffect(() => {
     if (!userId || !enabled) return;
+    // Unique topic per mount — reusing a live topic makes Supabase throw.
     const channel = supabase
-      .channel(`notifications-${userId}`)
+      .channel(`notifications-${userId}-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${userId}` },

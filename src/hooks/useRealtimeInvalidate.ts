@@ -55,7 +55,10 @@ export const useRealtimeInvalidate = (enabled: boolean = true) => {
     };
     document.addEventListener("visibilitychange", onVisible);
 
-    const channel = supabase.channel("app-realtime-invalidate");
+    // Unique topic per mount — reusing a live topic makes Supabase throw.
+    const channel = supabase.channel(
+      `app-realtime-invalidate-${Math.random().toString(36).slice(2)}`,
+    );
 
     Object.entries(TABLE_KEYS).forEach(([table, keys]) => {
       channel.on(
