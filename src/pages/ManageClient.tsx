@@ -672,8 +672,9 @@ const ManageClient = () => {
         const { data } = await supabase
           .from("activity_logs")
           .select("id")
-          .eq("service_id", sid)
-          .ilike("activity", "Device released%")
+          .eq("entity_type", "service")
+          .eq("entity_id", sid)
+          .ilike("action", "Device released%")
           .limit(1);
         if (cancelled) return;
         if (!data || data.length === 0) setReleaseModalOpen(true);
