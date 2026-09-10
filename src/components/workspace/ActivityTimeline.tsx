@@ -92,16 +92,25 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
    */
   useEffect(() => {
     if (!serviceId) return;
-    const channel = supabase
-      .channel(`activity-${serviceId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "activity_logs", filter: `entity_id=eq.${serviceId}` },
-        () => setReloadKey((k) => k + 1),
-      )
-      .subscribe();
+    // Unique topic per mount: reusing a topic that is still subscribed makes
+    // Supabase throw ("cannot add postgres_changes callbacks after subscribe").
+    const topic = `activity-${serviceId}-${Math.random().toString(36).slice(2)}`;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(topic)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "activity_logs", filter: `entity_id=eq.${serviceId}` },
+          () => setReloadKey((k) => k + 1),
+        )
+        .subscribe();
+    } catch {
+      // Live updates are a convenience — the Refresh button still works.
+      channel = null;
+    }
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [serviceId]);
 
