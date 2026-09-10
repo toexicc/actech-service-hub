@@ -105,8 +105,9 @@ export function useServiceLiveWatch(serviceId: string | null | undefined, active
       setIsLive(false);
       return;
     }
+    // Unique topic per mount — reusing a live topic makes Supabase throw.
     const channel = supabase
-      .channel(`service-watch-${serviceId}`)
+      .channel(`service-watch-${serviceId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes" as any,
         { event: "UPDATE", schema: "public", table: "services", filter: `service_id=eq.${serviceId}` },
