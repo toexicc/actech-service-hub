@@ -655,37 +655,6 @@ const ManageClient = () => {
     void setReleasedFlag(false);
   };
 
-  /**
-   * If a ticket is flagged Released but has no actual release record in the
-   * activity log (e.g. backfilled flags), open the manual release modal once
-   * so the custody details (released from/by/received by) get captured.
-   */
-  const releasePromptedRef = useRef<string | null>(null);
-  useEffect(() => {
-    const sid = serviceData?.serviceId;
-    if (!sid || !serviceData?.isReleased) return;
-    if (releasePromptedRef.current === sid) return;
-    releasePromptedRef.current = sid;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("activity_logs")
-          .select("id")
-          .eq("entity_type", "service")
-          .eq("entity_id", sid)
-          .ilike("action", "Device released%")
-          .limit(1);
-        if (cancelled) return;
-        if (!data || data.length === 0) setReleaseModalOpen(true);
-      } catch {
-        // Ignore lookup failures — the toggle still opens the modal manually.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [serviceData?.serviceId, serviceData?.isReleased]);
 
 
   /**
