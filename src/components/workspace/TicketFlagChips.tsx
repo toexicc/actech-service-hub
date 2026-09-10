@@ -31,7 +31,7 @@ export function TicketFlagChips({ service, showWithinDay = true, className }: Ti
   if (service?.rushFee) {
     chips.push({ key: "rush", label: "Rush", cls: "border-orange-400/40 bg-orange-500/15 text-orange-600" });
   }
-  if (service?.hasPreOrder) {
+  if (service?.hasPreOrder && !isCompletedStatus(service?.status)) {
     chips.push({
       key: "preOrder",
       label: "Pre-Order",
