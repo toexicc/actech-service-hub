@@ -79,9 +79,8 @@ export const formatDiagnosisSections = async (args: DiagnosisArgs): Promise<Diag
 
 /** Format the technician report into the customer-facing service report. */
 export const formatReportWithAI = async (args: ReportArgs): Promise<string> => {
-  const { data, error } = await supabase.functions.invoke("format-report", { body: args });
-  if (error) throw new Error(AI_ERROR_MESSAGE);
-  const text = (data as any)?.formattedReport;
+  const data = await invokeAiFunction<any>("format-report", args);
+  const text = data?.formattedReport;
   if (!text) throw new Error(AI_ERROR_MESSAGE);
   return text as string;
 };
