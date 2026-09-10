@@ -37,6 +37,7 @@ import { ensureClient } from "@/hooks/useClients";
 import { IntakeShareActions } from "@/components/IntakeShareActions";
 import { useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
+import { invokeAiFunction } from "@/lib/aiFormatters";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
@@ -1550,12 +1551,11 @@ const ServiceForm = ({
                         if (!raw) return;
                         setIsFormattingComplaint(true);
                         try {
-                          const { data: resp, error } = await supabase.functions.invoke(
-                            "format-complaint",
-                            { body: { rawComplaint: raw, mode: isPublic ? "brief" : "detailed" } },
-                          );
-                          if (error) throw error;
-                          const formatted = (resp as any)?.formattedComplaint;
+                           const resp = await invokeAiFunction<any>("format-complaint", {
+                            rawComplaint: raw,
+                            mode: isPublic ? "brief" : "detailed",
+                          });
+                          const formatted = resp?.formattedComplaint;
                           if (formatted) {
                             form.setValue("chiefComplaint", formatted, { shouldDirty: true, shouldValidate: true });
                             toast({ title: "Formatted", description: "Chief complaint rewritten." });

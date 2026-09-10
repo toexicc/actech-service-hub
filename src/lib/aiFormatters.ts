@@ -27,11 +27,42 @@ interface ReportArgs {
  */
 export const AI_ERROR_MESSAGE = "AI Network Error - Contact Administrator";
 
+/**
+ * Calls an AI edge function with an explicitly attached access token. A stale
+ * or nearly expired login is the usual reason these calls fail, so the token is
+ * refreshed and the call retried once before giving up.
+ */
+export const invokeAiFunction = async <T>(name: string, body: unknown): Promise<T> => {
+  const attempt = async (token?: string) => {
+    const { data, error } = await supabase.functions.invoke(name, {
+      body,
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+    });
+    if (error) throw error;
+    return data as T;
+  };
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+
+  try {
+    return await attempt(token);
+  } catch (first) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    const freshToken = refreshed?.session?.access_token;
+    if (!freshToken) throw new Error(AI_ERROR_MESSAGE);
+    try {
+      return await attempt(freshToken);
+    } catch {
+      throw new Error(AI_ERROR_MESSAGE);
+    }
+  }
+};
+
 /** Format raw technician notes into the customer-facing diagnosis report. */
 export const formatDiagnosisWithAI = async (args: DiagnosisArgs): Promise<string> => {
-  const { data, error } = await supabase.functions.invoke("format-diagnosis", { body: args });
-  if (error) throw new Error(AI_ERROR_MESSAGE);
-  const text = (data as any)?.formattedDiagnosis;
+  const data = await invokeAiFunction<any>("format-diagnosis", args);
+  const text = data?.formattedDiagnosis;
   if (!text) throw new Error(AI_ERROR_MESSAGE);
   return text as string;
 };
@@ -48,9 +79,8 @@ export const formatDiagnosisSections = async (args: DiagnosisArgs): Promise<Diag
 
 /** Format the technician report into the customer-facing service report. */
 export const formatReportWithAI = async (args: ReportArgs): Promise<string> => {
-  const { data, error } = await supabase.functions.invoke("format-report", { body: args });
-  if (error) throw new Error(AI_ERROR_MESSAGE);
-  const text = (data as any)?.formattedReport;
+  const data = await invokeAiFunction<any>("format-report", args);
+  const text = data?.formattedReport;
   if (!text) throw new Error(AI_ERROR_MESSAGE);
   return text as string;
 };
