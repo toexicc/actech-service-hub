@@ -136,8 +136,12 @@ export const ServiceLinesEditor = ({
             <Input
               className="h-9 w-28 text-right"
               inputMode="decimal"
-              value={String(lineEffectiveCost(line))}
+              value={drafts[i] ?? String(lineEffectiveCost(line))}
               onChange={(e) => setAmount(i, e.target.value)}
+              onBlur={() => setDrafts((d) => {
+                const { [i]: _drop, ...rest } = d;
+                return rest;
+              })}
             />
             <Button
               type="button"

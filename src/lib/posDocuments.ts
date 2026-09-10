@@ -179,6 +179,10 @@ export const regenerateTicketDocuments = async (
     out.receipt = false;
   }
 
+  // Logged here so it lands on the timeline and Reports even when no warranty
+  // card is requested (the warranty guards below can return early).
+  if (out.receipt) logTicketActivity(serviceId, "Service Invoice - Receipt generated");
+
   // -------------------------------------------------------- warranty card
   const savedTerms =
     s.warranty_terms && typeof s.warranty_terms === "object"
