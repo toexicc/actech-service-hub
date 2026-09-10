@@ -46,6 +46,8 @@ export const ServiceLinesEditor = ({
 }: Props) => {
   const [newName, setNewName] = useState("");
   const [newAmount, setNewAmount] = useState("");
+  /** Raw text while a price is being typed, so "1500." / "1500.5" survive. */
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
 
   const totals = computeLineTotals(lines, discount, vatRequested, rushFee);
   const balance = Math.max(0, totals.finalCost - (Number(alreadyPaid) || 0));
@@ -56,7 +58,12 @@ export const ServiceLinesEditor = ({
       rename,
     );
 
-  const setAmount = (index: number, value: string) => {
+  const setAmount = (index: number, raw: string) => {
+    // Keep the typed text (allow one decimal point, max 2 decimals).
+    const cleaned = raw.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
+    const [whole, dec] = cleaned.split(".");
+    const value = dec === undefined ? whole : `${whole}.${dec.slice(0, 2)}`;
+    setDrafts((d) => ({ ...d, [index]: value }));
     const amount = toNum(value);
     const line = lines[index];
     if (line.options?.length) {
