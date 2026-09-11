@@ -152,42 +152,44 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "delete") {
-      const steps: string[] = [];
+      // Delete Auth first. profiles/user_roles cascade from auth.users, while
+      // historical nullable references (such as uploaded documents) are kept.
+      const { error: hardDeleteError } = await admin.auth.admin.deleteUser(body.user_id);
+      let soft = false;
 
-      const { error: rolesErr } = await admin.from("user_roles").delete().eq("user_id", body.user_id);
-      if (rolesErr) steps.push(`roles: ${rolesErr.message}`);
-
-      const { error: profErr } = await admin.from("profiles").delete().eq("id", body.user_id);
-      if (profErr) steps.push(`profile: ${profErr.message}`);
-
-      let authErrMsg: string | null = null;
-      if (!profErr) {
-        const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
-        if (delErr) authErrMsg = delErr.message || String(delErr);
-      }
-
-      const hardDeleted = !profErr && !authErrMsg;
-
-      if (!hardDeleted) {
-        // Could not fully remove (references elsewhere or auth restriction):
-        // deactivate instead so the account disappears from active lists.
-        const { error: softErr } = await admin
-          .from("profiles")
-          .update({ status: "inactive" })
-          .eq("id", body.user_id);
-        if (softErr && profErr) {
+      if (hardDeleteError) {
+        // A historical non-nullable reference may still prevent a hard delete.
+        // Soft deletion keeps the UUID for audit history but invalidates the
+        // login, anonymizes the account, and guarantees it cannot sign in.
+        const { error: softDeleteError } = await admin.auth.admin.deleteUser(body.user_id, true);
+        if (softDeleteError) {
           return new Response(
-            JSON.stringify({ error: `Delete failed — ${[...steps, `deactivate: ${softErr.message}`].join("; ")}` }),
+            JSON.stringify({
+              error: `Account removal failed — ${softDeleteError.message || hardDeleteError.message}`,
+            }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
+        soft = true;
+
+        const { error: profileError } = await admin
+          .from("profiles")
+          .update({ status: "inactive" })
+          .eq("id", body.user_id);
+        if (profileError) {
+          return new Response(
+            JSON.stringify({ error: `Login disabled, but staff profile update failed — ${profileError.message}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        await admin.from("user_roles").delete().eq("user_id", body.user_id);
       }
 
       return new Response(
         JSON.stringify({
           ok: true,
-          soft: !hardDeleted,
-          detail: hardDeleted ? null : [...steps, authErrMsg ? `auth: ${authErrMsg}` : null].filter(Boolean).join("; "),
+          soft,
+          detail: soft ? "Login disabled; historical records were retained" : null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
