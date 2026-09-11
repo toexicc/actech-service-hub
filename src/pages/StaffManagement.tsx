@@ -259,7 +259,7 @@ const StaffManagement = () => {
         toast({
           title: "Success",
           description: wasLastDeleteSoft()
-            ? "Staff deactivated (the account has linked records and could not be fully removed)"
+            ? "Login disabled and staff deactivated; historical records were retained"
             : "Staff member removed successfully",
         });
         loadStaffList();
