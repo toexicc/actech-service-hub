@@ -74,6 +74,14 @@ import {
 type FilterMode = "month" | "range" | "preset";
 type PresetKey = "today" | "yesterday" | "7" | "30" | "90" | "month" | "year" | "all";
 
+const REPORT_SALES_TYPES = new Set(["down payment", "full payment", "partial payment"]);
+const REPORT_EXPENSE_TYPES = new Set([
+  "parts inventory",
+  "rent",
+  "miscellaneous expense",
+  "salary disbursement",
+]);
+
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
@@ -335,12 +343,26 @@ const Reports = () => {
     const salesTx = (transactions as any[]).filter(
       (t) =>
         inPeriod(t.transactionDate, p) &&
-        String(t.type || "").toLowerCase() !== "expense" &&
+        REPORT_SALES_TYPES.has(String(t.type || "").trim().toLowerCase()) &&
         String(t.status || "").toLowerCase() !== "void" &&
         String(t.status || "").toLowerCase() !== "voided",
     );
     const txRevenue = salesTx.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-    const scopedExpenses = (expenses as any[]).filter((e) => inPeriod(e.expenseDate, p));
+    const transactionExpenses = (transactions as any[])
+      .filter(
+        (t) =>
+          inPeriod(t.transactionDate, p) &&
+          REPORT_EXPENSE_TYPES.has(String(t.type || "").trim().toLowerCase()) &&
+          String(t.status || "").toLowerCase() !== "void" &&
+          String(t.status || "").toLowerCase() !== "voided",
+      )
+      .map((t) => ({
+        amount: Number(t.amount || 0),
+        category: String(t.type || t.category || "Uncategorized"),
+        expenseDate: t.transactionDate,
+      }));
+    const legacyExpenses = (expenses as any[]).filter((e) => inPeriod(e.expenseDate, p));
+    const scopedExpenses = [...transactionExpenses, ...legacyExpenses];
     const totalExpenses = scopedExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
     const serviceRevenue = completed.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
