@@ -21,6 +21,10 @@ Rows come from the same data the page already uses for the payout figure: ticket
 
 Actions: Print (opens the system print dialog) and Download.
 
+## 2b. Month selector on Salary Disbursement
+
+A month picker is added to the left of Salary Period, so you can review or print past cut-offs instead of only the current month. Picking a month plus 15th / End of Month drives the cut-off used everywhere on the page: workdays, attendance days present, completed tickets, commissions, and the printed payslip header date range.
+
 ## 3. Make Completed Services and Salary Disbursement seamless
 
 All of the following is included in the build:
