@@ -145,6 +145,7 @@ const SalaryDisbursement = () => {
   const selectedMonth = cutoff.month;
   const salaryPeriod = cutoff.period;
   const [payslipBusy, setPayslipBusy] = useState<string | null>(null);
+  const monthOptions = useMemo(buildMonthOptions, []);
 
   // Disbursement state
   const [commissions, setCommissions] = useState<Record<string, string>>({});
