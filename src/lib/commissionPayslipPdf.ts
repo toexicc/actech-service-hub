@@ -254,7 +254,7 @@ const drawPayslip = (doc: jsPDF, logo: string, data: PayslipData) => {
 
   y = drawTableHead(doc, y);
 
-  const bottomLimit = PAGE_H - 46;
+  const bottomLimit = PAGE_H - 34;
   if (!data.rows.length) {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8.4);
@@ -266,7 +266,16 @@ const drawPayslip = (doc: jsPDF, logo: string, data: PayslipData) => {
       if (y > bottomLimit) {
         drawFooterBar(doc);
         doc.addPage();
-        y = M + 4;
+        y = M + 6;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        setText(doc, NAVY);
+        doc.text(`${data.employeeName.toUpperCase()} — COMMISSION BREAKDOWN (CONTINUED)`, M, y);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.6);
+        setText(doc, MUTED);
+        doc.text(`${data.cutoffLabel} · ${data.periodLabel}`, M, y + 4.2);
+        y += 8;
         y = drawTableHead(doc, y);
       }
       y = drawRow(doc, y, r, i % 2 === 1);
