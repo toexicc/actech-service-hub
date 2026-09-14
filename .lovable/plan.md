@@ -4,7 +4,7 @@
 
 The app is already displayed at 80% of full size. That shared wrapper drops to 72%, so every page (not just Salary Disbursement) gets more room and the summary cards stop clipping their amounts. The visible area is widened to match, so nothing gets cut off at the right edge or bottom.
 
-Also fixed globally on the summary cards: big peso amounts currently overflow the card edge (as in the screenshot). Amount text scales down slightly on narrow widths and stays inside its card.
+Also fixed app-wide, not only on summary cards: long values (big peso amounts, long names, dropdown labels) currently spill past the edge of whatever holds them. Text now shrinks slightly and wraps or trims inside its container, so cards, table cells, dropdown triggers and filter bars stay clean at any width.
 
 ## 2. Print button for Service Based Employees
 
