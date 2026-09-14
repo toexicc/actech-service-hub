@@ -105,7 +105,15 @@ const SalaryDisbursement = () => {
 
   const [activeTab, setActiveTab] = useState("disbursement");
   const [fundSource, setFundSource] = useState("Money In Bank");
-  const [salaryPeriod, setSalaryPeriod] = useState<"15th Salary" | "End of Month Salary">("15th Salary");
+  // Cut-off (month + half) is shared with Completed Services so both pages read
+  // the exact same payout window.
+  const [cutoff, setCutoff] = useFilterPersistence<{
+    month: string;
+    period: "15th Salary" | "End of Month Salary";
+  }>("payoutCutoff", { month: manilaMonthKey(), period: "15th Salary" });
+  const selectedMonth = cutoff.month;
+  const salaryPeriod = cutoff.period;
+  const [payslipBusy, setPayslipBusy] = useState<string | null>(null);
 
   // Disbursement state
   const [commissions, setCommissions] = useState<Record<string, string>>({});
@@ -123,11 +131,14 @@ const SalaryDisbursement = () => {
   const [sss, setSss] = useState<Record<string, string>>({});
   const [philhealth, setPhilhealth] = useState<Record<string, string>>({});
 
+  // Selected month drives every cut-off figure on the page.
+  const [year, month] = useMemo(() => {
+    const [y, m] = selectedMonth.split("-").map((n) => parseInt(n, 10));
+    return [y, (m || 1) - 1];
+  }, [selectedMonth]);
+
   // Mon-Sat workdays in the active half-period
   const workdaysInPeriod = useMemo(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
     const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
     const endDay = salaryPeriod === "15th Salary" ? 15 : new Date(year, month + 1, 0).getDate();
     let count = 0;
@@ -136,13 +147,10 @@ const SalaryDisbursement = () => {
       if (dow !== 0) count++;
     }
     return count;
-  }, [salaryPeriod]);
+  }, [salaryPeriod, year, month]);
 
   // Period date range (for attendance auto-fill)
   const periodRange = useMemo(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
     const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
     const endDay = salaryPeriod === "15th Salary" ? 15 : new Date(year, month + 1, 0).getDate();
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -150,7 +158,7 @@ const SalaryDisbursement = () => {
       start: `${year}-${pad(month + 1)}-${pad(startDay)}`,
       end: `${year}-${pad(month + 1)}-${pad(endDay)}`,
     };
-  }, [salaryPeriod]);
+  }, [salaryPeriod, year, month]);
 
   // Pull attendance for the active period and count days present per staff.
   const { data: periodAttendance = [] } = useQuery({
@@ -352,13 +360,111 @@ const SalaryDisbursement = () => {
     return salary + commission + bonus - deduction;
   };
 
-  const computeServiceFinal = (staff: any) => {
-    // Manual allocations win; otherwise fall back to the commission percentage.
-    const allocated = getAllocatedCommission(staff.name);
-    if (allocated > 0) return allocated;
-    const serviceCost = getServiceCostTotal(staff.name);
-    const commission = parseCurrency(techCommissions[staff.staffId]);
-    return serviceCost * (commission / 100);
+  // Allocations saved in Completed Services are the only thing that pays a
+  // technician — no percentage fallback, so both pages always agree.
+  const computeServiceFinal = (staff: any) => getAllocatedCommission(staff.name);
+
+  /** Per-ticket allocation rows for a staff member, used by the payslip PDF. */
+  const getCommissionRows = (name: string): PayslipRow[] => {
+    const target = (name || "").trim().toLowerCase();
+    if (!target) return [];
+    const rows: PayslipRow[] = [];
+    Object.entries(breakdownMap as Record<string, ServiceBreakdown[]>).forEach(([serviceId, lines]) => {
+      const service = periodServices.find((s) => s.serviceId === serviceId);
+      if (!service) return;
+      const ticketTechs = (service.technician || "")
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
+      const soleTech = ticketTechs.length === 1 ? ticketTechs[0].toLowerCase() : "";
+      const amount = (lines || [])
+        .filter((r) => {
+          const rowTech = (r.technicianName || "").trim().toLowerCase();
+          return rowTech ? rowTech === target : soleTech === target;
+        })
+        .reduce((s, r) => s + (Number(r.cost) || 0), 0);
+      if (amount <= 0) return;
+      rows.push({
+        completedDate: displayDate((service as any).timestamp || "", "MM/dd/yyyy"),
+        serviceId,
+        clientName: service.clientName || "-",
+        amount,
+      });
+    });
+    return rows.sort((a, b) => a.completedDate.localeCompare(b.completedDate));
+  };
+
+  /** Tickets in the cut-off that still block a clean payout. */
+  const readiness = useMemo(() => {
+    let missingAllocation = 0;
+    let missingPartsCost = 0;
+    periodServices.forEach((s) => {
+      const lines = (breakdownMap as Record<string, ServiceBreakdown[]>)[s.serviceId] || [];
+      if (!lines.length) missingAllocation += 1;
+      if (parseCurrency(s.partsCost) === 0) missingPartsCost += 1;
+    });
+    return { missingAllocation, missingPartsCost };
+  }, [periodServices, breakdownMap]);
+
+  /** Deep link into Completed Services already filtered to this cut-off. */
+  const openCompletedServices = (technician?: string) => {
+    const params = new URLSearchParams({ from: periodRange.start, to: periodRange.end });
+    if (technician) params.set("technician", technician);
+    navigate(`/completed-transactions?${params.toString()}`);
+  };
+
+  const cutoffLabel = `${displayDate(periodRange.start, "MMMM d")} - ${displayDate(periodRange.end, "d, yyyy")}`;
+
+  const buildPayslip = (staff: any): PayslipData => {
+    const rows = getCommissionRows(staff.name);
+    return {
+      employeeName: staff.name,
+      department: staff.department || "Service Based",
+      cutoffLabel,
+      periodLabel: salaryPeriod,
+      rows,
+      total: rows.reduce((s, r) => s + r.amount, 0),
+      preparedBy: username,
+      generatedAt: displayDate(new Date().toISOString(), "MM/dd/yyyy h:mm a"),
+    };
+  };
+
+  const outputPayslip = async (entries: PayslipData[], action: "print" | "download", filename: string) => {
+    const bytes = await generateCommissionPayslipPdf(entries);
+    if (action === "download") downloadPdfBytes(bytes, filename);
+    else {
+      const ok = await printPdfBytes(bytes, filename);
+      if (!ok) toast({ title: "Print blocked", description: "Allow pop-ups to print, or use Download.", variant: "destructive" });
+    }
+  };
+
+  const handleStaffPayslip = async (staff: any, action: "print" | "download") => {
+    setPayslipBusy(staff.staffId);
+    try {
+      await outputPayslip([buildPayslip(staff)], action, `Payslip-${staff.name}-${periodRange.start}.pdf`);
+    } catch {
+      toast({ title: "Error", description: "Failed to build the payslip.", variant: "destructive" });
+    } finally {
+      setPayslipBusy(null);
+    }
+  };
+
+  const handleBatchPayslip = async (action: "print" | "download") => {
+    const entries = serviceBasedStaff
+      .map((s: any) => buildPayslip(s))
+      .filter((e) => e.rows.length > 0);
+    if (!entries.length) {
+      toast({ title: "Nothing to print", description: "No allocated commissions in this cut-off.", variant: "destructive" });
+      return;
+    }
+    setPayslipBusy("batch");
+    try {
+      await outputPayslip(entries, action, `Payslips-${periodRange.start}.pdf`);
+    } catch {
+      toast({ title: "Error", description: "Failed to build the payslips.", variant: "destructive" });
+    } finally {
+      setPayslipBusy(null);
+    }
   };
 
 
@@ -507,10 +613,23 @@ const SalaryDisbursement = () => {
 
         {/* Salary Period & Fund Source */}
         <Card className="mb-4">
-          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-medium whitespace-nowrap">Month:</Label>
+              <Select value={selectedMonth} onValueChange={(v) => setCutoff({ month: v })}>
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-3">
               <Label className="text-sm font-medium whitespace-nowrap">Salary Period:</Label>
-              <Select value={salaryPeriod} onValueChange={(v: "15th Salary" | "End of Month Salary") => setSalaryPeriod(v)}>
+              <Select value={salaryPeriod} onValueChange={(v: "15th Salary" | "End of Month Salary") => setCutoff({ period: v })}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -649,13 +768,56 @@ const SalaryDisbursement = () => {
               </CardContent>
             </Card>
 
+            {/* Readiness check before any payout */}
+            {(readiness.missingAllocation > 0 || readiness.missingPartsCost > 0) && (
+              <Card className="border-amber-300 bg-amber-50/60">
+                <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-900">Not ready for payout</p>
+                      <p className="text-xs text-amber-800">
+                        {readiness.missingAllocation} completed ticket{readiness.missingAllocation === 1 ? "" : "s"} in this cut-off have no commission allocated
+                        {readiness.missingPartsCost > 0 && `, and ${readiness.missingPartsCost} have no parts cost recorded`}.
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => openCompletedServices()}>
+                    Review in Completed Services
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Service Based Staff */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Service Based Employees</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Commissions and service costs count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}).
-                </p>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="text-lg">Service Based Employees</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Commissions count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}). Allocations saved in Completed Services are the only source of the payout.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={payslipBusy !== null}
+                    onClick={() => handleBatchPayslip("print")}
+                  >
+                    {payslipBusy === "batch" ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Printer className="mr-2 h-3.5 w-3.5" />}
+                    Print All Payslips
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={payslipBusy !== null}
+                    onClick={() => handleBatchPayslip("download")}
+                  >
+                    <Download className="mr-2 h-3.5 w-3.5" />
+                    Download All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {serviceBasedStaff.length === 0 ? (
@@ -668,40 +830,61 @@ const SalaryDisbursement = () => {
                           <TableHead>Staff Name</TableHead>
                           <TableHead>Department</TableHead>
                           <TableHead>Service Cost (Total)</TableHead>
+                          <TableHead>Tickets</TableHead>
                           <TableHead>Allocated Commission</TableHead>
-                          <TableHead>Commission %</TableHead>
                           <TableHead>Final Amount</TableHead>
+                          <TableHead>Payslip</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {serviceBasedStaff.map((staff: any) => {
                           const serviceCostTotal = getServiceCostTotal(staff.name);
-                          const allocated = getAllocatedCommission(staff.name);
-                          const commPct = parseCurrency(techCommissions[staff.staffId]);
-                          const final = allocated > 0 ? allocated : serviceCostTotal * (commPct / 100);
+                          const rows = getCommissionRows(staff.name);
+                          const final = rows.reduce((s, r) => s + r.amount, 0);
                           const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
                           return (
-                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
+                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40")}>
                               <TableCell className="font-medium">{staff.name}</TableCell>
                               <TableCell>{staff.department || "-"}</TableCell>
                               <TableCell>{fmtCurrency(serviceCostTotal)}</TableCell>
-                              <TableCell className={cn(allocated > 0 && "font-semibold text-orange-600")}>
-                                {fmtCurrency(allocated)}
-                              </TableCell>
                               <TableCell>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="%"
-                                  className="w-20"
-                                  disabled={isDone || allocated > 0}
-                                  value={techCommissions[staff.staffId] || ""}
-                                  onChange={(e) => setTechCommissions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
-                                />
+                                <button
+                                  type="button"
+                                  className="text-primary underline-offset-2 hover:underline"
+                                  onClick={() => openCompletedServices(staff.name)}
+                                >
+                                  {rows.length}
+                                </button>
+                              </TableCell>
+                              <TableCell className={cn(final > 0 && "font-semibold text-orange-600")}>
+                                {fmtCurrency(final)}
                               </TableCell>
                               <TableCell className="font-bold">{fmtCurrency(final)}</TableCell>
-
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-8 w-8"
+                                    title="Print payslip"
+                                    disabled={payslipBusy !== null || rows.length === 0}
+                                    onClick={() => handleStaffPayslip(staff, "print")}
+                                  >
+                                    {payslipBusy === staff.staffId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-8 w-8"
+                                    title="Download payslip"
+                                    disabled={payslipBusy !== null || rows.length === 0}
+                                    onClick={() => handleStaffPayslip(staff, "download")}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Button
                                   size="sm"
@@ -721,6 +904,7 @@ const SalaryDisbursement = () => {
                 )}
               </CardContent>
             </Card>
+
 
             {/* Submit Batch Section */}
             <Card>
