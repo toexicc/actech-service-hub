@@ -57,7 +57,8 @@ export const downloadPdfBytes = (bytes: Uint8Array, filename = "document.pdf") =
 };
 
 export const printPdfBytes = async (bytes: Uint8Array, title = "Document"): Promise<boolean> => {
-  const pages = await renderPdfToImages(bytes);
+  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const pages = await renderPdfToImages(buf);
   if (!pages.length) return false;
   const w = window.open("", "_blank");
   if (!w) return false;
