@@ -2238,6 +2238,7 @@ const ManageClient = () => {
                     clientName={serviceData?.clientName}
                     serviceDate={serviceData?.serviceDate}
                     refreshKey={posDocsKey}
+                    allowWarrantyEdit
                     formDocs={[
                       {
                         kind: "intake",

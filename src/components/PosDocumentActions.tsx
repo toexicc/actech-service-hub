@@ -1,15 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Printer, Download, Loader2, RefreshCw } from "lucide-react";
+import { FileText, Printer, Download, Loader2, RefreshCw, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { WarrantyCardFields } from "@/components/WarrantyCardFields";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   getServicePdfSignedUrl,
   servicePdfDownloadName,
   type ServicePdfKind,
 } from "@/lib/servicePdfStorage";
 import { downloadPdfFromUrl, printPdfFromUrl } from "@/lib/pdfActions";
-import { regenerateTicketDocuments } from "@/lib/posDocuments";
+import {
+  fetchTicketDocumentContext,
+  regenerateTicketDocuments,
+  type ApprovedLine,
+} from "@/lib/posDocuments";
 
 const POS_DOCS: { kind: Extract<ServicePdfKind, "receipt" | "warranty">; title: string; hint: string }[] = [
   { kind: "receipt", title: "Service Invoice - Receipt", hint: "Approved services and payments" },
@@ -33,6 +45,8 @@ interface Props {
   refreshKey?: number;
   /** Optional intake / quotation rows shown above the POS documents. */
   formDocs?: FormDoc[];
+  /** Manage Client can edit saved warranty terms before rebuilding the card. */
+  allowWarrantyEdit?: boolean;
 }
 
 /**
@@ -45,6 +59,7 @@ export const PosDocumentActions = ({
   serviceDate,
   refreshKey = 0,
   formDocs = [],
+  allowWarrantyEdit = false,
 }: Props) => {
 
   const { toast } = useToast();
@@ -55,6 +70,10 @@ export const PosDocumentActions = ({
   const [viewerTitle, setViewerTitle] = useState("Document");
   const [viewerName, setViewerName] = useState("document.pdf");
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [warrantyEditorOpen, setWarrantyEditorOpen] = useState(false);
+  const [warrantyLines, setWarrantyLines] = useState<ApprovedLine[]>([]);
+  const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
+  const [loadingWarrantyEditor, setLoadingWarrantyEditor] = useState(false);
 
   const checkAvailability = useCallback(
     async (repair: boolean) => {
@@ -165,6 +184,52 @@ export const PosDocumentActions = ({
     }
   };
 
+  const openWarrantyEditor = async () => {
+    if (!serviceId) return;
+    setLoadingWarrantyEditor(true);
+    try {
+      const context = await fetchTicketDocumentContext(serviceId);
+      if (!context) {
+        toast({ title: "Warranty details unavailable", description: "Please try again.", variant: "destructive" });
+        return;
+      }
+      setWarrantyLines(context.approvedLines);
+      setWarrantyTerms(context.warrantyTerms);
+      setWarrantyEditorOpen(true);
+    } finally {
+      setLoadingWarrantyEditor(false);
+    }
+  };
+
+  const saveWarranty = async () => {
+    if (!serviceId || warrantyLines.length === 0) return;
+    setBusy("warranty-edit");
+    try {
+      const result = await regenerateTicketDocuments({
+        serviceId,
+        actorName:
+          sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Management",
+        warrantyTerms,
+        createWarranty: true,
+        createReceipt: false,
+      });
+      const found = await checkAvailability(false);
+      if (found) setAvailable(found);
+      if (result.warranty) {
+        setWarrantyEditorOpen(false);
+        toast({ title: "Warranty Card updated", description: "The saved warranty details are now on the card." });
+      } else {
+        toast({
+          title: "Warranty Card not updated",
+          description: result.warrantySkipped || "Please check the ticket payment and try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   type Row = {
     kind: ServicePdfKind;
     title: string;
@@ -201,6 +266,7 @@ export const PosDocumentActions = ({
       </p>
       {rows.map((d) => {
         const ready = !!available[d.kind];
+        const editsWarranty = allowWarrantyEdit && d.kind === "warranty" && ready;
         return (
           <div
             key={d.kind}
@@ -216,17 +282,19 @@ export const PosDocumentActions = ({
               <Button
                 size="sm"
                 variant={ready ? "secondary" : "default"}
-                disabled={d.generating}
-                aria-label={`${ready ? "Update" : "Generate"} ${d.title}`}
-                title={`${ready ? "Update" : "Generate"} ${d.title}`}
-                onClick={() => d.onGenerate()}
+                disabled={d.generating || loadingWarrantyEditor}
+                aria-label={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
+                title={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
+                onClick={() => editsWarranty ? openWarrantyEditor() : d.onGenerate()}
               >
-                {d.generating ? (
+                {d.generating || (editsWarranty && loadingWarrantyEditor) ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+                ) : editsWarranty ? (
+                  <Pencil className="h-4 w-4" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                <span className="ml-1">{ready ? "Update" : "Generate"}</span>
+                <span className="ml-1">{editsWarranty ? "Edit" : ready ? "Update" : "Generate"}</span>
               </Button>
               <Button
                 size="sm"
@@ -267,6 +335,34 @@ export const PosDocumentActions = ({
         title={viewerTitle}
         filename={viewerName}
       />
+
+      <Dialog open={warrantyEditorOpen} onOpenChange={setWarrantyEditorOpen}>
+        <DialogContent className="!flex !flex-col max-h-[95dvh] sm:max-w-xl">
+          <DialogHeader className="shrink-0">
+            <DialogTitle>Edit Warranty Card</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto">
+            <WarrantyCardFields
+              enabled
+              onEnabledChange={() => undefined}
+              lines={warrantyLines}
+              terms={warrantyTerms}
+              onTermsChange={setWarrantyTerms}
+              fullyPaid
+              showEnabledToggle={false}
+            />
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setWarrantyEditorOpen(false)} disabled={busy === "warranty-edit"}>
+              Cancel
+            </Button>
+            <Button onClick={saveWarranty} disabled={busy === "warranty-edit" || warrantyLines.length === 0}>
+              {busy === "warranty-edit" && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save and recreate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

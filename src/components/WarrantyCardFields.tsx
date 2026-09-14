@@ -23,6 +23,8 @@ interface Props {
   onTermsChange: (terms: Record<string, string>) => void;
   /** Warranty card is only produced once the balance reaches zero. */
   fullyPaid: boolean;
+  /** Hide the create toggle when the fields are used inside the edit dialog. */
+  showEnabledToggle?: boolean;
 }
 
 /**
@@ -36,21 +38,24 @@ export const WarrantyCardFields = ({
   terms,
   onTermsChange,
   fullyPaid,
+  showEnabledToggle = true,
 }: Props) => {
   const setTerm = (label: string, value: string) =>
     onTermsChange({ ...terms, [label]: value });
 
   return (
     <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <Label className="text-sm font-medium">Create warranty card</Label>
-          <p className="text-xs text-muted-foreground">
-            A5 warranty document for the approved services.
-          </p>
+      {showEnabledToggle && (
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <Label className="text-sm font-medium">Create warranty card</Label>
+            <p className="text-xs text-muted-foreground">
+              A5 warranty document for the approved services.
+            </p>
+          </div>
+          <Switch checked={enabled} onCheckedChange={onEnabledChange} />
         </div>
-        <Switch checked={enabled} onCheckedChange={onEnabledChange} />
-      </div>
+      )}
 
       {enabled && !fullyPaid && (
         <p className="rounded-md bg-amber-500/10 p-2 text-xs text-amber-700">

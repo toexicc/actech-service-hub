@@ -67,6 +67,8 @@ export interface RegenerateArgs {
   warrantyTerms?: Record<string, string>;
   /** Staff asked for a warranty card (only honoured when fully paid). */
   createWarranty?: boolean;
+  /** Rebuild the receipt as well. Defaults to true for payment flows. */
+  createReceipt?: boolean;
 }
 
 export interface RegenerateResult {
@@ -85,7 +87,7 @@ export interface RegenerateResult {
 export const regenerateTicketDocuments = async (
   args: RegenerateArgs,
 ): Promise<RegenerateResult> => {
-  const { serviceId, actorName, warrantyTerms, createWarranty } = args;
+  const { serviceId, actorName, warrantyTerms, createWarranty, createReceipt = true } = args;
   const out: RegenerateResult = { receipt: false, warranty: false };
   if (!serviceId || serviceId === "MANUAL") return out;
 
@@ -134,10 +136,11 @@ export const regenerateTicketDocuments = async (
   const fullyPaid = finalCost > 0 && totals.balance <= 0.01;
 
   // ------------------------------------------------------------- receipt
-  if (!fullyPaid) {
+  if (createReceipt && !fullyPaid) {
     out.receiptSkipped = "Service Invoice - Receipt is created once the ticket is fully paid.";
   }
   try {
+    if (!createReceipt) throw new Error("receipt not requested");
     if (!fullyPaid) throw new Error("not fully paid");
     const blob = await generateReceiptPDF({
       serviceId,
