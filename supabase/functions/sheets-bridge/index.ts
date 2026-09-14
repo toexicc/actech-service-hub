@@ -1214,8 +1214,10 @@ async function disburseSalary(b: Record<string, any>) {
     staff_id: staffUuid,
     staff_name: b.staffName || "",
     period_label: b.periodLabel || b.period || "Manual",
-    period_start: today,
-    period_end: today,
+    // Real cut-off window when the client supplies it, so allocations inside a
+    // paid period can be locked; falls back to today for manual entries.
+    period_start: b.periodStart || today,
+    period_end: b.periodEnd || today,
     monthly_salary: num(b.monthlySalary) || amount,
     workdays_in_period: Math.round(num(b.workdaysInPeriod)),
     days_present: num(b.daysPresent),

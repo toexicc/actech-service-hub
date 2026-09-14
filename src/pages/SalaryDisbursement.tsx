@@ -520,7 +520,11 @@ const SalaryDisbursement = () => {
       params.append("status", "Disbursed");
       params.append("disbursedBy", username);
       params.append("fundSource", fundSource);
-      params.append("periodLabel", salaryPeriod);
+      // Month-scoped label keeps one row per staff per cut-off (the table is
+      // unique on staff + label) and lets paid cut-offs be locked precisely.
+      params.append("periodLabel", `${salaryPeriod} - ${displayDate(periodRange.start, "MMMM yyyy")}`);
+      params.append("periodStart", periodRange.start);
+      params.append("periodEnd", periodRange.end);
       params.append("monthlySalary", c.monthly.toFixed(2));
       params.append("workdaysInPeriod", String(workdaysInPeriod));
       params.append("daysPresent", String(c.days));
