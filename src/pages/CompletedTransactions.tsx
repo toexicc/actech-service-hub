@@ -19,6 +19,8 @@ import { useDoneServices } from "@/hooks/useDoneServices";
 import { ChevronRight } from "lucide-react";
 import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
+import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
+import { useSearchParams } from "react-router-dom";
 
 
 const CompletedTransactions = () => {
@@ -40,6 +42,19 @@ const CompletedTransactions = () => {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [searchParams] = useSearchParams();
+  const { data: disbursedPeriods = [] } = useDisbursedPeriods();
+
+  // Deep link from Salary Disbursement: ?technician=&from=&to= preselects the
+  // same payout window so fixing an allocation is one click.
+  useEffect(() => {
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const tech = searchParams.get("technician");
+    if (from) setStartDate(new Date(`${from}T00:00:00`));
+    if (to) setEndDate(new Date(`${to}T00:00:00`));
+    if (tech) setTechnicianFilter(tech);
+  }, [searchParams]);
   const [commissionRate, setCommissionRate] = useState(0);
   
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -409,6 +424,12 @@ const CompletedTransactions = () => {
                                 defaultTechnicians={techList}
                                 partsCost={partsCost}
                                 commissionRate={commissionRate}
+                                locked={!!paidOut}
+                                lockNote={
+                                  paidOut
+                                    ? `${paidOut.staffName} was already disbursed for ${paidOut.label}.`
+                                    : undefined
+                                }
                               />
                             </TableCell>
                           </TableRow>
