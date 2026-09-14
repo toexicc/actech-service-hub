@@ -91,6 +91,13 @@ export const ServiceBreakdownPanel = ({
 
   return (
     <div className="bg-muted/30 p-4 rounded-md border space-y-3">
+      {locked && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <span className="font-semibold">Paid out — locked.</span>{" "}
+          {lockNote || "This cut-off has already been disbursed, so allocations can no longer be edited."}{" "}
+          Record any correction as an adjustment on the next cut-off.
+        </div>
+      )}
       {/* Parts cost + payout math */}
       <div className="flex flex-wrap items-end gap-4">
         <div className="space-y-1">
@@ -102,6 +109,7 @@ export const ServiceBreakdownPanel = ({
               inputMode="decimal"
               placeholder="0.00"
               value={partsDraft}
+              disabled={locked}
               onChange={(e) => setPartsDraft(e.target.value.replace(/[^0-9.]/g, ""))}
             />
           </div>
@@ -109,7 +117,7 @@ export const ServiceBreakdownPanel = ({
         <Button
           size="sm"
           variant="outline"
-          disabled={!partsDirty || savePartsCost.isPending}
+          disabled={locked || !partsDirty || savePartsCost.isPending}
           onClick={async () => {
             try {
               await savePartsCost.mutateAsync({ serviceId, partsCost: partsValue });
@@ -148,7 +156,7 @@ export const ServiceBreakdownPanel = ({
           <span className={cn("font-semibold", overAllocated && "text-destructive")}>{peso(sum)}</span>
           <span className="text-muted-foreground"> of {peso(pool)} pool</span>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setDraft((p) => [...p, { serviceName: "", technicianId: null, technicianName: "", cost: 0 }])}>
+        <Button size="sm" variant="outline" disabled={locked} onClick={() => setDraft((p) => [...p, { serviceName: "", technicianId: null, technicianName: "", cost: 0 }])}>
           <Plus className="h-4 w-4 mr-1" /> Add Line
         </Button>
       </div>
@@ -169,10 +177,12 @@ export const ServiceBreakdownPanel = ({
               <Input
                 className="col-span-5"
                 placeholder="Service performed"
+                disabled={locked}
                 value={r.serviceName}
                 onChange={(e) => update(i, { serviceName: e.target.value })}
               />
               <Select
+                disabled={locked}
                 value={r.technicianId ?? ""}
                 onValueChange={(val) => {
                   const t = technicians.find((tech) => tech.userId === val);
@@ -194,6 +204,7 @@ export const ServiceBreakdownPanel = ({
                   className="pl-5 text-right"
                   inputMode="decimal"
                   placeholder="0.00"
+                  disabled={locked}
                   value={r.cost ? String(r.cost) : ""}
                   onChange={(e) => {
                     const cleaned = e.target.value.replace(/[^0-9.]/g, "");
@@ -206,6 +217,7 @@ export const ServiceBreakdownPanel = ({
                 size="icon"
                 variant="ghost"
                 className="col-span-1"
+                disabled={locked}
                 onClick={() => setDraft((p) => p.filter((_, idx) => idx !== i))}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -216,7 +228,7 @@ export const ServiceBreakdownPanel = ({
       )}
 
       <div className="flex justify-end gap-2">
-        {rows.length > 0 && (
+        {rows.length > 0 && !locked && (
           <Button
             size="sm"
             variant="outline"
@@ -237,7 +249,7 @@ export const ServiceBreakdownPanel = ({
 
         <Button
           size="sm"
-          disabled={save.isPending || !isDirty}
+          disabled={locked || save.isPending || !isDirty}
           onClick={async () => {
             try {
               await save.mutateAsync({
