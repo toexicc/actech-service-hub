@@ -307,7 +307,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
-      <div className="origin-top-left h-[125vh] w-[125vw] overflow-hidden [transform:scale(0.8)]">
+      <div className="origin-top-left h-[139vh] w-[139vw] overflow-hidden [transform:scale(0.72)]">
         <aside
           className={cn(
             "fixed left-3 top-3 bottom-3 z-40 glass-sidebar rounded-2xl transition-all",
@@ -323,7 +323,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </button>
         </aside>
 
-        <main className={cn("flex flex-col h-[125vh] min-w-0 transition-all", collapsed ? "ml-[88px]" : "ml-[280px]")}>
+        <main className={cn("flex flex-col h-[139vh] min-w-0 transition-all", collapsed ? "ml-[88px]" : "ml-[280px]")}>
           <header className={cn(
             "fixed top-3 right-3 z-40 flex h-14 items-center justify-between gap-3 pl-3 pr-2 glass-panel rounded-2xl",
             collapsed ? "left-[88px]" : "left-[280px]",

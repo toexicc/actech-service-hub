@@ -1351,7 +1351,7 @@ const InventoryManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Stock</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">
                     {inventory.filter(i => i.quantity > 5).length}
                   </p>
                 </div>
@@ -1365,7 +1365,7 @@ const InventoryManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
-                  <p className="text-2xl font-bold text-orange-600">{lowStockCount}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-orange-600">{lowStockCount}</p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-orange-600" />
               </div>
@@ -1377,7 +1377,7 @@ const InventoryManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>
-                  <p className="text-2xl font-bold text-destructive">{outOfStockCount}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-destructive">{outOfStockCount}</p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-destructive" />
               </div>

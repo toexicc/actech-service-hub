@@ -505,21 +505,21 @@ const RequestForParts = () => {
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary mb-2">1</div>
+                <div className="text-xl sm:text-2xl font-bold text-primary mb-2">1</div>
                 <h3 className="font-semibold mb-1">Submit Request</h3>
                 <p className="text-sm text-muted-foreground">
                   Click "New Request" and fill in the part details along with the Service ID.
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary mb-2">2</div>
+                <div className="text-xl sm:text-2xl font-bold text-primary mb-2">2</div>
                 <h3 className="font-semibold mb-1">Management Orders</h3>
                 <p className="text-sm text-muted-foreground">
                   Management will review and place the order with the supplier.
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary mb-2">3</div>
+                <div className="text-xl sm:text-2xl font-bold text-primary mb-2">3</div>
                 <h3 className="font-semibold mb-1">Get Notified</h3>
                 <p className="text-sm text-muted-foreground">
                   You'll be notified when the part is received and ready for use.

@@ -19,6 +19,8 @@ import { useDoneServices } from "@/hooks/useDoneServices";
 import { ChevronRight } from "lucide-react";
 import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
+import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
+import { useSearchParams } from "react-router-dom";
 
 
 const CompletedTransactions = () => {
@@ -40,6 +42,19 @@ const CompletedTransactions = () => {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [searchParams] = useSearchParams();
+  const { data: disbursedPeriods = [] } = useDisbursedPeriods();
+
+  // Deep link from Salary Disbursement: ?technician=&from=&to= preselects the
+  // same payout window so fixing an allocation is one click.
+  useEffect(() => {
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const tech = searchParams.get("technician");
+    if (from) setStartDate(new Date(`${from}T00:00:00`));
+    if (to) setEndDate(new Date(`${to}T00:00:00`));
+    if (tech) setTechnicianFilter(tech);
+  }, [searchParams]);
   const [commissionRate, setCommissionRate] = useState(0);
   
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -156,7 +171,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Gross Sales</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-green-600">
+          <div className="text-xl sm:text-2xl font-bold text-green-600">
             ₱{financialSummary.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -167,7 +182,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Discounts</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-amber-600">
+          <div className="text-xl sm:text-2xl font-bold text-amber-600">
             ₱{financialSummary.totalDiscounts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -178,7 +193,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Costs</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-xl sm:text-2xl font-bold text-red-600">
             ₱{financialSummary.totalCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -189,7 +204,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-blue-600">
+          <div className="text-xl sm:text-2xl font-bold text-blue-600">
             ₱{financialSummary.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -202,7 +217,7 @@ const CompletedTransactions = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-orange-600">
+          <div className="text-xl sm:text-2xl font-bold text-orange-600">
             ₱{financialSummary.commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -213,7 +228,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Final Profit</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-purple-600">
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">
             ₱{financialSummary.profitAfterCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -364,6 +379,7 @@ const CompletedTransactions = () => {
                       const { partsCost, discount, profit, allocated, commission } = computeRow(service);
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
+                      const paidOut = findPaidOutPeriod(disbursedPeriods, service.timestamp, techList);
                       return (
                         <Fragment key={service.serviceId}>
                         <TableRow
@@ -409,6 +425,12 @@ const CompletedTransactions = () => {
                                 defaultTechnicians={techList}
                                 partsCost={partsCost}
                                 commissionRate={commissionRate}
+                                locked={!!paidOut}
+                                lockNote={
+                                  paidOut
+                                    ? `${paidOut.staffName} was already disbursed for ${paidOut.label}.`
+                                    : undefined
+                                }
                               />
                             </TableCell>
                           </TableRow>
