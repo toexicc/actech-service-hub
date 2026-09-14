@@ -43,3 +43,30 @@ export const printPdfFromUrl = async (
   w.document.close();
   return true;
 };
+
+/** Same actions for PDFs generated in the browser (no storage round trip). */
+export const downloadPdfBytes = (bytes: Uint8Array, filename = "document.pdf") => {
+  const objectUrl = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }));
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
+};
+
+export const printPdfBytes = async (bytes: Uint8Array, title = "Document"): Promise<boolean> => {
+  const pages = await renderPdfToImages(bytes);
+  if (!pages.length) return false;
+  const w = window.open("", "_blank");
+  if (!w) return false;
+  const imgs = pages
+    .map((p) => `<img src="${p.src}" style="width:100%;display:block;page-break-after:always" />`)
+    .join("");
+  w.document.write(
+    `<html><head><title>${title}</title><style>@page{margin:0}body{margin:0}</style></head><body>${imgs}<script>window.onload=function(){window.focus();window.print();}</script></body></html>`,
+  );
+  w.document.close();
+  return true;
+};
