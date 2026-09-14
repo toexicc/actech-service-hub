@@ -21,9 +21,9 @@ Rows come from the same data the page already uses for the payout figure: ticket
 
 Actions: Print (opens the system print dialog) and Download.
 
-## 3. Suggestions to make Completed Services and Salary Disbursement seamless
+## 3. Make Completed Services and Salary Disbursement seamless
 
-These are proposals, not part of the build unless you say so:
+All of the following is included in the build:
 
 1. **One source of truth per ticket.** Make the allocation in Completed Services the only thing that pays a technician, and drop the percentage fallback on the salary page. Today two different mechanisms can pay the same ticket, which is where mismatches come from.
 2. **Lock a ticket once paid out.** When a cut-off is disbursed, freeze the allocations for those tickets so a later edit in Completed Services can't silently change a payout that already went out. Edits after that create an adjustment on the next cut-off instead.
@@ -38,3 +38,4 @@ These are proposals, not part of the build unless you say so:
 - Stat/summary card amounts: clamp font size (`text-xl sm:text-2xl`) plus `min-w-0` / `truncate` on the value node in the shared card components used by Completed Services, Reports and dashboards.
 - New `src/lib/commissionPayslipPdf.ts` using `pdfPremiumKit` (`drawLetterhead`, `drawFooter`, `titledCard`) with A4 page size; reuses `pdfActions.ts` for print/download.
 - `SalaryDisbursement.tsx`: extract the per-ticket allocation rows for a staff name from `breakdownMap` + `periodServices` (already computed for `getAllocatedCommission`) into a `getCommissionRows(name)` helper feeding both the total and the PDF; add Print action per row.
+- Seamless items: remove the `techCommissions` percentage fallback in `computeServiceFinal` (allocations only); add a readiness banner driven by completed tickets lacking `service_breakdowns` rows or `parts_cost`; deep link to `/completed-transactions?technician=<name>&from=&to=`; persist the shared cut-off through `useFilterPersistence` so both pages read one window; payout lock stored on `salary_disbursements` (locked cut-off + service IDs) and honoured by `ServiceBreakdownPanel` edits; batch payslip loops the same PDF builder into one multi-page document.
