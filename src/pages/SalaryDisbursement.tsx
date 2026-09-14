@@ -16,13 +16,44 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { useStaff } from "@/hooks/useStaff";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight, Printer, Download, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { displayDate, parseManilaDate } from "@/lib/timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useAllServiceBreakdowns, type ServiceBreakdown } from "@/hooks/useServiceBreakdowns";
+import { useFilterPersistence } from "@/hooks/useFilterPersistence";
+import {
+  generateCommissionPayslipPdf,
+  type PayslipData,
+  type PayslipRow,
+} from "@/lib/commissionPayslipPdf";
+import { downloadPdfBytes, printPdfBytes } from "@/lib/pdfActions";
+
+/** Current Manila month as "YYYY-MM". */
+const manilaMonthKey = (): string => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date());
+  return parts.slice(0, 7);
+};
+
+/** Last 24 months, newest first. */
+const buildMonthOptions = () => {
+  const [y, m] = manilaMonthKey().split("-").map((n) => parseInt(n, 10));
+  const out: { value: string; label: string }[] = [];
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(y, m - 1 - i, 1);
+    out.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: format(d, "MMMM yyyy"),
+    });
+  }
+  return out;
+};
 
 
 const parseCurrency = (val: string | number | undefined): number => {
