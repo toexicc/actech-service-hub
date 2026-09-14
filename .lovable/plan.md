@@ -21,9 +21,9 @@ Rows come from the same data the page already uses for the payout figure: ticket
 
 Actions: Print (opens the system print dialog) and Download.
 
-## 3. Suggestions to make Completed Services and Salary Disbursement seamless
+## 3. Make Completed Services and Salary Disbursement seamless
 
-These are proposals, not part of the build unless you say so:
+All of the following is included in the build:
 
 1. **One source of truth per ticket.** Make the allocation in Completed Services the only thing that pays a technician, and drop the percentage fallback on the salary page. Today two different mechanisms can pay the same ticket, which is where mismatches come from.
 2. **Lock a ticket once paid out.** When a cut-off is disbursed, freeze the allocations for those tickets so a later edit in Completed Services can't silently change a payout that already went out. Edits after that create an adjustment on the next cut-off instead.
