@@ -228,7 +228,7 @@ const ClosedDates = () => {
               <CalendarOff className="h-6 w-6 text-destructive" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Closed Dates</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Closed Dates</h1>
               <p className="text-sm text-muted-foreground">
                 {isManagement ? "Manage shop closure dates" : "View shop closure dates"}
               </p>

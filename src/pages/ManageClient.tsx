@@ -3559,7 +3559,7 @@ const ManageClient = () => {
 
                     <div className="space-y-2">
                       <Label>Final Cost:</Label>
-                      <div className="text-2xl font-bold text-primary">Php {finalCost.toFixed(2)}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-primary">Php {finalCost.toFixed(2)}</div>
                     </div>
                   </div>
 

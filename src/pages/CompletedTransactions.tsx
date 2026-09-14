@@ -156,7 +156,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Gross Sales</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-green-600">
+          <div className="text-xl sm:text-2xl font-bold text-green-600">
             ₱{financialSummary.grossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -167,7 +167,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Discounts</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-amber-600">
+          <div className="text-xl sm:text-2xl font-bold text-amber-600">
             ₱{financialSummary.totalDiscounts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -178,7 +178,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Costs</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-xl sm:text-2xl font-bold text-red-600">
             ₱{financialSummary.totalCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -189,7 +189,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Net Profit</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-blue-600">
+          <div className="text-xl sm:text-2xl font-bold text-blue-600">
             ₱{financialSummary.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -202,7 +202,7 @@ const CompletedTransactions = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-orange-600">
+          <div className="text-xl sm:text-2xl font-bold text-orange-600">
             ₱{financialSummary.commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>
@@ -213,7 +213,7 @@ const CompletedTransactions = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">Final Profit</CardTitle>
             </CardHeader>
             <CardContent>
-          <div className="text-2xl font-bold text-purple-600">
+          <div className="text-xl sm:text-2xl font-bold text-purple-600">
             ₱{financialSummary.profitAfterCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
             </CardContent>

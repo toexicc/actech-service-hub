@@ -125,7 +125,19 @@
 @layer base {
   * {
     @apply border-border;
+    /* Flex/grid children default to min-content width, which is what makes long
+       peso amounts, IDs and emails spill past cards, table cells and dropdowns.
+       Explicit min-w-* utilities still win (utilities layer beats base). */
+    min-width: 0;
   }
+
+  body {
+    /* Long unbroken values wrap instead of overflowing their container.
+       `break-word` only breaks when the word alone cannot fit, so normal
+       copy, buttons and truncated text are untouched. */
+    overflow-wrap: break-word;
+  }
+
 
   html,
   body,

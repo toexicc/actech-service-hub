@@ -351,7 +351,7 @@ const CustomerManagement = () => {
                     <Separator />
                     <div>
                       <h3 className="font-semibold text-sm text-muted-foreground mb-1">Total Services:</h3>
-                      <p className="text-2xl font-bold text-primary">{serviceRecords.length}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-primary">{serviceRecords.length}</p>
                     </div>
                   </CardContent>
                 </Card>

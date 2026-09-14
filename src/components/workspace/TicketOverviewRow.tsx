@@ -160,7 +160,7 @@ export function TicketOverviewRow({
           ) : (
             <div className="divide-y divide-border/50">
               <div className="px-4 py-3">
-                <p className="text-2xl font-bold text-primary tabular-nums">{peso(fc)}</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">{peso(fc)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {peso(paid)} paid · <span className={balance > 0 ? "text-destructive font-medium" : "text-success font-medium"}>{peso(balance)} {balance > 0 ? "due" : "settled"}</span>
                 </p>
