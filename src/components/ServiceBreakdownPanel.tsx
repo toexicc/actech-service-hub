@@ -22,6 +22,9 @@ interface Props {
   partsCost?: number;
   /** Commission rate (% of profit) currently selected in the filters. */
   commissionRate?: number;
+  /** Cut-off already paid out — allocations are frozen. */
+  locked?: boolean;
+  lockNote?: string;
 }
 
 const peso = (n: number) =>
@@ -33,6 +36,8 @@ export const ServiceBreakdownPanel = ({
   defaultTechnicians,
   partsCost = 0,
   commissionRate = 0,
+  locked = false,
+  lockNote,
 }: Props) => {
   const { toast } = useToast();
   const { data: rows = [], isLoading } = useServiceBreakdowns(serviceId);
