@@ -4,7 +4,7 @@
 
 The app is already displayed at 80% of full size. That shared wrapper drops to 72%, so every page (not just Salary Disbursement) gets more room and the summary cards stop clipping their amounts. The visible area is widened to match, so nothing gets cut off at the right edge or bottom.
 
-Also fixed globally on the summary cards: big peso amounts currently overflow the card edge (as in the screenshot). Amount text scales down slightly on narrow widths and stays inside its card.
+Also fixed app-wide, not only on summary cards: long values (big peso amounts, long names, dropdown labels) currently spill past the edge of whatever holds them. Text now shrinks slightly and wraps or trims inside its container, so cards, table cells, dropdown triggers and filter bars stay clean at any width.
 
 ## 2. Print button for Service Based Employees
 
@@ -21,6 +21,10 @@ Rows come from the same data the page already uses for the payout figure: ticket
 
 Actions: Print (opens the system print dialog) and Download.
 
+## 2b. Month selector on Salary Disbursement
+
+A month picker is added to the left of Salary Period, so you can review or print past cut-offs instead of only the current month. Picking a month plus 15th / End of Month drives the cut-off used everywhere on the page: workdays, attendance days present, completed tickets, commissions, and the printed payslip header date range.
+
 ## 3. Make Completed Services and Salary Disbursement seamless
 
 All of the following is included in the build:
@@ -35,7 +39,8 @@ All of the following is included in the build:
 ## Technical notes
 
 - `src/components/DashboardLayout.tsx`: wrapper `[transform:scale(0.8)]` becomes `0.72`, with `h`/`w` raised to `~139vh/139vw` so the scaled canvas still fills the viewport.
-- Stat/summary card amounts: clamp font size (`text-xl sm:text-2xl`) plus `min-w-0` / `truncate` on the value node in the shared card components used by Completed Services, Reports and dashboards.
+- Overflow: audit the shared primitives rather than one page — `min-w-0` on flex/grid children, `break-words`/`truncate` + `title` on value nodes, responsive clamps (`text-xl sm:text-2xl`) on currency figures, `min-w-0 truncate` inside `SelectTrigger`/`SelectValue`, and `max-w-full` on filter-bar rows. Applies to stat cards, table cells, dropdown triggers, chips and hero panels.
+- `SalaryDisbursement.tsx` month selector: replace the hardcoded `new Date()` month in `workdaysInPeriod` and `periodRange` with a `selectedMonth` state (Manila-based), feeding attendance, completed-ticket filtering and payslip labels.
 - New `src/lib/commissionPayslipPdf.ts` using `pdfPremiumKit` (`drawLetterhead`, `drawFooter`, `titledCard`) with A4 page size; reuses `pdfActions.ts` for print/download.
 - `SalaryDisbursement.tsx`: extract the per-ticket allocation rows for a staff name from `breakdownMap` + `periodServices` (already computed for `getAllocatedCommission`) into a `getCommissionRows(name)` helper feeding both the total and the PDF; add Print action per row.
 - Seamless items: remove the `techCommissions` percentage fallback in `computeServiceFinal` (allocations only); add a readiness banner driven by completed tickets lacking `service_breakdowns` rows or `parts_cost`; deep link to `/completed-transactions?technician=<name>&from=&to=`; persist the shared cut-off through `useFilterPersistence` so both pages read one window; payout lock stored on `salary_disbursements` (locked cut-off + service IDs) and honoured by `ServiceBreakdownPanel` edits; batch payslip loops the same PDF builder into one multi-page document.
