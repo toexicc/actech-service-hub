@@ -379,6 +379,7 @@ const CompletedTransactions = () => {
                       const { partsCost, discount, profit, allocated, commission } = computeRow(service);
                       const isOpen = expandedRow === service.serviceId;
                       const techList = (service.technician || "").split(",").map((s) => s.trim()).filter(Boolean);
+                      const paidOut = findPaidOutPeriod(disbursedPeriods, service.timestamp, techList);
                       return (
                         <Fragment key={service.serviceId}>
                         <TableRow
