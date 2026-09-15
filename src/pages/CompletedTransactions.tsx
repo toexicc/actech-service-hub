@@ -21,6 +21,7 @@ import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
 import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
 import { useSearchParams } from "react-router-dom";
+import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 
 
 const CompletedTransactions = () => {
@@ -56,6 +57,8 @@ const CompletedTransactions = () => {
     if (tech) setTechnicianFilter(tech);
   }, [searchParams]);
   const [commissionRate, setCommissionRate] = useState(0);
+  // Which date the range filter reads: completion date (default) or intake date.
+  const [dateBasis, setDateBasis] = useState<"completed" | "received">("completed");
   
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -73,9 +76,11 @@ const CompletedTransactions = () => {
         return false;
       }
 
-      // Date range filter — based on the completion timestamp (Manila day)
+      // Date range filter — completion date by default, intake date when the
+      // basis toggle is switched so this page can be matched against Reports.
       if (startDate || endDate) {
-        const parsed = parseManilaDate(service.timestamp || "");
+        const anchor = dateBasis === "received" ? service.dateReceived : service.timestamp;
+        const parsed = parseManilaDate(anchor || "");
         if (!parsed) return false;
         const day = startOfDay(parsed);
         if (startDate && day < startOfDay(startDate)) return false;
@@ -85,7 +90,7 @@ const CompletedTransactions = () => {
 
       return true;
     });
-  }, [services, technicianFilter, departmentFilter, startDate, endDate]);
+  }, [services, technicianFilter, departmentFilter, startDate, endDate, dateBasis]);
 
   // Actual allocations saved in the breakdown panel drive commissions.
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(
@@ -161,7 +166,11 @@ const CompletedTransactions = () => {
       <div className="p-6 lg:p-8 animate-fade-in">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Completed Services</h1>
-          <p className="text-muted-foreground">View Completed Services Overview</p>
+          <p className="text-muted-foreground">
+            Quoted value of completed work —{" "}
+            {dateBasis === "completed" ? "by completion date" : "by intake date"}. Cash actually collected lives in the
+            POS Transaction Tracker.
+          </p>
         </div>
 
         {/* Financial Summary Cards */}
@@ -293,6 +302,19 @@ const CompletedTransactions = () => {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label>Date Basis</Label>
+                <Select value={dateBasis} onValueChange={(v) => setDateBasis(v as "completed" | "received")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="completed">Completion date</SelectItem>
+                    <SelectItem value="received">Intake date (matches Reports)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2 lg:col-span-2">
                 <Label>Date Range</Label>
                 <div className="flex gap-2">
@@ -341,6 +363,8 @@ const CompletedTransactions = () => {
             </div>
           </CardContent>
         </Card>
+
+        <MoneyReconciliationPanel start={startDate} end={endDate} />
 
         {/* Services Table */}
         <Card>

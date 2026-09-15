@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyStatus } from "@/lib/serviceStatus";
 import { cn } from "@/lib/utils";
+import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -198,6 +199,8 @@ const Reports = () => {
   const [preset, setPreset] = useState<PresetKey>("30");
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
+  // Anchor tickets to the period by intake date (default) or completion date.
+  const [scopeBasis, setScopeBasis] = useState<"received" | "completed">("received");
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
   const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
@@ -330,7 +333,13 @@ const Reports = () => {
 
 
   const buildReport = (p: Period) => {
-    const scoped = allServices.filter((s) => inPeriod(s.dateReceived || s.timestamp || s.lastUpdated, p));
+    // Which date anchors a ticket to the period: intake date (default) or
+    // completion date, so this page can be matched against Completed Services.
+    const anchorOf = (s: any) =>
+      scopeBasis === "completed"
+        ? s.dateCompleted || s.timestamp || s.lastUpdated
+        : s.dateReceived || s.timestamp || s.lastUpdated;
+    const scoped = allServices.filter((s) => inPeriod(anchorOf(s), p));
     const completed = scoped.filter((s) => classifyStatus(s.status) === "completed");
     const active = scoped.filter((s) => classifyStatus(s.status) === "active");
     const closed = scoped.filter((s) => classifyStatus(s.status) === "closed");
@@ -368,8 +377,12 @@ const Reports = () => {
     const serviceRevenue = completed.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
     const partsCost = completed.reduce((sum, s) => sum + Number(s.partsCost || 0), 0);
     const discounts = completed.reduce((sum, s) => sum + Number(s.discount || 0), 0);
-    const grossRevenue = txRevenue || serviceRevenue;
-    const netRevenue = grossRevenue - totalExpenses - (txRevenue ? 0 : partsCost);
+    // Two explicit measures instead of one card that silently changed meaning:
+    // cash actually collected, and the value of work completed.
+    const cashCollected = txRevenue;
+    const completedValue = serviceRevenue;
+    const grossRevenue = cashCollected;
+    const netRevenue = cashCollected - totalExpenses;
 
     const onTimeCount = completed.filter((s) => {
       const target = toDate(s.targetDate);
@@ -391,6 +404,8 @@ const Reports = () => {
       logBacked,
       onTimeRate: withTarget ? (onTimeCount / withTarget) * 100 : 0,
       serviceRevenue,
+      cashCollected,
+      completedValue,
       grossRevenue,
       partsCost,
       discounts,
@@ -402,12 +417,12 @@ const Reports = () => {
 
   const report = useMemo(
     () => buildReport(period),
-    [period, allServices, timings, transactions, expenses],
+    [period, allServices, timings, transactions, expenses, scopeBasis],
   );
   const prev = useMemo(() => {
     const pp = previousPeriod(period);
     return pp ? buildReport(pp) : null;
-  }, [period, allServices, timings, transactions, expenses]);
+  }, [period, allServices, timings, transactions, expenses, scopeBasis]);
 
   /* ---------------- derived chart datasets ---------------- */
 
@@ -735,8 +750,33 @@ const Reports = () => {
               ))}
             </div>
 
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-xs text-muted-foreground">Count tickets by:</span>
+              {([
+                { k: "received", l: "Intake date" },
+                { k: "completed", l: "Completion date" },
+              ] as const).map((b) => (
+                <Button
+                  key={b.k}
+                  size="sm"
+                  variant={scopeBasis === b.k ? "default" : "outline"}
+                  onClick={() => setScopeBasis(b.k)}
+                >
+                  {b.l}
+                </Button>
+              ))}
+            </div>
+
           </div>
         </div>
+
+        <p className="mb-4 text-xs text-muted-foreground">
+          Tickets are counted by {scopeBasis === "received" ? "intake date" : "completion date"}. Money figures come from
+          actual payments and expenses dated in the period — switch to Completion date to line this page up with
+          Completed Services.
+        </p>
+
+        <MoneyReconciliationPanel start={period.start ?? undefined} end={period.end ?? undefined} />
 
         {/* KPIs */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -923,12 +963,12 @@ const Reports = () => {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "Gross revenue", value: peso(report.grossRevenue) },
-              { label: "Service revenue (completed)", value: peso(report.serviceRevenue) },
+              { label: "Cash collected (payments in period)", value: peso(report.cashCollected) },
+              { label: "Value of completed work (final cost)", value: peso(report.completedValue) },
               { label: "Parts cost", value: peso(report.partsCost) },
               { label: "Discounts given", value: peso(report.discounts) },
               { label: "Expenses", value: peso(report.totalExpenses) },
-              { label: "Net revenue", value: peso(report.netRevenue) },
+              { label: "Net revenue (cash collected − expenses)", value: peso(report.netRevenue) },
             ].map((row) => (
               <div key={row.label} className="rounded-xl border border-border/60 p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</p>

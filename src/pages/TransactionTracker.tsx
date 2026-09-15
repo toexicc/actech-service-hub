@@ -37,6 +37,8 @@ const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
   return true;
 };
 import { cn } from "@/lib/utils";
+import { useDoneServices } from "@/hooks/useDoneServices";
+import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 
 interface Transaction {
   transactionId: string;
@@ -109,6 +111,8 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  // Completed tickets carry the real parts cost used by the Parts Consumed card.
+  const { data: doneServices = [] } = useDoneServices();
   const userRole = sessionStorage.getItem("userRole");
   const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Unknown";
 
@@ -290,10 +294,13 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       .reduce((sum, t) => sum + parseCurrency(t.amount), 0);
   }, [dashTransactions]);
 
+  // Parts cost is recorded on the ticket, never on a transaction row — reading
+  // it off transactions is why this card used to always show 0.00.
   const totalPartsCost = useMemo(() => {
-    return dashTransactions
-      .reduce((sum, t) => sum + parseCurrency(t.partsCost), 0);
-  }, [dashTransactions]);
+    return doneServices
+      .filter((s) => inManilaDayRange(s.timestamp, dashStartDate, dashEndDate))
+      .reduce((sum, s) => sum + (Number(s.partsCost) || 0), 0);
+  }, [doneServices, dashStartDate, dashEndDate]);
 
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
@@ -558,8 +565,11 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
             </Card>
             <Card>
               <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Total Parts Cost</p>
+                <p className="text-xs text-muted-foreground">Parts Consumed (completed tickets)</p>
                 <p className="text-xl font-bold text-destructive">{fmtCurrency(totalPartsCost)}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Parts used on tickets completed in range — not Parts Inventory purchases.
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -580,6 +590,13 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
             </Card>
           </div>
         </div>
+
+        <p className="mb-4 text-xs text-muted-foreground">
+          These figures are cash actually collected and paid, by payment date. Completed Services shows the quoted value
+          of work by completion date, so the two will not match line for line.
+        </p>
+
+        <MoneyReconciliationPanel start={dashStartDate} end={dashEndDate} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); setExpenseSubTab("all"); }} className="mb-4">

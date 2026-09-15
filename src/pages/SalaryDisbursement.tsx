@@ -181,6 +181,18 @@ const SalaryDisbursement = () => {
     return count;
   }, [salaryPeriod, year, month]);
 
+  // Mon-Sat workdays in the WHOLE month. The salary figure is monthly, so the
+  // daily rate must divide by the full month; dividing by the half-period
+  // doubled the rate and paid a full month's salary each cut-off.
+  const workdaysInMonth = useMemo(() => {
+    const days = new Date(year, month + 1, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= days; d++) {
+      if (new Date(year, month, d).getDay() !== 0) count++;
+    }
+    return count;
+  }, [year, month]);
+
   // Period date range (for attendance auto-fill)
   const periodRange = useMemo(() => {
     const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
@@ -237,7 +249,7 @@ const SalaryDisbursement = () => {
 
   const computeCalculator = (staff: any) => {
     const monthly = parseCurrency(staff.salary);
-    const autoDaily = workdaysInPeriod > 0 ? monthly / workdaysInPeriod : 0;
+    const autoDaily = workdaysInMonth > 0 ? monthly / workdaysInMonth : 0;
     const daily = parseCurrency(dailyRateOverride[staff.staffId]) || autoDaily;
     const attendanceDays = attendanceByStaffId[staff.userId] ?? 0;
     const override = daysPresent[staff.staffId];
@@ -831,7 +843,7 @@ const SalaryDisbursement = () => {
                 <div className="min-w-0">
                   <CardTitle className="text-lg">Service Based Employees</CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    Commissions count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}). Allocations saved in Completed Services are the only source of the payout.
+                    Commissions count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}). Allocations saved in Completed Services are the only source of the payout. Daily rate = monthly salary ÷ {workdaysInMonth} workdays in {displayDate(periodRange.start, "MMMM yyyy")} (Sundays excluded), so both cut-offs together pay exactly one month.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">

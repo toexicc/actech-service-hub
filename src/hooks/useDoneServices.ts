@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface DoneService {
   serviceId: string;
   timestamp: string;
+  /** Intake date — lets the page switch its date basis to match Reports. */
+  dateReceived: string;
   technician: string;
   technicianList: string[];
   department: string;
@@ -18,7 +20,7 @@ interface DoneService {
 /** Only the columns this view maps — the full row is ~6 KB of unused text. */
 const DONE_COLUMNS =
   "service_id,client_name,service,status,technicians,technician_departments," +
-  "date_completed,last_updated,service_cost,discount,parts_cost";
+  "date_completed,date_received,last_updated,service_cost,discount,parts_cost";
 
 const fetchDoneServices = async (): Promise<DoneService[]> => {
   const { data, error } = await supabase
@@ -38,6 +40,7 @@ const fetchDoneServices = async (): Promise<DoneService[]> => {
     return {
       serviceId: r.service_id ?? "",
       timestamp: r.date_completed ?? r.last_updated ?? "",
+      dateReceived: r.date_received ?? "",
       technician: technicianList.join(", "),
       technicianList,
       department: departmentList.join(", "),
