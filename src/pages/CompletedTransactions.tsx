@@ -464,9 +464,13 @@ const CompletedTransactions = () => {
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : filteredServices.length === 0 ? (
+            ) : visibleServices.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No completed transactions found
+                {paidFilter === "paid"
+                  ? "No fully paid completed services in this view"
+                  : paidFilter === "unpaid"
+                    ? "No unpaid completed services — everything is settled"
+                    : "No completed transactions found"}
               </p>
             ) : (
               <div className="rounded-md border overflow-x-auto">
