@@ -749,8 +749,33 @@ const Reports = () => {
               ))}
             </div>
 
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="mr-1 text-xs text-muted-foreground">Count tickets by:</span>
+              {([
+                { k: "received", l: "Intake date" },
+                { k: "completed", l: "Completion date" },
+              ] as const).map((b) => (
+                <Button
+                  key={b.k}
+                  size="sm"
+                  variant={scopeBasis === b.k ? "default" : "outline"}
+                  onClick={() => setScopeBasis(b.k)}
+                >
+                  {b.l}
+                </Button>
+              ))}
+            </div>
+
           </div>
         </div>
+
+        <p className="mb-4 text-xs text-muted-foreground">
+          Tickets are counted by {scopeBasis === "received" ? "intake date" : "completion date"}. Money figures come from
+          actual payments and expenses dated in the period — switch to Completion date to line this page up with
+          Completed Services.
+        </p>
+
+        <MoneyReconciliationPanel start={period.start ?? undefined} end={period.end ?? undefined} />
 
         {/* KPIs */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
