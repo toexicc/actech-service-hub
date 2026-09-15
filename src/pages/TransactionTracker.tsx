@@ -38,7 +38,8 @@ const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
 };
 import { cn } from "@/lib/utils";
 import { useDoneServices } from "@/hooks/useDoneServices";
-import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
+import { TallyLine } from "@/components/TallyLine";
+import { CutoffPresets } from "@/components/CutoffPresets";
 
 interface Transaction {
   transactionId: string;
@@ -301,6 +302,26 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       .filter((s) => inManilaDayRange(s.timestamp, dashStartDate, dashEndDate))
       .reduce((sum, s) => sum + (Number(s.partsCost) || 0), 0);
   }, [doneServices, dashStartDate, dashEndDate]);
+
+  // Which part of the cash taken in this window sits on tickets completed in
+  // the same window — that part must equal Collected on Completed Services.
+  const salesSplit = useMemo(() => {
+    const windowTicketIds = new Set(
+      doneServices
+        .filter((s) => inManilaDayRange(s.timestamp, dashStartDate, dashEndDate))
+        .map((s) => s.serviceId)
+        .filter(Boolean),
+    );
+    let onWindowTickets = 0;
+    let onOlderTickets = 0;
+    dashTransactions.forEach((t) => {
+      if (!SALES_TYPES.includes(t.transactionType) || t.transactionType === REFUND_TYPE) return;
+      const amt = parseCurrency(t.amount);
+      if (t.serviceId && windowTicketIds.has(t.serviceId)) onWindowTickets += amt;
+      else onOlderTickets += amt;
+    });
+    return { onWindowTickets, onOlderTickets };
+  }, [dashTransactions, doneServices, dashStartDate, dashEndDate]);
 
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
