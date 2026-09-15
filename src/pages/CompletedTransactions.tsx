@@ -179,7 +179,7 @@ const CompletedTransactions = () => {
   // Reset to the first page whenever the filters change the result set.
   useEffect(() => {
     setPage(1);
-  }, [technicianFilter, departmentFilter, startDate, endDate]);
+  }, [technicianFilter, departmentFilter, startDate, endDate, paidFilter]);
 
   const totalPages = Math.max(1, Math.ceil(visibleServices.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
