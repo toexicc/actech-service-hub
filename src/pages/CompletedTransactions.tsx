@@ -63,6 +63,8 @@ const CompletedTransactions = () => {
   const [commissionRate, setCommissionRate] = useState(0);
   // Which date the range filter reads: completion date (default) or intake date.
   const [dateBasis, setDateBasis] = useState<"completed" | "received">("completed");
+  // Paid-only view: only fully paid tickets show by default, as requested.
+  const [paidFilter, setPaidFilter] = useState<"paid" | "unpaid" | "all">("paid");
   
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [page, setPage] = useState(1);
