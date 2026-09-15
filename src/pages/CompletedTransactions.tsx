@@ -73,9 +73,11 @@ const CompletedTransactions = () => {
         return false;
       }
 
-      // Date range filter — based on the completion timestamp (Manila day)
+      // Date range filter — completion date by default, intake date when the
+      // basis toggle is switched so this page can be matched against Reports.
       if (startDate || endDate) {
-        const parsed = parseManilaDate(service.timestamp || "");
+        const anchor = dateBasis === "received" ? service.dateReceived : service.timestamp;
+        const parsed = parseManilaDate(anchor || "");
         if (!parsed) return false;
         const day = startOfDay(parsed);
         if (startDate && day < startOfDay(startDate)) return false;
