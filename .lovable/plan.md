@@ -12,6 +12,8 @@ Each page answers a different question over a different date:
 | Transaction Tracker | Cash actually received | Payment date |
 | Reports | Tickets and revenue for the period | Intake date (switchable) |
 
+Reports moves to **completion date as its default**, so all three pages count the same tickets. Intake date stays available as a switch, for when you want to look at incoming volume instead of finished work.
+
 So a ticket completed Aug 30 and paid Sep 2 lands in a different half-month on two of the three pages, and quoted value never equals cash received on the same list. Neither page is wrong — they were never aligned or labelled.
 
 ## 1. Same window on all three pages
@@ -31,7 +33,7 @@ Collected       = payments received on those tickets
 
 - **Completed Services**: adds a Collected column per ticket, plus Collected and Unpaid summary cards beside Gross Sales.
 - **Transaction Tracker**: keeps its cash-in-the-drawer view (that is its job) and adds a line under Total Sales — "of which on tickets completed this cut-off" — which equals Completed Services' Collected figure. Cash taken on older tickets is shown on its own line rather than mixed in.
-- **Reports**: its revenue cards use the same two definitions and the same labels, and default to counting by completion date when a cut-off preset is used, so its completed-work figure equals Completed Services' Billable value.
+- **Reports**: now counts by completion date by default, and its revenue cards use the same two definitions and labels, so its completed-work figure equals Completed Services' Billable value. The intake-date switch remains for incoming-volume views.
 
 ## 3. One "does it tally" line
 
@@ -55,5 +57,5 @@ Commission is not part of the tally line — it stays on Completed Services and 
 - New `src/components/TallyLine.tsx` rendered by all three pages so the wording and math have one source.
 - `src/pages/CompletedTransactions.tsx`: per-ticket Collected from one bulk `in` query over the filtered service IDs (not per row); Collected + Unpaid cards.
 - `src/pages/TransactionTracker.tsx`: split Total Sales into "on tickets completed this cut-off" and "on older tickets" using the completed-ticket ID set already loaded for the parts card.
-- `src/pages/Reports.tsx`: cut-off presets set `scopeBasis` to completion date; relabel revenue cards to Billable value / Collected.
+- `src/pages/Reports.tsx`: `scopeBasis` default flips from `"received"` to `"completed"` (the toggle stays); relabel revenue cards to Billable value / Collected.
 - No schema changes.
