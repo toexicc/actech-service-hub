@@ -91,10 +91,15 @@ const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
 };
 
 const fetchTechnicianServices = async (): Promise<ServiceRecord[]> => {
+  // Only completed tickets matter for payouts, and they must be ordered:
+  // an unordered wide select gets clipped by the API row cap, which silently
+  // dropped tickets and under-reported commissions.
   const { data, error } = await supabase
     .from("services")
     .select("service_id, client_name, device_type, final_cost, total_cost, parts_cost, technicians, status, date_completed, last_updated")
-    .limit(2000);
+    .eq("status", "Completed")
+    .order("date_completed", { ascending: false })
+    .limit(1000);
   if (error) return [];
   return (data ?? []).map((s: any) => ({
     serviceId: s.service_id ?? "",
