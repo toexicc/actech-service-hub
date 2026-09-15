@@ -181,11 +181,11 @@ const CompletedTransactions = () => {
     setPage(1);
   }, [technicianFilter, departmentFilter, startDate, endDate]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredServices.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(visibleServices.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pagedServices = useMemo(
-    () => filteredServices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
-    [filteredServices, currentPage],
+    () => visibleServices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [visibleServices, currentPage],
   );
 
   const uniqueTechnicians = useMemo(() => {
