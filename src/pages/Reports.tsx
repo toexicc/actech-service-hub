@@ -973,8 +973,8 @@ const Reports = () => {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "Cash collected (payments in period)", value: peso(report.cashCollected) },
-              { label: "Value of completed work (final cost)", value: peso(report.completedValue) },
+              { label: "Collected (payments in period)", value: peso(report.cashCollected) },
+              { label: "Billable value of completed work", value: peso(report.completedValue) },
               { label: "Parts cost", value: peso(report.partsCost) },
               { label: "Discounts given", value: peso(report.discounts) },
               { label: "Expenses", value: peso(report.totalExpenses) },
