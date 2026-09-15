@@ -89,7 +89,7 @@ const CompletedTransactions = () => {
 
       return true;
     });
-  }, [services, technicianFilter, departmentFilter, startDate, endDate]);
+  }, [services, technicianFilter, departmentFilter, startDate, endDate, dateBasis]);
 
   // Actual allocations saved in the breakdown panel drive commissions.
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(
