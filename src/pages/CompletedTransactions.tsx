@@ -108,6 +108,22 @@ const CompletedTransactions = () => {
   );
   const collectedFor = (serviceId: string) => paymentTotals[serviceId] ?? 0;
 
+  // A ticket is fully paid when payments (less refunds) reach its billable
+  // amount (quoted price minus discount). Paid is the default view, as
+  // requested; unpaid and all are one tab away.
+  const isFullyPaid = (service: (typeof services)[number]) => {
+    const billable = (service.quotedPrice || 0) - (service.discount || 0);
+    return collectedFor(service.serviceId) >= billable - 0.01;
+  };
+
+  const visibleServices = useMemo(() => {
+    if (paidFilter === "all") return filteredServices;
+    return filteredServices.filter((s) =>
+      paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredServices, paidFilter, paymentTotals]);
+
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
