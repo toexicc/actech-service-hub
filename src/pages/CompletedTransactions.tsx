@@ -444,6 +444,7 @@ const CompletedTransactions = () => {
                       <TableHead>Department</TableHead>
                       <TableHead className="text-right">Quoted Price</TableHead>
                       <TableHead className="text-right">Discount</TableHead>
+                      <TableHead className="text-right">Collected</TableHead>
                       <TableHead className="text-right">Parts Cost</TableHead>
                       <TableHead className="text-right">Profit</TableHead>
                       <TableHead className="text-right">Commission</TableHead>
@@ -471,6 +472,7 @@ const CompletedTransactions = () => {
                           <TableCell>{service.department}</TableCell>
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right text-emerald-600">₱{collectedFor(service.serviceId).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -493,7 +495,7 @@ const CompletedTransactions = () => {
                         </TableRow>
                         {isOpen && (
                           <TableRow key={`${service.serviceId}-expand`}>
-                            <TableCell colSpan={11} className="bg-muted/10">
+                            <TableCell colSpan={12} className="bg-muted/10">
                               <ServiceBreakdownPanel
                                 serviceId={service.serviceId}
                                 totalCost={(service.quotedPrice || 0) - discount}
