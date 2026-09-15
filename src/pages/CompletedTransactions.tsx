@@ -165,7 +165,11 @@ const CompletedTransactions = () => {
       <div className="p-6 lg:p-8 animate-fade-in">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Completed Services</h1>
-          <p className="text-muted-foreground">View Completed Services Overview</p>
+          <p className="text-muted-foreground">
+            Quoted value of completed work —{" "}
+            {dateBasis === "completed" ? "by completion date" : "by intake date"}. Cash actually collected lives in the
+            POS Transaction Tracker.
+          </p>
         </div>
 
         {/* Financial Summary Cards */}
@@ -293,6 +297,19 @@ const CompletedTransactions = () => {
                     <SelectItem value="Mobile (Daily Repairs)">Mobile (Daily Repairs)</SelectItem>
                     <SelectItem value="Mobile (Logic Board)">Mobile (Logic Board)</SelectItem>
                     <SelectItem value="Others">Others</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Date Basis</Label>
+                <Select value={dateBasis} onValueChange={(v) => setDateBasis(v as "completed" | "received")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="completed">Completion date</SelectItem>
+                    <SelectItem value="received">Intake date (matches Reports)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
