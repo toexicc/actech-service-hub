@@ -439,7 +439,25 @@ const CompletedTransactions = () => {
         {/* Services Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Completed Services ({filteredServices.length})</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle>Completed Services ({visibleServices.length})</CardTitle>
+              <div className="flex items-center gap-1 rounded-lg border p-1">
+                {([
+                  { k: "paid", l: "Paid" },
+                  { k: "unpaid", l: "Unpaid" },
+                  { k: "all", l: "All" },
+                ] as const).map((t) => (
+                  <Button
+                    key={t.k}
+                    size="sm"
+                    variant={paidFilter === t.k ? "default" : "ghost"}
+                    onClick={() => setPaidFilter(t.k)}
+                  >
+                    {t.l}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
