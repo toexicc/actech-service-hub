@@ -249,7 +249,7 @@ const SalaryDisbursement = () => {
 
   const computeCalculator = (staff: any) => {
     const monthly = parseCurrency(staff.salary);
-    const autoDaily = workdaysInPeriod > 0 ? monthly / workdaysInPeriod : 0;
+    const autoDaily = workdaysInMonth > 0 ? monthly / workdaysInMonth : 0;
     const daily = parseCurrency(dailyRateOverride[staff.staffId]) || autoDaily;
     const attendanceDays = attendanceByStaffId[staff.userId] ?? 0;
     const override = daysPresent[staff.staffId];
