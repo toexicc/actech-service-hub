@@ -591,6 +591,13 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
           </div>
         </div>
 
+        <p className="mb-4 text-xs text-muted-foreground">
+          These figures are cash actually collected and paid, by payment date. Completed Services shows the quoted value
+          of work by completion date, so the two will not match line for line.
+        </p>
+
+        <MoneyReconciliationPanel start={dashStartDate} end={dashEndDate} />
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); setExpenseSubTab("all"); }} className="mb-4">
           <TabsList className="w-full sm:w-auto">
