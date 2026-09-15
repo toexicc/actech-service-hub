@@ -403,6 +403,8 @@ const Reports = () => {
       logBacked,
       onTimeRate: withTarget ? (onTimeCount / withTarget) * 100 : 0,
       serviceRevenue,
+      cashCollected,
+      completedValue,
       grossRevenue,
       partsCost,
       discounts,
@@ -414,12 +416,12 @@ const Reports = () => {
 
   const report = useMemo(
     () => buildReport(period),
-    [period, allServices, timings, transactions, expenses],
+    [period, allServices, timings, transactions, expenses, scopeBasis],
   );
   const prev = useMemo(() => {
     const pp = previousPeriod(period);
     return pp ? buildReport(pp) : null;
-  }, [period, allServices, timings, transactions, expenses]);
+  }, [period, allServices, timings, transactions, expenses, scopeBasis]);
 
   /* ---------------- derived chart datasets ---------------- */
 
