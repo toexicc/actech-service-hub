@@ -17,7 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyStatus } from "@/lib/serviceStatus";
 import { cn } from "@/lib/utils";
-import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
+import { TallyLine } from "@/components/TallyLine";
+import { CutoffPresets } from "@/components/CutoffPresets";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -200,7 +201,7 @@ const Reports = () => {
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
   // Anchor tickets to the period by intake date (default) or completion date.
-  const [scopeBasis, setScopeBasis] = useState<"received" | "completed">("received");
+  const [scopeBasis, setScopeBasis] = useState<"received" | "completed">("completed");
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
   const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
@@ -750,6 +751,15 @@ const Reports = () => {
               ))}
             </div>
 
+            <CutoffPresets
+              onApply={(s, e) => {
+                setRangeFrom(s);
+                setRangeTo(e);
+                setMode("range");
+                setScopeBasis("completed");
+              }}
+            />
+
             <div className="flex flex-wrap items-center gap-1">
               <span className="mr-1 text-xs text-muted-foreground">Count tickets by:</span>
               {([
@@ -771,12 +781,12 @@ const Reports = () => {
         </div>
 
         <p className="mb-4 text-xs text-muted-foreground">
-          Tickets are counted by {scopeBasis === "received" ? "intake date" : "completion date"}. Money figures come from
-          actual payments and expenses dated in the period — switch to Completion date to line this page up with
-          Completed Services.
+          Tickets are counted by {scopeBasis === "received" ? "intake date" : "completion date"}. Completion date is the
+          default so this page lines up with Completed Services and the POS Transaction Tracker — switch to Intake date
+          only to look at incoming volume.
         </p>
 
-        <MoneyReconciliationPanel start={period.start ?? undefined} end={period.end ?? undefined} />
+        <TallyLine start={period.start ?? undefined} end={period.end ?? undefined} />
 
         {/* KPIs */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -963,8 +973,8 @@ const Reports = () => {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "Cash collected (payments in period)", value: peso(report.cashCollected) },
-              { label: "Value of completed work (final cost)", value: peso(report.completedValue) },
+              { label: "Collected (payments in period)", value: peso(report.cashCollected) },
+              { label: "Billable value of completed work", value: peso(report.completedValue) },
               { label: "Parts cost", value: peso(report.partsCost) },
               { label: "Discounts given", value: peso(report.discounts) },
               { label: "Expenses", value: peso(report.totalExpenses) },

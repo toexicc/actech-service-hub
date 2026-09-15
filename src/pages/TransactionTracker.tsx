@@ -38,7 +38,8 @@ const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
 };
 import { cn } from "@/lib/utils";
 import { useDoneServices } from "@/hooks/useDoneServices";
-import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
+import { TallyLine } from "@/components/TallyLine";
+import { CutoffPresets } from "@/components/CutoffPresets";
 
 interface Transaction {
   transactionId: string;
@@ -302,6 +303,26 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       .reduce((sum, s) => sum + (Number(s.partsCost) || 0), 0);
   }, [doneServices, dashStartDate, dashEndDate]);
 
+  // Which part of the cash taken in this window sits on tickets completed in
+  // the same window — that part must equal Collected on Completed Services.
+  const salesSplit = useMemo(() => {
+    const windowTicketIds = new Set(
+      doneServices
+        .filter((s) => inManilaDayRange(s.timestamp, dashStartDate, dashEndDate))
+        .map((s) => s.serviceId)
+        .filter(Boolean),
+    );
+    let onWindowTickets = 0;
+    let onOlderTickets = 0;
+    dashTransactions.forEach((t) => {
+      if (!SALES_TYPES.includes(t.transactionType) || t.transactionType === REFUND_TYPE) return;
+      const amt = parseCurrency(t.amount);
+      if (t.serviceId && windowTicketIds.has(t.serviceId)) onWindowTickets += amt;
+      else onOlderTickets += amt;
+    });
+    return { onWindowTickets, onOlderTickets };
+  }, [dashTransactions, doneServices, dashStartDate, dashEndDate]);
+
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
   const mopBreakdown = useMemo(() => {
@@ -520,6 +541,13 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
               {(dashStartDate || dashEndDate) && (
                 <Button variant="ghost" size="sm" onClick={() => { setDashStartDate(undefined); setDashEndDate(undefined); }}>Clear</Button>
               )}
+              <CutoffPresets
+                className="ml-auto"
+                onApply={(s, e) => {
+                  setDashStartDate(s);
+                  setDashEndDate(e);
+                }}
+              />
             </div>
           </CardContent>
         </Card>
@@ -549,6 +577,12 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">Total Sales</p>
                 <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  of which on tickets completed this cut-off: <span className="font-semibold">{fmtCurrency(salesSplit.onWindowTickets)}</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  on older tickets: <span className="font-semibold">{fmtCurrency(salesSplit.onOlderTickets)}</span>
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -592,11 +626,11 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
         </div>
 
         <p className="mb-4 text-xs text-muted-foreground">
-          These figures are cash actually collected and paid, by payment date. Completed Services shows the quoted value
-          of work by completion date, so the two will not match line for line.
+          These figures are cash actually collected and paid, by payment date. The line under Total Sales is the part
+          that belongs to tickets completed in this window — that figure matches Collected on Completed Services.
         </p>
 
-        <MoneyReconciliationPanel start={dashStartDate} end={dashEndDate} />
+        <TallyLine start={dashStartDate} end={dashEndDate} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); setExpenseSubTab("all"); }} className="mb-4">

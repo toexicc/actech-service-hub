@@ -22,6 +22,10 @@ import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
 import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
 import { useSearchParams } from "react-router-dom";
 import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
+import { TallyLine } from "@/components/TallyLine";
+import { CutoffPresets } from "@/components/CutoffPresets";
+import { useWindowTally } from "@/hooks/useWindowTally";
+import { useTicketPayments } from "@/hooks/useTicketPayments";
 
 
 const CompletedTransactions = () => {
@@ -96,6 +100,12 @@ const CompletedTransactions = () => {
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
+  // Cash actually received per ticket — one bulk query for the filtered list.
+  const { data: paymentTotals = {} } = useTicketPayments(
+    useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
+  );
+  const collectedFor = (serviceId: string) => paymentTotals[serviceId] ?? 0;
+
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
@@ -118,6 +128,7 @@ const CompletedTransactions = () => {
     let totalCosts = 0;
     let totalDiscounts = 0;
     let grossSales = 0;
+    let collected = 0;
 
     filteredServices.forEach((service) => {
       const { partsCost, discount, commission } = computeRow(service);
@@ -125,9 +136,11 @@ const CompletedTransactions = () => {
       totalDiscounts += discount;
       totalCosts += partsCost;
       totalCommission += commission;
+      collected += collectedFor(service.serviceId);
     });
 
     const netProfit = grossSales - totalDiscounts - totalCosts;
+    const billable = grossSales - totalDiscounts;
 
     return {
       grossSales,
@@ -136,8 +149,11 @@ const CompletedTransactions = () => {
       netProfit,
       commission: totalCommission,
       profitAfterCommission: netProfit - totalCommission,
+      billable,
+      collected,
+      unpaid: Math.max(0, billable - collected),
     };
-  }, [filteredServices, commissionRate, breakdownMap]);
+  }, [filteredServices, commissionRate, breakdownMap, paymentTotals]);
 
 
 
@@ -174,7 +190,7 @@ const CompletedTransactions = () => {
         </div>
 
         {/* Financial Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Gross Sales</CardTitle>
@@ -185,6 +201,31 @@ const CompletedTransactions = () => {
           </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Collected</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-emerald-600">
+                ₱{financialSummary.collected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">Payments received on these tickets</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Unpaid</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-rose-600">
+                ₱{financialSummary.unpaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">Billable value less collected</p>
+            </CardContent>
+          </Card>
+
 
           <Card>
             <CardHeader className="pb-2">
@@ -344,7 +385,7 @@ const CompletedTransactions = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -360,9 +401,19 @@ const CompletedTransactions = () => {
               <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading} title="Reload table">
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
+              <CutoffPresets
+                className="ml-auto"
+                onApply={(s, e) => {
+                  setDateBasis("completed");
+                  setStartDate(s);
+                  setEndDate(e);
+                }}
+              />
             </div>
           </CardContent>
         </Card>
+
+        <TallyLine start={startDate} end={endDate} />
 
         <MoneyReconciliationPanel start={startDate} end={endDate} />
 
@@ -393,6 +444,7 @@ const CompletedTransactions = () => {
                       <TableHead>Department</TableHead>
                       <TableHead className="text-right">Quoted Price</TableHead>
                       <TableHead className="text-right">Discount</TableHead>
+                      <TableHead className="text-right">Collected</TableHead>
                       <TableHead className="text-right">Parts Cost</TableHead>
                       <TableHead className="text-right">Profit</TableHead>
                       <TableHead className="text-right">Commission</TableHead>
@@ -420,6 +472,7 @@ const CompletedTransactions = () => {
                           <TableCell>{service.department}</TableCell>
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right text-emerald-600">₱{collectedFor(service.serviceId).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -442,7 +495,7 @@ const CompletedTransactions = () => {
                         </TableRow>
                         {isOpen && (
                           <TableRow key={`${service.serviceId}-expand`}>
-                            <TableCell colSpan={11} className="bg-muted/10">
+                            <TableCell colSpan={12} className="bg-muted/10">
                               <ServiceBreakdownPanel
                                 serviceId={service.serviceId}
                                 totalCost={(service.quotedPrice || 0) - discount}
