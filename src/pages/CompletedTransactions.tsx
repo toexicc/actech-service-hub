@@ -128,6 +128,7 @@ const CompletedTransactions = () => {
     let totalCosts = 0;
     let totalDiscounts = 0;
     let grossSales = 0;
+    let collected = 0;
 
     filteredServices.forEach((service) => {
       const { partsCost, discount, commission } = computeRow(service);
@@ -135,9 +136,11 @@ const CompletedTransactions = () => {
       totalDiscounts += discount;
       totalCosts += partsCost;
       totalCommission += commission;
+      collected += collectedFor(service.serviceId);
     });
 
     const netProfit = grossSales - totalDiscounts - totalCosts;
+    const billable = grossSales - totalDiscounts;
 
     return {
       grossSales,
@@ -146,8 +149,11 @@ const CompletedTransactions = () => {
       netProfit,
       commission: totalCommission,
       profitAfterCommission: netProfit - totalCommission,
+      billable,
+      collected,
+      unpaid: Math.max(0, billable - collected),
     };
-  }, [filteredServices, commissionRate, breakdownMap]);
+  }, [filteredServices, commissionRate, breakdownMap, paymentTotals]);
 
 
 
