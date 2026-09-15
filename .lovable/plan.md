@@ -1,6 +1,6 @@
 # Make Transaction Tracker, Completed Services and Salary Disbursement tally
 
-First: the reconciliation walk I added to the POS Transaction Tracker page gets removed. It stays only on Completed Services, where the ticket-level math belongs.
+First: the reconciliation walk I added to the Reports page gets removed — Reports goes back to its KPI cards and charts. The tallying between the three pages comes from shared figures instead of an extra panel.
 
 Then the three pages get one shared window and matching figures, so the same cut-off gives the same numbers on all three.
 
@@ -52,7 +52,8 @@ Same numbers, same wording, same window on all three. If a figure ever differs, 
 
 ## Technical notes
 
-- `src/pages/TransactionTracker.tsx`: remove the `MoneyReconciliationPanel` render and import; keep the Parts Consumed card. Add cut-off preset buttons + month select driving `dashStartDate` / `dashEndDate`; add the "on tickets completed this cut-off" split using the existing completed-ticket ID set already loaded for the parts card.
+- `src/pages/Reports.tsx`: remove the `MoneyReconciliationPanel` render and import (the reconciliation walk you saw) — page returns to its previous layout, keeping the Cash collected / Value of completed work card split and the intake/completion date toggle.
+- `src/pages/TransactionTracker.tsx`: add cut-off preset buttons + month select driving `dashStartDate` / `dashEndDate`; add the "on tickets completed this cut-off" split using the existing completed-ticket ID set already loaded for the parts card.
 - `src/lib/moneyReconciliation.ts`: keep as the single shared calculator; add `commissionAllocated` (sum of `service_breakdowns.cost` for the window's service IDs) so all three pages read one function.
 - Shared cut-off: new `src/lib/cutoffPeriod.ts` exporting `cutoffRange(month, half)` and cut-off preset UI helper, persisted via `useFilterPersistence` under one key read by all three pages; `SalaryDisbursement.tsx` reuses it instead of its local `periodRange` math.
 - `src/pages/CompletedTransactions.tsx`: per-row Collected from a `useServicePaymentsBulk`-style query keyed by the filtered service IDs (one `in` query, not per row); Collected + Unpaid summary cards; shared tally footer component.
