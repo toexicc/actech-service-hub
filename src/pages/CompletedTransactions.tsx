@@ -385,7 +385,7 @@ const CompletedTransactions = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -401,9 +401,19 @@ const CompletedTransactions = () => {
               <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading} title="Reload table">
                 <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
+              <CutoffPresets
+                className="ml-auto"
+                onApply={(s, e) => {
+                  setDateBasis("completed");
+                  setStartDate(s);
+                  setEndDate(e);
+                }}
+              />
             </div>
           </CardContent>
         </Card>
+
+        <TallyLine start={startDate} end={endDate} />
 
         <MoneyReconciliationPanel start={startDate} end={endDate} />
 
