@@ -561,11 +561,11 @@ const CompletedTransactions = () => {
                 </Table>
               </div>
             )}
-            {!isLoading && filteredServices.length > PAGE_SIZE && (
+            {!isLoading && visibleServices.length > PAGE_SIZE && (
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 <p className="text-sm text-muted-foreground">
                   Showing {(currentPage - 1) * PAGE_SIZE + 1}–
-                  {Math.min(currentPage * PAGE_SIZE, filteredServices.length)} of {filteredServices.length}
+                  {Math.min(currentPage * PAGE_SIZE, visibleServices.length)} of {visibleServices.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
