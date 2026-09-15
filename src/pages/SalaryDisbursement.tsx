@@ -181,6 +181,18 @@ const SalaryDisbursement = () => {
     return count;
   }, [salaryPeriod, year, month]);
 
+  // Mon-Sat workdays in the WHOLE month. The salary figure is monthly, so the
+  // daily rate must divide by the full month; dividing by the half-period
+  // doubled the rate and paid a full month's salary each cut-off.
+  const workdaysInMonth = useMemo(() => {
+    const days = new Date(year, month + 1, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= days; d++) {
+      if (new Date(year, month, d).getDay() !== 0) count++;
+    }
+    return count;
+  }, [year, month]);
+
   // Period date range (for attendance auto-fill)
   const periodRange = useMemo(() => {
     const startDay = salaryPeriod === "15th Salary" ? 1 : 16;
