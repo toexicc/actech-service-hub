@@ -416,6 +416,7 @@ const Reports = () => {
       cashCollected,
       completedValue,
       grossRevenue,
+      refunds,
       partsCost,
       discounts,
       totalExpenses,
