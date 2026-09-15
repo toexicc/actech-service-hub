@@ -982,15 +982,19 @@ const Reports = () => {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "Collected (payments in period)", value: peso(report.cashCollected) },
-              { label: "Billable value of completed work", value: peso(report.completedValue) },
-              { label: "Parts cost", value: peso(report.partsCost) },
-              { label: "Discounts given", value: peso(report.discounts) },
-              { label: "Expenses", value: peso(report.totalExpenses) },
-              { label: "Net revenue (cash collected − expenses)", value: peso(report.netRevenue) },
+              { label: "Collected (payments in period)", value: peso(report.cashCollected), basis: "by payment date" },
+              { label: "Billable value of completed work", value: peso(report.completedValue), basis: "by completion date" },
+              { label: "Refunds", value: peso(report.refunds), basis: "by payment date" },
+              { label: "Parts cost", value: peso(report.partsCost), basis: "by completion date" },
+              { label: "Discounts given", value: peso(report.discounts), basis: "by completion date" },
+              { label: "Expenses", value: peso(report.totalExpenses), basis: "by payment date" },
+              { label: "Net revenue (cash collected − refunds − expenses)", value: peso(report.netRevenue), basis: "by payment date" },
             ].map((row) => (
               <div key={row.label} className="rounded-xl border border-border/60 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</p>
+                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{row.basis}</span>
+                </div>
                 <p className="mt-1 text-lg font-semibold">{row.value}</p>
               </div>
             ))}
