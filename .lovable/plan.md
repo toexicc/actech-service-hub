@@ -51,22 +51,11 @@ They are three different definitions of "sales", all correct for their own purpo
 
 Sep 1 - 15: quoted 2,529,320, discounts 134,746, parts 223,801, final cost 2,398,344 across 312 completed tickets - while cash collected was 2,711,426.20. Quoted value and cash received are permanently different because of unpaid balances, partial payments, and cash arriving for tickets completed in an earlier period. The much larger Gross Sales in the screenshot is a wider date range, not a different calculation.
 
-**Fix:** stop calling all three "Gross Sales". Rename to what each one is, and show both figures where a comparison is wanted:
-
-- Completed Services: "Quoted value (completed tickets)".
-- Transaction Tracker: "Cash collected (payments in range)".
-- Reports: "Cash collected (payments in range)" plus the existing "Value of completed work".
-
-Net/Final Profit gets the same treatment:
-
-- Completed Services: "Profit on completed work = quoted - discount - parts", then Final Profit after commission - a ticket-level margin, not a business bottom line.
-- Transaction Tracker and Reports: "Operating profit = cash collected - refunds - expenses" - the business bottom line, identical on both pages.
-
-The shared tally line already at the bottom of the three pages stays as the cross-check.
+**Fix:** keep the existing card names (Gross Sales, Net Profit, Total Sales, Total Profit, Gross Revenue, Net Revenue) - no renaming. The differences are real and expected, and the shared tally line at the bottom of each page stays as the cross-check so you can see at a glance whether the three pages agree on the same window.
 
 ## Technical notes
 
-- `src/pages/Reports.tsx`: in `buildReport`, add `refunds` from period transactions of type `refund` (non-void) and change `netRevenue = cashCollected - refunds - totalExpenses`; add a Refunds entry to the revenue summary list; per-card basis captions; clarify the copy under the `scopeBasis` toggle.
-- `src/pages/TransactionTracker.tsx`: relabel the Total Sales and Total Profit cards ("Cash collected (payments in range)", "Operating profit = cash - refunds - expenses"); no math change, it is already correct.
-- `src/pages/CompletedTransactions.tsx`: relabel Gross Sales to "Quoted value (completed tickets)" and Net Profit to "Profit on completed work"; short caption that this is ticket margin, not cash. Add Paid / Unpaid / All tabs: a ticket is fully paid when `useTicketPayments` totals reach `service_cost - discount`; unpaid rows keep the amount owed and stay editable for commission allocation so nothing is blocked.
-- No schema changes, no change to commission or payout logic.
+- `src/pages/Reports.tsx`: in `buildReport`, add `refunds` from period transactions of type `refund` (non-void) and change `netRevenue = cashCollected - refunds - totalExpenses`; add a Refunds line to the revenue summary so the deduction is visible; per-card basis captions (e.g. a small "by payment date" / "by completion date" tag) so it is obvious which cards the `scopeBasis` switch moves; clarify the copy under the toggle. Card names unchanged.
+- `src/pages/TransactionTracker.tsx`: no math or label changes needed - it already subtracts refunds.
+- `src/pages/CompletedTransactions.tsx`: card names unchanged. Add Paid / Unpaid / All tabs: a ticket is fully paid when `useTicketPayments` totals reach `service_cost - discount`; unpaid rows keep the amount owed and stay editable for commission allocation so nothing is blocked.
+- No schema changes, no change to commission or payout logic, no renaming of any card.
