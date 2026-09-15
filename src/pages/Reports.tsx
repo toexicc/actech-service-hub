@@ -330,7 +330,13 @@ const Reports = () => {
 
 
   const buildReport = (p: Period) => {
-    const scoped = allServices.filter((s) => inPeriod(s.dateReceived || s.timestamp || s.lastUpdated, p));
+    // Which date anchors a ticket to the period: intake date (default) or
+    // completion date, so this page can be matched against Completed Services.
+    const anchorOf = (s: any) =>
+      scopeBasis === "completed"
+        ? s.dateCompleted || s.timestamp || s.lastUpdated
+        : s.dateReceived || s.timestamp || s.lastUpdated;
+    const scoped = allServices.filter((s) => inPeriod(anchorOf(s), p));
     const completed = scoped.filter((s) => classifyStatus(s.status) === "completed");
     const active = scoped.filter((s) => classifyStatus(s.status) === "active");
     const closed = scoped.filter((s) => classifyStatus(s.status) === "closed");
@@ -368,8 +374,12 @@ const Reports = () => {
     const serviceRevenue = completed.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
     const partsCost = completed.reduce((sum, s) => sum + Number(s.partsCost || 0), 0);
     const discounts = completed.reduce((sum, s) => sum + Number(s.discount || 0), 0);
-    const grossRevenue = txRevenue || serviceRevenue;
-    const netRevenue = grossRevenue - totalExpenses - (txRevenue ? 0 : partsCost);
+    // Two explicit measures instead of one card that silently changed meaning:
+    // cash actually collected, and the value of work completed.
+    const cashCollected = txRevenue;
+    const completedValue = serviceRevenue;
+    const grossRevenue = cashCollected;
+    const netRevenue = cashCollected - totalExpenses;
 
     const onTimeCount = completed.filter((s) => {
       const target = toDate(s.targetDate);
