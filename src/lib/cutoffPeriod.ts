@@ -59,4 +59,4 @@ export const monthLabel = (month: string): string => {
 };
 
 /** localStorage key shared by every page that offers cut-off presets. */
-export const CUTOFF_STORAGE_KEY = "shared-cutoff-period";
+export const CUTOFF_STORAGE_KEY = "payoutCutoff";
