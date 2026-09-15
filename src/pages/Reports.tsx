@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyStatus } from "@/lib/serviceStatus";
 import { cn } from "@/lib/utils";
+import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 import {
   ResponsiveContainer,
   ComposedChart,
