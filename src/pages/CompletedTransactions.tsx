@@ -63,6 +63,8 @@ const CompletedTransactions = () => {
   const [commissionRate, setCommissionRate] = useState(0);
   // Which date the range filter reads: completion date (default) or intake date.
   const [dateBasis, setDateBasis] = useState<"completed" | "received">("completed");
+  // Paid-only view: only fully paid tickets show by default, as requested.
+  const [paidFilter, setPaidFilter] = useState<"paid" | "unpaid" | "all">("paid");
   
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -106,6 +108,22 @@ const CompletedTransactions = () => {
   );
   const collectedFor = (serviceId: string) => paymentTotals[serviceId] ?? 0;
 
+  // A ticket is fully paid when payments (less refunds) reach its billable
+  // amount (quoted price minus discount). Paid is the default view, as
+  // requested; unpaid and all are one tab away.
+  const isFullyPaid = (service: (typeof services)[number]) => {
+    const billable = (service.quotedPrice || 0) - (service.discount || 0);
+    return collectedFor(service.serviceId) >= billable - 0.01;
+  };
+
+  const visibleServices = useMemo(() => {
+    if (paidFilter === "all") return filteredServices;
+    return filteredServices.filter((s) =>
+      paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredServices, paidFilter, paymentTotals]);
+
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
@@ -130,7 +148,7 @@ const CompletedTransactions = () => {
     let grossSales = 0;
     let collected = 0;
 
-    filteredServices.forEach((service) => {
+    visibleServices.forEach((service) => {
       const { partsCost, discount, commission } = computeRow(service);
       grossSales += service.quotedPrice || 0;
       totalDiscounts += discount;
@@ -153,20 +171,21 @@ const CompletedTransactions = () => {
       collected,
       unpaid: Math.max(0, billable - collected),
     };
-  }, [filteredServices, commissionRate, breakdownMap, paymentTotals]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleServices, commissionRate, breakdownMap, paymentTotals]);
 
 
 
   // Reset to the first page whenever the filters change the result set.
   useEffect(() => {
     setPage(1);
-  }, [technicianFilter, departmentFilter, startDate, endDate]);
+  }, [technicianFilter, departmentFilter, startDate, endDate, paidFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredServices.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(visibleServices.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pagedServices = useMemo(
-    () => filteredServices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
-    [filteredServices, currentPage],
+    () => visibleServices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [visibleServices, currentPage],
   );
 
   const uniqueTechnicians = useMemo(() => {
@@ -420,16 +439,38 @@ const CompletedTransactions = () => {
         {/* Services Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Completed Services ({filteredServices.length})</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle>Completed Services ({visibleServices.length})</CardTitle>
+              <div className="flex items-center gap-1 rounded-lg border p-1">
+                {([
+                  { k: "paid", l: "Paid" },
+                  { k: "unpaid", l: "Unpaid" },
+                  { k: "all", l: "All" },
+                ] as const).map((t) => (
+                  <Button
+                    key={t.k}
+                    size="sm"
+                    variant={paidFilter === t.k ? "default" : "ghost"}
+                    onClick={() => setPaidFilter(t.k)}
+                  >
+                    {t.l}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : filteredServices.length === 0 ? (
+            ) : visibleServices.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                No completed transactions found
+                {paidFilter === "paid"
+                  ? "No fully paid completed services in this view"
+                  : paidFilter === "unpaid"
+                    ? "No unpaid completed services — everything is settled"
+                    : "No completed transactions found"}
               </p>
             ) : (
               <div className="rounded-md border overflow-x-auto">
@@ -520,11 +561,11 @@ const CompletedTransactions = () => {
                 </Table>
               </div>
             )}
-            {!isLoading && filteredServices.length > PAGE_SIZE && (
+            {!isLoading && visibleServices.length > PAGE_SIZE && (
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 <p className="text-sm text-muted-foreground">
                   Showing {(currentPage - 1) * PAGE_SIZE + 1}–
-                  {Math.min(currentPage * PAGE_SIZE, filteredServices.length)} of {filteredServices.length}
+                  {Math.min(currentPage * PAGE_SIZE, visibleServices.length)} of {visibleServices.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
