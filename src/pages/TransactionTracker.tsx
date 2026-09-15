@@ -549,6 +549,12 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">Total Sales</p>
                 <p className="text-xl font-bold text-primary">{fmtCurrency(totalSales)}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  of which on tickets completed this cut-off: <span className="font-semibold">{fmtCurrency(salesSplit.onWindowTickets)}</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  on older tickets: <span className="font-semibold">{fmtCurrency(salesSplit.onOlderTickets)}</span>
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -592,11 +598,11 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
         </div>
 
         <p className="mb-4 text-xs text-muted-foreground">
-          These figures are cash actually collected and paid, by payment date. Completed Services shows the quoted value
-          of work by completion date, so the two will not match line for line.
+          These figures are cash actually collected and paid, by payment date. The line under Total Sales is the part
+          that belongs to tickets completed in this window — that figure matches Collected on Completed Services.
         </p>
 
-        <MoneyReconciliationPanel start={dashStartDate} end={dashEndDate} />
+        <TallyLine start={dashStartDate} end={dashEndDate} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1); setExpenseSubTab("all"); }} className="mb-4">
