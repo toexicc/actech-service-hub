@@ -937,12 +937,12 @@ const Reports = () => {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "Gross revenue", value: peso(report.grossRevenue) },
-              { label: "Service revenue (completed)", value: peso(report.serviceRevenue) },
+              { label: "Cash collected (payments in period)", value: peso(report.cashCollected) },
+              { label: "Value of completed work (final cost)", value: peso(report.completedValue) },
               { label: "Parts cost", value: peso(report.partsCost) },
               { label: "Discounts given", value: peso(report.discounts) },
               { label: "Expenses", value: peso(report.totalExpenses) },
-              { label: "Net revenue", value: peso(report.netRevenue) },
+              { label: "Net revenue (cash collected − expenses)", value: peso(report.netRevenue) },
             ].map((row) => (
               <div key={row.label} className="rounded-xl border border-border/60 p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</p>
