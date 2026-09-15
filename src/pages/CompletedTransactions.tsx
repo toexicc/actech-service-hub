@@ -21,6 +21,7 @@ import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
 import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
 import { useSearchParams } from "react-router-dom";
+import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 
 
 const CompletedTransactions = () => {
@@ -362,6 +363,8 @@ const CompletedTransactions = () => {
             </div>
           </CardContent>
         </Card>
+
+        <MoneyReconciliationPanel start={startDate} end={endDate} />
 
         {/* Services Table */}
         <Card>
