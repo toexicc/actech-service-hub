@@ -31,6 +31,10 @@ The Tracker subtracts refunds, Reports forgets them. The Tracker is right.
 
 **Fix:** Reports subtracts refunds too, and shows a Refunds figure so the deduction is visible. After this the two numbers are identical.
 
+### Are only paid services on Completed Services?
+
+No. The page lists every ticket whose status is Completed, paid or not. A ticket with nothing paid still appears and counts toward Quoted value; Collected and Unpaid are what tell you which ones actually paid. (If we ever want a "paid only" view, that would be a separate filter - not part of this plan.)
+
 ## 3. Why Gross Sales and Net/Final Profit differ across the three pages
 
 They are three different definitions of "sales", all correct for their own purpose:
