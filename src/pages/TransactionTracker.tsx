@@ -37,6 +37,8 @@ const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
   return true;
 };
 import { cn } from "@/lib/utils";
+import { useDoneServices } from "@/hooks/useDoneServices";
+import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 
 interface Transaction {
   transactionId: string;
@@ -109,6 +111,8 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  // Completed tickets carry the real parts cost used by the Parts Consumed card.
+  const { data: doneServices = [] } = useDoneServices();
   const userRole = sessionStorage.getItem("userRole");
   const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Unknown";
 
