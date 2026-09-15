@@ -68,5 +68,5 @@ The shared tally line already at the bottom of the three pages stays as the cros
 
 - `src/pages/Reports.tsx`: in `buildReport`, add `refunds` from period transactions of type `refund` (non-void) and change `netRevenue = cashCollected - refunds - totalExpenses`; add a Refunds entry to the revenue summary list; per-card basis captions; clarify the copy under the `scopeBasis` toggle.
 - `src/pages/TransactionTracker.tsx`: relabel the Total Sales and Total Profit cards ("Cash collected (payments in range)", "Operating profit = cash - refunds - expenses"); no math change, it is already correct.
-- `src/pages/CompletedTransactions.tsx`: relabel Gross Sales to "Quoted value (completed tickets)" and Net Profit to "Profit on completed work"; short caption that this is ticket margin, not cash.
+- `src/pages/CompletedTransactions.tsx`: relabel Gross Sales to "Quoted value (completed tickets)" and Net Profit to "Profit on completed work"; short caption that this is ticket margin, not cash. Add Paid / Unpaid / All tabs: a ticket is fully paid when `useTicketPayments` totals reach `service_cost - discount`; unpaid rows keep the amount owed and stay editable for commission allocation so nothing is blocked.
 - No schema changes, no change to commission or payout logic.
