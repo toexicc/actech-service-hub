@@ -31,9 +31,13 @@ The Tracker subtracts refunds, Reports forgets them. The Tracker is right.
 
 **Fix:** Reports subtracts refunds too, and shows a Refunds figure so the deduction is visible. After this the two numbers are identical.
 
-### Are only paid services on Completed Services?
+### Completed Services becomes paid-only
 
-No. The page lists every ticket whose status is Completed, paid or not. A ticket with nothing paid still appears and counts toward Quoted value; Collected and Unpaid are what tell you which ones actually paid. (If we ever want a "paid only" view, that would be a separate filter - not part of this plan.)
+As requested, the Completed Services list shows only **fully paid** tickets. Completed tickets with any unpaid balance move out of the main list into a clearly marked **"Completed - unpaid"** tab right beside it, with the amount still owed per ticket, so staff can chase them and allocate their commission once paid. An "All" tab keeps the old combined view available.
+
+- Summary cards follow the visible tab; the paid view's cards are the ones that tally with the other pages.
+- Commission and payout logic are unchanged - allocation still happens on this page; unpaid tickets simply live on their own tab until settled.
+- "Fully paid" means payments on the ticket (less refunds) reach the billable amount (quoted minus discount).
 
 ## 3. Why Gross Sales and Net/Final Profit differ across the three pages
 
