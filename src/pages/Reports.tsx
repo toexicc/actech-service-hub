@@ -198,6 +198,8 @@ const Reports = () => {
   const [preset, setPreset] = useState<PresetKey>("30");
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>();
   const [rangeTo, setRangeTo] = useState<Date | undefined>();
+  // Anchor tickets to the period by intake date (default) or completion date.
+  const [scopeBasis, setScopeBasis] = useState<"received" | "completed">("received");
   const [outputRole, setOutputRole] = useState<"all" | "admin" | "management" | "technician">("all");
   const [outputSort, setOutputSort] = useState<"moves" | "completed" | "drivenEndToEnd">("moves");
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
