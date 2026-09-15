@@ -25,6 +25,7 @@ import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel"
 import { TallyLine } from "@/components/TallyLine";
 import { CutoffPresets } from "@/components/CutoffPresets";
 import { useWindowTally } from "@/hooks/useWindowTally";
+import { useTicketPayments } from "@/hooks/useTicketPayments";
 
 
 const CompletedTransactions = () => {
@@ -99,6 +100,12 @@ const CompletedTransactions = () => {
   const { data: breakdownMap = {} } = useAllServiceBreakdowns(
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
+  // Cash actually received per ticket — one bulk query for the filtered list.
+  const { data: paymentTotals = {} } = useTicketPayments(
+    useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
+  );
+  const collectedFor = (serviceId: string) => paymentTotals[serviceId] ?? 0;
+
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const hasAllocation = (serviceId: string) => (breakdownMap[serviceId] ?? []).length > 0;
