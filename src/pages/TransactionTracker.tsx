@@ -541,6 +541,13 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
               {(dashStartDate || dashEndDate) && (
                 <Button variant="ghost" size="sm" onClick={() => { setDashStartDate(undefined); setDashEndDate(undefined); }}>Clear</Button>
               )}
+              <CutoffPresets
+                className="ml-auto"
+                onApply={(s, e) => {
+                  setDashStartDate(s);
+                  setDashEndDate(e);
+                }}
+              />
             </div>
           </CardContent>
         </Card>
