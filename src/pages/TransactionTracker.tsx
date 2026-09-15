@@ -290,10 +290,13 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       .reduce((sum, t) => sum + parseCurrency(t.amount), 0);
   }, [dashTransactions]);
 
+  // Parts cost is recorded on the ticket, never on a transaction row — reading
+  // it off transactions is why this card used to always show 0.00.
   const totalPartsCost = useMemo(() => {
-    return dashTransactions
-      .reduce((sum, t) => sum + parseCurrency(t.partsCost), 0);
-  }, [dashTransactions]);
+    return doneServices
+      .filter((s) => inManilaDayRange(s.timestamp, dashStartDate, dashEndDate))
+      .reduce((sum, s) => sum + (Number(s.partsCost) || 0), 0);
+  }, [doneServices, dashStartDate, dashEndDate]);
 
   const profit = useMemo(() => totalSales - totalExpenses - totalRefunds, [totalSales, totalExpenses, totalRefunds]);
 
@@ -558,8 +561,11 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
             </Card>
             <Card>
               <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Total Parts Cost</p>
+                <p className="text-xs text-muted-foreground">Parts Consumed (completed tickets)</p>
                 <p className="text-xl font-bold text-destructive">{fmtCurrency(totalPartsCost)}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Parts used on tickets completed in range — not Parts Inventory purchases.
+                </p>
               </CardContent>
             </Card>
             <Card>
