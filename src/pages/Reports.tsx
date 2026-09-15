@@ -358,6 +358,14 @@ const Reports = () => {
         String(t.status || "").toLowerCase() !== "voided",
     );
     const txRevenue = salesTx.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    const refundTx = (transactions as any[]).filter(
+      (t) =>
+        inPeriod(t.transactionDate, p) &&
+        String(t.type || "").trim().toLowerCase() === "refund" &&
+        String(t.status || "").toLowerCase() !== "void" &&
+        String(t.status || "").toLowerCase() !== "voided",
+    );
+    const refunds = refundTx.reduce((sum, t) => sum + Number(t.amount || 0), 0);
     const transactionExpenses = (transactions as any[])
       .filter(
         (t) =>
@@ -383,7 +391,7 @@ const Reports = () => {
     const cashCollected = txRevenue;
     const completedValue = serviceRevenue;
     const grossRevenue = cashCollected;
-    const netRevenue = cashCollected - totalExpenses;
+    const netRevenue = cashCollected - refunds - totalExpenses;
 
     const onTimeCount = completed.filter((s) => {
       const target = toDate(s.targetDate);
