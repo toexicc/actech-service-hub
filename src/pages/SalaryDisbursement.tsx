@@ -843,7 +843,7 @@ const SalaryDisbursement = () => {
                 <div className="min-w-0">
                   <CardTitle className="text-lg">Service Based Employees</CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    Commissions count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}). Allocations saved in Completed Services are the only source of the payout.
+                    Commissions count only tickets completed {displayDate(periodRange.start, "MMM dd")} – {displayDate(periodRange.end, "MMM dd, yyyy")} ({salaryPeriod}). Allocations saved in Completed Services are the only source of the payout. Daily rate = monthly salary ÷ {workdaysInMonth} workdays in {displayDate(periodRange.start, "MMMM yyyy")} (Sundays excluded), so both cut-offs together pay exactly one month.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 shrink-0">
