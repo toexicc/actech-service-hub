@@ -190,7 +190,7 @@ const CompletedTransactions = () => {
         </div>
 
         {/* Financial Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Gross Sales</CardTitle>
@@ -201,6 +201,31 @@ const CompletedTransactions = () => {
           </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Collected</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-emerald-600">
+                ₱{financialSummary.collected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">Payments received on these tickets</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Unpaid</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl font-bold text-rose-600">
+                ₱{financialSummary.unpaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">Billable value less collected</p>
+            </CardContent>
+          </Card>
+
 
           <Card>
             <CardHeader className="pb-2">
