@@ -56,6 +56,8 @@ const CompletedTransactions = () => {
     if (tech) setTechnicianFilter(tech);
   }, [searchParams]);
   const [commissionRate, setCommissionRate] = useState(0);
+  // Which date the range filter reads: completion date (default) or intake date.
+  const [dateBasis, setDateBasis] = useState<"completed" | "received">("completed");
   
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [page, setPage] = useState(1);
