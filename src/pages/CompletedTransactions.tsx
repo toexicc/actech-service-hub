@@ -148,7 +148,7 @@ const CompletedTransactions = () => {
     let grossSales = 0;
     let collected = 0;
 
-    filteredServices.forEach((service) => {
+    visibleServices.forEach((service) => {
       const { partsCost, discount, commission } = computeRow(service);
       grossSales += service.quotedPrice || 0;
       totalDiscounts += discount;
@@ -171,7 +171,8 @@ const CompletedTransactions = () => {
       collected,
       unpaid: Math.max(0, billable - collected),
     };
-  }, [filteredServices, commissionRate, breakdownMap, paymentTotals]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleServices, commissionRate, breakdownMap, paymentTotals]);
 
 
 
