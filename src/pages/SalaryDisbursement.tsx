@@ -512,9 +512,10 @@ const SalaryDisbursement = () => {
   }, [periodServices, breakdownMap, serviceBasedStaff]);
 
   /** Deep link into Completed Services already filtered to this cut-off. */
-  const openCompletedServices = (technician?: string) => {
+  const openCompletedServices = (technician?: string, issuesOnly = false) => {
     const params = new URLSearchParams({ from: periodRange.start, to: periodRange.end });
     if (technician) params.set("technician", technician);
+    if (issuesOnly) params.set("issues", "1");
     navigate(`/completed-transactions?${params.toString()}`);
   };
 
@@ -1000,7 +1001,7 @@ const SalaryDisbursement = () => {
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => openCompletedServices()}>
+                  <Button size="sm" variant="outline" onClick={() => openCompletedServices(undefined, true)}>
                     Review in Completed Services
                   </Button>
                 </CardContent>
