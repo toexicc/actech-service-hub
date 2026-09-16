@@ -131,12 +131,22 @@ const CompletedTransactions = () => {
   };
 
   const visibleServices = useMemo(() => {
-    if (paidFilter === "all") return filteredServices;
-    return filteredServices.filter((s) =>
-      paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
-    );
+    let list = filteredServices;
+    if (paidFilter !== "all") {
+      list = list.filter((s) =>
+        paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
+      );
+    }
+    // Payout-readiness filter: only tickets missing a commission allocation or
+    // a parts cost — the same checks Salary Disbursement warns about.
+    if (issuesOnly) {
+      list = list.filter(
+        (s) => !hasAllocation(s.serviceId) || (s.partsCost || 0) === 0,
+      );
+    }
+    return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredServices, paidFilter, paymentTotals]);
+  }, [filteredServices, paidFilter, paymentTotals, issuesOnly, breakdownMap]);
 
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
