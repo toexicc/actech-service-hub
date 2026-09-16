@@ -22,6 +22,7 @@ import { Search, RotateCcw, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { logTicketActivity } from "@/lib/activityLogger";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 
 const PAGE_SIZE = 10;

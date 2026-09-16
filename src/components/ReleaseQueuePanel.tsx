@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search } from "lucide-react";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 const PAGE_SIZE = 10;
 
