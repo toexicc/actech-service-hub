@@ -1834,7 +1834,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                                  {inServiceDays} {inServiceDays === 1 ? "day" : "days"}
                                </span>
                              )}
-                           </TableCell>
+                             </TableCell>
+                           <TableCell className="whitespace-nowrap tabular-nums">{durationLabel}</TableCell>
                            <TableCell>
                               <div className="flex items-center gap-1">
                                 <Button
