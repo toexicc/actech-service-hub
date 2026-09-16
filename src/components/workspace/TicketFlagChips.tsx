@@ -88,7 +88,7 @@ export function TicketFlagChips({
       cls: "border-indigo-400/40 bg-indigo-500/15 text-indigo-600",
     });
   }
-  if (service?.isReleased) {
+  if (service?.isReleased && !hideReleased) {
     chips.push({
       key: "released",
       label: "Released",
