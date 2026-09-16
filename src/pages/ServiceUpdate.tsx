@@ -36,7 +36,7 @@ import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { logActivity, logAiFormatActivity, diffFields } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields, diffBreakdown } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
@@ -1098,7 +1098,7 @@ const ServiceUpdate = () => {
         const userFullName = sessionStorage.getItem("userFullName") || username;
         const { summaries: fieldSummaries, details: fieldDetails } = diffFields([
           { label: "Status", before: serviceData.status, after: updateStatus },
-          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
+          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician, kind: "list" },
           { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
           { label: "Service Breakdown (draft)", before: (serviceData as any).diagnosisBreakdownText, after: updateDiagBreakdown },
@@ -1109,14 +1109,27 @@ const ServiceUpdate = () => {
           { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
-          { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
-          { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
+          {
+            label: "Discount",
+            before: sanitizeNumber(String(serviceData.discount ?? "0")),
+            after: discountAmount,
+            kind: "number",
+          },
+          {
+            label: "Final Cost",
+            before: sanitizeNumber(String(serviceData.finalCost ?? "0")),
+            after: finalCost,
+            kind: "number",
+          },
         ]);
         const changes: string[] = [...fieldSummaries];
-        
+
+        const samePartsList = (a: string, b: string) =>
+          a.split(/\s*,\s*/).map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join(",") ===
+          b.split(/\s*,\s*/).map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join(",");
         const prevParts = (serviceData.partsUsed || "").trim();
         const newPartsDisplay = partsUsedString.trim();
-        if (newPartsDisplay !== prevParts) {
+        if (!samePartsList(newPartsDisplay, prevParts)) {
           if (newPartsDisplay) {
             changes.push(`Parts used: ${newPartsDisplay}, Actual cost: ₱${actualCost}`);
           } else {
