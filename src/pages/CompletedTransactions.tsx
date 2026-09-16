@@ -21,8 +21,10 @@ import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
 import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
 import { useSearchParams } from "react-router-dom";
-import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 import { TallyLine } from "@/components/TallyLine";
+import { useStaff } from "@/hooks/useStaff";
+import { parseCurrency } from "@/lib/utils";
+import { isAssignedTo } from "@/lib/technicianMatch";
 import { CutoffPresets } from "@/components/CutoffPresets";
 import { useWindowTally } from "@/hooks/useWindowTally";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
@@ -458,7 +460,6 @@ const CompletedTransactions = () => {
 
         <TallyLine start={startDate} end={endDate} />
 
-        <MoneyReconciliationPanel start={startDate} end={endDate} />
 
         {/* Services Table */}
         <Card>
