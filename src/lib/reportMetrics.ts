@@ -753,9 +753,10 @@ export const buildTimings = (
 
       // A ticket stops counting once it is Completed OR closed (RTO / Cancelled /
       // On Hold) — in both cases the shop is done working it.
-      const terminalTransition = [...transitions]
-        .reverse()
-        .find((t) => classifyStatus(t.to) !== "active");
+      const terminalTransition =
+        classifyStatus(s.status) === "active"
+          ? undefined
+          : [...transitions].reverse().find((t) => classifyStatus(t.to) !== "active");
       const endStamp = terminalTransition ? toDate(terminalTransition.createdAt) : null;
 
       // Waiting-for-Parts windows, closed at the end boundary when still open.
