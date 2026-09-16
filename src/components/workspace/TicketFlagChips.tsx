@@ -15,6 +15,10 @@ export interface TicketFlagChipsProps {
    * a Paid / Partial Payment chip is shown so collection is visible at a glance.
    */
   collected?: number | null;
+  /** Hide the "Released" chip (e.g. on Completed Services where it's implied). */
+  hideReleased?: boolean;
+  /** Show a "Disbursed" chip when the technician has already been paid out. */
+  disbursed?: boolean;
   className?: string;
 }
 
