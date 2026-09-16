@@ -98,7 +98,7 @@ import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
 import { TicketPaymentModal } from "@/components/TicketPaymentModal";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
-import { logActivity, logAiFormatActivity, logTicketActivity, diffFields } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, logTicketActivity, diffFields, diffBreakdown } from "@/lib/activityLogger";
 import {
   notifyServiceStatusChange,
   notifyNewServiceAssignment,
