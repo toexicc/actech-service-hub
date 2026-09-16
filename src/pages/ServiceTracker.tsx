@@ -1597,10 +1597,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       >
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono text-muted-foreground">{service.serviceId}</span>
-                              {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
-                            </div>
+                             <div className="flex items-center gap-2">
+                               <span className="text-xs font-mono text-muted-foreground">{service.serviceId}</span>
+                               <ServicePreviewButton serviceId={service.serviceId} />
+                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
+                             </div>
                             <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
                             <TicketFlagChips
                               service={service}
@@ -1762,7 +1763,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                          >
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
-                                <span>{service.serviceId}</span>
+                                 <span>{service.serviceId}</span>
+                                 <ServicePreviewButton serviceId={service.serviceId} />
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
