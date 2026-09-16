@@ -217,16 +217,81 @@ export const logAiEditActivity = (
   );
 };
 
-/** Build "field: old → new" strings from a map of before/after values. */
+/** How a field should be compared so cosmetic differences are ignored. */
+export type DiffKind = "text" | "number" | "bool" | "list" | "date";
+
+const normText = (v: any): string => String(v ?? "").replace(/\s+/g, " ").trim();
+
+const normNumber = (v: any): string => {
+  const raw = normText(v).replace(/[^0-9.\-]/g, "");
+  const n = Number(raw);
+  if (raw === "" || Number.isNaN(n)) return "";
+  // Round to centavos so 16500 and 16500.00 compare equal.
+  return String(Math.round(n * 100) / 100);
+};
+
+const normBool = (v: any): string => {
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  const s = normText(v).toLowerCase();
+  if (["yes", "true", "1", "on"].includes(s)) return "yes";
+  if (["no", "false", "0", "off", ""].includes(s)) return "no";
+  return s;
+};
+
+const normList = (v: any): string => {
+  const items = Array.isArray(v) ? v.map((x) => normText(x)) : normText(v).split(/\s*,\s*/);
+  return items
+    .map((s) => s.toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(", ");
+};
+
+const normDate = (v: any): string => {
+  const s = normText(v);
+  if (!s) return "";
+  const d = new Date(s.includes("-") && /^\d{2}-\d{2}-\d{4}$/.test(s)
+    ? `${s.slice(6)}-${s.slice(0, 2)}-${s.slice(3, 5)}`
+    : s);
+  return Number.isNaN(d.getTime()) ? s.toLowerCase() : d.toISOString().slice(0, 10);
+};
+
+const normalizeBy = (kind: DiffKind | undefined, v: any): string => {
+  switch (kind) {
+    case "number":
+      return normNumber(v);
+    case "bool":
+      return normBool(v);
+    case "list":
+      return normList(v);
+    case "date":
+      return normDate(v);
+    default:
+      return normText(v);
+  }
+};
+
+/**
+ * Build "field: old → new" strings, skipping fields whose value only differs
+ * cosmetically (number formatting, list order, spacing, date spelling).
+ */
 export const diffFields = (
-  fields: Array<{ label: string; before: any; after: any; format?: (v: any) => string }>,
+  fields: Array<{
+    label: string;
+    before: any;
+    after: any;
+    format?: (v: any) => string;
+    kind?: DiffKind;
+  }>,
 ): { summaries: string[]; details: Record<string, { from: string; to: string }> } => {
   const summaries: string[] = [];
   const details: Record<string, { from: string; to: string }> = {};
-  fields.forEach(({ label, before, after, format }) => {
+  fields.forEach(({ label, before, after, format, kind }) => {
+    if (normalizeBy(kind, before) === normalizeBy(kind, after)) return;
     const fmt = (v: any) => {
       const out = format ? format(v) : String(v ?? "");
-      return out.trim() === "" ? "(empty)" : out;
+      const s = out.replace(/\s+/g, " ").trim();
+      return s === "" ? "(empty)" : s;
     };
     const a = fmt(before);
     const b = fmt(after);
@@ -235,6 +300,70 @@ export const diffFields = (
     details[label] = { from: preview(a, 400), to: preview(b, 400) };
   });
   return { summaries, details };
+};
+
+interface BreakdownLine {
+  name?: string;
+  cost?: any;
+  selected?: any;
+  required?: any;
+}
+
+const peso = (v: any): string => {
+  const n = Number(normNumber(v) || 0);
+  return `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+};
+
+const byName = (lines: any): Map<string, BreakdownLine> => {
+  const map = new Map<string, BreakdownLine>();
+  (Array.isArray(lines) ? lines : []).forEach((l: any) => {
+    const key = normText(l?.name).toLowerCase();
+    if (key) map.set(key, l as BreakdownLine);
+  });
+  return map;
+};
+
+/**
+ * Human-readable diff of the quoted service breakdown. Returns only the lines
+ * that actually moved, so a re-save of the same list logs nothing.
+ */
+export const diffBreakdown = (
+  before: any,
+  after: any,
+  label = "Service Breakdown",
+): { summaries: string[]; details: Record<string, string> } => {
+  const prev = byName(before);
+  const next = byName(after);
+  const parts: string[] = [];
+
+  next.forEach((line, key) => {
+    const old = prev.get(key);
+    const name = normText(line.name);
+    if (!old) {
+      parts.push(`added "${name}" ${peso(line.cost)}`);
+      return;
+    }
+    if (normNumber(old.cost) !== normNumber(line.cost)) {
+      parts.push(`"${name}" ${peso(old.cost)} → ${peso(line.cost)}`);
+    }
+    if (normBool(old.selected) !== normBool(line.selected)) {
+      parts.push(`"${name}" ${normBool(line.selected) === "yes" ? "selected" : "unselected"}`);
+    }
+    if (normBool(old.required) !== normBool(line.required)) {
+      parts.push(`"${name}" marked ${normBool(line.required) === "yes" ? "required" : "optional"}`);
+    }
+  });
+
+  prev.forEach((line, key) => {
+    if (!next.has(key)) parts.push(`removed "${normText(line.name)}"`);
+  });
+
+  if (!parts.length) return { summaries: [], details: {} };
+  const text = parts.join("; ");
+  return {
+    summaries: [`${label}: ${preview(text, 140)}`],
+    details: { [label]: preview(text, 400) },
+  };
 };
 
 
