@@ -991,6 +991,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return filteredAndSortedServices.slice(startIndex, endIndex);
   }, [filteredAndSortedServices, currentPage]);
 
+  // Working-time duration for the tickets shown on this page.
+  const pageTimings = useServiceTimings(paginatedServices);
+
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedServices.length / itemsPerPage));
 
   useEffect(() => {
