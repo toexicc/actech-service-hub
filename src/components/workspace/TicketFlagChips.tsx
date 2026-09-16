@@ -10,8 +10,25 @@ export interface TicketFlagChipsProps {
   service: any;
   /** Show the "Within the Day" chip (hidden in the RTO/closed views). */
   showWithinDay?: boolean;
+  /**
+   * Cash actually received on this ticket (payments less refunds). When given,
+   * a Paid / Partial Payment chip is shown so collection is visible at a glance.
+   */
+  collected?: number | null;
   className?: string;
 }
+
+const num = (v: any) => {
+  const n = Number(String(v ?? "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Quoted price less discount — the amount the client owes. */
+const billableOf = (s: any) => {
+  const gross =
+    num(s?.quotedPrice) || num(s?.serviceCost) || num(s?.finalCost) || num(s?.totalCost);
+  return Math.max(0, gross - num(s?.discount));
+};
 
 const CHIP =
   "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap";
