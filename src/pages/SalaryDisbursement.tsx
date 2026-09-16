@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { useStaff } from "@/hooks/useStaff";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight, Printer, Download, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight, Printer, Download, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
@@ -28,6 +29,7 @@ import {
   generateCommissionPayslipPdf,
   type PayslipData,
   type PayslipRow,
+  type DeductionLine,
 } from "@/lib/commissionPayslipPdf";
 import { downloadPdfBytes, printPdfBytes } from "@/lib/pdfActions";
 
