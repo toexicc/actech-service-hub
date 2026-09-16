@@ -1233,7 +1233,7 @@ async function disburseSalary(b: Record<string, any>) {
     net_pay: num(b.netPay) || amount,
     status: b.status || "Disbursed",
     disbursed_at: new Date().toISOString(),
-  });
+  }, { onConflict: "staff_id,period_label" });
   if (error) return err(error.message, 500);
   return json({ status: "success", result: "success" });
 }
