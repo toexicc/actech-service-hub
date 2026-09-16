@@ -158,16 +158,30 @@ const CompletedTransactions = () => {
         paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
       );
     }
-    // Payout-readiness filter: only tickets missing a commission allocation or
-    // a parts cost — the same checks Salary Disbursement warns about.
+    // Payout-readiness filter: only tickets worked by a commission-based
+    // technician that are still missing an allocation or a parts cost — the
+    // same checks Salary Disbursement warns about. It waits for the
+    // allocations to load, otherwise every ticket would look unallocated.
     if (issuesOnly) {
-      list = list.filter(
-        (s) => !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0,
-      );
+      if (!breakdownsLoaded || breakdownsFetching) return [];
+      list = list.filter((s) => {
+        const paysCommission = serviceBasedNames.some((n) => isAssignedTo(s.technician, n));
+        if (!paysCommission) return false;
+        return !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0;
+      });
     }
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredServices, paidFilter, paymentTotals, issuesOnly, breakdownMap]);
+  }, [
+    filteredServices,
+    paidFilter,
+    paymentTotals,
+    issuesOnly,
+    breakdownMap,
+    breakdownsLoaded,
+    breakdownsFetching,
+    serviceBasedNames,
+  ]);
 
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
