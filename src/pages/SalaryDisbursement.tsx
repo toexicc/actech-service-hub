@@ -846,8 +846,18 @@ const SalaryDisbursement = () => {
           <TabsContent value="disbursement" className="space-y-6 mt-4">
             {/* Fixed Salary Staff */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-lg">Fixed Salary Employees</CardTitle>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button size="sm" variant="outline" disabled={payslipBusy !== null} onClick={() => handleFixedBatchPayslip("print")}>
+                    {payslipBusy === "fixed-batch" ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Printer className="mr-2 h-3.5 w-3.5" />}
+                    Print All Payslips
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={payslipBusy !== null} onClick={() => handleFixedBatchPayslip("download")}>
+                    <Download className="mr-2 h-3.5 w-3.5" />
+                    Download All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {fixedStaff.length === 0 ? (
