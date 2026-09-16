@@ -774,8 +774,9 @@ export const buildTimings = (
           openWindow = null;
         }
       });
-      if (openWindow && endStamp && endStamp > openWindow) {
-        partWindows.push({ start: openWindow, end: endStamp });
+      const partsBoundary = endStamp ?? new Date();
+      if (openWindow && partsBoundary > openWindow) {
+        partWindows.push({ start: openWindow, end: partsBoundary });
       }
 
       const pausedByParts = (from: Date, to: Date) =>
