@@ -47,7 +47,15 @@ interface Props {
   formDocs?: FormDoc[];
   /** Manage Client can edit saved warranty terms before rebuilding the card. */
   allowWarrantyEdit?: boolean;
+  /** Show intake / quotation rows as view-only (no generate/update button). */
+  viewOnlyForms?: boolean;
 }
+
+const VIEW_ONLY_FORMS: { kind: Extract<ServicePdfKind, "intake" | "quotation">; title: string; hint: string }[] = [
+  { kind: "intake", title: "Client Intake Form", hint: "Signed intake and device conditions" },
+  { kind: "quotation", title: "Service Quotation Form", hint: "Quoted services and options" },
+];
+
 
 /**
  * View / print / download the documents of a ticket. Used on the POS page,
