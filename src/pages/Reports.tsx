@@ -799,10 +799,12 @@ const Reports = () => {
         </div>
 
         <p className="mb-4 text-xs text-muted-foreground">
-          Tickets are counted by {scopeBasis === "received" ? "intake date" : "completion date"}. Completion date is the
-          default so this page lines up with Completed Services and the POS Transaction Tracker — switch to Intake date
-          only to look at incoming volume. Note: this switch only re-anchors the ticket cards above (counts, billable
-          value, parts, discounts). Cash collected, refunds, expenses and net revenue are always by payment date.
+          Ticket counts, completion rate, turnaround and on-time delivery are always by intake date, so they describe the
+          work that came in during the period. This switch only re-anchors the revenue figures (billable value of
+          completed work, parts, discounts, average ticket) — set to{" "}
+          {scopeBasis === "completed" ? "completion date" : "intake date"}, so those figures currently follow{" "}
+          {scopeBasis === "completed" ? "when work was finished" : "when tickets came in"}. Cash collected, refunds,
+          expenses and net revenue are always by payment date.
         </p>
 
         <TallyLine start={period.start ?? undefined} end={period.end ?? undefined} />
