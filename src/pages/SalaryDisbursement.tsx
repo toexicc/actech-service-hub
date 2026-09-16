@@ -574,6 +574,33 @@ const SalaryDisbursement = () => {
       if (!ok) toast({ title: "Print blocked", description: "Allow pop-ups to print, or use Download.", variant: "destructive" });
     }
   };
+  const handleFixedPayslip = async (staff: any, action: "print" | "download") => {
+    setPayslipBusy(staff.staffId);
+    try {
+      await outputPayslip([buildFixedPayslip(staff)], action, `Payslip-${staff.name}-${periodRange.start}.pdf`);
+    } catch {
+      toast({ title: "Error", description: "Failed to build the payslip.", variant: "destructive" });
+    } finally {
+      setPayslipBusy(null);
+    }
+  };
+
+  const handleFixedBatchPayslip = async (action: "print" | "download") => {
+    const entries = fixedStaff.map((s: any) => buildFixedPayslip(s));
+    if (!entries.length) {
+      toast({ title: "Nothing to print", description: "No fixed salary staff found.", variant: "destructive" });
+      return;
+    }
+    setPayslipBusy("fixed-batch");
+    try {
+      await outputPayslip(entries, action, `Fixed-Payslips-${periodRange.start}.pdf`);
+    } catch {
+      toast({ title: "Error", description: "Failed to build the payslips.", variant: "destructive" });
+    } finally {
+      setPayslipBusy(null);
+    }
+  };
+
 
   const handleStaffPayslip = async (staff: any, action: "print" | "download") => {
     setPayslipBusy(staff.staffId);
