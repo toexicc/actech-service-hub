@@ -103,10 +103,18 @@ const CompletedTransactions = () => {
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
   // Cash actually received per ticket — one bulk query for the filtered list.
-  const { data: paymentTotals = {} } = useTicketPayments(
+  const {
+    data: paymentTotals,
+    isFetching: paymentsFetching,
+    isError: paymentsError,
+    refetch: refetchPayments,
+  } = useTicketPayments(
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
-  const collectedFor = (serviceId: string) => paymentTotals[serviceId] ?? 0;
+  // Until the payment totals are in, nothing can be classified as paid or
+  // unpaid — the table waits instead of showing an empty, zeroed page.
+  const paymentsReady = !!paymentTotals && !paymentsFetching;
+  const collectedFor = (serviceId: string) => paymentTotals?.[serviceId] ?? 0;
 
   // A ticket is fully paid when payments (less refunds) reach its billable
   // amount (quoted price minus discount). Paid is the default view, as
