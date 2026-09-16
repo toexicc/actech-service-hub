@@ -160,6 +160,8 @@ const SalaryDisbursement = () => {
   const [deductions, setDeductions] = useState<Record<string, string>>({});
   const [techCommissions, setTechCommissions] = useState<Record<string, string>>({});
   const [disbursing, setDisbursing] = useState<string | null>(null);
+  /** Staff ids whose already-disbursed row was unlocked for editing. */
+  const [editingStaff, setEditingStaff] = useState<string[]>([]);
   const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
 
@@ -345,9 +347,11 @@ const SalaryDisbursement = () => {
     () => new Set(periodPayouts.map((p: any) => (p.staff_name || "").trim().toLowerCase())),
     [periodPayouts],
   );
-  const isAlreadyPaid = (staff: any) =>
+  const hasPayout = (staff: any) =>
     paidStaffNames.has((staff.name || "").trim().toLowerCase()) ||
     disbursedList.some((d) => d.staffId === staff.staffId);
+  /** Rows unlocked by Edit behave like unpaid rows until re-disbursed. */
+  const isAlreadyPaid = (staff: any) => hasPayout(staff) && !editingStaff.includes(staff.staffId);
 
   // Compute balance per fund from transactions (mirrors TransactionTracker logic)
   const fundBalances = useMemo(() => {
@@ -638,13 +642,18 @@ const SalaryDisbursement = () => {
       toast({ title: "Error", description: "Final amount must be greater than 0", variant: "destructive" });
       return;
     }
-    if (isAlreadyPaid(staff)) {
+    const isEdit = hasPayout(staff);
+    if (isEdit && !editingStaff.includes(staff.staffId)) {
       toast({ title: "Already Disbursed", description: `${staff.name} has already been paid for this cut-off.`, variant: "destructive" });
       return;
     }
     setDisbursing(staff.staffId);
     // Mark paid up-front so the button locks on the first click.
-    setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
+    setDisbursedList((prev) => [
+      ...prev.filter((d) => d.staffId !== staff.staffId),
+      { staffId: staff.staffId, staffName: staff.name, amount: finalAmount },
+    ]);
+    setEditingStaff((prev) => prev.filter((id) => id !== staff.staffId));
     try {
       const c = computeCalculator(staff);
       const params = new URLSearchParams();
@@ -685,13 +694,51 @@ const SalaryDisbursement = () => {
         return;
       }
 
-      // Post the matching expense entry right away — one entry per payout.
+      // One expense entry per staff per cut-off: an edited payout overwrites the
+      // existing entry instead of posting a second one.
+      const txDescription = `${staff.name} — ${periodLabelFull}`;
+      const { data: existingTx } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("type", "Salary Disbursement")
+        .eq("description", txDescription)
+        .limit(1);
+      if (existingTx && existingTx.length > 0) {
+        const { error: updateError } = await supabase
+          .from("transactions")
+          .update({
+            amount: Number(finalAmount.toFixed(2)),
+            fund_name: fundSource,
+            created_by_name: username,
+            transaction_date: new Date().toISOString(),
+          })
+          .eq("id", (existingTx[0] as any).id);
+        toast({
+          title: "Disbursement Updated",
+          description: updateError
+            ? `${staff.name}'s payout was saved, but the transaction entry could not be updated.`
+            : `${staff.name}'s payout is now ${fmtCurrency(finalAmount)} and the existing transaction was updated.`,
+          variant: updateError ? "destructive" : undefined,
+        });
+        logActivityAsync({
+          serviceId: "SALARY",
+          username,
+          role: userRole || "",
+          activity: `Updated disbursement to ${fmtCurrency(finalAmount)} for ${staff.name} (${periodLabelFull})`,
+        });
+        refetchLogs();
+        queryClient.invalidateQueries({ queryKey: ["salaryDisbursements"] });
+        queryClient.invalidateQueries({ queryKey: ["fundTransactions"] });
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        return;
+      }
+
       const txParams = new URLSearchParams();
       txParams.append("action", "addTransaction");
       txParams.append("transactionType", "Salary Disbursement");
       txParams.append("category", "Expenses");
       txParams.append("amount", finalAmount.toFixed(2));
-      txParams.append("description", `${staff.name} — ${periodLabelFull}`);
+      txParams.append("description", txDescription);
       txParams.append("mop", "Bank Transfer");
       txParams.append("attendant", username);
       txParams.append("remarks", `${salaryPeriod} payout for ${staff.name}`);
@@ -968,14 +1015,26 @@ const SalaryDisbursement = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant={isDone ? "secondary" : "default"}
-                                  onClick={() => handleDisburse(staff, c.net)}
-                                  disabled={disbursing === staff.staffId || c.net <= 0 || isDone}
-                                >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant={isDone ? "secondary" : "default"}
+                                    onClick={() => handleDisburse(staff, c.net)}
+                                    disabled={disbursing === staff.staffId || c.net <= 0 || isDone}
+                                  >
+                                    {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
+                                  </Button>
+                                  {isDone && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      title="Edit this disbursement"
+                                      onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -1113,14 +1172,26 @@ const SalaryDisbursement = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant={isDone ? "secondary" : "default"}
-                                  onClick={() => handleDisburse(staff, final)}
-                                  disabled={disbursing === staff.staffId || final <= 0 || isDone}
-                                >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant={isDone ? "secondary" : "default"}
+                                    onClick={() => handleDisburse(staff, final)}
+                                    disabled={disbursing === staff.staffId || final <= 0 || isDone}
+                                  >
+                                    {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
+                                  </Button>
+                                  {isDone && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      title="Edit this disbursement"
+                                      onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
