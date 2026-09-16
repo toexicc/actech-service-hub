@@ -742,6 +742,7 @@ export const buildTimings = (
     let totalHours: number | null = null;
     let pausedHours = 0;
     let fromLogs = false;
+    let isOpen = false;
 
     const transitions = entries.filter((e) => e.to);
     if (transitions.length) {
