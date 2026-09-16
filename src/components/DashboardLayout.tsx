@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { TabBar } from "@/components/workbench/TabBar";
 import { CommandPalette } from "@/components/CommandPalette";
+import { ServicePreviewProvider } from "@/components/ServicePreviewProvider";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 
 
