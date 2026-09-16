@@ -63,6 +63,14 @@ export function TicketFlagChips({
     );
   }
 
+  if (disbursed) {
+    chips.push({
+      key: "disbursed",
+      label: "Disbursed",
+      cls: "border-teal-400/40 bg-teal-500/15 text-teal-600",
+    });
+  }
+
   if (showWithinDay && isWithinDayPriority(service)) {
     chips.push({
       key: "withinDay",
