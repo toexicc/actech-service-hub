@@ -103,10 +103,18 @@ const CompletedTransactions = () => {
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
   // Cash actually received per ticket — one bulk query for the filtered list.
-  const { data: paymentTotals = {} } = useTicketPayments(
+  const {
+    data: paymentTotals,
+    isFetching: paymentsFetching,
+    isError: paymentsError,
+    refetch: refetchPayments,
+  } = useTicketPayments(
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
-  const collectedFor = (serviceId: string) => paymentTotals[serviceId] ?? 0;
+  // Until the payment totals are in, nothing can be classified as paid or
+  // unpaid — the table waits instead of showing an empty, zeroed page.
+  const paymentsReady = !!paymentTotals && !paymentsFetching;
+  const collectedFor = (serviceId: string) => paymentTotals?.[serviceId] ?? 0;
 
   // A ticket is fully paid when payments (less refunds) reach its billable
   // amount (quoted price minus discount). Paid is the default view, as
@@ -460,9 +468,18 @@ const CompletedTransactions = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || (paidFilter !== "all" && !paymentsReady && !paymentsError) ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : paymentsError ? (
+              <div className="py-8 text-center space-y-3">
+                <p className="text-muted-foreground">
+                  Payment records could not be loaded, so paid and unpaid cannot be told apart right now.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetchPayments()}>
+                  Try again
+                </Button>
               </div>
             ) : visibleServices.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">

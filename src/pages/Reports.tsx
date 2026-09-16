@@ -334,16 +334,25 @@ const Reports = () => {
 
 
   const buildReport = (p: Period) => {
-    // Which date anchors a ticket to the period: intake date (default) or
-    // completion date, so this page can be matched against Completed Services.
-    const anchorOf = (s: any) =>
-      scopeBasis === "completed"
-        ? s.dateCompleted || s.timestamp || s.lastUpdated
-        : s.dateReceived || s.timestamp || s.lastUpdated;
-    const scoped = allServices.filter((s) => inPeriod(anchorOf(s), p));
+    // Ticket volume, completion rate, turnaround and on-time always count
+    // tickets by intake date, so the counts describe what came in during the
+    // period. The completion-date switch only re-anchors the revenue figures.
+    const scoped = allServices.filter((s) =>
+      inPeriod(s.dateReceived || s.timestamp || s.lastUpdated, p),
+    );
     const completed = scoped.filter((s) => classifyStatus(s.status) === "completed");
     const active = scoped.filter((s) => classifyStatus(s.status) === "active");
     const closed = scoped.filter((s) => classifyStatus(s.status) === "closed");
+
+    // Tickets whose money belongs to this period, per the basis switch.
+    const moneyCompleted =
+      scopeBasis === "completed"
+        ? allServices.filter(
+            (s) =>
+              classifyStatus(s.status) === "completed" &&
+              inPeriod(s.dateCompleted || s.lastUpdated || s.timestamp, p),
+          )
+        : completed;
 
     const turnaroundHours = completed
       .map((s) => timings.get(String(s.serviceId))?.totalHours)
@@ -383,9 +392,9 @@ const Reports = () => {
     const scopedExpenses = [...transactionExpenses, ...legacyExpenses];
     const totalExpenses = scopedExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
-    const serviceRevenue = completed.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
-    const partsCost = completed.reduce((sum, s) => sum + Number(s.partsCost || 0), 0);
-    const discounts = completed.reduce((sum, s) => sum + Number(s.discount || 0), 0);
+    const serviceRevenue = moneyCompleted.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
+    const partsCost = moneyCompleted.reduce((sum, s) => sum + Number(s.partsCost || 0), 0);
+    const discounts = moneyCompleted.reduce((sum, s) => sum + Number(s.discount || 0), 0);
     // Two explicit measures instead of one card that silently changed meaning:
     // cash actually collected, and the value of work completed.
     const cashCollected = txRevenue;
@@ -421,7 +430,7 @@ const Reports = () => {
       discounts,
       totalExpenses,
       netRevenue,
-      avgTicket: completed.length ? serviceRevenue / completed.length : 0,
+      avgTicket: moneyCompleted.length ? serviceRevenue / moneyCompleted.length : 0,
     };
   };
 
@@ -790,10 +799,12 @@ const Reports = () => {
         </div>
 
         <p className="mb-4 text-xs text-muted-foreground">
-          Tickets are counted by {scopeBasis === "received" ? "intake date" : "completion date"}. Completion date is the
-          default so this page lines up with Completed Services and the POS Transaction Tracker — switch to Intake date
-          only to look at incoming volume. Note: this switch only re-anchors the ticket cards above (counts, billable
-          value, parts, discounts). Cash collected, refunds, expenses and net revenue are always by payment date.
+          Ticket counts, completion rate, turnaround and on-time delivery are always by intake date, so they describe the
+          work that came in during the period. This switch only re-anchors the revenue figures (billable value of
+          completed work, parts, discounts, average ticket) — set to{" "}
+          {scopeBasis === "completed" ? "completion date" : "intake date"}, so those figures currently follow{" "}
+          {scopeBasis === "completed" ? "when work was finished" : "when tickets came in"}. Cash collected, refunds,
+          expenses and net revenue are always by payment date.
         </p>
 
         <TallyLine start={period.start ?? undefined} end={period.end ?? undefined} />

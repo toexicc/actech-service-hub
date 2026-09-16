@@ -19,6 +19,10 @@ export const useTicketPayments = (serviceIds: string[]) => {
     enabled: ids.length > 0,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    // Keep the previous totals on screen while a new filter loads, so the paid
+    // view never flashes an empty, zeroed list.
+    placeholderData: (prev) => prev,
+    retry: 2,
     queryFn: async () => {
       const totals: Record<string, number> = {};
       for (const group of chunk(ids, 200)) {
