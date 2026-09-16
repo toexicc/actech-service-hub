@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 interface Row {
   service_id: string;
