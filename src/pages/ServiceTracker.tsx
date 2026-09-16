@@ -1589,7 +1589,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   {paginatedServices.map((service) => {
                     const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
                     const overdueStatus = isOverdue(service.targetDate, service.status);
-                    const isCompleted = (service.status || "").toLowerCase().includes("completed");
+                    const isCompleted = classifyStatus(service.status) !== "active";
+                    const t = pageTimings.get(String(service.serviceId));
+                    const durationText = formatWorkingDuration(t?.totalHours ?? null);
+                    const durationLabel = durationText
+                      ? t?.open
+                        ? `${durationText} so far`
+                        : durationText
+                      : "—";
                     return (
                       <div
                         key={service.serviceId}
