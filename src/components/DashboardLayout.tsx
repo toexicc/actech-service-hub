@@ -358,7 +358,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   if (alreadyMounted) return <>{children}</>;
   return (
     <ShellMountedContext.Provider value={true}>
-      <ShellInner>{children}</ShellInner>
+      <ServicePreviewProvider>
+        <ShellInner>{children}</ShellInner>
+      </ServicePreviewProvider>
     </ShellMountedContext.Provider>
   );
 };
