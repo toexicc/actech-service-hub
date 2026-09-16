@@ -4,10 +4,11 @@
 
 Under each ticket ID in the Completed Services list, small chips appear when the ticket is marked Rush or when the client requested an invoice (the "Requesting Invoice" toggle), so both are visible at a glance for tracking. Orange for Rush, violet for Invoice Requested; nothing shows when neither applies.
 
-## 2. Parts cost is no longer treated as missing
+## 2. Parts cost defaults to "no parts yet"
 
 Parts cost is now assumed to be "no parts used yet" unless someone records one. So:
 
+- On Completed Services, a ticket with no recorded parts cost shows "No parts yet" in the Parts Cost column instead of ₱0.00 (and it only flips to an amount once a parts cost is added).
 - The "Not ready for payout" warning on Salary Disbursement counts only tickets with no commission allocated. The "…have no parts cost recorded" sentence is removed.
 - "Review in Completed Services" filters to tickets missing an allocation only — parts cost is ignored there too.
 - Money math is untouched: a blank parts cost already counts as zero.
