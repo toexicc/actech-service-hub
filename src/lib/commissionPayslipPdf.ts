@@ -308,47 +308,106 @@ const drawSignature = (doc: jsPDF, y: number, preparedBy?: string) => {
 
 /** Draws one employee payslip onto the current page of `doc`. */
 const drawPayslip = (doc: jsPDF, logo: string, data: PayslipData) => {
-  let y = drawHeader(doc, logo);
+  const fixed = !!data.attendance;
+  let y = drawHeader(doc, logo, data.title || (fixed ? "SALARY PAYSLIP" : "COMMISSION PAYSLIP"));
   y = drawMeta(doc, y, data);
-  y = drawTotalBanner(doc, y, data.total, data.rows.length);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  setText(doc, NAVY);
-  doc.text("COMMISSION BREAKDOWN", M, y);
-  y += 3.5;
+  const deductionLines = data.deductionLines ?? [];
 
-  y = drawTableHead(doc, y);
+  if (fixed) {
+    const a = data.attendance!;
+    y = drawTotalBanner(doc, y, data.total, `${a.daysPresent} of ${a.workdays} workdays`, "NET PAY");
+    y = drawSummaryCard(doc, y, "ATTENDANCE", [
+      { label: "Days Present", value: `${a.daysPresent} / ${a.workdays}` },
+      { label: "Hours Worked", value: `${a.hours.toFixed(2)} h` },
+      { label: "Monthly Salary", value: money(a.monthlySalary) },
+      { label: "Daily Rate", value: money(a.dailyRate) },
+      { label: "Gross Pay", value: money(a.gross), strong: true },
+    ]);
 
-  const bottomLimit = PAGE_H - 34;
-  if (!data.rows.length) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8.4);
-    setText(doc, MUTED);
-    doc.text("No allocated commissions for this cut-off.", M + 3, y + 6);
-    y += 11;
+    const dedEntries = [
+      { label: "Pag-IBIG", value: money(a.pagibig) },
+      { label: "SSS", value: money(a.sss) },
+      { label: "PhilHealth", value: money(a.philhealth) },
+      { label: "Other Deductions", value: money(a.otherDeductions) },
+      ...deductionLines.map((d) => ({
+        label: d.description || "Additional deduction",
+        value: money(d.amount),
+      })),
+    ];
+    const totalDed =
+      a.pagibig +
+      a.sss +
+      a.philhealth +
+      a.otherDeductions +
+      deductionLines.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    dedEntries.push({ label: "Total Deductions", value: money(totalDed), strong: true } as any);
+    y = drawSummaryCard(doc, y, "DEDUCTIONS", dedEntries);
+    y = drawTableTotal(doc, y, data.total);
   } else {
-    data.rows.forEach((r, i) => {
-      if (y > bottomLimit) {
-        drawFooterBar(doc);
-        doc.addPage();
-        y = M + 6;
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        setText(doc, NAVY);
-        doc.text(`${data.employeeName.toUpperCase()} — COMMISSION BREAKDOWN (CONTINUED)`, M, y);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.6);
-        setText(doc, MUTED);
-        doc.text(`${data.cutoffLabel} · ${data.periodLabel}`, M, y + 4.2);
-        y += 8;
-        y = drawTableHead(doc, y);
-      }
-      y = drawRow(doc, y, r, i % 2 === 1);
-    });
+    y = drawTotalBanner(
+      doc,
+      y,
+      data.total,
+      `${data.rows.length} completed ticket${data.rows.length === 1 ? "" : "s"}`,
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    setText(doc, NAVY);
+    doc.text("COMMISSION BREAKDOWN", M, y);
+    y += 3.5;
+
+    y = drawTableHead(doc, y);
+
+    const bottomLimit = PAGE_H - 34;
+    if (!data.rows.length) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.4);
+      setText(doc, MUTED);
+      doc.text("No allocated commissions for this cut-off.", M + 3, y + 6);
+      y += 11;
+    } else {
+      data.rows.forEach((r, i) => {
+        if (y > bottomLimit) {
+          drawFooterBar(doc);
+          doc.addPage();
+          y = M + 6;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          setText(doc, NAVY);
+          doc.text(`${data.employeeName.toUpperCase()} — COMMISSION BREAKDOWN (CONTINUED)`, M, y);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.6);
+          setText(doc, MUTED);
+          doc.text(`${data.cutoffLabel} · ${data.periodLabel}`, M, y + 4.2);
+          y += 8;
+          y = drawTableHead(doc, y);
+        }
+        y = drawRow(doc, y, r, i % 2 === 1);
+      });
+    }
+
+    if (deductionLines.length) {
+      const gross = data.rows.reduce((s, r) => s + r.amount, 0);
+      y = drawTableTotal(doc, y, gross) - 6;
+      y = drawSummaryCard(doc, y, "DEDUCTIONS", [
+        ...deductionLines.map((d) => ({
+          label: d.description || "Additional deduction",
+          value: money(d.amount),
+        })),
+        {
+          label: "Total Deductions",
+          value: money(deductionLines.reduce((s, d) => s + (Number(d.amount) || 0), 0)),
+          strong: true,
+        },
+      ]);
+      y = drawTableTotal(doc, y, data.total);
+    } else {
+      y = drawTableTotal(doc, y, data.total);
+    }
   }
 
-  y = drawTableTotal(doc, y, data.total);
   if (y > PAGE_H - 42) {
     drawFooterBar(doc);
     doc.addPage();
@@ -363,6 +422,7 @@ const drawPayslip = (doc: jsPDF, logo: string, data: PayslipData) => {
 
   drawFooterBar(doc);
 };
+
 
 /** One payslip, or a multi-page batch when several employees are supplied. */
 export const generateCommissionPayslipPdf = async (
