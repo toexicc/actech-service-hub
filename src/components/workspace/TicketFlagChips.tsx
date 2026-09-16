@@ -35,8 +35,27 @@ const CHIP =
 
 const isWithinDayPriority = (s: any) => /within\s*the\s*day/i.test(String(s?.priority || ""));
 
-export function TicketFlagChips({ service, showWithinDay = true, className }: TicketFlagChipsProps) {
+export function TicketFlagChips({
+  service,
+  showWithinDay = true,
+  collected,
+  className,
+}: TicketFlagChipsProps) {
   const chips: { key: string; label: string; cls: string }[] = [];
+
+  if (collected != null && collected > 0.01) {
+    const billable = billableOf(service);
+    const fullyPaid = billable > 0 && collected >= billable - 0.01;
+    chips.push(
+      fullyPaid
+        ? { key: "paid", label: "Paid", cls: "border-emerald-400/40 bg-emerald-500/15 text-emerald-600" }
+        : {
+            key: "partial",
+            label: "Partial Payment",
+            cls: "border-yellow-400/40 bg-yellow-500/15 text-yellow-600",
+          },
+    );
+  }
 
   if (showWithinDay && isWithinDayPriority(service)) {
     chips.push({
