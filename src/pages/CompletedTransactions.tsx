@@ -21,8 +21,10 @@ import { ServiceBreakdownPanel } from "@/components/ServiceBreakdownPanel";
 import { useAllServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
 import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeriods";
 import { useSearchParams } from "react-router-dom";
-import { MoneyReconciliationPanel } from "@/components/MoneyReconciliationPanel";
 import { TallyLine } from "@/components/TallyLine";
+import { useStaff } from "@/hooks/useStaff";
+
+import { isAssignedTo } from "@/lib/technicianMatch";
 import { CutoffPresets } from "@/components/CutoffPresets";
 import { useWindowTally } from "@/hooks/useWindowTally";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
@@ -105,8 +107,27 @@ const CompletedTransactions = () => {
   }, [services, technicianFilter, departmentFilter, startDate, endDate, dateBasis]);
 
   // Actual allocations saved in the breakdown panel drive commissions.
-  const { data: breakdownMap = {} } = useAllServiceBreakdowns(
+  const {
+    data: breakdownMap = {},
+    isFetching: breakdownsFetching,
+    isSuccess: breakdownsLoaded,
+  } = useAllServiceBreakdowns(
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
+  );
+  // Only tickets worked by commission (service-based) staff can be "not ready
+  // for payout" — fixed-salary staff tickets never need an allocation.
+  const { data: staffData = [] } = useStaff();
+  const serviceBasedNames = useMemo(
+    () =>
+      staffData
+        .filter(
+          (s: any) =>
+            (s.status || "").toLowerCase() === "active" &&
+            !(Number(String(s.salary ?? "").replace(/[^0-9.]/g, "")) > 0),
+        )
+        .map((s: any) => String(s.name || "").trim())
+        .filter(Boolean),
+    [staffData],
   );
   // Cash actually received per ticket — one bulk query for the filtered list.
   const {
@@ -137,16 +158,30 @@ const CompletedTransactions = () => {
         paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
       );
     }
-    // Payout-readiness filter: only tickets missing a commission allocation or
-    // a parts cost — the same checks Salary Disbursement warns about.
+    // Payout-readiness filter: only tickets worked by a commission-based
+    // technician that are still missing an allocation or a parts cost — the
+    // same checks Salary Disbursement warns about. It waits for the
+    // allocations to load, otherwise every ticket would look unallocated.
     if (issuesOnly) {
-      list = list.filter(
-        (s) => !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0,
-      );
+      if (!breakdownsLoaded || breakdownsFetching) return [];
+      list = list.filter((s) => {
+        const paysCommission = serviceBasedNames.some((n) => isAssignedTo(s.technician, n));
+        if (!paysCommission) return false;
+        return !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0;
+      });
     }
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredServices, paidFilter, paymentTotals, issuesOnly, breakdownMap]);
+  }, [
+    filteredServices,
+    paidFilter,
+    paymentTotals,
+    issuesOnly,
+    breakdownMap,
+    breakdownsLoaded,
+    breakdownsFetching,
+    serviceBasedNames,
+  ]);
 
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
@@ -458,7 +493,6 @@ const CompletedTransactions = () => {
 
         <TallyLine start={startDate} end={endDate} />
 
-        <MoneyReconciliationPanel start={startDate} end={endDate} />
 
         {/* Services Table */}
         <Card>
