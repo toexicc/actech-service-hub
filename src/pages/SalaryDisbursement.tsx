@@ -1050,6 +1050,7 @@ const SalaryDisbursement = () => {
                           <TableHead>Service Cost (Total)</TableHead>
                           <TableHead>Tickets</TableHead>
                           <TableHead>Allocated Commission</TableHead>
+                          <TableHead>Addtl. Ded.</TableHead>
                           <TableHead>Final Amount</TableHead>
                           <TableHead>Payslip</TableHead>
                           <TableHead>Action</TableHead>
@@ -1059,8 +1060,10 @@ const SalaryDisbursement = () => {
                         {serviceBasedStaff.map((staff: any) => {
                           const serviceCostTotal = getServiceCostTotal(staff.name);
                           const rows = getCommissionRows(staff.name);
-                          const final = rows.reduce((s, r) => s + r.amount, 0);
-                          const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
+                          const allocated = rows.reduce((s, r) => s + r.amount, 0);
+                          const extra = addlTotal(staff.staffId);
+                          const final = allocated - extra;
+                          const isDone = isAlreadyPaid(staff);
                           return (
                             <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40")}>
                               <TableCell className="font-medium">{staff.name}</TableCell>
@@ -1075,8 +1078,13 @@ const SalaryDisbursement = () => {
                                   {rows.length}
                                 </button>
                               </TableCell>
-                              <TableCell className={cn(final > 0 && "font-semibold text-orange-600")}>
-                                {fmtCurrency(final)}
+                              <TableCell className={cn(allocated > 0 && "font-semibold text-orange-600")}>
+                                {fmtCurrency(allocated)}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <Button size="sm" variant="outline" disabled={isDone} onClick={() => openDeductionModal(staff)}>
+                                  {extra > 0 ? `−${fmtCurrency(extra)}` : "Add"}
+                                </Button>
                               </TableCell>
                               <TableCell className="font-bold">{fmtCurrency(final)}</TableCell>
                               <TableCell>
