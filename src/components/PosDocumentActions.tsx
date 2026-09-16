@@ -250,11 +250,14 @@ export const PosDocumentActions = ({
     kind: ServicePdfKind;
     title: string;
     hint: string;
-    onGenerate: () => void | Promise<void>;
+    onGenerate?: () => void | Promise<void>;
     generating: boolean;
   };
 
   const rows: Row[] = [
+    ...(viewOnlyForms
+      ? VIEW_ONLY_FORMS.map((f) => ({ kind: f.kind as ServicePdfKind, title: f.title, hint: f.hint, generating: false }))
+      : []),
     ...formDocs
       .filter((f) => !!f.onGenerate)
       .map((f) => ({
@@ -272,6 +275,7 @@ export const PosDocumentActions = ({
       generating: busy === `${d.kind}-generate`,
     })),
   ];
+
 
   if (!serviceId || serviceId === "MANUAL") return null;
 
