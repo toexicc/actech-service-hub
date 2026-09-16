@@ -590,7 +590,15 @@ const CompletedTransactions = () => {
                           <TableCell>
                             <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen && "rotate-90")} />
                           </TableCell>
-                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1">
+                              {service.serviceId}
+                              <span onClick={(e) => e.stopPropagation()}>
+                                <ServicePreviewButton serviceId={service.serviceId} />
+                              </span>
+                            </div>
+                            <TicketFlagChips service={service} showWithinDay={false} className="mt-1" />
+                          </TableCell>
                           <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell>{service.technician}</TableCell>
@@ -598,7 +606,7 @@ const CompletedTransactions = () => {
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right text-emerald-600">₱{collectedFor(service.serviceId).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-right">₱{partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">{partsCost > 0 ? `₱${partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <span className="text-muted-foreground">No parts yet</span>}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
