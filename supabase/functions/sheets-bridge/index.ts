@@ -1210,7 +1210,9 @@ async function disburseSalary(b: Record<string, any>) {
   if (!staffUuid) return err("Could not resolve staff to a user account", 400);
   const amount = num(b.salaryAmount);
   const today = new Date().toISOString().slice(0, 10);
-  const { error } = await sb.from("salary_disbursements").insert({
+  // Re-disbursing the same staff for the same cut-off updates the existing row
+  // instead of failing on the (staff_id, period_label) unique constraint.
+  const { error } = await sb.from("salary_disbursements").upsert({
     staff_id: staffUuid,
     staff_name: b.staffName || "",
     period_label: b.periodLabel || b.period || "Manual",
