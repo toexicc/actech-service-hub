@@ -161,7 +161,28 @@ const SalaryDisbursement = () => {
   const [techCommissions, setTechCommissions] = useState<Record<string, string>>({});
   const [disbursing, setDisbursing] = useState<string | null>(null);
   const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  // Additional deductions (description + amount) per staff, applied to the payout
+  // and saved with the disbursement record.
+  const [addlDeductions, setAddlDeductions] = useState<Record<string, DeductionLine[]>>({});
+  const [dedModalStaff, setDedModalStaff] = useState<{ staffId: string; name: string } | null>(null);
+  const [dedDraft, setDedDraft] = useState<DeductionLine[]>([]);
+
+  const addlTotal = (staffId: string) =>
+    (addlDeductions[staffId] || []).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+
+  const openDeductionModal = (staff: any) => {
+    setDedModalStaff({ staffId: staff.staffId, name: staff.name });
+    setDedDraft([...(addlDeductions[staff.staffId] || [])]);
+  };
+
+  const saveDeductionModal = () => {
+    if (!dedModalStaff) return;
+    const clean = dedDraft.filter((d) => (Number(d.amount) || 0) > 0);
+    setAddlDeductions((p) => ({ ...p, [dedModalStaff.staffId]: clean }));
+    setDedModalStaff(null);
+  };
 
   // Calculator inputs (per staff)
   const [daysPresent, setDaysPresent] = useState<Record<string, string>>({});
