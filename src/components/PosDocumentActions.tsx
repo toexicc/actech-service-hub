@@ -49,6 +49,8 @@ interface Props {
   allowWarrantyEdit?: boolean;
   /** Show intake / quotation rows as view-only (no generate/update button). */
   viewOnlyForms?: boolean;
+  /** Hide the generate/update buttons on Service Invoice and Warranty Card. */
+  viewOnlyPos?: boolean;
 }
 
 const VIEW_ONLY_FORMS: { kind: Extract<ServicePdfKind, "intake" | "quotation">; title: string; hint: string }[] = [
@@ -69,6 +71,7 @@ export const PosDocumentActions = ({
   formDocs = [],
   allowWarrantyEdit = false,
   viewOnlyForms = false,
+  viewOnlyPos = false,
 
 }: Props) => {
 
@@ -271,7 +274,7 @@ export const PosDocumentActions = ({
       kind: d.kind as ServicePdfKind,
       title: d.title,
       hint: d.hint,
-      onGenerate: () => regeneratePos(d.kind, d.title),
+      ...(viewOnlyPos ? {} : { onGenerate: () => regeneratePos(d.kind, d.title) }),
       generating: busy === `${d.kind}-generate`,
     })),
   ];

@@ -275,6 +275,7 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   clientName={service.clientName}
                   serviceDate={service.serviceDate}
                   viewOnlyForms
+                  viewOnlyPos
                 />
 
               </Section>
