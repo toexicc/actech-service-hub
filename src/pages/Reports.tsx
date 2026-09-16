@@ -392,9 +392,9 @@ const Reports = () => {
     const scopedExpenses = [...transactionExpenses, ...legacyExpenses];
     const totalExpenses = scopedExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
-    const serviceRevenue = completed.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
-    const partsCost = completed.reduce((sum, s) => sum + Number(s.partsCost || 0), 0);
-    const discounts = completed.reduce((sum, s) => sum + Number(s.discount || 0), 0);
+    const serviceRevenue = moneyCompleted.reduce((sum, s) => sum + Number(s.finalCost || s.totalCost || 0), 0);
+    const partsCost = moneyCompleted.reduce((sum, s) => sum + Number(s.partsCost || 0), 0);
+    const discounts = moneyCompleted.reduce((sum, s) => sum + Number(s.discount || 0), 0);
     // Two explicit measures instead of one card that silently changed meaning:
     // cash actually collected, and the value of work completed.
     const cashCollected = txRevenue;
