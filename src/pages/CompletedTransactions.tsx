@@ -23,7 +23,7 @@ import { useDisbursedPeriods, findPaidOutPeriod } from "@/hooks/useDisbursedPeri
 import { useSearchParams } from "react-router-dom";
 import { TallyLine } from "@/components/TallyLine";
 import { useStaff } from "@/hooks/useStaff";
-import { parseCurrency } from "@/lib/utils";
+
 import { isAssignedTo } from "@/lib/technicianMatch";
 import { CutoffPresets } from "@/components/CutoffPresets";
 import { useWindowTally } from "@/hooks/useWindowTally";
