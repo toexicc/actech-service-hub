@@ -414,12 +414,12 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                 </Card>
               </Section>
 
-              <Section icon={Images} title="Device Report Photos">
-                <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
-              </Section>
-
               <Section icon={Images} title="Diagnosis Photos">
                 <DiagnosisPhotos serviceId={service.serviceId} editable={false} />
+              </Section>
+
+              <Section icon={Images} title="Device Report Photos">
+                <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
               </Section>
             </>
           )}
