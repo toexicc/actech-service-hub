@@ -464,7 +464,22 @@ const CompletedTransactions = () => {
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle>Completed Services ({visibleServices.length})</CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle>Completed Services ({visibleServices.length})</CardTitle>
+                {issuesOnly && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 text-xs font-medium">
+                    Needs attention: missing commission or parts cost
+                    <button
+                      type="button"
+                      aria-label="Show all tickets"
+                      className="hover:text-amber-950"
+                      onClick={() => setIssuesOnly(false)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1 rounded-lg border p-1">
                 {([
                   { k: "paid", l: "Paid" },
