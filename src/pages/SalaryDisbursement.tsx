@@ -323,6 +323,32 @@ const SalaryDisbursement = () => {
     staleTime: 60 * 1000,
   });
 
+  // Payouts already recorded for this cut-off. Read from the database so the
+  // Disburse button stays disabled after a refresh — one payout per staff, once.
+  const periodLabelFull = useMemo(
+    () => `${salaryPeriod} - ${displayDate(periodRange.start, "MMMM yyyy")}`,
+    [salaryPeriod, periodRange.start],
+  );
+  const { data: periodPayouts = [] } = useQuery({
+    queryKey: ["salaryDisbursements", periodRange.start, periodRange.end, periodLabelFull],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("salary_disbursements")
+        .select("staff_id, staff_name, net_pay, period_label, period_start, period_end")
+        .or(`period_label.eq.${periodLabelFull},and(period_start.eq.${periodRange.start},period_end.eq.${periodRange.end})`);
+      return data ?? [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  const paidStaffNames = useMemo(
+    () => new Set(periodPayouts.map((p: any) => (p.staff_name || "").trim().toLowerCase())),
+    [periodPayouts],
+  );
+  const isAlreadyPaid = (staff: any) =>
+    paidStaffNames.has((staff.name || "").trim().toLowerCase()) ||
+    disbursedList.some((d) => d.staffId === staff.staffId);
+
   // Compute balance per fund from transactions (mirrors TransactionTracker logic)
   const fundBalances = useMemo(() => {
     const totals: Record<string, number> = {};
