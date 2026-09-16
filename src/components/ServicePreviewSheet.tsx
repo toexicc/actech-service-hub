@@ -269,7 +269,9 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   serviceId={service.serviceId}
                   clientName={service.clientName}
                   serviceDate={service.serviceDate}
+                  viewOnlyForms
                 />
+
               </Section>
 
               <Section icon={Smartphone} title="Device">
