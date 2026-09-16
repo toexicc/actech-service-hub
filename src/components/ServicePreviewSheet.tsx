@@ -190,7 +190,9 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
   const showIssue =
     !!issue && issue.replace(/\s+/g, " ").toLowerCase() !== complaint.replace(/\s+/g, " ").toLowerCase();
 
+  const quotedLines = approvedLinesOf((service as any)?.quotedBreakdown);
   const diagnosis = String(service?.diagnosis || service?.technicianDiagnosis || "").trim();
+
   const summary = String(service?.diagnosisSummary || "").trim();
   const report = String(service?.technicianReport || "").trim();
 
