@@ -160,6 +160,8 @@ const SalaryDisbursement = () => {
   const [deductions, setDeductions] = useState<Record<string, string>>({});
   const [techCommissions, setTechCommissions] = useState<Record<string, string>>({});
   const [disbursing, setDisbursing] = useState<string | null>(null);
+  /** Staff ids whose already-disbursed row was unlocked for editing. */
+  const [editingStaff, setEditingStaff] = useState<string[]>([]);
   const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
 
