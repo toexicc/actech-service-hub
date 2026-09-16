@@ -994,6 +994,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   // Working-time duration for the tickets shown on this page.
   const pageTimings = useServiceTimings(paginatedServices);
+  // Cash received per visible ticket, so the Paid / Partial Payment chips show.
+  const { data: pagePayments } = useTicketPayments(
+    useMemo(() => paginatedServices.map((s: any) => s.serviceId).filter(Boolean), [paginatedServices]),
+  );
+  const collectedFor = (serviceId: string) => pagePayments?.[serviceId] ?? null;
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedServices.length / itemsPerPage));
 
