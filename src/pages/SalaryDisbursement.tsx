@@ -642,13 +642,18 @@ const SalaryDisbursement = () => {
       toast({ title: "Error", description: "Final amount must be greater than 0", variant: "destructive" });
       return;
     }
-    if (isAlreadyPaid(staff)) {
+    const isEdit = hasPayout(staff);
+    if (isEdit && !editingStaff.includes(staff.staffId)) {
       toast({ title: "Already Disbursed", description: `${staff.name} has already been paid for this cut-off.`, variant: "destructive" });
       return;
     }
     setDisbursing(staff.staffId);
     // Mark paid up-front so the button locks on the first click.
-    setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
+    setDisbursedList((prev) => [
+      ...prev.filter((d) => d.staffId !== staff.staffId),
+      { staffId: staff.staffId, staffName: staff.name, amount: finalAmount },
+    ]);
+    setEditingStaff((prev) => prev.filter((id) => id !== staff.staffId));
     try {
       const c = computeCalculator(staff);
       const params = new URLSearchParams();
