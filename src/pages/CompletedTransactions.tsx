@@ -51,7 +51,9 @@ const CompletedTransactions = () => {
   const { data: disbursedPeriods = [] } = useDisbursedPeriods();
 
   // Deep link from Salary Disbursement: ?technician=&from=&to= preselects the
-  // same payout window so fixing an allocation is one click.
+  // same payout window so fixing an allocation is one click. ?issues=1 narrows
+  // the list to only the tickets flagged as not ready for payout.
+  const [issuesOnly, setIssuesOnly] = useState(false);
   useEffect(() => {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
@@ -59,6 +61,10 @@ const CompletedTransactions = () => {
     if (from) setStartDate(new Date(`${from}T00:00:00`));
     if (to) setEndDate(new Date(`${to}T00:00:00`));
     if (tech) setTechnicianFilter(tech);
+    if (searchParams.get("issues") === "1") {
+      setIssuesOnly(true);
+      setPaidFilter("all"); // an unpaid ticket can also be missing its allocation
+    }
   }, [searchParams]);
   const [commissionRate, setCommissionRate] = useState(0);
   // Which date the range filter reads: completion date (default) or intake date.
@@ -125,12 +131,22 @@ const CompletedTransactions = () => {
   };
 
   const visibleServices = useMemo(() => {
-    if (paidFilter === "all") return filteredServices;
-    return filteredServices.filter((s) =>
-      paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
-    );
+    let list = filteredServices;
+    if (paidFilter !== "all") {
+      list = list.filter((s) =>
+        paidFilter === "paid" ? isFullyPaid(s) : !isFullyPaid(s),
+      );
+    }
+    // Payout-readiness filter: only tickets missing a commission allocation or
+    // a parts cost — the same checks Salary Disbursement warns about.
+    if (issuesOnly) {
+      list = list.filter(
+        (s) => !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0,
+      );
+    }
+    return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredServices, paidFilter, paymentTotals]);
+  }, [filteredServices, paidFilter, paymentTotals, issuesOnly, breakdownMap]);
 
   const allocatedFor = (serviceId: string) =>
     (breakdownMap[serviceId] ?? []).reduce((s, r) => s + (Number(r.cost) || 0), 0);
@@ -448,7 +464,22 @@ const CompletedTransactions = () => {
         <Card>
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle>Completed Services ({visibleServices.length})</CardTitle>
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle>Completed Services ({visibleServices.length})</CardTitle>
+                {issuesOnly && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 text-xs font-medium">
+                    Needs attention: missing commission or parts cost
+                    <button
+                      type="button"
+                      aria-label="Show all tickets"
+                      className="hover:text-amber-950"
+                      onClick={() => setIssuesOnly(false)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1 rounded-lg border p-1">
                 {([
                   { k: "paid", l: "Paid" },
