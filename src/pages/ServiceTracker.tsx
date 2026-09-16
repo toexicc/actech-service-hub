@@ -1600,7 +1600,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     const durationText = formatWorkingDuration(t?.totalHours ?? null);
                     const durationLabel = durationText
                       ? t?.open
-                        ? `${durationText} so far`
+                        ? `${durationText} (In Progress)`
                         : durationText
                       : "—";
                     return (
@@ -1781,7 +1781,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                         const durationText = formatWorkingDuration(t?.totalHours ?? null);
                         const durationLabel = durationText
                           ? t?.open
-                            ? `${durationText} so far`
+                            ? `${durationText} (In Progress)`
                             : durationText
                           : "—";
 

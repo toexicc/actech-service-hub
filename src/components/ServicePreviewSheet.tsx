@@ -172,7 +172,7 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
   const baseDuration = formatWorkingHours(timing?.totalHours ?? null);
   const durationLabel = baseDuration
     ? timing?.open
-      ? `${baseDuration} so far`
+      ? `${baseDuration} (In Progress)`
       : baseDuration
     : null;
   const pausedLabel =
