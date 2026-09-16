@@ -43,6 +43,8 @@ export function TicketFlagChips({
   service,
   showWithinDay = true,
   collected,
+  hideReleased = false,
+  disbursed = false,
   className,
 }: TicketFlagChipsProps) {
   const chips: { key: string; label: string; cls: string }[] = [];
