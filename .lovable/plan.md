@@ -11,8 +11,8 @@ Today Disburse only writes the payout record, and money only appears in Transact
 New behaviour:
 - Clicking Disburse saves the payout record **and** creates the expense entry in Transactions in the same action, deducted from the selected fund.
 - The button becomes disabled and shows "Disbursed" immediately, and stays disabled after a page refresh because the page reads existing payouts for that cut-off from the database (not just this session). So one payout per staff per cut-off, once.
-- The batch "Submit Transaction" panel becomes a read-only summary of what was disbursed this cut-off (no second transaction), so money can never be posted twice.
-- Insufficient fund balance blocks the Disburse click with a clear message.
+- The batch button becomes "Review Salary Disbursement", which opens a summary modal listing everyone already disbursed for this cut-off and everyone still pending, with totals. It posts nothing, so money can never go out twice.
+- Fund balance no longer blocks anything — Disburse always goes through.
 
 ## 3. Backfix for past payouts
 
