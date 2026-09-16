@@ -602,6 +602,8 @@ const CompletedTransactions = () => {
                             <TicketFlagChips
                               service={service}
                               showWithinDay={false}
+                              hideReleased
+                              disbursed={!!paidOut}
                               collected={collectedFor(service.serviceId)}
                               className="mt-1"
                             />
