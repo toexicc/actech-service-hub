@@ -115,7 +115,8 @@ export const PosDocumentActions = ({
     },
     // formDocs is a literal array from the parent; only its kinds matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [serviceId, formDocs.map((f) => f.kind).join(",")],
+    [serviceId, viewOnlyForms, formDocs.map((f) => f.kind).join(",")],
+
   );
 
   useEffect(() => {
