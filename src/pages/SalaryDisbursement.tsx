@@ -331,6 +331,26 @@ const SalaryDisbursement = () => {
     () => `${salaryPeriod} - ${displayDate(periodRange.start, "MMMM yyyy")}`,
     [salaryPeriod, periodRange.start],
   );
+  // Per-cut-off dismissal of the "not ready for payout" banner. Keyed by the
+  // full period label so switching cut-offs re-shows the warning, and it never
+  // hides a cut-off the user hasn't seen.
+  const [ignoredCutoffs, setIgnoredCutoffs] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("salaryIgnoredWarnings") || "{}");
+    } catch {
+      return {};
+    }
+  });
+  const warningIgnored = !!ignoredCutoffs[periodLabelFull];
+  const ignoreWarning = () => {
+    const next = { ...ignoredCutoffs, [periodLabelFull]: true };
+    setIgnoredCutoffs(next);
+    try {
+      localStorage.setItem("salaryIgnoredWarnings", JSON.stringify(next));
+    } catch {
+      /* ignore quota errors */
+    }
+  };
   const { data: periodPayouts = [] } = useQuery({
     queryKey: ["salaryDisbursements", periodRange.start, periodRange.end, periodLabelFull],
     queryFn: async () => {
@@ -1048,7 +1068,7 @@ const SalaryDisbursement = () => {
             </Card>
 
             {/* Readiness check before any payout */}
-            {readiness.missingAllocation > 0 && (
+            {readiness.missingAllocation > 0 && !warningIgnored && (
               <Card className="border-amber-300 bg-amber-50/60">
                 <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-2">
@@ -1060,9 +1080,14 @@ const SalaryDisbursement = () => {
                       </p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => openCompletedServices(undefined, true)}>
-                    Review in Completed Services
-                  </Button>
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <Button size="sm" variant="ghost" className="text-amber-800 hover:bg-amber-100" onClick={ignoreWarning}>
+                      Ignore
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => openCompletedServices(undefined, true)}>
+                      Review in Completed Services
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
