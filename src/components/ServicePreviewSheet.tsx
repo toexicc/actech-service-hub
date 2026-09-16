@@ -300,8 +300,7 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                     }
                   />
                   <div className="flex items-baseline justify-between gap-4 text-sm">
-                    <span className="flex shrink-0 items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
+                    <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
                       Duration in system
                     </span>
                     <span className="min-w-0 text-right">
@@ -329,22 +328,29 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   ) : (
                     <p className="px-1 py-2 text-sm text-muted-foreground">No technician report yet.</p>
                   )}
-                  {aiReport && <LongText title="AI Report" body={aiReport} />}
                 </Card>
               </Section>
 
               <Section icon={ListChecks} title="Service Choices & Breakdown">
                 <Card className="space-y-2.5 text-sm">
-                  {service.approvedServices && service.approvedServices.length > 0 && (
-                    <div>
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-success">Approved</p>
-                      <ul className="list-disc space-y-0.5 pl-5">
-                        {service.approvedServices.map((s) => (
-                          <li key={s}>{s}</li>
-                        ))}
-                      </ul>
+                  {quotedLines.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {quotedLines.map((l, i) => (
+                        <div key={`${l.label}-${i}`} className="flex items-baseline justify-between gap-3">
+                          <span className="min-w-0 break-words">{l.label}</span>
+                          <span className="shrink-0 font-medium">
+                            ₱{Number(l.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  ) : service.approvedServices && service.approvedServices.length > 0 ? (
+                    <ul className="list-disc space-y-0.5 pl-5">
+                      {service.approvedServices.map((s) => (
+                        <li key={s}>{s}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {service.pendingServices && service.pendingServices.length > 0 && (
                     <div>
                       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-warning">Pending</p>
@@ -355,24 +361,10 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                       </ul>
                     </div>
                   )}
-                  {breakdowns.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-1">
-                        {breakdowns.map((b: any) => (
-                          <div key={b.id} className="flex justify-between gap-3">
-                            <span className="min-w-0 truncate">{b.serviceName} — {b.technicianName}</span>
-                            <span className="shrink-0 font-medium">
-                              ₱{Number(b.cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {!service.approvedServices?.length &&
-                    !service.pendingServices?.length &&
-                    !breakdowns.length && (
+                  {!quotedLines.length &&
+                    !service.approvedServices?.length &&
+                    !service.pendingServices?.length && (
+
                       <p className="text-muted-foreground">No services recorded.</p>
                     )}
                 </Card>
