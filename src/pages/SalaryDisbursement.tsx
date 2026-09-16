@@ -287,9 +287,10 @@ const SalaryDisbursement = () => {
     const dSss = parseCurrency(sss[staff.staffId]);
     const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
     const otherDeductions = parseCurrency(deductions[staff.staffId]);
-    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions;
+    const additional = addlTotal(staff.staffId);
+    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional;
     const net = gross - totalDeductions;
-    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, totalDeductions, net };
+    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, totalDeductions, net };
   };
 
 
