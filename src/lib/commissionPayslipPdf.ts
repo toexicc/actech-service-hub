@@ -156,13 +156,19 @@ const drawMeta = (doc: jsPDF, y: number, data: PayslipData) => {
   return y + h + 5;
 };
 
-const drawTotalBanner = (doc: jsPDF, y: number, total: number, count: number) => {
+const drawTotalBanner = (
+  doc: jsPDF,
+  y: number,
+  total: number,
+  caption: string,
+  label = "TOTAL ALLOCATED COMMISSION",
+) => {
   const h = 17;
   card(doc, M, y, CONTENT_W, h, SOFT);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.6);
   setText(doc, MUTED);
-  doc.text("TOTAL ALLOCATED COMMISSION", M + 5, y + 6.5);
+  doc.text(label, M + 5, y + 6.5);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   setText(doc, NAVY);
@@ -170,11 +176,47 @@ const drawTotalBanner = (doc: jsPDF, y: number, total: number, count: number) =>
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   setText(doc, MUTED);
-  doc.text(`${count} completed ticket${count === 1 ? "" : "s"}`, M + CONTENT_W - 5, y + 11.5, {
-    align: "right",
-  });
+  doc.text(caption, M + CONTENT_W - 5, y + 11.5, { align: "right" });
   return y + h + 6;
 };
+
+/** Two-column label/value grid inside a hairline card. */
+const drawSummaryCard = (
+  doc: jsPDF,
+  y: number,
+  heading: string,
+  entries: { label: string; value: string; strong?: boolean }[],
+) => {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  setText(doc, NAVY);
+  doc.text(heading, M, y);
+  y += 3.5;
+
+  const rowH = 7.2;
+  const rows = Math.ceil(entries.length / 2);
+  const h = rows * rowH + 5;
+  card(doc, M, y, CONTENT_W, h);
+  const colW = CONTENT_W / 2;
+
+  entries.forEach((e, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = M + col * colW + 5;
+    const ry = y + 5 + row * rowH;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.8);
+    setText(doc, MUTED);
+    doc.text(e.label, x, ry);
+    doc.setFont("helvetica", e.strong ? "bold" : "normal");
+    doc.setFontSize(8.6);
+    setText(doc, e.strong ? NAVY : INK);
+    doc.text(e.value, M + col * colW + colW - 5, ry, { align: "right" });
+  });
+
+  return y + h + 6;
+};
+
 
 const COLS = [
   { key: "date", label: "Completed Date", w: 34, align: "left" as const },
