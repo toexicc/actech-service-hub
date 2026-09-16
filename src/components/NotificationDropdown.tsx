@@ -15,6 +15,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { formatManilaDate, displayDateTime } from '@/lib/timezone';
 import { parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 const TIMEZONE = 'Asia/Manila';
 
@@ -251,6 +252,9 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
               <p className="font-medium text-sm">{previewNotification.title}</p>
               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{previewNotification.message}</p>
             </div>
+            {previewNotification.serviceId && !String(previewNotification.serviceId).startsWith("chat:") && (
+              <ServicePreviewButton serviceId={previewNotification.serviceId} className="shrink-0" />
+            )}
             <Button
               variant="ghost"
               size="icon"

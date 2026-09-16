@@ -22,6 +22,7 @@ import { Search, RotateCcw, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { logTicketActivity } from "@/lib/activityLogger";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 
 const PAGE_SIZE = 10;
@@ -278,7 +279,16 @@ export const IntakeQueuePanel = () => {
                         {meta.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs">{e.service_id || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {e.service_id ? (
+                        <span className="inline-flex items-center gap-1">
+                          {e.service_id}
+                          <ServicePreviewButton serviceId={e.service_id} />
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     {isAdminOrManagement && (
                       <TableCell className="text-right">
                         {e.status === "cancelled" ? (

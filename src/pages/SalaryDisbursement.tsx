@@ -503,16 +503,16 @@ const SalaryDisbursement = () => {
    * staff tickets never need an allocation.
    */
   const readiness = useMemo(() => {
+    // Parts cost is not a payout blocker: blank means "no parts yet", which
+    // already counts as zero in the math. Only missing allocations matter.
     let missingAllocation = 0;
-    let missingPartsCost = 0;
     periodServices.forEach((s) => {
       const paysCommission = serviceBasedStaff.some((st: any) => isAssignedTo(s.technician, st.name));
       if (!paysCommission) return;
       const lines = (breakdownMap as Record<string, ServiceBreakdown[]>)[s.serviceId] || [];
       if (!lines.length) missingAllocation += 1;
-      if (parseCurrency(s.partsCost) === 0) missingPartsCost += 1;
     });
-    return { missingAllocation, missingPartsCost };
+    return { missingAllocation };
   }, [periodServices, breakdownMap, serviceBasedStaff]);
 
   /** Deep link into Completed Services already filtered to this cut-off. */
@@ -1028,6 +1028,7 @@ const SalaryDisbursement = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
                                       title="Edit this disbursement"
                                       onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
                                     >
@@ -1047,7 +1048,7 @@ const SalaryDisbursement = () => {
             </Card>
 
             {/* Readiness check before any payout */}
-            {(readiness.missingAllocation > 0 || readiness.missingPartsCost > 0) && (
+            {readiness.missingAllocation > 0 && (
               <Card className="border-amber-300 bg-amber-50/60">
                 <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-2">
@@ -1055,8 +1056,7 @@ const SalaryDisbursement = () => {
                     <div className="text-sm">
                       <p className="font-medium text-amber-900">Not ready for payout</p>
                       <p className="text-xs text-amber-800">
-                        {readiness.missingAllocation} completed ticket{readiness.missingAllocation === 1 ? "" : "s"} in this cut-off have no commission allocated
-                        {readiness.missingPartsCost > 0 && `, and ${readiness.missingPartsCost} have no parts cost recorded`}.
+                        {readiness.missingAllocation} completed ticket{readiness.missingAllocation === 1 ? "" : "s"} in this cut-off have no commission allocated.
                       </p>
                     </div>
                   </div>
@@ -1185,6 +1185,7 @@ const SalaryDisbursement = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
                                       title="Edit this disbursement"
                                       onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
                                     >

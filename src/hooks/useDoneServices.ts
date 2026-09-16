@@ -15,12 +15,20 @@ interface DoneService {
   quotedPrice: number;
   discount: number;
   partsCost: number;
+  /** Ticket flags for the chips shown under the ticket ID. */
+  rushFee: boolean;
+  vatRequested: boolean;
+  isReleased: boolean;
+  hasPreOrder: boolean;
+  isBackjob: boolean;
+  waitingForParts: boolean;
 }
 
 /** Only the columns this view maps — the full row is ~6 KB of unused text. */
 const DONE_COLUMNS =
   "service_id,client_name,service,status,technicians,technician_departments," +
-  "date_completed,date_received,last_updated,service_cost,discount,parts_cost";
+  "date_completed,date_received,last_updated,service_cost,discount,parts_cost," +
+  "rush_fee,vat_requested,is_released,has_pre_order,is_backjob,waiting_for_parts";
 
 const fetchDoneServices = async (): Promise<DoneService[]> => {
   const { data, error } = await supabase
@@ -50,6 +58,12 @@ const fetchDoneServices = async (): Promise<DoneService[]> => {
       quotedPrice: Number(r.service_cost ?? 0),
       discount: Number(r.discount ?? 0),
       partsCost: Number(r.parts_cost ?? 0),
+      rushFee: !!r.rush_fee,
+      vatRequested: !!r.vat_requested,
+      isReleased: !!r.is_released,
+      hasPreOrder: !!r.has_pre_order,
+      isBackjob: !!r.is_backjob,
+      waitingForParts: !!r.waiting_for_parts,
     };
   });
 };

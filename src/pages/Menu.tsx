@@ -36,6 +36,7 @@ import {
 
 } from "lucide-react";
 import { DueDateCalendar } from "@/components/DueDateCalendar";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
@@ -498,7 +499,12 @@ const Menu = () => {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleEditService(service.serviceId)}
                         >
-                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell className="font-medium">
+                            <span className="inline-flex items-center gap-1">
+                              {service.serviceId}
+                              <ServicePreviewButton serviceId={service.serviceId} />
+                            </span>
+                          </TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-warning font-medium">{service.status}</TableCell>
                           <TableCell>

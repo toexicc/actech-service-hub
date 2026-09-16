@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import {
   Inbox,
   Stethoscope,
@@ -135,9 +136,10 @@ export function WhereTicketsAreNow({ services, role }: Props) {
                         className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-primary/5 transition-colors group"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-mono font-medium text-foreground">
-                            {svc.serviceId}
-                          </span>
+                           <span className="text-xs font-mono font-medium text-foreground inline-flex items-center gap-1">
+                             {svc.serviceId}
+                             <ServicePreviewButton serviceId={svc.serviceId} />
+                           </span>
                           <span className="text-[10px] text-muted-foreground truncate max-w-[80px] group-hover:text-primary">
                             {svc.clientName}
                           </span>

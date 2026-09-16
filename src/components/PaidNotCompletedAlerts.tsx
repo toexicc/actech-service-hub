@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 
 interface Row {
   service_id: string;
@@ -59,7 +60,11 @@ export function PaidNotCompletedAlerts() {
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">{r.client_name || "N/A"}</p>
               <p className="font-mono text-[11px] text-muted-foreground">
-                {r.service_id} · {r.status}
+                <span className="inline-flex items-center gap-1">
+                  {r.service_id}
+                  <ServicePreviewButton serviceId={r.service_id} />
+                </span>
+                {" "}· {r.status}
               </p>
             </div>
             <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />

@@ -17,6 +17,7 @@ import { fetchStaffList } from "@/lib/staffList";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
 import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
@@ -581,7 +582,11 @@ const PointOfSales = () => {
 
                   {serviceData && (
                     <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                      <p className="text-primary font-semibold">{serviceData.serviceId} — Service found</p>
+                      <p className="text-primary font-semibold flex items-center gap-1">
+                        {serviceData.serviceId}
+                        <ServicePreviewButton serviceId={serviceData.serviceId} />
+                        — Service found
+                      </p>
                     </div>
                   )}
 

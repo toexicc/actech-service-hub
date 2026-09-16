@@ -25,6 +25,8 @@ import { TallyLine } from "@/components/TallyLine";
 import { useStaff } from "@/hooks/useStaff";
 
 import { isAssignedTo } from "@/lib/technicianMatch";
+import { TicketFlagChips } from "@/components/workspace/TicketFlagChips";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { CutoffPresets } from "@/components/CutoffPresets";
 import { useWindowTally } from "@/hooks/useWindowTally";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
@@ -167,7 +169,9 @@ const CompletedTransactions = () => {
       list = list.filter((s) => {
         const paysCommission = serviceBasedNames.some((n) => isAssignedTo(s.technician, n));
         if (!paysCommission) return false;
-        return !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0;
+        // Blank parts cost means "no parts yet" and counts as zero — only a
+        // missing commission allocation makes a ticket not ready for payout.
+        return !(breakdownMap[s.serviceId] ?? []).length;
       });
     }
     return list;
@@ -588,7 +592,15 @@ const CompletedTransactions = () => {
                           <TableCell>
                             <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen && "rotate-90")} />
                           </TableCell>
-                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-1">
+                              {service.serviceId}
+                              <span onClick={(e) => e.stopPropagation()}>
+                                <ServicePreviewButton serviceId={service.serviceId} />
+                              </span>
+                            </div>
+                            <TicketFlagChips service={service} showWithinDay={false} className="mt-1" />
+                          </TableCell>
                           <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell>{service.technician}</TableCell>
@@ -596,7 +608,7 @@ const CompletedTransactions = () => {
                       <TableCell className="text-right">₱{(service.quotedPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right">₱{discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right text-emerald-600">₱{collectedFor(service.serviceId).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-right">₱{partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">{partsCost > 0 ? `₱${partsCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : <span className="text-muted-foreground">No parts yet</span>}</TableCell>
                       <TableCell className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-red-600")}>
                         ₱{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
