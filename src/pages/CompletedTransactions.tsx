@@ -167,7 +167,9 @@ const CompletedTransactions = () => {
       list = list.filter((s) => {
         const paysCommission = serviceBasedNames.some((n) => isAssignedTo(s.technician, n));
         if (!paysCommission) return false;
-        return !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0;
+        // Blank parts cost means "no parts yet" and counts as zero — only a
+        // missing commission allocation makes a ticket not ready for payout.
+        return !(breakdownMap[s.serviceId] ?? []).length;
       });
     }
     return list;
