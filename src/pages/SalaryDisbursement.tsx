@@ -899,7 +899,36 @@ const SalaryDisbursement = () => {
                               </TableCell>
                               <TableCell className="font-medium whitespace-nowrap">{fmtCurrency(c.gross)}</TableCell>
                               <TableCell className="text-destructive whitespace-nowrap">−{fmtCurrency(c.totalDeductions)}</TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <Button size="sm" variant="outline" disabled={isDone} onClick={() => openDeductionModal(staff)}>
+                                  {c.additional > 0 ? `−${fmtCurrency(c.additional)}` : "Add"}
+                                </Button>
+                              </TableCell>
                               <TableCell className="font-bold whitespace-nowrap">{fmtCurrency(c.net)}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-8 w-8"
+                                    title="Print payslip"
+                                    disabled={payslipBusy !== null}
+                                    onClick={() => handleFixedPayslip(staff, "print")}
+                                  >
+                                    {payslipBusy === staff.staffId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-8 w-8"
+                                    title="Download payslip"
+                                    disabled={payslipBusy !== null}
+                                    onClick={() => handleFixedPayslip(staff, "download")}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Button
                                   size="sm"
