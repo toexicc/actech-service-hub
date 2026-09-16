@@ -430,7 +430,7 @@ const Reports = () => {
       discounts,
       totalExpenses,
       netRevenue,
-      avgTicket: completed.length ? serviceRevenue / completed.length : 0,
+      avgTicket: moneyCompleted.length ? serviceRevenue / moneyCompleted.length : 0,
     };
   };
 
