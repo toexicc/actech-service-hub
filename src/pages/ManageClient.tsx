@@ -1500,32 +1500,41 @@ const ManageClient = () => {
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
 
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
-          { label: "Services", before: serviceData.service, after: updateServices },
-          { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost },
-          { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
+          { label: "Services", before: serviceData.service, after: updateServices, kind: "list" },
+          { label: "Service Cost", before: serviceData.serviceCost, after: updateServiceCost, kind: "number" },
+          {
+            label: "Discount",
+            before: sanitizeNumber(String(serviceData.discount ?? "0")),
+            after: discountAmount,
+            kind: "number",
+          },
           {
             label: "VAT Requested",
             before: (serviceData as any).vatRequested ? "Yes" : "No",
             after: vatRequested ? "Yes" : "No",
+            kind: "bool",
           },
           {
             label: "Rush Fee (10%)",
             before: (serviceData as any).rushFee ? "Yes" : "No",
             after: rushFee ? "Yes" : "No",
+            kind: "bool",
           },
-          { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
+          {
+            label: "Final Cost",
+            before: sanitizeNumber(String(serviceData.finalCost ?? "0")),
+            after: finalCost,
+            kind: "number",
+          },
           { label: "Diagnostic Time Frame", before: serviceData.timeFrame, after: updateTimeFrame },
           { label: "Repair Time Frame", before: (serviceData as any).repairTimeFrame, after: updateRepairTimeFrame },
-          { label: "Target Date", before: prevTarget, after: newTarget },
+          { label: "Target Date", before: prevTarget, after: newTarget, kind: "date" },
           { label: "Notes from the Team", before: serviceData.adminNotes, after: updateAdminNotes },
           { label: "Internal Notes", before: serviceData.adminNotesInternal, after: updateAdminNotesInternal },
-          {
-            label: "Service Breakdown",
-            before: JSON.stringify(serviceData.quotedBreakdown ?? []),
-            after: JSON.stringify(quotedLines ?? []),
-          },
         ]);
-        const changes: string[] = [...summaries];
+        const breakdownDiff = diffBreakdown(serviceData.quotedBreakdown ?? [], quotedLines ?? []);
+        Object.assign(fieldDetails, breakdownDiff.details);
+        const changes: string[] = [...summaries, ...breakdownDiff.summaries];
 
         if (changes.length > 0) {
           await logActivity({
