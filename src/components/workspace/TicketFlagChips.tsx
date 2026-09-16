@@ -52,6 +52,13 @@ export function TicketFlagChips({ service, showWithinDay = true, className }: Ti
       cls: "border-destructive/40 bg-destructive/10 text-destructive",
     });
   }
+  if (service?.vatRequested) {
+    chips.push({
+      key: "invoice",
+      label: "Invoice Requested",
+      cls: "border-violet-400/40 bg-violet-500/15 text-violet-600",
+    });
+  }
   if (service?.waitingForParts) {
     chips.push({
       key: "waitingParts",
