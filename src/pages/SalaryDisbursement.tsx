@@ -1015,14 +1015,26 @@ const SalaryDisbursement = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant={isDone ? "secondary" : "default"}
-                                  onClick={() => handleDisburse(staff, c.net)}
-                                  disabled={disbursing === staff.staffId || c.net <= 0 || isDone}
-                                >
-                                  {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant={isDone ? "secondary" : "default"}
+                                    onClick={() => handleDisburse(staff, c.net)}
+                                    disabled={disbursing === staff.staffId || c.net <= 0 || isDone}
+                                  >
+                                    {disbursing === staff.staffId ? <Loader2 className="h-4 w-4 animate-spin" /> : isDone ? "Disbursed" : "Disburse"}
+                                  </Button>
+                                  {isDone && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      title="Edit this disbursement"
+                                      onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
