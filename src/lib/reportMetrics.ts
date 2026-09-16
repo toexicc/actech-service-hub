@@ -701,6 +701,8 @@ export interface ServiceTiming {
   /** Working hours excluded because the ticket was paused. */
   pausedHours: number;
   fromLogs: boolean;
+  /** True while the ticket is still open (totalHours is the running time so far). */
+  open?: boolean;
 }
 
 /**
