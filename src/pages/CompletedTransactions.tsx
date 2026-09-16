@@ -468,9 +468,18 @@ const CompletedTransactions = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || (paidFilter !== "all" && !paymentsReady && !paymentsError) ? (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : paymentsError ? (
+              <div className="py-8 text-center space-y-3">
+                <p className="text-muted-foreground">
+                  Payment records could not be loaded, so paid and unpaid cannot be told apart right now.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetchPayments()}>
+                  Try again
+                </Button>
               </div>
             ) : visibleServices.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
