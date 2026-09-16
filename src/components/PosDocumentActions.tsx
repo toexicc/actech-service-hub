@@ -47,7 +47,15 @@ interface Props {
   formDocs?: FormDoc[];
   /** Manage Client can edit saved warranty terms before rebuilding the card. */
   allowWarrantyEdit?: boolean;
+  /** Show intake / quotation rows as view-only (no generate/update button). */
+  viewOnlyForms?: boolean;
 }
+
+const VIEW_ONLY_FORMS: { kind: Extract<ServicePdfKind, "intake" | "quotation">; title: string; hint: string }[] = [
+  { kind: "intake", title: "Client Intake Form", hint: "Signed intake and device conditions" },
+  { kind: "quotation", title: "Service Quotation Form", hint: "Quoted services and options" },
+];
+
 
 /**
  * View / print / download the documents of a ticket. Used on the POS page,
@@ -60,6 +68,8 @@ export const PosDocumentActions = ({
   refreshKey = 0,
   formDocs = [],
   allowWarrantyEdit = false,
+  viewOnlyForms = false,
+
 }: Props) => {
 
   const { toast } = useToast();
@@ -79,7 +89,12 @@ export const PosDocumentActions = ({
     async (repair: boolean) => {
       if (!serviceId || serviceId === "MANUAL") return null;
       const found: Record<string, boolean> = {};
-      const kinds: ServicePdfKind[] = [...formDocs.map((f) => f.kind), ...POS_DOCS.map((d) => d.kind)];
+      const kinds: ServicePdfKind[] = [
+        ...(viewOnlyForms ? VIEW_ONLY_FORMS.map((f) => f.kind) : []),
+        ...formDocs.map((f) => f.kind),
+        ...POS_DOCS.map((d) => d.kind),
+      ];
+
       for (const kind of kinds) {
         const url = await getServicePdfSignedUrl(serviceId, kind);
         found[kind] = !!url;
@@ -100,7 +115,8 @@ export const PosDocumentActions = ({
     },
     // formDocs is a literal array from the parent; only its kinds matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [serviceId, formDocs.map((f) => f.kind).join(",")],
+    [serviceId, viewOnlyForms, formDocs.map((f) => f.kind).join(",")],
+
   );
 
   useEffect(() => {
@@ -234,11 +250,14 @@ export const PosDocumentActions = ({
     kind: ServicePdfKind;
     title: string;
     hint: string;
-    onGenerate: () => void | Promise<void>;
+    onGenerate?: () => void | Promise<void>;
     generating: boolean;
   };
 
   const rows: Row[] = [
+    ...(viewOnlyForms
+      ? VIEW_ONLY_FORMS.map((f) => ({ kind: f.kind as ServicePdfKind, title: f.title, hint: f.hint, generating: false }))
+      : []),
     ...formDocs
       .filter((f) => !!f.onGenerate)
       .map((f) => ({
@@ -256,6 +275,7 @@ export const PosDocumentActions = ({
       generating: busy === `${d.kind}-generate`,
     })),
   ];
+
 
   if (!serviceId || serviceId === "MANUAL") return null;
 
@@ -279,13 +299,14 @@ export const PosDocumentActions = ({
               </p>
             </div>
             <div className="flex shrink-0 gap-1">
+              {d.onGenerate && (
               <Button
                 size="sm"
                 variant={ready ? "secondary" : "default"}
                 disabled={d.generating || loadingWarrantyEditor}
                 aria-label={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
                 title={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
-                onClick={() => editsWarranty ? openWarrantyEditor() : d.onGenerate()}
+                onClick={() => (editsWarranty ? openWarrantyEditor() : d.onGenerate?.())}
               >
                 {d.generating || (editsWarranty && loadingWarrantyEditor) ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -296,6 +317,8 @@ export const PosDocumentActions = ({
                 )}
                 <span className="ml-1">{editsWarranty ? "Edit" : ready ? "Update" : "Generate"}</span>
               </Button>
+              )}
+
               <Button
                 size="sm"
                 variant="outline"

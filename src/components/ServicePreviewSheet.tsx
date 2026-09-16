@@ -28,6 +28,8 @@ import {
 import { TicketFlagChips } from "@/components/workspace/TicketFlagChips";
 import { ChargesBreakdown } from "@/components/workspace/ChargesBreakdown";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
+import { approvedLinesOf } from "@/lib/posDocuments";
+
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { displayDate } from "@/lib/timezone";
@@ -190,10 +192,11 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
   const showIssue =
     !!issue && issue.replace(/\s+/g, " ").toLowerCase() !== complaint.replace(/\s+/g, " ").toLowerCase();
 
-  const diagnosis = String(service?.technicianDiagnosis || service?.diagnosis || "").trim();
+  const quotedLines = approvedLinesOf((service as any)?.quotedBreakdown);
+  const diagnosis = String(service?.diagnosis || service?.technicianDiagnosis || "").trim();
+
   const summary = String(service?.diagnosisSummary || "").trim();
   const report = String(service?.technicianReport || "").trim();
-  const aiReport = String(service?.aiReport || "").trim();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -201,25 +204,33 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
         side="right"
         className="!flex w-full flex-col sm:max-w-xl p-0 overflow-hidden"
       >
-        <SheetHeader className="shrink-0 border-b border-border/60 bg-muted/20 px-6 py-5 text-left">
-          <SheetTitle className="font-mono text-xl tracking-tight">{serviceId}</SheetTitle>
-          <SheetDescription asChild>
-            <div className="space-y-2.5">
-              {service ? (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">{textOr(service.clientName)}</span>
-                    <span className="mx-1.5 text-border">•</span>
-                    <span className="font-medium text-primary">{textOr(service.status)}</span>
-                  </p>
-                  <TicketFlagChips service={service} />
-                </>
-              ) : (
-                <p className="text-sm">Ticket preview</p>
-              )}
+        <SheetHeader className="shrink-0 space-y-0 border-b border-border/60 bg-gradient-to-br from-primary/10 via-background to-background px-6 py-4 text-left">
+          <div className="flex items-start justify-between gap-4 pr-8">
+            <div className="min-w-0 space-y-1.5">
+              <SheetTitle className="truncate font-mono text-lg font-semibold tracking-tight">
+                {serviceId}
+              </SheetTitle>
+              <SheetDescription asChild>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  <span className="truncate font-medium text-foreground">
+                    {textOr(service?.clientName, "Ticket preview")}
+                  </span>
+                  {service?.status && (
+                    <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                      {service.status}
+                    </span>
+                  )}
+                </div>
+              </SheetDescription>
             </div>
-          </SheetDescription>
+          </div>
+          {service && (
+            <div className="pt-2.5">
+              <TicketFlagChips service={service} />
+            </div>
+          )}
         </SheetHeader>
+
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
           {isLoading && (
@@ -258,7 +269,9 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   serviceId={service.serviceId}
                   clientName={service.clientName}
                   serviceDate={service.serviceDate}
+                  viewOnlyForms
                 />
+
               </Section>
 
               <Section icon={Smartphone} title="Device">
@@ -293,8 +306,7 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                     }
                   />
                   <div className="flex items-baseline justify-between gap-4 text-sm">
-                    <span className="flex shrink-0 items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
+                    <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
                       Duration in system
                     </span>
                     <span className="min-w-0 text-right">
@@ -322,22 +334,29 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   ) : (
                     <p className="px-1 py-2 text-sm text-muted-foreground">No technician report yet.</p>
                   )}
-                  {aiReport && <LongText title="AI Report" body={aiReport} />}
                 </Card>
               </Section>
 
               <Section icon={ListChecks} title="Service Choices & Breakdown">
                 <Card className="space-y-2.5 text-sm">
-                  {service.approvedServices && service.approvedServices.length > 0 && (
-                    <div>
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-success">Approved</p>
-                      <ul className="list-disc space-y-0.5 pl-5">
-                        {service.approvedServices.map((s) => (
-                          <li key={s}>{s}</li>
-                        ))}
-                      </ul>
+                  {quotedLines.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {quotedLines.map((l, i) => (
+                        <div key={`${l.label}-${i}`} className="flex items-baseline justify-between gap-3">
+                          <span className="min-w-0 break-words">{l.label}</span>
+                          <span className="shrink-0 font-medium">
+                            ₱{Number(l.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  ) : service.approvedServices && service.approvedServices.length > 0 ? (
+                    <ul className="list-disc space-y-0.5 pl-5">
+                      {service.approvedServices.map((s) => (
+                        <li key={s}>{s}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {service.pendingServices && service.pendingServices.length > 0 && (
                     <div>
                       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-warning">Pending</p>
@@ -348,24 +367,10 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                       </ul>
                     </div>
                   )}
-                  {breakdowns.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-1">
-                        {breakdowns.map((b: any) => (
-                          <div key={b.id} className="flex justify-between gap-3">
-                            <span className="min-w-0 truncate">{b.serviceName} — {b.technicianName}</span>
-                            <span className="shrink-0 font-medium">
-                              ₱{Number(b.cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {!service.approvedServices?.length &&
-                    !service.pendingServices?.length &&
-                    !breakdowns.length && (
+                  {!quotedLines.length &&
+                    !service.approvedServices?.length &&
+                    !service.pendingServices?.length && (
+
                       <p className="text-muted-foreground">No services recorded.</p>
                     )}
                 </Card>
