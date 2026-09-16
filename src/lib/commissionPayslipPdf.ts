@@ -80,7 +80,7 @@ const card = (doc: jsPDF, x: number, y: number, w: number, h: number, fill = WHI
   doc.roundedRect(x, y, w, h, 2, 2, "FD");
 };
 
-const drawHeader = (doc: jsPDF, logo: string) => {
+const drawHeader = (doc: jsPDF, logo: string, titleText = "COMMISSION PAYSLIP") => {
   const BOX = 52;
   const TOP_FRAC = 0.2769;
   const BOTTOM_FRAC = 0.6741;
@@ -109,7 +109,7 @@ const drawHeader = (doc: jsPDF, logo: string) => {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   setText(doc, NAVY);
-  const title = "COMMISSION PAYSLIP";
+  const title = titleText;
   doc.text(title, PAGE_W / 2, y, { align: "center" });
   y += 2;
   setDraw(doc, ACCENT);
