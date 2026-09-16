@@ -39,6 +39,7 @@ const inManilaDayRange = (ts: string, start?: Date, end?: Date) => {
 import { cn } from "@/lib/utils";
 import { useDoneServices } from "@/hooks/useDoneServices";
 import { TallyLine } from "@/components/TallyLine";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { CutoffPresets } from "@/components/CutoffPresets";
 
 interface Transaction {
@@ -747,7 +748,16 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
                         <TableCell className="text-xs whitespace-nowrap">
                           {t.timestamp ? displayDate(t.timestamp, "MMM dd, yyyy hh:mm a") : "N/A"}
                         </TableCell>
-                        <TableCell className="font-medium">{t.serviceId || "-"}</TableCell>
+                        <TableCell className="font-medium">
+                          {t.serviceId ? (
+                            <span className="inline-flex items-center gap-1">
+                              {t.serviceId}
+                              <ServicePreviewButton serviceId={t.serviceId} />
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs">{t.transactionType}</TableCell>
                         <TableCell>
                           <span className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">

@@ -35,6 +35,7 @@ import { useAllServices, useInvalidateServices, useArchivedCompletedServices, co
 import { useStaff } from "@/hooks/useStaff";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { classifyStatus, isClosedStatus, isCompletedStatus } from "@/lib/serviceStatus";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
