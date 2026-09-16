@@ -1048,7 +1048,12 @@ const SalaryDisbursement = () => {
 
             {/* Readiness check before any payout */}
             {readiness.missingAllocation > 0 && (
-...
+              <Card className="border-amber-300 bg-amber-50/60">
+                <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-900">Not ready for payout</p>
                       <p className="text-xs text-amber-800">
                         {readiness.missingAllocation} completed ticket{readiness.missingAllocation === 1 ? "" : "s"} in this cut-off have no commission allocated.
                       </p>
