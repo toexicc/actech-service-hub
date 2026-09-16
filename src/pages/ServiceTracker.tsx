@@ -1761,14 +1761,22 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           In Service <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead>Duration in System</TableHead>
                       <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedServices.map((service) => {
-                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
-                       const overdueStatus = isOverdue(service.targetDate, service.status);
-                       const isCompleted = (service.status || "").toLowerCase().includes("completed");
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {paginatedServices.map((service) => {
+                        const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
+                        const overdueStatus = isOverdue(service.targetDate, service.status);
+                        const isCompleted = classifyStatus(service.status) !== "active";
+                        const t = pageTimings.get(String(service.serviceId));
+                        const durationText = formatWorkingDuration(t?.totalHours ?? null);
+                        const durationLabel = durationText
+                          ? t?.open
+                            ? `${durationText} so far`
+                            : durationText
+                          : "—";
 
                        return (
                          <TableRow
