@@ -107,8 +107,27 @@ const CompletedTransactions = () => {
   }, [services, technicianFilter, departmentFilter, startDate, endDate, dateBasis]);
 
   // Actual allocations saved in the breakdown panel drive commissions.
-  const { data: breakdownMap = {} } = useAllServiceBreakdowns(
+  const {
+    data: breakdownMap = {},
+    isFetching: breakdownsFetching,
+    isSuccess: breakdownsLoaded,
+  } = useAllServiceBreakdowns(
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
+  );
+  // Only tickets worked by commission (service-based) staff can be "not ready
+  // for payout" — fixed-salary staff tickets never need an allocation.
+  const { data: staffData = [] } = useStaff();
+  const serviceBasedNames = useMemo(
+    () =>
+      staffData
+        .filter(
+          (s: any) =>
+            (s.status || "").toLowerCase() === "active" &&
+            !(Number(String(s.salary ?? "").replace(/[^0-9.]/g, "")) > 0),
+        )
+        .map((s: any) => String(s.name || "").trim())
+        .filter(Boolean),
+    [staffData],
   );
   // Cash actually received per ticket — one bulk query for the filtered list.
   const {
