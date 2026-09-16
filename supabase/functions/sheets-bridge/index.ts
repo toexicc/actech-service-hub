@@ -1231,6 +1231,14 @@ async function disburseSalary(b: Record<string, any>) {
     gross_pay: num(b.grossPay) || amount,
     total_deductions: num(b.totalDeductions),
     net_pay: num(b.netPay) || amount,
+    additional_deductions: (() => {
+      try {
+        const parsed = JSON.parse(b.additionalDeductions || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })(),
     status: b.status || "Disbursed",
     disbursed_at: new Date().toISOString(),
   }, { onConflict: "staff_id,period_label" });
