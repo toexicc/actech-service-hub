@@ -581,7 +581,11 @@ const PointOfSales = () => {
 
                   {serviceData && (
                     <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                      <p className="text-primary font-semibold">{serviceData.serviceId} — Service found</p>
+                      <p className="text-primary font-semibold flex items-center gap-1">
+                        {serviceData.serviceId}
+                        <ServicePreviewButton serviceId={serviceData.serviceId} />
+                        — Service found
+                      </p>
                     </div>
                   )}
 
