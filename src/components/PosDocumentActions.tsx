@@ -89,7 +89,12 @@ export const PosDocumentActions = ({
     async (repair: boolean) => {
       if (!serviceId || serviceId === "MANUAL") return null;
       const found: Record<string, boolean> = {};
-      const kinds: ServicePdfKind[] = [...formDocs.map((f) => f.kind), ...POS_DOCS.map((d) => d.kind)];
+      const kinds: ServicePdfKind[] = [
+        ...(viewOnlyForms ? VIEW_ONLY_FORMS.map((f) => f.kind) : []),
+        ...formDocs.map((f) => f.kind),
+        ...POS_DOCS.map((d) => d.kind),
+      ];
+
       for (const kind of kinds) {
         const url = await getServicePdfSignedUrl(serviceId, kind);
         found[kind] = !!url;
