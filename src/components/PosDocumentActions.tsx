@@ -299,13 +299,14 @@ export const PosDocumentActions = ({
               </p>
             </div>
             <div className="flex shrink-0 gap-1">
+              {d.onGenerate && (
               <Button
                 size="sm"
                 variant={ready ? "secondary" : "default"}
                 disabled={d.generating || loadingWarrantyEditor}
                 aria-label={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
                 title={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
-                onClick={() => editsWarranty ? openWarrantyEditor() : d.onGenerate()}
+                onClick={() => (editsWarranty ? openWarrantyEditor() : d.onGenerate?.())}
               >
                 {d.generating || (editsWarranty && loadingWarrantyEditor) ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -316,6 +317,8 @@ export const PosDocumentActions = ({
                 )}
                 <span className="ml-1">{editsWarranty ? "Edit" : ready ? "Update" : "Generate"}</span>
               </Button>
+              )}
+
               <Button
                 size="sm"
                 variant="outline"
