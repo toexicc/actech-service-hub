@@ -36,6 +36,7 @@ import { useStaff } from "@/hooks/useStaff";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
 import { ServicePreviewButton } from "@/components/ServicePreviewButton";
+import { useServiceTimings, formatWorkingDuration } from "@/hooks/useServiceTimings";
 import { classifyStatus, isClosedStatus, isCompletedStatus } from "@/lib/serviceStatus";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
@@ -991,6 +992,9 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return filteredAndSortedServices.slice(startIndex, endIndex);
   }, [filteredAndSortedServices, currentPage]);
 
+  // Working-time duration for the tickets shown on this page.
+  const pageTimings = useServiceTimings(paginatedServices);
+
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedServices.length / itemsPerPage));
 
   useEffect(() => {
@@ -1585,7 +1589,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   {paginatedServices.map((service) => {
                     const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
                     const overdueStatus = isOverdue(service.targetDate, service.status);
-                    const isCompleted = (service.status || "").toLowerCase().includes("completed");
+                    const isCompleted = classifyStatus(service.status) !== "active";
+                    const t = pageTimings.get(String(service.serviceId));
+                    const durationText = formatWorkingDuration(t?.totalHours ?? null);
+                    const durationLabel = durationText
+                      ? t?.open
+                        ? `${durationText} so far`
+                        : durationText
+                      : "—";
                     return (
                       <div
                         key={service.serviceId}
@@ -1637,6 +1648,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-muted-foreground text-xs">Cost</span>
                             <span className="text-foreground tabular-nums">{service.serviceCost || "—"}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Duration in system</span>
+                            <span className="text-foreground tabular-nums">{durationLabel}</span>
                           </div>
                         </div>
 
@@ -1746,14 +1761,22 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           In Service <ArrowUpDown className="h-4 w-4" />
                         </div>
                       </TableHead>
+                      <TableHead>Duration in System</TableHead>
                       <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedServices.map((service) => {
-                       const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
-                       const overdueStatus = isOverdue(service.targetDate, service.status);
-                       const isCompleted = (service.status || "").toLowerCase().includes("completed");
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {paginatedServices.map((service) => {
+                        const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
+                        const overdueStatus = isOverdue(service.targetDate, service.status);
+                        const isCompleted = classifyStatus(service.status) !== "active";
+                        const t = pageTimings.get(String(service.serviceId));
+                        const durationText = formatWorkingDuration(t?.totalHours ?? null);
+                        const durationLabel = durationText
+                          ? t?.open
+                            ? `${durationText} so far`
+                            : durationText
+                          : "—";
 
                        return (
                          <TableRow
@@ -1811,7 +1834,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                                  {inServiceDays} {inServiceDays === 1 ? "day" : "days"}
                                </span>
                              )}
-                           </TableCell>
+                             </TableCell>
+                           <TableCell className="whitespace-nowrap tabular-nums">{durationLabel}</TableCell>
                            <TableCell>
                               <div className="flex items-center gap-1">
                                 <Button

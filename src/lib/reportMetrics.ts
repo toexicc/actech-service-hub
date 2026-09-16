@@ -701,6 +701,8 @@ export interface ServiceTiming {
   /** Working hours excluded because the ticket was paused. */
   pausedHours: number;
   fromLogs: boolean;
+  /** True while the ticket is still open (totalHours is the running time so far). */
+  open?: boolean;
 }
 
 /**
@@ -740,6 +742,7 @@ export const buildTimings = (
     let totalHours: number | null = null;
     let pausedHours = 0;
     let fromLogs = false;
+    let isOpen = false;
 
     const transitions = entries.filter((e) => e.to);
     if (transitions.length) {
@@ -749,10 +752,13 @@ export const buildTimings = (
           ? received
           : toDate(entries[0].createdAt);
 
-      const completedTransition = [...transitions]
-        .reverse()
-        .find((t) => classifyStatus(t.to) === "completed");
-      const endStamp = completedTransition ? toDate(completedTransition.createdAt) : null;
+      // A ticket stops counting once it is Completed OR closed (RTO / Cancelled /
+      // On Hold) — in both cases the shop is done working it.
+      const terminalTransition =
+        classifyStatus(s.status) === "active"
+          ? undefined
+          : [...transitions].reverse().find((t) => classifyStatus(t.to) !== "active");
+      const endStamp = terminalTransition ? toDate(terminalTransition.createdAt) : null;
 
       // Waiting-for-Parts windows, closed at the end boundary when still open.
       const partWindows: { start: Date; end: Date }[] = [];
@@ -768,8 +774,9 @@ export const buildTimings = (
           openWindow = null;
         }
       });
-      if (openWindow && endStamp && endStamp > openWindow) {
-        partWindows.push({ start: openWindow, end: endStamp });
+      const partsBoundary = endStamp ?? new Date();
+      if (openWindow && partsBoundary > openWindow) {
+        partWindows.push({ start: openWindow, end: partsBoundary });
       }
 
       const pausedByParts = (from: Date, to: Date) =>
@@ -807,10 +814,19 @@ export const buildTimings = (
         }
       }
 
-      if (endStamp && firstStamp && reachedEnd) totalHours = counted;
+      if (endStamp && firstStamp && reachedEnd) {
+        totalHours = counted;
+      } else if (!endStamp && firstStamp) {
+        // Still open: count the running time up to now, so the panel can show
+        // elapsed working time instead of nothing.
+        const last = transitions[transitions.length - 1];
+        walk(new Date(), last?.to || s.status || "Pending Diagnosis");
+        totalHours = counted;
+        isOpen = true;
+      }
     }
 
-    if (totalHours === null && classifyStatus(s.status) === "completed") {
+    if (totalHours === null && classifyStatus(s.status) !== "active") {
       const end = toDate(s.dateCompleted || s.lastUpdated);
       if (received && end && end >= received) {
         totalHours = workingHoursBetween(received, end, closed);
@@ -818,10 +834,13 @@ export const buildTimings = (
       }
     }
 
+    if (totalHours === null && received && classifyStatus(s.status) === "active") {
+      totalHours = workingHoursBetween(received, new Date(), closed);
+      fromLogs = false;
+      isOpen = true;
+    }
 
-
-
-    out.set(id, { serviceId: id, totalHours, stageHours, pausedHours, fromLogs });
+    out.set(id, { serviceId: id, totalHours, stageHours, pausedHours, fromLogs, open: isOpen });
   });
 
   return out;
