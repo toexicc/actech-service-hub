@@ -28,6 +28,8 @@ import {
 import { TicketFlagChips } from "@/components/workspace/TicketFlagChips";
 import { ChargesBreakdown } from "@/components/workspace/ChargesBreakdown";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
+import { approvedLinesOf } from "@/lib/posDocuments";
+
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { displayDate } from "@/lib/timezone";
