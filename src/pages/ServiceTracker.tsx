@@ -1810,7 +1810,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <TicketFlagChips service={service} showWithinDay={activeTab !== "closed"} />
+                              <TicketFlagChips
+                                service={service}
+                                showWithinDay={activeTab !== "closed"}
+                                collected={collectedFor(service.serviceId)}
+                              />
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
                            <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>

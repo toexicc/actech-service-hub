@@ -599,7 +599,12 @@ const CompletedTransactions = () => {
                                 <ServicePreviewButton serviceId={service.serviceId} />
                               </span>
                             </div>
-                            <TicketFlagChips service={service} showWithinDay={false} className="mt-1" />
+                            <TicketFlagChips
+                              service={service}
+                              showWithinDay={false}
+                              collected={collectedFor(service.serviceId)}
+                              className="mt-1"
+                            />
                           </TableCell>
                           <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
                           <TableCell>{service.clientName}</TableCell>

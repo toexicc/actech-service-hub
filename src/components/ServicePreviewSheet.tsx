@@ -231,7 +231,7 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
           </div>
           {service && (
             <div className="pt-2.5">
-              <TicketFlagChips service={service} />
+              <TicketFlagChips service={service} collected={paymentsSummary?.transactionsPaid ?? null} />
             </div>
           )}
         </SheetHeader>
