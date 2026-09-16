@@ -68,6 +68,8 @@ export const PosDocumentActions = ({
   refreshKey = 0,
   formDocs = [],
   allowWarrantyEdit = false,
+  viewOnlyForms = false,
+
 }: Props) => {
 
   const { toast } = useToast();
