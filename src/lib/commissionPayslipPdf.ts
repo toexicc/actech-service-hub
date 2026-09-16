@@ -29,6 +29,24 @@ export interface PayslipRow {
   amount: number;
 }
 
+export interface DeductionLine {
+  description: string;
+  amount: number;
+}
+
+export interface AttendanceSummary {
+  daysPresent: number;
+  workdays: number;
+  hours: number;
+  dailyRate: number;
+  monthlySalary: number;
+  gross: number;
+  pagibig: number;
+  sss: number;
+  philhealth: number;
+  otherDeductions: number;
+}
+
 export interface PayslipData {
   employeeName: string;
   department?: string;
@@ -40,6 +58,12 @@ export interface PayslipData {
   total: number;
   preparedBy?: string;
   generatedAt: string;
+  /** Extra deductions captured on the disbursement screen. */
+  deductionLines?: DeductionLine[];
+  /** Present for fixed-salary staff: replaces the ticket breakdown. */
+  attendance?: AttendanceSummary;
+  /** Overrides the document title. */
+  title?: string;
 }
 
 const setFill = (doc: jsPDF, c: [number, number, number]) => doc.setFillColor(c[0], c[1], c[2]);
