@@ -1098,7 +1098,7 @@ const ServiceUpdate = () => {
         const userFullName = sessionStorage.getItem("userFullName") || username;
         const { summaries: fieldSummaries, details: fieldDetails } = diffFields([
           { label: "Status", before: serviceData.status, after: updateStatus },
-          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
+          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician, kind: "list" },
           { label: "Technician Diagnosis", before: serviceData.technicianDiagnosis, after: updateTechnicianDiagnosis },
           { label: "AI Diagnosis", before: serviceData.aiDiagnosis, after: updateAIDiagnosis },
           { label: "Service Breakdown (draft)", before: (serviceData as any).diagnosisBreakdownText, after: updateDiagBreakdown },
