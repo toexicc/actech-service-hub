@@ -39,8 +39,8 @@ A "Print All / Download All" pair is added to the Fixed Salary section header to
 - `src/pages/SalaryDisbursement.tsx`
   - `readiness`: filter `periodServices` to tickets where any technician name matches a `serviceBasedStaff` name (reuse `isAssignedTo`) before counting missing allocations/parts cost.
   - New `useQuery(["salaryDisbursements", periodRange])` reading `salary_disbursements` for the active cut-off (`period_start`/`period_end` or `period_label`); `isDone` becomes `disbursedList || existing row for staff+period`.
-  - `handleDisburse`: after a successful `disburseSalary`, chain the `addTransaction` call (type `Salary Disbursement`, category `Expenses`, `fundSource`, description `<staff> — <periodLabel>`) and invalidate `fundTransactions` / `transactions` / `salaryDisbursements`. Guard on `finalAmount > selectedFundBalance`.
-  - `handleSubmitBatch` removed; panel becomes a summary of cut-off payouts.
+  - `handleDisburse`: after a successful `disburseSalary`, chain the `addTransaction` call (type `Salary Disbursement`, category `Expenses`, `fundSource`, description `<staff> — <periodLabel>`) and invalidate `fundTransactions` / `transactions` / `salaryDisbursements`. No balance guard.
+  - `handleSubmitBatch` removed; button becomes "Review Salary Disbursement" opening a Dialog with disbursed vs pending staff for the cut-off.
   - New state `addlDeductions: Record<string, {description,amount}[]>` + a small modal component; folded into `computeCalculator` (`totalDeductions`) and into `computeServiceFinal` for service-based rows.
 - Migration: add `additional_deductions jsonb not null default '[]'` to `public.salary_disbursements`; edge function `disburseSalary` accepts an `additionalDeductions` JSON string and persists it.
 - Backfix: one-off SQL inserting `transactions` rows (`type = 'Salary Disbursement'`, `category = 'Expenses'`, `amount = net_pay`, `transaction_date = period_end`, `fund_name = 'Money In Bank'`) for every `salary_disbursements` row lacking a matching transaction.
