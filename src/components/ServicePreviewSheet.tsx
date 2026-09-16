@@ -169,7 +169,12 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
         closedDates.map((d) => d.startDate),
       ).get(String(service.serviceId))
     : undefined;
-  const durationLabel = formatWorkingHours(timing?.totalHours ?? null);
+  const baseDuration = formatWorkingHours(timing?.totalHours ?? null);
+  const durationLabel = baseDuration
+    ? timing?.open
+      ? `${baseDuration} so far`
+      : baseDuration
+    : null;
   const pausedLabel =
     timing && timing.pausedHours > 0 ? `${Math.round(timing.pausedHours)}h paused (waiting)` : null;
 
