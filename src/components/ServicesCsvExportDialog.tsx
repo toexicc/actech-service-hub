@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
-import { useTechnicians } from "@/hooks/useStaff";
+import { useStaff } from "@/hooks/useStaff";
 import { DEPARTMENTS, DEVICE_TYPES, STATUS_OPTIONS } from "@/lib/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
