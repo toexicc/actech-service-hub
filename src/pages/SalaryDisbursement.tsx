@@ -714,7 +714,7 @@ const SalaryDisbursement = () => {
         paid.push({ name: staff.name, amount: local?.amount ?? parseCurrency(row?.net_pay) });
       } else {
         const amount = staff.salaryType === "service"
-          ? computeServiceFinal(staff).final
+          ? computeServiceFinal(staff) - addlTotal(staff.staffId)
           : computeCalculator(staff).net;
         pending.push({ name: staff.name, amount });
       }
