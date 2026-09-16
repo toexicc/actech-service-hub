@@ -1179,6 +1179,7 @@ const SalaryDisbursement = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      className="border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
                                       title="Edit this disbursement"
                                       onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
                                     >
