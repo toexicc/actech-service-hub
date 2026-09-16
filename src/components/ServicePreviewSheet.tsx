@@ -1,18 +1,37 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
 import { useServicePayments } from "@/hooks/useServicePayments";
 import { useServiceBreakdowns } from "@/hooks/useServiceBreakdowns";
+import { useClosedDates } from "@/hooks/useClosedDates";
+import { parseStatusLog, buildTimings, StatusLogEntry } from "@/lib/reportMetrics";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ExternalLink, User, Smartphone, FileText, Stethoscope, Wrench, ListChecks, Wallet } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Loader2,
+  ExternalLink,
+  User,
+  Smartphone,
+  FileText,
+  Stethoscope,
+  ListChecks,
+  Wallet,
+  Users,
+  Images,
+  ChevronDown,
+  Clock,
+} from "lucide-react";
 import { TicketFlagChips } from "@/components/workspace/TicketFlagChips";
 import { ChargesBreakdown } from "@/components/workspace/ChargesBreakdown";
+import { PosDocumentActions } from "@/components/PosDocumentActions";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { displayDate } from "@/lib/timezone";
+import { cn } from "@/lib/utils";
 
 /**
  * Read-only ticket preview in a right slide-over. Opened from the small icon
@@ -31,10 +50,19 @@ const textOr = (v: any, fallback = "—") => {
   return s || fallback;
 };
 
+const formatWorkingHours = (hours: number | null | undefined) => {
+  if (hours === null || hours === undefined || !isFinite(hours)) return null;
+  const total = Math.max(0, hours);
+  const days = Math.floor(total / 8);
+  const rest = Math.round(total - days * 8);
+  if (days <= 0) return `${rest}h working time`;
+  return `${days}d ${rest}h working time`;
+};
+
 function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-2">
-      <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    <section className="space-y-2.5">
+      <h3 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         {title}
       </h3>
@@ -43,12 +71,48 @@ function Section({ icon: Icon, title, children }: { icon: any; title: string; ch
   );
 }
 
+function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/50 bg-[hsl(var(--surface-glass))] p-3.5 shadow-sm",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function KV({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-3 text-sm">
-      <span className="text-muted-foreground shrink-0">{label}</span>
-      <span className="text-right break-words min-w-0">{value}</span>
+    <div className="flex items-baseline justify-between gap-4 text-sm">
+      <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="min-w-0 break-words text-right font-medium">{value}</span>
     </div>
+  );
+}
+
+function LongText({ title, body }: { title: string; body: string }) {
+  const [open, setOpen] = useState(false);
+  const preview = body.replace(/\s+/g, " ").trim();
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 rounded-lg px-1 py-1.5 text-left hover:bg-muted/40">
+        <span className="min-w-0">
+          <span className="block text-xs font-semibold uppercase tracking-wide text-foreground">{title}</span>
+          {!open && (
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">{preview}</span>
+          )}
+        </span>
+        <ChevronDown
+          className={cn("mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <p className="whitespace-pre-wrap px-1 pb-2 pt-1 text-sm leading-relaxed">{body}</p>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -73,6 +137,39 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
 
   const { data: paymentsSummary } = useServicePayments(open ? (serviceId ?? undefined) : undefined);
   const { data: breakdowns = [] } = useServiceBreakdowns(open ? (serviceId ?? undefined) : undefined);
+  const { data: closedDates = [] } = useClosedDates();
+
+  // Ticket-scoped activity logs, used only to derive the working-time duration.
+  const { data: ticketLogs = [] } = useQuery({
+    queryKey: ["servicePreviewLogs", serviceId],
+    queryFn: async (): Promise<StatusLogEntry[]> => {
+      if (!serviceId) return [];
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select("action, entity_id, created_at, actor_name, changes")
+        .eq("entity_type", "service")
+        .eq("entity_id", serviceId)
+        .order("created_at", { ascending: true })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? [])
+        .map((r) => parseStatusLog(r))
+        .filter((e): e is StatusLogEntry => !!e);
+    },
+    enabled: open && !!serviceId,
+    staleTime: 60 * 1000,
+  });
+
+  const timing = service
+    ? buildTimings(
+        [service],
+        ticketLogs,
+        closedDates.map((d) => d.startDate),
+      ).get(String(service.serviceId))
+    : undefined;
+  const durationLabel = formatWorkingHours(timing?.totalHours ?? null);
+  const pausedLabel =
+    timing && timing.pausedHours > 0 ? `${Math.round(timing.pausedHours)}h paused (waiting)` : null;
 
   const device = [
     service?.deviceType,
@@ -88,29 +185,43 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
   );
   const balance = Math.max(0, billable - (paymentsSummary?.transactionsPaid ?? 0));
 
+  const complaint = textOr(service?.chiefComplaint, "");
+  const issue = textOr(service?.issueDescription, "");
+  const showIssue =
+    !!issue && issue.replace(/\s+/g, " ").toLowerCase() !== complaint.replace(/\s+/g, " ").toLowerCase();
+
+  const diagnosis = String(service?.technicianDiagnosis || service?.diagnosis || "").trim();
+  const summary = String(service?.diagnosisSummary || "").trim();
+  const report = String(service?.technicianReport || "").trim();
+  const aiReport = String(service?.aiReport || "").trim();
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
         className="!flex w-full flex-col sm:max-w-xl p-0 overflow-hidden"
       >
-        <SheetHeader className="shrink-0 border-b border-border/60 px-6 py-4 text-left">
-          <SheetTitle className="font-mono text-lg">{serviceId}</SheetTitle>
-          <SheetDescription>
-            {service ? (
-              <span className="flex flex-col gap-1">
-                <span className="text-foreground font-medium">
-                  {textOr(service.clientName)} — {textOr(service.status)}
-                </span>
-                <TicketFlagChips service={service} />
-              </span>
-            ) : (
-              "Ticket preview"
-            )}
+        <SheetHeader className="shrink-0 border-b border-border/60 bg-muted/20 px-6 py-5 text-left">
+          <SheetTitle className="font-mono text-xl tracking-tight">{serviceId}</SheetTitle>
+          <SheetDescription asChild>
+            <div className="space-y-2.5">
+              {service ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">{textOr(service.clientName)}</span>
+                    <span className="mx-1.5 text-border">•</span>
+                    <span className="font-medium text-primary">{textOr(service.status)}</span>
+                  </p>
+                  <TicketFlagChips service={service} />
+                </>
+              ) : (
+                <p className="text-sm">Ticket preview</p>
+              )}
+            </div>
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
           {isLoading && (
             <div className="flex items-center justify-center py-16 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -125,69 +236,102 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
 
           {service && (
             <>
+              <Section icon={Users} title="Assignment">
+                <Card className="space-y-2">
+                  <KV label="Assigned Admin" value={textOr((service as any).adminRep)} />
+                  <KV label="Handling Staff" value={textOr((service as any).receivingStaff)} />
+                  <KV label="Technician" value={textOr(service.technician, "Unassigned")} />
+                </Card>
+              </Section>
+
               <Section icon={User} title="Client">
-                <div className="rounded-lg border border-border/60 p-3 space-y-1.5">
+                <Card className="space-y-2">
                   <KV label="Name" value={textOr(service.clientName)} />
                   <KV label="Contact" value={textOr(service.contactNumber)} />
                   <KV label="Email" value={textOr((service as any).email)} />
                   <KV label="Client Type" value={textOr((service as any).clientType)} />
-                </div>
+                </Card>
+              </Section>
+
+              <Section icon={FileText} title="Ticket Documents">
+                <PosDocumentActions
+                  serviceId={service.serviceId}
+                  clientName={service.clientName}
+                  serviceDate={service.serviceDate}
+                />
               </Section>
 
               <Section icon={Smartphone} title="Device">
-                <div className="rounded-lg border border-border/60 p-3 space-y-1.5">
+                <Card className="space-y-2">
                   <KV label="Device" value={textOr(device)} />
-                  <KV label="Color / Memory" value={textOr([service.color, service.memory].filter(Boolean).join(" / "))} />
-                  <KV label="Serial" value={textOr(service.serialNumber)} />
-                </div>
+                  <KV
+                    label="Color / Memory"
+                    value={textOr([service.color, service.memory].filter(Boolean).join(" / "))}
+                  />
+                </Card>
               </Section>
 
               <Section icon={FileText} title="Complaint & Issue">
-                <div className="rounded-lg border border-border/60 p-3 space-y-2 text-sm">
-                  <p className="font-medium">{textOr(service.chiefComplaint, "No chief complaint recorded.")}</p>
-                  {textOr(service.issueDescription, "") && (
-                    <p className="text-muted-foreground whitespace-pre-wrap">{service.issueDescription}</p>
+                <Card className="space-y-2.5 text-sm">
+                  <p className="font-semibold leading-snug">
+                    {complaint || "No chief complaint recorded."}
+                  </p>
+                  {showIssue && (
+                    <p className="whitespace-pre-wrap text-muted-foreground">{issue}</p>
                   )}
                   <Separator />
-                  <KV label="Received" value={service.dateReceived ? displayDate(service.dateReceived, "MMM dd, yyyy") : "—"} />
-                  <KV label="Target" value={service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : textOr(service.estimatedCompletion)} />
-                  <KV label="Technician" value={textOr(service.technician)} />
-                </div>
+                  <KV
+                    label="Received"
+                    value={service.dateReceived ? displayDate(service.dateReceived, "MMM dd, yyyy") : "—"}
+                  />
+                  <KV
+                    label="Target"
+                    value={
+                      service.targetDate
+                        ? displayDate(service.targetDate, "MMM dd, yyyy")
+                        : textOr(service.estimatedCompletion)
+                    }
+                  />
+                  <div className="flex items-baseline justify-between gap-4 text-sm">
+                    <span className="flex shrink-0 items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      Duration in system
+                    </span>
+                    <span className="min-w-0 text-right">
+                      <span className="block font-medium">{durationLabel ?? "In progress"}</span>
+                      {pausedLabel && (
+                        <span className="block text-xs text-muted-foreground">{pausedLabel}</span>
+                      )}
+                    </span>
+                  </div>
+                </Card>
               </Section>
 
               <Section icon={Stethoscope} title="Diagnosis & Reports">
-                <div className="rounded-lg border border-border/60 p-3 space-y-3 text-sm">
-                  {textOr(service.diagnosisSummary, "") && <p>{service.diagnosisSummary}</p>}
-                  {textOr(service.technicianDiagnosis || service.diagnosis, "") ? (
-                    <p className="whitespace-pre-wrap text-muted-foreground">
-                      {service.technicianDiagnosis || service.diagnosis}
-                    </p>
+                <Card className="divide-y divide-border/50 py-1">
+                  {summary && (
+                    <p className="px-1 py-2 text-sm font-medium">{summary}</p>
+                  )}
+                  {diagnosis ? (
+                    <LongText title="Diagnosis" body={diagnosis} />
                   ) : (
-                    <p className="text-muted-foreground">No diagnosis yet.</p>
+                    <p className="px-1 py-2 text-sm text-muted-foreground">No diagnosis yet.</p>
                   )}
-                  {textOr(service.technicianReport, "") && (
-                    <>
-                      <Separator />
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Technician Report</p>
-                      <p className="whitespace-pre-wrap">{service.technicianReport}</p>
-                    </>
+                  {report ? (
+                    <LongText title="Technician Report" body={report} />
+                  ) : (
+                    <p className="px-1 py-2 text-sm text-muted-foreground">No technician report yet.</p>
                   )}
-                  {textOr(service.aiReport, "") && (
-                    <>
-                      <Separator />
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">AI Report</p>
-                      <p className="whitespace-pre-wrap text-muted-foreground">{service.aiReport}</p>
-                    </>
-                  )}
-                </div>
+                  {aiReport && <LongText title="AI Report" body={aiReport} />}
+                </Card>
               </Section>
 
               <Section icon={ListChecks} title="Service Choices & Breakdown">
-                <div className="rounded-lg border border-border/60 p-3 space-y-2 text-sm">
+                <Card className="space-y-2.5 text-sm">
                   {service.approvedServices && service.approvedServices.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-success mb-1">Approved</p>
-                      <ul className="list-disc pl-5 space-y-0.5">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-success">Approved</p>
+                      <ul className="list-disc space-y-0.5 pl-5">
                         {service.approvedServices.map((s) => (
                           <li key={s}>{s}</li>
                         ))}
@@ -196,8 +340,8 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   )}
                   {service.pendingServices && service.pendingServices.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-warning mb-1">Pending</p>
-                      <ul className="list-disc pl-5 space-y-0.5">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-warning">Pending</p>
+                      <ul className="list-disc space-y-0.5 pl-5">
                         {service.pendingServices.map((s) => (
                           <li key={s}>{s}</li>
                         ))}
@@ -219,10 +363,12 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                       </div>
                     </>
                   )}
-                  {(!service.approvedServices?.length && !service.pendingServices?.length && !breakdowns.length) && (
-                    <p className="text-muted-foreground">No services recorded.</p>
-                  )}
-                </div>
+                  {!service.approvedServices?.length &&
+                    !service.pendingServices?.length &&
+                    !breakdowns.length && (
+                      <p className="text-muted-foreground">No services recorded.</p>
+                    )}
+                </Card>
               </Section>
 
               <Section icon={Wallet} title="Charges & Payments">
@@ -235,9 +381,15 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   paymentStatus={service.paymentStatus}
                   serviceId={service.serviceId}
                 />
-                <div className="rounded-lg border border-border/60 p-3 text-sm space-y-1.5">
-                  <KV label="Payments received" value={`₱${(paymentsSummary?.transactionsPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
-                  <KV label="Balance" value={`₱${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                <Card className="space-y-2 text-sm">
+                  <KV
+                    label="Payments received"
+                    value={`₱${(paymentsSummary?.transactionsPaid ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                  />
+                  <KV
+                    label="Balance"
+                    value={`₱${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                  />
                   {paymentsSummary?.payments?.length ? (
                     <>
                       <Separator />
@@ -249,11 +401,14 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                       ))}
                     </>
                   ) : null}
-                </div>
+                </Card>
               </Section>
 
-              <Section icon={Wrench} title="Photos">
+              <Section icon={Images} title="Device Report Photos">
                 <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
+              </Section>
+
+              <Section icon={Images} title="Diagnosis Photos">
                 <DiagnosisPhotos serviceId={service.serviceId} editable={false} />
               </Section>
             </>
