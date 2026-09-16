@@ -840,16 +840,18 @@ const SalaryDisbursement = () => {
                           <TableHead>Other Ded.</TableHead>
                           <TableHead>Gross</TableHead>
                           <TableHead>Deductions</TableHead>
+                          <TableHead>Addtl. Ded.</TableHead>
                           <TableHead>Net Pay</TableHead>
+                          <TableHead>Payslip</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {fixedStaff.map((staff: any) => {
                           const c = computeCalculator(staff);
-                          const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
+                          const isDone = isAlreadyPaid(staff);
                           return (
-                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
+                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40")}>
                               <TableCell className="font-medium">
                                 <div>{staff.name}</div>
                                 <div className="text-xs text-muted-foreground capitalize">{staff.role}</div>
