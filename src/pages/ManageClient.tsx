@@ -1485,7 +1485,7 @@ const ManageClient = () => {
           { label: "Status", before: serviceData.status, after: updateStatus },
           { label: "Device Type", before: serviceData.deviceType, after: updateDeviceType },
           { label: "Admin Rep", before: serviceData.adminRep || "Unassigned", after: updateAdminRep },
-          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician },
+          { label: "Technician", before: serviceData.technician || "Unassigned", after: updateTechnician, kind: "list" },
           { label: "Client Type", before: serviceData.clientType, after: updateClientType },
           { label: "Priority", before: serviceData.priority, after: updatePriority },
           { label: "Chief Complaint", before: serviceData.chiefComplaint, after: updateChiefComplaint },
