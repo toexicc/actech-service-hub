@@ -493,17 +493,23 @@ const SalaryDisbursement = () => {
     return rows.sort((a, b) => a.completedDate.localeCompare(b.completedDate));
   };
 
-  /** Tickets in the cut-off that still block a clean payout. */
+  /**
+   * Tickets in the cut-off that still block a clean payout. Only tickets that
+   * actually pay a service-based (commission) employee count — fixed-salary
+   * staff tickets never need an allocation.
+   */
   const readiness = useMemo(() => {
     let missingAllocation = 0;
     let missingPartsCost = 0;
     periodServices.forEach((s) => {
+      const paysCommission = serviceBasedStaff.some((st: any) => isAssignedTo(s.technician, st.name));
+      if (!paysCommission) return;
       const lines = (breakdownMap as Record<string, ServiceBreakdown[]>)[s.serviceId] || [];
       if (!lines.length) missingAllocation += 1;
       if (parseCurrency(s.partsCost) === 0) missingPartsCost += 1;
     });
     return { missingAllocation, missingPartsCost };
-  }, [periodServices, breakdownMap]);
+  }, [periodServices, breakdownMap, serviceBasedStaff]);
 
   /** Deep link into Completed Services already filtered to this cut-off. */
   const openCompletedServices = (technician?: string) => {
