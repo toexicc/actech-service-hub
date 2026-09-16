@@ -278,7 +278,16 @@ export const IntakeQueuePanel = () => {
                         {meta.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs">{e.service_id || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {e.service_id ? (
+                        <span className="inline-flex items-center gap-1">
+                          {e.service_id}
+                          <ServicePreviewButton serviceId={e.service_id} />
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     {isAdminOrManagement && (
                       <TableCell className="text-right">
                         {e.status === "cancelled" ? (

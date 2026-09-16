@@ -199,7 +199,16 @@ export const ReleaseQueuePanel = () => {
                     <TableCell className="text-xs">
                       {[e.device_type, e.brand, e.model].filter(Boolean).join(" • ") || "—"}
                     </TableCell>
-                    <TableCell className="text-xs">{e.service_id || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {e.service_id ? (
+                        <span className="inline-flex items-center gap-1">
+                          {e.service_id}
+                          <ServicePreviewButton serviceId={e.service_id} />
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={meta.className}>
                         {meta.label}
