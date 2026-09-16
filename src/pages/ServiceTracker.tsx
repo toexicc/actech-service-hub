@@ -1624,6 +1624,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             <TicketFlagChips
                               service={service}
                               showWithinDay={activeTab !== "closed"}
+                              collected={collectedFor(service.serviceId)}
                               className="mt-1"
                             />
                           </div>
