@@ -51,7 +51,9 @@ const CompletedTransactions = () => {
   const { data: disbursedPeriods = [] } = useDisbursedPeriods();
 
   // Deep link from Salary Disbursement: ?technician=&from=&to= preselects the
-  // same payout window so fixing an allocation is one click.
+  // same payout window so fixing an allocation is one click. ?issues=1 narrows
+  // the list to only the tickets flagged as not ready for payout.
+  const [issuesOnly, setIssuesOnly] = useState(false);
   useEffect(() => {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
@@ -59,6 +61,10 @@ const CompletedTransactions = () => {
     if (from) setStartDate(new Date(`${from}T00:00:00`));
     if (to) setEndDate(new Date(`${to}T00:00:00`));
     if (tech) setTechnicianFilter(tech);
+    if (searchParams.get("issues") === "1") {
+      setIssuesOnly(true);
+      setPaidFilter("all"); // an unpaid ticket can also be missing its allocation
+    }
   }, [searchParams]);
   const [commissionRate, setCommissionRate] = useState(0);
   // Which date the range filter reads: completion date (default) or intake date.
