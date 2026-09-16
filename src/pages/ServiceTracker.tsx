@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import logo from "@/assets/S_S_Marketing-2.png";
 import TicketFlagChips from "@/components/workspace/TicketFlagChips";
-import ActivityLogRow from "@/components/ActivityLogRow";
+
 import ServicesCsvExportDialog from "@/components/ServicesCsvExportDialog";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -1855,7 +1855,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               </div>
 
                             </TableCell>
-                         </ActivityLogRow>
+                         </TableRow>
                        );
                      })}
                   </TableBody>
