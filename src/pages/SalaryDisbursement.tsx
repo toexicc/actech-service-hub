@@ -694,7 +694,45 @@ const SalaryDisbursement = () => {
         return;
       }
 
-      // Post the matching expense entry right away — one entry per payout.
+      // One expense entry per staff per cut-off: an edited payout overwrites the
+      // existing entry instead of posting a second one.
+      const txDescription = `${staff.name} — ${periodLabelFull}`;
+      const { data: existingTx } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("type", "Salary Disbursement")
+        .eq("description", txDescription)
+        .limit(1);
+      if (existingTx && existingTx.length > 0) {
+        const { error: updateError } = await supabase
+          .from("transactions")
+          .update({
+            amount: Number(finalAmount.toFixed(2)),
+            fund_name: fundSource,
+            created_by_name: username,
+            transaction_date: new Date().toISOString(),
+          })
+          .eq("id", (existingTx[0] as any).id);
+        toast({
+          title: "Disbursement Updated",
+          description: updateError
+            ? `${staff.name}'s payout was saved, but the transaction entry could not be updated.`
+            : `${staff.name}'s payout is now ${fmtCurrency(finalAmount)} and the existing transaction was updated.`,
+          variant: updateError ? "destructive" : undefined,
+        });
+        logActivityAsync({
+          serviceId: "SALARY",
+          username,
+          role: userRole || "",
+          activity: `Updated disbursement to ${fmtCurrency(finalAmount)} for ${staff.name} (${periodLabelFull})`,
+        });
+        refetchLogs();
+        queryClient.invalidateQueries({ queryKey: ["salaryDisbursements"] });
+        queryClient.invalidateQueries({ queryKey: ["fundTransactions"] });
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        return;
+      }
+
       const txParams = new URLSearchParams();
       txParams.append("action", "addTransaction");
       txParams.append("transactionType", "Salary Disbursement");
