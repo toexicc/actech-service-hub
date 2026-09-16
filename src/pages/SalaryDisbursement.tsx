@@ -738,7 +738,7 @@ const SalaryDisbursement = () => {
       txParams.append("transactionType", "Salary Disbursement");
       txParams.append("category", "Expenses");
       txParams.append("amount", finalAmount.toFixed(2));
-      txParams.append("description", `${staff.name} — ${periodLabelFull}`);
+      txParams.append("description", txDescription);
       txParams.append("mop", "Bank Transfer");
       txParams.append("attendant", username);
       txParams.append("remarks", `${salaryPeriod} payout for ${staff.name}`);
