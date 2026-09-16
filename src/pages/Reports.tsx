@@ -334,16 +334,25 @@ const Reports = () => {
 
 
   const buildReport = (p: Period) => {
-    // Which date anchors a ticket to the period: intake date (default) or
-    // completion date, so this page can be matched against Completed Services.
-    const anchorOf = (s: any) =>
-      scopeBasis === "completed"
-        ? s.dateCompleted || s.timestamp || s.lastUpdated
-        : s.dateReceived || s.timestamp || s.lastUpdated;
-    const scoped = allServices.filter((s) => inPeriod(anchorOf(s), p));
+    // Ticket volume, completion rate, turnaround and on-time always count
+    // tickets by intake date, so the counts describe what came in during the
+    // period. The completion-date switch only re-anchors the revenue figures.
+    const scoped = allServices.filter((s) =>
+      inPeriod(s.dateReceived || s.timestamp || s.lastUpdated, p),
+    );
     const completed = scoped.filter((s) => classifyStatus(s.status) === "completed");
     const active = scoped.filter((s) => classifyStatus(s.status) === "active");
     const closed = scoped.filter((s) => classifyStatus(s.status) === "closed");
+
+    // Tickets whose money belongs to this period, per the basis switch.
+    const moneyCompleted =
+      scopeBasis === "completed"
+        ? allServices.filter(
+            (s) =>
+              classifyStatus(s.status) === "completed" &&
+              inPeriod(s.dateCompleted || s.lastUpdated || s.timestamp, p),
+          )
+        : completed;
 
     const turnaroundHours = completed
       .map((s) => timings.get(String(s.serviceId))?.totalHours)
