@@ -1756,25 +1756,21 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                        const isCompleted = (service.status || "").toLowerCase().includes("completed");
 
                        return (
-                         <ActivityLogRow
+                         <TableRow
                            key={service.serviceId}
-                           service={service}
-                           overdueStatus={overdueStatus}
-                           inServiceDays={inServiceDays}
+                           onClick={() => handleEditService(service.serviceId)}
+                           className={cn(
+                             "cursor-pointer transition-colors",
+                             getStatusCardBg(service.status || ""),
+                             overdueStatus &&
+                               !isCompleted &&
+                               "border-l-4 border-l-destructive bg-red-50 dark:bg-red-950/20",
+                           )}
                          >
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
                                  <span>{service.serviceId}</span>
                                  <ServicePreviewButton serviceId={service.serviceId} />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditService(service.serviceId);
-                                  }}
-                                  className="p-1 rounded hover:bg-muted transition-colors"
-                                >
-                                  <ExternalLink className="h-4 w-4 text-primary" />
-                                </button>
                                 {overdueStatus && <AlertCircle className="h-4 w-4 text-destructive" />}
                               </div>
                             </TableCell>
