@@ -1109,14 +1109,27 @@ const ServiceUpdate = () => {
           { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
-          { label: "Discount", before: sanitizeNumber(String(serviceData.discount ?? "0")), after: discountAmount },
-          { label: "Final Cost", before: sanitizeNumber(String(serviceData.finalCost ?? "0")), after: finalCost },
+          {
+            label: "Discount",
+            before: sanitizeNumber(String(serviceData.discount ?? "0")),
+            after: discountAmount,
+            kind: "number",
+          },
+          {
+            label: "Final Cost",
+            before: sanitizeNumber(String(serviceData.finalCost ?? "0")),
+            after: finalCost,
+            kind: "number",
+          },
         ]);
         const changes: string[] = [...fieldSummaries];
-        
+
+        const samePartsList = (a: string, b: string) =>
+          a.split(/\s*,\s*/).map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join(",") ===
+          b.split(/\s*,\s*/).map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join(",");
         const prevParts = (serviceData.partsUsed || "").trim();
         const newPartsDisplay = partsUsedString.trim();
-        if (newPartsDisplay !== prevParts) {
+        if (!samePartsList(newPartsDisplay, prevParts)) {
           if (newPartsDisplay) {
             changes.push(`Parts used: ${newPartsDisplay}, Actual cost: ₱${actualCost}`);
           } else {
