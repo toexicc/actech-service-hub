@@ -15,6 +15,10 @@ export interface TicketFlagChipsProps {
    * a Paid / Partial Payment chip is shown so collection is visible at a glance.
    */
   collected?: number | null;
+  /** Hide the "Released" chip (e.g. on Completed Services where it's implied). */
+  hideReleased?: boolean;
+  /** Show a "Disbursed" chip when the technician has already been paid out. */
+  disbursed?: boolean;
   className?: string;
 }
 
@@ -39,6 +43,8 @@ export function TicketFlagChips({
   service,
   showWithinDay = true,
   collected,
+  hideReleased = false,
+  disbursed = false,
   className,
 }: TicketFlagChipsProps) {
   const chips: { key: string; label: string; cls: string }[] = [];
@@ -55,6 +61,14 @@ export function TicketFlagChips({
             cls: "border-yellow-400/40 bg-yellow-500/15 text-yellow-600",
           },
     );
+  }
+
+  if (disbursed) {
+    chips.push({
+      key: "disbursed",
+      label: "Disbursed",
+      cls: "border-teal-400/40 bg-teal-500/15 text-teal-600",
+    });
   }
 
   if (showWithinDay && isWithinDayPriority(service)) {
@@ -74,7 +88,7 @@ export function TicketFlagChips({
       cls: "border-indigo-400/40 bg-indigo-500/15 text-indigo-600",
     });
   }
-  if (service?.isReleased) {
+  if (service?.isReleased && !hideReleased) {
     chips.push({
       key: "released",
       label: "Released",
