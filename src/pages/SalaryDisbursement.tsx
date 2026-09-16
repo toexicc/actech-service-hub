@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { useStaff } from "@/hooks/useStaff";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight, Printer, Download, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Search, CalendarIcon, ChevronLeft, ChevronRight, Printer, Download, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { logActivityAsync } from "@/lib/activityLogger";
@@ -28,6 +29,7 @@ import {
   generateCommissionPayslipPdf,
   type PayslipData,
   type PayslipRow,
+  type DeductionLine,
 } from "@/lib/commissionPayslipPdf";
 import { downloadPdfBytes, printPdfBytes } from "@/lib/pdfActions";
 
@@ -159,7 +161,28 @@ const SalaryDisbursement = () => {
   const [techCommissions, setTechCommissions] = useState<Record<string, string>>({});
   const [disbursing, setDisbursing] = useState<string | null>(null);
   const [disbursedList, setDisbursedList] = useState<{ staffId: string; staffName: string; amount: number }[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  // Additional deductions (description + amount) per staff, applied to the payout
+  // and saved with the disbursement record.
+  const [addlDeductions, setAddlDeductions] = useState<Record<string, DeductionLine[]>>({});
+  const [dedModalStaff, setDedModalStaff] = useState<{ staffId: string; name: string } | null>(null);
+  const [dedDraft, setDedDraft] = useState<DeductionLine[]>([]);
+
+  const addlTotal = (staffId: string) =>
+    (addlDeductions[staffId] || []).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+
+  const openDeductionModal = (staff: any) => {
+    setDedModalStaff({ staffId: staff.staffId, name: staff.name });
+    setDedDraft([...(addlDeductions[staff.staffId] || [])]);
+  };
+
+  const saveDeductionModal = () => {
+    if (!dedModalStaff) return;
+    const clean = dedDraft.filter((d) => (Number(d.amount) || 0) > 0);
+    setAddlDeductions((p) => ({ ...p, [dedModalStaff.staffId]: clean }));
+    setDedModalStaff(null);
+  };
 
   // Calculator inputs (per staff)
   const [daysPresent, setDaysPresent] = useState<Record<string, string>>({});
@@ -264,9 +287,10 @@ const SalaryDisbursement = () => {
     const dSss = parseCurrency(sss[staff.staffId]);
     const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
     const otherDeductions = parseCurrency(deductions[staff.staffId]);
-    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions;
+    const additional = addlTotal(staff.staffId);
+    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional;
     const net = gross - totalDeductions;
-    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, totalDeductions, net };
+    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, totalDeductions, net };
   };
 
 
@@ -298,6 +322,32 @@ const SalaryDisbursement = () => {
     queryFn: fetchTransactions,
     staleTime: 60 * 1000,
   });
+
+  // Payouts already recorded for this cut-off. Read from the database so the
+  // Disburse button stays disabled after a refresh — one payout per staff, once.
+  const periodLabelFull = useMemo(
+    () => `${salaryPeriod} - ${displayDate(periodRange.start, "MMMM yyyy")}`,
+    [salaryPeriod, periodRange.start],
+  );
+  const { data: periodPayouts = [] } = useQuery({
+    queryKey: ["salaryDisbursements", periodRange.start, periodRange.end, periodLabelFull],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("salary_disbursements")
+        .select("staff_id, staff_name, net_pay, period_label, period_start, period_end")
+        .or(`period_label.eq.${periodLabelFull},and(period_start.eq.${periodRange.start},period_end.eq.${periodRange.end})`);
+      return data ?? [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  const paidStaffNames = useMemo(
+    () => new Set(periodPayouts.map((p: any) => (p.staff_name || "").trim().toLowerCase())),
+    [periodPayouts],
+  );
+  const isAlreadyPaid = (staff: any) =>
+    paidStaffNames.has((staff.name || "").trim().toLowerCase()) ||
+    disbursedList.some((d) => d.staffId === staff.staffId);
 
   // Compute balance per fund from transactions (mirrors TransactionTracker logic)
   const fundBalances = useMemo(() => {
@@ -443,17 +493,23 @@ const SalaryDisbursement = () => {
     return rows.sort((a, b) => a.completedDate.localeCompare(b.completedDate));
   };
 
-  /** Tickets in the cut-off that still block a clean payout. */
+  /**
+   * Tickets in the cut-off that still block a clean payout. Only tickets that
+   * actually pay a service-based (commission) employee count — fixed-salary
+   * staff tickets never need an allocation.
+   */
   const readiness = useMemo(() => {
     let missingAllocation = 0;
     let missingPartsCost = 0;
     periodServices.forEach((s) => {
+      const paysCommission = serviceBasedStaff.some((st: any) => isAssignedTo(s.technician, st.name));
+      if (!paysCommission) return;
       const lines = (breakdownMap as Record<string, ServiceBreakdown[]>)[s.serviceId] || [];
       if (!lines.length) missingAllocation += 1;
       if (parseCurrency(s.partsCost) === 0) missingPartsCost += 1;
     });
     return { missingAllocation, missingPartsCost };
-  }, [periodServices, breakdownMap]);
+  }, [periodServices, breakdownMap, serviceBasedStaff]);
 
   /** Deep link into Completed Services already filtered to this cut-off. */
   const openCompletedServices = (technician?: string) => {
@@ -466,17 +522,49 @@ const SalaryDisbursement = () => {
 
   const buildPayslip = (staff: any): PayslipData => {
     const rows = getCommissionRows(staff.name);
+    const lines = addlDeductions[staff.staffId] || [];
+    const gross = rows.reduce((s, r) => s + r.amount, 0);
     return {
       employeeName: staff.name,
       department: staff.department || "Service Based",
       cutoffLabel,
       periodLabel: salaryPeriod,
       rows,
-      total: rows.reduce((s, r) => s + r.amount, 0),
+      deductionLines: lines,
+      total: gross - lines.reduce((s, d) => s + (Number(d.amount) || 0), 0),
       preparedBy: username,
       generatedAt: displayDate(new Date().toISOString(), "MM/dd/yyyy h:mm a"),
     };
   };
+
+  /** Fixed-salary payslip: attendance + deductions instead of ticket rows. */
+  const buildFixedPayslip = (staff: any): PayslipData => {
+    const c = computeCalculator(staff);
+    return {
+      employeeName: staff.name,
+      department: staff.department || staff.role || "Staff",
+      cutoffLabel,
+      periodLabel: salaryPeriod,
+      rows: [],
+      deductionLines: addlDeductions[staff.staffId] || [],
+      attendance: {
+        daysPresent: c.days,
+        workdays: workdaysInPeriod,
+        hours: hoursByStaffId[staff.userId] ?? 0,
+        dailyRate: c.daily,
+        monthlySalary: c.monthly,
+        gross: c.gross,
+        pagibig: c.dPagibig,
+        sss: c.dSss,
+        philhealth: c.dPhilhealth,
+        otherDeductions: c.otherDeductions,
+      },
+      total: c.net,
+      preparedBy: username,
+      generatedAt: displayDate(new Date().toISOString(), "MM/dd/yyyy h:mm a"),
+    };
+  };
+
 
   const outputPayslip = async (entries: PayslipData[], action: "print" | "download", filename: string) => {
     const bytes = await generateCommissionPayslipPdf(entries);
@@ -486,6 +574,33 @@ const SalaryDisbursement = () => {
       if (!ok) toast({ title: "Print blocked", description: "Allow pop-ups to print, or use Download.", variant: "destructive" });
     }
   };
+  const handleFixedPayslip = async (staff: any, action: "print" | "download") => {
+    setPayslipBusy(staff.staffId);
+    try {
+      await outputPayslip([buildFixedPayslip(staff)], action, `Payslip-${staff.name}-${periodRange.start}.pdf`);
+    } catch {
+      toast({ title: "Error", description: "Failed to build the payslip.", variant: "destructive" });
+    } finally {
+      setPayslipBusy(null);
+    }
+  };
+
+  const handleFixedBatchPayslip = async (action: "print" | "download") => {
+    const entries = fixedStaff.map((s: any) => buildFixedPayslip(s));
+    if (!entries.length) {
+      toast({ title: "Nothing to print", description: "No fixed salary staff found.", variant: "destructive" });
+      return;
+    }
+    setPayslipBusy("fixed-batch");
+    try {
+      await outputPayslip(entries, action, `Fixed-Payslips-${periodRange.start}.pdf`);
+    } catch {
+      toast({ title: "Error", description: "Failed to build the payslips.", variant: "destructive" });
+    } finally {
+      setPayslipBusy(null);
+    }
+  };
+
 
   const handleStaffPayslip = async (staff: any, action: "print" | "download") => {
     setPayslipBusy(staff.staffId);
@@ -522,11 +637,13 @@ const SalaryDisbursement = () => {
       toast({ title: "Error", description: "Final amount must be greater than 0", variant: "destructive" });
       return;
     }
-    if (disbursedList.some((d) => d.staffId === staff.staffId)) {
-      toast({ title: "Already Disbursed", description: `${staff.name} has already been disbursed in this batch.`, variant: "destructive" });
+    if (isAlreadyPaid(staff)) {
+      toast({ title: "Already Disbursed", description: `${staff.name} has already been paid for this cut-off.`, variant: "destructive" });
       return;
     }
     setDisbursing(staff.staffId);
+    // Mark paid up-front so the button locks on the first click.
+    setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
     try {
       const c = computeCalculator(staff);
       const params = new URLSearchParams();
@@ -539,7 +656,7 @@ const SalaryDisbursement = () => {
       params.append("fundSource", fundSource);
       // Month-scoped label keeps one row per staff per cut-off (the table is
       // unique on staff + label) and lets paid cut-offs be locked precisely.
-      params.append("periodLabel", `${salaryPeriod} - ${displayDate(periodRange.start, "MMMM yyyy")}`);
+      params.append("periodLabel", periodLabelFull);
       params.append("periodStart", periodRange.start);
       params.append("periodEnd", periodRange.end);
       params.append("monthlySalary", c.monthly.toFixed(2));
@@ -550,9 +667,10 @@ const SalaryDisbursement = () => {
       params.append("contributionSss", c.dSss.toFixed(2));
       params.append("contributionPhilhealth", c.dPhilhealth.toFixed(2));
       params.append("otherDeductions", c.otherDeductions.toFixed(2));
+      params.append("additionalDeductions", JSON.stringify(addlDeductions[staff.staffId] || []));
       params.append("grossPay", c.gross.toFixed(2));
       params.append("totalDeductions", c.totalDeductions.toFixed(2));
-      params.append("netPay", c.net.toFixed(2));
+      params.append("netPay", finalAmount.toFixed(2));
 
       const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       let result: any = null;
@@ -560,24 +678,47 @@ const SalaryDisbursement = () => {
 
       const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
 
-      if (isSuccess) {
-        toast({ title: "Disbursed", description: `Salary of ${fmtCurrency(finalAmount)} logged for ${staff.name}` });
-        setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
-        // Reset inputs for this staff
-        setCommissions((p) => ({ ...p, [staff.staffId]: "" }));
-        setBonuses((p) => ({ ...p, [staff.staffId]: "" }));
-        setDeductions((p) => ({ ...p, [staff.staffId]: "" }));
-        setTechCommissions((p) => ({ ...p, [staff.staffId]: "" }));
-        setDaysPresent((p) => ({ ...p, [staff.staffId]: "" }));
-        setDailyRateOverride((p) => ({ ...p, [staff.staffId]: "" }));
-        setPagibig((p) => ({ ...p, [staff.staffId]: "" }));
-        setSss((p) => ({ ...p, [staff.staffId]: "" }));
-        setPhilhealth((p) => ({ ...p, [staff.staffId]: "" }));
-        refetchLogs();
-      } else {
+      if (!isSuccess) {
+        setDisbursedList((prev) => prev.filter((d) => d.staffId !== staff.staffId));
         toast({ title: "Error", description: result?.message || "Failed to disburse", variant: "destructive" });
+        return;
       }
+
+      // Post the matching expense entry right away — one entry per payout.
+      const txParams = new URLSearchParams();
+      txParams.append("action", "addTransaction");
+      txParams.append("transactionType", "Salary Disbursement");
+      txParams.append("category", "Expenses");
+      txParams.append("amount", finalAmount.toFixed(2));
+      txParams.append("description", `${staff.name} — ${periodLabelFull}`);
+      txParams.append("mop", "Bank Transfer");
+      txParams.append("attendant", username);
+      txParams.append("remarks", `${salaryPeriod} payout for ${staff.name}`);
+      txParams.append("fundSource", fundSource);
+      const txRes = await fetch(DATA_BRIDGE_URL, { method: "POST", body: txParams });
+      let txResult: any = null;
+      try { txResult = await txRes.json(); } catch { /* CORS */ }
+      const txOk = (txResult && (txResult.status === "success" || txResult.result === "success")) || (txRes.ok && txResult === null);
+
+      toast({
+        title: "Disbursed",
+        description: txOk
+          ? `${fmtCurrency(finalAmount)} paid to ${staff.name} and recorded in Transactions.`
+          : `${fmtCurrency(finalAmount)} paid to ${staff.name}, but the transaction entry failed to record.`,
+        variant: txOk ? undefined : "destructive",
+      });
+      logActivityAsync({
+        serviceId: "SALARY",
+        username,
+        role: userRole || "",
+        activity: `Disbursed ${fmtCurrency(finalAmount)} to ${staff.name} for ${periodLabelFull} from ${fundSource}`,
+      });
+      refetchLogs();
+      queryClient.invalidateQueries({ queryKey: ["salaryDisbursements"] });
+      queryClient.invalidateQueries({ queryKey: ["fundTransactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     } catch {
+      setDisbursedList((prev) => prev.filter((d) => d.staffId !== staff.staffId));
       toast({ title: "Error", description: "Failed to disburse salary", variant: "destructive" });
     } finally {
       setDisbursing(null);
@@ -586,49 +727,32 @@ const SalaryDisbursement = () => {
 
   const totalDisbursed = disbursedList.reduce((sum, d) => sum + d.amount, 0);
 
-  const handleSubmitBatch = async () => {
-    if (disbursedList.length === 0) {
-      toast({ title: "No Disbursements", description: "Disburse at least one staff member before submitting.", variant: "destructive" });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const params = new URLSearchParams();
-      params.append("action", "addTransaction");
-      params.append("transactionType", "Salary Disbursement");
-      params.append("category", "Expenses");
-      params.append("amount", totalDisbursed.toFixed(2));
-      params.append("description", `${salaryPeriod} - ${disbursedList.length} staff members`);
-      params.append("mop", "Bank Transfer");
-      params.append("attendant", username);
-      params.append("remarks", `${salaryPeriod}: ` + disbursedList.map((d) => `${d.staffName} (${fmtCurrency(d.amount)})`).join("; "));
-      params.append("fundSource", fundSource);
-
-      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
-      let result: any = null;
-      try { result = await response.json(); } catch { /* CORS */ }
-
-      const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
-
-      if (isSuccess) {
-        toast({ title: "Submitted", description: `${salaryPeriod} transaction of ${fmtCurrency(totalDisbursed)} submitted successfully.` });
-        logActivityAsync({
-          serviceId: "SALARY",
-          username,
-          role: userRole || "",
-          activity: `Submitted ${salaryPeriod} batch of ${fmtCurrency(totalDisbursed)} for ${disbursedList.length} staff from ${fundSource}`,
-        });
-        setDisbursedList([]);
-        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+  /** Read-only review of this cut-off: who has been paid and who is still pending. */
+  const reviewSummary = useMemo(() => {
+    const all = [...fixedStaff, ...serviceBasedStaff];
+    const paid: { name: string; amount: number }[] = [];
+    const pending: { name: string; amount: number }[] = [];
+    all.forEach((staff: any) => {
+      const row = periodPayouts.find(
+        (p: any) => (p.staff_name || "").trim().toLowerCase() === (staff.name || "").trim().toLowerCase(),
+      );
+      const local = disbursedList.find((d) => d.staffId === staff.staffId);
+      if (row || local) {
+        paid.push({ name: staff.name, amount: local?.amount ?? parseCurrency(row?.net_pay) });
       } else {
-        toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
+        const amount = staff.salaryType === "service"
+          ? computeServiceFinal(staff) - addlTotal(staff.staffId)
+          : computeCalculator(staff).net;
+        pending.push({ name: staff.name, amount });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
+    return {
+      paid,
+      pending,
+      paidTotal: paid.reduce((s, p) => s + p.amount, 0),
+      pendingTotal: pending.reduce((s, p) => s + p.amount, 0),
+    };
+  }, [fixedStaff, serviceBasedStaff, periodPayouts, disbursedList, addlDeductions, deductions, pagibig, sss, philhealth, daysPresent, dailyRateOverride]);
 
   // Salary Logs filtering
   const filteredLogs = useMemo(() => {
@@ -722,8 +846,18 @@ const SalaryDisbursement = () => {
           <TabsContent value="disbursement" className="space-y-6 mt-4">
             {/* Fixed Salary Staff */}
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-lg">Fixed Salary Employees</CardTitle>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button size="sm" variant="outline" disabled={payslipBusy !== null} onClick={() => handleFixedBatchPayslip("print")}>
+                    {payslipBusy === "fixed-batch" ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Printer className="mr-2 h-3.5 w-3.5" />}
+                    Print All Payslips
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={payslipBusy !== null} onClick={() => handleFixedBatchPayslip("download")}>
+                    <Download className="mr-2 h-3.5 w-3.5" />
+                    Download All
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {fixedStaff.length === 0 ? (
@@ -743,16 +877,18 @@ const SalaryDisbursement = () => {
                           <TableHead>Other Ded.</TableHead>
                           <TableHead>Gross</TableHead>
                           <TableHead>Deductions</TableHead>
+                          <TableHead>Addtl. Ded.</TableHead>
                           <TableHead>Net Pay</TableHead>
+                          <TableHead>Payslip</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {fixedStaff.map((staff: any) => {
                           const c = computeCalculator(staff);
-                          const isDone = disbursedList.some((d) => d.staffId === staff.staffId);
+                          const isDone = isAlreadyPaid(staff);
                           return (
-                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40 pointer-events-none")}>
+                            <TableRow key={staff.staffId} className={cn(isDone && "opacity-50 bg-muted/40")}>
                               <TableCell className="font-medium">
                                 <div>{staff.name}</div>
                                 <div className="text-xs text-muted-foreground capitalize">{staff.role}</div>
@@ -800,7 +936,36 @@ const SalaryDisbursement = () => {
                               </TableCell>
                               <TableCell className="font-medium whitespace-nowrap">{fmtCurrency(c.gross)}</TableCell>
                               <TableCell className="text-destructive whitespace-nowrap">−{fmtCurrency(c.totalDeductions)}</TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <Button size="sm" variant="outline" disabled={isDone} onClick={() => openDeductionModal(staff)}>
+                                  {c.additional > 0 ? `−${fmtCurrency(c.additional)}` : "Add"}
+                                </Button>
+                              </TableCell>
                               <TableCell className="font-bold whitespace-nowrap">{fmtCurrency(c.net)}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-8 w-8"
+                                    title="Print payslip"
+                                    disabled={payslipBusy !== null}
+                                    onClick={() => handleFixedPayslip(staff, "print")}
+                                  >
+                                    {payslipBusy === staff.staffId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-8 w-8"
+                                    title="Download payslip"
+                                    disabled={payslipBusy !== null}
+                                    onClick={() => handleFixedPayslip(staff, "download")}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <Button
                                   size="sm"
@@ -959,47 +1124,26 @@ const SalaryDisbursement = () => {
             </Card>
 
 
-            {/* Submit Batch Section */}
+            {/* Review panel — read-only, posts nothing */}
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {disbursedList.length === 0
-                        ? "Disburse staff salaries above, then submit as one transaction."
-                        : `${disbursedList.length} staff disbursed`}
+                      Each Disburse click pays that staff member and records the expense in Transactions immediately.
                     </p>
-                    {disbursedList.length > 0 && (
-                      <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-                        {disbursedList.map((d) => (
-                          <div key={d.staffId}>{d.staffName}: {fmtCurrency(d.amount)}</div>
-                        ))}
-                      </div>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {reviewSummary.paid.length} disbursed · {reviewSummary.pending.length} pending for {periodLabelFull}
+                    </p>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Total Disbursed</p>
-                      <p className="text-xl font-bold">{fmtCurrency(totalDisbursed)}</p>
+                      <p className="text-xl font-bold">{fmtCurrency(reviewSummary.paidTotal)}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Button
-                        onClick={handleSubmitBatch}
-                        disabled={isSubmitting || disbursedList.length === 0 || totalDisbursed > selectedFundBalance}
-                        className="min-w-[140px]"
-                      >
-                        {isSubmitting ? (
-                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
-                        ) : (
-                          "Submit Transaction"
-                        )}
-                      </Button>
-                      {totalDisbursed > selectedFundBalance && disbursedList.length > 0 && (
-                        <p className="text-xs text-destructive">
-                          Insufficient funds in {fundSource} ({fmtCurrency(selectedFundBalance)})
-                        </p>
-                      )}
-                    </div>
+                    <Button variant="outline" className="min-w-[200px]" onClick={() => setReviewOpen(true)}>
+                      Review Salary Disbursement
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -1117,6 +1261,102 @@ const SalaryDisbursement = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Review summary — read-only */}
+        <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+          <DialogContent className="max-w-lg !flex !flex-col max-h-[95dvh]">
+            <DialogHeader>
+              <DialogTitle>Review Salary Disbursement</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto space-y-4 text-sm">
+              <p className="text-xs text-muted-foreground">{periodLabelFull} · {cutoffLabel}</p>
+              <div>
+                <p className="font-semibold mb-1">Disbursed ({reviewSummary.paid.length})</p>
+                {reviewSummary.paid.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nobody has been paid for this cut-off yet.</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {reviewSummary.paid.map((p) => (
+                      <div key={p.name} className="flex justify-between">
+                        <span>{p.name}</span>
+                        <span className="font-medium">{fmtCurrency(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between border-t pt-1 font-bold">
+                      <span>Total</span><span>{fmtCurrency(reviewSummary.paidTotal)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Pending ({reviewSummary.pending.length})</p>
+                {reviewSummary.pending.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Everyone has been paid for this cut-off.</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {reviewSummary.pending.map((p) => (
+                      <div key={p.name} className="flex justify-between text-muted-foreground">
+                        <span>{p.name}</span>
+                        <span>{fmtCurrency(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between border-t pt-1 font-semibold">
+                      <span>Total</span><span>{fmtCurrency(reviewSummary.pendingTotal)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="shrink-0">
+              <Button variant="outline" onClick={() => setReviewOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Additional deductions */}
+        <Dialog open={!!dedModalStaff} onOpenChange={(o) => !o && setDedModalStaff(null)}>
+          <DialogContent className="max-w-md !flex !flex-col max-h-[95dvh]">
+            <DialogHeader>
+              <DialogTitle>Additional Deductions — {dedModalStaff?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto space-y-2">
+              {dedDraft.length === 0 && (
+                <p className="text-xs text-muted-foreground">No additional deductions yet.</p>
+              )}
+              {dedDraft.map((d, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <Input
+                    placeholder="Description"
+                    value={d.description}
+                    onChange={(e) => setDedDraft((p) => p.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="w-28"
+                    value={d.amount === 0 ? "" : String(d.amount)}
+                    onChange={(e) => setDedDraft((p) => p.map((x, j) => (j === i ? { ...x, amount: Number(e.target.value) || 0 } : x)))}
+                  />
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDedDraft((p) => p.filter((_, j) => j !== i))}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => setDedDraft((p) => [...p, { description: "", amount: 0 }])}>
+                <Plus className="mr-2 h-3.5 w-3.5" />Add deduction
+              </Button>
+              <div className="flex justify-between border-t pt-2 text-sm font-semibold">
+                <span>Total</span>
+                <span className="text-destructive">−{fmtCurrency(dedDraft.reduce((s, d) => s + (Number(d.amount) || 0), 0))}</span>
+              </div>
+            </div>
+            <DialogFooter className="shrink-0">
+              <Button variant="outline" onClick={() => setDedModalStaff(null)}>Cancel</Button>
+              <Button onClick={saveDeductionModal}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="text-center mt-8 text-sm text-muted-foreground">
           

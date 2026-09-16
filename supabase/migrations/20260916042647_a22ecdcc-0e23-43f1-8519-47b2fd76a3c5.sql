@@ -1,0 +1,1 @@
+ALTER TABLE public.salary_disbursements ADD COLUMN IF NOT EXISTS additional_deductions jsonb NOT NULL DEFAULT '[]'::jsonb;

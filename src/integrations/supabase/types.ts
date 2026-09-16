@@ -897,6 +897,7 @@ export type Database = {
       }
       salary_disbursements: {
         Row: {
+          additional_deductions: Json
           contribution_pagibig: number
           contribution_philhealth: number
           contribution_sss: number
@@ -922,6 +923,7 @@ export type Database = {
           workdays_in_period: number
         }
         Insert: {
+          additional_deductions?: Json
           contribution_pagibig?: number
           contribution_philhealth?: number
           contribution_sss?: number
@@ -947,6 +949,7 @@ export type Database = {
           workdays_in_period?: number
         }
         Update: {
+          additional_deductions?: Json
           contribution_pagibig?: number
           contribution_philhealth?: number
           contribution_sss?: number
