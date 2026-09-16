@@ -11,8 +11,8 @@ Today Disburse only writes the payout record, and money only appears in Transact
 New behaviour:
 - Clicking Disburse saves the payout record **and** creates the expense entry in Transactions in the same action, deducted from the selected fund.
 - The button becomes disabled and shows "Disbursed" immediately, and stays disabled after a page refresh because the page reads existing payouts for that cut-off from the database (not just this session). So one payout per staff per cut-off, once.
-- The batch "Submit Transaction" panel becomes a read-only summary of what was disbursed this cut-off (no second transaction), so money can never be posted twice.
-- Insufficient fund balance blocks the Disburse click with a clear message.
+- The batch button becomes "Review Salary Disbursement", which opens a summary modal listing everyone already disbursed for this cut-off and everyone still pending, with totals. It posts nothing, so money can never go out twice.
+- Fund balance no longer blocks anything — Disburse always goes through.
 
 ## 3. Backfix for past payouts
 
@@ -39,8 +39,8 @@ A "Print All / Download All" pair is added to the Fixed Salary section header to
 - `src/pages/SalaryDisbursement.tsx`
   - `readiness`: filter `periodServices` to tickets where any technician name matches a `serviceBasedStaff` name (reuse `isAssignedTo`) before counting missing allocations/parts cost.
   - New `useQuery(["salaryDisbursements", periodRange])` reading `salary_disbursements` for the active cut-off (`period_start`/`period_end` or `period_label`); `isDone` becomes `disbursedList || existing row for staff+period`.
-  - `handleDisburse`: after a successful `disburseSalary`, chain the `addTransaction` call (type `Salary Disbursement`, category `Expenses`, `fundSource`, description `<staff> — <periodLabel>`) and invalidate `fundTransactions` / `transactions` / `salaryDisbursements`. Guard on `finalAmount > selectedFundBalance`.
-  - `handleSubmitBatch` removed; panel becomes a summary of cut-off payouts.
+  - `handleDisburse`: after a successful `disburseSalary`, chain the `addTransaction` call (type `Salary Disbursement`, category `Expenses`, `fundSource`, description `<staff> — <periodLabel>`) and invalidate `fundTransactions` / `transactions` / `salaryDisbursements`. No balance guard.
+  - `handleSubmitBatch` removed; button becomes "Review Salary Disbursement" opening a Dialog with disbursed vs pending staff for the cut-off.
   - New state `addlDeductions: Record<string, {description,amount}[]>` + a small modal component; folded into `computeCalculator` (`totalDeductions`) and into `computeServiceFinal` for service-based rows.
 - Migration: add `additional_deductions jsonb not null default '[]'` to `public.salary_disbursements`; edge function `disburseSalary` accepts an `additionalDeductions` JSON string and persists it.
 - Backfix: one-off SQL inserting `transactions` rows (`type = 'Salary Disbursement'`, `category = 'Expenses'`, `amount = net_pay`, `transaction_date = period_end`, `fund_name = 'Money In Bank'`) for every `salary_disbursements` row lacking a matching transaction.
