@@ -503,16 +503,16 @@ const SalaryDisbursement = () => {
    * staff tickets never need an allocation.
    */
   const readiness = useMemo(() => {
+    // Parts cost is not a payout blocker: blank means "no parts yet", which
+    // already counts as zero in the math. Only missing allocations matter.
     let missingAllocation = 0;
-    let missingPartsCost = 0;
     periodServices.forEach((s) => {
       const paysCommission = serviceBasedStaff.some((st: any) => isAssignedTo(s.technician, st.name));
       if (!paysCommission) return;
       const lines = (breakdownMap as Record<string, ServiceBreakdown[]>)[s.serviceId] || [];
       if (!lines.length) missingAllocation += 1;
-      if (parseCurrency(s.partsCost) === 0) missingPartsCost += 1;
     });
-    return { missingAllocation, missingPartsCost };
+    return { missingAllocation };
   }, [periodServices, breakdownMap, serviceBasedStaff]);
 
   /** Deep link into Completed Services already filtered to this cut-off. */
