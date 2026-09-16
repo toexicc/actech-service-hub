@@ -198,7 +198,7 @@ const ServiceTracker = () => {
   // Derive technicians with departments from staff data
   const techniciansWithDept = useMemo(() => {
     return staffList
-      .filter((staff) => staff.role?.toLowerCase() === "technician" && staff.status?.toLowerCase() === "active")
+      .filter((staff) => staff.role?.toLowerCase() === "technician")
       .map((staff) => ({
         name: staff.name,
         department: staff.department || ""
