@@ -274,7 +274,7 @@ export const PosDocumentActions = ({
       kind: d.kind as ServicePdfKind,
       title: d.title,
       hint: d.hint,
-      onGenerate: () => regeneratePos(d.kind, d.title),
+      ...(viewOnlyPos ? {} : { onGenerate: () => regeneratePos(d.kind, d.title) }),
       generating: busy === `${d.kind}-generate`,
     })),
   ];
