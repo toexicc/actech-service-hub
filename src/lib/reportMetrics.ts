@@ -812,10 +812,19 @@ export const buildTimings = (
         }
       }
 
-      if (endStamp && firstStamp && reachedEnd) totalHours = counted;
+      if (endStamp && firstStamp && reachedEnd) {
+        totalHours = counted;
+      } else if (!endStamp && firstStamp) {
+        // Still open: count the running time up to now, so the panel can show
+        // elapsed working time instead of nothing.
+        const last = transitions[transitions.length - 1];
+        walk(new Date(), last?.to || s.status || "Pending Diagnosis");
+        totalHours = counted;
+        isOpen = true;
+      }
     }
 
-    if (totalHours === null && classifyStatus(s.status) === "completed") {
+    if (totalHours === null && classifyStatus(s.status) !== "active") {
       const end = toDate(s.dateCompleted || s.lastUpdated);
       if (received && end && end >= received) {
         totalHours = workingHoursBetween(received, end, closed);
@@ -823,10 +832,13 @@ export const buildTimings = (
       }
     }
 
+    if (totalHours === null && received && classifyStatus(s.status) === "active") {
+      totalHours = workingHoursBetween(received, new Date(), closed);
+      fromLogs = false;
+      isOpen = true;
+    }
 
-
-
-    out.set(id, { serviceId: id, totalHours, stageHours, pausedHours, fromLogs });
+    out.set(id, { serviceId: id, totalHours, stageHours, pausedHours, fromLogs, open: isOpen });
   });
 
   return out;
