@@ -17,6 +17,7 @@ import { fetchStaffList } from "@/lib/staffList";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { WarrantyCardFields } from "@/components/WarrantyCardFields";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
 import { ServiceLinesEditor } from "@/components/ServiceLinesEditor";
