@@ -1194,6 +1194,102 @@ const SalaryDisbursement = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Review summary — read-only */}
+        <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+          <DialogContent className="max-w-lg !flex !flex-col max-h-[95dvh]">
+            <DialogHeader>
+              <DialogTitle>Review Salary Disbursement</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto space-y-4 text-sm">
+              <p className="text-xs text-muted-foreground">{periodLabelFull} · {cutoffLabel}</p>
+              <div>
+                <p className="font-semibold mb-1">Disbursed ({reviewSummary.paid.length})</p>
+                {reviewSummary.paid.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nobody has been paid for this cut-off yet.</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {reviewSummary.paid.map((p) => (
+                      <div key={p.name} className="flex justify-between">
+                        <span>{p.name}</span>
+                        <span className="font-medium">{fmtCurrency(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between border-t pt-1 font-bold">
+                      <span>Total</span><span>{fmtCurrency(reviewSummary.paidTotal)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold mb-1">Pending ({reviewSummary.pending.length})</p>
+                {reviewSummary.pending.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Everyone has been paid for this cut-off.</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {reviewSummary.pending.map((p) => (
+                      <div key={p.name} className="flex justify-between text-muted-foreground">
+                        <span>{p.name}</span>
+                        <span>{fmtCurrency(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between border-t pt-1 font-semibold">
+                      <span>Total</span><span>{fmtCurrency(reviewSummary.pendingTotal)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="shrink-0">
+              <Button variant="outline" onClick={() => setReviewOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Additional deductions */}
+        <Dialog open={!!dedModalStaff} onOpenChange={(o) => !o && setDedModalStaff(null)}>
+          <DialogContent className="max-w-md !flex !flex-col max-h-[95dvh]">
+            <DialogHeader>
+              <DialogTitle>Additional Deductions — {dedModalStaff?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto space-y-2">
+              {dedDraft.length === 0 && (
+                <p className="text-xs text-muted-foreground">No additional deductions yet.</p>
+              )}
+              {dedDraft.map((d, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <Input
+                    placeholder="Description"
+                    value={d.description}
+                    onChange={(e) => setDedDraft((p) => p.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="w-28"
+                    value={d.amount === 0 ? "" : String(d.amount)}
+                    onChange={(e) => setDedDraft((p) => p.map((x, j) => (j === i ? { ...x, amount: Number(e.target.value) || 0 } : x)))}
+                  />
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDedDraft((p) => p.filter((_, j) => j !== i))}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => setDedDraft((p) => [...p, { description: "", amount: 0 }])}>
+                <Plus className="mr-2 h-3.5 w-3.5" />Add deduction
+              </Button>
+              <div className="flex justify-between border-t pt-2 text-sm font-semibold">
+                <span>Total</span>
+                <span className="text-destructive">−{fmtCurrency(dedDraft.reduce((s, d) => s + (Number(d.amount) || 0), 0))}</span>
+              </div>
+            </div>
+            <DialogFooter className="shrink-0">
+              <Button variant="outline" onClick={() => setDedModalStaff(null)}>Cancel</Button>
+              <Button onClick={saveDeductionModal}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="text-center mt-8 text-sm text-muted-foreground">
           
         </div>
