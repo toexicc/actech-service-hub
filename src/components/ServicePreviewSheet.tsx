@@ -315,7 +315,7 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                       Duration in system
                     </span>
                     <span className="min-w-0 text-right">
-                      <span className="block font-medium">{durationLabel ?? "In progress"}</span>
+                      <span className="block font-medium">{durationLabel ?? "—"}</span>
                       {pausedLabel && (
                         <span className="block text-xs text-muted-foreground">{pausedLabel}</span>
                       )}
