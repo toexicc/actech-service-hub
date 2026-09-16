@@ -522,17 +522,49 @@ const SalaryDisbursement = () => {
 
   const buildPayslip = (staff: any): PayslipData => {
     const rows = getCommissionRows(staff.name);
+    const lines = addlDeductions[staff.staffId] || [];
+    const gross = rows.reduce((s, r) => s + r.amount, 0);
     return {
       employeeName: staff.name,
       department: staff.department || "Service Based",
       cutoffLabel,
       periodLabel: salaryPeriod,
       rows,
-      total: rows.reduce((s, r) => s + r.amount, 0),
+      deductionLines: lines,
+      total: gross - lines.reduce((s, d) => s + (Number(d.amount) || 0), 0),
       preparedBy: username,
       generatedAt: displayDate(new Date().toISOString(), "MM/dd/yyyy h:mm a"),
     };
   };
+
+  /** Fixed-salary payslip: attendance + deductions instead of ticket rows. */
+  const buildFixedPayslip = (staff: any): PayslipData => {
+    const c = computeCalculator(staff);
+    return {
+      employeeName: staff.name,
+      department: staff.department || staff.role || "Staff",
+      cutoffLabel,
+      periodLabel: salaryPeriod,
+      rows: [],
+      deductionLines: addlDeductions[staff.staffId] || [],
+      attendance: {
+        daysPresent: c.days,
+        workdays: workdaysInPeriod,
+        hours: hoursByStaffId[staff.userId] ?? 0,
+        dailyRate: c.daily,
+        monthlySalary: c.monthly,
+        gross: c.gross,
+        pagibig: c.dPagibig,
+        sss: c.dSss,
+        philhealth: c.dPhilhealth,
+        otherDeductions: c.otherDeductions,
+      },
+      total: c.net,
+      preparedBy: username,
+      generatedAt: displayDate(new Date().toISOString(), "MM/dd/yyyy h:mm a"),
+    };
+  };
+
 
   const outputPayslip = async (entries: PayslipData[], action: "print" | "download", filename: string) => {
     const bytes = await generateCommissionPayslipPdf(entries);
