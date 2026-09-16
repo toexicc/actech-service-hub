@@ -190,10 +190,9 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
   const showIssue =
     !!issue && issue.replace(/\s+/g, " ").toLowerCase() !== complaint.replace(/\s+/g, " ").toLowerCase();
 
-  const diagnosis = String(service?.technicianDiagnosis || service?.diagnosis || "").trim();
+  const diagnosis = String(service?.diagnosis || service?.technicianDiagnosis || "").trim();
   const summary = String(service?.diagnosisSummary || "").trim();
   const report = String(service?.technicianReport || "").trim();
-  const aiReport = String(service?.aiReport || "").trim();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -201,25 +200,33 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
         side="right"
         className="!flex w-full flex-col sm:max-w-xl p-0 overflow-hidden"
       >
-        <SheetHeader className="shrink-0 border-b border-border/60 bg-muted/20 px-6 py-5 text-left">
-          <SheetTitle className="font-mono text-xl tracking-tight">{serviceId}</SheetTitle>
-          <SheetDescription asChild>
-            <div className="space-y-2.5">
-              {service ? (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">{textOr(service.clientName)}</span>
-                    <span className="mx-1.5 text-border">•</span>
-                    <span className="font-medium text-primary">{textOr(service.status)}</span>
-                  </p>
-                  <TicketFlagChips service={service} />
-                </>
-              ) : (
-                <p className="text-sm">Ticket preview</p>
-              )}
+        <SheetHeader className="shrink-0 space-y-0 border-b border-border/60 bg-gradient-to-br from-primary/10 via-background to-background px-6 py-4 text-left">
+          <div className="flex items-start justify-between gap-4 pr-8">
+            <div className="min-w-0 space-y-1.5">
+              <SheetTitle className="truncate font-mono text-lg font-semibold tracking-tight">
+                {serviceId}
+              </SheetTitle>
+              <SheetDescription asChild>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                  <span className="truncate font-medium text-foreground">
+                    {textOr(service?.clientName, "Ticket preview")}
+                  </span>
+                  {service?.status && (
+                    <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                      {service.status}
+                    </span>
+                  )}
+                </div>
+              </SheetDescription>
             </div>
-          </SheetDescription>
+          </div>
+          {service && (
+            <div className="pt-2.5">
+              <TicketFlagChips service={service} />
+            </div>
+          )}
         </SheetHeader>
+
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-7">
           {isLoading && (
