@@ -610,11 +610,13 @@ const SalaryDisbursement = () => {
       toast({ title: "Error", description: "Final amount must be greater than 0", variant: "destructive" });
       return;
     }
-    if (disbursedList.some((d) => d.staffId === staff.staffId)) {
-      toast({ title: "Already Disbursed", description: `${staff.name} has already been disbursed in this batch.`, variant: "destructive" });
+    if (isAlreadyPaid(staff)) {
+      toast({ title: "Already Disbursed", description: `${staff.name} has already been paid for this cut-off.`, variant: "destructive" });
       return;
     }
     setDisbursing(staff.staffId);
+    // Mark paid up-front so the button locks on the first click.
+    setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
     try {
       const c = computeCalculator(staff);
       const params = new URLSearchParams();
@@ -627,7 +629,7 @@ const SalaryDisbursement = () => {
       params.append("fundSource", fundSource);
       // Month-scoped label keeps one row per staff per cut-off (the table is
       // unique on staff + label) and lets paid cut-offs be locked precisely.
-      params.append("periodLabel", `${salaryPeriod} - ${displayDate(periodRange.start, "MMMM yyyy")}`);
+      params.append("periodLabel", periodLabelFull);
       params.append("periodStart", periodRange.start);
       params.append("periodEnd", periodRange.end);
       params.append("monthlySalary", c.monthly.toFixed(2));
@@ -638,9 +640,10 @@ const SalaryDisbursement = () => {
       params.append("contributionSss", c.dSss.toFixed(2));
       params.append("contributionPhilhealth", c.dPhilhealth.toFixed(2));
       params.append("otherDeductions", c.otherDeductions.toFixed(2));
+      params.append("additionalDeductions", JSON.stringify(addlDeductions[staff.staffId] || []));
       params.append("grossPay", c.gross.toFixed(2));
       params.append("totalDeductions", c.totalDeductions.toFixed(2));
-      params.append("netPay", c.net.toFixed(2));
+      params.append("netPay", finalAmount.toFixed(2));
 
       const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
       let result: any = null;
@@ -648,24 +651,47 @@ const SalaryDisbursement = () => {
 
       const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
 
-      if (isSuccess) {
-        toast({ title: "Disbursed", description: `Salary of ${fmtCurrency(finalAmount)} logged for ${staff.name}` });
-        setDisbursedList((prev) => [...prev, { staffId: staff.staffId, staffName: staff.name, amount: finalAmount }]);
-        // Reset inputs for this staff
-        setCommissions((p) => ({ ...p, [staff.staffId]: "" }));
-        setBonuses((p) => ({ ...p, [staff.staffId]: "" }));
-        setDeductions((p) => ({ ...p, [staff.staffId]: "" }));
-        setTechCommissions((p) => ({ ...p, [staff.staffId]: "" }));
-        setDaysPresent((p) => ({ ...p, [staff.staffId]: "" }));
-        setDailyRateOverride((p) => ({ ...p, [staff.staffId]: "" }));
-        setPagibig((p) => ({ ...p, [staff.staffId]: "" }));
-        setSss((p) => ({ ...p, [staff.staffId]: "" }));
-        setPhilhealth((p) => ({ ...p, [staff.staffId]: "" }));
-        refetchLogs();
-      } else {
+      if (!isSuccess) {
+        setDisbursedList((prev) => prev.filter((d) => d.staffId !== staff.staffId));
         toast({ title: "Error", description: result?.message || "Failed to disburse", variant: "destructive" });
+        return;
       }
+
+      // Post the matching expense entry right away — one entry per payout.
+      const txParams = new URLSearchParams();
+      txParams.append("action", "addTransaction");
+      txParams.append("transactionType", "Salary Disbursement");
+      txParams.append("category", "Expenses");
+      txParams.append("amount", finalAmount.toFixed(2));
+      txParams.append("description", `${staff.name} — ${periodLabelFull}`);
+      txParams.append("mop", "Bank Transfer");
+      txParams.append("attendant", username);
+      txParams.append("remarks", `${salaryPeriod} payout for ${staff.name}`);
+      txParams.append("fundSource", fundSource);
+      const txRes = await fetch(DATA_BRIDGE_URL, { method: "POST", body: txParams });
+      let txResult: any = null;
+      try { txResult = await txRes.json(); } catch { /* CORS */ }
+      const txOk = (txResult && (txResult.status === "success" || txResult.result === "success")) || (txRes.ok && txResult === null);
+
+      toast({
+        title: "Disbursed",
+        description: txOk
+          ? `${fmtCurrency(finalAmount)} paid to ${staff.name} and recorded in Transactions.`
+          : `${fmtCurrency(finalAmount)} paid to ${staff.name}, but the transaction entry failed to record.`,
+        variant: txOk ? undefined : "destructive",
+      });
+      logActivityAsync({
+        serviceId: "SALARY",
+        username,
+        role: userRole || "",
+        activity: `Disbursed ${fmtCurrency(finalAmount)} to ${staff.name} for ${periodLabelFull} from ${fundSource}`,
+      });
+      refetchLogs();
+      queryClient.invalidateQueries({ queryKey: ["salaryDisbursements"] });
+      queryClient.invalidateQueries({ queryKey: ["fundTransactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     } catch {
+      setDisbursedList((prev) => prev.filter((d) => d.staffId !== staff.staffId));
       toast({ title: "Error", description: "Failed to disburse salary", variant: "destructive" });
     } finally {
       setDisbursing(null);
@@ -674,49 +700,32 @@ const SalaryDisbursement = () => {
 
   const totalDisbursed = disbursedList.reduce((sum, d) => sum + d.amount, 0);
 
-  const handleSubmitBatch = async () => {
-    if (disbursedList.length === 0) {
-      toast({ title: "No Disbursements", description: "Disburse at least one staff member before submitting.", variant: "destructive" });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const params = new URLSearchParams();
-      params.append("action", "addTransaction");
-      params.append("transactionType", "Salary Disbursement");
-      params.append("category", "Expenses");
-      params.append("amount", totalDisbursed.toFixed(2));
-      params.append("description", `${salaryPeriod} - ${disbursedList.length} staff members`);
-      params.append("mop", "Bank Transfer");
-      params.append("attendant", username);
-      params.append("remarks", `${salaryPeriod}: ` + disbursedList.map((d) => `${d.staffName} (${fmtCurrency(d.amount)})`).join("; "));
-      params.append("fundSource", fundSource);
-
-      const response = await fetch(DATA_BRIDGE_URL, { method: "POST", body: params });
-      let result: any = null;
-      try { result = await response.json(); } catch { /* CORS */ }
-
-      const isSuccess = (result && (result.status === "success" || result.result === "success")) || (response.ok && result === null);
-
-      if (isSuccess) {
-        toast({ title: "Submitted", description: `${salaryPeriod} transaction of ${fmtCurrency(totalDisbursed)} submitted successfully.` });
-        logActivityAsync({
-          serviceId: "SALARY",
-          username,
-          role: userRole || "",
-          activity: `Submitted ${salaryPeriod} batch of ${fmtCurrency(totalDisbursed)} for ${disbursedList.length} staff from ${fundSource}`,
-        });
-        setDisbursedList([]);
-        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+  /** Read-only review of this cut-off: who has been paid and who is still pending. */
+  const reviewSummary = useMemo(() => {
+    const all = [...fixedStaff, ...serviceBasedStaff];
+    const paid: { name: string; amount: number }[] = [];
+    const pending: { name: string; amount: number }[] = [];
+    all.forEach((staff: any) => {
+      const row = periodPayouts.find(
+        (p: any) => (p.staff_name || "").trim().toLowerCase() === (staff.name || "").trim().toLowerCase(),
+      );
+      const local = disbursedList.find((d) => d.staffId === staff.staffId);
+      if (row || local) {
+        paid.push({ name: staff.name, amount: local?.amount ?? parseCurrency(row?.net_pay) });
       } else {
-        toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
+        const amount = staff.salaryType === "service"
+          ? computeServiceFinal(staff).final
+          : computeCalculator(staff).net;
+        pending.push({ name: staff.name, amount });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to submit salary transaction", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
+    return {
+      paid,
+      pending,
+      paidTotal: paid.reduce((s, p) => s + p.amount, 0),
+      pendingTotal: pending.reduce((s, p) => s + p.amount, 0),
+    };
+  }, [fixedStaff, serviceBasedStaff, periodPayouts, disbursedList, addlDeductions, deductions, pagibig, sss, philhealth, daysPresent, dailyRateOverride]);
 
   // Salary Logs filtering
   const filteredLogs = useMemo(() => {
