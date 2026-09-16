@@ -1649,6 +1649,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             <span className="text-muted-foreground text-xs">Cost</span>
                             <span className="text-foreground tabular-nums">{service.serviceCost || "—"}</span>
                           </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-muted-foreground text-xs">Duration in system</span>
+                            <span className="text-foreground tabular-nums">{durationLabel}</span>
+                          </div>
                         </div>
 
                         <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
