@@ -141,7 +141,7 @@ const CompletedTransactions = () => {
     // a parts cost — the same checks Salary Disbursement warns about.
     if (issuesOnly) {
       list = list.filter(
-        (s) => !hasAllocation(s.serviceId) || (s.partsCost || 0) === 0,
+        (s) => !(breakdownMap[s.serviceId] ?? []).length || (s.partsCost || 0) === 0,
       );
     }
     return list;
