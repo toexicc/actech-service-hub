@@ -25,6 +25,8 @@ import { TallyLine } from "@/components/TallyLine";
 import { useStaff } from "@/hooks/useStaff";
 
 import { isAssignedTo } from "@/lib/technicianMatch";
+import { TicketFlagChips } from "@/components/workspace/TicketFlagChips";
+import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { CutoffPresets } from "@/components/CutoffPresets";
 import { useWindowTally } from "@/hooks/useWindowTally";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
