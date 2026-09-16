@@ -345,9 +345,11 @@ const SalaryDisbursement = () => {
     () => new Set(periodPayouts.map((p: any) => (p.staff_name || "").trim().toLowerCase())),
     [periodPayouts],
   );
-  const isAlreadyPaid = (staff: any) =>
+  const hasPayout = (staff: any) =>
     paidStaffNames.has((staff.name || "").trim().toLowerCase()) ||
     disbursedList.some((d) => d.staffId === staff.staffId);
+  /** Rows unlocked by Edit behave like unpaid rows until re-disbursed. */
+  const isAlreadyPaid = (staff: any) => hasPayout(staff) && !editingStaff.includes(staff.staffId);
 
   // Compute balance per fund from transactions (mirrors TransactionTracker logic)
   const fundBalances = useMemo(() => {
