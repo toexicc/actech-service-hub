@@ -1056,47 +1056,26 @@ const SalaryDisbursement = () => {
             </Card>
 
 
-            {/* Submit Batch Section */}
+            {/* Review panel — read-only, posts nothing */}
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {disbursedList.length === 0
-                        ? "Disburse staff salaries above, then submit as one transaction."
-                        : `${disbursedList.length} staff disbursed`}
+                      Each Disburse click pays that staff member and records the expense in Transactions immediately.
                     </p>
-                    {disbursedList.length > 0 && (
-                      <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
-                        {disbursedList.map((d) => (
-                          <div key={d.staffId}>{d.staffName}: {fmtCurrency(d.amount)}</div>
-                        ))}
-                      </div>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {reviewSummary.paid.length} disbursed · {reviewSummary.pending.length} pending for {periodLabelFull}
+                    </p>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Total Disbursed</p>
-                      <p className="text-xl font-bold">{fmtCurrency(totalDisbursed)}</p>
+                      <p className="text-xl font-bold">{fmtCurrency(reviewSummary.paidTotal)}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Button
-                        onClick={handleSubmitBatch}
-                        disabled={isSubmitting || disbursedList.length === 0 || totalDisbursed > selectedFundBalance}
-                        className="min-w-[140px]"
-                      >
-                        {isSubmitting ? (
-                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
-                        ) : (
-                          "Submit Transaction"
-                        )}
-                      </Button>
-                      {totalDisbursed > selectedFundBalance && disbursedList.length > 0 && (
-                        <p className="text-xs text-destructive">
-                          Insufficient funds in {fundSource} ({fmtCurrency(selectedFundBalance)})
-                        </p>
-                      )}
-                    </div>
+                    <Button variant="outline" className="min-w-[200px]" onClick={() => setReviewOpen(true)}>
+                      Review Salary Disbursement
+                    </Button>
                   </div>
                 </div>
               </CardContent>
