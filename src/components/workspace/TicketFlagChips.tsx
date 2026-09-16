@@ -10,16 +10,52 @@ export interface TicketFlagChipsProps {
   service: any;
   /** Show the "Within the Day" chip (hidden in the RTO/closed views). */
   showWithinDay?: boolean;
+  /**
+   * Cash actually received on this ticket (payments less refunds). When given,
+   * a Paid / Partial Payment chip is shown so collection is visible at a glance.
+   */
+  collected?: number | null;
   className?: string;
 }
+
+const num = (v: any) => {
+  const n = Number(String(v ?? "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Quoted price less discount — the amount the client owes. */
+const billableOf = (s: any) => {
+  const gross =
+    num(s?.quotedPrice) || num(s?.serviceCost) || num(s?.finalCost) || num(s?.totalCost);
+  return Math.max(0, gross - num(s?.discount));
+};
 
 const CHIP =
   "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap";
 
 const isWithinDayPriority = (s: any) => /within\s*the\s*day/i.test(String(s?.priority || ""));
 
-export function TicketFlagChips({ service, showWithinDay = true, className }: TicketFlagChipsProps) {
+export function TicketFlagChips({
+  service,
+  showWithinDay = true,
+  collected,
+  className,
+}: TicketFlagChipsProps) {
   const chips: { key: string; label: string; cls: string }[] = [];
+
+  if (collected != null && collected > 0.01) {
+    const billable = billableOf(service);
+    const fullyPaid = billable > 0 && collected >= billable - 0.01;
+    chips.push(
+      fullyPaid
+        ? { key: "paid", label: "Paid", cls: "border-emerald-400/40 bg-emerald-500/15 text-emerald-600" }
+        : {
+            key: "partial",
+            label: "Partial Payment",
+            cls: "border-yellow-400/40 bg-yellow-500/15 text-yellow-600",
+          },
+    );
+  }
 
   if (showWithinDay && isWithinDayPriority(service)) {
     chips.push({

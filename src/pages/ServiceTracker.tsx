@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activityLogger";
 import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { useServiceTimings, formatWorkingDuration } from "@/hooks/useServiceTimings";
+import { useTicketPayments } from "@/hooks/useTicketPayments";
 import { classifyStatus, isClosedStatus, isCompletedStatus } from "@/lib/serviceStatus";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
@@ -994,6 +995,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   // Working-time duration for the tickets shown on this page.
   const pageTimings = useServiceTimings(paginatedServices);
+  // Cash received per visible ticket, so the Paid / Partial Payment chips show.
+  const { data: pagePayments } = useTicketPayments(
+    useMemo(() => paginatedServices.map((s: any) => s.serviceId).filter(Boolean), [paginatedServices]),
+  );
+  const collectedFor = (serviceId: string) => pagePayments?.[serviceId] ?? null;
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedServices.length / itemsPerPage));
 
@@ -1618,6 +1624,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             <TicketFlagChips
                               service={service}
                               showWithinDay={activeTab !== "closed"}
+                              collected={collectedFor(service.serviceId)}
                               className="mt-1"
                             />
                           </div>
@@ -1803,7 +1810,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <TicketFlagChips service={service} showWithinDay={activeTab !== "closed"} />
+                              <TicketFlagChips
+                                service={service}
+                                showWithinDay={activeTab !== "closed"}
+                                collected={collectedFor(service.serviceId)}
+                              />
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
                            <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>
