@@ -1050,6 +1050,7 @@ const SalaryDisbursement = () => {
                           <TableHead>Service Cost (Total)</TableHead>
                           <TableHead>Tickets</TableHead>
                           <TableHead>Allocated Commission</TableHead>
+                          <TableHead>Addtl. Ded.</TableHead>
                           <TableHead>Final Amount</TableHead>
                           <TableHead>Payslip</TableHead>
                           <TableHead>Action</TableHead>
