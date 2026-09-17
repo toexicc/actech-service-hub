@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
@@ -153,28 +153,60 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       ];
     }
 
+    if (userRole === "management") {
+      return [
+        dashboard,
+        ...adminItems.filter((item) => ["/pos", "/service-tracker", "/reports"].includes(item.path)),
+      ];
+    }
+
+    if (userRole === "admin") {
+      return [
+        dashboard,
+        ...adminItems.filter((item) => ["/pos", "/service-tracker", "/manage-client"].includes(item.path)),
+      ];
+    }
+
     return [
       dashboard,
-      ...adminItems.filter((item) => ["/pos", "/service-form", "/service-tracker"].includes(item.path)),
+      ...adminItems.filter((item) => ["/pos", "/service-tracker", "/manage-client"].includes(item.path)),
     ];
   }, [userRole]);
 
-  const allMobileMoreItems = useMemo(() => {
+  const mobileMoreSections = useMemo(() => {
     const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
-    const items = [
-      dashboard,
-      ...adminSection.items.filter((item) => canViewSection(adminSection) && canViewItem(item)),
-      ...techSection.items.filter((item) => canViewSection(techSection) && canViewItem(item)),
-    ];
-    if (userRole === "admin" || userRole === "technician") {
-      items.push({ title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" });
-    }
     const primaryPaths = new Set(mobileNavItems.map((item) => item.path));
-    return items.filter((item, index, source) => {
+    const uniqueVisible = (items: NavItem[]) => items.filter((item, index, source) => {
       if (primaryPaths.has(item.path)) return false;
       return source.findIndex((candidate) => candidate.path === item.path) === index;
     });
+
+    const sections: { title: string; items: NavItem[] }[] = [];
+    const homeItems = uniqueVisible([dashboard]);
+    if (homeItems.length) sections.push({ title: "General", items: homeItems });
+
+    if (canViewSection(adminSection)) {
+      const items = uniqueVisible(adminSection.items.filter(canViewItem));
+      if (items.length) sections.push({ title: "Admin Portal", items });
+    }
+
+    if (canViewSection(techSection)) {
+      const items = uniqueVisible(techSection.items.filter(canViewItem));
+      if (items.length) sections.push({ title: "Technician Portal", items });
+    }
+
+    if (userRole === "admin" || userRole === "technician") {
+      const items = uniqueVisible([{ title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" }]);
+      if (items.length) sections.push({ title: userRole === "technician" ? "Technician Portal" : "Parts", items });
+    }
+
+    return sections;
   }, [mobileNavItems, userRole]);
+
+  const allMobileMoreItems = useMemo(
+    () => mobileMoreSections.flatMap((section) => section.items),
+    [mobileMoreSections],
+  );
 
   const currentNavItem = useMemo(() => {
     const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
@@ -386,23 +418,33 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             </DrawerTitle>
           </DrawerHeader>
           <div className="grid gap-2 overflow-y-auto px-4 pb-4">
-            {allMobileMoreItems.map((item) => {
-              const active = location.pathname === item.path;
-              return (
-                <Button
-                  key={item.path}
-                  variant="ghost"
-                  onClick={() => handleNavClick(item)}
-                  className={cn(
-                    "h-12 justify-start rounded-xl border border-border/60 bg-card px-3 text-left shadow-soft",
-                    active && "border-primary/40 bg-primary/10 text-primary",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span className="truncate">{item.title}</span>
-                </Button>
-              );
-            })}
+            <DrawerDescription className="sr-only">Open another portal page or sign out.</DrawerDescription>
+            {mobileMoreSections.map((section) => (
+              <div key={section.title} className="space-y-2">
+                <div className="px-1 text-[11px] font-semibold uppercase text-muted-foreground">
+                  {section.title}
+                </div>
+                <div className="grid gap-2">
+                  {section.items.map((item) => {
+                    const active = location.pathname === item.path;
+                    return (
+                      <Button
+                        key={item.path}
+                        variant="ghost"
+                        onClick={() => handleNavClick(item)}
+                        className={cn(
+                          "h-12 justify-start rounded-xl border border-border/60 bg-card px-3 text-left shadow-soft",
+                          active && "border-primary/40 bg-primary/10 text-primary",
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="truncate">{item.title}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
             <Button
               variant="ghost"
               onClick={handleLogout}

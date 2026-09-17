@@ -70,15 +70,15 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
   ];
 
   return (
-    <section className="mb-6 rounded-3xl border border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur overflow-hidden animate-fade-in">
+    <section className="mb-6 overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-[var(--shadow-float)] backdrop-blur animate-fade-in sm:rounded-3xl">
       {/* Top strip */}
-      <div className="relative p-6 sm:p-8">
+      <div className="relative p-4 sm:p-8">
         <div className="absolute inset-0 pointer-events-none opacity-70">
           <div className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
           <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[hsl(var(--surface-tinted))] blur-3xl" />
         </div>
 
-        <div className="relative flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-5">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={`rounded-full border ${info.tone} font-medium px-3 py-1`}>
@@ -93,14 +93,16 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
               )}
             </div>
 
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-mono">
+            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <h2 className="min-w-0 break-words font-mono text-2xl font-bold text-foreground sm:text-4xl">
                 {service.serviceId || "—"}
               </h2>
-              {showShare && service.serviceId && (
-                <TrackingShareActions serviceId={service.serviceId} />
-              )}
-              {actions}
+              <div className="flex flex-wrap items-center gap-2">
+                {showShare && service.serviceId && (
+                  <TrackingShareActions serviceId={service.serviceId} />
+                )}
+                {actions}
+              </div>
             </div>
 
             <p className="mt-1 text-sm text-muted-foreground">
@@ -109,12 +111,12 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
             </p>
           </div>
 
-          <div className="flex flex-col items-start lg:items-end gap-2 shrink-0">
+          <div className="flex min-w-0 flex-col items-start gap-2 lg:items-end">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> Current status
             </div>
-            <div className="text-base font-semibold text-foreground">{status}</div>
-            <div className="flex items-start gap-2 max-w-sm text-xs text-muted-foreground lg:text-right">
+            <div className="break-words text-base font-semibold text-foreground lg:text-right">{status}</div>
+            <div className="flex max-w-sm items-start gap-2 text-xs text-muted-foreground lg:text-right">
               <Sparkles className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
               <span>{info.next}</span>
             </div>
@@ -137,17 +139,17 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-t border-border/60 bg-background/40">
+      <div className="grid grid-cols-1 border-t border-border/60 bg-background/40 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map((s) => (
           <div
             key={s.label}
-            className="px-4 py-3 border-r last:border-r-0 border-border/40 min-w-0"
+            className="min-w-0 border-b border-r border-border/40 px-4 py-3 last:border-r-0 lg:border-b-0"
           >
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
               <s.icon className="h-3 w-3" />
               {s.label}
             </div>
-            <div className="mt-1 text-sm font-medium text-foreground truncate" title={s.value}>
+            <div className="mt-1 break-words text-sm font-medium text-foreground" title={s.value}>
               {s.value}
             </div>
           </div>
