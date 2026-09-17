@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Loader2 } from "lucide-react";
@@ -175,8 +176,8 @@ export const ServiceBreakdownPanel = ({
         <div className="space-y-2">
           {draft.map((r, i) => (
             <div key={i} className="grid grid-cols-2 items-center gap-2 rounded-lg bg-background/70 p-2 sm:grid-cols-12 sm:bg-transparent sm:p-0">
-              <Input
-                className="col-span-2 sm:col-span-5"
+              <Textarea
+                className="col-span-2 min-h-20 resize-none text-base sm:col-span-5 sm:min-h-10 sm:py-2 sm:text-sm"
                 placeholder="Service performed"
                 disabled={locked}
                 value={r.serviceName}
