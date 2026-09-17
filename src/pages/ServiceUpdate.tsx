@@ -1492,6 +1492,77 @@ const ServiceUpdate = () => {
                 <CardTitle className="text-2xl tracking-tight">Service Update</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="technician">Assigned Technician:</Label>
+
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-primary"
+                        checked={showUnavailableTechs}
+                        onChange={(e) => setShowUnavailableTechs(e.target.checked)}
+                      />
+                      Show unavailable staff
+                    </label>
+                  </div>
+
+                  <MultiSelect
+                    options={(() => {
+                      // Filter technicians based on device type
+                      const deviceType = serviceData?.deviceType;
+
+                      const unassignedOption = { label: "Unassigned", value: "unassigned", group: "Status" };
+                      // Always available for special cases, regardless of device type / department
+                      const SPECIAL_CASE_TECH = "John Paul Espedido";
+                      const specialOption = {
+                        label: SPECIAL_CASE_TECH,
+                        value: SPECIAL_CASE_TECH,
+                        group: "Special Cases",
+                      };
+
+                      // Check if device type is in the predefined list
+                      const isPreDefinedDeviceType = deviceType && 
+                        (DEVICE_TYPES as readonly string[]).includes(deviceType);
+
+                      const toOption = (tech: { name: string; department: string }) => ({
+                        label: tech.name,
+                        value: tech.name,
+                        group: tech.department,
+                      });
+
+                      // If no device type or custom device (not in predefined list), show all technicians
+                      if (!deviceType || !isPreDefinedDeviceType) {
+                        const all = technicians.map(toOption);
+                        return [
+                          unassignedOption,
+                          ...all,
+                          ...(all.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
+                        ];
+                      }
+
+                      // Filter by department only for predefined device types
+                      const filteredTechs = technicians.filter(tech => {
+                        const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
+                        return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
+                      });
+
+                      const filtered = filteredTechs.map(toOption);
+                      return [
+                        unassignedOption,
+                        ...filtered,
+                        ...(filtered.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
+                      ];
+                    })()}
+
+                    selected={updateTechnician ? updateTechnician.split(", ") : []}
+                    onChange={(values) => setUpdateTechnician(values.join(", "))}
+                    placeholder="Select Technicians"
+                    grouped
+                  />
+                </div>
+                </div>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Label htmlFor="status">
@@ -1786,6 +1857,11 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
+                {showDiagnosisStage && serviceData?.serviceId && (
+                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
+                )}
+
                 {(stageStatus === "Ongoing Service" || interimNeeded || !!interim.report.trim()) && (
                   <InterimReportBlock
                     serviceId={serviceData.serviceId}
@@ -1949,92 +2025,6 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
-
-                <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="technician">Assigned Technician:</Label>
-
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        className="h-3.5 w-3.5 accent-primary"
-                        checked={showUnavailableTechs}
-                        onChange={(e) => setShowUnavailableTechs(e.target.checked)}
-                      />
-                      Show unavailable staff
-                    </label>
-                  </div>
-
-                  <MultiSelect
-                    options={(() => {
-                      // Filter technicians based on device type
-                      const deviceType = serviceData?.deviceType;
-
-                      const unassignedOption = { label: "Unassigned", value: "unassigned", group: "Status" };
-                      // Always available for special cases, regardless of device type / department
-                      const SPECIAL_CASE_TECH = "John Paul Espedido";
-                      const specialOption = {
-                        label: SPECIAL_CASE_TECH,
-                        value: SPECIAL_CASE_TECH,
-                        group: "Special Cases",
-                      };
-
-                      // Check if device type is in the predefined list
-                      const isPreDefinedDeviceType = deviceType && 
-                        (DEVICE_TYPES as readonly string[]).includes(deviceType);
-
-                      const toOption = (tech: { name: string; department: string }) => ({
-                        label: tech.name,
-                        value: tech.name,
-                        group: tech.department,
-                      });
-
-                      // If no device type or custom device (not in predefined list), show all technicians
-                      if (!deviceType || !isPreDefinedDeviceType) {
-                        const all = technicians.map(toOption);
-                        return [
-                          unassignedOption,
-                          ...all,
-                          ...(all.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
-                        ];
-                      }
-
-                      // Filter by department only for predefined device types
-                      const filteredTechs = technicians.filter(tech => {
-                        const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
-                        return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
-                      });
-
-                      const filtered = filteredTechs.map(toOption);
-                      return [
-                        unassignedOption,
-                        ...filtered,
-                        ...(filtered.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
-                      ];
-                    })()}
-
-                    selected={updateTechnician ? updateTechnician.split(", ") : []}
-                    onChange={(values) => setUpdateTechnician(values.join(", "))}
-                    placeholder="Select Technicians"
-                    grouped
-                  />
-                </div>
-                </div>
-
-
-
-                {/* Diagnosis Toggle - based on the selected (next) status */}
-
-                {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
-                {showDiagnosisStage && serviceData?.serviceId && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
-                )}
-
-
-
-                {/* Report Toggle - Only visible when actual sheet status is "Done Repair - Under Observation" */}
-
                 {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
                 {serviceData?.serviceId && showReportStage && (
                   <DeviceReportPhotos
@@ -2042,6 +2032,9 @@ const ServiceUpdate = () => {
                     editable={showReportEditors}
                   />
                 )}
+
+
+
 
                 <div className="space-y-2">
                   <Label htmlFor="technicianNotesInternal">Technician Notes (Internal):</Label>
