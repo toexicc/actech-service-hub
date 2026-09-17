@@ -289,6 +289,36 @@ export type Database = {
         }
         Relationships: []
       }
+      device_catalog: {
+        Row: {
+          brand: string | null
+          created_at: string
+          id: string
+          kind: string
+          updated_at: string
+          usage_count: number
+          value: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          updated_at?: string
+          usage_count?: number
+          value: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          updated_at?: string
+          usage_count?: number
+          value?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
