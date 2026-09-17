@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useServices, useCompletedServices } from "@/hooks/useServices";
 import { filterAssigned } from "@/lib/technicianMatch";
 import { parseManilaDate } from "@/lib/timezone";
-import { classifyStatus } from "@/lib/serviceStatus";
+import { classifyStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
 
 
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
