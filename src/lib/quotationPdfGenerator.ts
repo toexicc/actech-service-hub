@@ -26,6 +26,8 @@ export interface QuotationPDFData {
   serviceCost: string;
   partsUsed: string;
   discount: string;
+  /** 10% rush charge, printed only when the ticket is a rush job. */
+  rushFee?: string;
   vat?: string;
   totalCost: string;
   serviceBreakdown?: BreakdownItem[];
@@ -694,6 +696,7 @@ const drawSummaryBlocks = (
 
   money("Service Cost:", data.serviceCost);
   money("Discount:", data.discount);
+  if (data.rushFee) money("Rush Fee (10%):", data.rushFee);
   if (data.vat) money("VAT (12%):", data.vat);
 
   const totalH = 9 * scale;
