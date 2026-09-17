@@ -145,8 +145,15 @@ Deno.serve(async (req) => {
           password: body.password,
         });
         if (pwErr || !pwData?.user) {
-          return fail(`Password not saved — ${pwErr?.message || "the account could not be updated"}`);
+          const raw = pwErr?.message ?? "";
+          const weak = /weak|easy to guess|pwned|leaked|at least/i.test(raw);
+          return fail(
+            weak
+              ? "Password not saved — that password is too easy to guess. Use at least 8 characters mixing letters, numbers and a symbol."
+              : `Password not saved — ${raw || "the account could not be updated"}`,
+          );
         }
+
         passwordChanged = true;
       }
       return new Response(JSON.stringify({ ok: true, password_changed: passwordChanged }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
