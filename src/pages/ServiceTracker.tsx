@@ -732,7 +732,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   const isOverdue = (targetDate: string, status: string): boolean => {
     if (!targetDate) return false;
-    if (status === "Completed") return false;
+    if (!isTimeTrackedStatus(status)) return false;
     try {
       const target = parseTargetDate(targetDate);
       if (!target) return false;
