@@ -37,6 +37,9 @@ import {
 } from "lucide-react";
 import { DueDateCalendar } from "@/components/DueDateCalendar";
 import { ServicePreviewButton } from "@/components/ServicePreviewButton";
+import { MobileTableSurface } from "@/components/mobile/MobileTableSurface";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 import { format, isSameDay, isBefore, startOfDay } from "date-fns";
 
@@ -74,6 +77,7 @@ interface LowStockItem {
 
 const Menu = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [currentTime, setCurrentTime] = useState(new Date());
   
   
@@ -379,24 +383,55 @@ const Menu = () => {
   const statCards = getStatCards();
   const quickActions = getQuickActions();
 
+  const renderMobileServices = (services: ServiceRecord[], tone: "warning" | "destructive") => (
+    <div className="space-y-2 md:hidden">
+      {services.map((service) => (
+        <div key={service.serviceId} className="relative rounded-xl border border-border/70 bg-card p-3 pr-20 shadow-soft">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-foreground">{service.serviceId}</span>
+              </div>
+              <p className="truncate text-sm text-foreground">{service.clientName}</p>
+              <p className={cn("text-xs font-medium", tone === "warning" ? "text-warning" : "text-destructive")}>{service.status}</p>
+            </div>
+            <div className="absolute right-3 top-3 flex items-center gap-1">
+              <ServicePreviewButton serviceId={service.serviceId} className="h-10 w-10 rounded-full" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                onClick={() => handleEditService(service.serviceId)}
+                aria-label={`Open ticket ${service.serviceId}`}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
         {/* Hero */}
         <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-6">
             <div className="flex-1 min-w-0">
               <p className="text-sm text-muted-foreground font-medium">
                 {format(currentTime, "EEEE, MMMM d")}
               </p>
-              <h1 className="mt-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+              <h1 className="mt-1 text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
                 Hello, <span className="text-gradient">{userFullName.split(" ")[0]}</span>
               </h1>
-              <p className="mt-2 text-base text-muted-foreground">
+              <p className="mt-2 text-sm sm:text-base text-muted-foreground">
                 Here's what's happening in your <span className="capitalize font-medium text-foreground">{userRole}</span> workspace today.
               </p>
             </div>
-            <div className="glass-panel rounded-2xl px-5 py-4 min-w-[240px] flex items-center gap-4">
+            <div className="glass-panel rounded-xl sm:rounded-2xl px-4 py-3 sm:px-5 sm:py-4 min-w-0 sm:min-w-[240px] flex items-center gap-4">
               <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
@@ -413,21 +448,23 @@ const Menu = () => {
 
         {/* Quick actions — compact single row above Today's numbers */}
         <section className="mb-6">
-          <div className="glass-panel rounded-2xl px-3 py-2 flex flex-wrap md:flex-nowrap items-center gap-2 overflow-x-auto">
+          <div className="glass-panel rounded-xl sm:rounded-2xl px-3 py-2 flex flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 shrink-0">
               Quick actions
             </span>
             <div className="h-4 w-px bg-border/60 hidden md:block" />
             {quickActions.map((action, index) => (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 key={index}
                 onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
-                className="h-9 px-3 rounded-full inline-flex items-center gap-2 text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap shrink-0"
+                className="h-10 shrink-0 rounded-full px-3 text-xs text-foreground hover:bg-primary/10 hover:text-primary"
                 title={action.description}
               >
                 <action.icon className="h-4 w-4" />
                 <span>{action.title}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -437,12 +474,14 @@ const Menu = () => {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Today's numbers</h2>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate("/service-tracker")}
-              className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+              className="h-9 rounded-full px-2 text-xs font-medium text-primary"
             >
               View all <ExternalLink className="h-3 w-3" />
-            </button>
+            </Button>
           </div>
           <div className={`grid grid-cols-2 ${isTechnician ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 sm:gap-4`}>
             {statCards.map((stat, index) => (
@@ -484,8 +523,10 @@ const Menu = () => {
                 <p className="text-muted-foreground text-sm">Loading...</p>
               ) : servicesDueToday.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No services due today.</p>
+              ) : isMobile ? (
+                renderMobileServices(servicesDueToday, "warning")
               ) : (
-                <div className="rounded-md border">
+                <MobileTableSurface className="hidden md:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -517,7 +558,7 @@ const Menu = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                </MobileTableSurface>
               )}
             </CardContent>
           </Card>
@@ -534,8 +575,10 @@ const Menu = () => {
                 <p className="text-muted-foreground text-sm">Loading...</p>
               ) : servicesOverdue.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No overdue services.</p>
+              ) : isMobile ? (
+                renderMobileServices(servicesOverdue, "destructive")
               ) : (
-                <div className="rounded-md border">
+                <MobileTableSurface className="hidden md:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -562,7 +605,7 @@ const Menu = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </div>
+                </MobileTableSurface>
               )}
             </CardContent>
           </Card>
@@ -593,7 +636,7 @@ const Menu = () => {
                   <p className="text-muted-foreground text-sm">No parts currently for ordering.</p>
                 ) : (
                   <>
-                    <div className="rounded-md border">
+                    <MobileTableSurface>
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -620,7 +663,7 @@ const Menu = () => {
                             ))}
                         </TableBody>
                       </Table>
-                    </div>
+                    </MobileTableSurface>
                     {partsForOrdering.length > dashboardItemsPerPage && (
                       <div className="flex items-center justify-between mt-3">
                         <p className="text-xs text-muted-foreground">
@@ -675,7 +718,7 @@ const Menu = () => {
                   <p className="text-muted-foreground text-sm">No low stock items.</p>
                 ) : (
                   <>
-                    <div className="rounded-md border">
+                    <MobileTableSurface>
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -702,7 +745,7 @@ const Menu = () => {
                             ))}
                         </TableBody>
                       </Table>
-                    </div>
+                    </MobileTableSurface>
                     {lowStockItems.length > dashboardItemsPerPage && (
                       <div className="flex items-center justify-between mt-3">
                         <p className="text-xs text-muted-foreground">

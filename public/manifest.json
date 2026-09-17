@@ -1,7 +1,7 @@
 {
-  "name": "AC Tech Repair - Service Hub",
-  "short_name": "AC Tech Hub",
-  "description": "Internal service management portal for AC Tech Repair",
+  "name": "ACTech Hub",
+  "short_name": "ACTech Hub",
+  "description": "AC Tech Repair service workspace for repairs, payments, parts, staff, and reports",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -136,6 +136,7 @@
        `break-word` only breaks when the word alone cannot fit, so normal
        copy, buttons and truncated text are untouched. */
     overflow-wrap: break-word;
+    background: var(--gradient-app);
   }
 
 
@@ -151,11 +152,11 @@
     background: var(--gradient-app);
     background-attachment: fixed;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
-    letter-spacing: -0.005em;
+    letter-spacing: 0;
   }
 
   h1, h2, h3, h4 {
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 
@@ -235,6 +236,62 @@
 
   .splash-screen {
     background-color: #1a1f4e;
+  }
+
+  .mobile-table-surface {
+    @apply relative w-full max-w-full overflow-hidden;
+  }
+
+  .mobile-table-surface::after {
+    content: "";
+    @apply pointer-events-none absolute inset-y-0 right-0 w-8;
+    background: linear-gradient(90deg, transparent, hsl(var(--card)));
+  }
+
+  .mobile-table-surface table {
+    @apply min-w-[42rem];
+  }
+
+  .mobile-table-surface th,
+  .mobile-table-surface td {
+    @apply h-12 whitespace-nowrap px-3 text-sm;
+  }
+
+  .mobile-table-sticky-first th:first-child,
+  .mobile-table-sticky-first td:first-child {
+    @apply sticky left-0 z-10 bg-card shadow-soft;
+  }
+
+  .mobile-filter-chips {
+    @apply -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 overscroll-x-contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-filter-chips > * {
+    @apply min-h-11 shrink-0;
+  }
+
+  .mobile-sticky-actions {
+    @apply sticky bottom-0 z-30 -mx-4 mt-4 border-t border-border/70 bg-background/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-float md:static md:m-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none;
+  }
+}
+
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea,
+  button,
+  [role="button"],
+  [role="combobox"] {
+    min-height: 44px;
+  }
+
+  .stat-card {
+    @apply rounded-xl p-4;
+  }
+
+  .stat-card:hover {
+    transform: none;
   }
 }
 

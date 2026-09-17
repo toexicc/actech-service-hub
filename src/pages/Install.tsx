@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Smartphone, Monitor, Apple, Chrome } from "lucide-react";
+import { CheckCircle2, Download, Smartphone, Monitor, Apple, Chrome, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -51,32 +51,36 @@ const Install = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
+    <div className="min-h-screen bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))]">
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-md flex-col justify-center space-y-5">
+        <Button variant="ghost" onClick={() => navigate("/")} className="w-fit rounded-full px-3">
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+
         <div className="text-center">
           <img 
             src="/pwa-192x192.png" 
             alt="AC Tech Repair Logo" 
-            className="w-24 h-24 mx-auto rounded-2xl shadow-lg"
+            className="mx-auto h-24 w-24 rounded-2xl shadow-lg"
           />
-          <h1 className="text-2xl font-bold text-foreground mt-4">AC Tech Service Hub</h1>
-          <p className="text-muted-foreground mt-2">Install the app for the best experience</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground">ACTech Hub</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Add it to your home screen for a faster full-screen workspace.</p>
         </div>
 
         {isInstalled ? (
-          <Card>
+          <Card className="border-success/30 bg-success/5">
             <CardHeader className="text-center">
-              <CardTitle className="text-green-600 flex items-center justify-center gap-2">
-                <Download className="h-5 w-5" />
-                App Installed!
+              <CardTitle className="flex items-center justify-center gap-2 text-success">
+                <CheckCircle2 className="h-5 w-5" />
+                App Installed
               </CardTitle>
               <CardDescription>
-                You can now access AC Tech Service Hub from your home screen.
+                ACTech Hub is ready from your home screen.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate("/")} className="w-full">
+              <Button onClick={() => navigate("/")} className="h-12 w-full rounded-xl">
                 Open App
               </Button>
             </CardContent>
@@ -85,15 +89,16 @@ const Install = () => {
           <>
             {/* Install Button (Android/Desktop Chrome) */}
             {deferredPrompt && (
-              <Card className="border-primary">
+              <Card className="border-primary/40 bg-primary/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Download className="h-5 w-5 text-primary" />
                     Quick Install
                   </CardTitle>
+                  <CardDescription>Use the browser prompt when it appears.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button onClick={handleInstallClick} className="w-full" size="lg">
+                  <Button onClick={handleInstallClick} className="h-12 w-full rounded-xl" size="lg">
                     Install App Now
                   </Button>
                 </CardContent>
@@ -102,7 +107,7 @@ const Install = () => {
 
             {/* iOS Instructions */}
             {isIOS && (
-              <Card>
+              <Card className="shadow-soft">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Apple className="h-5 w-5" />
@@ -111,15 +116,15 @@ const Install = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">1</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">1</span>
                     <p className="text-sm text-muted-foreground">Tap the <strong>Share</strong> button at the bottom of Safari</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">2</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">2</span>
                     <p className="text-sm text-muted-foreground">Scroll down and tap <strong>"Add to Home Screen"</strong></p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">3</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">3</span>
                     <p className="text-sm text-muted-foreground">Tap <strong>"Add"</strong> in the top right corner</p>
                   </div>
                 </CardContent>
@@ -128,7 +133,7 @@ const Install = () => {
 
             {/* Android Instructions */}
             {!isIOS && !deferredPrompt && (
-              <Card>
+              <Card className="shadow-soft">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Smartphone className="h-5 w-5" />
@@ -137,15 +142,15 @@ const Install = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">1</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">1</span>
                     <p className="text-sm text-muted-foreground">Tap the <strong>menu icon</strong> (⋮) in Chrome</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">2</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">2</span>
                     <p className="text-sm text-muted-foreground">Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">3</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">3</span>
                     <p className="text-sm text-muted-foreground">Tap <strong>"Install"</strong> to confirm</p>
                   </div>
                 </CardContent>
@@ -153,7 +158,7 @@ const Install = () => {
             )}
 
             {/* Desktop Instructions */}
-            <Card>
+            <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Monitor className="h-5 w-5" />
@@ -172,10 +177,7 @@ const Install = () => {
           </>
         )}
 
-        {/* Back to Login */}
-        <Button variant="ghost" onClick={() => navigate("/")} className="w-full">
-          Back to Login
-        </Button>
+        <p className="text-center text-xs text-muted-foreground">On the published app, recent screens can reopen faster after the first visit.</p>
       </div>
     </div>
   );

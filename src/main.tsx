@@ -3,6 +3,7 @@ import "./index.css";
 
 async function cleanupLegacyPwaServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
+  if (import.meta.env.PROD) return;
 
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
@@ -128,8 +129,7 @@ function installGlobalErrorHandlers() {
     // continue without the auth interceptor
   }
 
-  // If a legacy PWA service worker was previously installed, unregister it.
-  // This prevents the browser from repeatedly requesting /sw.js (now removed).
+  // Keep preview/dev free of stale app-shell service workers.
   await cleanupLegacyPwaServiceWorker();
 
   // Initialize OneSignal for push notifications
@@ -138,6 +138,13 @@ function installGlobalErrorHandlers() {
     oneSignalModule.initOneSignal();
   } catch {
     // push notifications unavailable
+  }
+
+  try {
+    const serviceWorkerModule = await importWithRetry(() => import("./registerServiceWorker"));
+    await serviceWorkerModule.registerAppServiceWorker();
+  } catch {
+    // offline app shell unavailable
   }
 
   createRoot(rootElement).render(
