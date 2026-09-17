@@ -1240,16 +1240,16 @@ const ServiceForm = ({
 
                   return (
                     <FormItem>
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <FormLabel>Technician Department:</FormLabel>
-                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <label className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                           <input
                             type="checkbox"
-                            className="h-3.5 w-3.5 accent-primary"
+                            className="h-4 w-4 shrink-0 accent-primary"
                             checked={showUnavailableTechs}
                             onChange={(e) => setShowUnavailableTechs(e.target.checked)}
                           />
-                          Show unavailable staff
+                          <span className="min-w-0 break-words">Show unavailable staff</span>
                         </label>
                       </div>
 
@@ -1258,7 +1258,7 @@ const ServiceForm = ({
                           options={deptOptions}
                           selected={selectedDepts}
                           onChange={(values) => field.onChange(values.join(", "))}
-                          placeholder="Select Departments (auto-assigns a technician)"
+                          placeholder="Select departments"
                         />
                       </FormControl>
                       {preview && (

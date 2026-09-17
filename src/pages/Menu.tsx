@@ -449,26 +449,27 @@ const Menu = () => {
           </div>
         </div>
 
-        {/* Quick actions — compact single row above Today's numbers */}
+        {/* Quick actions */}
         <section className="mb-6">
-          <div className="glass-panel rounded-xl sm:rounded-2xl px-3 py-2 flex flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 shrink-0">
+          <div className="glass-panel rounded-xl sm:rounded-2xl p-3">
+            <span className="block px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Quick actions
             </span>
-            <div className="h-4 w-px bg-border/60 hidden md:block" />
-            {quickActions.map((action, index) => (
-              <Button
-                variant="ghost"
-                size="sm"
-                key={index}
-                onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
-                className="h-10 shrink-0 rounded-full px-3 text-xs text-foreground hover:bg-primary/10 hover:text-primary"
-                title={action.description}
-              >
-                <action.icon className="h-4 w-4" />
-                <span>{action.title}</span>
-              </Button>
-            ))}
+            <div className="mt-2 grid grid-cols-2 gap-2 lg:flex lg:flex-wrap">
+              {quickActions.map((action, index) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  key={index}
+                  onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
+                  className="h-auto min-h-10 justify-start rounded-xl px-2.5 py-2 text-left text-xs text-foreground hover:bg-primary/10 hover:text-primary lg:w-auto lg:rounded-full lg:px-3"
+                  title={action.description}
+                >
+                  <action.icon className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 whitespace-normal break-words leading-tight">{action.title}</span>
+                </Button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -536,7 +537,6 @@ const Menu = () => {
                         <TableHead>Service ID</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -554,9 +554,6 @@ const Menu = () => {
                           </TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-warning font-medium">{service.status}</TableCell>
-                          <TableCell>
-                            <ExternalLink className="h-4 w-4 text-primary" />
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -588,7 +585,6 @@ const Menu = () => {
                         <TableHead>Service ID</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -598,12 +594,14 @@ const Menu = () => {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleEditService(service.serviceId)}
                         >
-                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell className="font-medium">
+                            <span className="inline-flex items-center gap-1">
+                              {service.serviceId}
+                              <ServicePreviewButton serviceId={service.serviceId} />
+                            </span>
+                          </TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-destructive font-medium">{service.status}</TableCell>
-                          <TableCell>
-                            <ExternalLink className="h-4 w-4 text-primary" />
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

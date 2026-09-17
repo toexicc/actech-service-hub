@@ -532,10 +532,10 @@ const RequestForParts = () => {
         {/* Requests Table */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle className="text-xl sm:text-2xl">My Requests</CardTitle>
-              <div className="grid w-full gap-2 sm:flex sm:w-auto sm:items-center sm:gap-4">
-                <div className="min-w-0 sm:w-[150px]">
+              <div className="grid w-full gap-2 lg:flex lg:w-auto lg:items-center lg:gap-4">
+                <div className="min-w-0 lg:w-[150px]">
                   <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="All Status" />
@@ -549,7 +549,7 @@ const RequestForParts = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="relative min-w-0 sm:w-64">
+                <div className="relative min-w-0 lg:w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search..."
@@ -558,7 +558,7 @@ const RequestForParts = () => {
                     className="pl-8"
                   />
                 </div>
-                <Button variant="outline" size="icon" onClick={fetchRequests} disabled={isLoading} className="w-full sm:w-10">
+                <Button variant="outline" size="icon" onClick={fetchRequests} disabled={isLoading} className="w-full lg:w-10">
                   <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                 </Button>
               </div>

@@ -293,7 +293,7 @@ export const PosDocumentActions = ({
         return (
           <div
             key={d.kind}
-            className="flex flex-col gap-3 rounded-md border border-border/60 bg-background/60 p-2 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-md border border-border/60 bg-background/60 p-2 lg:flex-row lg:items-center lg:justify-between"
           >
             <div className="min-w-0">
               <p className="break-words text-sm font-medium">{d.title}</p>
@@ -301,7 +301,7 @@ export const PosDocumentActions = ({
                 {ready ? d.hint : checking ? "Checking availability..." : "Not available yet"}
               </p>
             </div>
-            <div className="grid w-full shrink-0 grid-cols-3 gap-1 sm:flex sm:w-auto">
+            <div className="grid w-full shrink-0 grid-cols-3 gap-1 lg:flex lg:w-auto">
               {d.onGenerate && (
               <Button
                 size="sm"
@@ -310,7 +310,7 @@ export const PosDocumentActions = ({
                 aria-label={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
                 title={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
                 onClick={() => (editsWarranty ? openWarrantyEditor() : d.onGenerate?.())}
-                className="col-span-3 sm:col-span-1"
+                className="col-span-3 lg:col-span-1"
               >
                 {d.generating || (editsWarranty && loadingWarrantyEditor) ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
