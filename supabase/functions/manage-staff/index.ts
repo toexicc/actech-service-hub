@@ -95,7 +95,19 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: { name: body.name, username: body.username ?? body.email },
       });
-      if (cErr || !created.user) throw cErr ?? new Error("Create failed");
+      if (cErr || !created.user) {
+        const raw = cErr?.message ?? "";
+        const weak = /weak|easy to guess|pwned|leaked|at least/i.test(raw);
+        return new Response(
+          JSON.stringify({
+            error: weak
+              ? "Account not created — that password is too easy to guess. Use at least 8 characters mixing letters, numbers and a symbol."
+              : `Account not created — ${raw || "please try again"}`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       const uid = created.user.id;
       await admin.from("profiles").upsert({
         id: uid,
