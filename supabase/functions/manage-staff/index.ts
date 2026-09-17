@@ -114,11 +114,12 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "update") {
-      const fail = (msg: string) =>
+      const fail = (msg: string, status = 400) =>
         new Response(JSON.stringify({ error: msg }), {
-          status: 500,
+          status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+
 
       const updates: Record<string, unknown> = {};
       if (body.name !== undefined) updates.name = body.name;
