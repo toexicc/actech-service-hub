@@ -29,6 +29,8 @@ import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { ClientSearchSuggestions } from "@/components/ClientSearchSuggestions";
+import { DeviceFieldSuggest } from "@/components/DeviceFieldSuggest";
+import { rememberDeviceFields } from "@/lib/deviceCatalog";
 import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
@@ -491,6 +493,13 @@ const ServiceForm = ({
   });
 
   const onSubmit = async (data: FormValues, linkChoice?: "link" | "walkin") => {
+    // Remember the device wording so it can be suggested on future intakes.
+    rememberDeviceFields({
+      brand: data.brand,
+      model: data.model,
+      color: data.color,
+      memory: data.memory,
+    });
     // Public /intake path: submit into the queue instead of creating a full service.
     // Front-desk staff will complete it into a real service from /queueing.
     if (isPublic) {
@@ -1481,7 +1490,14 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Brand:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="brand"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          placeholder="e.g. Apple"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1495,7 +1511,14 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Color:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="color"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          placeholder="e.g. Space Gray"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1509,7 +1532,15 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Model:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="model"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          brand={form.watch("brand")}
+                          placeholder="e.g. iPhone 13 Pro Max"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1523,7 +1554,14 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Storage:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="storage"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          placeholder="e.g. 256GB"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
