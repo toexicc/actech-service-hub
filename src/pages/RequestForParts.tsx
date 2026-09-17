@@ -478,16 +478,16 @@ const RequestForParts = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Package className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Request for Parts</h1>
+      <div className="p-4 sm:p-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <Package className="h-7 w-7 shrink-0 text-primary sm:h-8 sm:w-8" />
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold sm:text-2xl">Request for Parts</h1>
               <p className="text-muted-foreground">Submit parts requests for services</p>
             </div>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             New Request
           </Button>
@@ -532,11 +532,11 @@ const RequestForParts = () => {
         {/* Requests Table */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>My Requests</CardTitle>
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-xl sm:text-2xl">My Requests</CardTitle>
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:w-auto sm:items-center sm:gap-4">
                 <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-full sm:w-[150px]">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -547,7 +547,7 @@ const RequestForParts = () => {
                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="relative w-64">
+                <div className="relative col-span-1 min-w-0 sm:w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search..."
@@ -571,7 +571,7 @@ const RequestForParts = () => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                <div className="mobile-table-surface mobile-table-sticky-first overflow-x-auto">
                   <Table>
                       <TableHeader>
                         <TableRow>
@@ -645,11 +645,11 @@ const RequestForParts = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-muted-foreground">
                       Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRequests.length)} of {filteredRequests.length}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -679,11 +679,11 @@ const RequestForParts = () => {
 
         {/* Request Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="!flex !flex-col max-h-[95dvh] max-w-2xl">
             <DialogHeader>
               <DialogTitle>New Part Request</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto pr-1">
               <div className="space-y-2">
                 <Label>Service ID *</Label>
                 <Input
@@ -719,7 +719,7 @@ const RequestForParts = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Brand</Label>
                   <Input
@@ -773,7 +773,7 @@ const RequestForParts = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Quantity *</Label>
                   <Input
@@ -821,7 +821,7 @@ const RequestForParts = () => {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="shrink-0">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
@@ -841,14 +841,14 @@ const RequestForParts = () => {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="!flex !flex-col max-h-[95dvh] max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Request</DialogTitle>
               <DialogDescription>
                 Edit Part ID: {editingRequest?.partId}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto pr-1">
               <div className="space-y-2">
                 <Label>Part Name *</Label>
                 <Input
@@ -873,7 +873,7 @@ const RequestForParts = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Brand</Label>
                   <Input
@@ -927,7 +927,7 @@ const RequestForParts = () => {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="shrink-0">
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
               </Button>

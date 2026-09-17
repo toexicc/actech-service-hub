@@ -280,8 +280,6 @@
   input,
   select,
   textarea,
-  button,
-  [role="button"],
   [role="combobox"] {
     min-height: 44px;
   }

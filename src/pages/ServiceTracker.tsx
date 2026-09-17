@@ -1555,16 +1555,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 ? "Walk-In Services"
                 : "Ongoing Services"}
             </CardTitle>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
-              <div className="-mx-1 overflow-x-auto px-1 pb-1 md:mx-0 md:overflow-visible md:px-0 md:pb-0">
-                <TabsList className="inline-flex h-auto min-w-max gap-1 p-1 md:min-w-0 md:flex-wrap">
+            <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <SelectTrigger className="mt-3 md:hidden">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="walkin">Walk In</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="closed">Cancelled / RTO / On Hold</SelectItem>
+              </SelectContent>
+            </Select>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3 hidden md:block">
+                <TabsList className="inline-flex h-auto gap-1 p-1 md:flex-wrap">
                   <TabsTrigger value="all" className="min-h-9 px-3">All</TabsTrigger>
                   <TabsTrigger value="walkin" className="min-h-9 px-3">Walk In</TabsTrigger>
                   <TabsTrigger value="ongoing" className="min-h-9 px-3">Ongoing</TabsTrigger>
                   <TabsTrigger value="completed" className="min-h-9 px-3">Completed</TabsTrigger>
                   <TabsTrigger value="closed" className="min-h-9 px-3">Cancelled / RTO / On Hold</TabsTrigger>
                 </TabsList>
-              </div>
             </Tabs>
           </CardHeader>
           <CardContent>
