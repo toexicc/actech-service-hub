@@ -195,9 +195,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       if (items.length) sections.push({ title: "Technician Portal", items });
     }
 
-    if (userRole === "admin" || userRole === "technician") {
+    if (userRole === "admin") {
       const items = uniqueVisible([{ title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" }]);
-      if (items.length) sections.push({ title: userRole === "technician" ? "Technician Portal" : "Parts", items });
+      if (items.length) sections.push({ title: "Parts", items });
     }
 
     return sections;

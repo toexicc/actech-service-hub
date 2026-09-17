@@ -1873,7 +1873,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                            )}
                          >
                             <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
+                           <div className="flex min-w-0 flex-wrap items-center gap-2">
                                  <span>{service.serviceId}</span>
                                  <ServicePreviewButton serviceId={service.serviceId} />
                                 {overdueStatus && <AlertCircle className="h-4 w-4 text-destructive" />}
