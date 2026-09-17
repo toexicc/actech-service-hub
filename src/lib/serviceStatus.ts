@@ -104,3 +104,17 @@ export const clientStatusLabel = (status?: string): string => {
   return CLIENT_STATUS_LABELS[s] ?? s;
 };
 
+
+/**
+ * Statuses at which the overdue flag and the "In service" day counter STOP.
+ * The repair is finished (or the ticket is closed), so any further waiting is
+ * on the client, not on the shop.
+ */
+export const isTimeTrackedStatus = (status?: string): boolean => {
+  const s = (status || "").trim().toLowerCase();
+  if (!s) return true;
+  if (classifyStatus(s) !== "active") return false;
+  if (s === "done repair - for release") return false;
+  if (s === "done repair - advise client") return false;
+  return true;
+};
