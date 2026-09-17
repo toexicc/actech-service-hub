@@ -158,19 +158,21 @@ export const DeviceReportPhotos = ({
 
   if (!editable && !loading && photos.length === 0) return null;
 
-  return (
-    <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ImageIcon className="h-5 w-5" />
-          <Label className="text-lg font-semibold">{title}</Label>
-        </div>
-        <span className="text-sm text-muted-foreground">
-          {photos.length}
-          {editable ? `/${MAX_PHOTOS}` : ""} photos
-        </span>
+  const header = (
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-5 w-5" />
+        <Label className="text-lg font-semibold">{title}</Label>
       </div>
+      <span className="text-sm text-muted-foreground">
+        {photos.length}
+        {editable ? `/${MAX_PHOTOS}` : ""} photos
+      </span>
+    </div>
+  );
 
+  const body = (
+    <>
       {editable && (
         <>
           <p className="text-sm text-muted-foreground">
@@ -262,14 +264,41 @@ export const DeviceReportPhotos = ({
       ) : editable ? (
         <p className="text-sm text-muted-foreground">No device report photos yet.</p>
       ) : null}
+    </>
+  );
 
-      <PhotoGalleryDialog
-        photos={photos.map((p) => ({ id: p.id, url: p.signedUrl }))}
-        index={previewIndex}
-        onIndexChange={setPreviewIndex}
-        title="Device Report Photo"
-        alt="Device report"
-      />
+  const gallery = (
+    <PhotoGalleryDialog
+      photos={photos.map((p) => ({ id: p.id, url: p.signedUrl }))}
+      index={previewIndex}
+      onIndexChange={setPreviewIndex}
+      title="Device Report Photo"
+      alt="Device report"
+    />
+  );
+
+  if (collapsible) {
+    return (
+      <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            {header}
+            <span className="text-xs ml-2">{collapsibleOpen ? "▼" : "▶"}</span>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
+          {body}
+        </CollapsibleContent>
+        {gallery}
+      </Collapsible>
+    );
+  }
+
+  return (
+    <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
+      {header}
+      {body}
+      {gallery}
     </div>
   );
 };
