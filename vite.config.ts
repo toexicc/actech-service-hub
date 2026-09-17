@@ -19,9 +19,6 @@ export default defineConfig(({ mode }) => ({
       modernPolyfills: true,
       renderLegacyChunks: true,
     }),
-    ...(mode === "development"
-      ? []
-      : [
     VitePWA({
       strategies: "generateSW",
       filename: "sw.js",
@@ -69,7 +66,6 @@ export default defineConfig(({ mode }) => ({
         ],
       },
     }),
-        ]),
     mode === "development" && componentTagger(),
   ].filter(Boolean),
   // Smart TV browsers (Tizen / webOS / Android TV) run older Chromium builds.

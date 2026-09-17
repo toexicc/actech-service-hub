@@ -40,6 +40,7 @@ import { IntakeShareActions } from "@/components/IntakeShareActions";
 import { useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { invokeAiFunction } from "@/lib/aiFormatters";
+import { cn } from "@/lib/utils";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";

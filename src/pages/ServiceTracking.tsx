@@ -1480,13 +1480,14 @@ const ServiceTracking = () => {
                                         key={i}
                                         className="rounded-xl border border-border/60 bg-background/60 p-3"
                                       >
-                                        <div className="flex items-start gap-3">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
+                                          <div className="flex min-w-0 items-start gap-3">
                                           <Checkbox
                                             id={`svc-line-${i}`}
                                             checked={checked}
                                             onCheckedChange={() => toggleBreakdown(i)}
                                             disabled={locked}
-                                            className="mt-0.5"
+                                            className="mt-0.5 shrink-0"
                                           />
                                           <span
                                             role="button"
@@ -1498,12 +1499,12 @@ const ServiceTracking = () => {
                                                 toggleBreakdown(i);
                                               }
                                             }}
-                                            className={cn("flex-1 text-sm", !locked && "cursor-pointer")}
+                                            className={cn("min-w-0 flex-1 whitespace-normal break-words text-sm leading-relaxed", !locked && "cursor-pointer")}
                                           >
                                             {line.name}
                                             <span
                                               className={cn(
-                                                "ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                                                "ml-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
                                                 line.required
                                                   ? "bg-primary/15 text-primary"
                                                   : "bg-muted text-muted-foreground",
@@ -1512,16 +1513,17 @@ const ServiceTracking = () => {
                                               {line.required ? "Required" : "Optional"}
                                             </span>
                                             {(line as any).interim && (
-                                              <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                                              <span className="ml-2 inline-flex rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-warning">
                                                 Interim
                                               </span>
                                             )}
                                             {approvedLine && (
-                                              <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                                              <span className="ml-2 inline-flex rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-success">
                                                 Already approved
                                               </span>
                                             )}
                                           </span>
+                                          </div>
                                           {approvedLine && (
                                             <Lock
                                               className="h-4 w-4 text-muted-foreground"
@@ -1531,7 +1533,7 @@ const ServiceTracking = () => {
 
                                           <span
                                             className={cn(
-                                              "text-sm font-semibold",
+                                              "self-end whitespace-nowrap rounded-full bg-muted/50 px-2.5 py-1 text-sm font-semibold sm:bg-transparent sm:px-0 sm:py-0",
                                               !checked && "text-muted-foreground",
                                             )}
                                           >
@@ -1546,7 +1548,7 @@ const ServiceTracking = () => {
                                         {!!line.options?.length && (
                                           <div
                                             className={cn(
-                                              "mt-2 space-y-1 pl-8 transition-opacity",
+                                              "mt-2 space-y-1 transition-opacity sm:pl-8",
                                               !checked && !line.required && "pointer-events-none opacity-50",
                                               approvedLine && "pointer-events-none opacity-70",
                                             )}
@@ -1568,7 +1570,7 @@ const ServiceTracking = () => {
                                                     }
                                                   }}
                                                   className={cn(
-                                                    "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
+                                                    "flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm",
                                                     isChosen
                                                       ? "border-primary bg-primary/10"
                                                       : "border-border/60 bg-background/40",
@@ -1576,18 +1578,18 @@ const ServiceTracking = () => {
                                                     !checked && "text-muted-foreground",
                                                   )}
                                                 >
-                                                  <span className="flex items-center gap-2">
+                                                  <span className="flex min-w-0 items-start gap-2">
                                                     <span
                                                       className={cn(
-                                                        "h-3.5 w-3.5 rounded-full border",
+                                                        "mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border",
                                                         isChosen
                                                           ? "border-primary bg-primary"
                                                           : "border-muted-foreground/50",
                                                       )}
                                                     />
-                                                    {opt.label}
+                                                    <span className="min-w-0 break-words">{opt.label}</span>
                                                   </span>
-                                                  <span className="font-semibold">
+                                                  <span className="shrink-0 font-semibold">
                                                     ₱{Number(opt.cost || 0).toLocaleString()}
                                                   </span>
                                                 </div>
@@ -1603,36 +1605,36 @@ const ServiceTracking = () => {
 
                                 {quotedLines.length > 0 && (
                                   <div className="space-y-1 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-medium">Estimated total for the selected services</span>
-                                      <span className="font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
+                                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                                      <span className="break-words font-medium">Estimated total for the selected services</span>
+                                      <span className="whitespace-nowrap font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
                                     </div>
                                     {selectedRush > 0 && (
-                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>Rush Fee (10%)</span>
-                                        <span>₱{selectedRush.toLocaleString()}</span>
+                                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-xs text-muted-foreground">
+                                        <span className="break-words">Rush Fee (10%)</span>
+                                        <span className="whitespace-nowrap">₱{selectedRush.toLocaleString()}</span>
                                       </div>
                                     )}
                                     {selectedVat > 0 && (
-                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-xs text-muted-foreground">
                                         <span>VAT (12%)</span>
-                                        <span>₱{selectedVat.toLocaleString()}</span>
+                                        <span className="whitespace-nowrap">₱{selectedVat.toLocaleString()}</span>
                                       </div>
                                     )}
                                     {(selectedVat > 0 || selectedRush > 0) && (
-                                      <div className="flex items-center justify-between font-semibold">
+                                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 font-semibold">
                                         <span>{selectedVat > 0 ? "Total with VAT" : "Total"}</span>
-                                        <span className="text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
+                                        <span className="whitespace-nowrap text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
                                       </div>
                                     )}
                                     {quotedDiscount > 0 && (
-                                      <div className="flex items-center justify-between text-xs">
+                                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-xs">
                                         <span className="text-muted-foreground">Bundle discount</span>
                                         <span
                                           className={
                                             bundleDiscountWaived
                                               ? "text-muted-foreground line-through"
-                                              : "text-emerald-600 font-medium"
+                                              : "text-success font-medium"
                                           }
                                         >
                                           - ₱{quotedDiscount.toLocaleString()}
