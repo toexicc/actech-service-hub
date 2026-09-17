@@ -31,14 +31,14 @@ export function StatCard({ label, value, hint, icon, tone = "primary", onClick, 
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="relative min-w-0 pr-11 sm:flex sm:items-start sm:justify-between sm:gap-3 sm:pr-0">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+          <p className="break-normal text-[10px] font-medium uppercase leading-tight tracking-normal text-muted-foreground [overflow-wrap:normal] sm:text-xs sm:tracking-wide">{label}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">{value}</p>
           {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
         </div>
         {icon && (
-          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", toneMap[tone])}>
+          <div className={cn("absolute right-0 top-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:static", toneMap[tone])}>
             {icon}
           </div>
         )}

@@ -19,8 +19,8 @@ export function PageHeader({ title, subtitle, actions, icon, className }: PageHe
           </div>
         )}
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight truncate">{title}</h1>
-          {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
+          <h1 className="break-words text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">{title}</h1>
+          {subtitle && <p className="mt-0.5 break-words text-sm text-muted-foreground">{subtitle}</p>}
         </div>
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

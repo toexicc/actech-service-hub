@@ -1579,7 +1579,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="overflow-x-auto">
+              <>
+                <div className="grid gap-3 md:hidden">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={`mobile-skeleton-${i}`} className="rounded-2xl border bg-card p-4 shadow-[var(--shadow-soft)]">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <Skeleton className="h-4 w-28 max-w-full" />
+                          <Skeleton className="h-5 w-36 max-w-full" />
+                        </div>
+                        <Skeleton className="h-7 w-20 rounded-full" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-4/5" />
+                        <Skeleton className="h-4 w-3/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1619,7 +1638,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+                </div>
+              </>
             ) : servicesError ? (
               <div className="text-center py-8 space-y-3">
                 <p className="text-sm font-semibold text-destructive">Tickets could not be loaded</p>
@@ -1682,14 +1702,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           overdueStatus && "border-destructive/40 ring-1 ring-destructive/20",
                         )}
                       >
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="min-w-0">
-                             <div className="flex items-center gap-2">
-                               <span className="text-xs font-mono text-muted-foreground">{service.serviceId}</span>
-                               <ServicePreviewButton serviceId={service.serviceId} />
-                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
+                        <div className="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                             <div className="flex min-w-0 items-start gap-2">
+                               <span className="min-w-0 break-all font-mono text-xs text-muted-foreground">{service.serviceId}</span>
+                               <ServicePreviewButton serviceId={service.serviceId} className="h-8 w-8 shrink-0 rounded-full" />
+                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />}
                              </div>
-                            <p className="text-base font-semibold text-foreground truncate mt-0.5">{service.clientName || "N/A"}</p>
+                            <p className="mt-0.5 break-words text-base font-semibold leading-tight text-foreground">{service.clientName || "N/A"}</p>
                             <TicketFlagChips
                               service={service}
                               showWithinDay={activeTab !== "closed"}
@@ -1697,60 +1717,60 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               className="mt-1"
                             />
                           </div>
-                          <span className={cn("text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border font-medium whitespace-nowrap", getStatusTextColor(service.status || ""), "border-current/30")}>
+                          <span className={cn("max-w-full self-start break-words rounded-full border border-current/30 px-2 py-1 text-[10px] font-medium uppercase leading-tight", getStatusTextColor(service.status || ""))}>
                             {service.status || "N/A"}
                           </span>
                         </div>
 
                         <div className="space-y-1.5 text-sm">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Device</span>
-                            <span className="text-foreground truncate max-w-[60%] text-right">
+                            <span className="break-words text-right text-foreground">
                               {Array.from(new Set([service.deviceType, service.brand, service.deviceModel].filter(Boolean).map((v) => String(v).trim()))).join(" · ") || "N/A"}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Service</span>
-                            <span className="text-foreground truncate max-w-[60%] text-right">{service.service || "N/A"}</span>
+                            <span className="break-words text-right text-foreground">{service.service || "N/A"}</span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Technician</span>
-                            <span className="text-foreground truncate max-w-[60%] text-right">{service.technician || "Unassigned"}</span>
+                            <span className="break-words text-right text-foreground">{service.technician || "Unassigned"}</span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Admin</span>
-                            <span className="text-foreground truncate max-w-[60%] text-right">{service.adminRep || "N/A"}</span>
+                            <span className="break-words text-right text-foreground">{service.adminRep || "N/A"}</span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Cost</span>
-                            <span className="text-foreground tabular-nums">{service.serviceCost || "—"}</span>
+                            <span className="break-words text-right tabular-nums text-foreground">{service.serviceCost || "—"}</span>
                           </div>
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Duration in system</span>
-                            <span className="text-foreground tabular-nums">{durationLabel}</span>
+                            <span className="break-words text-right tabular-nums text-foreground">{durationLabel}</span>
                           </div>
                         </div>
 
-                        <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-xs">
-                          <div className="flex flex-col">
+                        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border/50 pt-3 text-xs sm:grid-cols-3">
+                          <div className="min-w-0">
                             <span className="text-muted-foreground">Service date</span>
-                            <span className="font-medium">
+                            <span className="block font-medium leading-tight">
                               {service.serviceDate ? displayDate(service.serviceDate, "MMM dd, yyyy") : "—"}
                             </span>
                           </div>
-                          <div className="flex flex-col">
+                          <div className="min-w-0">
                             <span className="text-muted-foreground">Target</span>
-                            <span className={cn("font-medium", overdueStatus && "text-destructive")}>
+                            <span className={cn("block font-medium leading-tight", overdueStatus && "text-destructive")}>
                               {service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "—"}
                             </span>
                           </div>
-                          <div className="flex flex-col text-right">
+                          <div className="col-span-2 min-w-0 sm:col-span-1 sm:text-right">
                             <span className="text-muted-foreground">In service</span>
-                            <span className={cn("font-semibold", inServiceDays > 7 && !isCompleted && "text-orange-600")}>
+                            <span className={cn("block font-semibold leading-tight", inServiceDays > 7 && !isCompleted && "text-warning")}>
                               {isCompleted ? "—" : `${inServiceDays} ${inServiceDays === 1 ? "day" : "days"}`}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="col-span-3 flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"

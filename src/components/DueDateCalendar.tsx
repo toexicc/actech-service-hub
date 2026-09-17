@@ -166,16 +166,16 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
                 <li key={s.serviceId}>
                   <button
                     onClick={() => handleOpen(s)}
-                    className="w-full text-left rounded-xl border bg-card hover:bg-muted/40 transition-colors p-3 flex items-center gap-3"
+                    className="flex w-full items-start gap-2 rounded-xl border bg-card p-3 text-left transition-colors hover:bg-muted/40 sm:items-center sm:gap-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-semibold text-foreground">{s.serviceId}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                      <div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                        <span className="max-w-full break-all font-mono text-sm font-semibold leading-tight text-foreground">{s.serviceId}</span>
+                        <span className="max-w-full break-words rounded-full bg-primary/10 px-2 py-0.5 text-xs leading-tight text-primary">
                           {s.status}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      <p className="mt-1 break-words text-xs leading-snug text-muted-foreground">
                         {s.clientName}
                         {s.deviceBrand || s.deviceModel
                           ? ` · ${[s.deviceBrand, s.deviceModel].filter(Boolean).join(" ")}`

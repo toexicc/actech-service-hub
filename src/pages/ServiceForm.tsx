@@ -1035,11 +1035,11 @@ const ServiceForm = ({
           </div>
         )}
 
-        <div className="max-w-4xl mx-auto bg-card rounded-lg shadow-xl p-6 md:p-8 border border-border/50 mb-0">
+        <div className="mx-auto mb-0 max-w-4xl rounded-lg border border-border/50 bg-card p-4 shadow-xl sm:p-6 md:p-8">
         
-        <div className="text-center mb-8">
+        <div className="mb-6 text-center md:mb-8">
           <img src={acTechLogo} alt="AC Tech Repair" className="mx-auto h-16 mb-4 object-contain" />
-          <h1 className="text-3xl font-bold text-blue-600 mb-2">{isPublic ? "Client Intake Form" : "Initial Diagnosis Form"}</h1>
+          <h1 className="mb-2 text-2xl font-bold leading-tight text-blue-600 sm:text-3xl">{isPublic ? "Client Intake Form" : "Initial Diagnosis Form"}</h1>
           <p className="text-muted-foreground">{isPublic ? "Please fill out your details below. Our team will be in touch shortly." : "Client Initial Diagnosis Form"}</p>
           <div className="mt-4 flex justify-center">
             <IntakeShareActions />
@@ -1050,19 +1050,19 @@ const ServiceForm = ({
         <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h2 className="text-lg font-semibold text-green-600 mb-3">Client ID Search</h2>
           <p className="text-xs text-green-700/70 mb-2">Search by Client ID or customer name.</p>
-          <div className="relative flex gap-2">
+          <div className="relative flex flex-col gap-2 sm:flex-row">
             <Input
               placeholder="Enter Client ID or customer name (e.g. CL1234, Yannie)"
               value={searchClientId}
               onChange={(e) => setSearchClientId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearchClientId()}
-              className="flex-1"
+              className="min-w-0 flex-1"
             />
             <Button
               type="button"
               onClick={() => handleSearchClientId()}
               disabled={isSearchingClient}
-              className="bg-green-600 hover:bg-green-700"
+              className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
             >
               <Search className="mr-2 h-4 w-4" />
               {isSearchingClient ? "Searching..." : "Search"}
@@ -2063,7 +2063,7 @@ const ServiceForm = ({
             </div>
 
             {/* Submit Button */}
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
               <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
@@ -2075,7 +2075,7 @@ const ServiceForm = ({
                 )}
               </Button>
               {!isPublic && (
-                <Button type="button" variant="outline" onClick={() => navigate("/menu")}>
+                <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate("/menu")}>
                   Cancel
                 </Button>
               )}

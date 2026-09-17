@@ -141,12 +141,12 @@ export const IntakeQueuePanel = () => {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
+      <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+        <div className="relative sm:col-span-2 lg:col-span-1 lg:w-72">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search queue #, name, phone, service ID"
-            className="pl-8 w-72"
+            className="w-full pl-8"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -161,7 +161,7 @@ export const IntakeQueuePanel = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full lg:w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -179,7 +179,7 @@ export const IntakeQueuePanel = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full lg:w-44">
             <SelectValue placeholder="Device type" />
           </SelectTrigger>
           <SelectContent>
@@ -191,10 +191,10 @@ export const IntakeQueuePanel = () => {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-1">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:col-span-2 lg:col-span-1 lg:w-auto">
           <Input
             type="date"
-            className="w-[150px]"
+            className="w-full lg:w-[150px]"
             value={dateFrom}
             onChange={(e) => {
               setDateFrom(e.target.value);
@@ -204,7 +204,7 @@ export const IntakeQueuePanel = () => {
           <span className="text-xs text-muted-foreground">to</span>
           <Input
             type="date"
-            className="w-[150px]"
+            className="w-full lg:w-[150px]"
             value={dateTo}
             onChange={(e) => {
               setDateTo(e.target.value);
@@ -215,6 +215,7 @@ export const IntakeQueuePanel = () => {
             <Button
               size="sm"
               variant="ghost"
+              className="col-span-3 justify-self-start lg:col-span-1"
               onClick={() => {
                 setDateFrom("");
                 setDateTo("");
@@ -225,10 +226,10 @@ export const IntakeQueuePanel = () => {
             </Button>
           )}
         </div>
-        <span className="text-xs text-muted-foreground">{filtered.length} record(s)</span>
+        <span className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-1">{filtered.length} record(s)</span>
       </div>
 
-      <div className="rounded-2xl border overflow-x-auto">
+      <div className="mobile-table-surface mobile-table-sticky-first rounded-2xl border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
