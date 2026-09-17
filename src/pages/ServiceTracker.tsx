@@ -1556,7 +1556,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 : "Ongoing Services"}
             </CardTitle>
             <Select value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <SelectTrigger className="mt-3 md:hidden">
+              <SelectTrigger className="mt-3 lg:hidden">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1567,7 +1567,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 <SelectItem value="closed">Cancelled / RTO / On Hold</SelectItem>
               </SelectContent>
             </Select>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3 hidden md:block">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3 hidden lg:block">
                 <TabsList className="inline-flex h-auto gap-1 p-1 md:flex-wrap">
                   <TabsTrigger value="all" className="min-h-9 px-3">All</TabsTrigger>
                   <TabsTrigger value="walkin" className="min-h-9 px-3">Walk In</TabsTrigger>
