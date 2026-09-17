@@ -1918,6 +1918,12 @@ const ManageClient = () => {
         serviceCost: updateServiceCost || serviceData.serviceCost || "0.00",
         partsUsed: serviceData.partsUsed || "N/A",
         discount: discountAmount > 0 ? discountAmount.toFixed(2) : String(serviceData.discount ?? "0.00"),
+        rushFee: (() => {
+          const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
+          const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
+          const r = rushAmount(costNum, disc, rushFee);
+          return r > 0 ? r.toFixed(2) : undefined;
+        })(),
         vat: (() => {
           const costNum = sanitizeNumber(String(updateServiceCost || serviceData.serviceCost || "0"));
           const disc = discountAmount > 0 ? discountAmount : sanitizeNumber(String(serviceData.discount ?? "0"));
