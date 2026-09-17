@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
 import { logTicketActivity } from "@/lib/activityLogger";
 import { PhotoGalleryDialog } from "@/components/PhotoGalleryDialog";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface DiagnosisPhotosProps {
   serviceId: string;
@@ -19,6 +20,10 @@ interface DiagnosisPhotosProps {
   kind?: "diagnosis_photo" | "interim_photo";
   /** Helper line shown above the upload buttons. */
   hint?: string;
+  /** Wrap the panel in a collapsible whose header acts as the trigger. */
+  collapsible?: boolean;
+  /** Initial open state when collapsible (defaults to false = minimized). */
+  defaultOpen?: boolean;
 }
 
 const BUCKET = "diagnosis-photos";
