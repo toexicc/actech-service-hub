@@ -392,7 +392,13 @@ const ServiceUpdate = () => {
     isFastTrack ||
     isRtoActech;
   const showPartsStage = stageStatus === "Ongoing Service";
-  const isOngoingService = savedStatus === "Ongoing Service" || stageStatus === "Ongoing Service";
+  // Tolerant match so casing/spacing differences in stored statuses still reveal
+  // the interim report tools while the ticket is in Ongoing Service.
+  const normStatus = (s: string) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const isOngoingService =
+    normStatus(savedStatus) === "ongoing service" ||
+    normStatus(stageStatus) === "ongoing service" ||
+    normStatus(updateStatus) === "ongoing service";
 
   const stageHint = (() => {
     if (isWithinTheDay)
