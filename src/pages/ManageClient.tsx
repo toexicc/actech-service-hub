@@ -3077,21 +3077,19 @@ const ManageClient = () => {
                           <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
                             {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
                           </div>
+                          {/* Device Diagnosis Photos (view only) - inside the formatter */}
+                          {serviceData?.serviceId && (
+                            <DiagnosisPhotos
+                              serviceId={serviceData.serviceId}
+                              title="Device Diagnosis - Photos"
+                              editable={false}
+                            />
+                          )}
                         </CollapsibleContent>
                       </Collapsible>
                     </div>
                   }
 
-                  {/* Device Diagnosis Photos (view only) - BELOW AI Diagnosis */}
-                  {serviceData?.serviceId && (
-                    <DiagnosisPhotos
-                      serviceId={serviceData.serviceId}
-                      title="Device Diagnosis - Photos"
-                      editable={false}
-                      collapsible
-                      defaultOpen={false}
-                    />
-                  )}
 
                   {/* AI Interim Report + interim photos (view only) */}
                   {serviceData?.serviceId && (
@@ -3231,15 +3229,15 @@ const ManageClient = () => {
                               }}
                             />
                           </div>
+                          {/* Device Report Photos (view only) - inside the formatter */}
+                          {serviceData?.serviceId && (
+                            <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                          )}
                         </CollapsibleContent>
                       </Collapsible>
                     </div>
                   }
 
-                  {/* Device Report Photos - shown only on Done Repair - For Release, BELOW AI Report */}
-                  {serviceData?.status === "Done Repair - For Release" && serviceData?.serviceId && (
-                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" collapsible defaultOpen={false} />
-                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="services">Service/s:</Label>

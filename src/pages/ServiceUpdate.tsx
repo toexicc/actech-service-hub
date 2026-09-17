@@ -1655,7 +1655,7 @@ const ServiceUpdate = () => {
                   <p className="text-sm text-muted-foreground">{stageHint}</p>
                 </div>
 
-                {(diagnosisEditable || !!(updateAIDiagnosis || updateTechnicianDiagnosis).trim()) && (
+                {(showDiagnosisStage || diagnosisEditable || !!(updateAIDiagnosis || updateTechnicianDiagnosis).trim()) && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isDiagnosisOpen} onOpenChange={setIsDiagnosisOpen}>
                       <CollapsibleTrigger asChild>
@@ -1859,15 +1859,16 @@ const ServiceUpdate = () => {
 
 
 
+                        {/* Device Diagnosis Photos uploader - inside the formatter for a cleaner layout */}
+                        {serviceData?.serviceId && (
+                          <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
+                        )}
+
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
                 )}
 
-                {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
-                {showDiagnosisStage && serviceData?.serviceId && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
-                )}
 
                 {(isOngoingService || interimNeeded || !!interim.report.trim()) && (
                   <InterimReportBlock
@@ -1912,7 +1913,7 @@ const ServiceUpdate = () => {
                   />
                 )}
 
-                {(reportEditable || reportStageReached || !!(updateServiceReport || updateTechnicianReport).trim()) && (
+                {(showReportStage || reportEditable || reportStageReached || !!(updateServiceReport || updateTechnicianReport).trim()) && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
@@ -2027,17 +2028,16 @@ const ServiceUpdate = () => {
                             }}
                           />
                         </div>
+                        {/* Device Report Photos - inside the formatter for a cleaner layout */}
+                        {serviceData?.serviceId && (
+                          <DeviceReportPhotos
+                            serviceId={serviceData.serviceId}
+                            editable={showReportEditors}
+                          />
+                        )}
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
-                )}
-
-                {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
-                {serviceData?.serviceId && showReportStage && (
-                  <DeviceReportPhotos
-                    serviceId={serviceData.serviceId}
-                    editable={showReportEditors}
-                  />
                 )}
 
 
