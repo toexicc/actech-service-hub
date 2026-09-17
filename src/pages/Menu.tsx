@@ -386,24 +386,30 @@ const Menu = () => {
   const renderMobileServices = (services: ServiceRecord[], tone: "warning" | "destructive") => (
     <div className="space-y-2 md:hidden">
       {services.map((service) => (
-        <Button
-          key={service.serviceId}
-          variant="ghost"
-          onClick={() => handleEditService(service.serviceId)}
-          className="h-auto w-full justify-start rounded-xl border border-border/70 bg-card p-3 text-left shadow-soft active:scale-[0.99]"
-        >
+        <div key={service.serviceId} className="relative rounded-xl border border-border/70 bg-card p-3 pr-20 shadow-soft">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-foreground">{service.serviceId}</span>
-                <ServicePreviewButton serviceId={service.serviceId} />
               </div>
               <p className="truncate text-sm text-foreground">{service.clientName}</p>
               <p className={cn("text-xs font-medium", tone === "warning" ? "text-warning" : "text-destructive")}>{service.status}</p>
             </div>
-            <ExternalLink className="mt-1 h-4 w-4 shrink-0 text-primary" />
+            <div className="absolute right-3 top-3 flex items-center gap-1">
+              <ServicePreviewButton serviceId={service.serviceId} className="h-10 w-10 rounded-full" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                onClick={() => handleEditService(service.serviceId)}
+                aria-label={`Open ticket ${service.serviceId}`}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </Button>
+        </div>
       ))}
     </div>
   );
