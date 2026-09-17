@@ -3077,21 +3077,19 @@ const ManageClient = () => {
                           <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground whitespace-pre-line">
                             {`${APPROVAL_DISCLAIMER}\n${VAT_DISCLAIMER}`}
                           </div>
+                          {/* Device Diagnosis Photos (view only) - inside the formatter */}
+                          {serviceData?.serviceId && (
+                            <DiagnosisPhotos
+                              serviceId={serviceData.serviceId}
+                              title="Device Diagnosis - Photos"
+                              editable={false}
+                            />
+                          )}
                         </CollapsibleContent>
                       </Collapsible>
                     </div>
                   }
 
-                  {/* Device Diagnosis Photos (view only) - BELOW AI Diagnosis */}
-                  {serviceData?.serviceId && (
-                    <DiagnosisPhotos
-                      serviceId={serviceData.serviceId}
-                      title="Device Diagnosis - Photos"
-                      editable={false}
-                      collapsible
-                      defaultOpen={false}
-                    />
-                  )}
 
                   {/* AI Interim Report + interim photos (view only) */}
                   {serviceData?.serviceId && (
