@@ -1481,7 +1481,14 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Brand:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="brand"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          placeholder="e.g. Apple"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1495,7 +1502,14 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Color:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="color"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          placeholder="e.g. Space Gray"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1509,7 +1523,15 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Model:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="model"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          brand={form.watch("brand")}
+                          placeholder="e.g. iPhone 13 Pro Max"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1523,7 +1545,14 @@ const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Storage:</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <DeviceFieldSuggest
+                          kind="storage"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          placeholder="e.g. 256GB"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
