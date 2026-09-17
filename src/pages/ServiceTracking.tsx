@@ -1607,17 +1607,23 @@ const ServiceTracking = () => {
                                       <span className="font-medium">Estimated total for the selected services</span>
                                       <span className="font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
                                     </div>
+                                    {selectedRush > 0 && (
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>Rush Fee (10%)</span>
+                                        <span>₱{selectedRush.toLocaleString()}</span>
+                                      </div>
+                                    )}
                                     {selectedVat > 0 && (
-                                      <>
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                          <span>VAT (12%)</span>
-                                          <span>₱{selectedVat.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between font-semibold">
-                                          <span>Total with VAT</span>
-                                          <span className="text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
-                                        </div>
-                                      </>
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>VAT (12%)</span>
+                                        <span>₱{selectedVat.toLocaleString()}</span>
+                                      </div>
+                                    )}
+                                    {(selectedVat > 0 || selectedRush > 0) && (
+                                      <div className="flex items-center justify-between font-semibold">
+                                        <span>{selectedVat > 0 ? "Total with VAT" : "Total"}</span>
+                                        <span className="text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
+                                      </div>
                                     )}
                                     {quotedDiscount > 0 && (
                                       <div className="flex items-center justify-between text-xs">
