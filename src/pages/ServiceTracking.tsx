@@ -850,11 +850,16 @@ const ServiceTracking = () => {
     if (!line || isLineLocked(line, i)) return;
     setSelectedIdx((prev) => {
       const removing = prev.includes(i);
-      // Deselecting a main service clears any option it had chosen.
-      if (removing && line.options?.length) {
+      if (line.options?.length) {
         setOptionChoice((oc) => {
           const next = { ...oc };
-          delete next[i];
+          if (removing) {
+            // Deselecting a main service clears any option it had chosen.
+            delete next[i];
+          } else if (!next[i]) {
+            // Re-selecting restores a priced option so the total updates again.
+            next[i] = line.selectedOption || line.options![0].label;
+          }
           return next;
         });
       }
