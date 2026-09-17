@@ -392,6 +392,7 @@ const ServiceUpdate = () => {
     isFastTrack ||
     isRtoActech;
   const showPartsStage = stageStatus === "Ongoing Service";
+  const isOngoingService = savedStatus === "Ongoing Service" || stageStatus === "Ongoing Service";
 
   const stageHint = (() => {
     if (isWithinTheDay)
@@ -1632,7 +1633,7 @@ const ServiceUpdate = () => {
 
 
 
-                {!statusChanged && !isFastTrack && !isRtoActech ? (
+                {!statusChanged && !isFastTrack && !isRtoActech && !isOngoingService ? (
                   <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 text-center">
                     <p className="text-sm font-semibold text-primary">Set the status first</p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -1643,7 +1644,7 @@ const ServiceUpdate = () => {
                 <>
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                    Step 2 — {stageStatus || "Update"}
+                     Step 2 — {stageStatus || savedStatus || "Update"}
                   </p>
                   <p className="text-sm text-muted-foreground">{stageHint}</p>
                 </div>
@@ -1862,7 +1863,7 @@ const ServiceUpdate = () => {
                   <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
                 )}
 
-                {(stageStatus === "Ongoing Service" || interimNeeded || !!interim.report.trim()) && (
+                {(isOngoingService || interimNeeded || !!interim.report.trim()) && (
                   <InterimReportBlock
                     serviceId={serviceData.serviceId}
                     clientName={serviceData.clientName}
@@ -1873,12 +1874,12 @@ const ServiceUpdate = () => {
                     onChange={(patch) => setInterim((prev) => ({ ...prev, ...patch }))}
                     needed={interimNeeded}
                     onNeededChange={setInterimNeeded}
-                    showToggle={stageStatus === "Ongoing Service"}
-                    editable={stageStatus === "Ongoing Service"}
-                    photosEditable={stageStatus === "Ongoing Service"}
+                    showToggle={isOngoingService}
+                    editable={isOngoingService}
+                    photosEditable={isOngoingService}
                     source="/service-update"
                     footer={
-                      stageStatus === "Ongoing Service" && !!interim.report.trim() ? (
+                      isOngoingService && !!interim.report.trim() ? (
                         <div className="rounded-md border border-dashed bg-muted/40 p-3 space-y-2">
                           <p className="text-xs text-muted-foreground">
                             Once the interim report is ready, send the ticket back to Confirmed
