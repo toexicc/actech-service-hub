@@ -3297,23 +3297,26 @@ const ManageClient = () => {
                           <div
                             key={i}
                             className={cn(
-                              "space-y-2 rounded-lg p-2",
-                              quotedProblems[i] && "border border-destructive/50 bg-destructive/5",
+                              "space-y-2 rounded-lg border border-border/60 bg-background/70 p-2",
+                              quotedProblems[i] && "border-destructive/50 bg-destructive/5",
                             )}
                           >
-                            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:grid-cols-12 sm:items-center">
-                              <input
-                                type="checkbox"
-                                className="mt-3 h-4 w-4 shrink-0 accent-primary sm:col-span-1 sm:mt-0"
-                                checked={line.selected}
-                                onChange={(e) =>
-                                  setQuotedLines((prev) =>
-                                    prev.map((l, idx) => (idx === i ? { ...l, selected: e.target.checked } : l)),
-                                  )
-                                }
-                              />
-                              <Input
-                                className="min-w-0 sm:col-span-6"
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-center">
+                              <label className="col-span-2 flex min-h-10 items-center gap-2 rounded-md bg-background/70 px-3 text-sm text-muted-foreground sm:col-span-1 sm:min-h-0 sm:justify-center sm:bg-transparent sm:px-0">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 shrink-0 accent-primary"
+                                  checked={line.selected}
+                                  onChange={(e) =>
+                                    setQuotedLines((prev) =>
+                                      prev.map((l, idx) => (idx === i ? { ...l, selected: e.target.checked } : l)),
+                                    )
+                                  }
+                                />
+                                <span className="sm:sr-only">Show to client</span>
+                              </label>
+                              <Textarea
+                                className="col-span-2 min-h-20 resize-none text-base sm:col-span-6 sm:min-h-10 sm:py-2 sm:text-sm"
                                 placeholder="Repair / service"
                                 value={line.name}
                                 onChange={(e) =>
@@ -3323,14 +3326,14 @@ const ManageClient = () => {
                                 }
                               />
                               {line.options?.length ? (
-                                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2 text-right text-sm font-medium text-muted-foreground sm:col-span-3 sm:bg-transparent sm:px-0 sm:py-0">
+                                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2 text-left text-sm font-medium text-muted-foreground sm:col-span-3 sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
                                   {lineEffectiveCost(line) > 0
                                     ? `Php ${lineEffectiveCost(line).toFixed(2)}`
                                     : "Choose option"}
                                 </div>
                               ) : (
                                 <Input
-                                  className="col-span-2 min-w-0 text-right sm:col-span-3"
+                                  className="col-span-2 min-w-0 text-left sm:col-span-3 sm:text-right"
                                   inputMode="decimal"
                                   placeholder="0.00"
                                   value={line.cost ? String(line.cost) : ""}
@@ -3346,7 +3349,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="icon"
                                 variant={line.required ? "secondary" : "ghost"}
-                                className="h-9 w-full sm:col-span-1 sm:w-9"
+                                className="h-10 w-full sm:col-span-1 sm:h-9 sm:w-9"
                                 aria-label={line.required ? "Make service optional" : "Make service required"}
                                 title={
                                   line.required
@@ -3369,29 +3372,32 @@ const ManageClient = () => {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="text-destructive sm:col-span-1"
+                                className="h-10 w-full text-destructive sm:col-span-1 sm:h-9 sm:w-9 sm:p-0"
                                 onClick={() => setQuotedLines((prev) => prev.filter((_, idx) => idx !== i))}
                               >
-                                X
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
 
                             {/* Options (e.g. OEM vs Original) */}
                             <div className="space-y-2 sm:space-y-1 sm:pl-8">
                               {(line.options ?? []).map((opt, oi) => (
-                                <div key={oi} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 rounded-md bg-muted/30 p-2 sm:grid-cols-12 sm:items-center sm:bg-transparent sm:p-0">
-                                  <input
-                                    type="radio"
-                                    className="mt-3 h-4 w-4 shrink-0 accent-primary sm:col-span-1 sm:mt-0"
-                                    checked={line.selectedOption === opt.label}
-                                    onChange={() =>
-                                      setQuotedLines((prev) =>
-                                        prev.map((l, idx) => (idx === i ? { ...l, selectedOption: opt.label } : l)),
-                                      )
-                                    }
-                                  />
-                                  <Input
-                                    className="min-w-0 text-sm sm:col-span-5 sm:h-8"
+                                <div key={oi} className="grid grid-cols-2 gap-2 rounded-md bg-muted/30 p-2 sm:grid-cols-12 sm:items-center sm:bg-transparent sm:p-0">
+                                  <label className="col-span-2 flex min-h-9 items-center gap-2 text-xs text-muted-foreground sm:col-span-1 sm:min-h-0 sm:justify-center">
+                                    <input
+                                      type="radio"
+                                      className="h-4 w-4 shrink-0 accent-primary"
+                                      checked={line.selectedOption === opt.label}
+                                      onChange={() =>
+                                        setQuotedLines((prev) =>
+                                          prev.map((l, idx) => (idx === i ? { ...l, selectedOption: opt.label } : l)),
+                                        )
+                                      }
+                                    />
+                                    <span className="sm:sr-only">Selected option</span>
+                                  </label>
+                                  <Textarea
+                                    className="col-span-2 min-h-16 resize-none text-sm sm:col-span-5 sm:min-h-8 sm:py-1.5"
                                     placeholder="Option label (e.g. OEM)"
                                     value={opt.label}
                                     onChange={(e) =>
@@ -3409,7 +3415,7 @@ const ManageClient = () => {
                                     }
                                   />
                                   <Input
-                                    className="col-span-2 min-w-0 text-right text-sm sm:col-span-3 sm:h-8"
+                                    className="col-span-2 min-w-0 text-left text-sm sm:col-span-3 sm:h-8 sm:text-right"
                                     inputMode="decimal"
                                     placeholder="0.00"
                                     value={opt.cost ? String(opt.cost) : ""}
@@ -3433,7 +3439,7 @@ const ManageClient = () => {
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    className="col-span-2 text-xs text-destructive sm:col-span-2 sm:h-8"
+                                    className="col-span-2 h-9 text-xs text-destructive sm:col-span-2 sm:h-8"
                                     onClick={() =>
                                       setQuotedLines((prev) =>
                                         prev.map((l, idx) => {
@@ -3456,7 +3462,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-auto min-h-9 whitespace-normal text-xs sm:h-7 sm:min-h-0"
+                                className="h-auto min-h-9 w-full justify-start whitespace-normal text-xs sm:h-7 sm:min-h-0 sm:w-auto"
                                 onClick={() =>
                                   setQuotedLines((prev) =>
                                     prev.map((l, idx) =>

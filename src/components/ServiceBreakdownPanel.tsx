@@ -90,7 +90,7 @@ export const ServiceBreakdownPanel = ({
 
 
   return (
-    <div className="bg-muted/30 p-4 rounded-md border space-y-3">
+    <div className="space-y-3 rounded-md border bg-muted/30 p-3 sm:p-4">
       {locked && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <span className="font-semibold">Paid out — locked.</span>{" "}
@@ -99,10 +99,10 @@ export const ServiceBreakdownPanel = ({
         </div>
       )}
       {/* Parts cost + payout math */}
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="space-y-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
+        <div className="space-y-1 sm:w-auto">
           <Label className="text-xs">Parts Cost (actual)</Label>
-          <div className="relative w-40">
+          <div className="relative w-full sm:w-40">
             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
             <Input
               className="pl-5 text-right"
@@ -117,6 +117,7 @@ export const ServiceBreakdownPanel = ({
         <Button
           size="sm"
           variant="outline"
+          className="w-full sm:w-auto"
           disabled={locked || !partsDirty || savePartsCost.isPending}
           onClick={async () => {
             try {
@@ -131,32 +132,32 @@ export const ServiceBreakdownPanel = ({
         </Button>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-4 text-sm rounded-md border bg-background/60 p-3">
-        <div>
+      <div className="grid gap-2 rounded-md border bg-background/60 p-3 text-sm min-[360px]:grid-cols-2 sm:grid-cols-4">
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Total Service Cost</p>
-          <p className="font-semibold">{peso(totalCost)}</p>
+          <p className="break-words font-semibold">{peso(totalCost)}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Less Parts Cost</p>
-          <p className="font-semibold">- {peso(partsValue)}</p>
+          <p className="break-words font-semibold">- {peso(partsValue)}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Gross Profit</p>
-          <p className={cn("font-semibold", grossProfit < 0 && "text-destructive")}>{peso(grossProfit)}</p>
+          <p className={cn("break-words font-semibold", grossProfit < 0 && "text-destructive")}>{peso(grossProfit)}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">Commission Pool ({commissionRate || 0}%)</p>
-          <p className="font-semibold text-orange-600">{peso(pool)}</p>
+          <p className="break-words font-semibold text-orange-600">{peso(pool)}</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="break-words text-sm">
           <span className="text-muted-foreground">Allocated:</span>{" "}
           <span className={cn("font-semibold", overAllocated && "text-destructive")}>{peso(sum)}</span>
           <span className="text-muted-foreground"> of {peso(pool)} pool</span>
         </div>
-        <Button size="sm" variant="outline" disabled={locked} onClick={() => setDraft((p) => [...p, { serviceName: "", technicianId: null, technicianName: "", cost: 0 }])}>
+        <Button className="w-full sm:w-auto" size="sm" variant="outline" disabled={locked} onClick={() => setDraft((p) => [...p, { serviceName: "", technicianId: null, technicianName: "", cost: 0 }])}>
           <Plus className="h-4 w-4 mr-1" /> Add Line
         </Button>
       </div>
@@ -173,9 +174,9 @@ export const ServiceBreakdownPanel = ({
       ) : (
         <div className="space-y-2">
           {draft.map((r, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-center">
+            <div key={i} className="grid grid-cols-2 items-center gap-2 rounded-lg bg-background/70 p-2 sm:grid-cols-12 sm:bg-transparent sm:p-0">
               <Input
-                className="col-span-5"
+                className="col-span-2 sm:col-span-5"
                 placeholder="Service performed"
                 disabled={locked}
                 value={r.serviceName}
@@ -189,7 +190,7 @@ export const ServiceBreakdownPanel = ({
                   update(i, { technicianId: val, technicianName: t?.name ?? "" });
                 }}
               >
-                <SelectTrigger className="col-span-4">
+                <SelectTrigger className="col-span-2 sm:col-span-4">
                   <SelectValue placeholder={r.technicianName || "Technician"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -198,7 +199,7 @@ export const ServiceBreakdownPanel = ({
                   ))}
                 </SelectContent>
               </Select>
-              <div className="col-span-2 relative">
+              <div className="relative col-span-1 sm:col-span-2">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">₱</span>
                 <Input
                   className="pl-5 text-right"
@@ -216,7 +217,7 @@ export const ServiceBreakdownPanel = ({
               <Button
                 size="icon"
                 variant="ghost"
-                className="col-span-1"
+                className="col-span-1 h-10 w-full sm:h-9 sm:w-9"
                 disabled={locked}
                 onClick={() => setDraft((p) => p.filter((_, idx) => idx !== i))}
               >
@@ -227,11 +228,12 @@ export const ServiceBreakdownPanel = ({
         </div>
       )}
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-col justify-end gap-2 sm:flex-row">
         {rows.length > 0 && !locked && (
           <Button
             size="sm"
             variant="outline"
+            className="w-full sm:w-auto"
             disabled={save.isPending}
             onClick={async () => {
               try {
@@ -249,6 +251,7 @@ export const ServiceBreakdownPanel = ({
 
         <Button
           size="sm"
+          className="w-full sm:w-auto"
           disabled={locked || save.isPending || !isDirty}
           onClick={async () => {
             try {
