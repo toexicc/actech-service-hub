@@ -536,7 +536,6 @@ const Menu = () => {
                         <TableHead>Service ID</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -554,9 +553,6 @@ const Menu = () => {
                           </TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-warning font-medium">{service.status}</TableCell>
-                          <TableCell>
-                            <ExternalLink className="h-4 w-4 text-primary" />
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -588,7 +584,6 @@ const Menu = () => {
                         <TableHead>Service ID</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -598,12 +593,14 @@ const Menu = () => {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleEditService(service.serviceId)}
                         >
-                          <TableCell className="font-medium">{service.serviceId}</TableCell>
+                          <TableCell className="font-medium">
+                            <span className="inline-flex items-center gap-1">
+                              {service.serviceId}
+                              <ServicePreviewButton serviceId={service.serviceId} />
+                            </span>
+                          </TableCell>
                           <TableCell>{service.clientName}</TableCell>
                           <TableCell className="text-destructive font-medium">{service.status}</TableCell>
-                          <TableCell>
-                            <ExternalLink className="h-4 w-4 text-primary" />
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
