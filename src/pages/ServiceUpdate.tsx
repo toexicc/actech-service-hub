@@ -1859,15 +1859,16 @@ const ServiceUpdate = () => {
 
 
 
+                        {/* Device Diagnosis Photos uploader - inside the formatter for a cleaner layout */}
+                        {serviceData?.serviceId && (
+                          <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
+                        )}
+
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
                 )}
 
-                {/* Device Diagnosis Photos uploader (technician) - BELOW AI Diagnosis Formatter */}
-                {showDiagnosisStage && serviceData?.serviceId && (
-                  <DiagnosisPhotos serviceId={serviceData.serviceId} editable title="Device Diagnosis - Photos" />
-                )}
 
                 {(isOngoingService || interimNeeded || !!interim.report.trim()) && (
                   <InterimReportBlock
