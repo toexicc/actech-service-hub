@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
               ? "Account not created — that password is too easy to guess. Use at least 8 characters mixing letters, numbers and a symbol."
               : `Account not created — ${raw || "please try again"}`,
           }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "update") {
-      const fail = (msg: string, status = 400) =>
+      const fail = (msg: string, status = 200) =>
         new Response(JSON.stringify({ error: msg }), {
           status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
