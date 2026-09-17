@@ -141,8 +141,10 @@ const CompletedTransactions = () => {
     useMemo(() => filteredServices.map((s) => s.serviceId).filter(Boolean), [filteredServices]),
   );
   // Until the payment totals are in, nothing can be classified as paid or
-  // unpaid — the table waits instead of showing an empty, zeroed page.
-  const paymentsReady = !!paymentTotals && !paymentsFetching;
+  // unpaid — the table waits instead of showing an empty, zeroed page. When
+  // the filtered list is empty the payments query never runs (enabled: ids >
+  // 0), so treat payments as ready to let the "no tickets" state show.
+  const paymentsReady = (!!paymentTotals || filteredServices.length === 0) && !paymentsFetching;
   const collectedFor = (serviceId: string) => paymentTotals?.[serviceId] ?? 0;
 
   // A ticket is fully paid when payments (less refunds) reach its billable
