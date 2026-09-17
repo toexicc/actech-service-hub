@@ -227,9 +227,6 @@ const ServiceUpdate = () => {
   const [concernOpen, setConcernOpen] = useState(false);
   const [concernMessage, setConcernMessage] = useState("");
   const [concernSending, setConcernSending] = useState(false);
-  const [addlRepairOpen, setAddlRepairOpen] = useState(false);
-  const [addlRepairReason, setAddlRepairReason] = useState("");
-  const [addlRepairSending, setAddlRepairSending] = useState(false);
   // RTO - ACTech needs a client-visible reason before the status is saved.
   const [rtoReasonInput, setRtoReasonInput] = useState("");
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
@@ -497,75 +494,6 @@ const ServiceUpdate = () => {
     }
   };
 
-  /** Statuses where a technician may reopen diagnosis for a newly found issue. */
-  const canRequestAdditionalRepair = [
-    "Proceed Repair",
-    "Ongoing Service",
-    "Done Repair - Under Observation",
-    "Done Repair - Observation",
-  ].includes(savedStatus);
-
-  const handleAdditionalRepair = async () => {
-    const reason = addlRepairReason.trim();
-    if (!serviceData?.serviceId || !reason || addlRepairSending) return;
-    setAddlRepairSending(true);
-    try {
-      const { error } = await supabase
-        .from("services")
-        .update({
-          status: "Pending Diagnosis" as any,
-          approval_locked: false,
-          last_updated: new Date().toISOString(),
-        } as any)
-        .eq("service_id", serviceData.serviceId);
-      if (error) throw new Error(error.message);
-
-      setServiceData((prev: any) =>
-        prev ? { ...prev, status: "Pending Diagnosis", approvalLocked: false } : prev,
-      );
-      setUpdateStatus("Pending Diagnosis");
-
-      logActivity({
-        serviceId: serviceData.serviceId,
-        username,
-        role: userRole,
-        activity: `Additional repair requested — status moved from "${savedStatus}" to "Pending Diagnosis". Reason: ${reason}`,
-      }).catch(() => {});
-
-      try {
-        await notifyTechnicianConcern(
-          {
-            serviceId: serviceData.serviceId,
-            clientName: serviceData.clientName,
-            technician: updateTechnician || serviceData.technician || "",
-            adminRep: serviceData.adminRep,
-            receivingStaff: serviceData.receivingStaff,
-            deviceType: serviceData.deviceType,
-            device: [serviceData.brand, serviceData.model].filter(Boolean).join(" "),
-          },
-          `Additional repair needed — ${reason}. Ticket moved back to Pending Diagnosis for a new diagnosis and client re-approval.`,
-          username,
-        );
-      } catch {
-        /* notification is best-effort */
-      }
-
-      toast({
-        title: "Additional repair requested",
-        description: "Status is back to Pending Diagnosis and the assigned admin was notified.",
-      });
-      setAddlRepairReason("");
-      setAddlRepairOpen(false);
-    } catch (error) {
-      toast({
-        title: "Could not request additional repair",
-        description: error instanceof Error ? error.message : "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setAddlRepairSending(false);
-    }
-  };
 
 
 
@@ -1570,18 +1498,6 @@ const ServiceUpdate = () => {
                       Step 1 — Set Status: <span className="text-xs font-normal text-muted-foreground">(currently {savedStatus || "—"})</span>
                     </Label>
                     <div className="flex flex-wrap items-center gap-2">
-                      {canRequestAdditionalRepair && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5 border-amber-400 text-amber-700 hover:bg-amber-50"
-                          onClick={() => setAddlRepairOpen(true)}
-                        >
-                          <Wrench className="h-4 w-4" />
-                          Additional Repair
-                        </Button>
-                      )}
                       <Button
                         type="button"
                         size="sm"
@@ -2411,34 +2327,6 @@ const ServiceUpdate = () => {
             </Button>
             <Button onClick={handleSendConcern} disabled={concernSending || !concernMessage.trim() || !serviceData}>
               {concernSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</>) : "Send Concern"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={addlRepairOpen} onOpenChange={(o) => { if (!addlRepairSending) setAddlRepairOpen(o); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Additional Repair Needed</DialogTitle>
-            <DialogDescription>
-              {serviceData
-                ? `${serviceData.serviceId} — ${serviceData.clientName}. The ticket goes back to Pending Diagnosis so you can add the new finding, and ${concernRecipientLabel} will be notified for client re-approval.`
-                : "Select a service first."}
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={addlRepairReason}
-            onChange={(e) => setAddlRepairReason(e.target.value.slice(0, 500))}
-            placeholder="Describe the newly found issue that needs additional repair..."
-            rows={5}
-          />
-          <p className="text-xs text-muted-foreground">{addlRepairReason.length}/500</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddlRepairOpen(false)} disabled={addlRepairSending}>
-              Cancel
-            </Button>
-            <Button onClick={handleAdditionalRepair} disabled={addlRepairSending || !addlRepairReason.trim() || !serviceData}>
-              {addlRepairSending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>) : "Back to Pending Diagnosis"}
             </Button>
           </DialogFooter>
         </DialogContent>
