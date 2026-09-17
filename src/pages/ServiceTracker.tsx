@@ -672,7 +672,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
    * Planned service span: Service Date -> Estimated Target Date.
    */
   const calculateInServiceDays = (timestamp: string, status?: string, serviceDate?: string): number => {
-    if (status && status.toLowerCase().includes("completed")) return 0;
+    // Stops once the repair is done (for release / advise client) or the ticket is closed.
+    if (!isTimeTrackedStatus(status)) return 0;
     const parseDay = (value?: string): Date | null => {
       if (!value) return null;
       const [datePart] = String(value).split(", ");
