@@ -38,7 +38,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { useServiceTimings, formatWorkingDuration } from "@/hooks/useServiceTimings";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
-import { classifyStatus, isClosedStatus, isCompletedStatus } from "@/lib/serviceStatus";
+import { classifyStatus, isClosedStatus, isCompletedStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
 
