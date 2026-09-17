@@ -352,9 +352,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 p-1.5">
               <img src={acTechLogo} alt="AC Tech" className="h-full w-full object-contain" loading="lazy" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] font-medium capitalize text-muted-foreground">{userRole || "Workspace"}</p>
-              <h1 className="truncate text-base font-semibold leading-tight text-foreground">{currentNavItem.title}</h1>
+              <h1 className="line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground">{currentNavItem.title}</h1>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
