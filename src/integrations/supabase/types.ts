@@ -1610,6 +1610,7 @@ export type Database = {
           username: string
         }[]
       }
+      tidy_device_value: { Args: { _v: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "technician" | "management"
