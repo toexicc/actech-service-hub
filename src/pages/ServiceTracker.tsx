@@ -1596,7 +1596,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                   {paginatedServices.map((service) => {
                     const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
                     const overdueStatus = isOverdue(service.targetDate, service.status);
-                    const isCompleted = classifyStatus(service.status) !== "active";
+                    const isCompleted = !isTimeTrackedStatus(service.status);
                     const t = pageTimings.get(String(service.serviceId));
                     const durationText = formatWorkingDuration(t?.totalHours ?? null);
                     const durationLabel = durationText
@@ -1777,7 +1777,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                      {paginatedServices.map((service) => {
                         const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
                         const overdueStatus = isOverdue(service.targetDate, service.status);
-                        const isCompleted = classifyStatus(service.status) !== "active";
+                        const isCompleted = !isTimeTrackedStatus(service.status);
                         const t = pageTimings.get(String(service.serviceId));
                         const durationText = formatWorkingDuration(t?.totalHours ?? null);
                         const durationLabel = durationText
