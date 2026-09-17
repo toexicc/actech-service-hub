@@ -1090,6 +1090,242 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   }, [deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
 
 
+  const filterControls = (
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-7">
+      <div className="space-y-2">
+        <Label>Due Date Status</Label>
+        <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Services" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Services</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+            <SelectItem value="onTrack">On Track</SelectItem>
+            <SelectItem value="dueToday">Due Today</SelectItem>
+            <SelectItem value="dueSoon">Due Soon (&lt;2 days)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Device Type</Label>
+        <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Device Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Device Types</SelectItem>
+            {deviceTypes.map(type => (
+              <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Technician</Label>
+        <Select 
+          value={technicianFilter} 
+          onValueChange={setTechnicianFilter}
+          disabled={isTechnician}
+        >
+          <SelectTrigger className={isTechnician ? "opacity-60 cursor-not-allowed" : ""}>
+            <SelectValue placeholder="All Technicians" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
+            <SelectItem value="all">All Technicians</SelectItem>
+            {techniciansWithDept.map(tech => (
+              <SelectItem key={tech.name} value={tech.name}>
+                {tech.name} - {tech.department}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {isTechnician && (
+          <p className="text-xs text-muted-foreground">Locked to your account</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Department</Label>
+        <Select 
+          value={departmentFilter} 
+          onValueChange={setDepartmentFilter}
+          disabled={isTechnician}
+        >
+          <SelectTrigger className={isTechnician ? "opacity-60 cursor-not-allowed" : ""}>
+            <SelectValue placeholder="All Departments" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border shadow-md z-[100]">
+            <SelectItem value="all">All Departments</SelectItem>
+            {departments.map(dept => (
+              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {isTechnician && (
+          <p className="text-xs text-muted-foreground">Locked to your department</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Status</Label>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => selectStatus(v)}
+          disabled={statusLockedByCard}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
+            <SelectItem value="all">All Statuses</SelectItem>
+            {STATUS_OPTIONS.map(status => (
+              <SelectItem key={status} value={status}>{status}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {statusLockedByCard && (
+          <p className="text-xs text-muted-foreground">
+            Set by the status card — click the card again to unlock.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Service Date From</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !startDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {startDate ? format(startDate, "PPP") : "From date"}
+              {startDate && (
+                <X 
+                  className="ml-auto h-4 w-4" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStartDate(undefined);
+                  }}
+                />
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={startDate}
+              onSelect={(d) => { setStartDate(d); setActivePreset(null); }}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Service Date To</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !endDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {endDate ? format(endDate, "PPP") : "To date"}
+              {endDate && (
+                <X 
+                  className="ml-auto h-4 w-4" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEndDate(undefined);
+                  }}
+                />
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <CalendarComponent
+              mode="single"
+              selected={endDate}
+              onSelect={(d) => { setEndDate(d); setActivePreset(null); }}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+              disabled={(date) => startDate ? date < startDate : false}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Sort By</Label>
+        <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="targetDate">Target Date</SelectItem>
+            <SelectItem value="timestamp">Service Date</SelectItem>
+            <SelectItem value="inService">In Service Days</SelectItem>
+            <SelectItem value="technician">Technician</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Order</Label>
+        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Ascending</SelectItem>
+            <SelectItem value="desc">Descending</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2 lg:col-span-4">
+        <Label>Quick Date Filters</Label>
+        <div className="flex flex-wrap gap-2">
+          {([
+            ["today", "Today"],
+            ["yesterday", "Yesterday"],
+            ["thisWeek", "This Week"],
+            ["last7", "Last 7 Days"],
+            ["last30", "Last 30 Days"],
+            ["thisMonth", "This Month"],
+          ] as [DatePreset, string][]).map(([preset, label]) => (
+            <Button
+              key={preset}
+              variant={activePreset === preset ? "default" : "outline"}
+              size="sm"
+              onClick={() => applyDatePreset(preset)}
+            >
+              {label}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => applyDatePreset("clear")}
+          >
+            Clear Date Filter
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -1152,8 +1388,43 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </CardContent>
         </Card>
 
+        <div className="mb-4 md:hidden">
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 justify-start rounded-xl" onClick={() => setMobileFiltersOpen(true)}>
+              <SlidersHorizontal className="mr-2 h-4 w-4" />
+              Filters{activeFilterChips.length ? ` (${activeFilterChips.length})` : ""}
+            </Button>
+            {userRole === "management" && (
+              <Button variant="outline" size="icon" className="rounded-xl" onClick={() => setCsvDialogOpen(true)} aria-label="Download CSV">
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          {activeFilterChips.length > 0 && (
+            <MobileFilterChips className="mt-2">
+              {activeFilterChips.map((chip) => (
+                <Badge key={chip} variant="secondary" className="shrink-0">{chip}</Badge>
+              ))}
+            </MobileFilterChips>
+          )}
+        </div>
+
+        <MobileFilterSheet
+          open={mobileFiltersOpen}
+          onOpenChange={setMobileFiltersOpen}
+          title="Service filters"
+          footer={(
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={clearAllFilters}>Clear</Button>
+              <Button onClick={() => setMobileFiltersOpen(false)}>Done</Button>
+            </div>
+          )}
+        >
+          {filterControls}
+        </MobileFilterSheet>
+
         {/* Filters */}
-        <Card className="mb-6 border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
+        <Card className="mb-6 hidden border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl md:block">
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <CardTitle className="flex items-center gap-2">
@@ -1168,244 +1439,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               )}
             </div>
           </CardHeader>
-          <CardContent>
-            {/* Filters */}
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-7">
-              <div className="space-y-2">
-                <Label>Due Date Status</Label>
-                <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Services" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Services</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                    <SelectItem value="onTrack">On Track</SelectItem>
-                    <SelectItem value="dueToday">Due Today</SelectItem>
-                    <SelectItem value="dueSoon">Due Soon (&lt;2 days)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Device Type</Label>
-                <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Device Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Device Types</SelectItem>
-                    {deviceTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Technician</Label>
-                <Select 
-                  value={technicianFilter} 
-                  onValueChange={setTechnicianFilter}
-                  disabled={isTechnician}
-                >
-                  <SelectTrigger className={isTechnician ? "opacity-60 cursor-not-allowed" : ""}>
-                    <SelectValue placeholder="All Technicians" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
-                    <SelectItem value="all">All Technicians</SelectItem>
-                    {techniciansWithDept.map(tech => (
-                      <SelectItem key={tech.name} value={tech.name}>
-                        {tech.name} - {tech.department}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isTechnician && (
-                  <p className="text-xs text-muted-foreground">Locked to your account</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Select 
-                  value={departmentFilter} 
-                  onValueChange={setDepartmentFilter}
-                  disabled={isTechnician}
-                >
-                  <SelectTrigger className={isTechnician ? "opacity-60 cursor-not-allowed" : ""}>
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border shadow-md z-[100]">
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isTechnician && (
-                  <p className="text-xs text-muted-foreground">Locked to your department</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(v) => selectStatus(v)}
-                  disabled={statusLockedByCard}
-                >
-
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    {STATUS_OPTIONS.map(status => (
-                      <SelectItem key={status} value={status}>{status}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {statusLockedByCard && (
-                  <p className="text-xs text-muted-foreground">
-                    Set by the status card — click the card again to unlock.
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Service Date From</Label>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "PPP") : "From date"}
-                      {startDate && (
-                        <X 
-                          className="ml-auto h-4 w-4" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setStartDate(undefined);
-                          }}
-                        />
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(d) => { setStartDate(d); setActivePreset(null); }}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Service Date To</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "PPP") : "To date"}
-                      {endDate && (
-                        <X 
-                          className="ml-auto h-4 w-4" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEndDate(undefined);
-                          }}
-                        />
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(d) => { setEndDate(d); setActivePreset(null); }}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                      disabled={(date) => startDate ? date < startDate : false}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Sort By</Label>
-                <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="targetDate">Target Date</SelectItem>
-                    <SelectItem value="timestamp">Service Date</SelectItem>
-                    <SelectItem value="inService">In Service Days</SelectItem>
-                    <SelectItem value="technician">Technician</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Order</Label>
-                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                    <SelectItem value="desc">Descending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 lg:col-span-4">
-                <Label>Quick Date Filters</Label>
-                <div className="flex flex-wrap gap-2">
-                  {([
-                    ["today", "Today"],
-                    ["yesterday", "Yesterday"],
-                    ["thisWeek", "This Week"],
-                    ["last7", "Last 7 Days"],
-                    ["last30", "Last 30 Days"],
-                    ["thisMonth", "This Month"],
-                  ] as [DatePreset, string][]).map(([preset, label]) => (
-                    <Button
-                      key={preset}
-                      variant={activePreset === preset ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => applyDatePreset(preset)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => applyDatePreset("clear")}
-                  >
-                    Clear Date Filter
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
+          <CardContent>{filterControls}</CardContent>
         </Card>
 
         {/* Stats — always reflect the tab / filters currently shown */}
