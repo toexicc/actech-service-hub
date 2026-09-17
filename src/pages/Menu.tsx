@@ -386,7 +386,20 @@ const Menu = () => {
   const renderMobileServices = (services: ServiceRecord[], tone: "warning" | "destructive") => (
     <div className="space-y-2 md:hidden">
       {services.map((service) => (
-        <div key={service.serviceId} className="relative rounded-xl border border-border/70 bg-card p-3 pr-20 shadow-soft">
+        <div
+          key={service.serviceId}
+          role="button"
+          tabIndex={0}
+          onClick={() => handleEditService(service.serviceId)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleEditService(service.serviceId);
+            }
+          }}
+          className="relative cursor-pointer rounded-xl border border-border/70 bg-card p-3 pr-16 shadow-soft active:scale-[0.99]"
+          aria-label={`Open ticket ${service.serviceId}`}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -397,16 +410,6 @@ const Menu = () => {
             </div>
             <div className="absolute right-3 top-3 flex items-center gap-1">
               <ServicePreviewButton serviceId={service.serviceId} className="h-10 w-10 rounded-full" />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
-                onClick={() => handleEditService(service.serviceId)}
-                aria-label={`Open ticket ${service.serviceId}`}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </div>

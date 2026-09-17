@@ -2192,11 +2192,12 @@ const ManageClient = () => {
               isLive={isLive}
               actions={
                 serviceData.serviceId ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                     {canDeleteService && (
                       <Button
                         variant="destructive"
                         size="sm"
+                        className="flex-1 sm:flex-none"
                         onClick={() => setDeleteDialogOpen(true)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -2205,14 +2206,15 @@ const ManageClient = () => {
                     )}
                     <Button
                       size="sm"
-                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                      className="flex-1 sm:flex-none"
                       onClick={() => setPaymentModalOpen(true)}
                     >
                       POS
                     </Button>
                     <Button
                       size="sm"
-                      className="bg-orange-500 text-white hover:bg-orange-600"
+                      variant="secondary"
+                      className="flex-1 sm:flex-none"
                       onClick={() => setReleaseModalOpen(true)}
                     >
                       RELEASE
@@ -2343,8 +2345,8 @@ const ManageClient = () => {
                   )}
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="flex items-start justify-between gap-4 rounded-xl border border-orange-300/60 bg-orange-50/60 p-3">
-                      <div>
+                    <div className="flex min-w-0 items-start justify-between gap-4 rounded-xl border border-warning/30 bg-warning/10 p-3">
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold">Rush</p>
                         <p className="text-xs text-muted-foreground">
                           {serviceData.rushFee
@@ -2356,6 +2358,7 @@ const ManageClient = () => {
                         checked={!!serviceData.rushFee}
                         disabled={isTogglingRush}
                         onCheckedChange={handleToggleRush}
+                        className="shrink-0"
                       />
                     </div>
 
@@ -3638,7 +3641,7 @@ const ManageClient = () => {
                     </div>
 
                     <div className="space-y-2 rounded-md border border-border/60 p-3">
-                      <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                      <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium">
                         <Checkbox
                           checked={vatRequested}
                           onCheckedChange={(checked) => {
@@ -3646,8 +3649,9 @@ const ManageClient = () => {
                             setVatRequested(next);
                             setFinalCost(calcFinal(sanitizeNumber(updateServiceCost), discountAmount, next));
                           }}
+                          className="mt-0.5 h-5 w-5"
                         />
-                        <span>Requesting Invoice (Add VAT to Total Cost)</span>
+                        <span className="min-w-0 break-words">Requesting Invoice (Add VAT to Total Cost)</span>
                       </label>
                       {vatRequested && (
                         <p className="pl-6 text-sm font-semibold text-muted-foreground">
@@ -3657,7 +3661,7 @@ const ManageClient = () => {
                     </div>
 
                     <div className="space-y-2 rounded-md border border-border/60 p-3">
-                      <label className="flex items-start gap-2 text-sm font-medium cursor-pointer">
+                      <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium">
                         <Checkbox
                           checked={rushFee}
                           onCheckedChange={(checked) => {
@@ -3667,8 +3671,9 @@ const ManageClient = () => {
                               calcFinal(sanitizeNumber(updateServiceCost), discountAmount, vatRequested, next),
                             );
                           }}
+                          className="mt-0.5 h-5 w-5"
                         />
-                        <span>Rush Fee (Add 10% to Total Cost)</span>
+                        <span className="min-w-0 break-words">Rush Fee (Add 10% to Total Cost)</span>
                       </label>
                       {rushFee && (
                         <p className="pl-6 text-sm font-semibold text-muted-foreground">

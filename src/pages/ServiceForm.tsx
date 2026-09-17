@@ -1925,26 +1925,26 @@ const ServiceForm = ({
             {/* Client Acknowledgement */}
             <div>
               <h2 className="text-xl font-semibold text-blue-600 mb-4">Client Acknowledgement</h2>
-              <div className="space-y-3">
+              <div className="max-w-full space-y-3 overflow-hidden">
                 <FormField
                   control={form.control}
                   name="ack1"
                   render={({ field }) => (
-                    <FormItem className="flex items-start space-x-2 space-y-0">
+                    <FormItem className="flex min-w-0 items-start gap-3 space-x-0 space-y-0">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           disabled={!termsRead}
-                          className={!termsRead ? "opacity-50" : ""}
+                          className={cn("mt-0.5 h-5 w-5", !termsRead ? "opacity-50" : "")}
                         />
                       </FormControl>
-                      <div className="flex-1">
-                        <FormLabel className="!mt-0 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <FormLabel className="!mt-0 block whitespace-normal break-words text-sm leading-relaxed">
                           I have read and understood the{" "}
                           <button
                             type="button"
-                            className="text-blue-600 underline hover:text-blue-800"
+                            className="inline min-h-0 whitespace-normal break-words text-primary underline hover:text-primary/80"
                             onClick={() => setTermsModalOpen(true)}
                           >
                             Terms and Conditions
@@ -1961,12 +1961,12 @@ const ServiceForm = ({
                   control={form.control}
                   name="ack2"
                   render={({ field }) => (
-                    <FormItem className="flex items-start space-x-2 space-y-0">
+                    <FormItem className="flex min-w-0 items-start gap-3 space-x-0 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5 h-5 w-5" />
                       </FormControl>
-                      <div className="flex-1">
-                        <FormLabel className="!mt-0 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <FormLabel className="!mt-0 block whitespace-normal break-words text-sm leading-relaxed">
                           I confirm that all inputs provided in this form are true and correct based on consultation.
                         </FormLabel>
                         <FormMessage />
@@ -1979,12 +1979,12 @@ const ServiceForm = ({
                   control={form.control}
                   name="ack3"
                   render={({ field }) => (
-                    <FormItem className="flex items-start space-x-2 space-y-0">
+                    <FormItem className="flex min-w-0 items-start gap-3 space-x-0 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5 h-5 w-5" />
                       </FormControl>
-                      <div className="flex-1">
-                        <FormLabel className="!mt-0 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <FormLabel className="!mt-0 block whitespace-normal break-words text-sm leading-relaxed">
                           I agree that my device will be serviced and cost will be finalized based on final diagnosis.
                         </FormLabel>
                         <FormMessage />
@@ -1998,12 +1998,12 @@ const ServiceForm = ({
                   control={form.control}
                   name="autoApproveDiagnosis"
                   render={({ field }) => (
-                    <FormItem className="flex items-start space-x-2 space-y-0 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <FormItem className="flex min-w-0 items-start gap-3 space-x-0 space-y-0 rounded-lg border border-primary/30 bg-primary/5 p-3">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5 h-5 w-5" />
                       </FormControl>
-                      <div className="flex-1">
-                        <FormLabel className="!mt-0 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <FormLabel className="!mt-0 block whitespace-normal break-words text-sm leading-relaxed">
                           Client pre-approves the diagnosis — proceed with the repair without a separate approval step.
                         </FormLabel>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -2021,12 +2021,12 @@ const ServiceForm = ({
                   control={form.control}
                   name="physicalSignature"
                   render={({ field }) => (
-                    <FormItem className="flex items-start space-x-2 space-y-0">
+                    <FormItem className="flex min-w-0 items-start gap-3 space-x-0 space-y-0">
                       <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5 h-5 w-5" />
                       </FormControl>
-                      <div className="flex-1">
-                        <FormLabel className="!mt-0 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <FormLabel className="!mt-0 block whitespace-normal break-words text-sm leading-relaxed">
                           Client Signature (Optional)
                         </FormLabel>
                         <FormMessage />
