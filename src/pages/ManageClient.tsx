@@ -3265,11 +3265,11 @@ const ManageClient = () => {
                         : "border-primary/20 bg-primary/5",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <Label>Service Breakdown (shown to the client on /track):</Label>
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <Label className="break-words leading-tight">Service Breakdown (shown to the client on /track):</Label>
+                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                         {breakdownMissing && quotedLines.length === 0 && (
-                          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                          <span className="rounded-full bg-destructive/10 px-2 py-1 text-[11px] font-medium leading-tight text-destructive">
                             Required before status change
                           </span>
                         )}
@@ -3277,6 +3277,7 @@ const ManageClient = () => {
                           type="button"
                           size="sm"
                           variant="outline"
+                          className="w-full sm:w-auto"
                           onClick={() =>
                             setQuotedLines((prev) => [...prev, { name: "", cost: 0, selected: true, required: false }])
                           }
@@ -3296,14 +3297,14 @@ const ManageClient = () => {
                           <div
                             key={i}
                             className={cn(
-                              "space-y-2 rounded-lg p-1",
+                              "space-y-2 rounded-lg p-2",
                               quotedProblems[i] && "border border-destructive/50 bg-destructive/5",
                             )}
                           >
-                            <div className="grid grid-cols-12 items-center gap-2">
+                            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 sm:grid-cols-12 sm:items-center">
                               <input
                                 type="checkbox"
-                                className="col-span-1 h-4 w-4 accent-primary"
+                                className="mt-3 h-4 w-4 shrink-0 accent-primary sm:col-span-1 sm:mt-0"
                                 checked={line.selected}
                                 onChange={(e) =>
                                   setQuotedLines((prev) =>
@@ -3312,7 +3313,7 @@ const ManageClient = () => {
                                 }
                               />
                               <Input
-                                className="col-span-6"
+                                className="min-w-0 sm:col-span-6"
                                 placeholder="Repair / service"
                                 value={line.name}
                                 onChange={(e) =>
@@ -3322,14 +3323,14 @@ const ManageClient = () => {
                                 }
                               />
                               {line.options?.length ? (
-                                <div className="col-span-3 text-right text-sm font-medium text-muted-foreground">
+                                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2 text-right text-sm font-medium text-muted-foreground sm:col-span-3 sm:bg-transparent sm:px-0 sm:py-0">
                                   {lineEffectiveCost(line) > 0
                                     ? `Php ${lineEffectiveCost(line).toFixed(2)}`
                                     : "Choose option"}
                                 </div>
                               ) : (
                                 <Input
-                                  className="col-span-3 text-right"
+                                  className="col-span-2 min-w-0 text-right sm:col-span-3"
                                   inputMode="decimal"
                                   placeholder="0.00"
                                   value={line.cost ? String(line.cost) : ""}
@@ -3345,7 +3346,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="icon"
                                 variant={line.required ? "secondary" : "ghost"}
-                                className="col-span-1 h-9 w-9"
+                                className="h-9 w-full sm:col-span-1 sm:w-9"
                                 aria-label={line.required ? "Make service optional" : "Make service required"}
                                 title={
                                   line.required
@@ -3368,7 +3369,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="col-span-1 text-destructive"
+                                className="text-destructive sm:col-span-1"
                                 onClick={() => setQuotedLines((prev) => prev.filter((_, idx) => idx !== i))}
                               >
                                 X
@@ -3376,12 +3377,12 @@ const ManageClient = () => {
                             </div>
 
                             {/* Options (e.g. OEM vs Original) */}
-                            <div className="pl-8 space-y-1">
+                            <div className="space-y-2 sm:space-y-1 sm:pl-8">
                               {(line.options ?? []).map((opt, oi) => (
-                                <div key={oi} className="grid grid-cols-12 items-center gap-2">
+                                <div key={oi} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 rounded-md bg-muted/30 p-2 sm:grid-cols-12 sm:items-center sm:bg-transparent sm:p-0">
                                   <input
                                     type="radio"
-                                    className="col-span-1 h-4 w-4 accent-primary"
+                                    className="mt-3 h-4 w-4 shrink-0 accent-primary sm:col-span-1 sm:mt-0"
                                     checked={line.selectedOption === opt.label}
                                     onChange={() =>
                                       setQuotedLines((prev) =>
@@ -3390,7 +3391,7 @@ const ManageClient = () => {
                                     }
                                   />
                                   <Input
-                                    className="col-span-5 h-8 text-sm"
+                                    className="min-w-0 text-sm sm:col-span-5 sm:h-8"
                                     placeholder="Option label (e.g. OEM)"
                                     value={opt.label}
                                     onChange={(e) =>
@@ -3408,7 +3409,7 @@ const ManageClient = () => {
                                     }
                                   />
                                   <Input
-                                    className="col-span-3 h-8 text-right text-sm"
+                                    className="col-span-2 min-w-0 text-right text-sm sm:col-span-3 sm:h-8"
                                     inputMode="decimal"
                                     placeholder="0.00"
                                     value={opt.cost ? String(opt.cost) : ""}
@@ -3432,7 +3433,7 @@ const ManageClient = () => {
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    className="col-span-2 h-8 text-destructive text-xs"
+                                    className="col-span-2 text-xs text-destructive sm:col-span-2 sm:h-8"
                                     onClick={() =>
                                       setQuotedLines((prev) =>
                                         prev.map((l, idx) => {
@@ -3455,7 +3456,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 text-xs"
+                                className="h-auto min-h-9 whitespace-normal text-xs sm:h-7 sm:min-h-0"
                                 onClick={() =>
                                   setQuotedLines((prev) =>
                                     prev.map((l, idx) =>
@@ -3472,7 +3473,7 @@ const ManageClient = () => {
                                 + Add option (e.g. OEM / Original)
                               </Button>
                             </div>
-                            {quotedProblems[i] && <p className="pl-8 text-xs text-destructive">{quotedProblems[i]}</p>}
+                            {quotedProblems[i] && <p className="text-xs text-destructive sm:pl-8">{quotedProblems[i]}</p>}
                           </div>
                         ))}
 
@@ -3513,13 +3514,14 @@ const ManageClient = () => {
                           );
                         })()}
 
-                        <div className="flex items-center justify-between pt-1 text-sm">
-                          <span className="font-semibold">
+                        <div className="flex flex-col gap-2 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between">
+                          <span className="break-words font-semibold">
                             Selected total: Php {quotedSelectedTotal(quotedLines).toFixed(2)}
                           </span>
                           <Button
                             type="button"
                             size="sm"
+                            className="w-full whitespace-normal sm:w-auto"
                             onClick={() => {
                               const total = quotedSelectedTotal(quotedLines);
                               setUpdateServiceCost(total.toFixed(2));

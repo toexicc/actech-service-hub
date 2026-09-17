@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IntakeQueuePanel } from "@/components/IntakeQueuePanel";
 import { ReleaseQueuePanel } from "@/components/ReleaseQueuePanel";
 import { CompleteIntakeModal } from "@/components/CompleteIntakeModal";
 import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
+import { cn } from "@/lib/utils";
 
 import {
   Clock,
@@ -40,42 +42,53 @@ const Tile = ({
   completeTitle?: string;
 }) => (
   <div
-    className={`flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg border px-3 py-2 ${
+    className={cn(
+      "flex w-full min-w-0 flex-col gap-3 overflow-hidden rounded-xl border px-3 py-3 sm:flex-row sm:items-center sm:py-2",
       tone === "proceed"
         ? "border-emerald-200 bg-emerald-50/60"
-        : "border-blue-200 bg-blue-50/60"
-    }`}
+        : "border-blue-200 bg-blue-50/60",
+    )}
   >
 
-    <div
-      className={`shrink-0 rounded-md px-2 py-1 text-sm font-black tabular-nums ${
-        tone === "proceed"
-          ? "bg-emerald-600/10 text-emerald-700"
-          : "bg-blue-600/10 text-blue-700"
-      }`}
-    >
-      {entry.display_code}
+    <div className="flex w-full min-w-0 items-start gap-3 sm:w-auto sm:items-center">
+      <div
+        className={cn(
+          "shrink-0 rounded-md px-2 py-1 text-sm font-black tabular-nums",
+          tone === "proceed"
+            ? "bg-emerald-600/10 text-emerald-700"
+            : "bg-blue-600/10 text-blue-700",
+        )}
+      >
+        {entry.display_code}
+      </div>
+
+      <div className="min-w-0 flex-1 sm:hidden">
+        <div className="break-words text-sm font-medium leading-tight">{entry.client_name}</div>
+        <div className="mt-0.5 break-words text-xs text-muted-foreground">
+          {[entry.device_type, entry.brand, entry.model].filter(Boolean).join(" • ") || "—"}
+        </div>
+      </div>
     </div>
 
     <div className="min-w-0 flex-1">
-      <div className="truncate text-sm font-medium leading-tight">
+      <div className="hidden text-sm font-medium leading-tight sm:block">
         {entry.client_name}
         <span className="ml-2 text-xs font-normal text-muted-foreground">
           {[entry.device_type, entry.brand, entry.model].filter(Boolean).join(" • ")}
         </span>
       </div>
-      <div className="truncate text-xs text-muted-foreground">
+      <div className="break-words text-xs leading-relaxed text-muted-foreground sm:truncate">
         {entry.service_id ? `${entry.service_id} — ` : ""}
         {entry.contact_number ? `📞 ${entry.contact_number}` : ""}
         {entry.chief_complaint ? `${entry.contact_number ? " — " : ""}${entry.chief_complaint}` : ""}
       </div>
     </div>
 
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="grid w-full shrink-0 grid-cols-3 gap-1 sm:flex sm:w-auto sm:items-center">
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 w-7 p-0"
+        className="h-9 w-full p-0 sm:h-7 sm:w-7"
         title={tone === "waiting" ? "Proceed to front" : "Back to waiting"}
         onClick={onMove}
       >
@@ -88,7 +101,7 @@ const Tile = ({
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 w-7 p-0"
+        className="h-9 w-full p-0 sm:h-7 sm:w-7"
         title={completeTitle}
         onClick={onComplete}
       >
@@ -97,7 +110,7 @@ const Tile = ({
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+        className="h-9 w-full p-0 text-destructive hover:text-destructive sm:h-7 sm:w-7"
         title="Cancel"
         onClick={onCancel}
       >
@@ -213,7 +226,17 @@ const QueueAdmin = () => {
 
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
-          <TabsList className="flex flex-wrap gap-1">
+          <Select value={activeTab} onValueChange={(v) => setActiveTab(v)}>
+            <SelectTrigger className="md:hidden">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="queue">Intake & Release Queue</SelectItem>
+              <SelectItem value="intake">Intake Records</SelectItem>
+              <SelectItem value="release-records">Release Records</SelectItem>
+            </SelectContent>
+          </Select>
+          <TabsList className="hidden h-auto w-full flex-wrap justify-start gap-1 md:flex">
             <TabsTrigger value="queue">Intake &amp; Release Queue</TabsTrigger>
             <TabsTrigger value="intake">Intake Records</TabsTrigger>
             <TabsTrigger value="release-records">Release Records</TabsTrigger>
@@ -222,9 +245,9 @@ const QueueAdmin = () => {
 
           <TabsContent value="queue" className="space-y-6">
             <Tabs defaultValue="intake-board" className="space-y-6">
-              <TabsList className="flex flex-wrap gap-1">
-                <TabsTrigger value="intake-board">Intake</TabsTrigger>
-                <TabsTrigger value="release-board">Release</TabsTrigger>
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-1">
+                <TabsTrigger value="intake-board" className="min-w-0 px-2">Intake</TabsTrigger>
+                <TabsTrigger value="release-board" className="min-w-0 px-2">Release</TabsTrigger>
               </TabsList>
 
               <TabsContent value="intake-board" className="space-y-6">
@@ -237,17 +260,17 @@ const QueueAdmin = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search name, number, phone"
-                  className="pl-8 w-64"
+                  className="w-full pl-8"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={() => window.open("/intake", "_blank")}>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => window.open("/intake", "_blank")}>
                 <ExternalLink className="h-4 w-4 mr-1" /> Open Intake Kiosk
               </Button>
             </div>
@@ -323,21 +346,21 @@ const QueueAdmin = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search name, number, phone"
-                  className="pl-8 w-64"
+                  className="w-full pl-8"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={() => window.open("/release", "_blank")}>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => window.open("/release", "_blank")}>
                 <ExternalLink className="h-4 w-4 mr-1" /> Open Release Kiosk
               </Button>
               {isAdminOrManagement && (
-                <Button size="sm" onClick={() => setManualRelease(true)}>
+                <Button size="sm" className="w-full sm:w-auto" onClick={() => setManualRelease(true)}>
                   <CheckCircle2 className="h-4 w-4 mr-1" /> Manual release
                 </Button>
               )}

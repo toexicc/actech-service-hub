@@ -397,16 +397,16 @@ const Menu = () => {
               handleEditService(service.serviceId);
             }
           }}
-          className="relative cursor-pointer rounded-xl border border-border/70 bg-card p-3 pr-16 shadow-soft active:scale-[0.99]"
+          className="relative cursor-pointer rounded-xl border border-border/70 bg-card p-3 pr-14 shadow-soft active:scale-[0.99]"
           aria-label={`Open ticket ${service.serviceId}`}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-foreground">{service.serviceId}</span>
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-0">
+                <span className="block break-all font-mono text-sm font-semibold leading-tight text-foreground">{service.serviceId}</span>
               </div>
-              <p className="truncate text-sm text-foreground">{service.clientName}</p>
-              <p className={cn("text-xs font-medium", tone === "warning" ? "text-warning" : "text-destructive")}>{service.status}</p>
+              <p className="break-words text-sm leading-tight text-foreground">{service.clientName}</p>
+              <p className={cn("break-words text-xs font-medium leading-tight", tone === "warning" ? "text-warning" : "text-destructive")}>{service.status}</p>
             </div>
             <div className="absolute right-3 top-3 flex items-center gap-1">
               <ServicePreviewButton serviceId={service.serviceId} className="h-10 w-10 rounded-full" />

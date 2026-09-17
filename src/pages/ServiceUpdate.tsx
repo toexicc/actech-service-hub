@@ -2084,10 +2084,10 @@ const ServiceUpdate = () => {
                             </p>
                           ) : (
                             filteredInventory.map((item) => (
-                              <div key={`search-${item.id}`} className="flex items-center justify-between gap-2 p-2 rounded border">
+                              <div key={`search-${item.id}`} className="flex flex-col gap-2 rounded border p-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium truncate">{item.name}</p>
-                                  <p className="text-xs text-muted-foreground truncate">
+                                  <p className="break-words font-medium leading-tight">{item.name}</p>
+                                  <p className="break-words text-xs text-muted-foreground">
                                     ID: {item.id}
                                     {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
                                   </p>
@@ -2095,6 +2095,7 @@ const ServiceUpdate = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
+                                  className="w-full sm:w-auto"
                                   disabled={!!selectedParts[item.id]}
                                   onClick={() =>
                                     setSelectedParts((prev) => ({
@@ -2116,16 +2117,16 @@ const ServiceUpdate = () => {
                           const qty = selectedParts[item.id] || 0;
                           if (qty === 0) return null; // Only show selected parts
                           return (
-                            <div key={item.id} className="flex items-center justify-between gap-2 p-2 bg-muted rounded">
+                            <div key={item.id} className="flex flex-col gap-2 rounded bg-muted p-2 sm:flex-row sm:items-center sm:justify-between">
                                <div className="flex-1 min-w-0">
-                                 <p className="font-medium truncate">{item.name}</p>
-                                 <p className="text-xs text-muted-foreground truncate">
+                                 <p className="break-words font-medium leading-tight">{item.name}</p>
+                                 <p className="break-words text-xs text-muted-foreground">
                                    ID: {item.id}
                                    {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
                                  </p>
                                </div>
 
-                              <div className="flex items-center gap-2">
+                               <div className="grid grid-cols-[5rem_1fr] items-center gap-2 sm:flex sm:shrink-0 sm:items-center">
                                 <Input
                                   type="number"
                                   min="1"
@@ -2140,12 +2141,13 @@ const ServiceUpdate = () => {
                                       }));
                                     }
                                   }}
-                                  className="w-20"
+                                   className="w-full sm:w-20"
                                   placeholder="Qty"
                                 />
                                 <Button
                                   size="sm"
                                   variant="destructive"
+                                   className="w-full sm:w-auto"
                                   onClick={() => {
                                     setSelectedParts(prev => {
                                       const newParts = { ...prev };
@@ -2170,12 +2172,12 @@ const ServiceUpdate = () => {
                           <Label className="text-sm">Unmatched parts from record:</Label>
                           <div className="space-y-2">
                             {Object.entries(unmatchedParts).map(([name, qty]) => (
-                              <div key={name} className="flex items-center justify-between gap-2 p-2 bg-muted/40 rounded">
+                              <div key={name} className="flex flex-col gap-2 rounded bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium truncate">{name}</p>
+                                  <p className="break-words font-medium leading-tight">{name}</p>
                                   <p className="text-xs text-muted-foreground">Not found in current inventory</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="grid gap-2 sm:flex sm:shrink-0 sm:items-center">
                                   <Input
                                     type="number"
                                     min="1"
@@ -2184,7 +2186,7 @@ const ServiceUpdate = () => {
                                       const newQty = Math.max(1, parseInt(e.target.value) || 1);
                                       setUnmatchedParts(prev => ({ ...prev, [name]: newQty }));
                                     }}
-                                    className="w-20"
+                                    className="w-full sm:w-20"
                                   />
                                   <Select
                                     value=""
@@ -2193,7 +2195,7 @@ const ServiceUpdate = () => {
                                       setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
                                     }}
                                   >
-                                    <SelectTrigger className="min-w-[220px]">
+                                    <SelectTrigger className="w-full sm:min-w-[220px]">
                                       <SelectValue placeholder="Map to inventory item..." />
                                     </SelectTrigger>
                                     <SelectContent className="bg-background z-50">
@@ -2208,6 +2210,7 @@ const ServiceUpdate = () => {
                                   <Button
                                     size="sm"
                                     variant="ghost"
+                                    className="w-full sm:w-auto"
                                     onClick={() => {
                                       setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
                                     }}
@@ -2222,7 +2225,7 @@ const ServiceUpdate = () => {
                       )}
                       
                       <div className="space-y-2">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <div className="flex-1">
                             <Label className="text-sm">Add Part:</Label>
                             <Select
