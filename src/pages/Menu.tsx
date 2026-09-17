@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Package,
   DollarSign,
+  ExternalLink,
   Calendar,
   ChevronLeft,
   ChevronRight,
