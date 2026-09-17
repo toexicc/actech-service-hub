@@ -1482,6 +1482,11 @@ const ServiceTracking = () => {
                                             >
                                               {line.required ? "Required" : "Optional"}
                                             </span>
+                                            {(line as any).interim && (
+                                              <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                                                Interim
+                                              </span>
+                                            )}
                                             {approvedLine && (
                                               <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
                                                 Already approved
