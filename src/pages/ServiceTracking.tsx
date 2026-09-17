@@ -1365,6 +1365,29 @@ const ServiceTracking = () => {
                       title="Service Diagnosis"
                     />
 
+                    {/* Interim report: new findings raised while the repair was ongoing. */}
+                    {!!String((serviceData as any).aiInterimReport ?? "").trim() && (
+                      <div className="space-y-4">
+                        <AiReportCard
+                          report={composeClientDiagnosis({
+                            diagnosis: (serviceData as any).aiInterimReport,
+                            warranty: (serviceData as any).interimWarranty,
+                          })}
+                          title="Interim Report - Additional Findings"
+                        />
+                        {serviceData.serviceId && (
+                          <DiagnosisPhotos
+                            serviceId={serviceData.serviceId}
+                            kind="interim_photo"
+                            title="Interim Report - Photos"
+                            editable={false}
+                          />
+                        )}
+                      </div>
+                    )}
+
+
+
 
 
                     {approvalRecord && (
@@ -1482,6 +1505,11 @@ const ServiceTracking = () => {
                                             >
                                               {line.required ? "Required" : "Optional"}
                                             </span>
+                                            {(line as any).interim && (
+                                              <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                                                Interim
+                                              </span>
+                                            )}
                                             {approvedLine && (
                                               <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
                                                 Already approved

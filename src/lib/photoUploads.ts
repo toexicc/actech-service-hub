@@ -86,7 +86,7 @@ export const compressImage = async (file: File): Promise<File> => {
 export interface UploadOptions {
   bucket: string;
   serviceId: string;
-  kind: "diagnosis_photo" | "device_report";
+  kind: "diagnosis_photo" | "device_report" | "interim_photo";
   files: File[];
   /** Called before each file starts uploading (1-based index). */
   onProgress?: (current: number, total: number, fileName: string) => void;

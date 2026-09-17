@@ -37,7 +37,8 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity, logAiFormatActivity, diffFields, diffBreakdown } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern } from "@/lib/serviceNotifications";
+import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted } from "@/lib/serviceNotifications";
+import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
@@ -269,6 +270,15 @@ const ServiceUpdate = () => {
   const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
   const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
   const [updateDiagSummary, setUpdateDiagSummary] = useState("");
+  // Interim report (new findings discovered during Ongoing Service)
+  const [interimNeeded, setInterimNeeded] = useState(false);
+  const [interim, setInterim] = useState<InterimReportValues>({
+    findings: "",
+    report: "",
+    breakdown: "",
+    warranty: "",
+    summary: "",
+  });
 
   const [isFormattingAI, setIsFormattingAI] = useState(false);
   const [updateServiceReport, setUpdateServiceReport] = useState("");
@@ -732,6 +742,14 @@ const ServiceUpdate = () => {
           setUpdateDiagOtherNotes(seg.otherNotes);
           setUpdateDiagSummary(seg.summary);
         }
+        setInterimNeeded(!!(data.data as any).interimNeeded);
+        setInterim({
+          findings: (data.data as any).interimDiagnosis || "",
+          report: (data.data as any).aiInterimReport || "",
+          breakdown: (data.data as any).interimBreakdownText || "",
+          warranty: (data.data as any).interimWarranty || "",
+          summary: (data.data as any).interimSummary || "",
+        });
 
         setUpdateServiceReport(data.data.aiReport || ""); // Column BB - AI formatted service report
 
@@ -836,6 +854,12 @@ const ServiceUpdate = () => {
       [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
 
       [updateServiceReport, serviceData.aiReport || ""],
+      [interimNeeded ? "1" : "", (serviceData as any).interimNeeded ? "1" : ""],
+      [interim.findings, (serviceData as any).interimDiagnosis || ""],
+      [interim.report, (serviceData as any).aiInterimReport || ""],
+      [interim.breakdown, (serviceData as any).interimBreakdownText || ""],
+      [interim.warranty, (serviceData as any).interimWarranty || ""],
+      [interim.summary, (serviceData as any).interimSummary || ""],
     ];
     return pairs.some(([a, b]) => String(a ?? "") !== String(b ?? ""));
   })();
@@ -1044,6 +1068,15 @@ const ServiceUpdate = () => {
         diagnosis_other_notes: updateDiagOtherNotes || null,
         diagnosis_summary: updateDiagSummary || null,
 
+        interim_needed: interimNeeded,
+        interim_diagnosis: interim.findings || null,
+        ai_interim_report: interim.report || null,
+        interim_breakdown_text: interim.breakdown || null,
+        interim_warranty: interim.warranty || null,
+        interim_summary: interim.summary || null,
+        ...(interim.report.trim() && !(serviceData as any).aiInterimReport
+          ? { interim_created_at: new Date().toISOString() }
+          : {}),
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,
@@ -1106,6 +1139,12 @@ const ServiceUpdate = () => {
           { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
 
+          { label: "Needs Interim Report", before: (serviceData as any).interimNeeded ? "yes" : "no", after: interimNeeded ? "yes" : "no", kind: "bool" as const },
+          { label: "Interim Findings", before: (serviceData as any).interimDiagnosis, after: interim.findings },
+          { label: "AI Interim Report", before: (serviceData as any).aiInterimReport, after: interim.report },
+          { label: "Interim Service Breakdown (draft)", before: (serviceData as any).interimBreakdownText, after: interim.breakdown },
+          { label: "Interim Warranty", before: (serviceData as any).interimWarranty, after: interim.warranty },
+          { label: "Interim Summary", before: (serviceData as any).interimSummary, after: interim.summary },
           { label: "Technician Report", before: serviceData.technicianReport, after: technicianReportToPersist },
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Internal Notes", before: serviceData.technicianNotesInternal, after: updateTechnicianNotesInternal },
@@ -1216,6 +1255,27 @@ const ServiceUpdate = () => {
               },
               updateTechnician,
               userFullName
+            )).catch(() => {})
+          );
+        }
+
+        // Interim report submitted / revised -> ask the assigned admin to review
+        if (
+          interim.report.trim() &&
+          interim.report.trim() !== String((serviceData as any).aiInterimReport ?? "").trim()
+        ) {
+          backgroundTasks.push(
+            Promise.resolve(notifyInterimReportSubmitted(
+              {
+                serviceId: sid,
+                clientName: serviceData.clientName,
+                technician: updateTechnician,
+                adminRep: serviceData.adminRep,
+                receivingStaff: serviceData.receivingStaff,
+                deviceType: serviceData.deviceType,
+                device: serviceData.device,
+              },
+              userFullName,
             )).catch(() => {})
           );
         }
@@ -1808,6 +1868,49 @@ const ServiceUpdate = () => {
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
+                )}
+
+                {(stageStatus === "Ongoing Service" || interimNeeded || !!interim.report.trim()) && (
+                  <InterimReportBlock
+                    serviceId={serviceData.serviceId}
+                    clientName={serviceData.clientName}
+                    deviceType={serviceData.deviceType}
+                    model={serviceData.model}
+                    initialDiagnosis={updateAIDiagnosis}
+                    values={interim}
+                    onChange={(patch) => setInterim((prev) => ({ ...prev, ...patch }))}
+                    needed={interimNeeded}
+                    onNeededChange={setInterimNeeded}
+                    showToggle={stageStatus === "Ongoing Service"}
+                    editable={stageStatus === "Ongoing Service"}
+                    photosEditable={stageStatus === "Ongoing Service"}
+                    source="/service-update"
+                    footer={
+                      stageStatus === "Ongoing Service" && !!interim.report.trim() ? (
+                        <div className="rounded-md border border-dashed bg-muted/40 p-3 space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Once the interim report is ready, send the ticket back to Confirmed
+                            Diagnosis. Saving notifies the assigned admin to review it and ask the
+                            client for approval.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setUpdateStatus("Confirmed Diagnosis");
+                              toast({
+                                title: "Status set to Confirmed Diagnosis",
+                                description: "Click Update Service to save and notify the admin.",
+                              });
+                            }}
+                          >
+                            Send back to Confirmed Diagnosis
+                          </Button>
+                        </div>
+                      ) : null
+                    }
+                  />
                 )}
 
                 {(reportEditable || reportStageReached || !!(updateServiceReport || updateTechnicianReport).trim()) && (

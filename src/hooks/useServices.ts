@@ -19,6 +19,15 @@ export interface ServiceRecord {
   diagnosisWarranty?: string;
   diagnosisOtherNotes?: string;
   diagnosisSummary?: string;
+  interimNeeded?: boolean;
+  interimDiagnosis?: string;
+  aiInterimReport?: string;
+  interimWarranty?: string;
+  interimSummary?: string;
+  interimBreakdownText?: string;
+  interimCreatedAt?: string;
+  interimApprovedAt?: string;
+
 
   clientApprovedAt?: string;
   autoApproveDiagnosis?: boolean;
@@ -125,6 +134,14 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   diagnosisWarranty: (r as any).diagnosis_warranty ?? "",
   diagnosisOtherNotes: (r as any).diagnosis_other_notes ?? "",
   diagnosisSummary: (r as any).diagnosis_summary ?? "",
+  interimNeeded: !!(r as any).interim_needed,
+  interimDiagnosis: (r as any).interim_diagnosis ?? "",
+  aiInterimReport: (r as any).ai_interim_report ?? "",
+  interimWarranty: (r as any).interim_warranty ?? "",
+  interimSummary: (r as any).interim_summary ?? "",
+  interimBreakdownText: (r as any).interim_breakdown_text ?? "",
+  interimCreatedAt: (r as any).interim_created_at ?? "",
+  interimApprovedAt: (r as any).interim_approved_at ?? "",
   technicianDiagnosis: r.technician_diagnosis ?? "",
 
   clientApprovedAt: r.client_approved_at ?? "",
