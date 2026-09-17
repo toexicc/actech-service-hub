@@ -95,7 +95,19 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: { name: body.name, username: body.username ?? body.email },
       });
-      if (cErr || !created.user) throw cErr ?? new Error("Create failed");
+      if (cErr || !created.user) {
+        const raw = cErr?.message ?? "";
+        const weak = /weak|easy to guess|pwned|leaked|at least/i.test(raw);
+        return new Response(
+          JSON.stringify({
+            error: weak
+              ? "Account not created — that password is too easy to guess. Use at least 8 characters mixing letters, numbers and a symbol."
+              : `Account not created — ${raw || "please try again"}`,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       const uid = created.user.id;
       await admin.from("profiles").upsert({
         id: uid,
@@ -114,11 +126,12 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "update") {
-      const fail = (msg: string) =>
+      const fail = (msg: string, status = 400) =>
         new Response(JSON.stringify({ error: msg }), {
-          status: 500,
+          status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+
 
       const updates: Record<string, unknown> = {};
       if (body.name !== undefined) updates.name = body.name;
@@ -144,8 +157,15 @@ Deno.serve(async (req) => {
           password: body.password,
         });
         if (pwErr || !pwData?.user) {
-          return fail(`Password not saved — ${pwErr?.message || "the account could not be updated"}`);
+          const raw = pwErr?.message ?? "";
+          const weak = /weak|easy to guess|pwned|leaked|at least/i.test(raw);
+          return fail(
+            weak
+              ? "Password not saved — that password is too easy to guess. Use at least 8 characters mixing letters, numbers and a symbol."
+              : `Password not saved — ${raw || "the account could not be updated"}`,
+          );
         }
+
         passwordChanged = true;
       }
       return new Response(JSON.stringify({ ok: true, password_changed: passwordChanged }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
