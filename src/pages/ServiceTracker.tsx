@@ -1556,13 +1556,15 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 : "Ongoing Services"}
             </CardTitle>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="mt-3">
-              <TabsList className="flex flex-wrap gap-1">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="walkin">Walk In</TabsTrigger>
-                <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
-                <TabsTrigger value="closed">Cancelled / RTO / On Hold</TabsTrigger>
-              </TabsList>
+              <div className="-mx-1 overflow-x-auto px-1 pb-1 md:mx-0 md:overflow-visible md:px-0 md:pb-0">
+                <TabsList className="inline-flex h-auto min-w-max gap-1 p-1 md:min-w-0 md:flex-wrap">
+                  <TabsTrigger value="all" className="min-h-9 px-3">All</TabsTrigger>
+                  <TabsTrigger value="walkin" className="min-h-9 px-3">Walk In</TabsTrigger>
+                  <TabsTrigger value="ongoing" className="min-h-9 px-3">Ongoing</TabsTrigger>
+                  <TabsTrigger value="completed" className="min-h-9 px-3">Completed</TabsTrigger>
+                  <TabsTrigger value="closed" className="min-h-9 px-3">Cancelled / RTO / On Hold</TabsTrigger>
+                </TabsList>
+              </div>
             </Tabs>
           </CardHeader>
           <CardContent>
@@ -1630,16 +1632,22 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
             ) : viewMode === "cards" ? (
               <>
-                <div className="flex items-center justify-end mb-4">
+                <div className="mb-4 flex items-center justify-end">
                   <div className="inline-flex rounded-full border border-border/60 bg-muted/40 p-1 text-xs">
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setViewMode("cards")}
-                      className={cn("px-3 py-1.5 rounded-full transition-colors", viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
-                    >Cards</button>
-                    <button
+                      className={cn("h-8 min-h-8 rounded-full px-3", viewMode === "cards" ? "bg-background shadow-sm text-foreground hover:bg-background" : "text-muted-foreground")}
+                    >Cards</Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setViewMode("table")}
-                      className={cn("px-3 py-1.5 rounded-full transition-colors", (viewMode as string) === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
-                    >Table</button>
+                      className={cn("h-8 min-h-8 rounded-full px-3", (viewMode as string) === "table" ? "bg-background shadow-sm text-foreground hover:bg-background" : "text-muted-foreground")}
+                    >Table</Button>
                   </div>
                 </div>
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
@@ -1772,20 +1780,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
               </>
             ) : (
               <>
-                <div className="flex items-center justify-end mb-4">
+                <div className="mb-4 flex items-center justify-end">
                   <div className="inline-flex rounded-full border border-border/60 bg-muted/40 p-1 text-xs">
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setViewMode("cards")}
-                      className={cn("px-3 py-1.5 rounded-full transition-colors", (viewMode as string) === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
-                    >Cards</button>
-                    <button
+                      className={cn("h-8 min-h-8 rounded-full px-3", (viewMode as string) === "cards" ? "bg-background shadow-sm text-foreground hover:bg-background" : "text-muted-foreground")}
+                    >Cards</Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setViewMode("table")}
-                      className={cn("px-3 py-1.5 rounded-full transition-colors", viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
-                    >Table</button>
+                      className={cn("h-8 min-h-8 rounded-full px-3", viewMode === "table" ? "bg-background shadow-sm text-foreground hover:bg-background" : "text-muted-foreground")}
+                    >Table</Button>
                   </div>
                 </div>
 
-              <div className="overflow-x-auto">
+              <div className="mobile-table-surface mobile-table-sticky-first overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

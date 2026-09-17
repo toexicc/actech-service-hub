@@ -283,8 +283,8 @@ export const PosDocumentActions = ({
   if (!serviceId || serviceId === "MANUAL") return null;
 
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+      <p className="text-xs font-medium uppercase text-muted-foreground">
         Ticket documents
       </p>
       {rows.map((d) => {
@@ -293,15 +293,15 @@ export const PosDocumentActions = ({
         return (
           <div
             key={d.kind}
-            className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/60 p-2"
+            className="flex flex-col gap-3 rounded-md border border-border/60 bg-background/60 p-2 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{d.title}</p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="break-words text-sm font-medium">{d.title}</p>
+              <p className="break-words text-xs text-muted-foreground">
                 {ready ? d.hint : checking ? "Checking availability..." : "Not available yet"}
               </p>
             </div>
-            <div className="flex shrink-0 gap-1">
+            <div className="grid w-full shrink-0 grid-cols-3 gap-1 sm:flex sm:w-auto">
               {d.onGenerate && (
               <Button
                 size="sm"
@@ -310,6 +310,7 @@ export const PosDocumentActions = ({
                 aria-label={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
                 title={`${editsWarranty ? "Edit" : ready ? "Update" : "Generate"} ${d.title}`}
                 onClick={() => (editsWarranty ? openWarrantyEditor() : d.onGenerate?.())}
+                className="col-span-3 sm:col-span-1"
               >
                 {d.generating || (editsWarranty && loadingWarrantyEditor) ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -328,6 +329,7 @@ export const PosDocumentActions = ({
                 disabled={!ready}
                 aria-label={`View ${d.title}`}
                 onClick={() => run(d.kind, "view", d.title)}
+                className="min-w-0"
               >
                 {busy === `${d.kind}-view` ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               </Button>
@@ -337,6 +339,7 @@ export const PosDocumentActions = ({
                 disabled={!ready}
                 aria-label={`Print ${d.title}`}
                 onClick={() => run(d.kind, "print", d.title)}
+                className="min-w-0"
               >
                 {busy === `${d.kind}-print` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
               </Button>
@@ -346,6 +349,7 @@ export const PosDocumentActions = ({
                 disabled={!ready}
                 aria-label={`Download ${d.title}`}
                 onClick={() => run(d.kind, "download", d.title)}
+                className="min-w-0"
               >
                 {busy === `${d.kind}-download` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               </Button>
