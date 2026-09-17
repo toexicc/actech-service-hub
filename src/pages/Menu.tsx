@@ -141,14 +141,17 @@ const Menu = () => {
         return date;
       };
 
-      // Services due today (active only)
-      const dueToday = activeServices.filter((s: any) => {
+      // Tickets whose clock is still running (repair not yet finished/closed).
+      const trackedServices = activeServices.filter((s: any) => isTimeTrackedStatus(s.status));
+
+      // Services due today
+      const dueToday = trackedServices.filter((s: any) => {
         const target = parseTarget(s.targetDate);
         return target && isSameDay(target, today);
       });
 
-      // Overdue services (active only)
-      const overdue = activeServices.filter((s: any) => {
+      // Overdue services
+      const overdue = trackedServices.filter((s: any) => {
         const target = parseTarget(s.targetDate);
         return target && isBefore(target, today);
       });
