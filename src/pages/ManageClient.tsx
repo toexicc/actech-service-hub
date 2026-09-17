@@ -3292,7 +3292,8 @@ const ManageClient = () => {
                         This must be filled in and saved before the status can move past the diagnosis stage.
                       </p>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="overflow-x-auto pb-2">
+                        <div className="min-w-[760px] space-y-2">
                         {quotedLines.map((line, i) => (
                           <div
                             key={i}
@@ -3301,8 +3302,8 @@ const ManageClient = () => {
                               quotedProblems[i] && "border-destructive/50 bg-destructive/5",
                             )}
                           >
-                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-12 sm:items-center">
-                              <label className="col-span-2 flex min-h-10 items-center gap-2 rounded-md bg-background/70 px-3 text-sm text-muted-foreground sm:col-span-1 sm:min-h-0 sm:justify-center sm:bg-transparent sm:px-0">
+                            <div className="grid grid-cols-12 items-center gap-2">
+                              <label className="col-span-1 flex items-center justify-center text-muted-foreground">
                                 <input
                                   type="checkbox"
                                   className="h-4 w-4 shrink-0 accent-primary"
@@ -3313,10 +3314,10 @@ const ManageClient = () => {
                                     )
                                   }
                                 />
-                                <span className="sm:sr-only">Show to client</span>
+                                <span className="sr-only">Show to client</span>
                               </label>
-                              <Textarea
-                                className="col-span-2 min-h-20 resize-none text-base sm:col-span-6 sm:min-h-10 sm:py-2 sm:text-sm"
+                              <Input
+                                className="col-span-6 min-w-0"
                                 placeholder="Repair / service"
                                 value={line.name}
                                 onChange={(e) =>
@@ -3326,14 +3327,14 @@ const ManageClient = () => {
                                 }
                               />
                               {line.options?.length ? (
-                                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2 text-left text-sm font-medium text-muted-foreground sm:col-span-3 sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
+                                <div className="col-span-3 px-0 py-0 text-right text-sm font-medium text-muted-foreground">
                                   {lineEffectiveCost(line) > 0
                                     ? `Php ${lineEffectiveCost(line).toFixed(2)}`
                                     : "Choose option"}
                                 </div>
                               ) : (
                                 <Input
-                                  className="col-span-2 min-w-0 text-left sm:col-span-3 sm:text-right"
+                                  className="col-span-3 min-w-0 text-right"
                                   inputMode="decimal"
                                   placeholder="0.00"
                                   value={line.cost ? String(line.cost) : ""}
@@ -3349,7 +3350,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="icon"
                                 variant={line.required ? "secondary" : "ghost"}
-                                className="h-10 w-full sm:col-span-1 sm:h-9 sm:w-9"
+                                className="col-span-1 h-9 w-9"
                                 aria-label={line.required ? "Make service optional" : "Make service required"}
                                 title={
                                   line.required
@@ -3372,7 +3373,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-10 w-full text-destructive sm:col-span-1 sm:h-9 sm:w-9 sm:p-0"
+                                className="col-span-1 h-9 w-9 p-0 text-destructive"
                                 onClick={() => setQuotedLines((prev) => prev.filter((_, idx) => idx !== i))}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -3380,10 +3381,10 @@ const ManageClient = () => {
                             </div>
 
                             {/* Options (e.g. OEM vs Original) */}
-                            <div className="space-y-2 sm:space-y-1 sm:pl-8">
+                            <div className="space-y-1 pl-8">
                               {(line.options ?? []).map((opt, oi) => (
-                                <div key={oi} className="grid grid-cols-2 gap-2 rounded-md bg-muted/30 p-2 sm:grid-cols-12 sm:items-center sm:bg-transparent sm:p-0">
-                                  <label className="col-span-2 flex min-h-9 items-center gap-2 text-xs text-muted-foreground sm:col-span-1 sm:min-h-0 sm:justify-center">
+                                <div key={oi} className="grid grid-cols-12 items-center gap-2">
+                                  <label className="col-span-1 flex items-center justify-center text-xs text-muted-foreground">
                                     <input
                                       type="radio"
                                       className="h-4 w-4 shrink-0 accent-primary"
@@ -3394,10 +3395,10 @@ const ManageClient = () => {
                                         )
                                       }
                                     />
-                                    <span className="sm:sr-only">Selected option</span>
+                                    <span className="sr-only">Selected option</span>
                                   </label>
-                                  <Textarea
-                                    className="col-span-2 min-h-16 resize-none text-sm sm:col-span-5 sm:min-h-8 sm:py-1.5"
+                                  <Input
+                                    className="col-span-5 h-8 min-w-0 text-sm"
                                     placeholder="Option label (e.g. OEM)"
                                     value={opt.label}
                                     onChange={(e) =>
@@ -3415,7 +3416,7 @@ const ManageClient = () => {
                                     }
                                   />
                                   <Input
-                                    className="col-span-2 min-w-0 text-left text-sm sm:col-span-3 sm:h-8 sm:text-right"
+                                    className="col-span-3 h-8 min-w-0 text-right text-sm"
                                     inputMode="decimal"
                                     placeholder="0.00"
                                     value={opt.cost ? String(opt.cost) : ""}
@@ -3439,7 +3440,7 @@ const ManageClient = () => {
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    className="col-span-2 h-9 text-xs text-destructive sm:col-span-2 sm:h-8"
+                                    className="col-span-2 h-8 text-xs text-destructive"
                                     onClick={() =>
                                       setQuotedLines((prev) =>
                                         prev.map((l, idx) => {
@@ -3462,7 +3463,7 @@ const ManageClient = () => {
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-auto min-h-9 w-full justify-start whitespace-normal text-xs sm:h-7 sm:min-h-0 sm:w-auto"
+                                className="h-7 w-auto justify-start text-xs"
                                 onClick={() =>
                                   setQuotedLines((prev) =>
                                     prev.map((l, idx) =>
@@ -3479,7 +3480,7 @@ const ManageClient = () => {
                                 + Add option (e.g. OEM / Original)
                               </Button>
                             </div>
-                            {quotedProblems[i] && <p className="text-xs text-destructive sm:pl-8">{quotedProblems[i]}</p>}
+                            {quotedProblems[i] && <p className="pl-8 text-xs text-destructive">{quotedProblems[i]}</p>}
                           </div>
                         ))}
 
@@ -3549,6 +3550,7 @@ const ManageClient = () => {
                             page, and the discount is removed automatically if they approve only part of the quotation.
                           </p>
                         )}
+                        </div>
                       </div>
                     )}
                   </div>
