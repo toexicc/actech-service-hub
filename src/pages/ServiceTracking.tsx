@@ -797,6 +797,7 @@ const ServiceTracking = () => {
   const trackVatRequested = !!(serviceData as any)?.vatRequested;
   const trackRushFee = !!(serviceData as any)?.rushFee;
   const selectedVat = vatAmount(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
+  const selectedRush = rushAmount(selectedTotal, trackDiscount, trackRushFee);
   const selectedTotalWithVat = computeFinalCost(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
   const validation = validateQuotedLines(liveLines);
   // Required (locked) lines gate the advance to Proceed Repair.
