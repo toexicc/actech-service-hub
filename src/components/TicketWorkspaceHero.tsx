@@ -73,7 +73,7 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
     <section className="mb-6 overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-[var(--shadow-float)] backdrop-blur animate-fade-in sm:rounded-3xl">
       {/* Top strip */}
       <div className="relative p-4 sm:p-8">
-        <div className="absolute inset-0 pointer-events-none opacity-70">
+        <div className="pointer-events-none absolute inset-0 hidden opacity-70 lg:block">
           <div className="absolute -top-24 -right-16 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
           <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[hsl(var(--surface-tinted))] blur-3xl" />
         </div>
