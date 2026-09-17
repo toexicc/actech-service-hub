@@ -1579,7 +1579,26 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="overflow-x-auto">
+              <>
+                <div className="grid gap-3 md:hidden">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={`mobile-skeleton-${i}`} className="rounded-2xl border bg-card p-4 shadow-[var(--shadow-soft)]">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <Skeleton className="h-4 w-28 max-w-full" />
+                          <Skeleton className="h-5 w-36 max-w-full" />
+                        </div>
+                        <Skeleton className="h-7 w-20 rounded-full" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-4/5" />
+                        <Skeleton className="h-4 w-3/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1619,7 +1638,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+                </div>
+              </>
             ) : servicesError ? (
               <div className="text-center py-8 space-y-3">
                 <p className="text-sm font-semibold text-destructive">Tickets could not be loaded</p>
