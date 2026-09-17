@@ -56,7 +56,7 @@ export function StatusProgressBar({
         </span>
         <span
           className={cn(
-            "text-xs font-semibold px-2 py-0.5 rounded-full",
+            "max-w-full break-words rounded-full px-2 py-0.5 text-right text-xs font-semibold leading-tight",
             isOffPath ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary",
           )}
         >
@@ -65,16 +65,16 @@ export function StatusProgressBar({
       </div>
 
       {/* Stepper */}
-      <div className="flex items-center w-full overflow-x-auto pb-2">
+      <div className="grid w-full grid-cols-3 gap-2 pb-1 md:flex md:items-center md:overflow-x-auto md:pb-2">
         {PROGRESS_STEPS.map((step, idx) => {
           const isComplete = currentIdx > idx;
           const isCurrent = currentIdx === idx;
           return (
-            <div key={step} className="flex items-center flex-1 min-w-fit">
-              <div className="flex flex-col items-center gap-1">
+            <div key={step} className="min-w-0 md:flex md:min-w-fit md:flex-1 md:items-center">
+              <div className="flex min-w-0 flex-col items-center gap-1 rounded-lg bg-background/50 p-1.5 md:bg-transparent md:p-0">
                 <div
                   className={cn(
-                    "h-7 w-7 rounded-full border-2 flex items-center justify-center text-[11px] font-semibold shrink-0",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-semibold",
                     isComplete && "bg-primary border-primary text-primary-foreground",
                     isCurrent && "border-primary text-primary bg-primary/10 ring-2 ring-primary/20",
                     !isComplete && !isCurrent && "border-muted-foreground/30 text-muted-foreground",
@@ -84,7 +84,7 @@ export function StatusProgressBar({
                 </div>
                 <span
                   className={cn(
-                    "text-[10px] text-center whitespace-nowrap",
+                    "max-w-full break-words text-center text-[10px] leading-tight",
                     isCurrent ? "text-primary font-medium" : "text-muted-foreground",
                   )}
                 >
@@ -94,7 +94,7 @@ export function StatusProgressBar({
               {idx < PROGRESS_STEPS.length - 1 && (
                 <div
                   className={cn(
-                    "h-0.5 flex-1 mx-1 mb-5",
+                    "mb-5 mx-1 hidden h-0.5 flex-1 md:block",
                     currentIdx > idx ? "bg-primary" : "bg-muted-foreground/20",
                   )}
                 />

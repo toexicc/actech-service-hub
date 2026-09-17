@@ -4,7 +4,7 @@ import { useServices, type ServiceRecord } from "@/hooks/useServices";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay } from "date-fns";
-import { CalendarDays, ExternalLink } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { filterAssigned } from "@/lib/technicianMatch";
@@ -166,10 +166,10 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
                 <li key={s.serviceId}>
                   <button
                     onClick={() => handleOpen(s)}
-                    className="flex w-full items-start gap-2 rounded-xl border bg-card p-3 text-left transition-colors hover:bg-muted/40 sm:items-center sm:gap-3"
+                    className="flex w-full items-start rounded-xl border bg-card p-3 text-left transition-colors hover:bg-muted/40"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="flex min-w-0 flex-col items-start gap-1 md:flex-row md:items-center md:gap-2">
                         <span className="max-w-full break-all font-mono text-sm font-semibold leading-tight text-foreground">{s.serviceId}</span>
                         <span className="max-w-full break-words rounded-full bg-primary/10 px-2 py-0.5 text-xs leading-tight text-primary">
                           {s.status}
@@ -184,7 +184,6 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
                           : ""}
                       </p>
                     </div>
-                    <ExternalLink className="h-4 w-4 text-primary shrink-0" />
                   </button>
                 </li>
               ))}
