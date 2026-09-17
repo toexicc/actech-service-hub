@@ -1464,6 +1464,7 @@ const ManageClient = () => {
           interim_breakdown_text: interim.breakdown || null,
           interim_warranty: interim.warranty || null,
           interim_summary: interim.summary || null,
+          ...(interimApprovedNow ? { interim_approved_at: new Date().toISOString() } : {}),
 
           technician_diagnosis: rawDiagnosis,
           technician_report: technicianReport,
