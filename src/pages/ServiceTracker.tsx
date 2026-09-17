@@ -1751,7 +1751,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           </div>
                         </div>
 
-                        <div className="mt-3 grid grid-cols-3 gap-3 border-t border-border/50 pt-3 text-xs">
+                        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border/50 pt-3 text-xs sm:grid-cols-3">
                           <div className="min-w-0">
                             <span className="text-muted-foreground">Service date</span>
                             <span className="block font-medium leading-tight">
@@ -1764,7 +1764,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               {service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "—"}
                             </span>
                           </div>
-                          <div className="min-w-0 text-right">
+                          <div className="col-span-2 min-w-0 sm:col-span-1 sm:text-right">
                             <span className="text-muted-foreground">In service</span>
                             <span className={cn("block font-semibold leading-tight", inServiceDays > 7 && !isCompleted && "text-warning")}>
                               {isCompleted ? "—" : `${inServiceDays} ${inServiceDays === 1 ? "day" : "days"}`}
