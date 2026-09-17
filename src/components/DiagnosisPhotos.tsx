@@ -41,10 +41,13 @@ export const DiagnosisPhotos = ({
   title = "Device Diagnosis - Photos",
   kind = "diagnosis_photo",
   hint,
+  collapsible = false,
+  defaultOpen = false,
 }: DiagnosisPhotosProps) => {
   const isInterim = kind === "interim_photo";
   const label = isInterim ? "Interim report" : "Diagnosis";
   const { toast } = useToast();
+  const [collapsibleOpen, setCollapsibleOpen] = useState(defaultOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
