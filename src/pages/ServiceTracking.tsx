@@ -797,6 +797,7 @@ const ServiceTracking = () => {
   const trackVatRequested = !!(serviceData as any)?.vatRequested;
   const trackRushFee = !!(serviceData as any)?.rushFee;
   const selectedVat = vatAmount(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
+  const selectedRush = rushAmount(selectedTotal, trackDiscount, trackRushFee);
   const selectedTotalWithVat = computeFinalCost(selectedTotal, trackDiscount, trackVatRequested, trackRushFee);
   const validation = validateQuotedLines(liveLines);
   // Required (locked) lines gate the advance to Proceed Repair.
@@ -849,11 +850,16 @@ const ServiceTracking = () => {
     if (!line || isLineLocked(line, i)) return;
     setSelectedIdx((prev) => {
       const removing = prev.includes(i);
-      // Deselecting a main service clears any option it had chosen.
-      if (removing && line.options?.length) {
+      if (line.options?.length) {
         setOptionChoice((oc) => {
           const next = { ...oc };
-          delete next[i];
+          if (removing) {
+            // Deselecting a main service clears any option it had chosen.
+            delete next[i];
+          } else if (!next[i]) {
+            // Re-selecting restores a priced option so the total updates again.
+            next[i] = line.selectedOption || line.options![0].label;
+          }
           return next;
         });
       }
@@ -1601,17 +1607,23 @@ const ServiceTracking = () => {
                                       <span className="font-medium">Estimated total for the selected services</span>
                                       <span className="font-semibold text-primary">₱{selectedTotal.toLocaleString()}</span>
                                     </div>
+                                    {selectedRush > 0 && (
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>Rush Fee (10%)</span>
+                                        <span>₱{selectedRush.toLocaleString()}</span>
+                                      </div>
+                                    )}
                                     {selectedVat > 0 && (
-                                      <>
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                          <span>VAT (12%)</span>
-                                          <span>₱{selectedVat.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between font-semibold">
-                                          <span>Total with VAT</span>
-                                          <span className="text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
-                                        </div>
-                                      </>
+                                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>VAT (12%)</span>
+                                        <span>₱{selectedVat.toLocaleString()}</span>
+                                      </div>
+                                    )}
+                                    {(selectedVat > 0 || selectedRush > 0) && (
+                                      <div className="flex items-center justify-between font-semibold">
+                                        <span>{selectedVat > 0 ? "Total with VAT" : "Total"}</span>
+                                        <span className="text-primary">₱{selectedTotalWithVat.toLocaleString()}</span>
+                                      </div>
                                     )}
                                     {quotedDiscount > 0 && (
                                       <div className="flex items-center justify-between text-xs">
