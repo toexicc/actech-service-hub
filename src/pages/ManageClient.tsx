@@ -48,8 +48,10 @@ import {
   vatAmount,
   rushAmount,
   BUNDLE_DISCOUNT_NOTICE,
+  appendQuotedLines,
   type QuotedLine,
 } from "@/lib/serviceApproval";
+import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
@@ -344,6 +346,16 @@ const ManageClient = () => {
   const [updateDiagWarranty, setUpdateDiagWarranty] = useState("");
   const [updateDiagOtherNotes, setUpdateDiagOtherNotes] = useState("");
   const [updateDiagSummary, setUpdateDiagSummary] = useState("");
+  // Interim report (new findings raised mid-repair by the technician)
+  const [interimNeeded, setInterimNeeded] = useState(false);
+  const [interimApprovedNow, setInterimApprovedNow] = useState(false);
+  const [interim, setInterim] = useState<InterimReportValues>({
+    findings: "",
+    report: "",
+    breakdown: "",
+    warranty: "",
+    summary: "",
+  });
 
   const [updateServices, setUpdateServices] = useState("");
   const [updateServiceCost, setUpdateServiceCost] = useState("");
@@ -746,6 +758,14 @@ const ManageClient = () => {
             setUpdateDiagOtherNotes(seg.otherNotes);
             setUpdateDiagSummary(seg.summary);
           }
+          setInterimNeeded(!!(merged as any).interimNeeded);
+          setInterim({
+            findings: (merged as any).interimDiagnosis || "",
+            report: (merged as any).aiInterimReport || "",
+            breakdown: (merged as any).interimBreakdownText || "",
+            warranty: (merged as any).interimWarranty || "",
+            summary: (merged as any).interimSummary || "",
+          });
 
           setUpdateServices(merged.service || "");
           setUpdateServiceCost(merged.serviceCost || "");
@@ -864,6 +884,14 @@ const ManageClient = () => {
         setUpdateDiagOtherNotes(seg.otherNotes);
         setUpdateDiagSummary(seg.summary);
       }
+      setInterimNeeded(!!(merged as any).interimNeeded);
+      setInterim({
+        findings: (merged as any).interimDiagnosis || "",
+        report: (merged as any).aiInterimReport || "",
+        breakdown: (merged as any).interimBreakdownText || "",
+        warranty: (merged as any).interimWarranty || "",
+        summary: (merged as any).interimSummary || "",
+      });
 
       setUpdateServices(merged.service || "");
       setUpdateServiceCost(merged.serviceCost || "");
@@ -967,6 +995,12 @@ const ManageClient = () => {
       [updateDiagWarranty, (serviceData as any).diagnosisWarranty || ""],
       [updateDiagOtherNotes, (serviceData as any).diagnosisOtherNotes || ""],
       [updateDiagSummary, (serviceData as any).diagnosisSummary || ""],
+      [interimNeeded ? "1" : "", (serviceData as any).interimNeeded ? "1" : ""],
+      [interim.findings, (serviceData as any).interimDiagnosis || ""],
+      [interim.report, (serviceData as any).aiInterimReport || ""],
+      [interim.breakdown, (serviceData as any).interimBreakdownText || ""],
+      [interim.warranty, (serviceData as any).interimWarranty || ""],
+      [interim.summary, (serviceData as any).interimSummary || ""],
 
       [updateServices, serviceData.service || ""],
       [String(updateServiceCost ?? ""), String(serviceData.serviceCost ?? "")],
@@ -1424,6 +1458,12 @@ const ManageClient = () => {
           diagnosis_warranty: updateDiagWarranty || null,
           diagnosis_other_notes: updateDiagOtherNotes || null,
           diagnosis_summary: updateDiagSummary || null,
+          interim_needed: interimNeeded,
+          interim_diagnosis: interim.findings || null,
+          ai_interim_report: interim.report || null,
+          interim_breakdown_text: interim.breakdown || null,
+          interim_warranty: interim.warranty || null,
+          interim_summary: interim.summary || null,
 
           technician_diagnosis: rawDiagnosis,
           technician_report: technicianReport,
@@ -1498,6 +1538,12 @@ const ManageClient = () => {
           { label: "Warranty", before: (serviceData as any).diagnosisWarranty, after: updateDiagWarranty },
           { label: "Other Notes", before: (serviceData as any).diagnosisOtherNotes, after: updateDiagOtherNotes },
           { label: "Diagnosis Summary", before: (serviceData as any).diagnosisSummary, after: updateDiagSummary },
+          { label: "Needs Interim Report", before: (serviceData as any).interimNeeded ? "yes" : "no", after: interimNeeded ? "yes" : "no", kind: "bool" as const },
+          { label: "Interim Findings", before: (serviceData as any).interimDiagnosis, after: interim.findings },
+          { label: "AI Interim Report", before: (serviceData as any).aiInterimReport, after: interim.report },
+          { label: "Interim Service Breakdown (draft)", before: (serviceData as any).interimBreakdownText, after: interim.breakdown },
+          { label: "Interim Warranty", before: (serviceData as any).interimWarranty, after: interim.warranty },
+          { label: "Interim Summary", before: (serviceData as any).interimSummary, after: interim.summary },
 
           { label: "AI Service Report", before: serviceData.aiReport, after: updateServiceReport },
           { label: "Services", before: serviceData.service, after: updateServices, kind: "list" },
@@ -3029,9 +3075,68 @@ const ManageClient = () => {
                     </div>
                   }
 
-                  {/* Device Diagnosis Photos - shown only on Confirmed Diagnosis, BELOW AI Diagnosis */}
-                  {serviceData?.status === "Confirmed Diagnosis" && serviceData?.serviceId && (
-                    <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
+                  {/* Device Diagnosis Photos (view only) - BELOW AI Diagnosis */}
+                  {serviceData?.serviceId && (
+                    <DiagnosisPhotos
+                      serviceId={serviceData.serviceId}
+                      title="Device Diagnosis - Photos"
+                      editable={false}
+                    />
+                  )}
+
+                  {/* AI Interim Report + interim photos (view only) */}
+                  {serviceData?.serviceId && (
+                    <InterimReportBlock
+                      serviceId={serviceData.serviceId}
+                      clientName={serviceData.clientName}
+                      deviceType={serviceData.deviceType}
+                      model={serviceData.model}
+                      initialDiagnosis={updateAIDiagnosis}
+                      values={interim}
+                      onChange={(patch) => setInterim((prev) => ({ ...prev, ...patch }))}
+                      needed={interimNeeded}
+                      onNeededChange={setInterimNeeded}
+                      showToggle={false}
+                      editable={true}
+                      photosEditable={false}
+                      source="/manage-client"
+                      onApprove={() => {
+                        const parsed = parseQuotedBreakdown(
+                          interim.breakdown.trim()
+                            ? `Service Breakdown:\n${interim.breakdown}`
+                            : interim.report || "",
+                        );
+                        if (!parsed.length) {
+                          toast({
+                            title: "No additional services found",
+                            description: "Fill in the interim Service Breakdown first.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        const { lines, added } = appendQuotedLines(quotedLines, parsed);
+                        if (!added.length) {
+                          toast({
+                            title: "Already added",
+                            description: "These services are already on the Service Breakdown.",
+                          });
+                          return;
+                        }
+                        const ok = window.confirm(
+                          `Add ${added.length} interim service line(s) to the client-facing Service Breakdown?\n\n${added
+                            .map((l) => `• ${l.name} - Php ${Number(l.cost || 0).toFixed(2)}`)
+                            .join("\n")}\n\nExisting lines are kept exactly as they are.`,
+                        );
+                        if (!ok) return;
+                        setQuotedLines(lines);
+                        setInterimApprovedNow(true);
+                        toast({
+                          title: "Interim services added",
+                          description:
+                            "Set the status to Waiting to Proceed and save so the client can approve them.",
+                        });
+                      }}
+                    />
                   )}
 
                   {/* Report Display - always visible */}

@@ -385,6 +385,44 @@ export const notifyAdminConcern = async (
   await sendViaEdge(recipients);
 };
 
+/**
+ * A technician submitted an interim report (new findings mid-repair). The
+ * assigned admin is asked to review it and move the ticket to Waiting to
+ * Proceed so the client can approve the additional work.
+ */
+export const notifyInterimReportSubmitted = async (
+  service: ServiceInfo,
+  fromName: string,
+): Promise<void> => {
+  const staffList = await fetchStaffList();
+  const deviceInfo = service.device || service.deviceType || 'device';
+  const title = `Interim report submitted: ${service.serviceId}`;
+  const text = `${fromName || 'A technician'} submitted an interim report for ${service.clientName}'s ${deviceInfo}. Please review it and change the status to Waiting to Proceed to ask the client for approval.`;
+
+  const recipients: { userId: string; title: string; message: string; serviceId?: string }[] = [];
+  const seen = new Set<string>();
+  const push = (staff: StaffMember | undefined) => {
+    if (!staff?.staffId || seen.has(staff.staffId)) return;
+    seen.add(staff.staffId);
+    recipients.push({ userId: staff.staffId, title, message: text, serviceId: service.serviceId });
+  };
+
+  if (service.adminRep) {
+    for (const name of service.adminRep.split(',').map((a) => a.trim()).filter(Boolean)) {
+      push(findStaffByName(staffList, name));
+    }
+  }
+  if (recipients.length === 0 && service.receivingStaff) {
+    push(findStaffByName(staffList, service.receivingStaff));
+  }
+  if (recipients.length === 0) {
+    for (const m of getManagementStaff(staffList)) push(m);
+  }
+  if (recipients.length === 0) return;
+
+  await sendViaEdge(recipients);
+};
+
 /** Names of the admins that a concern would be sent to (for UI display). */
 export const resolveConcernRecipientNames = async (service: ServiceInfo): Promise<string[]> => {
   try {

@@ -41,6 +41,8 @@ export interface QuotedLine {
   options?: QuotedOption[];
   /** Label of the chosen option (empty when nothing is chosen yet). */
   selectedOption?: string;
+  /** True for lines added by an interim report (new findings mid-repair). */
+  interim?: boolean;
 }
 
 const toNumber = (raw: string): number => {
@@ -130,9 +132,34 @@ export const normalizeQuotedBreakdown = (raw: unknown): QuotedLine[] => {
         required: !!r?.required,
         ...(options ? { options } : {}),
         selectedOption: String(r?.selectedOption ?? "").trim(),
+        ...(r?.interim ? { interim: true } : {}),
       } as QuotedLine;
     })
     .filter((r) => r.name || r.cost);
+};
+
+const lineKey = (name: string) => String(name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * Append interim-report lines to an existing quotation WITHOUT ever rewriting
+ * or removing what is already there. Lines whose name already exists are
+ * skipped, so approving an interim report twice cannot duplicate the quote.
+ * New lines are tagged `interim` and start unticked and unlocked.
+ */
+export const appendQuotedLines = (
+  existing: QuotedLine[],
+  incoming: QuotedLine[],
+): { lines: QuotedLine[]; added: QuotedLine[] } => {
+  const base = Array.isArray(existing) ? [...existing] : [];
+  const seen = new Set(base.map((l) => lineKey(l.name)));
+  const added: QuotedLine[] = [];
+  for (const line of incoming ?? []) {
+    const key = lineKey(line.name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    added.push({ ...line, selected: false, required: false, interim: true });
+  }
+  return { lines: [...base, ...added], added };
 };
 
 /** Amount that actually applies to a line (chosen option wins when present). */

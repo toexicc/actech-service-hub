@@ -12,6 +12,13 @@ interface DiagnosisPhotosProps {
   serviceId: string;
   editable?: boolean;
   title?: string;
+  /**
+   * Which photo set this panel manages. Interim report photos share the same
+   * public bucket so /track can display them without signing.
+   */
+  kind?: "diagnosis_photo" | "interim_photo";
+  /** Helper line shown above the upload buttons. */
+  hint?: string;
 }
 
 const BUCKET = "diagnosis-photos";
@@ -27,7 +34,11 @@ export const DiagnosisPhotos = ({
   serviceId,
   editable = false,
   title = "Device Diagnosis - Photos",
+  kind = "diagnosis_photo",
+  hint,
 }: DiagnosisPhotosProps) => {
+  const isInterim = kind === "interim_photo";
+  const label = isInterim ? "Interim report" : "Diagnosis";
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +59,7 @@ export const DiagnosisPhotos = ({
         .from("service_files")
         .select("id, storage_path, bucket")
         .eq("service_id", serviceId)
-        .eq("kind", "diagnosis_photo" as any)
+        .eq("kind", kind as any)
         .order("uploaded_at", { ascending: true });
       const entries: PhotoEntry[] = [];
       for (const r of rows ?? []) {
@@ -67,7 +78,7 @@ export const DiagnosisPhotos = ({
     } finally {
       setLoading(false);
     }
-  }, [serviceId]);
+  }, [serviceId, kind]);
 
   useEffect(() => {
     refresh();
@@ -89,7 +100,7 @@ export const DiagnosisPhotos = ({
       const result = await uploadServicePhotos({
         bucket: BUCKET,
         serviceId,
-        kind: "diagnosis_photo",
+        kind,
         files: list,
         onProgress: (current, total) => setProgress(`Uploading ${current} of ${total}…`),
       });
@@ -97,7 +108,7 @@ export const DiagnosisPhotos = ({
       const summary = describeUploadResult(result);
       const uploaded = result.uploaded;
       if (uploaded > 0) {
-        logTicketActivity(serviceId, `Diagnosis photos uploaded (${uploaded})`, { count: uploaded, kind: "diagnosis_photo" });
+        logTicketActivity(serviceId, `${label} photos uploaded (${uploaded})`, { count: uploaded, kind });
       }
       toast({
         title: summary.title,
@@ -142,7 +153,10 @@ export const DiagnosisPhotos = ({
       {editable && (
         <>
           <p className="text-sm text-muted-foreground">
-            Upload photos taken during initial device diagnosis (visible to admins from Confirmed Diagnosis onward).
+            {hint ??
+              (isInterim
+                ? "Upload photos of the new findings found during the ongoing repair (shown to the client with the interim report)."
+                : "Upload photos taken during initial device diagnosis (visible to admins from Confirmed Diagnosis onward).")}
           </p>
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => handleFiles(e.target.files)} className="hidden" />
@@ -189,15 +203,15 @@ export const DiagnosisPhotos = ({
           ))}
         </div>
       ) : editable ? (
-        <p className="text-sm text-muted-foreground">No diagnosis photos yet.</p>
+        <p className="text-sm text-muted-foreground">No {label.toLowerCase()} photos yet.</p>
       ) : null}
 
       <PhotoGalleryDialog
         photos={photos.map((p) => ({ id: p.id, url: p.signedUrl }))}
         index={previewIndex}
         onIndexChange={setPreviewIndex}
-        title="Diagnosis Photo"
-        alt="Diagnosis"
+        title={`${label} Photo`}
+        alt={label}
       />
     </div>
   );

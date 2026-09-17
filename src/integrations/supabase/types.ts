@@ -1072,6 +1072,7 @@ export type Database = {
           acknowledgements: Json
           address: string | null
           admin_reps: string[]
+          ai_interim_report: string | null
           ai_report: string | null
           ai_toggle: string | null
           approval_locked: boolean
@@ -1109,6 +1110,13 @@ export type Database = {
           has_pre_order: boolean
           id: string
           initial_payment: number
+          interim_approved_at: string | null
+          interim_breakdown_text: string | null
+          interim_created_at: string | null
+          interim_diagnosis: string | null
+          interim_needed: boolean
+          interim_summary: string | null
+          interim_warranty: string | null
           internal_admin_notes: string | null
           internal_technician_notes: string | null
           is_backjob: boolean
@@ -1157,6 +1165,7 @@ export type Database = {
           acknowledgements?: Json
           address?: string | null
           admin_reps?: string[]
+          ai_interim_report?: string | null
           ai_report?: string | null
           ai_toggle?: string | null
           approval_locked?: boolean
@@ -1194,6 +1203,13 @@ export type Database = {
           has_pre_order?: boolean
           id?: string
           initial_payment?: number
+          interim_approved_at?: string | null
+          interim_breakdown_text?: string | null
+          interim_created_at?: string | null
+          interim_diagnosis?: string | null
+          interim_needed?: boolean
+          interim_summary?: string | null
+          interim_warranty?: string | null
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
           is_backjob?: boolean
@@ -1242,6 +1258,7 @@ export type Database = {
           acknowledgements?: Json
           address?: string | null
           admin_reps?: string[]
+          ai_interim_report?: string | null
           ai_report?: string | null
           ai_toggle?: string | null
           approval_locked?: boolean
@@ -1279,6 +1296,13 @@ export type Database = {
           has_pre_order?: boolean
           id?: string
           initial_payment?: number
+          interim_approved_at?: string | null
+          interim_breakdown_text?: string | null
+          interim_created_at?: string | null
+          interim_diagnosis?: string | null
+          interim_needed?: boolean
+          interim_summary?: string | null
+          interim_warranty?: string | null
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
           is_backjob?: boolean
@@ -1568,6 +1592,7 @@ export type Database = {
         | "diagnosis_photo"
         | "receipt"
         | "warranty"
+        | "interim_photo"
       service_status:
         | "Pending Diagnosis"
         | "Confirmed Diagnosis"
@@ -1721,6 +1746,7 @@ export const Constants = {
         "diagnosis_photo",
         "receipt",
         "warranty",
+        "interim_photo",
       ],
       service_status: [
         "Pending Diagnosis",

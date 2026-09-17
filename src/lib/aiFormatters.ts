@@ -77,6 +77,34 @@ export const formatDiagnosisSections = async (args: DiagnosisArgs): Promise<Diag
 };
 
 
+interface InterimArgs {
+  /** The already-approved initial AI diagnosis, used as context. */
+  initialDiagnosis?: string;
+  /** The technician's raw notes on the new findings. */
+  interimFindings: string;
+  customerName?: string;
+  deviceType?: string;
+  model?: string;
+  serviceId?: string;
+}
+
+/**
+ * Format new mid-repair findings into a customer-facing interim report that
+ * references the initial diagnosis.
+ */
+export const formatInterimWithAI = async (args: InterimArgs): Promise<string> => {
+  const data = await invokeAiFunction<any>("format-interim", args);
+  const text = data?.formattedInterim;
+  if (!text) throw new Error(AI_ERROR_MESSAGE);
+  return text as string;
+};
+
+/** Same call, already split into the separate interim fields. */
+export const formatInterimSections = async (args: InterimArgs): Promise<DiagnosisSections> => {
+  const text = await formatInterimWithAI(args);
+  return splitDiagnosisText(text);
+};
+
 /** Format the technician report into the customer-facing service report. */
 export const formatReportWithAI = async (args: ReportArgs): Promise<string> => {
   const data = await invokeAiFunction<any>("format-report", args);
