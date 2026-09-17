@@ -29,6 +29,8 @@ import termsImage from "@/assets/terms-and-conditions.jpg";
 import { notifyNewServiceAssignment } from "@/lib/serviceNotifications";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { ClientSearchSuggestions } from "@/components/ClientSearchSuggestions";
+import { DeviceFieldSuggest } from "@/components/DeviceFieldSuggest";
+import { rememberDeviceFields } from "@/lib/deviceCatalog";
 import { useStaff } from "@/hooks/useStaff";
 import { logActivity } from "@/lib/activityLogger";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
