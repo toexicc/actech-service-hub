@@ -42,22 +42,10 @@ const OpenDashboard = () => {
   const { data: allServices = [], isPending: isServicesLoading, refetch: refetchServices } = useServices();
   const { data: staffList = [] } = useStaff();
 
-  // Filter services for this dashboard
+  // Filter services for this dashboard: only tickets whose clock is still running
+  // (same rule as the Service Tracker overdue / in-service counters).
   const services = useMemo(() => {
-    const excludedStatuses = [
-      "Completed",
-      "Cancelled",
-      "RTO - ACTech",
-      "RTO - Client",
-      "RTO",
-      "On Hold",
-      "Done Repair - For Release",
-      "Done Repair - Advise Client",
-    ];
-
-    return allServices.filter(
-      (service: any) => !excludedStatuses.includes(service.status)
-    );
+    return allServices.filter((service: any) => isTimeTrackedStatus(service.status));
   }, [allServices]);
 
   // Get technicians with departments
