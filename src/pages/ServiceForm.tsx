@@ -493,6 +493,13 @@ const ServiceForm = ({
   });
 
   const onSubmit = async (data: FormValues, linkChoice?: "link" | "walkin") => {
+    // Remember the device wording so it can be suggested on future intakes.
+    rememberDeviceFields({
+      brand: data.brand,
+      model: data.model,
+      color: data.color,
+      memory: data.memory,
+    });
     // Public /intake path: submit into the queue instead of creating a full service.
     // Front-desk staff will complete it into a real service from /queueing.
     if (isPublic) {
