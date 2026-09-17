@@ -1,0 +1,4 @@
+- [x] Add safe-area mobile shell with persistent bottom navigation and More sheet.
+- [x] Add shared mobile primitives for tables, filters, and sticky actions.
+- [x] Enable guarded offline app-shell support while keeping push notifications.
+- [ ] Verify mobile layouts at 320/375/390/430px, tablet, and desktop.

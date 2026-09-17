@@ -45,12 +45,6 @@ const Login = () => {
     <>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       <div className="min-h-screen min-h-[100dvh] gradient-bg flex flex-col items-center justify-center p-4 py-6 sm:py-4 relative overflow-y-auto">
-        {/* Ambient orbs */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-          <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-info/15 blur-3xl" />
-        </div>
-
         <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-3">
@@ -94,6 +88,9 @@ const Login = () => {
                 <Search className="mr-2 h-4 w-4 text-primary" />
                 Track your service
               </Button>
+              <Button variant="ghost" className="mt-2 w-full h-11" onClick={() => navigate("/install")}>
+                Add ACTech Hub to this device
+              </Button>
             </div>
           </div>
 
@@ -104,16 +101,17 @@ const Login = () => {
               { icon: ClipboardList, label: "Intake", path: "/intake", tone: "bg-success/10 text-success" },
               { icon: Clock, label: "Attendance", path: "/attendance", tone: "bg-warning/10 text-warning" },
             ].map((f) => (
-              <button
+              <Button
                 key={f.label}
+                variant="ghost"
                 onClick={() => navigate(f.path)}
-                className="text-center p-3 rounded-xl glass-panel hover:bg-primary/5 transition-colors"
+                className="h-auto flex-col rounded-xl p-3 text-center glass-panel hover:bg-primary/5"
               >
                 <div className={`w-9 h-9 rounded-xl ${f.tone} flex items-center justify-center mx-auto mb-1.5`}>
                   <f.icon className="h-4 w-4" />
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-tight">{f.label}</p>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

@@ -59,11 +59,10 @@ export const initOneSignal = async (): Promise<void> => {
         appId: ONESIGNAL_APP_ID,
         safari_web_id: "web.onesignal.auto.2e77cfdc-f6e8-4572-82d4-363b6713f2bc",
 
-        // Critical: ensure OneSignal SW is registered at the correct location/scope.
-        // Paths must be relative (no leading slash) to avoid origin mismatch errors.
+        // Use the app-shell service worker so offline support and push share one registration.
         serviceWorkerParam: { scope: "/" },
-        serviceWorkerPath: "OneSignalSDKWorker.js",
-        serviceWorkerUpdaterPath: "OneSignalSDKUpdaterWorker.js",
+        serviceWorkerPath: "sw.js",
+        serviceWorkerUpdaterPath: "sw.js",
 
         // Hide the notify button if user is already subscribed
         notifyButton: { enable: !isAlreadySubscribed },

@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useRef, createContext, useContext, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
-  Monitor, Menu, ShoppingCart, Loader2, Clock, Search, BarChart3, ShieldCheck,
+  Monitor, ShoppingCart, Loader2, Clock, Search, BarChart3, ShieldCheck,
+  MoreHorizontal, PlusCircle,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -135,7 +136,51 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       pinned: item.path === "/menu",
       iconName: item.iconName,
     });
+    setMobileMenuOpen(false);
   };
+
+  const mobileNavItems = useMemo(() => {
+    const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
+    const adminItems = adminSection.items.filter(canViewItem);
+    const techItems = techSection.items.filter(canViewItem);
+    const requestParts: NavItem = { title: "Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" };
+
+    if (userRole === "technician") {
+      return [
+        dashboard,
+        ...techItems.filter((item) => ["/service-update", "/service-tracking"].includes(item.path)),
+        requestParts,
+      ];
+    }
+
+    return [
+      dashboard,
+      ...adminItems.filter((item) => ["/pos", "/service-form", "/service-tracker"].includes(item.path)),
+    ];
+  }, [userRole]);
+
+  const allMobileMoreItems = useMemo(() => {
+    const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
+    const items = [
+      dashboard,
+      ...adminSection.items.filter((item) => canViewSection(adminSection) && canViewItem(item)),
+      ...techSection.items.filter((item) => canViewSection(techSection) && canViewItem(item)),
+    ];
+    if (userRole === "admin" || userRole === "technician") {
+      items.push({ title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" });
+    }
+    const primaryPaths = new Set(mobileNavItems.map((item) => item.path));
+    return items.filter((item, index, source) => {
+      if (primaryPaths.has(item.path)) return false;
+      return source.findIndex((candidate) => candidate.path === item.path) === index;
+    });
+  }, [mobileNavItems, userRole]);
+
+  const currentNavItem = useMemo(() => {
+    const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
+    const items = [dashboard, ...adminSection.items, ...techSection.items, { title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" }];
+    return items.find((item) => item.path === location.pathname) || dashboard;
+  }, [location.pathname]);
 
   const renderNavSection = (section: NavSection, isOpen: boolean, setIsOpen: (o: boolean) => void) => {
     if (!canViewSection(section)) return null;
@@ -268,40 +313,107 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   }
 
   if (isMobile) return (
-    <div className="flex flex-col h-screen w-full overflow-hidden">
-      <header className="fixed top-0 left-0 right-0 z-50 flex h-14 shrink-0 items-center justify-between px-3 gap-2">
-        <div className="flex items-center gap-2">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="glass-panel rounded-full h-9 w-9">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0 glass-sidebar border-r-0">
-              <div className="relative h-full">{sidebarContent}</div>
-            </SheetContent>
-          </Sheet>
-          <div className="flex items-center gap-2 glass-panel rounded-full h-9 px-3">
-            <div className="h-6 w-6 rounded-md bg-gradient-to-br from-primary to-primary-glow p-0.5">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/95 pt-[env(safe-area-inset-top)] shadow-soft">
+        <div className="flex h-14 items-center justify-between gap-2 px-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 p-1.5">
               <img src={acTechLogo} alt="AC Tech" className="h-full w-full object-contain" loading="lazy" />
             </div>
-            <span className="text-xs font-bold">AC Tech</span>
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-medium capitalize text-muted-foreground">{userRole || "Workspace"}</p>
+              <h1 className="truncate text-base font-semibold leading-tight text-foreground">{currentNavItem.title}</h1>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {searchTriggerMobile}
+            <div className="flex h-10 items-center rounded-full border border-border/70 bg-card shadow-soft">
+              <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
+              <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          {searchTriggerMobile}
-          <div className="glass-panel rounded-full flex items-center">
-            <NotificationDropdown userId={userId} userRole={userRole || undefined} onOpenMessaging={handleOpenMessaging} />
-            <MessagingPanel ref={messagingPanelRef} userId={userId} userName={userFullName} />
-          </div>
+        <div className="border-t border-border/60 px-2 py-1">
+          <TabBar />
         </div>
       </header>
-      <div className="fixed top-14 left-0 right-0 z-40 glass-panel rounded-none border-x-0 border-t-0">
-        <div className="px-2"><TabBar /></div>
-      </div>
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain pt-[104px]" style={{ WebkitOverflowScrolling: "touch" }}>
+
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain pt-[calc(6.75rem+env(safe-area-inset-top))] pb-[calc(5.75rem+env(safe-area-inset-bottom))]" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="w-full">{children}</div>
       </main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-float">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+          {mobileNavItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <Button
+                key={item.path}
+                variant="ghost"
+                size="sm"
+                onClick={() => handleNavClick(item)}
+                className={cn(
+                  "h-14 min-w-0 flex-col gap-1 rounded-xl px-1 text-[11px] font-medium text-muted-foreground active:scale-95",
+                  active && "bg-primary/10 text-primary",
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="w-full truncate text-center">{item.title.replace("Point of Sales", "POS").replace("Client Intake Form", "Intake").replace("Service Tracker", "Tracker").replace("Service Update", "Update").replace("Service Tracking", "Tracking")}</span>
+              </Button>
+            );
+          })}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileMenuOpen(true)}
+            className={cn(
+              "h-14 min-w-0 flex-col gap-1 rounded-xl px-1 text-[11px] font-medium text-muted-foreground active:scale-95",
+              allMobileMoreItems.some((item) => item.path === location.pathname) && "bg-primary/10 text-primary",
+            )}
+          >
+            <MoreHorizontal className="h-5 w-5" />
+            <span>More</span>
+          </Button>
+        </div>
+      </nav>
+
+      <Drawer open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <DrawerContent className="max-h-[88dvh] rounded-t-2xl border-border bg-background pb-[env(safe-area-inset-bottom)]">
+          <DrawerHeader className="px-4 pb-2 pt-3 text-left">
+            <DrawerTitle className="flex items-center gap-2 text-base">
+              <PlusCircle className="h-5 w-5 text-primary" />
+              More actions
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="grid gap-2 overflow-y-auto px-4 pb-4">
+            {allMobileMoreItems.map((item) => {
+              const active = location.pathname === item.path;
+              return (
+                <Button
+                  key={item.path}
+                  variant="ghost"
+                  onClick={() => handleNavClick(item)}
+                  className={cn(
+                    "h-12 justify-start rounded-xl border border-border/60 bg-card px-3 text-left shadow-soft",
+                    active && "border-primary/40 bg-primary/10 text-primary",
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="truncate">{item.title}</span>
+                </Button>
+              );
+            })}
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="h-12 justify-start rounded-xl border border-border/60 bg-card px-3 text-destructive shadow-soft"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
