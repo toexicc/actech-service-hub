@@ -534,20 +534,22 @@ const RequestForParts = () => {
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-xl sm:text-2xl">My Requests</CardTitle>
-              <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:w-auto sm:items-center sm:gap-4">
-                <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-full sm:w-[150px]">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="For Ordering">For Ordering</SelectItem>
-                    <SelectItem value="Ordered">Ordered</SelectItem>
-                    <SelectItem value="Received">Received</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative col-span-1 min-w-0 sm:w-64">
+              <div className="grid w-full gap-2 sm:flex sm:w-auto sm:items-center sm:gap-4">
+                <div className="min-w-0 sm:w-[150px]">
+                  <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="For Ordering">For Ordering</SelectItem>
+                      <SelectItem value="Ordered">Ordered</SelectItem>
+                      <SelectItem value="Received">Received</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="relative min-w-0 sm:w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search..."
@@ -556,7 +558,7 @@ const RequestForParts = () => {
                     className="pl-8"
                   />
                 </div>
-                <Button variant="outline" size="icon" onClick={fetchRequests} disabled={isLoading}>
+                <Button variant="outline" size="icon" onClick={fetchRequests} disabled={isLoading} className="w-full sm:w-10">
                   <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                 </Button>
               </div>

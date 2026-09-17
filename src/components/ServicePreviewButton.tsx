@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { Eye } from "lucide-react";
 import { useServicePreview } from "@/components/ServicePreviewProvider";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +31,7 @@ export function ServicePreviewButton({
         openPreview(serviceId);
       }}
     >
-      <ExternalLink className="h-3.5 w-3.5" />
+      <Eye className="h-3.5 w-3.5" />
     </Button>
   );
 }
