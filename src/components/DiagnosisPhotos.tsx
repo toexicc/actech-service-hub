@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
 import { logTicketActivity } from "@/lib/activityLogger";
 import { PhotoGalleryDialog } from "@/components/PhotoGalleryDialog";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface DiagnosisPhotosProps {
   serviceId: string;
@@ -19,6 +20,10 @@ interface DiagnosisPhotosProps {
   kind?: "diagnosis_photo" | "interim_photo";
   /** Helper line shown above the upload buttons. */
   hint?: string;
+  /** Wrap the panel in a collapsible whose header acts as the trigger. */
+  collapsible?: boolean;
+  /** Initial open state when collapsible (defaults to false = minimized). */
+  defaultOpen?: boolean;
 }
 
 const BUCKET = "diagnosis-photos";
@@ -36,10 +41,13 @@ export const DiagnosisPhotos = ({
   title = "Device Diagnosis - Photos",
   kind = "diagnosis_photo",
   hint,
+  collapsible = false,
+  defaultOpen = false,
 }: DiagnosisPhotosProps) => {
   const isInterim = kind === "interim_photo";
   const label = isInterim ? "Interim report" : "Diagnosis";
   const { toast } = useToast();
+  const [collapsibleOpen, setCollapsibleOpen] = useState(defaultOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
@@ -60,21 +68,20 @@ export const DiagnosisPhotos = ({
         .select("id, storage_path, bucket")
         .eq("service_id", serviceId)
         .eq("kind", kind as any)
-        .order("uploaded_at", { ascending: true });
-      const entries: PhotoEntry[] = [];
-      for (const r of rows ?? []) {
-        // Bucket is public — use a stable public URL so anonymous /track visitors can view
-        const { data: pub } = supabase.storage.from(r.bucket).getPublicUrl(r.storage_path);
-        let url = pub?.publicUrl ?? "";
-        if (!url) {
-          const { data: signed } = await supabase.storage.from(r.bucket).createSignedUrl(r.storage_path, 60 * 60);
-          url = signed?.signedUrl ?? "";
-        }
-        if (url) entries.push({ id: r.id, storagePath: r.storage_path, signedUrl: url });
+        .order("created_at", { ascending: true });
+      if (rows && rows.length > 0) {
+        const signed = await Promise.all(
+          rows.map(async (r) => {
+            const { data } = await supabase.storage.from(r.bucket || BUCKET).createSignedUrl(r.storage_path, 60 * 60);
+            return { id: r.id, storagePath: r.storage_path, bucket: r.bucket, signedUrl: data?.signedUrl ?? "" };
+          }),
+        );
+        setPhotos(signed.filter((s) => s.signedUrl));
+      } else {
+        setPhotos([]);
       }
-      setPhotos(entries);
     } catch {
-      // ignore
+      setPhotos([]);
     } finally {
       setLoading(false);
     }
@@ -85,17 +92,13 @@ export const DiagnosisPhotos = ({
   }, [refresh]);
 
   const handleFiles = async (files: FileList | null) => {
-    if (!files || !editable) return;
-    const remaining = MAX_PHOTOS - photos.length;
-    if (remaining <= 0) {
-      toast({ title: "Limit reached", description: `Max ${MAX_PHOTOS} photos`, variant: "destructive" });
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, MAX_PHOTOS - photos.length);
+    if (list.length === 0) {
+      toast({ title: "Photo limit reached", description: `Max ${MAX_PHOTOS} photos.` });
       return;
     }
-    const list = Array.from(files).slice(0, remaining);
-    if (list.length === 0) return;
-
     setUploading(true);
-    setProgress(`Uploading 1 of ${list.length}…`);
     try {
       const result = await uploadServicePhotos({
         bucket: BUCKET,
@@ -140,16 +143,18 @@ export const DiagnosisPhotos = ({
 
   if (!editable && !loading && photos.length === 0) return null;
 
-  return (
-    <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ImageIcon className="h-5 w-5" />
-          <Label className="text-lg font-semibold">{title}</Label>
-        </div>
-        <span className="text-sm text-muted-foreground">{photos.length}{editable ? `/${MAX_PHOTOS}` : ""} photos</span>
+  const header = (
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-5 w-5" />
+        <Label className="text-lg font-semibold">{title}</Label>
       </div>
+      <span className="text-sm text-muted-foreground">{photos.length}{editable ? `/${MAX_PHOTOS}` : ""} photos</span>
+    </div>
+  );
 
+  const body = (
+    <>
       {editable && (
         <>
           <p className="text-sm text-muted-foreground">
@@ -205,14 +210,41 @@ export const DiagnosisPhotos = ({
       ) : editable ? (
         <p className="text-sm text-muted-foreground">No {label.toLowerCase()} photos yet.</p>
       ) : null}
+    </>
+  );
 
-      <PhotoGalleryDialog
-        photos={photos.map((p) => ({ id: p.id, url: p.signedUrl }))}
-        index={previewIndex}
-        onIndexChange={setPreviewIndex}
-        title={`${label} Photo`}
-        alt={label}
-      />
+  const gallery = (
+    <PhotoGalleryDialog
+      photos={photos.map((p) => ({ id: p.id, url: p.signedUrl }))}
+      index={previewIndex}
+      onIndexChange={setPreviewIndex}
+      title={`${label} Photo`}
+      alt={label}
+    />
+  );
+
+  if (collapsible) {
+    return (
+      <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            {header}
+            <span className="text-xs ml-2">{collapsibleOpen ? "▼" : "▶"}</span>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 pt-4">
+          {body}
+        </CollapsibleContent>
+        {gallery}
+      </Collapsible>
+    );
+  }
+
+  return (
+    <div className="bg-muted/30 p-4 rounded-lg border border-border space-y-4">
+      {header}
+      {body}
+      {gallery}
     </div>
   );
 };

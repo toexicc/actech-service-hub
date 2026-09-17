@@ -264,9 +264,7 @@ export const InterimReportBlock = ({
         <Collapsible open={open} onOpenChange={setOpen}>
           <CollapsibleTrigger asChild>
             <Button variant="outline" className="w-full justify-between">
-              <span className="font-semibold">
-                AI Interim Report{hasContent ? "" : " (empty)"}
-              </span>
+              <span className="font-semibold">AI Interim Report</span>
               <span className="text-xs">{open ? "▼" : "▶"}</span>
             </Button>
           </CollapsibleTrigger>

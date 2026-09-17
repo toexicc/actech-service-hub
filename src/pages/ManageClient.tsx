@@ -3082,6 +3082,8 @@ const ManageClient = () => {
                       serviceId={serviceData.serviceId}
                       title="Device Diagnosis - Photos"
                       editable={false}
+                      collapsible
+                      defaultOpen={false}
                     />
                   )}
 
@@ -3230,7 +3232,7 @@ const ManageClient = () => {
 
                   {/* Device Report Photos - shown only on Done Repair - For Release, BELOW AI Report */}
                   {serviceData?.status === "Done Repair - For Release" && serviceData?.serviceId && (
-                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" collapsible defaultOpen={false} />
                   )}
 
                   <div className="space-y-2">
