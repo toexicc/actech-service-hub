@@ -3229,15 +3229,15 @@ const ManageClient = () => {
                               }}
                             />
                           </div>
+                          {/* Device Report Photos (view only) - inside the formatter */}
+                          {serviceData?.serviceId && (
+                            <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
+                          )}
                         </CollapsibleContent>
                       </Collapsible>
                     </div>
                   }
 
-                  {/* Device Report Photos - shown only on Done Repair - For Release, BELOW AI Report */}
-                  {serviceData?.status === "Done Repair - For Release" && serviceData?.serviceId && (
-                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" collapsible defaultOpen={false} />
-                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="services">Service/s:</Label>
