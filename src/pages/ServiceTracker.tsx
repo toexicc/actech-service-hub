@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { STATUS_OPTIONS } from "@/lib/constants";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2, Download } from "lucide-react";
+import { ArrowUpDown, Calendar, Clock, AlertCircle, CalendarIcon, X, Search, ExternalLink, Bell, Forward, Send, RefreshCw, Trash2, Download, SlidersHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -39,6 +39,7 @@ import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { useServiceTimings, formatWorkingDuration } from "@/hooks/useServiceTimings";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
 import { classifyStatus, isClosedStatus, isCompletedStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { MobileFilterChips, MobileFilterSheet } from "@/components/mobile/MobileFilterSheet";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
 
@@ -188,6 +189,7 @@ const ServiceTracker = () => {
   })();
   const [activeTab, setActiveTab] = useState<TrackerTab>(initialTab);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -1018,6 +1020,20 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     !!endDate ||
     !!debouncedSearch.trim() ||
     (!isTechnician && (technicianFilter !== "all" || departmentFilter !== "all"));
+
+  const activeFilterChips = useMemo(() => {
+    const chips: string[] = [];
+    if (debouncedSearch.trim()) chips.push(`Search: ${debouncedSearch.trim()}`);
+    if (dueDateFilter !== "all") chips.push(`Due: ${dueDateFilter}`);
+    if (deviceTypeFilter !== "all") chips.push(`Device: ${deviceTypeFilter}`);
+    if (!isTechnician && technicianFilter !== "all") chips.push(`Tech: ${technicianFilter}`);
+    if (!isTechnician && departmentFilter !== "all") chips.push(`Dept: ${departmentFilter}`);
+    if (statusFilter !== "all") chips.push(`Status: ${statusFilter}`);
+    if (flagFilter !== "all") chips.push(FLAG_COUNT_CARDS.find((f) => f.key === flagFilter)?.label || "Flag active");
+    if (startDate) chips.push(`From: ${format(startDate, "MMM d")}`);
+    if (endDate) chips.push(`To: ${format(endDate, "MMM d")}`);
+    return chips;
+  }, [debouncedSearch, dueDateFilter, deviceTypeFilter, isTechnician, technicianFilter, departmentFilter, statusFilter, flagFilter, startDate, endDate]);
 
   /**
    * Set the status filter and only move the tab when the chosen status could
