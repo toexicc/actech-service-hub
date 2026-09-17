@@ -2028,17 +2028,16 @@ const ServiceUpdate = () => {
                             }}
                           />
                         </div>
+                        {/* Device Report Photos - inside the formatter for a cleaner layout */}
+                        {serviceData?.serviceId && (
+                          <DeviceReportPhotos
+                            serviceId={serviceData.serviceId}
+                            editable={showReportEditors}
+                          />
+                        )}
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
-                )}
-
-                {/* Device Report Photos - placed BELOW AI Report Formatter; uploads save to Supabase */}
-                {serviceData?.serviceId && showReportStage && (
-                  <DeviceReportPhotos
-                    serviceId={serviceData.serviceId}
-                    editable={showReportEditors}
-                  />
                 )}
 
 
