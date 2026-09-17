@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
 interface MobileFilterSheetProps {
@@ -25,6 +25,9 @@ export function MobileFilterSheet({ open, onOpenChange, title = "Filter & Sort",
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </Button>
+          <DrawerDescription className="sr-only">
+            Adjust filters and sorting for the current list.
+          </DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-4">
           <div className="grid gap-4">{children}</div>
