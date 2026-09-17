@@ -1913,7 +1913,7 @@ const ServiceUpdate = () => {
                   />
                 )}
 
-                {(reportEditable || reportStageReached || !!(updateServiceReport || updateTechnicianReport).trim()) && (
+                {(showReportStage || reportEditable || reportStageReached || !!(updateServiceReport || updateTechnicianReport).trim()) && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                     <Collapsible open={isReportOpen} onOpenChange={setIsReportOpen}>
                       <CollapsibleTrigger asChild>
