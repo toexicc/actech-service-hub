@@ -7,11 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadServicePhotos, describeUploadResult } from "@/lib/photoUploads";
 import { logTicketActivity } from "@/lib/activityLogger";
 import { PhotoGalleryDialog } from "@/components/PhotoGalleryDialog";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface Props {
   serviceId: string;
   editable?: boolean;
   title?: string;
+  /** Wrap the panel in a collapsible whose header acts as the trigger. */
+  collapsible?: boolean;
+  /** Initial open state when collapsible (defaults to false = minimized). */
+  defaultOpen?: boolean;
 }
 
 const BUCKET = "device-reports";
