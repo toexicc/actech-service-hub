@@ -68,7 +68,7 @@ export const DiagnosisPhotos = ({
         .select("id, storage_path, bucket")
         .eq("service_id", serviceId)
         .eq("kind", kind as any)
-        .order("created_at", { ascending: true });
+        .order("uploaded_at", { ascending: true });
       if (rows && rows.length > 0) {
         const signed = await Promise.all(
           rows.map(async (r) => {
