@@ -1704,10 +1704,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       >
                         <div className="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 flex-1">
-                             <div className="flex min-w-0 items-start gap-2">
-                               <span className="min-w-0 break-all font-mono text-xs text-muted-foreground">{service.serviceId}</span>
-                               <ServicePreviewButton serviceId={service.serviceId} className="h-8 w-8 shrink-0 rounded-full" />
-                               {overdueStatus && <AlertCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />}
+                             <div className="flex min-w-0 items-center gap-1.5">
+                               <span className="min-w-0 break-all font-mono text-xs leading-5 text-muted-foreground">{service.serviceId}</span>
+                               <ServicePreviewButton serviceId={service.serviceId} className="h-7 w-7 shrink-0 rounded-full" />
+                               {overdueStatus && <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />}
                              </div>
                             <p className="mt-0.5 break-words text-base font-semibold leading-tight text-foreground">{service.clientName || "N/A"}</p>
                             <TicketFlagChips

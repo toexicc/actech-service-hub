@@ -346,16 +346,22 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   {summary && (
                     <p className="px-1 py-2 text-sm font-medium">{summary}</p>
                   )}
-                  {diagnosis ? (
-                    <LongText title="Diagnosis" body={diagnosis} />
-                  ) : (
-                    <p className="px-1 py-2 text-sm text-muted-foreground">No diagnosis yet.</p>
-                  )}
-                  {report ? (
-                    <LongText title="Technician Report" body={report} />
-                  ) : (
-                    <p className="px-1 py-2 text-sm text-muted-foreground">No technician report yet.</p>
-                  )}
+                  <LongText title="Diagnosis" body={diagnosis}>
+                    <DiagnosisPhotos serviceId={service.serviceId} editable={false} />
+                  </LongText>
+                  {interimText || service.interimNeeded ? (
+                    <LongText title="Interim Report" body={interimText}>
+                      <DiagnosisPhotos
+                        serviceId={service.serviceId}
+                        editable={false}
+                        kind="interim_photo"
+                        title="Interim Report - Photos"
+                      />
+                    </LongText>
+                  ) : null}
+                  <LongText title="Report" body={report}>
+                    <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
+                  </LongText>
                 </Card>
               </Section>
 
@@ -429,14 +435,6 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                     </>
                   ) : null}
                 </Card>
-              </Section>
-
-              <Section icon={Images} title="Diagnosis Photos">
-                <DiagnosisPhotos serviceId={service.serviceId} editable={false} />
-              </Section>
-
-              <Section icon={Images} title="Device Report Photos">
-                <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
               </Section>
             </>
           )}
