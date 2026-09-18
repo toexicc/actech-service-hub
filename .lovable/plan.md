@@ -8,7 +8,7 @@
 - Preserve card-click navigation and keep each icon action independent.
 
 ### Shared overdue rule
-- Add one shared overdue-eligibility rule used by the Service Tracker, the role dashboard, and the full Tech Service Dashboard.
+- Add one shared overdue-eligibility rule used by the **Service Tracker**, **Service Tracking**, and **Tech Dashboard** pages.
 - A ticket will not be counted or styled as overdue while:
   - status is **Waiting to Proceed**;
   - **Pre-Order** is enabled; or
