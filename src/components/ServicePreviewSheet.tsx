@@ -95,16 +95,26 @@ function KV({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LongText({ title, body }: { title: string; body: string }) {
+function LongText({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body?: string;
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
-  const preview = body.replace(/\s+/g, " ").trim();
+  const preview = (body || "").replace(/\s+/g, " ").trim();
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 rounded-lg px-1 py-1.5 text-left hover:bg-muted/40">
         <span className="min-w-0">
           <span className="block text-xs font-semibold uppercase tracking-wide text-foreground">{title}</span>
           {!open && (
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">{preview}</span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {preview || "Tap to view"}
+            </span>
           )}
         </span>
         <ChevronDown
@@ -112,11 +122,17 @@ function LongText({ title, body }: { title: string; body: string }) {
         />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <p className="whitespace-pre-wrap px-1 pb-2 pt-1 text-sm leading-relaxed">{body}</p>
+        {preview ? (
+          <p className="whitespace-pre-wrap px-1 pb-2 pt-1 text-sm leading-relaxed">{body}</p>
+        ) : (
+          <p className="px-1 pb-2 pt-1 text-sm text-muted-foreground">Nothing recorded yet.</p>
+        )}
+        {children && <div className="px-1 pb-2">{children}</div>}
       </CollapsibleContent>
     </Collapsible>
   );
 }
+
 
 export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePreviewSheetProps) {
   const navigate = useNavigate();
@@ -202,6 +218,9 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
 
   const summary = String(service?.diagnosisSummary || "").trim();
   const report = String(service?.technicianReport || "").trim();
+  const interimText = String(
+    (service as any)?.aiInterimReport || (service as any)?.interimDiagnosis || "",
+  ).trim();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -330,16 +349,22 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                   {summary && (
                     <p className="px-1 py-2 text-sm font-medium">{summary}</p>
                   )}
-                  {diagnosis ? (
-                    <LongText title="Diagnosis" body={diagnosis} />
-                  ) : (
-                    <p className="px-1 py-2 text-sm text-muted-foreground">No diagnosis yet.</p>
-                  )}
-                  {report ? (
-                    <LongText title="Technician Report" body={report} />
-                  ) : (
-                    <p className="px-1 py-2 text-sm text-muted-foreground">No technician report yet.</p>
-                  )}
+                  <LongText title="Diagnosis" body={diagnosis}>
+                    <DiagnosisPhotos serviceId={service.serviceId} editable={false} />
+                  </LongText>
+                  {interimText || service.interimNeeded ? (
+                    <LongText title="Interim Report" body={interimText}>
+                      <DiagnosisPhotos
+                        serviceId={service.serviceId}
+                        editable={false}
+                        kind="interim_photo"
+                        title="Interim Report - Photos"
+                      />
+                    </LongText>
+                  ) : null}
+                  <LongText title="Report" body={report}>
+                    <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
+                  </LongText>
                 </Card>
               </Section>
 
@@ -413,14 +438,6 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                     </>
                   ) : null}
                 </Card>
-              </Section>
-
-              <Section icon={Images} title="Diagnosis Photos">
-                <DiagnosisPhotos serviceId={service.serviceId} editable={false} />
-              </Section>
-
-              <Section icon={Images} title="Device Report Photos">
-                <DeviceReportPhotos serviceId={service.serviceId} editable={false} />
               </Section>
             </>
           )}
