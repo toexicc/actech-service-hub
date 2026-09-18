@@ -218,6 +218,9 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
 
   const summary = String(service?.diagnosisSummary || "").trim();
   const report = String(service?.technicianReport || "").trim();
+  const interimText = String(
+    (service as any)?.aiInterimReport || (service as any)?.interimDiagnosis || "",
+  ).trim();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
