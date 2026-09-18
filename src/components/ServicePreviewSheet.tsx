@@ -95,16 +95,26 @@ function KV({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LongText({ title, body }: { title: string; body: string }) {
+function LongText({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body?: string;
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
-  const preview = body.replace(/\s+/g, " ").trim();
+  const preview = (body || "").replace(/\s+/g, " ").trim();
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 rounded-lg px-1 py-1.5 text-left hover:bg-muted/40">
         <span className="min-w-0">
           <span className="block text-xs font-semibold uppercase tracking-wide text-foreground">{title}</span>
           {!open && (
-            <span className="mt-0.5 block truncate text-xs text-muted-foreground">{preview}</span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {preview || "Tap to view"}
+            </span>
           )}
         </span>
         <ChevronDown
@@ -112,11 +122,17 @@ function LongText({ title, body }: { title: string; body: string }) {
         />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <p className="whitespace-pre-wrap px-1 pb-2 pt-1 text-sm leading-relaxed">{body}</p>
+        {preview ? (
+          <p className="whitespace-pre-wrap px-1 pb-2 pt-1 text-sm leading-relaxed">{body}</p>
+        ) : (
+          <p className="px-1 pb-2 pt-1 text-sm text-muted-foreground">Nothing recorded yet.</p>
+        )}
+        {children && <div className="px-1 pb-2">{children}</div>}
       </CollapsibleContent>
     </Collapsible>
   );
 }
+
 
 export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePreviewSheetProps) {
   const navigate = useNavigate();
