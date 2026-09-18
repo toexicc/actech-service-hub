@@ -400,17 +400,13 @@ serve(async (req) => {
           : blockAdvance
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
-        const needsTargetReview = resultingStatus === "Proceed Repair" && isPastTargetDate(row.target_date);
-        const targetReminder = needsTargetReview
-          ? ` The previous target date has passed after the approval wait. Please review and adjust the target date.`
-          : "";
         const message = !approved
           ? `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
           : isPartial
           ? `${clientName} approved the required services for ${serviceId}: ${approvedItems.join(", ")}. Still pending: ${pendingItems.join(", ")}. Ticket moved to Proceed Repair.`
-          : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.${targetReminder}`;
+          : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.`;
 
         let targets = names
           .map((n) => resolve(n))
@@ -435,6 +431,40 @@ serve(async (req) => {
           message,
           service_id: serviceId,
         }));
+        const reminderTargets: any[] = [];
+        if (resultingStatus === "Proceed Repair" && isPastTargetDate(row.target_date)) {
+          const reminderSeen = new Set<string>();
+          for (const name of Array.isArray(row.admin_reps) ? row.admin_reps : []) {
+            const profile = resolve(String(name));
+            if (profile?.id && !reminderSeen.has(profile.id)) {
+              reminderSeen.add(profile.id);
+              reminderTargets.push(profile);
+            }
+          }
+          if (!reminderTargets.length) {
+            const { data: adminRoles } = await admin
+              .from("user_roles")
+              .select("user_id")
+              .in("role", ["admin", "management"]);
+            const adminIds = new Set((adminRoles ?? []).map((r: any) => r.user_id));
+            for (const profile of profiles ?? []) {
+              if (adminIds.has(profile.id) && !reminderSeen.has(profile.id)) {
+                reminderSeen.add(profile.id);
+                reminderTargets.push(profile);
+              }
+            }
+          }
+          const reminderTitle = `Adjust target date: ${serviceId}`;
+          const reminderMessage = `${serviceId} resumed after client approval, but its target date has already passed. Please review and adjust the target date.`;
+          rows.push(...reminderTargets.map((p: any) => ({
+            recipient_id: p.id,
+            recipient_name: p.name,
+            category: "service_update",
+            title: reminderTitle,
+            message: reminderMessage,
+            service_id: serviceId,
+          })));
+        }
         if (rows.length) {
           await admin.from("notifications").insert(rows);
           // Fan out pushes through the shared notifier so offline staff get alerted.
@@ -442,13 +472,20 @@ serve(async (req) => {
           await admin.functions
             .invoke("notify-service-event", {
               body: {
-                recipients: targets.map((p: any) => ({
-                  userId: p.id,
-                  title,
-                  message,
-                  serviceId,
-                }),
-                ),
+                recipients: [
+                  ...targets.map((p: any) => ({
+                    userId: p.id,
+                    title,
+                    message,
+                    serviceId,
+                  })),
+                  ...reminderTargets.map((p: any) => ({
+                    userId: p.id,
+                    title: `Adjust target date: ${serviceId}`,
+                    message: `${serviceId} resumed after client approval, but its target date has already passed. Please review and adjust the target date.`,
+                    serviceId,
+                  })),
+                ],
                 skipInsert: true,
               },
             })

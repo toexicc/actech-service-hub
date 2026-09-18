@@ -77,10 +77,10 @@ export function TicketFlagsPanel({
         note ? { "Parts update": note } : undefined,
       );
       if (next) await notifyWaitingForPartsOn(notifyInfo, by, note);
-       else {
-         await notifyPartsAvailable(notifyInfo, by);
-         await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
-       }
+      else {
+        await notifyPartsAvailable(notifyInfo, by);
+        await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
+      }
       toast({
         title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
         description: next
