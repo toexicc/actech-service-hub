@@ -118,3 +118,19 @@ export const isTimeTrackedStatus = (status?: string): boolean => {
   if (s === "done repair - advise client") return false;
   return true;
 };
+
+/**
+ * Whether a ticket is currently eligible to be marked overdue. Approval and
+ * parts delays pause the overdue flag without changing the ticket's status.
+ */
+export const isOverdueEligible = (service: {
+  status?: string;
+  waitingForParts?: boolean;
+  hasPreOrder?: boolean;
+}): boolean => {
+  const status = (service.status || "").trim().toLowerCase();
+  if (!isTimeTrackedStatus(status)) return false;
+  if (status === "waiting to proceed") return false;
+  if (service.waitingForParts || service.hasPreOrder) return false;
+  return true;
+};

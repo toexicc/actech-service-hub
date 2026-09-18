@@ -67,7 +67,54 @@ interface ServiceInfo {
   receivingStaff?: string;
   deviceType?: string;
   device?: string;
+  targetDate?: string;
 }
+
+const isPastTargetDate = (value?: string): boolean => {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  const iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const mdy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  const target = iso
+    ? new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
+    : mdy
+      ? new Date(Number(mdy[3]), Number(mdy[1]) - 1, Number(mdy[2]))
+      : null;
+  if (!target || Number.isNaN(target.getTime())) return false;
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return target < today;
+};
+
+/** Notify assigned admins when a paused ticket resumes past its target date. */
+export const notifyOverdueTargetDateReview = async (
+  service: ServiceInfo,
+  resumedFrom: 'client approval' | 'pre-order' | 'waiting for parts',
+): Promise<void> => {
+  if (!isPastTargetDate(service.targetDate)) return;
+  try {
+    const staffList = await fetchStaffList();
+    const title = `Adjust target date: ${service.serviceId}`;
+    const message = `${service.serviceId} resumed after ${resumedFrom}, but its target date has already passed. Please review and adjust the target date.`;
+    const recipients: { userId: string; title: string; message: string; serviceId?: string }[] = [];
+    const seen = new Set<string>();
+    const push = (staff: StaffMember | undefined) => {
+      if (!staff?.staffId || seen.has(staff.staffId)) return;
+      seen.add(staff.staffId);
+      recipients.push({ userId: staff.staffId, title, message, serviceId: service.serviceId });
+    };
+    for (const name of (service.adminRep || '').split(',').map((n) => n.trim()).filter(Boolean)) {
+      push(findStaffByName(staffList, name));
+    }
+    if (!recipients.length) {
+      for (const member of getManagementStaff(staffList)) push(member);
+    }
+    await sendViaEdge(recipients);
+  } catch {
+    // Resuming a ticket must not fail because a reminder could not be delivered.
+  }
+};
 
 /**
  * Notify only the staff member who ran the AI formatter. Works for any role
@@ -301,6 +348,9 @@ export const notifyServiceStatusChange = async (
     }
 
     await sendViaEdge(recipients);
+    if (oldStatus.trim().toLowerCase() === 'waiting to proceed' && newStatus.trim().toLowerCase() === 'proceed repair') {
+      await notifyOverdueTargetDateReview(service, 'client approval');
+    }
   } catch (error) {
     console.error('Error sending service notifications:', error);
   }

@@ -60,6 +60,20 @@ const manilaStamp = () =>
     hour12: true,
   }).format(new Date());
 
+const isPastTargetDate = (value: unknown): boolean => {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!match) return false;
+  const targetKey = `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return targetKey < todayKey;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -417,6 +431,40 @@ serve(async (req) => {
           message,
           service_id: serviceId,
         }));
+        const reminderTargets: any[] = [];
+        if (resultingStatus === "Proceed Repair" && isPastTargetDate(row.target_date)) {
+          const reminderSeen = new Set<string>();
+          for (const name of Array.isArray(row.admin_reps) ? row.admin_reps : []) {
+            const profile = resolve(String(name));
+            if (profile?.id && !reminderSeen.has(profile.id)) {
+              reminderSeen.add(profile.id);
+              reminderTargets.push(profile);
+            }
+          }
+          if (!reminderTargets.length) {
+            const { data: adminRoles } = await admin
+              .from("user_roles")
+              .select("user_id")
+              .in("role", ["admin", "management"]);
+            const adminIds = new Set((adminRoles ?? []).map((r: any) => r.user_id));
+            for (const profile of profiles ?? []) {
+              if (adminIds.has(profile.id) && !reminderSeen.has(profile.id)) {
+                reminderSeen.add(profile.id);
+                reminderTargets.push(profile);
+              }
+            }
+          }
+          const reminderTitle = `Adjust target date: ${serviceId}`;
+          const reminderMessage = `${serviceId} resumed after client approval, but its target date has already passed. Please review and adjust the target date.`;
+          rows.push(...reminderTargets.map((p: any) => ({
+            recipient_id: p.id,
+            recipient_name: p.name,
+            category: "service_update",
+            title: reminderTitle,
+            message: reminderMessage,
+            service_id: serviceId,
+          })));
+        }
         if (rows.length) {
           await admin.from("notifications").insert(rows);
           // Fan out pushes through the shared notifier so offline staff get alerted.
@@ -424,13 +472,20 @@ serve(async (req) => {
           await admin.functions
             .invoke("notify-service-event", {
               body: {
-                recipients: targets.map((p: any) => ({
-                  userId: p.id,
-                  title,
-                  message,
-                  serviceId,
-                }),
-                ),
+                recipients: [
+                  ...targets.map((p: any) => ({
+                    userId: p.id,
+                    title,
+                    message,
+                    serviceId,
+                  })),
+                  ...reminderTargets.map((p: any) => ({
+                    userId: p.id,
+                    title: `Adjust target date: ${serviceId}`,
+                    message: `${serviceId} resumed after client approval, but its target date has already passed. Please review and adjust the target date.`,
+                    serviceId,
+                  })),
+                ],
                 skipInsert: true,
               },
             })

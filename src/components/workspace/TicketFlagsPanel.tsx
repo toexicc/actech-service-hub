@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logTicketActivity } from "@/lib/activityLogger";
-import { notifyPartsAvailable, notifyWaitingForPartsOn } from "@/lib/serviceNotifications";
+import { notifyOverdueTargetDateReview, notifyPartsAvailable, notifyWaitingForPartsOn } from "@/lib/serviceNotifications";
 
 interface TicketFlagsPanelProps {
   service: any;
@@ -57,6 +57,7 @@ export function TicketFlagsPanel({
     adminRep: service?.adminRep || "",
     deviceType: service?.deviceType || "",
     device: [service?.brand, service?.model].filter(Boolean).join(" ") || service?.deviceType || "",
+    targetDate: service?.targetDate || "",
   };
 
   const toggleWaitingForParts = async (next: boolean) => {
@@ -76,7 +77,10 @@ export function TicketFlagsPanel({
         note ? { "Parts update": note } : undefined,
       );
       if (next) await notifyWaitingForPartsOn(notifyInfo, by, note);
-      else await notifyPartsAvailable(notifyInfo, by);
+      else {
+        await notifyPartsAvailable(notifyInfo, by);
+        await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
+      }
       toast({
         title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
         description: next
@@ -105,6 +109,7 @@ export function TicketFlagsPanel({
       if (error) throw new Error(error.message);
       onChange({ hasPreOrder: next });
       logTicketActivity(serviceId, next ? "Marked as Pre-Order" : "Pre-Order flag removed");
+      if (!next) await notifyOverdueTargetDateReview(notifyInfo, "pre-order");
       toast({ title: next ? "Pre-Order flagged" : "Pre-Order flag removed" });
     } catch (e) {
       toast({
