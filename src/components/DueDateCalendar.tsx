@@ -115,7 +115,7 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           {services.length} active {services.length === 1 ? "ticket" : "tickets"}
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[70%_30%] gap-4 glass-panel rounded-2xl p-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] gap-4 glass-panel rounded-2xl p-4 items-start">
         <div ref={calendarRef} className="w-full min-w-0">
           <Calendar
             mode="single"
@@ -147,11 +147,11 @@ export const DueDateCalendar = ({ role, userFullName }: Props) => {
           className="min-w-0 flex flex-col min-h-0"
           style={calendarHeight ? { height: calendarHeight } : undefined}
         >
-          <div className="flex items-baseline justify-between mb-3">
+          <div className="flex items-baseline justify-between gap-3 mb-3 pr-1">
             <h3 className="text-sm font-semibold text-foreground">
               {format(selected, "EEEE, MMMM d")}
             </h3>
-            <span className="text-xs text-muted-foreground">
+            <span className="shrink-0 text-xs text-muted-foreground">
               {dueOnSelected.length} due
             </span>
           </div>

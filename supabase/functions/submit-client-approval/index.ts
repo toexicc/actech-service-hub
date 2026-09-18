@@ -60,6 +60,20 @@ const manilaStamp = () =>
     hour12: true,
   }).format(new Date());
 
+const isPastTargetDate = (value: unknown): boolean => {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!match) return false;
+  const targetKey = `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return targetKey < todayKey;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -386,13 +400,17 @@ serve(async (req) => {
           : blockAdvance
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
+        const needsTargetReview = resultingStatus === "Proceed Repair" && isPastTargetDate(row.target_date);
+        const targetReminder = needsTargetReview
+          ? ` The previous target date has passed after the approval wait. Please review and adjust the target date.`
+          : "";
         const message = !approved
           ? `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
           : isPartial
           ? `${clientName} approved the required services for ${serviceId}: ${approvedItems.join(", ")}. Still pending: ${pendingItems.join(", ")}. Ticket moved to Proceed Repair.`
-          : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.`;
+          : `${clientName} approved the diagnosis for ${serviceId}. Service will proceed to repair.${targetReminder}`;
 
         let targets = names
           .map((n) => resolve(n))

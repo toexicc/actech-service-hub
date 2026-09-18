@@ -38,7 +38,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { ServicePreviewButton } from "@/components/ServicePreviewButton";
 import { useServiceTimings, formatWorkingDuration } from "@/hooks/useServiceTimings";
 import { useTicketPayments } from "@/hooks/useTicketPayments";
-import { classifyStatus, isClosedStatus, isCompletedStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { classifyStatus, isClosedStatus, isCompletedStatus, isOverdueEligible, isTimeTrackedStatus } from "@/lib/serviceStatus";
 import { MobileFilterChips, MobileFilterSheet } from "@/components/mobile/MobileFilterSheet";
 
 import { createNotification, sendMessage } from "@/lib/notifications";
@@ -732,9 +732,10 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   };
 
 
-  const isOverdue = (targetDate: string, status: string): boolean => {
+  const isOverdue = (service: Pick<ServiceRecord, "targetDate" | "status" | "waitingForParts" | "hasPreOrder">): boolean => {
+    const { targetDate } = service;
     if (!targetDate) return false;
-    if (!isTimeTrackedStatus(status)) return false;
+    if (!isOverdueEligible(service)) return false;
     try {
       const target = parseTargetDate(targetDate);
       if (!target) return false;
@@ -892,7 +893,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (dueDateFilter !== "all") {
       const daysUntilDue = getDaysUntilDue(service.targetDate);
       if (dueDateFilter === "overdue") {
-        if (!isOverdue(service.targetDate, service.status)) return false;
+        if (!isOverdue(service)) return false;
       } else if (dueDateFilter === "dueToday") {
         if (daysUntilDue !== 0) return false;
       } else if (dueDateFilter === "dueSoon") {
@@ -900,7 +901,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       } else if (dueDateFilter === "onTrack") {
         // On track = has a target date, still in the workflow, not overdue.
         if (!service.targetDate) return false;
-        if (isOverdue(service.targetDate, service.status)) return false;
+        if (isOverdue(service)) return false;
         if (classifyStatus(service.status) !== "active") return false;
       }
     }
@@ -925,8 +926,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
       const bStatus = b.status?.toLowerCase() || "";
 
       // 1. Overdue services always on top
-      const aOverdue = isOverdue(a.targetDate, a.status) || aStatus.includes("overdue");
-      const bOverdue = isOverdue(b.targetDate, b.status) || bStatus.includes("overdue");
+      const aOverdue = isOverdue(a) || aStatus.includes("overdue");
+      const bOverdue = isOverdue(b) || bStatus.includes("overdue");
 
       if (aOverdue && !bOverdue) return -1;
       if (!aOverdue && bOverdue) return 1;
@@ -1446,8 +1447,8 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
         {(() => {
           const shown = filteredAndSortedServices;
           const active = shown.filter((s) => classifyStatus(s.status) === "active");
-          const overdueCount = active.filter(s => isOverdue(s.targetDate, s.status)).length;
-          const onTrackCount = active.filter(s => !isOverdue(s.targetDate, s.status) && s.targetDate).length;
+          const overdueCount = active.filter(s => isOverdue(s)).length;
+          const onTrackCount = active.filter(s => !isOverdue(s) && s.targetDate).length;
           const totalLabel =
             activeTab === "completed" ? "Completed shown"
             : activeTab === "closed" ? "Cancelled / RTO / On Hold"
@@ -1683,7 +1684,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                   {paginatedServices.map((service) => {
                     const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
-                    const overdueStatus = isOverdue(service.targetDate, service.status);
+                    const overdueStatus = isOverdue(service);
                     const isCompleted = !isTimeTrackedStatus(service.status);
                     const t = pageTimings.get(String(service.serviceId));
                     const durationText = formatWorkingDuration(t?.totalHours ?? null);
@@ -1751,7 +1752,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                           </div>
                         </div>
 
-                        <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border/50 pt-3 text-xs sm:grid-cols-3">
+                        <div className="mt-3 grid grid-cols-[repeat(3,minmax(0,1fr))_auto] items-end gap-3 border-t border-border/50 pt-3 text-xs">
                           <div className="min-w-0">
                             <span className="text-muted-foreground">Service date</span>
                             <span className="block font-medium leading-tight">
@@ -1764,13 +1765,13 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                               {service.targetDate ? displayDate(service.targetDate, "MMM dd, yyyy") : "—"}
                             </span>
                           </div>
-                          <div className="col-span-2 min-w-0 sm:col-span-1 sm:text-right">
+                          <div className="min-w-0 text-right">
                             <span className="text-muted-foreground">In service</span>
                             <span className={cn("block font-semibold leading-tight", inServiceDays > 7 && !isCompleted && "text-warning")}>
                               {isCompleted ? "—" : `${inServiceDays} ${inServiceDays === 1 ? "day" : "days"}`}
                             </span>
                           </div>
-                          <div className="col-span-3 flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1 self-end">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1870,7 +1871,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                    <TableBody>
                      {paginatedServices.map((service) => {
                         const inServiceDays = calculateInServiceDays(service.timestamp, service.status, service.serviceDate);
-                        const overdueStatus = isOverdue(service.targetDate, service.status);
+                         const overdueStatus = isOverdue(service);
                         const isCompleted = !isTimeTrackedStatus(service.status);
                         const t = pageTimings.get(String(service.serviceId));
                         const durationText = formatWorkingDuration(t?.totalHours ?? null);

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useServices, useCompletedServices } from "@/hooks/useServices";
 import { filterAssigned } from "@/lib/technicianMatch";
 import { parseManilaDate } from "@/lib/timezone";
-import { classifyStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { classifyStatus, isOverdueEligible, isTimeTrackedStatus } from "@/lib/serviceStatus";
 
 
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
@@ -156,6 +156,7 @@ const Menu = () => {
 
       // Overdue services
       const overdue = trackedServices.filter((s: any) => {
+        if (!isOverdueEligible(s)) return false;
         const target = parseTarget(s.targetDate);
         return target && isBefore(target, today);
       });
@@ -455,18 +456,18 @@ const Menu = () => {
             <span className="block px-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Quick actions
             </span>
-            <div className="mt-2 grid grid-cols-2 gap-2 lg:flex lg:flex-wrap">
+            <div className="mt-2 grid grid-cols-2 gap-2 lg:flex lg:flex-nowrap lg:overflow-x-auto">
               {quickActions.map((action, index) => (
                 <Button
                   variant="ghost"
                   size="sm"
                   key={index}
                   onClick={() => { if ("path" in action && action.path) navigate(action.path); }}
-                  className="h-auto min-h-10 justify-start rounded-xl px-2.5 py-2 text-left text-xs text-foreground hover:bg-primary/10 hover:text-primary lg:w-auto lg:rounded-full lg:px-3"
+                  className="h-auto min-h-10 justify-start rounded-xl px-2.5 py-2 text-left text-xs text-foreground hover:bg-primary/10 hover:text-primary lg:w-auto lg:shrink-0 lg:rounded-full lg:px-3"
                   title={action.description}
                 >
                   <action.icon className="h-4 w-4 shrink-0" />
-                  <span className="min-w-0 whitespace-normal break-words leading-tight">{action.title}</span>
+                  <span className="min-w-0 whitespace-normal break-words leading-tight lg:whitespace-nowrap">{action.title}</span>
                 </Button>
               ))}
             </div>

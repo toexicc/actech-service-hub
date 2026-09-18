@@ -1167,6 +1167,7 @@ const ServiceUpdate = () => {
                 adminRep: serviceData.adminRep,
                 deviceType: serviceData.deviceType,
                 device: serviceData.device,
+                targetDate: serviceData.targetDate,
               },
               serviceData.status,
               updateStatus,

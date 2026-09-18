@@ -10,7 +10,7 @@ import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useServices } from "@/hooks/useServices";
 import { useStaff } from "@/hooks/useStaff";
-import { isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { isOverdueEligible, isTimeTrackedStatus } from "@/lib/serviceStatus";
 
 interface ServiceRecord {
   serviceId: string;
@@ -123,7 +123,7 @@ const OpenDashboard = () => {
         if (viewMode === "dueToday") {
           return isSameDay(targetDate, today);
         } else {
-          return isBefore(targetDate, today);
+          return isOverdueEligible(service) && isBefore(targetDate, today);
         }
       } catch (error) {
         return false;

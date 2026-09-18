@@ -1645,6 +1645,7 @@ const ManageClient = () => {
               adminRep: updateAdminRep,
               deviceType: updateDeviceType,
               device: serviceData.device,
+               targetDate: updateTargetDate ? format(updateTargetDate, "yyyy-MM-dd") : serviceData.targetDate,
             },
             serviceData.status,
             updateStatus,
