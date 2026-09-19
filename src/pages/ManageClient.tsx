@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, getManilaDate } from "@/lib/timezone";
+import { isTimeTrackedStatus } from "@/lib/serviceStatus";
 import {
   CalendarIcon,
   Eye,
@@ -362,6 +363,10 @@ const ManageClient = () => {
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
   const [updateRepairTimeFrame, setUpdateRepairTimeFrame] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
+  const [targetReviewOpen, setTargetReviewOpen] = useState(false);
+  const [targetReviewDate, setTargetReviewDate] = useState<Date | undefined>(undefined);
+  const [savingTargetReview, setSavingTargetReview] = useState(false);
+  const targetReviewShownFor = useRef<string | null>(null);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
