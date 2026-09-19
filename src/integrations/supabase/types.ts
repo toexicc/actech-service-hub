@@ -1180,6 +1180,7 @@ export type Database = {
           source: string | null
           status: Database["public"]["Enums"]["service_status"]
           target_date: string | null
+          target_review_pending: boolean
           technician_departments: string[]
           technician_diagnosis: string | null
           technician_report: string | null
@@ -1273,6 +1274,7 @@ export type Database = {
           source?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
+          target_review_pending?: boolean
           technician_departments?: string[]
           technician_diagnosis?: string | null
           technician_report?: string | null
@@ -1366,6 +1368,7 @@ export type Database = {
           source?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
+          target_review_pending?: boolean
           technician_departments?: string[]
           technician_diagnosis?: string | null
           technician_report?: string | null
