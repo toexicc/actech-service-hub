@@ -893,6 +893,7 @@ const ManageClient = () => {
         .from("services")
         .update({
           target_date: format(targetReviewDate, "yyyy-MM-dd"),
+          target_review_pending: false,
           last_updated: new Date().toISOString(),
         } as any)
         .eq("service_id", sid);
@@ -900,7 +901,7 @@ const ManageClient = () => {
       const prevTarget = serviceData?.targetDate || "";
       const newTarget = format(targetReviewDate, "MM-dd-yyyy");
       setUpdateTargetDate(targetReviewDate);
-      setServiceData((prev: any) => (prev ? { ...prev, targetDate: newTarget } : prev));
+      setServiceData((prev: any) => (prev ? { ...prev, targetDate: newTarget, targetReviewPending: false } : prev));
       logTicketActivity(sid, "Target date adjusted (overdue review)", {
         "Target date": { from: prevTarget || "(none)", to: newTarget },
       });
@@ -4052,7 +4053,15 @@ const ManageClient = () => {
             </PopoverContent>
           </Popover>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTargetReviewOpen(false)} disabled={savingTargetReview}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTargetReviewOpen(false);
+                const sid: string = serviceData?.serviceId || "";
+                if (sid) void clearTargetReviewFlag(sid);
+              }}
+              disabled={savingTargetReview}
+            >
               Keep current date
             </Button>
             <Button onClick={saveReviewedTargetDate} disabled={!targetReviewDate || savingTargetReview}>
