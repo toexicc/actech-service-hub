@@ -3991,6 +3991,55 @@ const ManageClient = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Overdue target-date review — prompted when opening a past-target active ticket */}
+      <Dialog open={targetReviewOpen} onOpenChange={setTargetReviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Target date has passed
+            </DialogTitle>
+            <DialogDescription>
+              {serviceData?.serviceId} went past its target date
+              {serviceData?.targetDate ? ` (${displayDate(serviceData.targetDate, "MMM dd, yyyy")})` : ""}.
+              Set a new target date so overdue tracking stays accurate.
+            </DialogDescription>
+          </DialogHeader>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !targetReviewDate && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {targetReviewDate ? format(targetReviewDate, "MM-dd-yyyy") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={targetReviewDate}
+                onSelect={setTargetReviewDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTargetReviewOpen(false)} disabled={savingTargetReview}>
+              Keep current date
+            </Button>
+            <Button onClick={saveReviewedTargetDate} disabled={!targetReviewDate || savingTargetReview}>
+              {savingTargetReview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save new target date
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Waiting for Parts still on while moving into repair / done repair */}
       <Dialog open={partsModalOpen} onOpenChange={setPartsModalOpen}>
         <DialogContent className="max-w-lg">
