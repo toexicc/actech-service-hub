@@ -33,6 +33,7 @@ export interface ServiceRecord {
   autoApproveDiagnosis?: boolean;
   waitingForParts?: boolean;
   waitingPartsNote?: string;
+  targetReviewPending?: boolean;
   isBackjob?: boolean;
   rushFee?: boolean;
   isReleased?: boolean;
@@ -148,6 +149,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   autoApproveDiagnosis: !!r.auto_approve_diagnosis,
   waitingForParts: !!(r as any).waiting_for_parts,
   waitingPartsNote: (r as any).waiting_parts_note ?? "",
+  targetReviewPending: !!(r as any).target_review_pending,
   isBackjob: !!(r as any).is_backjob,
   rushFee: !!(r as any).rush_fee,
   isReleased: !!(r as any).is_released,

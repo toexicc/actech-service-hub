@@ -433,6 +433,8 @@ serve(async (req) => {
         }));
         const reminderTargets: any[] = [];
         if (resultingStatus === "Proceed Repair" && isPastTargetDate(row.target_date)) {
+          // Flag the ticket so Manage Client prompts for a new target date.
+          await admin.from("services").update({ target_review_pending: true }).eq("service_id", serviceId);
           const reminderSeen = new Set<string>();
           for (const name of Array.isArray(row.admin_reps) ? row.admin_reps : []) {
             const profile = resolve(String(name));

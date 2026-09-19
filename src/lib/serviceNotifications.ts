@@ -93,6 +93,16 @@ export const notifyOverdueTargetDateReview = async (
   resumedFrom: 'client approval' | 'pre-order' | 'waiting for parts',
 ): Promise<void> => {
   if (!isPastTargetDate(service.targetDate)) return;
+  // Mark the ticket so Manage Client prompts the next admin/management viewer
+  // to set a new target date (once, until it is kept or changed).
+  try {
+    await supabase
+      .from('services')
+      .update({ target_review_pending: true, last_updated: new Date().toISOString() } as any)
+      .eq('service_id', service.serviceId);
+  } catch {
+    // The marker is best-effort; the notification below still goes out.
+  }
   try {
     const staffList = await fetchStaffList();
     const title = `Adjust target date: ${service.serviceId}`;
