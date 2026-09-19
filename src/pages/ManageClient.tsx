@@ -840,6 +840,60 @@ const ManageClient = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingSearchId, serviceId]);
 
+  // Overdue target-date review — when an admin/management opens a still-active
+  // ticket whose target date has already passed, prompt once to adjust it.
+  useEffect(() => {
+    const sid: string = serviceData?.serviceId || "";
+    if (!sid) return;
+    if (targetReviewShownFor.current === sid) return;
+    const role = (sessionStorage.getItem("userRole") || "").trim().toLowerCase();
+    if (role !== "admin" && role !== "management") return;
+    if (!isTimeTrackedStatus(serviceData?.status)) return;
+    const target = parseDateMMDDYYYY(serviceData?.targetDate);
+    if (!target) return;
+    const today = getManilaDate();
+    today.setHours(0, 0, 0, 0);
+    const t = new Date(target);
+    t.setHours(0, 0, 0, 0);
+    if (t >= today) return;
+    targetReviewShownFor.current = sid;
+    setTargetReviewDate(target);
+    setTargetReviewOpen(true);
+  }, [serviceData?.serviceId, serviceData?.status, serviceData?.targetDate]);
+
+  const saveReviewedTargetDate = async () => {
+    const sid: string = serviceData?.serviceId || "";
+    if (!sid || !targetReviewDate || savingTargetReview) return;
+    setSavingTargetReview(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({
+          target_date: format(targetReviewDate, "yyyy-MM-dd"),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", sid);
+      if (error) throw new Error(error.message);
+      const prevTarget = serviceData?.targetDate || "";
+      const newTarget = format(targetReviewDate, "MM-dd-yyyy");
+      setUpdateTargetDate(targetReviewDate);
+      setServiceData((prev: any) => (prev ? { ...prev, targetDate: newTarget } : prev));
+      logTicketActivity(sid, "Target date adjusted (overdue review)", {
+        "Target date": { from: prevTarget || "(none)", to: newTarget },
+      });
+      toast({ title: "Target date updated", description: `New target: ${displayDate(newTarget, "MMM dd, yyyy")}` });
+      setTargetReviewOpen(false);
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not update the target date.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingTargetReview(false);
+    }
+  };
+
   const handleSearch = async () => {
     if (!serviceId) {
       toast({
