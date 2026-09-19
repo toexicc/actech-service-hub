@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN target_review_pending boolean NOT NULL DEFAULT false;

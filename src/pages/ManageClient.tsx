@@ -840,14 +840,16 @@ const ManageClient = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingSearchId, serviceId]);
 
-  // Overdue target-date review — when an admin/management opens a still-active
-  // ticket whose target date has already passed, prompt once to adjust it.
+  // Overdue target-date review — only for tickets flagged when they resumed
+  // from a no-fault pause (Waiting to Proceed / Waiting for Parts / Pre-Order)
+  // while already past their target date. Plain overdue tickets never prompt.
   useEffect(() => {
     const sid: string = serviceData?.serviceId || "";
     if (!sid) return;
     if (targetReviewShownFor.current === sid) return;
     const role = (sessionStorage.getItem("userRole") || "").trim().toLowerCase();
     if (role !== "admin" && role !== "management") return;
+    if (!(serviceData as any)?.targetReviewPending) return;
     if (!isTimeTrackedStatus(serviceData?.status)) return;
     const target = parseDateMMDDYYYY(serviceData?.targetDate);
     if (!target) return;
@@ -856,10 +858,31 @@ const ManageClient = () => {
     const t = new Date(target);
     t.setHours(0, 0, 0, 0);
     if (t >= today) return;
+    // The workbench keeps several pages mounted — only one may pop the dialog.
+    const guardKey = `targetReviewShown:${sid}`;
+    try {
+      if (sessionStorage.getItem(guardKey)) return;
+      sessionStorage.setItem(guardKey, "1");
+    } catch { /* sessionStorage unavailable — ref guard still applies */ }
     targetReviewShownFor.current = sid;
+    // Never stack this on top of the page's other dialogs.
+    setPartsModalOpen(false);
+    setRtoModalOpen(false);
+    setReleaseModalOpen(false);
+    setPaymentModalOpen(false);
     setTargetReviewDate(target);
     setTargetReviewOpen(true);
-  }, [serviceData?.serviceId, serviceData?.status, serviceData?.targetDate]);
+  }, [serviceData?.serviceId, serviceData?.status, serviceData?.targetDate, (serviceData as any)?.targetReviewPending]);
+
+  const clearTargetReviewFlag = async (sid: string) => {
+    try {
+      await supabase
+        .from("services")
+        .update({ target_review_pending: false, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", sid);
+      setServiceData((prev: any) => (prev ? { ...prev, targetReviewPending: false } : prev));
+    } catch { /* flag clear is best-effort */ }
+  };
 
   const saveReviewedTargetDate = async () => {
     const sid: string = serviceData?.serviceId || "";
@@ -870,6 +893,7 @@ const ManageClient = () => {
         .from("services")
         .update({
           target_date: format(targetReviewDate, "yyyy-MM-dd"),
+          target_review_pending: false,
           last_updated: new Date().toISOString(),
         } as any)
         .eq("service_id", sid);
@@ -877,7 +901,7 @@ const ManageClient = () => {
       const prevTarget = serviceData?.targetDate || "";
       const newTarget = format(targetReviewDate, "MM-dd-yyyy");
       setUpdateTargetDate(targetReviewDate);
-      setServiceData((prev: any) => (prev ? { ...prev, targetDate: newTarget } : prev));
+      setServiceData((prev: any) => (prev ? { ...prev, targetDate: newTarget, targetReviewPending: false } : prev));
       logTicketActivity(sid, "Target date adjusted (overdue review)", {
         "Target date": { from: prevTarget || "(none)", to: newTarget },
       });
@@ -4029,7 +4053,15 @@ const ManageClient = () => {
             </PopoverContent>
           </Popover>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTargetReviewOpen(false)} disabled={savingTargetReview}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTargetReviewOpen(false);
+                const sid: string = serviceData?.serviceId || "";
+                if (sid) void clearTargetReviewFlag(sid);
+              }}
+              disabled={savingTargetReview}
+            >
               Keep current date
             </Button>
             <Button onClick={saveReviewedTargetDate} disabled={!targetReviewDate || savingTargetReview}>
