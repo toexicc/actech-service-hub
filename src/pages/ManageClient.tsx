@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
-import { displayDate } from "@/lib/timezone";
+import { displayDate, getManilaDate } from "@/lib/timezone";
+import { isTimeTrackedStatus } from "@/lib/serviceStatus";
 import {
   CalendarIcon,
   Eye,
@@ -362,6 +363,10 @@ const ManageClient = () => {
   const [updateTimeFrame, setUpdateTimeFrame] = useState("");
   const [updateRepairTimeFrame, setUpdateRepairTimeFrame] = useState("");
   const [updateTargetDate, setUpdateTargetDate] = useState<Date | undefined>(undefined);
+  const [targetReviewOpen, setTargetReviewOpen] = useState(false);
+  const [targetReviewDate, setTargetReviewDate] = useState<Date | undefined>(undefined);
+  const [savingTargetReview, setSavingTargetReview] = useState(false);
+  const targetReviewShownFor = useRef<string | null>(null);
   const [updateAdminNotes, setUpdateAdminNotes] = useState("");
   const [updateAdminNotesInternal, setUpdateAdminNotesInternal] = useState("");
   const [updateTechDiagnosis, setUpdateTechDiagnosis] = useState("");
@@ -834,6 +839,60 @@ const ManageClient = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingSearchId, serviceId]);
+
+  // Overdue target-date review — when an admin/management opens a still-active
+  // ticket whose target date has already passed, prompt once to adjust it.
+  useEffect(() => {
+    const sid: string = serviceData?.serviceId || "";
+    if (!sid) return;
+    if (targetReviewShownFor.current === sid) return;
+    const role = (sessionStorage.getItem("userRole") || "").trim().toLowerCase();
+    if (role !== "admin" && role !== "management") return;
+    if (!isTimeTrackedStatus(serviceData?.status)) return;
+    const target = parseDateMMDDYYYY(serviceData?.targetDate);
+    if (!target) return;
+    const today = getManilaDate();
+    today.setHours(0, 0, 0, 0);
+    const t = new Date(target);
+    t.setHours(0, 0, 0, 0);
+    if (t >= today) return;
+    targetReviewShownFor.current = sid;
+    setTargetReviewDate(target);
+    setTargetReviewOpen(true);
+  }, [serviceData?.serviceId, serviceData?.status, serviceData?.targetDate]);
+
+  const saveReviewedTargetDate = async () => {
+    const sid: string = serviceData?.serviceId || "";
+    if (!sid || !targetReviewDate || savingTargetReview) return;
+    setSavingTargetReview(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({
+          target_date: format(targetReviewDate, "yyyy-MM-dd"),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", sid);
+      if (error) throw new Error(error.message);
+      const prevTarget = serviceData?.targetDate || "";
+      const newTarget = format(targetReviewDate, "MM-dd-yyyy");
+      setUpdateTargetDate(targetReviewDate);
+      setServiceData((prev: any) => (prev ? { ...prev, targetDate: newTarget } : prev));
+      logTicketActivity(sid, "Target date adjusted (overdue review)", {
+        "Target date": { from: prevTarget || "(none)", to: newTarget },
+      });
+      toast({ title: "Target date updated", description: `New target: ${displayDate(newTarget, "MMM dd, yyyy")}` });
+      setTargetReviewOpen(false);
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not update the target date.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingTargetReview(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!serviceId) {
@@ -3927,6 +3986,55 @@ const ManageClient = () => {
               }}
             >
               Save reason & set {updateStatus}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Overdue target-date review — prompted when opening a past-target active ticket */}
+      <Dialog open={targetReviewOpen} onOpenChange={setTargetReviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Target date has passed
+            </DialogTitle>
+            <DialogDescription>
+              {serviceData?.serviceId} went past its target date
+              {serviceData?.targetDate ? ` (${displayDate(serviceData.targetDate, "MMM dd, yyyy")})` : ""}.
+              Set a new target date so overdue tracking stays accurate.
+            </DialogDescription>
+          </DialogHeader>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !targetReviewDate && "text-muted-foreground",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {targetReviewDate ? format(targetReviewDate, "MM-dd-yyyy") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={targetReviewDate}
+                onSelect={setTargetReviewDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTargetReviewOpen(false)} disabled={savingTargetReview}>
+              Keep current date
+            </Button>
+            <Button onClick={saveReviewedTargetDate} disabled={!targetReviewDate || savingTargetReview}>
+              {savingTargetReview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save new target date
             </Button>
           </DialogFooter>
         </DialogContent>
