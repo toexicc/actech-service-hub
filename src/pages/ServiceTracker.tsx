@@ -119,6 +119,7 @@ type FlagKey =
   | "preOrder"
   | "backjob"
   | "completedBackjob"
+  | "preApproved"
   | "withinDay"
   | "rush"
   | "interim";
@@ -133,6 +134,11 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
     key: "completedBackjob",
     label: "Completed - Backjob",
     match: (s) => !!s.isBackjob && isDoneCompleted(s),
+  },
+  {
+    key: "preApproved",
+    label: "Pre-Approved",
+    match: (s) => !!s.autoApproveDiagnosis && !isDoneCompleted(s),
   },
   {
     key: "withinDay",
