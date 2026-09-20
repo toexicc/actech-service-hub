@@ -318,6 +318,12 @@ serve(async (req) => {
         update.status = "Proceed Repair";
       }
 
+    } else if (isInterimRound) {
+      // A declined interim round only turns down the extra work — the approved
+      // repair is already done, so the ticket returns to observation.
+      update.status = "Done Repair - Under Observation";
+      update.client_approved_at = nowIso;
+      update.interim_needed = false;
     } else {
       // Declined: park the ticket On Hold so staff prepare the unit for return.
       update.status = "On Hold";
