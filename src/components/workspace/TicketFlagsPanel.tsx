@@ -16,6 +16,12 @@ interface TicketFlagsPanelProps {
   canEditNote?: boolean;
   /** Only management may switch Waiting for Parts; admins see it read-only. */
   canToggleWaitingForParts?: boolean;
+  /** Technicians write their own parts update; admins/management read it. */
+  canEditTechNote?: boolean;
+  /** Hide the Pre-Order switch (technician view). */
+  showPreOrder?: boolean;
+  /** Hide the Backjob switch (technician view). */
+  showBackjob?: boolean;
 }
 
 const actorName = () => {
@@ -29,26 +35,37 @@ const actorName = () => {
 };
 
 /**
- * Waiting for Parts (toggle + shared update note) and Backjob flag. Shared by
- * /manage-client and /service-update so every role sees the same state.
+ * Waiting for Parts (toggle + shared update notes), Ordered, Pre-Order and
+ * Backjob flags. Shared by /manage-client and /service-update so every role sees
+ * the same state.
  */
 export function TicketFlagsPanel({
   service,
   onChange,
   canEditNote = false,
   canToggleWaitingForParts = true,
+  canEditTechNote = false,
+  showPreOrder = true,
+  showBackjob = true,
 }: TicketFlagsPanelProps) {
   const { toast } = useToast();
   const serviceId: string = service?.serviceId || "";
   const [busyParts, setBusyParts] = useState(false);
   const [busyBackjob, setBusyBackjob] = useState(false);
   const [busyPreOrder, setBusyPreOrder] = useState(false);
+  const [busyOrdered, setBusyOrdered] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [savingTechNote, setSavingTechNote] = useState(false);
   const [note, setNote] = useState<string>(service?.waitingPartsNote || "");
+  const [techNote, setTechNote] = useState<string>(service?.waitingPartsNoteTech || "");
 
   useEffect(() => {
     setNote(service?.waitingPartsNote || "");
   }, [serviceId, service?.waitingPartsNote]);
+
+  useEffect(() => {
+    setTechNote(service?.waitingPartsNoteTech || "");
+  }, [serviceId, service?.waitingPartsNoteTech]);
 
   const notifyInfo = {
     serviceId,
@@ -95,6 +112,42 @@ export function TicketFlagsPanel({
       });
     } finally {
       setBusyParts(false);
+    }
+  };
+
+  /** Parts already ordered — clears Waiting for Parts so the repair resumes. */
+  const toggleOrdered = async (next: boolean) => {
+    if (!serviceId || busyOrdered) return;
+    setBusyOrdered(true);
+    try {
+      const clearWaiting = next && !!service?.waitingForParts;
+      const { error } = await supabase
+        .from("services")
+        .update({
+          parts_ordered: next,
+          ...(clearWaiting ? { waiting_for_parts: false } : {}),
+          last_updated: new Date().toISOString(),
+        } as any)
+        .eq("service_id", serviceId);
+      if (error) throw new Error(error.message);
+      onChange({ partsOrdered: next, ...(clearWaiting ? { waitingForParts: false } : {}) });
+      logTicketActivity(serviceId, next ? "Marked as Ordered" : "Ordered flag removed");
+      if (clearWaiting) {
+        await notifyPartsAvailable(notifyInfo, actorName());
+        await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
+      }
+      toast({
+        title: next ? "Marked as Ordered" : "Ordered flag removed",
+        description: clearWaiting ? "Waiting for Parts was switched off." : undefined,
+      });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the Ordered flag.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyOrdered(false);
     }
   };
 
@@ -148,6 +201,32 @@ export function TicketFlagsPanel({
     }
   };
 
+  const saveTechNote = async () => {
+    if (!serviceId || savingTechNote) return;
+    setSavingTechNote(true);
+    try {
+      const before = service?.waitingPartsNoteTech || "";
+      const { error } = await supabase
+        .from("services")
+        .update({ waiting_parts_note_tech: techNote, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceId);
+      if (error) throw new Error(error.message);
+      onChange({ waitingPartsNoteTech: techNote });
+      logTicketActivity(serviceId, "Technician parts update saved", {
+        "Technician parts update": { from: before || "(empty)", to: techNote || "(empty)" },
+      });
+      toast({ title: "Technician parts update saved" });
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: e instanceof Error ? e.message : "Could not save the parts update.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingTechNote(false);
+    }
+  };
+
   const toggleBackjob = async (next: boolean) => {
     if (!serviceId || busyBackjob) return;
     setBusyBackjob(true);
@@ -174,17 +253,19 @@ export function TicketFlagsPanel({
   return (
     <div className="space-y-3">
       <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 p-3 space-y-3">
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-background/70 p-2.5">
-          <div>
-            <p className="text-sm font-semibold">Pre-Order</p>
-            <p className="text-xs text-muted-foreground">
-              {service?.hasPreOrder
-                ? "This ticket has a pre-order."
-                : "Turn on when this ticket has a pre-order."}
-            </p>
+        {showPreOrder && (
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-background/70 p-2.5">
+            <div>
+              <p className="text-sm font-semibold">Pre-Order</p>
+              <p className="text-xs text-muted-foreground">
+                {service?.hasPreOrder
+                  ? "This ticket has a pre-order."
+                  : "Turn on when this ticket has a pre-order."}
+              </p>
+            </div>
+            <Switch checked={!!service?.hasPreOrder} disabled={busyPreOrder} onCheckedChange={togglePreOrder} />
           </div>
-          <Switch checked={!!service?.hasPreOrder} disabled={busyPreOrder} onCheckedChange={togglePreOrder} />
-        </div>
+        )}
 
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -202,6 +283,18 @@ export function TicketFlagsPanel({
             disabled={busyParts || !canToggleWaitingForParts}
             onCheckedChange={toggleWaitingForParts}
           />
+        </div>
+
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-background/70 p-2.5">
+          <div>
+            <p className="text-sm font-semibold">Ordered</p>
+            <p className="text-xs text-muted-foreground">
+              {service?.partsOrdered
+                ? "The parts for this ticket have been ordered."
+                : "Turn on once the parts have been ordered — this switches Waiting for Parts off."}
+            </p>
+          </div>
+          <Switch checked={!!service?.partsOrdered} disabled={busyOrdered} onCheckedChange={toggleOrdered} />
         </div>
 
         {canEditNote ? (
@@ -234,19 +327,52 @@ export function TicketFlagsPanel({
             </div>
           )
         )}
+
+        {canEditTechNote ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Technician parts update
+            </p>
+            <Textarea
+              value={techNote}
+              onChange={(e) => setTechNote(e.target.value)}
+              rows={2}
+              placeholder="e.g. Board needs the IC that is out of stock — checked 09/20."
+            />
+            <Button size="sm" variant="outline" onClick={saveTechNote} disabled={savingTechNote}>
+              {savingTechNote ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-3.5 w-3.5" />
+              )}
+              Save technician update
+            </Button>
+          </div>
+        ) : (
+          (service?.waitingPartsNoteTech || "").trim() && (
+            <div className="rounded-lg border border-border/60 bg-background/70 p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Technician parts update
+              </p>
+              <p className="text-xs text-foreground whitespace-pre-wrap">{service.waitingPartsNoteTech}</p>
+            </div>
+          )
+        )}
       </div>
 
-      <div className="flex items-start justify-between gap-4 rounded-xl border border-purple-300/60 bg-purple-50/60 p-3">
-        <div>
-          <p className="text-sm font-semibold">Backjob</p>
-          <p className="text-xs text-muted-foreground">
-            {service?.isBackjob
-              ? "This ticket is flagged as a backjob."
-              : "Turn on when the device is back for the same issue."}
-          </p>
+      {showBackjob && (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-purple-300/60 bg-purple-50/60 p-3">
+          <div>
+            <p className="text-sm font-semibold">Backjob</p>
+            <p className="text-xs text-muted-foreground">
+              {service?.isBackjob
+                ? "This ticket is flagged as a backjob."
+                : "Turn on when the device is back for the same issue."}
+            </p>
+          </div>
+          <Switch checked={!!service?.isBackjob} disabled={busyBackjob} onCheckedChange={toggleBackjob} />
         </div>
-        <Switch checked={!!service?.isBackjob} disabled={busyBackjob} onCheckedChange={toggleBackjob} />
-      </div>
+      )}
     </div>
   );
 }
