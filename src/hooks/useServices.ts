@@ -33,6 +33,8 @@ export interface ServiceRecord {
   autoApproveDiagnosis?: boolean;
   waitingForParts?: boolean;
   waitingPartsNote?: string;
+  waitingPartsNoteTech?: string;
+  partsOrdered?: boolean;
   targetReviewPending?: boolean;
   isBackjob?: boolean;
   rushFee?: boolean;
@@ -149,6 +151,8 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   autoApproveDiagnosis: !!r.auto_approve_diagnosis,
   waitingForParts: !!(r as any).waiting_for_parts,
   waitingPartsNote: (r as any).waiting_parts_note ?? "",
+  waitingPartsNoteTech: (r as any).waiting_parts_note_tech ?? "",
+  partsOrdered: !!(r as any).parts_ordered,
   targetReviewPending: !!(r as any).target_review_pending,
   isBackjob: !!(r as any).is_backjob,
   rushFee: !!(r as any).rush_fee,
@@ -234,7 +238,7 @@ const LIST_COLUMNS = [
   "parts_cost","estimated_cost","discount","initial_payment","payment_status",
   "mode_of_transfer","remarks","ai_toggle","pre_order","part_id",
   "drive_folder_url","device_report_folder_url","username",
-  "waiting_for_parts","is_backjob","rush_fee","vat_requested","rto_reason",
+  "waiting_for_parts","parts_ordered","waiting_parts_note","waiting_parts_note_tech","is_backjob","rush_fee","vat_requested","rto_reason",
   "is_released","released_at","has_pre_order",
   "approval_locked","approved_services","pending_services",
   "client_approved_at","auto_approve_diagnosis",
