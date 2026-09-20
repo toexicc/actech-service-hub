@@ -75,4 +75,11 @@ already works. On phones the banner spans the width under the header instead of 
   `ServiceTracking` render both.
 - `src/components/ui/dialog.tsx`: drop `sm:w-auto` from the `hasWidth` branch so the consumer's
   `max-w-*` caps the existing `sm:w-[calc(100vw-4rem)]`; `CompleteIntakeModal` moves to a wider
-  `max-w-6xl`.
+  `max-w-6xl`. Audit all `DialogContent className="max-w-…"` consumers (ManageClient,
+  ServiceUpdate, ServiceTracker, ServiceForm, PointOfSales, TransactionTracker, SalaryDisbursement,
+  InventoryManagement, AttendanceOverview, MessagingPanel, PdfViewerModal, PhotoGalleryDialog,
+  DeviceReportUpload/Viewer, ConfirmReleaseModal, ServicesCsvExportDialog, ClientInquiryTable,
+  FastMovingPartsTab) with a Playwright pass at 1280/1440 to verify widths.
+- Toasts: route the existing `useToast`/sonner surfaces through a top-right `Toaster` positioned
+  below the header (safe-area and header-height aware), 5s duration, stacked with manual dismiss;
+  keep the current `toast()` call sites untouched so no business logic changes.
