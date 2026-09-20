@@ -71,8 +71,13 @@ export const fetchTicketLinesContext = async (
     .maybeSingle();
   if (!data) return null;
   const s = data as any;
+  const allLines = normalizeQuotedBreakdown(s.quoted_breakdown);
+  // Once the client has approved, the payment screen must only show the services
+  // they actually agreed to — never the declined/pending lines.
+  const approvedOnly = allLines.filter((l) => l.selected);
+  const lines = s.client_approved_at && approvedOnly.length ? approvedOnly : allLines;
   return {
-    lines: normalizeQuotedBreakdown(s.quoted_breakdown),
+    lines,
     discount: Number(s.discount ?? 0) || 0,
     vatRequested: !!s.vat_requested,
     rushFee: !!s.rush_fee,
