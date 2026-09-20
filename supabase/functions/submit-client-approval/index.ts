@@ -184,6 +184,12 @@ serve(async (req) => {
       : [];
     const prevKeys = new Set(previouslyApproved.map(norm));
 
+    // An interim round is additional work raised mid-repair, after the client
+    // already approved (and the shop already carried out) the first repair.
+    const isInterimRound =
+      !!row.interim_created_at &&
+      (previouslyApproved.length > 0 || !!row.client_approved_at || !!row.interim_needed);
+
     // Loose pick matching: the page may send the plain name or the
     // "Name (Option)" label, and shop edits can drift the wording.
     const pickTokens = [
@@ -264,6 +270,10 @@ serve(async (req) => {
           ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}`
           : `Approved by ${clientName} on ${stamp}`) +
         (isPartial ? `. Pending Approval on ${pendingItems.join(", ")}` : "")
+      : isInterimRound
+      // Keep the earlier approval remark intact — the interim decision is its
+      // own line so staff still see what the client originally approved.
+      ? `Interim declined by ${clientName} on ${stamp}: ${reason}`
       : `Declined by ${clientName} on ${stamp}: ${reason}`;
 
     const newAdminNotes = [row.internal_admin_notes, tag].filter(Boolean).join("\n");
