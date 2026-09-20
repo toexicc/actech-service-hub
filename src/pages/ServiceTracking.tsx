@@ -808,6 +808,7 @@ const ServiceTracking = () => {
   const needsChecklist = quotedLines.length > 0;
 
   const remark = parseApprovalRemark(serviceData?.adminNotes);
+  const interimRecord = parseInterimRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
@@ -1434,6 +1435,15 @@ const ServiceTracking = () => {
                         >
                           {approvalRecord.text}
                         </p>
+                        {interimRecord && (
+                          <p
+                            className={`text-xs font-medium mt-1 ${
+                              interimRecord.decision === "Declined" ? "text-destructive" : "text-primary"
+                            }`}
+                          >
+                            {interimRecord.text}
+                          </p>
+                        )}
                         {approvalSuperseded && (
                           <p className="text-xs text-amber-800 mt-1">
                             After further checking, the recommended service changed — your previous approval no longer
