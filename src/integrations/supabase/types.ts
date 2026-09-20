@@ -1159,6 +1159,7 @@ export type Database = {
           model: string | null
           part_id: string | null
           parts_cost: number
+          parts_ordered: boolean
           parts_used: string[]
           payment_status: string | null
           pending_services: string[]
@@ -1190,6 +1191,7 @@ export type Database = {
           vat_requested: boolean
           waiting_for_parts: boolean
           waiting_parts_note: string | null
+          waiting_parts_note_tech: string | null
           warranty_terms: Json
         }
         Insert: {
@@ -1253,6 +1255,7 @@ export type Database = {
           model?: string | null
           part_id?: string | null
           parts_cost?: number
+          parts_ordered?: boolean
           parts_used?: string[]
           payment_status?: string | null
           pending_services?: string[]
@@ -1284,6 +1287,7 @@ export type Database = {
           vat_requested?: boolean
           waiting_for_parts?: boolean
           waiting_parts_note?: string | null
+          waiting_parts_note_tech?: string | null
           warranty_terms?: Json
         }
         Update: {
@@ -1347,6 +1351,7 @@ export type Database = {
           model?: string | null
           part_id?: string | null
           parts_cost?: number
+          parts_ordered?: boolean
           parts_used?: string[]
           payment_status?: string | null
           pending_services?: string[]
@@ -1378,6 +1383,7 @@ export type Database = {
           vat_requested?: boolean
           waiting_for_parts?: boolean
           waiting_parts_note?: string | null
+          waiting_parts_note_tech?: string | null
           warranty_terms?: Json
         }
         Relationships: []
