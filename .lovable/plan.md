@@ -43,11 +43,11 @@ Fix: never seed or overwrite lines while data is still loading, and only replace
 
 - New Ordered switch beside the parts toggles, available on any ticket; turning it on switches Waiting for Parts off.
 - Green "Ordered" chip on Service Tracker cards/table and in the side preview.
-- New "Ordered" count card alongside Today / Waiting for Parts / Pre-Order.
+- New "Ordered" count card placed directly beside the Waiting for Parts card.
 
 ## 9. New "Interim" count card
 
-New "Interim" card beside the other flag cards, counting every ticket that has an interim report regardless of status, and filterable like the rest. Added on Service Tracker and the technician tracking list that shares those cards.
+New "Interim" card placed last in the row of flag cards, counting every ticket that has an interim report regardless of status, and filterable like the rest. Added on Service Tracker and the technician tracking list that shares those cards.
 
 ## 10. Payment screen shows only approved services
 
