@@ -421,7 +421,9 @@ serve(async (req) => {
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
         const message = !approved
-          ? `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
+          ? isInterimRound
+            ? `${clientName} declined the additional (interim) work for ${serviceId} (${deviceInfo}). Reason: ${reason || "(none provided)"}. The approved repair stands — ticket is back to Done Repair - Under Observation.`
+            : `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
           : isPartial
