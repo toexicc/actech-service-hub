@@ -987,6 +987,13 @@ const ManageClient = () => {
 
       setUpdateServices(merged.service || "");
       setUpdateServiceCost(merged.serviceCost || "");
+      // Seed the client-facing breakdown editor for this ticket. Without this the
+      // search path left the panel blank even though lines were saved.
+      {
+        const incoming = normalizeQuotedBreakdown(merged.quotedBreakdown);
+        if (incoming.length) setQuotedLines(incoming);
+        else if (Array.isArray((merged as any).quotedBreakdown)) setQuotedLines([]);
+      }
       setUpdateTimeFrame(merged.timeFrame || "");
       setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
       setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
