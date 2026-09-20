@@ -364,6 +364,8 @@ serve(async (req) => {
         ? blockAdvance
           ? `Client partially approved on /track — approved: ${approvedItems.join(", ")}; pending: ${pendingItems.join(", ")}. Approval locked, ticket stays ${resultingStatus}`
           : `Client approved on /track — ${approvedItems.join(", ") || "diagnosis"}. Status auto-changed to ${resultingStatus}`
+        : isInterimRound
+        ? `Client declined the interim (additional) work on /track — ${reason}. Earlier approval stands; status auto-changed to ${resultingStatus}`
         : `Client declined on /track — ${reason}. Status auto-changed to ${resultingStatus}`;
 
       await admin.from("activity_logs").insert({
@@ -412,7 +414,9 @@ serve(async (req) => {
         const deviceInfo = [row.device_type, row.brand, row.model].map((x: any) => String(x ?? "").trim()).filter(Boolean).join(" ") || "device";
         const seen = new Set<string>();
         const title = !approved
-          ? `Service ${serviceId} Declined`
+          ? isInterimRound
+            ? `Service ${serviceId}: Interim work declined`
+            : `Service ${serviceId} Declined`
           : blockAdvance
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
