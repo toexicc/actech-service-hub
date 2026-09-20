@@ -774,8 +774,16 @@ const ManageClient = () => {
 
           setUpdateServices(merged.service || "");
           setUpdateServiceCost(merged.serviceCost || "");
-          setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
-          setQuotedLines(normalizeQuotedBreakdown(merged.quotedBreakdown));
+          // Only replace the lines when the record actually carries a breakdown.
+          // An incomplete/early payload used to wipe them, so the saved lines
+          // looked deleted until another reload.
+          {
+            const incoming = normalizeQuotedBreakdown(merged.quotedBreakdown);
+            if (incoming.length) setQuotedLines(incoming);
+            else if (!Array.isArray((merged as any).quotedBreakdown)) {
+              /* keep whatever is already on screen */
+            } else setQuotedLines([]);
+          }
           setUpdateTimeFrame(merged.timeFrame || "");
           setUpdateRepairTimeFrame(merged.repairTimeFrame || "");
           setUpdateTargetDate(parseDateMMDDYYYY(merged.targetDate));
