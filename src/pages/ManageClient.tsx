@@ -399,6 +399,18 @@ const ManageClient = () => {
   // Set when a status change was blocked because the Service Breakdown is empty.
   const [breakdownMissing, setBreakdownMissing] = useState(false);
 
+  // Safety net: whichever way a ticket gets loaded (search, URL, live refresh),
+  // always show its saved breakdown lines instead of an empty panel.
+  const loadedTicketId = serviceData?.serviceId || "";
+  const savedBreakdownKey = JSON.stringify((serviceData as any)?.quotedBreakdown ?? []);
+  useEffect(() => {
+    if (!loadedTicketId) return;
+    const saved = normalizeQuotedBreakdown((serviceData as any)?.quotedBreakdown);
+    if (!saved.length) return;
+    setQuotedLines((prev) => (prev.length ? prev : saved));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedTicketId, savedBreakdownKey]);
+
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [isPartsUsedOpen, setIsPartsUsedOpen] = useState(false);
   const [isTogglingAutoApprove, setIsTogglingAutoApprove] = useState(false);
