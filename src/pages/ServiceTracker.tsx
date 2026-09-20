@@ -143,7 +143,8 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
   {
     key: "interim",
     label: "Interim",
-    match: (s) => !!String(s?.aiInterimReport ?? "").trim(),
+    match: (s) =>
+      !!String(s?.aiInterimReport ?? "").trim() || !!String(s?.interimCreatedAt ?? "").trim(),
   },
 ];
 

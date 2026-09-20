@@ -116,7 +116,10 @@ export function TicketFlagChips({
       cls: "border-green-400/40 bg-green-500/15 text-green-600",
     });
   }
-  if (String(service?.aiInterimReport ?? "").trim()) {
+  if (
+    String(service?.aiInterimReport ?? "").trim() ||
+    String(service?.interimCreatedAt ?? "").trim()
+  ) {
     chips.push({
       key: "interim",
       label: "Interim",

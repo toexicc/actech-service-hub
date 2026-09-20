@@ -242,6 +242,7 @@ const LIST_COLUMNS = [
   "is_released","released_at","has_pre_order",
   "approval_locked","approved_services","pending_services",
   "client_approved_at","auto_approve_diagnosis",
+  "interim_needed","interim_created_at","interim_approved_at",
 ].join(",");
 
 /**
