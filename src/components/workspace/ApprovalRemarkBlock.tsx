@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { parseApprovalRemark, approvalRemarkText } from "@/lib/serviceApproval";
+import { parseApprovalRemark, approvalRemarkText, parseInterimRemark } from "@/lib/serviceApproval";
 
 interface Props {
   /** Internal admin notes for the ticket (the remark is parsed out of it). */
@@ -29,6 +29,7 @@ const ApprovalRemarkBlock = ({
 }: Props) => {
   const [reopening, setReopening] = useState(false);
   const remark = parseApprovalRemark(adminNotes);
+  const interim = parseInterimRemark(adminNotes);
   if (!remark) return null;
 
   const declined = remark.decision === "Declined";
@@ -59,6 +60,15 @@ const ApprovalRemarkBlock = ({
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wider">Approval Remark</p>
           <p className="text-sm font-medium text-foreground">{approvalRemarkText(remark)}</p>
+          {interim && (
+            <p
+              className={`text-xs font-medium ${
+                interim.decision === "Declined" ? "text-destructive" : "text-primary"
+              }`}
+            >
+              {interim.text}
+            </p>
+          )}
           {partial && (
             <p className="text-xs text-muted-foreground">
               Not all services were approved — confirm with the client, then re-open the approval so
