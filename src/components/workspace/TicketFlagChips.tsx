@@ -109,6 +109,20 @@ export function TicketFlagChips({
       cls: "border-violet-400/40 bg-violet-500/15 text-violet-600",
     });
   }
+  if (service?.partsOrdered && !isCompletedStatus(service?.status)) {
+    chips.push({
+      key: "ordered",
+      label: "Ordered",
+      cls: "border-green-400/40 bg-green-500/15 text-green-600",
+    });
+  }
+  if (String(service?.aiInterimReport ?? "").trim()) {
+    chips.push({
+      key: "interim",
+      label: "Interim",
+      cls: "border-amber-400/40 bg-amber-500/15 text-amber-700",
+    });
+  }
   if (service?.waitingForParts) {
     chips.push({
       key: "waitingParts",

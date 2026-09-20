@@ -112,10 +112,20 @@ const isTodayService = (s: any): boolean => {
 
 
 /** Flag cards — tickets whose toggles are on, regardless of status. */
-type FlagKey = "today" | "waitingParts" | "preOrder" | "backjob" | "completedBackjob" | "withinDay" | "rush";
+type FlagKey =
+  | "today"
+  | "waitingParts"
+  | "ordered"
+  | "preOrder"
+  | "backjob"
+  | "completedBackjob"
+  | "withinDay"
+  | "rush"
+  | "interim";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
+  { key: "ordered", label: "Ordered", match: (s) => !!s.partsOrdered && !isDoneCompleted(s) },
   { key: "preOrder", label: "Pre-Order", match: (s) => !!s.hasPreOrder && !isDoneCompleted(s) },
 
   { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
@@ -130,6 +140,11 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
     match: (s) => isWithinDay(s) && !isDoneCompleted(s),
   },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
+  {
+    key: "interim",
+    label: "Interim",
+    match: (s) => !!String(s?.aiInterimReport ?? "").trim(),
+  },
 ];
 
 
