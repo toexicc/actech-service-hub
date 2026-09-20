@@ -36,7 +36,7 @@ import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { logActivity, logAiFormatActivity, diffFields, diffBreakdown } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted } from "@/lib/serviceNotifications";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
 import { createNotification } from "@/lib/notifications";
