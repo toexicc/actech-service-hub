@@ -184,6 +184,12 @@ serve(async (req) => {
       : [];
     const prevKeys = new Set(previouslyApproved.map(norm));
 
+    // An interim round is additional work raised mid-repair, after the client
+    // already approved (and the shop already carried out) the first repair.
+    const isInterimRound =
+      !!row.interim_created_at &&
+      (previouslyApproved.length > 0 || !!row.client_approved_at || !!row.interim_needed);
+
     // Loose pick matching: the page may send the plain name or the
     // "Name (Option)" label, and shop edits can drift the wording.
     const pickTokens = [
@@ -264,6 +270,10 @@ serve(async (req) => {
           ? `${clientName} approved services : ${approvedItems.join(", ")} on ${stamp}`
           : `Approved by ${clientName} on ${stamp}`) +
         (isPartial ? `. Pending Approval on ${pendingItems.join(", ")}` : "")
+      : isInterimRound
+      // Keep the earlier approval remark intact — the interim decision is its
+      // own line so staff still see what the client originally approved.
+      ? `Interim declined by ${clientName} on ${stamp}: ${reason}`
       : `Declined by ${clientName} on ${stamp}: ${reason}`;
 
     const newAdminNotes = [row.internal_admin_notes, tag].filter(Boolean).join("\n");
@@ -308,6 +318,12 @@ serve(async (req) => {
         update.status = "Proceed Repair";
       }
 
+    } else if (isInterimRound) {
+      // A declined interim round only turns down the extra work — the approved
+      // repair is already done, so the ticket returns to observation.
+      update.status = "Done Repair - Under Observation";
+      update.client_approved_at = nowIso;
+      update.interim_needed = false;
     } else {
       // Declined: park the ticket On Hold so staff prepare the unit for return.
       update.status = "On Hold";
@@ -348,6 +364,8 @@ serve(async (req) => {
         ? blockAdvance
           ? `Client partially approved on /track — approved: ${approvedItems.join(", ")}; pending: ${pendingItems.join(", ")}. Approval locked, ticket stays ${resultingStatus}`
           : `Client approved on /track — ${approvedItems.join(", ") || "diagnosis"}. Status auto-changed to ${resultingStatus}`
+        : isInterimRound
+        ? `Client declined the interim (additional) work on /track — ${reason}. Earlier approval stands; status auto-changed to ${resultingStatus}`
         : `Client declined on /track — ${reason}. Status auto-changed to ${resultingStatus}`;
 
       await admin.from("activity_logs").insert({
@@ -396,12 +414,16 @@ serve(async (req) => {
         const deviceInfo = [row.device_type, row.brand, row.model].map((x: any) => String(x ?? "").trim()).filter(Boolean).join(" ") || "device";
         const seen = new Set<string>();
         const title = !approved
-          ? `Service ${serviceId} Declined`
+          ? isInterimRound
+            ? `Service ${serviceId}: Interim work declined`
+            : `Service ${serviceId} Declined`
           : blockAdvance
           ? `Service ${serviceId}: Partial Approval — action needed`
           : `Service ${serviceId}: Proceed Repair`;
         const message = !approved
-          ? `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
+          ? isInterimRound
+            ? `${clientName} declined the additional (interim) work for ${serviceId} (${deviceInfo}). Reason: ${reason || "(none provided)"}. The approved repair stands — ticket is back to Done Repair - Under Observation.`
+            : `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
           : isPartial

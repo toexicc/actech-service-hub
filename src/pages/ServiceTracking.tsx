@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, effectiveDiscount, discountIsConditional, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, parseInterimRemark, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, effectiveDiscount, discountIsConditional, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
 import { diagnosisFieldsFromRecord, composeClientDiagnosis } from "@/lib/diagnosisSections";
 
 
@@ -808,6 +808,7 @@ const ServiceTracking = () => {
   const needsChecklist = quotedLines.length > 0;
 
   const remark = parseApprovalRemark(serviceData?.adminNotes);
+  const interimRecord = parseInterimRemark(serviceData?.adminNotes);
   const approvalRecord = remark
     ? { decision: remark.decision, by: remark.by, at: remark.at, reason: remark.reason, text: approvalRemarkText(remark) }
     : null;
@@ -1434,6 +1435,15 @@ const ServiceTracking = () => {
                         >
                           {approvalRecord.text}
                         </p>
+                        {interimRecord && (
+                          <p
+                            className={`text-xs font-medium mt-1 ${
+                              interimRecord.decision === "Declined" ? "text-destructive" : "text-primary"
+                            }`}
+                          >
+                            {interimRecord.text}
+                          </p>
+                        )}
                         {approvalSuperseded && (
                           <p className="text-xs text-amber-800 mt-1">
                             After further checking, the recommended service changed — your previous approval no longer

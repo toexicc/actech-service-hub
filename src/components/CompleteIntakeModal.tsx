@@ -57,7 +57,7 @@ export const CompleteIntakeModal = ({
 
   return (
     <Dialog open={!!queueId} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl !flex !flex-col max-h-[95dvh] p-0 gap-0">
+      <DialogContent className="max-w-6xl !flex !flex-col max-h-[95dvh] p-0 gap-0">
         <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle>
             Complete Intake{displayCode ? ` — ${displayCode}` : ""}
