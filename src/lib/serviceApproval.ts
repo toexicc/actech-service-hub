@@ -379,6 +379,41 @@ export const parseApprovalRemark = (notes: string | null | undefined): ApprovalR
   return null;
 };
 
+/**
+ * Interim decisions are recorded on their own line so the client's original
+ * approval is never overwritten. Returns a readable sentence, or null.
+ */
+export const parseInterimRemark = (
+  notes: string | null | undefined,
+): { decision: "Approved" | "Declined"; by: string; at: string; reason: string; text: string } | null => {
+  const lines = String(notes ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const m = lines[i].match(/^Interim (approved|declined) by (.+?) on (.+)$/i);
+    if (!m) continue;
+    let at = m[3].trim();
+    let reason = "";
+    const idx = at.lastIndexOf(":");
+    if (idx > -1) {
+      reason = at.slice(idx + 1).trim();
+      at = at.slice(0, idx).trim();
+    }
+    const decision = /declined/i.test(m[1]) ? "Declined" : "Approved";
+    return {
+      decision,
+      by: m[2].trim(),
+      at,
+      reason,
+      text: `Additional (interim) work ${decision.toLowerCase()} by ${m[2].trim()} on ${at}${
+        reason ? ` — ${reason}` : ""
+      }`,
+    };
+  }
+  return null;
+};
+
 /** Human-readable one-liner for the staff-facing Approval Remark block. */
 export const approvalRemarkText = (r: ApprovalRemark): string => {
   if (r.decision === "Declined") {
