@@ -35,6 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
+import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
 
@@ -2386,6 +2387,12 @@ const ManageClient = () => {
                       </div>
                     )}
                   </div>
+
+                  <BackjobLinkRow
+                    serviceId={serviceData?.serviceId}
+                    isBackjob={!!serviceData?.isBackjob}
+                    canEdit
+                  />
 
                   <Separator />
 

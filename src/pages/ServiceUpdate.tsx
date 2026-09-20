@@ -32,6 +32,7 @@ import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
+import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
@@ -1493,6 +1494,11 @@ const ServiceUpdate = () => {
                     />
                   </div>
                 )}
+
+                <BackjobLinkRow
+                  serviceId={serviceData?.serviceId}
+                  isBackjob={!!serviceData?.isBackjob}
+                />
 
                 {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
                   <TicketFlagsPanel
