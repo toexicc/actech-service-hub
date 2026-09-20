@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import termsImage from "@/assets/terms-and-conditions.jpg";
-import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, effectiveDiscount, discountIsConditional, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
+import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, parseInterimRemark, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, effectiveDiscount, discountIsConditional, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
 import { diagnosisFieldsFromRecord, composeClientDiagnosis } from "@/lib/diagnosisSections";
 
 
