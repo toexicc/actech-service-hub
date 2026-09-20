@@ -1154,6 +1154,7 @@ export type Database = {
           issue_description: string | null
           labor_cost: number
           last_updated: string
+          linked_service_id: string | null
           memory: string | null
           mode_of_transfer: string | null
           model: string | null
@@ -1250,6 +1251,7 @@ export type Database = {
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
+          linked_service_id?: string | null
           memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
@@ -1346,6 +1348,7 @@ export type Database = {
           issue_description?: string | null
           labor_cost?: number
           last_updated?: string
+          linked_service_id?: string | null
           memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
