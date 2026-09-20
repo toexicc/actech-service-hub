@@ -36,7 +36,7 @@ import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { logActivity, logAiFormatActivity, diffFields, diffBreakdown } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted } from "@/lib/serviceNotifications";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
 import { createNotification } from "@/lib/notifications";
@@ -352,7 +352,10 @@ const ServiceUpdate = () => {
     String(serviceData?.priority || "").trim().toLowerCase() === "within the day";
   // Rush jobs (10% rush fee) get the same fast-track treatment.
   const isRush = !!(serviceData as any)?.rushFee;
-  const isFastTrack = isWithinTheDay || isRush;
+  // Pre-approved tickets skip the client approval stage, so the diagnosis and
+  // report tools stay open the same way fast-track tickets do.
+  const isPreApproved = !!(serviceData as any)?.autoApproveDiagnosis;
+  const isFastTrack = isWithinTheDay || isRush || isPreApproved;
   // RTO - ACTech tickets always get the report tools so the technician can
   // document why the device is being returned.
   const isRtoActech =
@@ -1491,6 +1494,18 @@ const ServiceUpdate = () => {
                   </div>
                 )}
 
+                {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
+                  <TicketFlagsPanel
+                    service={serviceData}
+                    onChange={(patch) =>
+                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
+                    }
+                    showPreOrder={false}
+                    showBackjob={false}
+                    canEditTechNote
+                  />
+                )}
+
               </CardContent>
             </Card>
 
@@ -1627,14 +1642,7 @@ const ServiceUpdate = () => {
                 </Select>
               </div>
 
-              {!/^(rto|cancelled|completed|on hold)/i.test(String(serviceData?.status || "")) && (
-                  <TicketFlagsPanel
-                    service={serviceData}
-                    onChange={(patch) =>
-                      setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
-                    }
-                  />
-                )}
+
 
 
 
@@ -1898,11 +1906,32 @@ const ServiceUpdate = () => {
                             type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() => {
+                            onClick={async () => {
                               setUpdateStatus("Confirmed Diagnosis");
+                              // New findings always need the client's approval, so
+                              // pre-approval is switched off automatically.
+                              if ((serviceData as any)?.autoApproveDiagnosis) {
+                                const { error } = await supabase
+                                  .from("services")
+                                  .update({
+                                    auto_approve_diagnosis: false,
+                                    last_updated: new Date().toISOString(),
+                                  } as any)
+                                  .eq("service_id", serviceData.serviceId);
+                                if (!error) {
+                                  setServiceData((prev: any) =>
+                                    prev ? { ...prev, autoApproveDiagnosis: false } : prev,
+                                  );
+                                  logTicketActivity(
+                                    serviceData.serviceId,
+                                    "Pre-approval turned off (interim report raised)",
+                                  );
+                                }
+                              }
                               toast({
                                 title: "Status set to Confirmed Diagnosis",
-                                description: "Click Update Service to save and notify the admin.",
+                                description:
+                                  "Pre-approval was switched off. Click Update Service to save and notify the admin.",
                               });
                             }}
                           >

@@ -53,6 +53,9 @@ export const ServiceBreakdownPanel = ({
   }, [partsCost, serviceId]);
 
   useEffect(() => {
+    // Never seed from an empty result while the query is still in flight — the
+    // saved lines would look deleted until the data lands.
+    if (isLoading) return;
     if (rows.length > 0) {
       setDraft(rows.map((r) => ({
         serviceName: r.serviceName,
@@ -68,7 +71,7 @@ export const ServiceBreakdownPanel = ({
     } else {
       setDraft([{ serviceName: "", technicianId: null, technicianName: "", cost: 0 }]);
     }
-  }, [rows, defaultTechnicians.join("|"), technicians.length]);
+  }, [isLoading, rows, defaultTechnicians.join("|"), technicians.length]);
 
   const sum = draft.reduce((s, r) => s + (Number(r.cost) || 0), 0);
   const partsValue = parseFloat(partsDraft.replace(/[^0-9.]/g, "")) || 0;
