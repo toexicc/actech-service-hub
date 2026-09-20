@@ -41,12 +41,23 @@ even though the first breakdown was approved. Change so:
   original approval first, with the interim decision beneath it as a separate note.
 - AC190926000 gets its display corrected by this parsing change; the stored history is untouched.
 
-## 5. Intake pop-up is too narrow on desktop
+## 5. Pop-ups are too narrow on desktop — fixed globally
 
 The shared pop-up wrapper currently shrinks any window that declares its own width to fit its
-content, which is why Complete Intake shows as a narrow column. Fix the wrapper so a declared width
-is treated as a maximum and the window still fills the available screen width, and widen the intake
-window so it reads as a full landscape form on desktop. Mobile bottom-sheet behaviour is unchanged.
+content, which is why Complete Intake shows as a narrow column. This affects every pop-up in the
+app, not just intake. Fix the shared wrapper once so a declared width is treated as a maximum while
+the window still fills the available screen width, then sweep every page that opens a wide pop-up
+(intake, tickets, payments, photos, PDF viewer, messaging, exports, inventory, salary, attendance,
+transactions, queue) and confirm each one renders at full landscape width on desktop. The intake
+window itself gets the widest setting. Mobile bottom-sheet behaviour stays unchanged.
+
+## 6. macOS-style alerts instead of silent notifications
+
+In-app alerts currently appear quietly at the bottom. Change them to slide in from the top-right,
+just below the top navigation bar, styled like a macOS notification banner (rounded card, soft
+shadow, icon, title and message), and auto-dismiss after about 5 seconds. They stack when several
+arrive, can be dismissed by hand, and remain tappable to open the related ticket or chat where that
+already works. On phones the banner spans the width under the header instead of hugging the corner.
 
 ## Technical notes
 
@@ -64,4 +75,11 @@ window so it reads as a full landscape form on desktop. Mobile bottom-sheet beha
   `ServiceTracking` render both.
 - `src/components/ui/dialog.tsx`: drop `sm:w-auto` from the `hasWidth` branch so the consumer's
   `max-w-*` caps the existing `sm:w-[calc(100vw-4rem)]`; `CompleteIntakeModal` moves to a wider
-  `max-w-6xl`.
+  `max-w-6xl`. Audit all `DialogContent className="max-w-…"` consumers (ManageClient,
+  ServiceUpdate, ServiceTracker, ServiceForm, PointOfSales, TransactionTracker, SalaryDisbursement,
+  InventoryManagement, AttendanceOverview, MessagingPanel, PdfViewerModal, PhotoGalleryDialog,
+  DeviceReportUpload/Viewer, ConfirmReleaseModal, ServicesCsvExportDialog, ClientInquiryTable,
+  FastMovingPartsTab) with a Playwright pass at 1280/1440 to verify widths.
+- Toasts: route the existing `useToast`/sonner surfaces through a top-right `Toaster` positioned
+  below the header (safe-area and header-height aware), 5s duration, stacked with manual dismiss;
+  keep the current `toast()` call sites untouched so no business logic changes.
