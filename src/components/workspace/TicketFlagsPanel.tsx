@@ -137,13 +137,20 @@ export function TicketFlagsPanel({
       if (error) throw new Error(error.message);
       onChange({ partsOrdered: next, ...(clearWaiting ? { waitingForParts: false } : {}) });
       logTicketActivity(serviceId, next ? "Marked as Ordered" : "Ordered flag removed");
-      if (clearWaiting) {
+      // Turning Ordered on keeps the parts pause running (it only replaces the
+      // Waiting for Parts flag), so the resume alert waits until both are off.
+      const resumed = !next && !service?.waitingForParts;
+      if (resumed) {
         await notifyPartsAvailable(notifyInfo, actorName());
         await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
       }
       toast({
         title: next ? "Marked as Ordered" : "Ordered flag removed",
-        description: clearWaiting ? "Waiting for Parts was switched off." : undefined,
+        description: clearWaiting
+          ? "Waiting for Parts was switched off — the ticket stays on hold for parts."
+          : resumed
+            ? "Repair resumed — the assigned admin and technician were notified."
+            : undefined,
       });
     } catch (e) {
       toast({
