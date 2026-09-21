@@ -27,20 +27,34 @@ export interface ClientInquiry {
   remarks: string;
 }
 
+// Supabase caps a single response at 1000 rows, so page through everything —
+// otherwise older customers/tickets silently drop out of the list.
+const fetchAllPages = async <T,>(
+  table: "clients" | "services",
+  columns: string,
+): Promise<T[]> => {
+  const pageSize = 1000;
+  const rows: T[] = [];
+  for (let page = 0; page < 50; page++) {
+    const from = page * pageSize;
+    const { data, error } = await supabase
+      .from(table)
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data ?? []) as unknown as T[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return rows;
+};
+
 const fetchClients = async (): Promise<ClientRecord[]> => {
-  const [{ data, error }, { data: svcs }] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("client_id, name, username, contact_number, email, address, created_at")
-      .order("created_at", { ascending: false })
-      .limit(1000),
-    supabase
-      .from("services")
-      .select("client_id, service_id, created_at")
-      .order("created_at", { ascending: false })
-      .limit(2000),
+  const [data, svcs] = await Promise.all([
+    fetchAllPages<any>("clients", "client_id, name, username, contact_number, email, address, created_at"),
+    fetchAllPages<any>("services", "client_id, service_id, created_at"),
   ]);
-  if (error) throw error;
   const svcMap = new Map<string, string[]>();
   for (const s of svcs ?? []) {
     if (!s.client_id || !s.service_id) continue;
