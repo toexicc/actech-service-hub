@@ -1348,15 +1348,7 @@ const ServiceTracking = () => {
                 {/* RTO - ACTech: show the service report (diagnosis only as fallback). */}
                 {rtoKind === "actech" &&
                   ((serviceData.aiReport || "").trim() ? (
-                    <div className="space-y-6">
-                      <AiReportCard report={serviceData.aiReport} title="Service Report" />
-                      {serviceData.serviceId && (
-                        <DeviceReportPhotos
-                          serviceId={serviceData.serviceId}
-                          title="Device Report - Photos"
-                        />
-                      )}
-                    </div>
+                    <AiReportCard report={serviceData.aiReport} title="Service Report" />
                   ) : (serviceData.aiDiagnosis || "").trim() ? (
                     <AiReportCard
                       report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
