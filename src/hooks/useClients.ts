@@ -169,7 +169,7 @@ export const ensureClient = async (input: EnsureClientInput): Promise<string> =>
 
 
 
-  if (!phone && name && email) {
+  if (!isRealPhone && name && isRealEmail) {
     const { data } = await supabase
       .from("clients")
       .select("client_id, username")
