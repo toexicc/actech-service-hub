@@ -33,6 +33,7 @@ import {
 } from "@/lib/posServiceLines";
 import { lineDisplayName, lineEffectiveCost, type QuotedLine } from "@/lib/serviceApproval";
 import { announceServiceLoad } from "@/lib/loadToastGuard";
+import { summarizePayments } from "@/hooks/useServicePayments";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
