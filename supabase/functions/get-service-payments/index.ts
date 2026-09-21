@@ -9,7 +9,14 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const isRefundType = (t: string) => /refund/i.test(t || "");
+// Parts/inventory purchases and other shop costs can carry a service ID purely
+// as a trace link. They are never money received, so they never count as paid.
+const isNonPaymentType = (t: string) =>
+  /parts\s*inventory|inventory|purchase|rent|expense|salary|payout|disbursement|supplier/i.test(
+    t || "",
+  );
 const isPaymentType = (t: string) =>
+  !isNonPaymentType(t) &&
   /payment|deposit|down\s*payment|balance|installment/i.test(t || "");
 
 Deno.serve(async (req) => {
