@@ -102,12 +102,21 @@ const PublicRelease = () => {
     }
   };
 
-  const onFileDigits = (summary?.contact_number || "").replace(/\D/g, "");
-  const expectedLast4 = onFileDigits.slice(-4);
-  const last4Ok = expectedLast4.length === 4 && last4 === expectedLast4;
+  // A contact field can hold several numbers ("0917… / 0918…", "0917… viber").
+  // Accept the last 4 digits of ANY number stored on the ticket.
+  const contactLast4Options = (() => {
+    const raw = summary?.contact_number || "";
+    const groups = raw.split(/[^\d]+/).filter((g) => g.length >= 7);
+    const all = groups.length > 0 ? groups : [raw.replace(/\D/g, "")];
+    return Array.from(
+      new Set(all.filter((g) => g.length >= 4).map((g) => g.slice(-4))),
+    );
+  })();
+  const hasContactOnFile = contactLast4Options.length > 0;
+  const last4Ok = contactLast4Options.includes(last4);
 
   const confirmRelease = async () => {
-    if (!summary) return;
+    if (!summary || submitting) return;
     if (!last4Ok) {
       toast({
         title: "Verification failed",
@@ -124,9 +133,23 @@ const PublicRelease = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ serviceId: summary.service_id, last4 }),
       });
-      const result = await response.json();
-      if (!response.ok || result.status !== "success") {
-        throw new Error(result.message || "Please approach the front desk.");
+      const text = await response.text();
+      let result: any = null;
+      try {
+        result = text ? JSON.parse(text) : null;
+      } catch {
+        result = null;
+      }
+      if (!response.ok || !result || result.status !== "success") {
+        throw new Error(
+          result?.message ||
+            (response.status >= 500
+              ? "The system is busy right now. Please try again in a moment."
+              : "Please approach the front desk."),
+        );
+      }
+      if (!result.displayCode) {
+        throw new Error("Your request was saved but no queue number came back. Please approach the front desk.");
       }
       setQueueCode(result.displayCode);
     } catch (e) {
@@ -250,7 +273,7 @@ const PublicRelease = () => {
                     onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     className="h-12 max-w-[140px] text-center text-lg tracking-[0.4em]"
                   />
-                  {expectedLast4.length !== 4 && (
+                  {!hasContactOnFile && (
                     <p className="text-xs text-destructive">
                       No valid contact number is on file for this ticket. Please approach the front desk.
                     </p>
