@@ -1348,15 +1348,7 @@ const ServiceTracking = () => {
                 {/* RTO - ACTech: show the service report (diagnosis only as fallback). */}
                 {rtoKind === "actech" &&
                   ((serviceData.aiReport || "").trim() ? (
-                    <div className="space-y-6">
-                      <AiReportCard report={serviceData.aiReport} title="Service Report" />
-                      {serviceData.serviceId && (
-                        <DeviceReportPhotos
-                          serviceId={serviceData.serviceId}
-                          title="Device Report - Photos"
-                        />
-                      )}
-                    </div>
+                    <AiReportCard report={serviceData.aiReport} title="Service Report" />
                   ) : (serviceData.aiDiagnosis || "").trim() ? (
                     <AiReportCard
                       report={composeClientDiagnosis(diagnosisFieldsFromRecord(serviceData))}
@@ -1369,23 +1361,13 @@ const ServiceTracking = () => {
                     this status, so the client can always read the new findings. */}
                 {!showAiDiagnosis && !isClosed &&
                   !!String((serviceData as any)?.aiInterimReport ?? "").trim() && (
-                    <div className="space-y-4">
-                      <AiReportCard
-                        report={composeClientDiagnosis({
-                          diagnosis: (serviceData as any).aiInterimReport,
-                          warranty: (serviceData as any).interimWarranty,
-                        })}
-                        title="Interim Report - Additional Findings"
-                      />
-                      {serviceData?.serviceId && (
-                        <DiagnosisPhotos
-                          serviceId={serviceData.serviceId}
-                          kind="interim_photo"
-                          title="Interim Report - Photos"
-                          editable={false}
-                        />
-                      )}
-                    </div>
+                    <AiReportCard
+                      report={composeClientDiagnosis({
+                        diagnosis: (serviceData as any).aiInterimReport,
+                        warranty: (serviceData as any).interimWarranty,
+                      })}
+                      title="Interim Report - Additional Findings"
+                    />
                   )}
 
                 {/* AI Diagnosis */}
@@ -1398,23 +1380,13 @@ const ServiceTracking = () => {
 
                     {/* Interim report: new findings raised while the repair was ongoing. */}
                     {!!String((serviceData as any).aiInterimReport ?? "").trim() && (
-                      <div className="space-y-4">
-                        <AiReportCard
-                          report={composeClientDiagnosis({
-                            diagnosis: (serviceData as any).aiInterimReport,
-                            warranty: (serviceData as any).interimWarranty,
-                          })}
-                          title="Interim Report - Additional Findings"
-                        />
-                        {serviceData.serviceId && (
-                          <DiagnosisPhotos
-                            serviceId={serviceData.serviceId}
-                            kind="interim_photo"
-                            title="Interim Report - Photos"
-                            editable={false}
-                          />
-                        )}
-                      </div>
+                      <AiReportCard
+                        report={composeClientDiagnosis({
+                          diagnosis: (serviceData as any).aiInterimReport,
+                          warranty: (serviceData as any).interimWarranty,
+                        })}
+                        title="Interim Report - Additional Findings"
+                      />
                     )}
 
 
@@ -1989,20 +1961,8 @@ const ServiceTracking = () => {
                    </CardContent>
                  </Card>
 
-                 {/* Device Photo Gallery - Diagnosis & Report */}
-                {serviceData.serviceId && [
-                  "Confirmed Diagnosis",
-                  "Waiting to Proceed",
-                  "Proceed Repair",
-                  "Ongoing Service",
-                  "Done Repair - Under Observation",
-                  "Done Repair - Observation",
-                  "Done Repair - Advise Client",
-                  "Done Repair - Advice Client",
-                  "Done Repair - For Release",
-                  "Released",
-                  "Completed",
-                ].includes(serviceData.status) && (
+                 {/* Device Photo Gallery - Diagnosis, Interim & Report (any status; each panel hides itself when empty) */}
+                {serviceData.serviceId && (
                   <div className="space-y-6">
                     <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
                     <DiagnosisPhotos
