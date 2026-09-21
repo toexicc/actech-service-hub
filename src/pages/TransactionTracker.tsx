@@ -171,10 +171,24 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
       );
       const result = await response.json();
       if (result.status === "success" && result.logs) {
-        const relevant = result.logs.filter((l: ActivityLog) =>
-          l.activity?.includes(t.transactionId) || l.activity?.includes("POS:") || l.activity?.includes("transaction")
+        // Manual (no ticket) payments all log under the same "MANUAL" bucket, so
+        // only entries naming this exact transaction belong here. Never fall back
+        // to the whole bucket — that showed another sale's amount.
+        const exact = (result.logs as ActivityLog[]).filter((l) =>
+          l.activity?.includes(t.transactionId),
         );
-        setActivityLogs(relevant.length > 0 ? relevant : result.logs);
+        const ticketScoped = !!t.serviceId && !/^manual$/i.test(t.serviceId);
+        if (exact.length > 0) {
+          setActivityLogs(exact);
+        } else if (ticketScoped) {
+          setActivityLogs(
+            (result.logs as ActivityLog[]).filter(
+              (l) => l.activity?.includes("POS:") || l.activity?.includes("transaction"),
+            ),
+          );
+        } else {
+          setActivityLogs([]);
+        }
       } else {
         setActivityLogs([]);
       }
