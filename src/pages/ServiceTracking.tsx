@@ -1170,7 +1170,7 @@ const ServiceTracking = () => {
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repair Ticket</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
                           <h2 className="text-xl font-semibold tracking-tight">{serviceData.serviceId || serviceId}</h2>
                           <TrackingShareActions serviceId={serviceData.serviceId || serviceId || ""} />
 
