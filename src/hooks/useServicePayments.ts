@@ -19,13 +19,26 @@ export const isRefundType = (type: string) => /refund/i.test(type || "");
 export const isVoidType = (type: string) => /^\s*void/i.test(type || "");
 export const isVoidedStatus = (status: string) =>
   ["voided", "cancelled", "canceled"].includes(String(status || "").toLowerCase());
+
+/**
+ * Costs the shop pays out. A parts/inventory purchase may carry a service ID so
+ * the part is traceable to the repair it was bought for — that link is NOT money
+ * received from the client, so it must never count towards a ticket's paid total.
+ */
+export const isNonPaymentType = (type: string) =>
+  /parts\s*inventory|inventory|purchase|rent|expense|salary|payout|disbursement|supplier/i.test(
+    type || "",
+  );
+
 export const isPaymentType = (type: string) =>
+  !isNonPaymentType(type) &&
   /payment|deposit|down\s*payment|balance|installment/i.test(type || "");
 
 export const summarizePayments = (rows: any[]): ServicePaymentsSummary => {
   const payments = (rows ?? [])
     .filter((r) => !isVoidType(r.type) && !isVoidedStatus(r.status))
     .filter((r) => Math.abs(Number(r.amount ?? 0)) > 0)
+    .filter((r) => !isNonPaymentType(r.type))
     .filter((r) => isPaymentType(r.type) || isRefundType(r.type))
     .map((r) => ({
       id: r.id,
