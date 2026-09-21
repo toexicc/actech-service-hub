@@ -830,7 +830,9 @@ const ManageClient = () => {
           } else {
             setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
           }
-          toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
+          announceServiceLoad(urlServiceId, "/manage-client", () =>
+            toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` }),
+          );
           // Pre-Order intakes arrive with a payment window request (open once).
           if (searchParams.get("pos") === "1") {
             setPaymentPresetType(searchParams.get("posType") || "Down Payment");
