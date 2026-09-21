@@ -146,13 +146,15 @@ const PointOfSales = () => {
         });
 
 
-        const txnResponse = await fetch(`${DATA_BRIDGE_URL}?action=getServicePayments&serviceId=${encodeURIComponent(searchServiceId)}`);
-        const txnResult = await txnResponse.json();
-        if (txnResult.status === "success") {
-          setPreviousPayments(txnResult.totalPaid || 0);
-        } else {
-          setPreviousPayments(0);
-        }
+        // Read the paid total from our own ledger so only real client payments
+        // count. Parts/inventory purchases linked to a ticket are traceability
+        // links, not money received, and must never reduce the balance.
+        const { data: txRows } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("service_id", searchServiceId)
+          .order("transaction_date", { ascending: true });
+        setPreviousPayments(summarizePayments(txRows ?? []).transactionsPaid);
 
         announceServiceLoad(searchServiceId, "/pos", () =>
           toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` }),
