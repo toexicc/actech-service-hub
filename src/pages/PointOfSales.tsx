@@ -302,7 +302,7 @@ const PointOfSales = () => {
     const serviceCostRaw = showsService
       ? (editedTotals?.subtotal ?? parseCurrency(serviceData?.serviceCost || manualServiceCost)).toFixed(2)
       : "0";
-    const serviceId = showsService ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
+    const serviceId = showsService ? (serviceData?.serviceId || "MANUAL") : "";
     const partsCostRaw = showsService ? parseCurrency(serviceData?.partsCost).toFixed(2) : "0";
     const amountClean = parseCurrency(amount).toFixed(2);
     const finalCostClean = (
