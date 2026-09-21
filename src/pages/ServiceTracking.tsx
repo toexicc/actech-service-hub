@@ -1991,6 +1991,7 @@ const ServiceTracking = () => {
 
                  {/* Device Photo Gallery - Diagnosis & Report */}
                 {serviceData.serviceId && [
+                  "Confirmed Diagnosis",
                   "Waiting to Proceed",
                   "Proceed Repair",
                   "Ongoing Service",
@@ -2004,15 +2005,12 @@ const ServiceTracking = () => {
                 ].includes(serviceData.status) && (
                   <div className="space-y-6">
                     <DiagnosisPhotos serviceId={serviceData.serviceId} title="Device Diagnosis - Photos" />
-                    {[
-                      "Done Repair - Advise Client",
-                      "Done Repair - Advice Client",
-                      "Done Repair - For Release",
-                      "Released",
-                      "Completed",
-                    ].includes(serviceData.status) && (
-                      <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
-                    )}
+                    <DiagnosisPhotos
+                      serviceId={serviceData.serviceId}
+                      kind="interim_photo"
+                      title="Interim Report - Photos"
+                    />
+                    <DeviceReportPhotos serviceId={serviceData.serviceId} title="Device Report - Photos" />
                   </div>
                 )}
 
