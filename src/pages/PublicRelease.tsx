@@ -273,7 +273,7 @@ const PublicRelease = () => {
                     onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     className="h-12 max-w-[140px] text-center text-lg tracking-[0.4em]"
                   />
-                  {expectedLast4.length !== 4 && (
+                  {!hasContactOnFile && (
                     <p className="text-xs text-destructive">
                       No valid contact number is on file for this ticket. Please approach the front desk.
                     </p>

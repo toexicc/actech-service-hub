@@ -313,8 +313,17 @@ async function submitReleaseQueue(b: Record<string, any>) {
   if (svcError) return err(svcError.message, 500);
   if (!svc) return err("Ticket not found", 404);
 
-  const expectedLast4 = String((svc as any).contact_number ?? "").replace(/\D/g, "").slice(-4);
-  if (expectedLast4.length !== 4 || submittedLast4 !== expectedLast4) {
+  // A contact field can hold several numbers ("0917… / 0918…", "0917… viber").
+  // Accept the last 4 digits of ANY number stored on the ticket.
+  const rawContact = String((svc as any).contact_number ?? "");
+  const groups = rawContact.split(/[^\d]+/).filter((g) => g.length >= 7);
+  const candidates = (groups.length > 0 ? groups : [rawContact.replace(/\D/g, "")])
+    .filter((g) => g.length >= 4)
+    .map((g) => g.slice(-4));
+  if (candidates.length === 0) {
+    return err("No valid contact number is on file for this ticket. Please approach the front desk.", 409);
+  }
+  if (!candidates.includes(submittedLast4)) {
     return err("Verification failed", 403);
   }
 
