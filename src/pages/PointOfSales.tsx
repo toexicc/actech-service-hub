@@ -32,6 +32,7 @@ import {
   saveTicketServiceLines,
 } from "@/lib/posServiceLines";
 import { lineDisplayName, lineEffectiveCost, type QuotedLine } from "@/lib/serviceApproval";
+import { announceServiceLoad } from "@/lib/loadToastGuard";
 
 const parseCurrency = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "") return 0;
@@ -153,7 +154,9 @@ const PointOfSales = () => {
           setPreviousPayments(0);
         }
 
-        toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` });
+        announceServiceLoad(searchServiceId, "/pos", () =>
+          toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` }),
+        );
       } else {
         toast({ title: "Not Found", description: "Service ID not found in Service Database", variant: "destructive" });
         setServiceData(null);

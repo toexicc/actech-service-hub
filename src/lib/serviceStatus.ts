@@ -126,11 +126,22 @@ export const isTimeTrackedStatus = (status?: string): boolean => {
 export const isOverdueEligible = (service: {
   status?: string;
   waitingForParts?: boolean;
+  partsOrdered?: boolean;
   hasPreOrder?: boolean;
 }): boolean => {
   const status = (service.status || "").trim().toLowerCase();
   if (!isTimeTrackedStatus(status)) return false;
   if (status === "waiting to proceed") return false;
-  if (service.waitingForParts || service.hasPreOrder) return false;
+  if (isPartsPaused(service) || service.hasPreOrder) return false;
   return true;
 };
+
+/**
+ * Waiting for Parts and Ordered are two halves of the same pause: the parts are
+ * still being procured while either flag is on, so the repair only resumes (and
+ * the client-facing parts notice only disappears) once both are off.
+ */
+export const isPartsPaused = (service: {
+  waitingForParts?: boolean;
+  partsOrdered?: boolean;
+}): boolean => !!service.waitingForParts || !!service.partsOrdered;

@@ -93,8 +93,11 @@ export function TicketFlagsPanel({
         next ? "Waiting for Parts turned on" : "Waiting for Parts turned off",
         note ? { "Parts update": note } : undefined,
       );
+      // Ordered keeps the parts pause alive, so only the last flag to go off
+      // resumes the repair, notifies staff and arms the target-date review.
+      const stillPaused = !next && !!service?.partsOrdered;
       if (next) await notifyWaitingForPartsOn(notifyInfo, by, note);
-      else {
+      else if (!stillPaused) {
         await notifyPartsAvailable(notifyInfo, by);
         await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
       }
@@ -102,7 +105,9 @@ export function TicketFlagsPanel({
         title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
         description: next
           ? "Repair paused while parts are procured. Turnaround time stops counting."
-          : "Repair resumed — the assigned admin and technician were notified.",
+          : stillPaused
+            ? "Still on hold for parts because Ordered is switched on."
+            : "Repair resumed — the assigned admin and technician were notified.",
       });
     } catch (e) {
       toast({
@@ -132,13 +137,20 @@ export function TicketFlagsPanel({
       if (error) throw new Error(error.message);
       onChange({ partsOrdered: next, ...(clearWaiting ? { waitingForParts: false } : {}) });
       logTicketActivity(serviceId, next ? "Marked as Ordered" : "Ordered flag removed");
-      if (clearWaiting) {
+      // Turning Ordered on keeps the parts pause running (it only replaces the
+      // Waiting for Parts flag), so the resume alert waits until both are off.
+      const resumed = !next && !service?.waitingForParts;
+      if (resumed) {
         await notifyPartsAvailable(notifyInfo, actorName());
         await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
       }
       toast({
         title: next ? "Marked as Ordered" : "Ordered flag removed",
-        description: clearWaiting ? "Waiting for Parts was switched off." : undefined,
+        description: clearWaiting
+          ? "Waiting for Parts was switched off — the ticket stays on hold for parts."
+          : resumed
+            ? "Repair resumed — the assigned admin and technician were notified."
+            : undefined,
       });
     } catch (e) {
       toast({

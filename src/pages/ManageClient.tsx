@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
+import { announceServiceLoad } from "@/lib/loadToastGuard";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
@@ -830,7 +831,9 @@ const ManageClient = () => {
           } else {
             setFinalCost(calcFinal(serviceCostNum, savedDiscountNum, savedVat, savedRush));
           }
-          toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` });
+          announceServiceLoad(urlServiceId, "/manage-client", () =>
+            toast({ title: "Service Loaded", description: `Service ${urlServiceId} loaded successfully` }),
+          );
           // Pre-Order intakes arrive with a payment window request (open once).
           if (searchParams.get("pos") === "1") {
             setPaymentPresetType(searchParams.get("posType") || "Down Payment");
