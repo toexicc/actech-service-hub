@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
     const payments = (data ?? [])
       .filter((r: any) => !/^\s*void/i.test(String(r.type ?? "")))
       .filter((r: any) => Math.abs(Number(r.amount ?? 0)) > 0)
+      .filter((r: any) => !isNonPaymentType(r.type))
       .filter((r: any) => isPaymentType(r.type) || isRefundType(r.type))
       .map((r: any) => ({
         id: r.id,
