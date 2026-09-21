@@ -154,7 +154,9 @@ const PointOfSales = () => {
           setPreviousPayments(0);
         }
 
-        toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` });
+        announceServiceLoad(searchServiceId, "/pos", () =>
+          toast({ title: "Service Found", description: `Loaded data for ${searchServiceId}` }),
+        );
       } else {
         toast({ title: "Not Found", description: "Service ID not found in Service Database", variant: "destructive" });
         setServiceData(null);
