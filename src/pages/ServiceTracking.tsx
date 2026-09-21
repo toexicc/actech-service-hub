@@ -978,7 +978,7 @@ const ServiceTracking = () => {
           {/* Service ID Search Tab */}
           <TabsContent value="service" className="mt-6">
             <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 sm:pt-6">
                 <div className="space-y-2">
                   <Label htmlFor="serviceId" className="text-sm font-medium">
                     Service ID
@@ -1019,7 +1019,7 @@ const ServiceTracking = () => {
           {/* Client ID Search Tab */}
           <TabsContent value="client" className="mt-6">
             <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 sm:pt-6">
                 <div className="space-y-2">
                   <Label htmlFor="clientId" className="text-sm font-medium">
                     Client ID
@@ -1166,7 +1166,7 @@ const ServiceTracking = () => {
 
                 {/* Repair Ticket card */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-float)] rounded-2xl overflow-hidden">
-                  <CardContent className="p-6 space-y-5">
+                  <CardContent className="p-6 sm:pt-6 space-y-5">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Repair Ticket</p>
@@ -1334,7 +1334,7 @@ const ServiceTracking = () => {
                 {/* Reason for RTO / Cancelled / On Hold */}
                 {showReasonCard && (
                   <Card className="border-amber-300/60 bg-amber-50/70 rounded-2xl shadow-[var(--shadow-soft)]">
-                    <CardContent className="p-6">
+                    <CardContent className="p-6 sm:pt-6">
                       <p className="text-[11px] uppercase tracking-wider font-semibold text-amber-800">
                         Reason for {clientStatusLabel(currentStatus)}
                       </p>
@@ -1730,7 +1730,7 @@ const ServiceTracking = () => {
                 {/* Quote card */}
                 {!isClosed && (
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-6 sm:pt-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Your Quote</p>
@@ -1825,7 +1825,7 @@ const ServiceTracking = () => {
                 {/* Customer-facing admin notes */}
                 {(!isClosed && (serviceData as any).customerNotes?.trim()) && (
                   <Card className="border-[hsl(var(--surface-note-border))] bg-[hsl(var(--surface-note))] shadow-[var(--shadow-soft)] rounded-2xl">
-                    <CardContent className="p-6">
+                    <CardContent className="p-6 sm:pt-6">
                       <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Notes from the team</p>
                       <p className="text-sm whitespace-pre-wrap">{(serviceData as any).customerNotes}</p>
                     </CardContent>
@@ -1837,7 +1837,7 @@ const ServiceTracking = () => {
               <div className="lg:col-span-1 space-y-6">
                 {/* Visit us */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl overflow-hidden">
-                  <CardContent className="p-6 space-y-3">
+                  <CardContent className="p-6 sm:pt-6 space-y-3">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Visit Us</p>
                     <h3 className="text-lg font-semibold">AC Tech Repair PH</h3>
                     <p className="text-sm text-muted-foreground">{shopAddress}</p>
@@ -1893,7 +1893,7 @@ const ServiceTracking = () => {
 
                 {/* Documents */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-elegant)] rounded-2xl">
-                  <CardContent className="p-6 space-y-3">
+                  <CardContent className="p-6 sm:pt-6 space-y-3">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Documents</p>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 p-3">
@@ -2019,7 +2019,7 @@ const ServiceTracking = () => {
 
                 {/* Stay updated */}
                 <Card className="border-border/60 bg-[hsl(var(--surface-glass))] backdrop-blur-xl shadow-[var(--shadow-soft)] rounded-2xl">
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 sm:pt-6">
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Stay updated</p>
                     <p className="text-sm text-muted-foreground">
                       Bookmark this page or save the link — the status here updates automatically as our technicians work on your device.
