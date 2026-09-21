@@ -153,13 +153,26 @@ export const saveTicketServiceLines = async (
 
   if (sameLines(original, lines)) return { changed: false, finalCost: totals.finalCost };
 
+  // The payment screen only shows the client-approved lines. Keep the declined /
+  // pending lines that were hidden from the editor, so they are never wiped out.
+  const editedNames = new Set(lines.map(lineDisplayName));
+  const { data: current } = await supabase
+    .from("services")
+    .select("quoted_breakdown")
+    .eq("service_id", serviceId)
+    .maybeSingle();
+  const hiddenLines = normalizeQuotedBreakdown((current as any)?.quoted_breakdown).filter(
+    (l) => !l.selected && !editedNames.has(lineDisplayName(l)),
+  );
+  const mergedLines = [...lines, ...hiddenLines];
+
   const approvedNames = lines.filter((l) => l.selected).map(lineDisplayName);
-  const pendingNames = lines.filter((l) => !l.selected).map(lineDisplayName);
+  const pendingNames = mergedLines.filter((l) => !l.selected).map(lineDisplayName);
 
   const { error } = await supabase
     .from("services")
     .update({
-      quoted_breakdown: lines as any,
+      quoted_breakdown: mergedLines as any,
       service_cost: totals.subtotal,
       final_cost: totals.finalCost,
       service: approvedNames.join(", "),
