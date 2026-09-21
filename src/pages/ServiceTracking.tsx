@@ -1398,23 +1398,13 @@ const ServiceTracking = () => {
 
                     {/* Interim report: new findings raised while the repair was ongoing. */}
                     {!!String((serviceData as any).aiInterimReport ?? "").trim() && (
-                      <div className="space-y-4">
-                        <AiReportCard
-                          report={composeClientDiagnosis({
-                            diagnosis: (serviceData as any).aiInterimReport,
-                            warranty: (serviceData as any).interimWarranty,
-                          })}
-                          title="Interim Report - Additional Findings"
-                        />
-                        {serviceData.serviceId && (
-                          <DiagnosisPhotos
-                            serviceId={serviceData.serviceId}
-                            kind="interim_photo"
-                            title="Interim Report - Photos"
-                            editable={false}
-                          />
-                        )}
-                      </div>
+                      <AiReportCard
+                        report={composeClientDiagnosis({
+                          diagnosis: (serviceData as any).aiInterimReport,
+                          warranty: (serviceData as any).interimWarranty,
+                        })}
+                        title="Interim Report - Additional Findings"
+                      />
                     )}
 
 
