@@ -287,12 +287,22 @@ const PointOfSales = () => {
         return;
       }
     }
+    // A typed-but-not-loaded ticket ID must never be stamped on a manual entry:
+    // that is how payments ended up attached to someone else's ticket.
+    if (showsService && !serviceData && searchServiceId.trim()) {
+      toast({
+        title: "Ticket not loaded",
+        description: `Search ${searchServiceId.trim()} to load the ticket, or clear the Service ID box before recording a manual entry.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const name = showsService ? (serviceData?.clientName || manualName) : "";
     const device = showsService ? (serviceData?.device || manualDevice) : "";
     const serviceCostRaw = showsService
       ? (editedTotals?.subtotal ?? parseCurrency(serviceData?.serviceCost || manualServiceCost)).toFixed(2)
       : "0";
-    const serviceId = showsService ? (serviceData?.serviceId || searchServiceId || "MANUAL") : "";
+    const serviceId = showsService ? (serviceData?.serviceId || "MANUAL") : "";
     const partsCostRaw = showsService ? parseCurrency(serviceData?.partsCost).toFixed(2) : "0";
     const amountClean = parseCurrency(amount).toFixed(2);
     const finalCostClean = (
