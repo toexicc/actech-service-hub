@@ -93,8 +93,11 @@ export function TicketFlagsPanel({
         next ? "Waiting for Parts turned on" : "Waiting for Parts turned off",
         note ? { "Parts update": note } : undefined,
       );
+      // Ordered keeps the parts pause alive, so only the last flag to go off
+      // resumes the repair, notifies staff and arms the target-date review.
+      const stillPaused = !next && !!service?.partsOrdered;
       if (next) await notifyWaitingForPartsOn(notifyInfo, by, note);
-      else {
+      else if (!stillPaused) {
         await notifyPartsAvailable(notifyInfo, by);
         await notifyOverdueTargetDateReview(notifyInfo, "waiting for parts");
       }
@@ -102,7 +105,9 @@ export function TicketFlagsPanel({
         title: next ? "Waiting for Parts" : "Waiting for Parts cleared",
         description: next
           ? "Repair paused while parts are procured. Turnaround time stops counting."
-          : "Repair resumed — the assigned admin and technician were notified.",
+          : stillPaused
+            ? "Still on hold for parts because Ordered is switched on."
+            : "Repair resumed — the assigned admin and technician were notified.",
       });
     } catch (e) {
       toast({
