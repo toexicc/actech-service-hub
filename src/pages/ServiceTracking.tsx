@@ -192,6 +192,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       customerNotes: pick(sb.remarks ?? (row as any).remarks, sheetData.customerNotes ?? sheetData.remarks),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
       waitingForParts: !!((sb as any).waitingForParts ?? (row as any).waiting_for_parts),
+      partsOrdered: !!((sb as any).partsOrdered ?? (row as any).parts_ordered),
       hasPreOrder: !!(row as any).has_pre_order,
       isReleased: !!(row as any).is_released,
       approvalLocked: !!(row as any).approval_locked,
@@ -1207,7 +1208,7 @@ const ServiceTracking = () => {
                       {updatedAt && (
                         <p className="text-xs text-muted-foreground mt-1">Updated {displayDate(updatedAt, "MMM dd, yyyy · hh:mm a")}</p>
                       )}
-                      {(serviceData as any).waitingForParts &&
+                      {((serviceData as any).waitingForParts || (serviceData as any).partsOrdered) &&
                         !isClosed &&
                         !/completed/i.test(currentStatus) &&
                         !/^done repair/i.test(currentStatus) && (
