@@ -147,7 +147,12 @@ export const ensureClient = async (input: EnsureClientInput): Promise<string> =>
   // A shared phone number (family / same household) is NOT enough to reuse a
   // customer profile - the name or email must line up too, otherwise two
   // different people end up merged under one client ID.
-  if (phone) {
+  // Placeholder contact values ("Viber", "N/A", ...) carry no identity, so they
+  // must never be used to match an existing customer.
+  const digits = phone.replace(/\D/g, "");
+  const isRealPhone = digits.length >= 7;
+  const isRealEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/^n\/?a@/i.test(email);
+  if (isRealPhone) {
     const { data } = await supabase
       .from("clients")
       .select("client_id, username, name, email")
@@ -157,10 +162,11 @@ export const ensureClient = async (input: EnsureClientInput): Promise<string> =>
     const match = (data ?? []).find(
       (c: any) =>
         (name && norm(c.name) === norm(name)) ||
-        (email && norm(c.email) === norm(email)),
+        (isRealEmail && norm(c.email) === norm(email)),
     );
     if (match?.client_id) return backfill(match.client_id, match.username);
   }
+
 
 
   if (!phone && name && email) {
