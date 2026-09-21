@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
+import { announceServiceLoad } from "@/lib/loadToastGuard";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
