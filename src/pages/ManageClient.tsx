@@ -109,6 +109,7 @@ import {
   notifyNewServiceAssignment,
   notifyAiDiagnosisGenerated,
   notifyAiOutputGenerated,
+  notifyInterimConfirmedDiagnosis,
 } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
@@ -1766,6 +1767,24 @@ const ManageClient = () => {
             userFullName,
             userRole || undefined,
           );
+
+          // Interim ticket back at Confirmed Diagnosis -> alert the watcher
+          if (
+            updateStatus === "Confirmed Diagnosis" &&
+            (interimNeeded || !!String((serviceData as any).aiInterimReport ?? "").trim())
+          ) {
+            void notifyInterimConfirmedDiagnosis(
+              {
+                serviceId: sid,
+                clientName: serviceData.clientName,
+                technician: updateTechnician,
+                adminRep: updateAdminRep,
+                deviceType: updateDeviceType,
+                device: serviceData.device,
+              },
+              userFullName,
+            );
+          }
         }
 
         // Notify if technician changed

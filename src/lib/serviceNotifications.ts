@@ -576,6 +576,41 @@ export const notifyServiceNotesUpdate = async (
 /** Purchasing/management staff who must know when a ticket starts waiting for parts. */
 const PARTS_WATCHERS = ['Jane Espedido', 'Romar Badilles'];
 
+/** Staff notified directly when an interim ticket returns to Confirmed Diagnosis. */
+const INTERIM_CONFIRMED_WATCHERS = ['Romar Badilles'];
+
+/**
+ * A ticket that carries an interim report moved to Confirmed Diagnosis — the
+ * interim findings are ready to be reviewed/quoted, so alert the watcher(s)
+ * directly (falls back to management if the name cannot be resolved).
+ */
+export const notifyInterimConfirmedDiagnosis = async (
+  service: ServiceInfo,
+  byName?: string,
+): Promise<void> => {
+  try {
+    const staffList = await fetchStaffList();
+    const device = service.device || service.deviceType || 'device';
+    const title = `Interim report ready to quote: ${service.serviceId}`;
+    const message =
+      `${service.clientName}'s ${device} has an interim report and is now at Confirmed Diagnosis` +
+      `${byName ? ` (updated by ${byName})` : ''}. Please review the interim findings and prepare the additional quotation.`;
+
+    const seen = new Set<string>();
+    let targets = INTERIM_CONFIRMED_WATCHERS
+      .map((name) => findStaffByName(staffList, name))
+      .filter((s): s is StaffMember => !!s?.staffId);
+    if (targets.length === 0) targets = getManagementStaff(staffList);
+
+    const recipients = targets
+      .filter((s) => (seen.has(s.staffId) ? false : (seen.add(s.staffId), true)))
+      .map((s) => ({ userId: s.staffId, title, message, serviceId: service.serviceId }));
+    if (recipients.length) await sendViaEdge(recipients);
+  } catch {
+    // Saving must never fail because an alert could not be delivered.
+  }
+};
+
 /**
  * Waiting for Parts turned ON — alert the parts watchers (never the person who
  * toggled it) so procurement can start.
