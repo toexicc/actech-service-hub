@@ -38,7 +38,7 @@ export const workbenchRoutes: WorkbenchRouteDef[] = [
   { path: "/customer-management", element: <ProtectedRoute><CustomerManagement /></ProtectedRoute> },
   { path: "/staff-management", element: <ProtectedRoute roles={["admin", "management"]}><StaffManagement /></ProtectedRoute> },
   { path: "/completed-transactions", element: <ProtectedRoute><CompletedTransactions /></ProtectedRoute> },
-  { path: "/transaction-tracker", element: <ProtectedRoute><TransactionTracker /></ProtectedRoute> },
+  { path: "/transaction-tracker", element: <ProtectedRoute roles={["management"]}><TransactionTracker /></ProtectedRoute> },
   { path: "/tech-dashboard", element: <ProtectedRoute><OpenDashboard /></ProtectedRoute> },
   { path: "/request-for-parts", element: <ProtectedRoute><RequestForParts /></ProtectedRoute> },
   { path: "/salary-disbursement", element: <ProtectedRoute roles={["admin", "management"]}><SalaryDisbursement /></ProtectedRoute> },
