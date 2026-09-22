@@ -79,6 +79,8 @@ const PointOfSales = () => {
   const [activeTab, setActiveTab] = useState<"pos" | "transactions">("pos");
   const { toast } = useToast();
   const userRole = sessionStorage.getItem("userRole");
+  // Transaction Tracker is management-only; admins see the sale form alone.
+  const canSeeTransactions = userRole === "management";
   const username = sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Unknown";
 
   const [transactionType, setTransactionType] = useState("");
@@ -800,9 +802,11 @@ const PointOfSales = () => {
         </div>
           </TabsContent>
 
-          <TabsContent value="transactions">
-            <TransactionTracker embedded />
-          </TabsContent>
+          {canSeeTransactions && (
+            <TabsContent value="transactions">
+              <TransactionTracker embedded />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
