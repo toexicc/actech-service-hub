@@ -38,7 +38,7 @@ import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity } from "@/lib/activityLogger";
-import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted } from "@/lib/serviceNotifications";
+import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted, notifyInterimConfirmedDiagnosis } from "@/lib/serviceNotifications";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
@@ -1179,6 +1179,28 @@ const ServiceUpdate = () => {
               userRole || undefined
             )).catch(() => {})
           );
+
+          // Interim ticket returning to Confirmed Diagnosis -> alert the watcher
+          if (
+            updateStatus === "Confirmed Diagnosis" &&
+            (!!interim.report.trim() ||
+              interimNeeded ||
+              !!String((serviceData as any).aiInterimReport ?? "").trim())
+          ) {
+            backgroundTasks.push(
+              Promise.resolve(notifyInterimConfirmedDiagnosis(
+                {
+                  serviceId: sid,
+                  clientName: serviceData.clientName,
+                  technician: updateTechnician,
+                  adminRep: serviceData.adminRep,
+                  deviceType: serviceData.deviceType,
+                  device: serviceData.device,
+                },
+                userFullName,
+              )).catch(() => {})
+            );
+          }
         }
 
         // Technician change notification
