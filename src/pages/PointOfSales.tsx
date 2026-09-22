@@ -538,11 +538,16 @@ const PointOfSales = () => {
           <p className="text-muted-foreground">Record client payments and transactions</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "pos" | "transactions")}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="pos">Point of Sale</TabsTrigger>
-            <TabsTrigger value="transactions">Transaction Tracker</TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={canSeeTransactions ? activeTab : "pos"}
+          onValueChange={(v) => setActiveTab(v as "pos" | "transactions")}
+        >
+          {canSeeTransactions && (
+            <TabsList className="mb-6">
+              <TabsTrigger value="pos">Point of Sale</TabsTrigger>
+              <TabsTrigger value="transactions">Transaction Tracker</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="pos">
         <div className="grid gap-6 lg:grid-cols-3">

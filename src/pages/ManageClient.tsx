@@ -109,6 +109,7 @@ import {
   notifyNewServiceAssignment,
   notifyAiDiagnosisGenerated,
   notifyAiOutputGenerated,
+  notifyInterimConfirmedDiagnosis,
 } from "@/lib/serviceNotifications";
 import { createNotification } from "@/lib/notifications";
 import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
