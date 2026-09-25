@@ -18,7 +18,7 @@
 ## 5. Within the Day rule
 - The Within the Day card and filter only include tickets created **today** (Manila time).
 - Once a Within the Day ticket's creation date has passed (from the next day on) and it isn't finished (Completed, For Release, Advise Client, or closed), it is switched to **Normal** priority automatically.
-- When this happens, the assigned admin(s) and technician(s) get a notice: "AC… was not repaired within the day and is now Normal priority." The change is also added to the ticket's history.
+- When this happens, the assigned admin(s) and technician(s) get a notice: "AC… was not repaired within the day and is now Normal priority. Please inform the client." The change is also added to the ticket's history.
 - Telling the client: the public tracking page shows a short note: "Your repair couldn't be finished the same day. Our team will update you on the new timeline." No texts or emails are sent, because the app doesn't send messages to clients.
 
 ## Technical notes
