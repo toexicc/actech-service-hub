@@ -84,6 +84,7 @@ const STATUS_COUNT_CARDS = [
   "Done Repair - Advise Client",
   "Completed",
   "RTO",
+  "On Hold",
 ] as const;
 
 const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
@@ -143,7 +144,7 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
   {
     key: "withinDay",
     label: "Within the Day",
-    match: (s) => isWithinDay(s) && !isDoneCompleted(s),
+    match: (s) => isWithinDay(s) && isTodayService(s) && !isDoneCompleted(s),
   },
   { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
   {
