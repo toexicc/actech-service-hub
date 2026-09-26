@@ -194,6 +194,7 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       waitingForParts: !!((sb as any).waitingForParts ?? (row as any).waiting_for_parts),
       partsOrdered: !!((sb as any).partsOrdered ?? (row as any).parts_ordered),
       hasPreOrder: !!(row as any).has_pre_order,
+      withinDayMissedAt: (row as any).within_day_missed_at || "",
       isReleased: !!(row as any).is_released,
       approvalLocked: !!(row as any).approval_locked,
       approvedServices: Array.isArray((row as any).approved_services) ? (row as any).approved_services : [],
@@ -1215,6 +1216,15 @@ const ServiceTracking = () => {
                         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
                           <span className="h-2 w-2 rounded-full bg-amber-500" />
                           Waiting for Parts — the required parts/supplies are being procured for your repair
+                        </div>
+                      )}
+                      {(serviceData as any).withinDayMissedAt &&
+                        !isClosed &&
+                        !/completed/i.test(currentStatus) &&
+                        !/^done repair/i.test(currentStatus) && (
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-800">
+                          <span className="h-2 w-2 rounded-full bg-sky-500" />
+                          Your repair couldn't be finished the same day. Our team will update you on the new timeline.
                         </div>
                       )}
                     </div>

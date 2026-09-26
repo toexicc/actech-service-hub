@@ -3,3 +3,4 @@
 - [x] Enable guarded offline app-shell support while keeping push notifications.
 - [x] Verify mobile layouts at 320/375/390/430px, tablet, and desktop.
 - [x] Repair cramped mobile layouts, role navigation, and service-card preview behavior.
+- [x] On Hold card, technician read-only parts toggles, POS complete switch, no Rush on RTO, Within the Day rollover.
