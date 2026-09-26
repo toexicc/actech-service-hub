@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -102,6 +103,7 @@ export const TicketPaymentModal = ({
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [autoComplete, setAutoComplete] = useState(true);
   const [docsKey, setDocsKey] = useState(0);
   const [recorded, setRecorded] = useState(false);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
@@ -165,6 +167,7 @@ export const TicketPaymentModal = ({
       setAmount("");
       setRemarks("");
       setWarrantyEnabled(true);
+      setAutoComplete(true);
       setRecorded(false);
       return;
     }
@@ -291,7 +294,7 @@ export const TicketPaymentModal = ({
         },
       });
 
-      if (totals.total > 0) {
+      if (totals.total > 0 && autoComplete) {
         try {
           const completed = await completeServiceIfFullyPaid({
             serviceId,
@@ -452,6 +455,18 @@ export const TicketPaymentModal = ({
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
+
+                {!prepaymentMode && fullyPaidAfter && (
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                    <div className="space-y-0.5">
+                      <Label>Mark service as Completed</Label>
+                      <p className="text-xs text-muted-foreground">
+                        This payment settles the balance. Turn off to keep the current status.
+                      </p>
+                    </div>
+                    <Switch checked={autoComplete} onCheckedChange={setAutoComplete} />
+                  </div>
+                )}
 
                 {!prepaymentMode && (
                   <WarrantyCardFields
