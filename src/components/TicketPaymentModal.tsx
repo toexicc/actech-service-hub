@@ -102,6 +102,7 @@ export const TicketPaymentModal = ({
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [autoComplete, setAutoComplete] = useState(true);
   const [docsKey, setDocsKey] = useState(0);
   const [recorded, setRecorded] = useState(false);
   const [warrantyTerms, setWarrantyTerms] = useState<Record<string, string>>({});
