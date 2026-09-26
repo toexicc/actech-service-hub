@@ -1528,8 +1528,8 @@ const ServiceUpdate = () => {
                     onChange={(patch) =>
                       setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))
                     }
-                    showPreOrder={false}
                     showBackjob={false}
+                    readOnlyToggles={userRole === "technician"}
                     canEditTechNote
                   />
                 )}

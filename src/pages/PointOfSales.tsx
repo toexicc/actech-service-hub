@@ -14,6 +14,7 @@ import { Search, Loader2, DollarSign, CreditCard, Receipt } from "lucide-react";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchStaffList } from "@/lib/staffList";
+import { Switch } from "@/components/ui/switch";
 import { completeServiceIfFullyPaid } from "@/lib/autoCompleteService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionTracker from "@/pages/TransactionTracker";
@@ -261,6 +262,15 @@ const PointOfSales = () => {
   const amountNum = parseCurrency(amount);
   const remaining = finalCostNum > 0 ? Math.max(0, finalCostNum - previousPayments - amountNum) : 0;
 
+  const [markCompleted, setMarkCompleted] = useState(true);
+  const willSettle =
+    !!serviceData?.serviceId &&
+    needsServiceInfo(transactionType) &&
+    transactionType !== "Refund" &&
+    finalCostNum > 0 &&
+    amountNum > 0 &&
+    previousPayments + amountNum + 0.01 >= finalCostNum;
+
   const isExpenseType = EXPENSE_TYPES.includes(transactionType);
   const isOthersType = OTHER_TYPES.includes(transactionType) || transactionType === "Others";
 
@@ -398,7 +408,7 @@ const PointOfSales = () => {
 
 
         // Fully paid service → auto-complete the ticket (any stage).
-        if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL") {
+        if (isServiceType && !isRefund && serviceId && serviceId !== "MANUAL" && markCompleted) {
           try {
             const completed = await completeServiceIfFullyPaid({
               serviceId,
@@ -710,6 +720,17 @@ const PointOfSales = () => {
                             {fmtPeso(remaining)}
                           </p>
                         </div>
+                        {willSettle && (
+                          <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-background/70 p-2.5">
+                            <div>
+                              <p className="text-sm font-semibold">Mark service as Completed</p>
+                              <p className="text-xs text-muted-foreground">
+                                This payment settles the balance. Turn off to keep the current status.
+                              </p>
+                            </div>
+                            <Switch checked={markCompleted} onCheckedChange={setMarkCompleted} />
+                          </div>
+                        )}
                       </div>
                     )}
 

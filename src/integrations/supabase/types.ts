@@ -1194,6 +1194,7 @@ export type Database = {
           waiting_parts_note: string | null
           waiting_parts_note_tech: string | null
           warranty_terms: Json
+          within_day_missed_at: string | null
         }
         Insert: {
           acknowledgements?: Json
@@ -1291,6 +1292,7 @@ export type Database = {
           waiting_parts_note?: string | null
           waiting_parts_note_tech?: string | null
           warranty_terms?: Json
+          within_day_missed_at?: string | null
         }
         Update: {
           acknowledgements?: Json
@@ -1388,6 +1390,7 @@ export type Database = {
           waiting_parts_note?: string | null
           waiting_parts_note_tech?: string | null
           warranty_terms?: Json
+          within_day_missed_at?: string | null
         }
         Relationships: []
       }

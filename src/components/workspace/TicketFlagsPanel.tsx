@@ -22,6 +22,8 @@ interface TicketFlagsPanelProps {
   showPreOrder?: boolean;
   /** Hide the Backjob switch (technician view). */
   showBackjob?: boolean;
+  /** Show every switch read-only (technician view) — notes stay editable per their flags. */
+  readOnlyToggles?: boolean;
 }
 
 const actorName = () => {
@@ -47,6 +49,7 @@ export function TicketFlagsPanel({
   canEditTechNote = false,
   showPreOrder = true,
   showBackjob = true,
+  readOnlyToggles = false,
 }: TicketFlagsPanelProps) {
   const { toast } = useToast();
   const serviceId: string = service?.serviceId || "";
@@ -275,7 +278,7 @@ export function TicketFlagsPanel({
                   : "Turn on when this ticket has a pre-order."}
               </p>
             </div>
-            <Switch checked={!!service?.hasPreOrder} disabled={busyPreOrder} onCheckedChange={togglePreOrder} />
+            <Switch checked={!!service?.hasPreOrder} disabled={busyPreOrder || readOnlyToggles} onCheckedChange={togglePreOrder} />
           </div>
         )}
 
@@ -285,14 +288,14 @@ export function TicketFlagsPanel({
             <p className="text-xs text-muted-foreground">
               {service?.waitingForParts
                 ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
-                : canToggleWaitingForParts
+                : canToggleWaitingForParts && !readOnlyToggles
                   ? "Turn on when the repair is paused while parts/supplies are being procured."
                   : "Only management can switch this on or off."}
             </p>
           </div>
           <Switch
             checked={!!service?.waitingForParts}
-            disabled={busyParts || !canToggleWaitingForParts}
+            disabled={busyParts || !canToggleWaitingForParts || readOnlyToggles}
             onCheckedChange={toggleWaitingForParts}
           />
         </div>
@@ -306,7 +309,7 @@ export function TicketFlagsPanel({
                 : "Turn on once the parts have been ordered — this switches Waiting for Parts off."}
             </p>
           </div>
-          <Switch checked={!!service?.partsOrdered} disabled={busyOrdered} onCheckedChange={toggleOrdered} />
+          <Switch checked={!!service?.partsOrdered} disabled={busyOrdered || readOnlyToggles} onCheckedChange={toggleOrdered} />
         </div>
 
         {canEditNote ? (
@@ -330,12 +333,12 @@ export function TicketFlagsPanel({
             </Button>
           </div>
         ) : (
-          (service?.waitingPartsNote || "").trim() && (
+          ((service?.waitingPartsNote || "").trim() || readOnlyToggles) && (
             <div className="rounded-lg border border-border/60 bg-background/70 p-2">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Parts update
               </p>
-              <p className="text-xs text-foreground whitespace-pre-wrap">{service.waitingPartsNote}</p>
+              <p className="text-xs text-foreground whitespace-pre-wrap">{(service?.waitingPartsNote || "").trim() || "No update from admin yet."}</p>
             </div>
           )
         )}

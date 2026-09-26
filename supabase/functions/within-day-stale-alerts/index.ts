@@ -39,16 +39,6 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const cutoff = new Date(now - THREE_HOURS_MS).toISOString();
 
-    const { data: services, error } = await supabase
-      .from("services")
-      .select("service_id, client_name, status, priority, technicians, admin_reps, last_updated")
-      .eq("priority", "Within the Day")
-      .lt("last_updated", cutoff);
-    if (error) throw new Error(error.message);
-
-    const stale = (services ?? []).filter((s: any) => !CLOSED.has(norm(s.status)));
-    if (stale.length === 0) return json({ ok: true, checked: 0, alerts: 0 });
-
     // Staff directory to map assignment names -> auth user ids.
     const { data: profiles } = await supabase.from("profiles").select("id, name, username");
     const idByName = new Map<string, string>();
@@ -57,6 +47,72 @@ Deno.serve(async (req) => {
       if (p.username) idByName.set(norm(p.username), p.id);
       if (p.username) idByName.set(norm(String(p.username).split("@")[0]), p.id);
     });
+    const recipientsOf = (s: any) =>
+      Array.from(
+        new Set(
+          [
+            ...(Array.isArray(s.technicians) ? s.technicians : []),
+            ...(Array.isArray(s.admin_reps) ? s.admin_reps : []),
+          ]
+            .filter(Boolean)
+            .map((n: string) => idByName.get(norm(n)))
+            .filter(Boolean) as string[],
+        ),
+      );
+
+    // 1) Missed same-day repairs: created before today (Manila) → demote to Normal.
+    const manilaDay = (d: Date) =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(d);
+    const today = manilaDay(new Date(now));
+    const { data: wtd } = await supabase
+      .from("services")
+      .select("service_id, client_name, status, technicians, admin_reps, date_received, created_at, service_date")
+      .eq("priority", "Within the Day");
+    const FINISHED = new Set([...CLOSED, "done repair - for release", "done repair - advise client"]);
+    const missed = (wtd ?? []).filter((s: any) => {
+      if (FINISHED.has(norm(s.status))) return false;
+      const created = s.date_received || s.created_at;
+      return created && manilaDay(new Date(created)) < today;
+    });
+    const missedRows: any[] = [];
+    for (const s of missed) {
+      const stamp = new Date().toISOString();
+      const { error: upErr } = await supabase
+        .from("services")
+        .update({ priority: "Normal", within_day_missed_at: stamp })
+        .eq("service_id", s.service_id)
+        .eq("priority", "Within the Day");
+      if (upErr) continue;
+      await supabase.from("activity_logs").insert({
+        actor_name: "System",
+        action: "Within the Day missed — priority changed to Normal",
+        entity_type: "service",
+        entity_id: s.service_id,
+        changes: { Priority: { from: "Within the Day", to: "Normal" } },
+      });
+      recipientsOf(s).forEach((uid) =>
+        missedRows.push({
+          recipient_id: uid,
+          category: "services",
+          title: "Not repaired within the day",
+          message: `${s.service_id} (${s.client_name}) was not repaired within the day and is now Normal priority. Please inform the client.`,
+          service_id: s.service_id,
+          link: `/manage-client?serviceId=${s.service_id}`,
+          is_read: false,
+        }),
+      );
+    }
+    if (missedRows.length > 0) await supabase.from("notifications").insert(missedRows);
+
+    const { data: services, error } = await supabase
+      .from("services")
+      .select("service_id, client_name, status, priority, technicians, admin_reps, last_updated")
+      .eq("priority", "Within the Day")
+      .lt("last_updated", cutoff);
+    if (error) throw new Error(error.message);
+
+    const stale = (services ?? []).filter((s: any) => !CLOSED.has(norm(s.status)));
+    if (stale.length === 0) return json({ ok: true, checked: 0, alerts: 0, demoted: missed.length });
 
     const ids = stale.map((s: any) => s.service_id);
     // Existing stale alerts, used to keep the cadence at one per 3-hour window.
