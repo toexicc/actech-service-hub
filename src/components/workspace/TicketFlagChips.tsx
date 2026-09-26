@@ -78,7 +78,7 @@ export function TicketFlagChips({
       cls: "border-sky-400/40 bg-sky-500/15 text-sky-600",
     });
   }
-  if (service?.rushFee) {
+  if (service?.rushFee && !/^rto/i.test(String(service?.status || "").trim())) {
     chips.push({ key: "rush", label: "Rush", cls: "border-orange-400/40 bg-orange-500/15 text-orange-600" });
   }
   if (service?.hasPreOrder && !isCompletedStatus(service?.status)) {

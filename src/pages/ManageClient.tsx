@@ -2485,6 +2485,7 @@ const ManageClient = () => {
                   )}
 
                   <div className="grid gap-3 sm:grid-cols-2">
+                    {!/^rto/i.test(String(serviceData.status || "").trim()) && (
                     <div className="flex min-w-0 items-start justify-between gap-4 rounded-xl border border-warning/30 bg-warning/10 p-3">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold">Rush</p>
@@ -2501,6 +2502,7 @@ const ManageClient = () => {
                         className="shrink-0"
                       />
                     </div>
+                    )}
 
                     <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-300/60 bg-emerald-50/60 p-3">
                       <div>
@@ -3810,6 +3812,7 @@ const ManageClient = () => {
                       )}
                     </div>
 
+                    {!/^rto/i.test(String(serviceData?.status || "").trim()) && (
                     <div className="space-y-2 rounded-md border border-border/60 p-3">
                       <label className="flex min-w-0 cursor-pointer items-start gap-2 text-sm font-medium">
                         <Checkbox
