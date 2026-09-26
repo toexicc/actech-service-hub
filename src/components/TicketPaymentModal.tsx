@@ -166,6 +166,7 @@ export const TicketPaymentModal = ({
       setAmount("");
       setRemarks("");
       setWarrantyEnabled(true);
+      setAutoComplete(true);
       setRecorded(false);
       return;
     }
@@ -292,7 +293,7 @@ export const TicketPaymentModal = ({
         },
       });
 
-      if (totals.total > 0) {
+      if (totals.total > 0 && autoComplete) {
         try {
           const completed = await completeServiceIfFullyPaid({
             serviceId,
