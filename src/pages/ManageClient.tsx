@@ -3835,6 +3835,7 @@ const ManageClient = () => {
                         </p>
                       )}
                     </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label>Final Cost:</Label>
