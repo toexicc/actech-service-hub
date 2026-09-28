@@ -36,6 +36,7 @@ import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEdito
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
 import { announceServiceLoad } from "@/lib/loadToastGuard";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
+import { DeviceAnnotationPanel } from "@/components/workspace/DeviceAnnotationPanel";
 import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
@@ -2530,6 +2531,11 @@ const ManageClient = () => {
                       onChange={(patch) => setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))}
                     />
                   )}
+
+                  <DeviceAnnotationPanel
+                    serviceId={serviceData?.serviceId || serviceId}
+                    deviceType={serviceData?.deviceType || ""}
+                  />
 
                   <Collapsible open={isPartsUsedOpen} onOpenChange={setIsPartsUsedOpen}>
                     <CollapsibleTrigger asChild>

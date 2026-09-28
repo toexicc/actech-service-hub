@@ -32,6 +32,7 @@ import { DeviceReportPhotos } from "@/components/DeviceReportPhotos";
 import { DiagnosisPhotos } from "@/components/DiagnosisPhotos";
 import { WorkspaceField } from "@/components/workspace/WorkspaceField";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
+import { DeviceAnnotationPanel } from "@/components/workspace/DeviceAnnotationPanel";
 import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
 import { QRScanner } from "@/components/QRScanner";
@@ -1533,6 +1534,15 @@ const ServiceUpdate = () => {
                     canToggleOrdered={userRole === "management"}
                     canEditTechNote
                   />
+                )}
+
+                {serviceData?.serviceId && (
+                  <div className="mt-4">
+                    <DeviceAnnotationPanel
+                      serviceId={serviceData.serviceId}
+                      deviceType={serviceData?.deviceType || ""}
+                    />
+                  </div>
                 )}
 
               </CardContent>
