@@ -1123,6 +1123,7 @@ export type Database = {
           device_annotation_notes: string | null
           device_annotation_path: string | null
           device_notes: string | null
+          device_out_with_client: boolean
           device_password: string | null
           device_report_folder_url: string | null
           device_type: string | null
@@ -1221,6 +1222,7 @@ export type Database = {
           device_annotation_notes?: string | null
           device_annotation_path?: string | null
           device_notes?: string | null
+          device_out_with_client?: boolean
           device_password?: string | null
           device_report_folder_url?: string | null
           device_type?: string | null
@@ -1319,6 +1321,7 @@ export type Database = {
           device_annotation_notes?: string | null
           device_annotation_path?: string | null
           device_notes?: string | null
+          device_out_with_client?: boolean
           device_password?: string | null
           device_report_folder_url?: string | null
           device_type?: string | null
