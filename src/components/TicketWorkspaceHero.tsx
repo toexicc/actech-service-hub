@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { STATUS_OPTIONS } from "@/lib/constants";
+import { displayDate } from "@/lib/timezone";
 
 import {
-  User,
   Wrench,
   Calendar,
   DollarSign,
@@ -60,8 +60,13 @@ export function TicketWorkspaceHero({ service, showShare = false, isLive = false
     .filter(Boolean)
     .join(" • ") || service.device || "—";
 
+  const serviceDate = displayDate(
+    service.serviceDate || service.timestamp || service.dateReceived || "",
+    "MM/dd/yyyy",
+  );
+
   const stats: { icon: any; label: string; value: string }[] = [
-    { icon: User, label: "Client", value: service.clientName || "—" },
+    { icon: Calendar, label: "Service Date", value: serviceDate || "—" },
     { icon: Smartphone, label: "Device", value: device },
     { icon: Wrench, label: "Technician", value: service.technician || "Unassigned" },
     { icon: ShieldCheck, label: "Admin Rep", value: service.adminRep || "—" },
