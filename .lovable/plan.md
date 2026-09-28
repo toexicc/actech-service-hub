@@ -20,7 +20,7 @@ Warranty choices are listed shortest to longest: 30 Days / 1 Month, 45 Days, 3 M
 Admins and technicians can see the Ordered switch, but they can't change it.
 
 ## 6. Device annotation on the ticket
-Manage Client and Service Update get a collapsible "Device Annotation" section, closed by default. It shows the marked-up device image and its notes. Admins and technicians can edit the notes (and redraw if needed) and save. The new version replaces the old one.
+Manage Client and Service Update get a collapsible "Device Annotation" section, closed by default. It shows the marked-up device image and its notes. Admins and technicians can draw new marks on top of the current drawing (the existing marks stay), edit the notes, and save. The new version replaces the old one.
 
 ## 7. Hide finished tickets from flag cards
 These cards leave out Completed, Cancelled, On Hold and all RTO tickets: Backjob, Ordered, Pre-Order, Pre-Approved, Within the Day, Rush, Interim, Device Out.
