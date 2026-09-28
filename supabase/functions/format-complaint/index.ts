@@ -150,7 +150,7 @@ STRICT RULES:
       });
     }
 
-    const formatted = clampSentences(stripMarkdown(raw), isBrief ? 2 : 3);
+    const formatted = clampSentences(stripMarkdown(raw), isBrief ? 2 : 2);
 
     return new Response(JSON.stringify({ formattedComplaint: formatted }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
