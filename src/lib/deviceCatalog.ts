@@ -53,8 +53,13 @@ export const rememberDeviceValue = async (
   rawValue: string,
   brand?: string,
 ): Promise<void> => {
-  const value = normalizeDeviceValue(rawValue, kind);
+  let value = normalizeDeviceValue(rawValue, kind);
   if (!value) return;
+  // Brand suggestions hold the brand only ("Apple", not "Apple iPhone").
+  if (kind === "brand") {
+    const first = value.split(" ")[0];
+    value = /^(iphone|ipad|imac|ipod|macbook|airpods|mba)/i.test(first) ? "Apple" : first;
+  }
   const ownerBrand = kind === "model" ? normalizeDeviceValue(brand ?? "", "brand") || null : null;
 
   const { data: existing } = await supabase
