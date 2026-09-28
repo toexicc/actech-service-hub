@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TrackingShareActions } from "@/components/TrackingShareActions";
 import { STATUS_OPTIONS } from "@/lib/constants";
+import { displayDate } from "@/lib/timezone";
 
 import {
-  User,
   Wrench,
   Calendar,
   DollarSign,
