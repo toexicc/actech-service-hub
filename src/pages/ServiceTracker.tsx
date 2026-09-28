@@ -111,6 +111,19 @@ const isTodayService = (s: any): boolean => {
   return format(parsed, "yyyy-MM-dd") === format(getManilaDate(), "yyyy-MM-dd");
 };
 
+/** Within the Day window: the day the ticket was created plus the next day (Manila). */
+const isWithinDayWindow = (s: any): boolean => {
+  const parsed = cardDate(s?.serviceDate) || cardDate(s?.timestamp);
+  if (!parsed) return false;
+  const today = getManilaDate();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const d = format(parsed, "yyyy-MM-dd");
+  return d === format(today, "yyyy-MM-dd") || d === format(yesterday, "yyyy-MM-dd");
+};
+
+/** Flag cards skip finished/closed tickets (Completed, Cancelled, On Hold, RTO). */
+const isOpenTicket = (s: any) => !isDoneCompleted(s) && !isClosedStatus(String(s?.status || ""));
+
 
 /** Flag cards — tickets whose toggles are on, regardless of status. */
 type FlagKey =
@@ -123,14 +136,16 @@ type FlagKey =
   | "preApproved"
   | "withinDay"
   | "rush"
-  | "interim";
+  | "interim"
+  | "invoice"
+  | "deviceOut";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
-  { key: "ordered", label: "Ordered", match: (s) => !!s.partsOrdered && !isDoneCompleted(s) },
-  { key: "preOrder", label: "Pre-Order", match: (s) => !!s.hasPreOrder && !isDoneCompleted(s) },
+  { key: "ordered", label: "Ordered", match: (s) => !!s.partsOrdered && isOpenTicket(s) },
+  { key: "preOrder", label: "Pre-Order", match: (s) => !!s.hasPreOrder && isOpenTicket(s) },
 
-  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && !isDoneCompleted(s) },
+  { key: "backjob", label: "Backjob", match: (s) => !!s.isBackjob && isOpenTicket(s) },
   {
     key: "completedBackjob",
     label: "Completed - Backjob",
@@ -139,20 +154,23 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
   {
     key: "preApproved",
     label: "Pre-Approved",
-    match: (s) => !!s.autoApproveDiagnosis && !isDoneCompleted(s),
+    match: (s) => !!s.autoApproveDiagnosis && isOpenTicket(s),
   },
   {
     key: "withinDay",
     label: "Within the Day",
-    match: (s) => isWithinDay(s) && isTodayService(s) && !isDoneCompleted(s),
+    match: (s) => isWithinDay(s) && isWithinDayWindow(s) && isOpenTicket(s),
   },
-  { key: "rush", label: "Rush", match: (s) => !!s.rushFee },
+  { key: "rush", label: "Rush", match: (s) => !!s.rushFee && isOpenTicket(s) },
   {
     key: "interim",
     label: "Interim",
     match: (s) =>
-      !!String(s?.aiInterimReport ?? "").trim() || !!String(s?.interimCreatedAt ?? "").trim(),
+      isOpenTicket(s) &&
+      (!!String(s?.aiInterimReport ?? "").trim() || !!String(s?.interimCreatedAt ?? "").trim()),
   },
+  { key: "invoice", label: "Invoice", match: (s) => !!s.vatRequested && isOpenTicket(s) },
+  { key: "deviceOut", label: "Device Out", match: (s) => !!s.deviceOutWithClient && isOpenTicket(s) },
 ];
 
 

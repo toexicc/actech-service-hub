@@ -87,6 +87,7 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   isRush: z.boolean().default(false),
   isBackjob: z.boolean().default(false),
   hasPreOrder: z.boolean().default(false),
+  deviceOutWithClient: z.boolean().default(false),
 
   enablePhotoAnnotation: z.boolean().default(false),
   annotationDeviceType: z.string().optional(),
@@ -252,6 +253,7 @@ const ServiceForm = ({
       isRush: false,
       isBackjob: false,
       hasPreOrder: false,
+      deviceOutWithClient: false,
 
       physicalSignature: false,
       enablePhotoAnnotation: false,
@@ -719,6 +721,12 @@ const ServiceForm = ({
         throw new Error(createError?.message || "Could not create the service ticket.");
       }
       const finalServiceId = createdServiceId;
+      if (data.deviceOutWithClient && finalServiceId) {
+        await supabase
+          .from("services")
+          .update({ device_out_with_client: true } as any)
+          .eq("service_id", finalServiceId);
+      }
 
       // Generate PDF (assets are preloaded, so this is fast)
       const pdfBlob = await generateServicePDF({
@@ -1896,11 +1904,12 @@ const ServiceForm = ({
             {!isPublic && (
               <div>
                 <h2 className="text-xl font-semibold text-blue-600 mb-4">Ticket Flags</h2>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {([
                     ["isRush", "Rush", "Adds the 10% rush fee to this ticket."],
                     ["isBackjob", "Backjob", "Device is back for the same issue."],
                     ["hasPreOrder", "Pre-Order", "This ticket has a pre-order."],
+                    ["deviceOutWithClient", "Device Out with Client", "Client takes the device home while waiting."],
                   ] as const).map(([name, label, hint]) => (
                     <FormField
                       key={name}

@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS device_out_with_client boolean NOT NULL DEFAULT false;

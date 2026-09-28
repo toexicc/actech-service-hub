@@ -88,6 +88,13 @@ export function TicketFlagChips({
       cls: "border-indigo-400/40 bg-indigo-500/15 text-indigo-600",
     });
   }
+  if (service?.deviceOutWithClient && !isCompletedStatus(service?.status)) {
+    chips.push({
+      key: "deviceOut",
+      label: "Device Out",
+      cls: "border-cyan-400/40 bg-cyan-500/15 text-cyan-700",
+    });
+  }
   if (service?.isReleased && !hideReleased) {
     chips.push({
       key: "released",

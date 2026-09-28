@@ -12,6 +12,8 @@ import imacTemplate from "@/assets/imac-template.png";
 interface DeviceAnnotationCanvasProps {
   deviceType: string;
   onSave: (imageDataUrl: string) => void;
+  /** Existing drawing to draw on top of (replaces the blank device template). */
+  backgroundUrl?: string;
 }
 
 const DEVICE_TEMPLATES: Record<string, string> = {
@@ -22,7 +24,7 @@ const DEVICE_TEMPLATES: Record<string, string> = {
   "Computer/IMac": imacTemplate,
 };
 
-export const DeviceAnnotationCanvas = ({ deviceType, onSave }: DeviceAnnotationCanvasProps) => {
+export const DeviceAnnotationCanvas = ({ deviceType, onSave, backgroundUrl }: DeviceAnnotationCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeTool, setActiveTool] = useState<"draw" | "erase">("draw");
@@ -40,7 +42,7 @@ export const DeviceAnnotationCanvas = ({ deviceType, onSave }: DeviceAnnotationC
     });
 
     // Load device template image
-    const templateUrl = DEVICE_TEMPLATES[deviceType];
+    const templateUrl = backgroundUrl || DEVICE_TEMPLATES[deviceType];
     if (templateUrl) {
       FabricImage.fromURL(templateUrl, {
         crossOrigin: 'anonymous',
@@ -80,7 +82,7 @@ export const DeviceAnnotationCanvas = ({ deviceType, onSave }: DeviceAnnotationC
     return () => {
       canvas.dispose();
     };
-  }, [deviceType]);
+  }, [deviceType, backgroundUrl]);
 
   useEffect(() => {
     if (!fabricCanvas) return;

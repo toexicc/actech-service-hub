@@ -60,10 +60,11 @@ Deno.serve(async (req) => {
         ),
       );
 
-    // 1) Missed same-day repairs: created before today (Manila) → demote to Normal.
+    // 1) Missed within-the-day repairs: created before yesterday (Manila) → demote to Normal.
     const manilaDay = (d: Date) =>
       new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(d);
-    const today = manilaDay(new Date(now));
+    // Within the Day covers the creation day plus the next day (late drop-offs).
+    const yesterday = manilaDay(new Date(now - 24 * 60 * 60 * 1000));
     const { data: wtd } = await supabase
       .from("services")
       .select("service_id, client_name, status, technicians, admin_reps, date_received, created_at, service_date")
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
     const missed = (wtd ?? []).filter((s: any) => {
       if (FINISHED.has(norm(s.status))) return false;
       const created = s.date_received || s.created_at;
-      return created && manilaDay(new Date(created)) < today;
+      return created && manilaDay(new Date(created)) < yesterday;
     });
     const missedRows: any[] = [];
     for (const s of missed) {
