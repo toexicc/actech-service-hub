@@ -71,7 +71,7 @@ export const WarrantyCardFields = ({
 
       {enabled &&
         lines.map((line) => {
-          const current = terms[line.label] ?? WARRANTY_TERM_PRESETS[0];
+          const current = terms[line.label] ?? "3 months";
           const isPreset = WARRANTY_TERM_PRESETS.includes(current);
           return (
             <div key={line.label} className="space-y-1.5">

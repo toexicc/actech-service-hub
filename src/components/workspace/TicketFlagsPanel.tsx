@@ -24,6 +24,8 @@ interface TicketFlagsPanelProps {
   showBackjob?: boolean;
   /** Show every switch read-only (technician view) — notes stay editable per their flags. */
   readOnlyToggles?: boolean;
+  /** Only management may switch Ordered on or off. */
+  canToggleOrdered?: boolean;
 }
 
 const actorName = () => {
@@ -50,6 +52,7 @@ export function TicketFlagsPanel({
   showPreOrder = true,
   showBackjob = true,
   readOnlyToggles = false,
+  canToggleOrdered = false,
 }: TicketFlagsPanelProps) {
   const { toast } = useToast();
   const serviceId: string = service?.serviceId || "";
@@ -57,6 +60,30 @@ export function TicketFlagsPanel({
   const [busyBackjob, setBusyBackjob] = useState(false);
   const [busyPreOrder, setBusyPreOrder] = useState(false);
   const [busyOrdered, setBusyOrdered] = useState(false);
+  const [busyDeviceOut, setBusyDeviceOut] = useState(false);
+
+  const toggleDeviceOut = async (next: boolean) => {
+    if (!serviceId || busyDeviceOut) return;
+    setBusyDeviceOut(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ device_out_with_client: next, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceId);
+      if (error) throw new Error(error.message);
+      onChange({ deviceOutWithClient: next });
+      logTicketActivity(serviceId, next ? "Device marked as out with client" : "Device back in shop");
+      toast({ title: next ? "Device marked as out with client" : "Device marked as back in shop" });
+    } catch (e) {
+      toast({
+        title: "Update failed",
+        description: e instanceof Error ? e.message : "Could not change the flag",
+        variant: "destructive",
+      });
+    } finally {
+      setBusyDeviceOut(false);
+    }
+  };
   const [savingNote, setSavingNote] = useState(false);
   const [savingTechNote, setSavingTechNote] = useState(false);
   const [note, setNote] = useState<string>(service?.waitingPartsNote || "");
@@ -282,6 +309,18 @@ export function TicketFlagsPanel({
           </div>
         )}
 
+        <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-background/70 p-2.5">
+          <div>
+            <p className="text-sm font-semibold">Device Out with Client</p>
+            <p className="text-xs text-muted-foreground">
+              {service?.deviceOutWithClient
+                ? "The device is currently with the client."
+                : "Turn on when the client takes the device home while waiting."}
+            </p>
+          </div>
+          <Switch checked={!!service?.deviceOutWithClient} disabled={busyDeviceOut || readOnlyToggles} onCheckedChange={toggleDeviceOut} />
+        </div>
+
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold">Waiting for Parts</p>
@@ -306,10 +345,12 @@ export function TicketFlagsPanel({
             <p className="text-xs text-muted-foreground">
               {service?.partsOrdered
                 ? "The parts for this ticket have been ordered."
-                : "Turn on once the parts have been ordered — this switches Waiting for Parts off."}
+                : canToggleOrdered && !readOnlyToggles
+                  ? "Turn on once the parts have been ordered — this switches Waiting for Parts off."
+                  : "Only management can switch this on or off."}
             </p>
           </div>
-          <Switch checked={!!service?.partsOrdered} disabled={busyOrdered || readOnlyToggles} onCheckedChange={toggleOrdered} />
+          <Switch checked={!!service?.partsOrdered} disabled={busyOrdered || readOnlyToggles || !canToggleOrdered} onCheckedChange={toggleOrdered} />
         </div>
 
         {canEditNote ? (

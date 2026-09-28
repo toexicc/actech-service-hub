@@ -1530,6 +1530,7 @@ const ServiceUpdate = () => {
                     }
                     showBackjob={false}
                     readOnlyToggles={userRole === "technician"}
+                    canToggleOrdered={userRole === "management"}
                     canEditTechNote
                   />
                 )}

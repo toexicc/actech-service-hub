@@ -197,7 +197,7 @@ export const regenerateTicketDocuments = async (
   // regeneration reproduces exactly the same card.
   approved.forEach((l) => {
     const chosen = (mergedTerms[l.label] ?? "").trim();
-    mergedTerms[l.label] = chosen || WARRANTY_TERM_PRESETS[0];
+    mergedTerms[l.label] = chosen || "3 months";
   });
 
   if (approved.length || (warrantyTerms && Object.keys(warrantyTerms).length)) {

@@ -2526,6 +2526,7 @@ const ManageClient = () => {
                       service={serviceData}
                       canEditNote={userRole === "management" || userRole === "admin"}
                       canToggleWaitingForParts={userRole === "management"}
+                      canToggleOrdered={userRole === "management"}
                       onChange={(patch) => setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))}
                     />
                   )}
