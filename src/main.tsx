@@ -27,10 +27,33 @@ function showBootstrapFailure(error: unknown) {
   const details = rootElement.querySelector("details p");
   if (details) details.textContent = message;
   rootElement.querySelector("#bootstrap-retry")?.addEventListener("click", () => window.location.reload());
-  rootElement.querySelector("#bootstrap-reset")?.addEventListener("click", () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("sw", "off");
-    window.location.replace(url.toString());
+  rootElement.querySelector("#bootstrap-reset")?.addEventListener("click", async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        const appShellRegistrations = registrations.filter((registration) => {
+          const urls = [
+            registration.active?.scriptURL,
+            registration.waiting?.scriptURL,
+            registration.installing?.scriptURL,
+          ].filter(Boolean) as string[];
+          return urls.some((url) => new URL(url).pathname === "/sw.js");
+        });
+        await Promise.allSettled(appShellRegistrations.map((registration) => registration.unregister()));
+      }
+      if ("caches" in window) {
+        const cacheNames = await caches.keys();
+        const appShellCaches = cacheNames.filter(
+          (name) =>
+            name === "actech-navigations" ||
+            name === "actech-versioned-assets" ||
+            /(^|-)precache-v\d+-|(^|-)runtime-/.test(name),
+        );
+        await Promise.allSettled(appShellCaches.map((name) => caches.delete(name)));
+      }
+    } finally {
+      window.location.reload();
+    }
   });
 }
 
@@ -101,21 +124,16 @@ function installGlobalErrorHandlers() {
   const App = appModule.default;
   const AppErrorBoundary = errorBoundaryModule.default;
 
-  // Non-critical modules must never block rendering.
-  try {
-    const bridgeModule = await importWithRetry(() => import("@/lib/bridgeFetchInterceptor"));
-    bridgeModule.installBridgeAuthInterceptor();
-  } catch {
-    // continue without the auth interceptor
-  }
-
   createRoot(rootElement).render(
     <AppErrorBoundary>
       <App />
     </AppErrorBoundary>,
   );
 
-  // Push setup is optional and must never delay the first usable screen.
+  // Optional integrations must never delay the first usable screen.
+  void import("@/lib/bridgeFetchInterceptor")
+    .then((bridgeModule) => bridgeModule.installBridgeAuthInterceptor())
+    .catch(() => undefined);
   void import("./lib/onesignal")
     .then((oneSignalModule) => oneSignalModule.initOneSignal())
     .catch(() => undefined);
