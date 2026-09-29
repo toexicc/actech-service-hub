@@ -6,3 +6,4 @@
 - [x] On Hold card, technician read-only parts toggles, POS complete switch, no Rush on RTO, Within the Day rollover.
 - [x] Within the Day two-day window, warranty order + 1 year, Invoice/Device Out cards, Device Out flag, management-only Ordered, editable device annotation (draw on top), flag cards hide finished tickets, brand-only suggestions.
 - [ ] Merge near-duplicate customers — waiting on user to confirm the proposed pairs.
+- [x] Remove the stale offline app shell and add visible, non-blocking startup recovery for recurring white screens.
