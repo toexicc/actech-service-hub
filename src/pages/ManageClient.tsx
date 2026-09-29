@@ -104,7 +104,7 @@ import { PdfViewerModal } from "@/components/PdfViewerModal";
 import { ConfirmReleaseModal } from "@/components/ConfirmReleaseModal";
 import { TicketPaymentModal } from "@/components/TicketPaymentModal";
 import { PosDocumentActions } from "@/components/PosDocumentActions";
-import { logActivity, logAiFormatActivity, logTicketActivity, diffFields, diffBreakdown } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, logTicketActivity, diffFields, diffBreakdown, logTicketOpened } from "@/lib/activityLogger";
 import {
   notifyServiceStatusChange,
   notifyNewServiceAssignment,
@@ -184,6 +184,9 @@ const ManageClient = () => {
   // runs the lookup once the input has caught up.
   const [pendingSearchId, setPendingSearchId] = useState<string | null>(null);
   const [serviceData, setServiceData] = useState<any>(null);
+  useEffect(() => {
+    if (serviceData?.serviceId) logTicketOpened(serviceData.serviceId, "Manage Client");
+  }, [serviceData?.serviceId]);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
   const [pdfModalTitle, setPdfModalTitle] = useState("Document");

@@ -136,6 +136,16 @@ type Toast = Omit<ToasterToast, "id">;
 
 function toast({ ...props }: Toast) {
   const id = genId();
+  if (props.variant === "destructive") {
+    const text = [props.title, props.description]
+      .filter((v) => typeof v === "string" && v)
+      .join(" — ");
+    if (text) {
+      import("@/lib/activityLogger")
+        .then((m) => m.logScreenError(text, { source: "error message" }))
+        .catch(() => {});
+    }
+  }
 
   const update = (props: ToasterToast) =>
     dispatch({
