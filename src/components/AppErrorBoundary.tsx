@@ -19,9 +19,14 @@ export default class AppErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Ensures we get actionable logs on devices (especially iOS Safari/PWA)
-    console.error("[AppErrorBoundary] Uncaught error:", error);
-    console.error("[AppErrorBoundary] Component stack:", errorInfo.componentStack);
+    import("@/lib/activityLogger")
+      .then((m) =>
+        m.logScreenError(error?.message || "Page crashed", {
+          source: "page crash",
+          where: String(errorInfo.componentStack ?? "").trim().split("\n")[0],
+        }),
+      )
+      .catch(() => {});
   }
 
   render() {
