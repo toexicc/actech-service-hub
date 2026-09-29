@@ -38,7 +38,7 @@ import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
-import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity } from "@/lib/activityLogger";
+import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity, logTicketOpened } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted, notifyInterimConfirmedDiagnosis } from "@/lib/serviceNotifications";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
 import { createNotification } from "@/lib/notifications";
@@ -122,6 +122,9 @@ const ServiceUpdate = () => {
   const [searchParams] = useSearchParams();
   const [serviceId, setServiceId] = useState("");
   const [serviceData, setServiceData] = useState<any>(null);
+  useEffect(() => {
+    if (serviceData?.serviceId) logTicketOpened(serviceData.serviceId, "Service Update");
+  }, [serviceData?.serviceId]);
   const [isTogglingWaitingParts, setIsTogglingWaitingParts] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);

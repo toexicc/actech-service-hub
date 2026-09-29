@@ -78,8 +78,10 @@ function installGlobalErrorHandlers() {
       };
 
       localStorage.setItem(GLOBAL_ERROR_KEY, JSON.stringify(payload));
+      import("@/lib/activityLogger")
+        .then((m) => m.logScreenError(message, { source: kind }))
+        .catch(() => {});
       // Keep logs for remote debugging (esp. iOS Safari)
-      console.error("[GlobalError]", payload);
     } catch {
       // ignore
     }

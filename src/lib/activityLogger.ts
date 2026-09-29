@@ -417,3 +417,63 @@ export const getServiceLogs = async (serviceId: string, limit: number = 10): Pro
     activity: r.action,
   }));
 };
+
+/* ---------- Ticket opens & staff-screen errors ---------- */
+
+const OPEN_DEDUP_MS = 10 * 60 * 1000;
+const openedAt = new Map<string, number>();
+
+/** Log that a staff member opened a ticket (deduped per page for 10 minutes). */
+export const logTicketOpened = (serviceId: string, page: string) => {
+  if (!serviceId) return;
+  const key = `${page}:${serviceId}`;
+  const now = Date.now();
+  if (now - (openedAt.get(key) ?? 0) < OPEN_DEDUP_MS) return;
+  openedAt.set(key, now);
+  logTicketActivity(serviceId, `Opened ticket (${page})`, { page });
+};
+
+const ERROR_DEDUP_MS = 60 * 1000;
+const MAX_ERRORS_PER_SESSION = 30;
+const errorSeen = new Map<string, number>();
+let errorCount = 0;
+
+/**
+ * Record an error a staff member saw on screen (crash, failed load, or red
+ * error toast). Only signed-in staff can write logs, so the public pages never
+ * write here. Repeats of the same message are collapsed for a minute.
+ */
+export const logScreenError = (message: string, details?: Record<string, any>) => {
+  try {
+    const msg = String(message ?? "").replace(/\s+/g, " ").trim();
+    if (!msg) return;
+    const now = Date.now();
+    if (now - (errorSeen.get(msg) ?? 0) < ERROR_DEDUP_MS) return;
+    if (errorCount >= MAX_ERRORS_PER_SESSION) return;
+    errorSeen.set(msg, now);
+    errorCount += 1;
+    setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        await supabase.from("activity_logs").insert({
+          action: `Screen error: ${msg.slice(0, 400)}`,
+          actor_id: session.user.id,
+          actor_name: actorName(),
+          entity_type: "screen_error",
+          entity_id: window.location.pathname.slice(0, 120),
+          changes: trimDetails({
+            role: currentRole(),
+            page: window.location.pathname + window.location.search,
+            device: navigator.userAgent,
+            ...details,
+          }),
+        });
+      } catch {
+        /* never let error logging throw */
+      }
+    }, 0);
+  } catch {
+    /* ignore */
+  }
+};
