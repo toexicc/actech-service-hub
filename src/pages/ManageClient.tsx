@@ -195,7 +195,6 @@ const ManageClient = () => {
   const [rawDiagnosis, setRawDiagnosis] = useState("");
   const [isFormattingAI, setIsFormattingAI] = useState(false);
 
-  const [openAIKey, setOpenAIKey] = useState(() => localStorage.getItem("actech_openai_key") || "");
   const [technicianReport, setTechnicianReport] = useState("");
   const [updateServiceReport, setUpdateServiceReport] = useState("");
   const [isFormattingReport, setIsFormattingReport] = useState(false);
@@ -696,19 +695,6 @@ const ManageClient = () => {
    */
 
 
-  const fetchApiKey = async () => {
-    try {
-      const response = await fetch(`${DATA_BRIDGE_URL}?action=getApiKey`);
-      const data = await response.json();
-      if (data.status === "success" && data.apiKey) {
-        setOpenAIKey(data.apiKey);
-        localStorage.setItem("actech_openai_key", data.apiKey);
-      }
-    } catch {
-      // Error fetching API key - ignore
-    }
-  };
-
   const handleViewPDF = async () => {
     const signed = serviceData?.serviceId ? await getServicePdfSignedUrl(serviceData.serviceId, "intake") : null;
     const url = signed || (serviceData?.pdfUrl ? normalizeGoogleDrivePdfUrl(serviceData.pdfUrl, "preview") : null);
@@ -731,7 +717,6 @@ const ManageClient = () => {
   const autoLoadedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    fetchApiKey();
     // Preload PDF assets for faster generation
     preloadPdfAssets();
   }, []);
