@@ -1,36 +1,38 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
 
-async function cleanupLegacyPwaServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
-  if (import.meta.env.PROD) return;
-
-  try {
-    const regs = await navigator.serviceWorker.getRegistrations();
-
-    const isLegacySw = (r: ServiceWorkerRegistration) => {
-      const urls = [r.active?.scriptURL, r.waiting?.scriptURL, r.installing?.scriptURL].filter(
-        Boolean,
-      ) as string[];
-      return urls.some((u) => u.includes("/sw.js"));
-    };
-
-    const legacyRegs = regs.filter(isLegacySw);
-    if (legacyRegs.length === 0) return;
-
-    await Promise.all(legacyRegs.map((r) => r.unregister()));
-
-    // Best-effort cache cleanup (in case the old PWA SW cached assets)
-    if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-    }
-  } catch (e) {
-    console.warn("Service worker cleanup skipped:", e);
-  }
-}
-
 const GLOBAL_ERROR_KEY = "actech:last_global_error";
+
+function showBootstrapFailure(error: unknown) {
+  const rootElement = document.getElementById("root");
+  if (!rootElement) return;
+
+  const message = error instanceof Error ? error.message : "The app could not finish loading.";
+  rootElement.innerHTML = `
+    <main class="min-h-screen min-h-[100dvh] bg-background text-foreground p-6 flex items-center justify-center">
+      <section class="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+        <h1 class="text-xl font-semibold">ACTech Hub couldn't open</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Reload the app to get the latest working version.</p>
+        <div class="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <button id="bootstrap-retry" class="h-11 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground">Reload</button>
+          <button id="bootstrap-reset" class="h-11 rounded-md border border-border bg-background px-5 text-sm font-medium">Reset saved app files</button>
+        </div>
+        <details class="mt-5 text-left text-xs text-muted-foreground">
+          <summary>Loading details</summary>
+          <p class="mt-2 break-words"></p>
+        </details>
+      </section>
+    </main>`;
+
+  const details = rootElement.querySelector("details p");
+  if (details) details.textContent = message;
+  rootElement.querySelector("#bootstrap-retry")?.addEventListener("click", () => window.location.reload());
+  rootElement.querySelector("#bootstrap-reset")?.addEventListener("click", () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("sw", "off");
+    window.location.replace(url.toString());
+  });
+}
 
 function installGlobalErrorHandlers() {
   if (typeof window === "undefined") return;
@@ -68,7 +70,11 @@ function installGlobalErrorHandlers() {
   installGlobalErrorHandlers();
 
   const rootElement = document.getElementById("root");
-  if (!rootElement) return;
+  if (!rootElement) {
+    const error = new Error("ACTech Hub root element is missing");
+    console.error(error);
+    return;
+  }
 
   // Keep the public TV board isolated from the authenticated application and
   // its heavier browser APIs. This is important for older Tizen/webOS engines.
@@ -78,31 +84,12 @@ function installGlobalErrorHandlers() {
     return;
   }
 
-  // Retry dynamic imports once: a dev-server restart / redeploy can make the
-  // first chunk request fail, which previously left a blank screen.
-  const RELOAD_FLAG = "actech:chunk_reload";
-
   const importWithRetry = async <T,>(load: () => Promise<T>): Promise<T> => {
     try {
       return await load();
     } catch {
       await new Promise((r) => setTimeout(r, 600));
-      try {
-        return await load();
-      } catch (err) {
-        // Stale chunk URLs (e.g. /src/App.tsx?t=...) can no longer be fetched
-        // after a restart/redeploy. A single hard reload gets fresh URLs.
-        try {
-          if (!sessionStorage.getItem(RELOAD_FLAG)) {
-            sessionStorage.setItem(RELOAD_FLAG, "1");
-            window.location.reload();
-            await new Promise(() => {});
-          }
-        } catch {
-          // ignore storage failures
-        }
-        throw err;
-      }
+      return await load();
     }
   };
 
@@ -110,13 +97,6 @@ function installGlobalErrorHandlers() {
     importWithRetry(() => import("./App.tsx")),
     importWithRetry(() => import("@/components/AppErrorBoundary")),
   ]);
-
-  try {
-    sessionStorage.removeItem(RELOAD_FLAG);
-  } catch {
-    // ignore
-  }
-
 
   const App = appModule.default;
   const AppErrorBoundary = errorBoundaryModule.default;
@@ -129,27 +109,17 @@ function installGlobalErrorHandlers() {
     // continue without the auth interceptor
   }
 
-  // Keep preview/dev free of stale app-shell service workers.
-  await cleanupLegacyPwaServiceWorker();
-
-  // Initialize OneSignal for push notifications
-  try {
-    const oneSignalModule = await importWithRetry(() => import("./lib/onesignal"));
-    oneSignalModule.initOneSignal();
-  } catch {
-    // push notifications unavailable
-  }
-
-  try {
-    const serviceWorkerModule = await importWithRetry(() => import("./registerServiceWorker"));
-    await serviceWorkerModule.registerAppServiceWorker();
-  } catch {
-    // offline app shell unavailable
-  }
-
   createRoot(rootElement).render(
     <AppErrorBoundary>
       <App />
     </AppErrorBoundary>,
   );
-})();
+
+  // Push setup is optional and must never delay the first usable screen.
+  void import("./lib/onesignal")
+    .then((oneSignalModule) => oneSignalModule.initOneSignal())
+    .catch(() => undefined);
+})().catch((error) => {
+  console.error(error);
+  showBootstrapFailure(error);
+});
