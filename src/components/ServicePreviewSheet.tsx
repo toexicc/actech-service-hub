@@ -323,12 +323,12 @@ export function ServicePreviewSheet({ serviceId, open, onOpenChange }: ServicePr
                     value={service.dateReceived ? displayDate(service.dateReceived, "MMM dd, yyyy") : "—"}
                   />
                   <KV
-                    label="Target"
-                    value={
-                      service.targetDate
-                        ? displayDate(service.targetDate, "MMM dd, yyyy")
-                        : textOr(service.estimatedCompletion)
-                    }
+                    label="Diagnosis Time Frame"
+                    value={textOr(service.estimatedCompletion)}
+                  />
+                  <KV
+                    label="Repair Time Frame"
+                    value={textOr(service.repairTimeFrame)}
                   />
                   <div className="flex items-baseline justify-between gap-4 text-sm">
                     <span className="shrink-0 text-xs uppercase tracking-wide text-muted-foreground">
