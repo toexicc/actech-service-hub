@@ -43,14 +43,28 @@ export const workedMinutes = (ti: string | null, to: string | null): number => {
   return Math.max(0, mins);
 };
 
-/** Approved overtime hours beyond the standard 8-hour shift. */
+/** Shift ends at 7:00 PM Manila; approved overtime counts everything past it,
+ *  regardless of tap-in time (lateness is handled as a deduction instead). */
+const SHIFT_END_MIN = 19 * 60;
+
+/** Approved overtime hours: all time past 7:00 PM, once approved. */
 export const overtimeHours = (
   ti: string | null,
   to: string | null,
   overtimeStatus?: string | null,
 ): number => {
   if (!isOvertimeApproved(overtimeStatus)) return 0;
-  return Math.max(0, workedMinutes(ti, to) / 60 - FULL_SHIFT_HOURS);
+  if (!ti || !to) return 0;
+  const toMin = manilaMinutes(to);
+  return Math.max(0, (toMin - SHIFT_END_MIN) / 60);
+};
+
+/** Late minutes beyond the 10-minute grace period (10:10 AM). These are
+ *  deducted from pay separately instead of reducing overtime. */
+export const lateMinutes = (ti: string | null): number => {
+  if (!ti) return 0;
+  const tiMin = manilaMinutes(ti);
+  return Math.max(0, tiMin - (SHIFT_START_MIN + GRACE_MIN));
 };
 
 /** Worked hours as a decimal number (lunch excluded). */
