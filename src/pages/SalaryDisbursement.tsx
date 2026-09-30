@@ -86,9 +86,19 @@ interface ServiceRecord {
 }
 
 const fetchSalaryLogs = async (): Promise<SalaryLog[]> => {
-  const response = await fetch(`${DATA_BRIDGE_URL}?action=getSalaryLogs`);
-  const data = await response.json();
-  if (data.status === "success" && data.logs) return data.logs;
+  try {
+    const { data: s } = await supabase.auth.getSession();
+    const token = s.session?.access_token;
+    if (!token) return [];
+    const response = await fetch(`${DATA_BRIDGE_URL}?action=getSalaryLogs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (data.status === "success" && data.logs) return data.logs;
+  } catch {
+    // ignore — logs are optional
+  }
   return [];
 };
 
