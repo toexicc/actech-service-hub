@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { payableHours, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
+import { payableHours, overtimeHours, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -189,6 +189,7 @@ const SalaryDisbursement = () => {
   // Calculator inputs (per staff)
   const [daysPresent, setDaysPresent] = useState<Record<string, string>>({});
   const [dailyRateOverride, setDailyRateOverride] = useState<Record<string, string>>({});
+  const [bonusAllowance, setBonusAllowance] = useState<Record<string, string>>({});
   const [pagibig, setPagibig] = useState<Record<string, string>>({});
   const [sss, setSss] = useState<Record<string, string>>({});
   const [philhealth, setPhilhealth] = useState<Record<string, string>>({});
@@ -266,13 +267,23 @@ const SalaryDisbursement = () => {
     return m;
   }, [periodAttendance]);
 
-  /** Total worked hours per staff for the period (lunch excluded). */
+  /** Total regular worked hours per staff for the period (lunch excluded, max 8/day). */
   const hoursByStaffId = useMemo(() => {
     const m: Record<string, number> = {};
     periodAttendance.forEach((r: any) => {
       if (!r.time_in || !r.time_out) return;
       m[r.staff_id] =
-        Math.round(((m[r.staff_id] || 0) + payableHours(r.time_in, r.time_out, r.overtime_status)) * 100) / 100;
+        Math.round(((m[r.staff_id] || 0) + Math.min(FULL_SHIFT_HOURS, payableHours(r.time_in, r.time_out, r.overtime_status))) * 100) / 100;
+    });
+    return m;
+  }, [periodAttendance]);
+
+  /** Approved overtime hours per staff for the period. */
+  const overtimeHoursByStaffId = useMemo(() => {
+    const m: Record<string, number> = {};
+    periodAttendance.forEach((r: any) => {
+      if (!r.time_in || !r.time_out) return;
+      m[r.staff_id] = Math.round(((m[r.staff_id] || 0) + overtimeHours(r.time_in, r.time_out, r.overtime_status)) * 100) / 100;
     });
     return m;
   }, [periodAttendance]);
@@ -284,7 +295,10 @@ const SalaryDisbursement = () => {
     const attendanceDays = attendanceByStaffId[staff.userId] ?? 0;
     const override = daysPresent[staff.staffId];
     const days = override !== undefined && override !== "" ? parseCurrency(override) : attendanceDays;
-    const gross = days * daily;
+    const otHours = overtimeHoursByStaffId[staff.userId] ?? 0;
+    const otPay = Math.round(otHours * (daily / 8) * 100) / 100;
+    const bonus = parseCurrency(bonusAllowance[staff.staffId]);
+    const gross = days * daily + otPay + bonus;
     const dPagibig = parseCurrency(pagibig[staff.staffId]);
     const dSss = parseCurrency(sss[staff.staffId]);
     const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
@@ -292,7 +306,7 @@ const SalaryDisbursement = () => {
     const additional = addlTotal(staff.staffId);
     const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional;
     const net = gross - totalDeductions;
-    return { monthly, autoDaily, daily, days, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, totalDeductions, net };
+    return { monthly, autoDaily, daily, days, otHours, otPay, bonus, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, totalDeductions, net };
   };
 
 
@@ -578,6 +592,9 @@ const SalaryDisbursement = () => {
         hours: hoursByStaffId[staff.userId] ?? 0,
         dailyRate: c.daily,
         monthlySalary: c.monthly,
+        overtimeHours: c.otHours,
+        overtimePay: c.otPay,
+        bonus: c.bonus,
         gross: c.gross,
         pagibig: c.dPagibig,
         sss: c.dSss,
@@ -698,6 +715,9 @@ const SalaryDisbursement = () => {
       params.append("contributionPhilhealth", c.dPhilhealth.toFixed(2));
       params.append("otherDeductions", c.otherDeductions.toFixed(2));
       params.append("additionalDeductions", JSON.stringify(addlDeductions[staff.staffId] || []));
+      params.append("overtimeHours", String(c.otHours));
+      params.append("overtimePay", c.otPay.toFixed(2));
+      params.append("bonusAllowance", c.bonus.toFixed(2));
       params.append("grossPay", c.gross.toFixed(2));
       params.append("totalDeductions", c.totalDeductions.toFixed(2));
       params.append("netPay", finalAmount.toFixed(2));
@@ -939,6 +959,8 @@ const SalaryDisbursement = () => {
                           <TableHead>Monthly</TableHead>
                           <TableHead>Days Present</TableHead>
                           <TableHead>Daily Rate</TableHead>
+                          <TableHead>Overtime</TableHead>
+                          <TableHead>Bonus/Allowance</TableHead>
                           <TableHead>Pag-IBIG</TableHead>
                           <TableHead>SSS</TableHead>
                           <TableHead>PhilHealth</TableHead>
@@ -976,6 +998,16 @@ const SalaryDisbursement = () => {
                                 <Input type="number" step="0.01" placeholder={c.autoDaily.toFixed(2)} className="w-24" disabled={isDone}
                                   value={dailyRateOverride[staff.staffId] || ""}
                                   onChange={(e) => setDailyRateOverride((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                />
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <div className="font-medium">{fmtCurrency(c.otPay)}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1">{c.otHours.toFixed(2)} hrs approved</div>
+                              </TableCell>
+                              <TableCell>
+                                <Input type="number" step="0.01" placeholder="0.00" className="w-24" disabled={isDone}
+                                  value={bonusAllowance[staff.staffId] || ""}
+                                  onChange={(e) => setBonusAllowance((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
                               </TableCell>
                               <TableCell>
