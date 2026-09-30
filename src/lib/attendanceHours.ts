@@ -17,21 +17,37 @@ const manilaMinutes = (iso: string) => {
 /** Full shift length in hours after the unpaid lunch break. */
 export const FULL_SHIFT_HOURS = 8;
 
-/** Worked minutes between time in / out, minus any overlap with lunch. */
+/** Shift starts at 10:00 AM Manila; earlier taps don't count toward hours. */
+const SHIFT_START_MIN = 10 * 60;
+
+/** Worked minutes between time in / out (counted from 10:00 AM), minus lunch. */
 export const workedMinutes = (ti: string | null, to: string | null): number => {
   if (!ti || !to) return 0;
-  const startMs = new Date(ti).getTime();
+  let startMs = new Date(ti).getTime();
   const endMs = new Date(to).getTime();
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return 0;
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return 0;
+  const tiMin = manilaMinutes(ti);
+  if (tiMin < SHIFT_START_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
+  if (endMs <= startMs) return 0;
 
   let mins = (endMs - startMs) / 60000;
 
-  const start = manilaMinutes(ti);
+  const start = Math.max(tiMin, SHIFT_START_MIN);
   const end = start + mins;
   const overlap = Math.max(0, Math.min(end, LUNCH_END_MIN) - Math.max(start, LUNCH_START_MIN));
   mins -= overlap;
 
   return Math.max(0, mins);
+};
+
+/** Approved overtime hours beyond the standard 8-hour shift. */
+export const overtimeHours = (
+  ti: string | null,
+  to: string | null,
+  overtimeStatus?: string | null,
+): number => {
+  if (!isOvertimeApproved(overtimeStatus)) return 0;
+  return Math.max(0, workedMinutes(ti, to) / 60 - FULL_SHIFT_HOURS);
 };
 
 /** Worked hours as a decimal number (lunch excluded). */
