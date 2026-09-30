@@ -327,9 +327,12 @@ const SalaryDisbursement = () => {
     const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
     const otherDeductions = parseCurrency(deductions[staff.staffId]);
     const additional = addlTotal(staff.staffId);
-    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional;
+    // Lateness is deducted per minute at the daily-rate equivalent (daily / 480 min).
+    const lateMin = lateMinutesByStaffId[staff.userId] ?? 0;
+    const lateDed = Math.round(lateMin * (daily / 480) * 100) / 100;
+    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional + lateDed;
     const net = gross - totalDeductions;
-    return { monthly, autoDaily, daily, days, otHours, otPay, bonus, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, totalDeductions, net };
+    return { monthly, autoDaily, daily, days, otHours, otPay, bonus, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, lateMin, lateDed, totalDeductions, net };
   };
 
 
