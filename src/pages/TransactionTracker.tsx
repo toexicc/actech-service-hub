@@ -984,6 +984,7 @@ const TransactionTracker = ({ embedded = false }: { embedded?: boolean }) => {
                 <div><span className="text-muted-foreground text-xs">MOP:</span> {logsTarget?.modeOfPayment}</div>
                 <div><span className="text-muted-foreground text-xs">Name:</span> {logsTarget?.name || "-"}</div>
                 <div><span className="text-muted-foreground text-xs">Attendant:</span> {logsTarget?.attendant || "-"}</div>
+                <div className="col-span-2"><span className="text-muted-foreground text-xs">Remarks:</span> {logsTarget?.remarks || "-"}</div>
                 {logsTarget?.remaining && (
                   <div><span className="text-muted-foreground text-xs">Remaining:</span> <strong>{fmtCurrency(parseCurrency(logsTarget.remaining))}</strong></div>
                 )}
