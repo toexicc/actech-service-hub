@@ -611,7 +611,10 @@ const SalaryDisbursement = () => {
       cutoffLabel,
       periodLabel: salaryPeriod,
       rows: [],
-      deductionLines: addlDeductions[staff.staffId] || [],
+      deductionLines: [
+        ...(addlDeductions[staff.staffId] || []),
+        ...(c.lateMin > 0 ? [{ description: `Late (${c.lateMin} min)`, amount: c.lateDed }] : []),
+      ],
       attendance: {
         daysPresent: c.days,
         workdays: workdaysInPeriod,
@@ -1064,6 +1067,11 @@ const SalaryDisbursement = () => {
                                   value={deductions[staff.staffId] || ""}
                                   onChange={(e) => setDeductions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
+                                {c.lateMin > 0 && (
+                                  <p className="mt-1 text-[10px] text-destructive whitespace-nowrap">
+                                    Late {c.lateMin} min: −{fmtCurrency(c.lateDed)}
+                                  </p>
+                                )}
                               </TableCell>
                               <TableCell className="font-medium whitespace-nowrap">{fmtCurrency(c.gross)}</TableCell>
                               <TableCell className="text-destructive whitespace-nowrap">−{fmtCurrency(c.totalDeductions)}</TableCell>
