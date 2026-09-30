@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { payableHours, overtimeHours, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
+import { payableHours, overtimeHours, lateMinutes, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -295,6 +295,16 @@ const SalaryDisbursement = () => {
     periodAttendance.forEach((r: any) => {
       if (!r.time_in || !r.time_out) return;
       m[r.staff_id] = Math.round(((m[r.staff_id] || 0) + overtimeHours(r.time_in, r.time_out, r.overtime_status)) * 100) / 100;
+    });
+    return m;
+  }, [periodAttendance]);
+
+  /** Total late minutes (past the 10:10 AM grace) per staff for the period. */
+  const lateMinutesByStaffId = useMemo(() => {
+    const m: Record<string, number> = {};
+    periodAttendance.forEach((r: any) => {
+      if (!r.time_in) return;
+      m[r.staff_id] = (m[r.staff_id] || 0) + lateMinutes(r.time_in);
     });
     return m;
   }, [periodAttendance]);
