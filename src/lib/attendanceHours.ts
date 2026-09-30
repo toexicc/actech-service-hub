@@ -30,7 +30,7 @@ export const workedMinutes = (ti: string | null, to: string | null): number => {
   const endMs = new Date(to).getTime();
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return 0;
   const tiMin = manilaMinutes(ti);
-  if (tiMin < SHIFT_START_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
+  if (tiMin < GRACE_END_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
   if (endMs <= startMs) return 0;
 
   let mins = (endMs - startMs) / 60000;
