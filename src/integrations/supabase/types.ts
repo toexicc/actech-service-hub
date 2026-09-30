@@ -928,6 +928,7 @@ export type Database = {
       salary_disbursements: {
         Row: {
           additional_deductions: Json
+          bonus_allowance: number
           contribution_pagibig: number
           contribution_philhealth: number
           contribution_sss: number
@@ -942,6 +943,8 @@ export type Database = {
           net_pay: number
           notes: string | null
           other_deductions: number
+          overtime_hours: number
+          overtime_pay: number
           period_end: string
           period_label: string
           period_start: string
@@ -954,6 +957,7 @@ export type Database = {
         }
         Insert: {
           additional_deductions?: Json
+          bonus_allowance?: number
           contribution_pagibig?: number
           contribution_philhealth?: number
           contribution_sss?: number
@@ -968,6 +972,8 @@ export type Database = {
           net_pay?: number
           notes?: string | null
           other_deductions?: number
+          overtime_hours?: number
+          overtime_pay?: number
           period_end: string
           period_label: string
           period_start: string
@@ -980,6 +986,7 @@ export type Database = {
         }
         Update: {
           additional_deductions?: Json
+          bonus_allowance?: number
           contribution_pagibig?: number
           contribution_philhealth?: number
           contribution_sss?: number
@@ -994,6 +1001,8 @@ export type Database = {
           net_pay?: number
           notes?: string | null
           other_deductions?: number
+          overtime_hours?: number
+          overtime_pay?: number
           period_end?: string
           period_label?: string
           period_start?: string

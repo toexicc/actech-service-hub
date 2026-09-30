@@ -40,6 +40,9 @@ export interface AttendanceSummary {
   hours: number;
   dailyRate: number;
   monthlySalary: number;
+  overtimeHours?: number;
+  overtimePay?: number;
+  bonus?: number;
   gross: number;
   pagibig: number;
   sss: number;
@@ -322,6 +325,8 @@ const drawPayslip = (doc: jsPDF, logo: string, data: PayslipData) => {
       { label: "Hours Worked", value: `${a.hours.toFixed(2)} h` },
       { label: "Monthly Salary", value: money(a.monthlySalary) },
       { label: "Daily Rate", value: money(a.dailyRate) },
+      { label: `Overtime (${(a.overtimeHours ?? 0).toFixed(2)} h)`, value: money(a.overtimePay ?? 0) },
+      { label: "Bonus/Allowance", value: money(a.bonus ?? 0) },
       { label: "Gross Pay", value: money(a.gross), strong: true },
     ]);
 
