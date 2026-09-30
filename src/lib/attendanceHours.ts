@@ -61,11 +61,11 @@ export const overtimeHours = (
   return Math.max(0, (toMin - SHIFT_END_MIN) / 60);
 };
 
-/** Late minutes beyond the 10-minute grace period (past 10:10 AM). */
+/** Late minutes beyond the 10-minute grace period (past 10:10 AM), whole minutes. */
 export const lateMinutes = (ti: string | null): number => {
   if (!ti) return 0;
   const tiMin = manilaMinutes(ti);
-  return Math.max(0, tiMin - (SHIFT_START_MIN + GRACE_MIN));
+  return Math.max(0, Math.ceil(tiMin - (SHIFT_START_MIN + GRACE_MIN)));
 };
 
 /** Worked hours as a decimal number (lunch excluded). */
