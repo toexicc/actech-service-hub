@@ -2,6 +2,13 @@
  * Attendance worked-time helpers.
  * The shop has a fixed unpaid lunch break (12:00 - 13:00 Manila), so a full
  * 10:00 AM - 7:00 PM shift counts as 8 hours, not 9.
+ *
+ * Rules:
+ * - Hours are counted from 10:00 AM; earlier taps don't add time.
+ * - 10-minute grace period: tap-ins up to 10:10 AM are not late.
+ * - Lateness (past 10:10 AM) is deducted separately via lateMinutes — it does
+ *   NOT reduce worked hours or overtime.
+ * - Approved overtime counts everything past 7:00 PM, regardless of tap-in time.
  */
 
 const MANILA_OFFSET_MIN = 8 * 60;
@@ -20,17 +27,21 @@ export const FULL_SHIFT_HOURS = 8;
 /** Shift starts at 10:00 AM Manila; earlier taps don't count toward hours. */
 const SHIFT_START_MIN = 10 * 60;
 
-/** 10-minute grace: tap-ins up to 10:10 AM still count as a 10:00 AM start. */
-const GRACE_END_MIN = SHIFT_START_MIN + 10;
+/** Shift ends at 7:00 PM Manila; approved overtime counts everything past it. */
+const SHIFT_END_MIN = 19 * 60;
 
-/** Worked minutes between time in / out (counted from 10:00 AM), minus lunch. */
+/** 10-minute grace period: tap-ins up to 10:10 AM are not late. */
+const GRACE_MIN = 10;
+
+/** Worked minutes between time in / out (counted from 10:00 AM), minus lunch.
+ *  Lateness is not penalised here — it is deducted separately via lateMinutes. */
 export const workedMinutes = (ti: string | null, to: string | null): number => {
   if (!ti || !to) return 0;
   let startMs = new Date(ti).getTime();
   const endMs = new Date(to).getTime();
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return 0;
   const tiMin = manilaMinutes(ti);
-  if (tiMin < GRACE_END_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
+  if (tiMin < SHIFT_START_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
   if (endMs <= startMs) return 0;
 
   let mins = (endMs - startMs) / 60000;
@@ -42,10 +53,6 @@ export const workedMinutes = (ti: string | null, to: string | null): number => {
 
   return Math.max(0, mins);
 };
-
-/** Shift ends at 7:00 PM Manila; approved overtime counts everything past it,
- *  regardless of tap-in time (lateness is handled as a deduction instead). */
-const SHIFT_END_MIN = 19 * 60;
 
 /** Approved overtime hours: all time past 7:00 PM, once approved. */
 export const overtimeHours = (
@@ -59,8 +66,7 @@ export const overtimeHours = (
   return Math.max(0, (toMin - SHIFT_END_MIN) / 60);
 };
 
-/** Late minutes beyond the 10-minute grace period (10:10 AM). These are
- *  deducted from pay separately instead of reducing overtime. */
+/** Late minutes beyond the 10-minute grace period (past 10:10 AM). */
 export const lateMinutes = (ti: string | null): number => {
   if (!ti) return 0;
   const tiMin = manilaMinutes(ti);
