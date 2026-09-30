@@ -66,15 +66,15 @@ function Column(props: {
       style={{
         border: "2px solid " + (proceed ? COLORS.green : COLORS.blue),
         background: proceed ? COLORS.greenBg : COLORS.blueBg,
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 12,
+        borderRadius: 8,
+        padding: 7,
+        marginBottom: 7,
       }}
     >
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 5 }}>
         <div
           style={{
-            fontSize: 26,
+            fontSize: 20,
             fontWeight: 700,
             color: proceed ? COLORS.green : COLORS.blue,
             lineHeight: 1.1,
@@ -82,7 +82,7 @@ function Column(props: {
         >
           {props.title}
         </div>
-        <div style={{ fontSize: 14, color: COLORS.soft }}>
+        <div style={{ fontSize: 12, color: COLORS.soft }}>
           {props.entries.length} {props.entries.length === 1 ? "customer" : "customers"}
         </div>
       </div>
@@ -91,11 +91,11 @@ function Column(props: {
         <div
           style={{
             border: "2px dashed " + COLORS.line,
-            borderRadius: 10,
-            padding: "22px 10px",
+            borderRadius: 8,
+            padding: "12px 8px",
             textAlign: "center",
             color: COLORS.soft,
-            fontSize: 16,
+            fontSize: 14,
             background: COLORS.white,
           }}
         >
@@ -112,15 +112,15 @@ function Column(props: {
                 style={{
                   border: "2px solid " + (mine ? COLORS.blue : COLORS.line),
                   background: mine ? COLORS.blueBg : COLORS.white,
-                  borderRadius: 10,
-                  padding: 10,
-                  marginBottom: 8,
+                  borderRadius: 8,
+                  padding: 6,
+                  marginBottom: 5,
                   textAlign: "center",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 40,
+                    fontSize: 30,
                     fontWeight: 700,
                     lineHeight: 1.1,
                     color: proceed ? COLORS.green : COLORS.blue,
@@ -128,11 +128,11 @@ function Column(props: {
                 >
                   {e.display_code || "-"}
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.ink }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>
                   {e.client_name || ""}
                 </div>
                 {device ? (
-                  <div style={{ fontSize: 14, color: COLORS.soft }}>{device}</div>
+                  <div style={{ fontSize: 12, color: COLORS.soft }}>{device}</div>
                 ) : null}
               </div>
             );
@@ -219,7 +219,7 @@ const QueueDisplay = () => {
   }
 
   return (
-    <div style={{ background: COLORS.page, padding: 16, minHeight: "100%" }}>
+    <div style={{ background: COLORS.page, padding: 10, minHeight: "100%" }}>
       <div style={{ maxWidth: 1800, marginLeft: "auto", marginRight: "auto" }}>
         {error ? (
           <div
@@ -237,11 +237,11 @@ const QueueDisplay = () => {
           </div>
         ) : null}
 
-        <div style={{ marginBottom: 16 }}>
-          <h1 style={{ fontSize: 42, fontWeight: 700, color: COLORS.blue, margin: 0, lineHeight: 1.1 }}>
+        <div style={{ marginBottom: 9 }}>
+          <h1 style={{ fontSize: 30, fontWeight: 700, color: COLORS.blue, margin: 0, lineHeight: 1.1 }}>
             AC Tech Repair — Live Queue
           </h1>
-          <p style={{ fontSize: 18, color: COLORS.soft, margin: "6px 0 0" }}>
+          <p style={{ fontSize: 14, color: COLORS.soft, margin: "3px 0 0" }}>
             Watch the board — you will be called when your number moves to "Proceed to Front".
           </p>
         </div>
@@ -274,13 +274,13 @@ const QueueDisplay = () => {
               style={{
                 border: "2px solid " + COLORS.line,
                 background: COLORS.white,
-                borderRadius: 14,
-                padding: 12,
+                borderRadius: 10,
+                padding: 7,
               }}
             >
-              <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.ink, marginBottom: 10 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 6 }}>
                 Intake
-                <span style={{ fontSize: 16, color: COLORS.soft, fontWeight: 400, marginLeft: 10 }}>
+                <span style={{ fontSize: 13, color: COLORS.soft, fontWeight: 400, marginLeft: 8 }}>
                   Dropping off a device
                 </span>
               </div>
@@ -312,13 +312,13 @@ const QueueDisplay = () => {
               style={{
                 border: "2px solid " + COLORS.line,
                 background: COLORS.white,
-                borderRadius: 14,
-                padding: 12,
+                borderRadius: 10,
+                padding: 7,
               }}
             >
-              <div style={{ fontSize: 30, fontWeight: 700, color: COLORS.ink, marginBottom: 10 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 6 }}>
                 Release
-                <span style={{ fontSize: 16, color: COLORS.soft, fontWeight: 400, marginLeft: 10 }}>
+                <span style={{ fontSize: 13, color: COLORS.soft, fontWeight: 400, marginLeft: 8 }}>
                   Picking up a completed device
                 </span>
               </div>
@@ -354,9 +354,10 @@ const QueueDisplay = () => {
             ".queue-board:after,.queue-cols:after{content:'';display:block;clear:both;}",
             ".queue-half{width:100%;}",
             ".queue-col{width:100%;}",
+            ".queue-board{margin-left:-3px;margin-right:-3px;}",
             "@media (min-width:900px){",
-            ".queue-half{float:left;width:50%;box-sizing:border-box;padding:0 6px;}",
-            ".queue-col{float:left;width:50%;box-sizing:border-box;padding:0 6px;}",
+            ".queue-half{float:left;width:50%;box-sizing:border-box;padding:0 3px;}",
+            ".queue-col{float:left;width:50%;box-sizing:border-box;padding:0 3px;}",
             "}",
           ].join(""),
         }}

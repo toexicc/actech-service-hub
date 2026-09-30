@@ -58,6 +58,8 @@ interface ServiceRecord {
   adminRep?: string;
   adminRepresentative?: string;
   serviceCost?: string;
+  estimatedCompletion?: string;
+  repairTimeFrame?: string;
   transactionStatus?: string;
   serviceDate?: string;
   waitingForParts?: boolean;
@@ -1647,6 +1649,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Flags</TableHead>
+                      <TableHead>Time Frame</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead>Service Date</TableHead>
                       <TableHead>Admin</TableHead>
@@ -1666,6 +1669,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-28" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -1788,6 +1792,13 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                             <span className="break-words text-right tabular-nums text-foreground">{service.serviceCost || "—"}</span>
                           </div>
                           <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
+                            <span className="text-muted-foreground text-xs">Time frame</span>
+                            <span className="min-w-0 space-y-0.5 text-right text-xs text-foreground">
+                              <span className="block break-words"><span className="text-muted-foreground">Diagnosis:</span> {service.estimatedCompletion || "—"}</span>
+                              <span className="block break-words"><span className="text-muted-foreground">Repair:</span> {service.repairTimeFrame || "—"}</span>
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-[minmax(5.5rem,40%)_1fr] items-start gap-2">
                             <span className="text-muted-foreground text-xs">Duration in system</span>
                             <span className="break-words text-right tabular-nums text-foreground">{durationLabel}</span>
                           </div>
@@ -1878,6 +1889,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                       <TableHead>Service ID</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Flags</TableHead>
+                      <TableHead>Time Frame</TableHead>
                       <TableHead>Client Name</TableHead>
                       <TableHead className="cursor-pointer" onClick={() => handleSort("timestamp")}>
                         <div className="flex items-center gap-1">
@@ -1952,6 +1964,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                                 showWithinDay={activeTab !== "closed"}
                                 collected={collectedFor(service.serviceId)}
                               />
+                            </TableCell>
+                            <TableCell className="min-w-[150px] whitespace-normal">
+                              <div className="space-y-1 text-xs">
+                                <div><span className="text-muted-foreground">Diagnosis:</span> {service.estimatedCompletion || "—"}</div>
+                                <div><span className="text-muted-foreground">Repair:</span> {service.repairTimeFrame || "—"}</div>
+                              </div>
                             </TableCell>
                            <TableCell>{service.clientName || "N/A"}</TableCell>
                            <TableCell>{service.timestamp ? displayDate(service.timestamp, "MMM dd, yyyy, hh:mm a") : "N/A"}</TableCell>

@@ -2631,6 +2631,7 @@ const ManageClient = () => {
                             value={serviceData.contactNumber || serviceData.phone}
                           />
                           <WorkspaceField label="Email" value={serviceData.email} />
+                           <WorkspaceField label="Facebook Name/Instagram Username" value={serviceData.username} />
                           <WorkspaceField label="Client Type" value={serviceData.clientType} />
                           <WorkspaceField label="Priority" value={serviceData.priority} />
                           <WorkspaceField label="Admin Rep" value={serviceData.adminRep || "Unassigned"} />
