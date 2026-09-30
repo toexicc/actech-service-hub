@@ -20,6 +20,9 @@ export const FULL_SHIFT_HOURS = 8;
 /** Shift starts at 10:00 AM Manila; earlier taps don't count toward hours. */
 const SHIFT_START_MIN = 10 * 60;
 
+/** 10-minute grace: tap-ins up to 10:10 AM still count as a 10:00 AM start. */
+const GRACE_END_MIN = SHIFT_START_MIN + 10;
+
 /** Worked minutes between time in / out (counted from 10:00 AM), minus lunch. */
 export const workedMinutes = (ti: string | null, to: string | null): number => {
   if (!ti || !to) return 0;
