@@ -189,6 +189,7 @@ const SalaryDisbursement = () => {
   // Calculator inputs (per staff)
   const [daysPresent, setDaysPresent] = useState<Record<string, string>>({});
   const [dailyRateOverride, setDailyRateOverride] = useState<Record<string, string>>({});
+  const [overtimeOverride, setOvertimeOverride] = useState<Record<string, string>>({});
   const [bonusAllowance, setBonusAllowance] = useState<Record<string, string>>({});
   const [pagibig, setPagibig] = useState<Record<string, string>>({});
   const [sss, setSss] = useState<Record<string, string>>({});
@@ -296,7 +297,9 @@ const SalaryDisbursement = () => {
     const override = daysPresent[staff.staffId];
     const days = override !== undefined && override !== "" ? parseCurrency(override) : attendanceDays;
     const otHours = overtimeHoursByStaffId[staff.userId] ?? 0;
-    const otPay = Math.round(otHours * (daily / 8) * 100) / 100;
+    const autoOtPay = Math.round(otHours * (daily / 8) * 100) / 100;
+    const otOverride = overtimeOverride[staff.staffId];
+    const otPay = otOverride !== undefined && otOverride !== "" ? parseCurrency(otOverride) : autoOtPay;
     const bonus = parseCurrency(bonusAllowance[staff.staffId]);
     const gross = days * daily + otPay + bonus;
     const dPagibig = parseCurrency(pagibig[staff.staffId]);
@@ -748,6 +751,7 @@ const SalaryDisbursement = () => {
           .from("transactions")
           .update({
             amount: Number(finalAmount.toFixed(2)),
+            client_name: staff.name,
             fund_name: fundSource,
             created_by_name: username,
             transaction_date: new Date().toISOString(),
@@ -779,6 +783,7 @@ const SalaryDisbursement = () => {
       txParams.append("category", "Expenses");
       txParams.append("amount", finalAmount.toFixed(2));
       txParams.append("description", txDescription);
+      txParams.append("name", staff.name);
       txParams.append("mop", "Bank Transfer");
       txParams.append("attendant", username);
       txParams.append("remarks", `${salaryPeriod} payout for ${staff.name}`);
@@ -1001,7 +1006,10 @@ const SalaryDisbursement = () => {
                                 />
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
-                                <div className="font-medium">{fmtCurrency(c.otPay)}</div>
+                                <Input type="number" step="0.01" placeholder={c.otPay.toFixed(2)} className="w-24" disabled={isDone}
+                                  value={overtimeOverride[staff.staffId] || ""}
+                                  onChange={(e) => setOvertimeOverride((p) => ({ ...p, [staff.staffId]: e.target.value }))}
+                                />
                                 <div className="text-[10px] text-muted-foreground mt-1">{c.otHours.toFixed(2)} hrs approved</div>
                               </TableCell>
                               <TableCell>
