@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { payableHours, overtimeHours, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
+import { payableHours, overtimeHours, lateMinutes, FULL_SHIFT_HOURS } from "@/lib/attendanceHours";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -299,6 +299,16 @@ const SalaryDisbursement = () => {
     return m;
   }, [periodAttendance]);
 
+  /** Total late minutes (past the 10:10 AM grace) per staff for the period. */
+  const lateMinutesByStaffId = useMemo(() => {
+    const m: Record<string, number> = {};
+    periodAttendance.forEach((r: any) => {
+      if (!r.time_in) return;
+      m[r.staff_id] = (m[r.staff_id] || 0) + lateMinutes(r.time_in);
+    });
+    return m;
+  }, [periodAttendance]);
+
   const computeCalculator = (staff: any) => {
     const monthly = parseCurrency(staff.salary);
     const autoDaily = workdaysInMonth > 0 ? monthly / workdaysInMonth : 0;
@@ -317,9 +327,12 @@ const SalaryDisbursement = () => {
     const dPhilhealth = parseCurrency(philhealth[staff.staffId]);
     const otherDeductions = parseCurrency(deductions[staff.staffId]);
     const additional = addlTotal(staff.staffId);
-    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional;
+    // Lateness is deducted per minute at the daily-rate equivalent (daily / 480 min).
+    const lateMin = lateMinutesByStaffId[staff.userId] ?? 0;
+    const lateDed = Math.round(lateMin * (daily / 480) * 100) / 100;
+    const totalDeductions = dPagibig + dSss + dPhilhealth + otherDeductions + additional + lateDed;
     const net = gross - totalDeductions;
-    return { monthly, autoDaily, daily, days, otHours, otPay, bonus, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, totalDeductions, net };
+    return { monthly, autoDaily, daily, days, otHours, otPay, bonus, gross, dPagibig, dSss, dPhilhealth, otherDeductions, additional, lateMin, lateDed, totalDeductions, net };
   };
 
 
@@ -598,7 +611,10 @@ const SalaryDisbursement = () => {
       cutoffLabel,
       periodLabel: salaryPeriod,
       rows: [],
-      deductionLines: addlDeductions[staff.staffId] || [],
+      deductionLines: [
+        ...(addlDeductions[staff.staffId] || []),
+        ...(c.lateMin > 0 ? [{ description: `Late (${c.lateMin} min)`, amount: c.lateDed }] : []),
+      ],
       attendance: {
         daysPresent: c.days,
         workdays: workdaysInPeriod,
@@ -1051,6 +1067,11 @@ const SalaryDisbursement = () => {
                                   value={deductions[staff.staffId] || ""}
                                   onChange={(e) => setDeductions((p) => ({ ...p, [staff.staffId]: e.target.value }))}
                                 />
+                                {c.lateMin > 0 && (
+                                  <p className="mt-1 text-[10px] text-destructive whitespace-nowrap">
+                                    Late {c.lateMin} min: −{fmtCurrency(c.lateDed)}
+                                  </p>
+                                )}
                               </TableCell>
                               <TableCell className="font-medium whitespace-nowrap">{fmtCurrency(c.gross)}</TableCell>
                               <TableCell className="text-destructive whitespace-nowrap">−{fmtCurrency(c.totalDeductions)}</TableCell>
