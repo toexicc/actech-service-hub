@@ -15,10 +15,10 @@ const MANILA_OFFSET_MIN = 8 * 60;
 const LUNCH_START_MIN = 12 * 60; // 12:00 PM Manila
 const LUNCH_END_MIN = 13 * 60; // 1:00 PM Manila
 
-/** Minutes since Manila midnight for an ISO timestamp. */
+/** Minutes since Manila midnight for an ISO timestamp (seconds ignored). */
 const manilaMinutes = (iso: string) => {
   const shifted = new Date(new Date(iso).getTime() + MANILA_OFFSET_MIN * 60000);
-  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes() + shifted.getUTCSeconds() / 60;
+  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
 };
 
 /** Full shift length in hours after the unpaid lunch break. */
