@@ -1240,6 +1240,9 @@ async function disburseSalary(b: Record<string, any>) {
     gross_pay: num(b.grossPay) || amount,
     total_deductions: num(b.totalDeductions),
     net_pay: num(b.netPay) || amount,
+    overtime_hours: num(b.overtimeHours),
+    overtime_pay: num(b.overtimePay),
+    bonus_allowance: num(b.bonusAllowance),
     additional_deductions: (() => {
       try {
         const parsed = JSON.parse(b.additionalDeductions || "[]");
