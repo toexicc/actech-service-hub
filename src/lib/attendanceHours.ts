@@ -37,17 +37,12 @@ const GRACE_MIN = 10;
  *  Lateness is not penalised here — it is deducted separately via lateMinutes. */
 export const workedMinutes = (ti: string | null, to: string | null): number => {
   if (!ti || !to) return 0;
-  let startMs = new Date(ti).getTime();
-  const endMs = new Date(to).getTime();
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return 0;
-  const tiMin = manilaMinutes(ti);
-  if (tiMin < SHIFT_START_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
-  if (endMs <= startMs) return 0;
+  if (!Number.isFinite(new Date(ti).getTime()) || !Number.isFinite(new Date(to).getTime())) return 0;
+  const start = Math.max(manilaMinutes(ti), SHIFT_START_MIN);
+  const end = manilaMinutes(to);
+  if (end <= start) return 0;
 
-  let mins = (endMs - startMs) / 60000;
-
-  const start = Math.max(tiMin, SHIFT_START_MIN);
-  const end = start + mins;
+  let mins = end - start;
   const overlap = Math.max(0, Math.min(end, LUNCH_END_MIN) - Math.max(start, LUNCH_START_MIN));
   mins -= overlap;
 
