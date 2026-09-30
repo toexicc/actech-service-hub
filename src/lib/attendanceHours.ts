@@ -15,10 +15,10 @@ const MANILA_OFFSET_MIN = 8 * 60;
 const LUNCH_START_MIN = 12 * 60; // 12:00 PM Manila
 const LUNCH_END_MIN = 13 * 60; // 1:00 PM Manila
 
-/** Minutes since Manila midnight for an ISO timestamp. */
+/** Minutes since Manila midnight for an ISO timestamp (seconds ignored). */
 const manilaMinutes = (iso: string) => {
   const shifted = new Date(new Date(iso).getTime() + MANILA_OFFSET_MIN * 60000);
-  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes() + shifted.getUTCSeconds() / 60;
+  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
 };
 
 /** Full shift length in hours after the unpaid lunch break. */
@@ -37,17 +37,12 @@ const GRACE_MIN = 10;
  *  Lateness is not penalised here — it is deducted separately via lateMinutes. */
 export const workedMinutes = (ti: string | null, to: string | null): number => {
   if (!ti || !to) return 0;
-  let startMs = new Date(ti).getTime();
-  const endMs = new Date(to).getTime();
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return 0;
-  const tiMin = manilaMinutes(ti);
-  if (tiMin < SHIFT_START_MIN) startMs += (SHIFT_START_MIN - tiMin) * 60000;
-  if (endMs <= startMs) return 0;
+  if (!Number.isFinite(new Date(ti).getTime()) || !Number.isFinite(new Date(to).getTime())) return 0;
+  const start = Math.max(manilaMinutes(ti), SHIFT_START_MIN);
+  const end = manilaMinutes(to);
+  if (end <= start) return 0;
 
-  let mins = (endMs - startMs) / 60000;
-
-  const start = Math.max(tiMin, SHIFT_START_MIN);
-  const end = start + mins;
+  let mins = end - start;
   const overlap = Math.max(0, Math.min(end, LUNCH_END_MIN) - Math.max(start, LUNCH_START_MIN));
   mins -= overlap;
 
@@ -66,11 +61,11 @@ export const overtimeHours = (
   return Math.max(0, (toMin - SHIFT_END_MIN) / 60);
 };
 
-/** Late minutes beyond the 10-minute grace period (past 10:10 AM). */
+/** Late minutes beyond the 10-minute grace period (past 10:10 AM), whole minutes. */
 export const lateMinutes = (ti: string | null): number => {
   if (!ti) return 0;
   const tiMin = manilaMinutes(ti);
-  return Math.max(0, tiMin - (SHIFT_START_MIN + GRACE_MIN));
+  return Math.max(0, Math.ceil(tiMin - (SHIFT_START_MIN + GRACE_MIN)));
 };
 
 /** Worked hours as a decimal number (lunch excluded). */
