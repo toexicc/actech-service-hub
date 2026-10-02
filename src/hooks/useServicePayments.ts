@@ -68,7 +68,7 @@ export const useServicePayments = (serviceId: string | undefined) =>
       if (!serviceId) return { transactionsPaid: 0, payments: [] };
       const { data, error } = await supabase
         .from("transactions")
-        .select("*")
+        .select("id,transaction_id,type,status,amount,payment_method,transaction_date,created_at")
         .eq("service_id", serviceId)
         .order("transaction_date", { ascending: true });
       if (error) return { transactionsPaid: 0, payments: [] };
