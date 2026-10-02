@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useRef, createContext, useContext, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -62,7 +63,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const isMobile = useIsMobile();
   // Live-refresh cached data when other staff change records.
-  useRealtimeInvalidate(true);
+  const { isAdmin: rtAdmin, isManagement: rtMgmt } = useAuth();
+  useRealtimeInvalidate(true, rtAdmin || rtMgmt);
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
