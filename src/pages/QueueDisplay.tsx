@@ -26,7 +26,7 @@ type Entry = {
   model: string | null;
 };
 
-const POLL_MS = 10000;
+const POLL_MS = 20000;
 
 const COLORS = {
   page: "#f2f6ff",
@@ -175,10 +175,16 @@ const QueueDisplay = () => {
     };
 
     load();
-    const id = setInterval(load, POLL_MS);
+    // Skip polls while the screen is hidden; refresh immediately on return.
+    const id = setInterval(() => {
+      if (document.visibilityState !== "hidden") load();
+    }, POLL_MS);
+    const onVis = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       alive = false;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, []);
 

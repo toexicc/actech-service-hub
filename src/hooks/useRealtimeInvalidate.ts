@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
  * Keys are intentionally narrow: a ticket edit must not also refetch unrelated
  * caches (breakdowns, inventory logs, ...), because each refetch is real egress.
  */
+// activity_logs is intentionally absent: every saved action would be pushed to
+// every open device. The open ticket timeline keeps its own filtered channel.
 const TABLE_KEYS: Record<string, string[][]> = {
   services: [["services"], ["doneServices"]],
   part_requests: [["partRequests"], ["part-requests"]],
@@ -20,13 +22,15 @@ const TABLE_KEYS: Record<string, string[][]> = {
   clients: [["clients"]],
   service_breakdowns: [["serviceBreakdowns"], ["allServiceBreakdowns"]],
   queue_entries: [["queueEntries"]],
-  activity_logs: [["activityLogs"]],
 };
+
+/** Tables a technician-only session never renders live. */
+const OFFICE_ONLY = new Set(["transactions", "expenses", "client_inquiries", "clients", "queue_entries"]);
 
 /** Coalesce bursts of row changes into a single invalidation per key. */
 const FLUSH_MS = 2000;
 
-export const useRealtimeInvalidate = (enabled: boolean = true) => {
+export const useRealtimeInvalidate = (enabled: boolean = true, officeStaff: boolean = true) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
