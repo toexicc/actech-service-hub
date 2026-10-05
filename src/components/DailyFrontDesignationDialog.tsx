@@ -50,6 +50,7 @@ const getManilaDutyContext = () => {
   };
   return {
     dateKey: `${parts.year}-${parts.month}-${parts.day}`,
+    displayDate: `${parts.month}/${parts.day}/${parts.year}`,
     dayName: parts.weekday,
     day: dayIndex[parts.weekday] ?? 0,
     minutes: Number(parts.hour) * 60 + Number(parts.minute),
@@ -59,7 +60,7 @@ const getManilaDutyContext = () => {
 const normalizeName = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
 
 export function DailyFrontDesignationDialog() {
-  const { user, profile, isAdmin, isManagement } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [context, setContext] = useState(getManilaDutyContext);
@@ -69,7 +70,7 @@ export function DailyFrontDesignationDialog() {
   const acknowledgementId = `FRONT-DUTY-${context.dateKey}`;
 
   const checkAcknowledgement = useCallback(async () => {
-    if (!user || (!isAdmin && !isManagement) || !duty || context.day === 0 || context.minutes < 600) {
+    if (!user || !isAdmin || !duty || context.day === 0 || context.minutes < 600) {
       setOpen(false);
       return;
     }
@@ -83,7 +84,7 @@ export function DailyFrontDesignationDialog() {
       .limit(1);
 
     if (!error) setOpen((data ?? []).length === 0);
-  }, [acknowledgementId, context.day, context.minutes, duty, isAdmin, isManagement, user]);
+  }, [acknowledgementId, context.day, context.minutes, duty, isAdmin, user]);
 
   useEffect(() => {
     void checkAcknowledgement();
@@ -118,7 +119,7 @@ export function DailyFrontDesignationDialog() {
           </div>
           <AlertDialogTitle className="text-xl">Daily Front Designation</AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-foreground/80">
-            {context.dayName} · {context.dateKey}
+            {context.dayName} · {context.displayDate}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
