@@ -192,6 +192,7 @@ const ServiceTracker = () => {
   const invalidateServices = useInvalidateServices();
   const { data: staffList = [] } = useStaff();
   const [deviceTypeFilter, setDeviceTypeFilter] = useState("all");
+  const [adminFilter, setAdminFilter] = useState("all");
   const [technicianFilter, setTechnicianFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -831,6 +832,18 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     return Array.from(types).sort();
   }, [services]);
 
+  const assignedAdmins = useMemo(() => {
+    const names = new Set<string>();
+    services.forEach((service) => {
+      (service.adminRep || service.adminRepresentative || "")
+        .split(",")
+        .map((name: string) => name.trim())
+        .filter(Boolean)
+        .forEach((name: string) => names.add(name));
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [services]);
+
   const technicians = useMemo(() => {
     const techs = new Set(services.map(s => s.technician).filter(Boolean));
     return Array.from(techs).sort();
@@ -853,6 +866,14 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
     // Device type filter
     if (deviceTypeFilter !== "all" && service.deviceType !== deviceTypeFilter) return false;
+
+    // Admin filter — supports tickets assigned to more than one admin.
+    if (adminFilter !== "all") {
+      const assignedAdminsForService = (service.adminRep || service.adminRepresentative || "")
+        .split(",")
+        .map((name: string) => normName(name));
+      if (!assignedAdminsForService.includes(normName(adminFilter))) return false;
+    }
 
     // Technician filter — tolerates multiple techs / spacing / casing.
     if (technicianFilter !== "all") {
@@ -1004,7 +1025,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     });
 
     return filtered;
-  }, [services, deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending, flagFilter]);
+  }, [services, deviceTypeFilter, adminFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, techniciansWithDept, activeTab, isPending, flagFilter]);
 
   /**
    * Live per-status counts. They respect every filter EXCEPT the Status
@@ -1057,6 +1078,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   const hasActiveFilters =
     deviceTypeFilter !== "all" ||
+    adminFilter !== "all" ||
     statusFilter !== "all" ||
     flagFilter !== "all" ||
     dueDateFilter !== "all" ||
@@ -1070,6 +1092,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (debouncedSearch.trim()) chips.push(`Search: ${debouncedSearch.trim()}`);
     if (dueDateFilter !== "all") chips.push(`Due: ${dueDateFilter}`);
     if (deviceTypeFilter !== "all") chips.push(`Device: ${deviceTypeFilter}`);
+    if (adminFilter !== "all") chips.push(`Admin: ${adminFilter}`);
     if (!isTechnician && technicianFilter !== "all") chips.push(`Tech: ${technicianFilter}`);
     if (!isTechnician && departmentFilter !== "all") chips.push(`Dept: ${departmentFilter}`);
     if (statusFilter !== "all") chips.push(`Status: ${statusFilter}`);
@@ -1077,7 +1100,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (startDate) chips.push(`From: ${format(startDate, "MMM d")}`);
     if (endDate) chips.push(`To: ${format(endDate, "MMM d")}`);
     return chips;
-  }, [debouncedSearch, dueDateFilter, deviceTypeFilter, isTechnician, technicianFilter, departmentFilter, statusFilter, flagFilter, startDate, endDate]);
+  }, [debouncedSearch, dueDateFilter, deviceTypeFilter, adminFilter, isTechnician, technicianFilter, departmentFilter, statusFilter, flagFilter, startDate, endDate]);
 
   /**
    * Set the status filter and only move the tab when the chosen status could
@@ -1115,6 +1138,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
 
   const clearAllFilters = () => {
     setDeviceTypeFilter("all");
+    setAdminFilter("all");
     setStatusFilter("all");
     setStatusLockedByCard(false);
     setDueDateFilter("all");
@@ -1131,11 +1155,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
   useEffect(() => {
     // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [deviceTypeFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
+  }, [deviceTypeFilter, adminFilter, technicianFilter, departmentFilter, statusFilter, startDate, endDate, sortField, sortOrder, debouncedSearch, dueDateFilter, activeTab]);
 
 
   const filterControls = (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-7">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
       <div className="space-y-2">
         <Label>Due Date Status</Label>
         <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
@@ -1162,6 +1186,21 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
             <SelectItem value="all">All Device Types</SelectItem>
             {deviceTypes.map(type => (
               <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Admin</Label>
+        <Select value={adminFilter} onValueChange={setAdminFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="All Admins" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border shadow-md z-[100] max-h-[300px] overflow-y-auto">
+            <SelectItem value="all">All Admins</SelectItem>
+            {assignedAdmins.map((admin) => (
+              <SelectItem key={admin} value={admin}>{admin}</SelectItem>
             ))}
           </SelectContent>
         </Select>

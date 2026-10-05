@@ -23,6 +23,7 @@ import { TabBar } from "@/components/workbench/TabBar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ServicePreviewProvider } from "@/components/ServicePreviewProvider";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+import { DailyFrontDesignationDialog } from "@/components/DailyFrontDesignationDialog";
 
 
 interface NavItem { title: string; icon: React.ElementType; path: string; roles?: string[]; iconName?: string; }
@@ -459,6 +460,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </DrawerContent>
       </Drawer>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <DailyFrontDesignationDialog />
     </div>
   );
 
@@ -501,6 +503,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </main>
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <DailyFrontDesignationDialog />
       </div>
     </div>
   );

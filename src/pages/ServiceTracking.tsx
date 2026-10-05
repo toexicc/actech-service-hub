@@ -49,10 +49,8 @@ const MODES_OF_PAYMENT = [
   "GCash",
   "Maya",
   "Bank Transfer",
-  "Credit Card",
   "Debit Card",
   "GCash QR",
-  "Installment",
 ];
 
 // Social and contact links shown on the public tracking page.
