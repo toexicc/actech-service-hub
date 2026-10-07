@@ -42,6 +42,8 @@ export interface ServiceRecord {
   releasedAt?: string;
   hasPreOrder?: boolean;
   deviceOutWithClient?: boolean;
+  hasDeviceAccessory?: boolean;
+  deviceAccessories?: string[];
   rtoReason?: string;
   vatRequested?: boolean;
 
