@@ -96,6 +96,8 @@ export const supabaseRowToSheetShape = (sb: ReturnType<typeof mapServiceRow>) =>
   releasedAt: (sb as any).releasedAt || "",
   hasPreOrder: !!(sb as any).hasPreOrder,
   deviceOutWithClient: !!(sb as any).deviceOutWithClient,
+  hasDeviceAccessory: !!(sb as any).hasDeviceAccessory,
+  deviceAccessories: ((sb as any).deviceAccessories || []) as string[],
   rtoReason: (sb as any).rtoReason || "",
   vatRequested: !!(sb as any).vatRequested,
 
@@ -178,6 +180,8 @@ const AUTHORITATIVE_KEYS = new Set<string>([
   "isReleased",
   "hasPreOrder",
   "deviceOutWithClient",
+  "hasDeviceAccessory",
+  "deviceAccessories",
   "rtoReason",
   "vatRequested",
 

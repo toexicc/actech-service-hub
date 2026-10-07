@@ -3,6 +3,7 @@ import { Loader2, Save } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DeviceAccessoryPicker } from "@/components/DeviceAccessoryPicker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logTicketActivity } from "@/lib/activityLogger";
@@ -82,6 +83,25 @@ export function TicketFlagsPanel({
       });
     } finally {
       setBusyDeviceOut(false);
+    }
+  };
+  const [busyAcc, setBusyAcc] = useState(false);
+  const saveAccessories = async (on: boolean, list: string[]) => {
+    if (!serviceId || busyAcc) return;
+    setBusyAcc(true);
+    try {
+      const items = on ? list : [];
+      const { error } = await supabase
+        .from("services")
+        .update({ has_device_accessory: on, device_accessories: items, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceId);
+      if (error) throw new Error(error.message);
+      onChange({ hasDeviceAccessory: on, deviceAccessories: items });
+      logTicketActivity(serviceId, on ? `Device accessories: ${items.join(", ") || "(none selected)"}` : "Device accessory flag removed");
+    } catch (e) {
+      toast({ title: "Update failed", description: e instanceof Error ? e.message : "Could not save accessories", variant: "destructive" });
+    } finally {
+      setBusyAcc(false);
     }
   };
   const [savingNote, setSavingNote] = useState(false);
@@ -429,6 +449,29 @@ export function TicketFlagsPanel({
           <Switch checked={!!service?.isBackjob} disabled={busyBackjob} onCheckedChange={toggleBackjob} />
         </div>
       )}
+
+      <div className="grid gap-3 rounded-xl border border-sky-300/60 bg-sky-50/60 p-3 sm:grid-cols-2 sm:items-start">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold">Device Accessory</p>
+            <p className="text-xs text-muted-foreground">
+              {service?.hasDeviceAccessory ? "Device came in with accessories." : "Turn on if the device came with accessories."}
+            </p>
+          </div>
+          <Switch
+            checked={!!service?.hasDeviceAccessory}
+            disabled={busyAcc || readOnlyToggles}
+            onCheckedChange={(v) => saveAccessories(v, service?.deviceAccessories || [])}
+          />
+        </div>
+        {service?.hasDeviceAccessory && (
+          <DeviceAccessoryPicker
+            value={service?.deviceAccessories || []}
+            disabled={busyAcc || readOnlyToggles}
+            onChange={(list) => saveAccessories(true, list)}
+          />
+        )}
+      </div>
     </div>
   );
 }
