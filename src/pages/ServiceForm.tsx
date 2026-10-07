@@ -88,6 +88,8 @@ const buildFormSchema = (isPublic: boolean) => z.object({
   isBackjob: z.boolean().default(false),
   hasPreOrder: z.boolean().default(false),
   deviceOutWithClient: z.boolean().default(false),
+  hasDeviceAccessory: z.boolean().default(false),
+  deviceAccessories: z.array(z.string().max(100)).default([]),
 
   enablePhotoAnnotation: z.boolean().default(false),
   annotationDeviceType: z.string().optional(),
@@ -254,6 +256,8 @@ const ServiceForm = ({
       isBackjob: false,
       hasPreOrder: false,
       deviceOutWithClient: false,
+      hasDeviceAccessory: false,
+      deviceAccessories: [],
 
       physicalSignature: false,
       enablePhotoAnnotation: false,
@@ -721,10 +725,15 @@ const ServiceForm = ({
         throw new Error(createError?.message || "Could not create the service ticket.");
       }
       const finalServiceId = createdServiceId;
-      if (data.deviceOutWithClient && finalServiceId) {
+      const accessories = data.hasDeviceAccessory ? data.deviceAccessories || [] : [];
+      if ((data.deviceOutWithClient || data.hasDeviceAccessory) && finalServiceId) {
         await supabase
           .from("services")
-          .update({ device_out_with_client: true } as any)
+          .update({
+            device_out_with_client: !!data.deviceOutWithClient,
+            has_device_accessory: !!data.hasDeviceAccessory,
+            device_accessories: accessories,
+          } as any)
           .eq("service_id", finalServiceId);
       }
 
@@ -1928,6 +1937,40 @@ const ServiceForm = ({
                       )}
                     />
                   ))}
+                </div>
+                <div className="mt-3 grid gap-3 rounded-xl border border-border/60 bg-muted/30 p-3 sm:grid-cols-2 sm:items-start">
+                  <FormField
+                    control={form.control}
+                    name="hasDeviceAccessory"
+                    render={({ field }) => (
+                      <FormItem className="flex items-start justify-between gap-3 space-y-0">
+                        <div>
+                          <FormLabel className="text-sm font-semibold">Device Accessory</FormLabel>
+                          <p className="text-xs text-muted-foreground">Device came in with accessories.</p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={!!field.value}
+                            onCheckedChange={(v) => {
+                              field.onChange(v);
+                              if (!v) form.setValue("deviceAccessories", []);
+                            }}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("hasDeviceAccessory") && (
+                    <FormField
+                      control={form.control}
+                      name="deviceAccessories"
+                      render={({ field }) => (
+                        <FormItem className="space-y-0">
+                          <DeviceAccessoryPicker value={field.value || []} onChange={field.onChange} />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
             )}
