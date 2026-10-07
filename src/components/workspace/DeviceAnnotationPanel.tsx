@@ -8,6 +8,20 @@ import { useToast } from "@/hooks/use-toast";
 import { getServiceImageDataUrl } from "@/lib/servicePdfStorage";
 import { logTicketActivity } from "@/lib/activityLogger";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const TEMPLATE_TYPES = ["Laptop/Macbook", "IPad/Tablet", "IPhone/Mobile", "Apple Watch", "Computer/IMac"];
+
+const guessTemplate = (raw: string) => {
+  const t = (raw || "").toLowerCase();
+  if (TEMPLATE_TYPES.includes(raw)) return raw;
+  if (/watch/.test(t)) return "Apple Watch";
+  if (/ipad|tablet|tab\b/.test(t)) return "IPad/Tablet";
+  if (/iphone|mobile|phone|android/.test(t)) return "IPhone/Mobile";
+  if (/imac|desktop|computer|\bpc\b|all.in.one/.test(t)) return "Computer/IMac";
+  if (/laptop|macbook|notebook|mac/.test(t)) return "Laptop/Macbook";
+  return "Laptop/Macbook";
+};
 
 interface Props {
   serviceId?: string;
@@ -31,6 +45,10 @@ export function DeviceAnnotationPanel({ serviceId, deviceType = "", canEdit = tr
   const [editing, setEditing] = useState(false);
   const [pendingImage, setPendingImage] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
+  const [template, setTemplate] = useState(() => guessTemplate(deviceType));
+  const [drawOnExisting, setDrawOnExisting] = useState(true);
+
+  useEffect(() => setTemplate(guessTemplate(deviceType)), [deviceType]);
 
   useEffect(() => {
     setLoaded(false);
@@ -120,10 +138,36 @@ export function DeviceAnnotationPanel({ serviceId, deviceType = "", canEdit = tr
         ) : (
           <>
             {editing ? (
-              <div className="overflow-x-auto rounded-lg border border-border/60 p-2">
+              <div className="space-y-3 overflow-x-auto rounded-lg border border-border/60 p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Device type</span>
+                  <Select
+                    value={template}
+                    onValueChange={(v) => {
+                      setTemplate(v);
+                      setDrawOnExisting(false);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TEMPLATE_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(pendingImage || image) && (
+                    <Button
+                      size="sm"
+                      variant={drawOnExisting ? "default" : "outline"}
+                      onClick={() => setDrawOnExisting((v) => !v)}
+                    >
+                      {drawOnExisting ? "Drawing on saved annotation" : "Use saved annotation"}
+                    </Button>
+                  )}
+                </div>
                 <DeviceAnnotationCanvas
-                  deviceType={deviceType}
-                  backgroundUrl={pendingImage || image}
+                  deviceType={template}
+                  backgroundUrl={drawOnExisting ? pendingImage || image : undefined}
                   onSave={(url) => {
                     setPendingImage(url);
                     setEditing(false);
