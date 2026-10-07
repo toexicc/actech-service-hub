@@ -9,3 +9,4 @@
 - [x] Remove the stale offline app shell and add visible, non-blocking startup recovery for recurring white screens.
 - [x] Show diagnosis/repair time frames in tracker cards and tables, social username beside email, and fit more entries on the TV queue.
 - [x] Remove Credit Card/Installment from public tracking, add Admin tracker filtering, and add the daily front-duty acknowledgement.
+- [x] Device accessory choices: Charger - Cable above Charger - Adaptor and Cable, Adaptor/Brick, plus Tempered Glass/Screen Protector.
