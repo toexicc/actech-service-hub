@@ -42,6 +42,8 @@ export interface ServiceRecord {
   releasedAt?: string;
   hasPreOrder?: boolean;
   deviceOutWithClient?: boolean;
+  hasDeviceAccessory?: boolean;
+  deviceAccessories?: string[];
   rtoReason?: string;
   vatRequested?: boolean;
 
@@ -161,6 +163,8 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   releasedAt: (r as any).released_at ?? "",
   hasPreOrder: !!(r as any).has_pre_order,
   deviceOutWithClient: !!(r as any).device_out_with_client,
+  hasDeviceAccessory: !!(r as any).has_device_accessory,
+  deviceAccessories: ((r as any).device_accessories ?? []) as string[],
   serviceDate: (r as any).service_date ?? "",
   rtoReason: (r as any).rto_reason ?? "",
   vatRequested: !!(r as any).vat_requested,
@@ -241,7 +245,7 @@ const LIST_COLUMNS = [
   "mode_of_transfer","remarks","ai_toggle","pre_order","part_id",
   "drive_folder_url","device_report_folder_url","username",
   "waiting_for_parts","parts_ordered","waiting_parts_note","waiting_parts_note_tech","is_backjob","rush_fee","vat_requested","rto_reason",
-  "is_released","released_at","has_pre_order","device_out_with_client",
+  "is_released","released_at","has_pre_order","device_out_with_client","has_device_accessory","device_accessories",
   "approval_locked","approved_services","pending_services",
   "client_approved_at","auto_approve_diagnosis",
   "interim_needed","interim_created_at","interim_approved_at",

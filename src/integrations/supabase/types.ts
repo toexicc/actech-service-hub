@@ -1129,6 +1129,7 @@ export type Database = {
           created_at: string
           date_completed: string | null
           date_received: string
+          device_accessories: string[]
           device_annotation_notes: string | null
           device_annotation_path: string | null
           device_notes: string | null
@@ -1147,6 +1148,7 @@ export type Database = {
           estimated_completion: string | null
           estimated_cost: number
           final_cost: number
+          has_device_accessory: boolean
           has_pre_order: boolean
           id: string
           initial_payment: number
@@ -1228,6 +1230,7 @@ export type Database = {
           created_at?: string
           date_completed?: string | null
           date_received?: string
+          device_accessories?: string[]
           device_annotation_notes?: string | null
           device_annotation_path?: string | null
           device_notes?: string | null
@@ -1246,6 +1249,7 @@ export type Database = {
           estimated_completion?: string | null
           estimated_cost?: number
           final_cost?: number
+          has_device_accessory?: boolean
           has_pre_order?: boolean
           id?: string
           initial_payment?: number
@@ -1327,6 +1331,7 @@ export type Database = {
           created_at?: string
           date_completed?: string | null
           date_received?: string
+          device_accessories?: string[]
           device_annotation_notes?: string | null
           device_annotation_path?: string | null
           device_notes?: string | null
@@ -1345,6 +1350,7 @@ export type Database = {
           estimated_completion?: string | null
           estimated_cost?: number
           final_cost?: number
+          has_device_accessory?: boolean
           has_pre_order?: boolean
           id?: string
           initial_payment?: number

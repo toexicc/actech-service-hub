@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN IF NOT EXISTS has_device_accessory boolean NOT NULL DEFAULT false, ADD COLUMN IF NOT EXISTS device_accessories text[] NOT NULL DEFAULT '{}';
