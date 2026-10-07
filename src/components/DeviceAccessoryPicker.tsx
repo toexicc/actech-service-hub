@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const DEVICE_ACCESSORY_OPTIONS = [
+  "Charger - Adaptor/Brick",
   "Charger - Cable",
-  "Charger - Adaptor and Cable",
-  "Adaptor/Brick",
+  "Charger - Adaptor/Brick and Cable",
+  "Tempered Glass/Screen Protector",
   "Case",
   "Sim",
-  "Tempered Glass/Screen Protector",
 ] as const;
 
 interface Props {
