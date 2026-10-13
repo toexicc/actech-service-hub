@@ -59,6 +59,7 @@ export const DEVICE_TYPES_BY_DEPARTMENT: Record<string, string[]> = {
     "Gaming Consoles",
     "Gaming Controllers",
     "Headphones",
+    "AirPods",
     "Others"
   ],
   "Mobile (Daily Repairs)": [
