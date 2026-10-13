@@ -1332,6 +1332,7 @@ const ManageClient = () => {
     }
   };
 
+  const formStatus = updateStatus;
   const handleUpdate = async () => {
     if (!serviceData) return;
 
@@ -1340,6 +1341,24 @@ const ManageClient = () => {
 
     const sid = requireLoadedTicket();
     if (!sid) return;
+
+    // Stale-page guard: never write an old status back over a newer one.
+    const { data: liveRow } = await supabase
+      .from("services")
+      .select("status")
+      .eq("service_id", sid)
+      .maybeSingle();
+    const liveStatus = (liveRow as any)?.status as string | undefined;
+    const statusTouched = formStatus !== serviceData.status;
+    if (liveStatus && liveStatus !== serviceData.status && statusTouched && formStatus !== liveStatus) {
+      toast({
+        title: "Ticket was updated by someone else",
+        description: `Status is now "${liveStatus}". Reload the ticket before changing the status.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const updateStatus = liveStatus && !statusTouched ? liveStatus : formStatus;
 
     // Terminal / off-path moves (RTO, Cancelled, On Hold, back to Pending
     // Diagnosis) must always be possible, so they bypass the client-approval
