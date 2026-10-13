@@ -874,6 +874,27 @@ const ServiceUpdate = () => {
     if (!sid) return;
     if (!serviceData) return;
 
+    // Stale-page guard: someone else may have moved the ticket since this page
+    // loaded. Never write the old status back over a newer one.
+    const { data: liveRow } = await supabase
+      .from("services")
+      .select("status")
+      .eq("service_id", sid)
+      .maybeSingle();
+    const liveStatus = (liveRow as any)?.status as string | undefined;
+    const statusTouched = formStatus !== serviceData.status;
+    if (liveStatus && liveStatus !== serviceData.status) {
+      if (statusTouched && formStatus !== liveStatus) {
+        toast({
+          title: "Ticket was updated by someone else",
+          description: `Status is now "${liveStatus}". Reload the ticket before changing the status.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    const updateStatus = liveStatus && !statusTouched ? liveStatus : formStatus;
+
     // RTO - ACTech needs a reason before the status is saved.
     const isRtoMove =
       /^RTO/i.test((updateStatus || "").trim()) && updateStatus !== serviceData.status;
