@@ -869,6 +869,7 @@ const ServiceUpdate = () => {
     return match ? match[1] : null;
   };
 
+  const formStatus = updateStatus;
   const handleUpdate = async () => {
     const sid = requireLoadedTicket();
     if (!sid) return;
