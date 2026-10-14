@@ -512,7 +512,7 @@ async function callLovableAI(messages: any[], temperature = 0.2) {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", temperature, messages }),
+    body: JSON.stringify({ model: "google/gemini-3.8-flash", temperature, messages }),
   });
   if (r.status === 429) throw new Error("rate limit exceeded");
   if (r.status === 402)

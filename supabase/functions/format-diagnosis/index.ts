@@ -292,7 +292,7 @@ Produce the report now using the EXACT template. Do not include this instruction
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3.8-flash',
         temperature: 0.2,
         messages: [
           { role: 'system', content: systemPrompt },
