@@ -396,7 +396,8 @@ const SalaryDisbursement = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("salary_disbursements")
-        .select("staff_id, staff_name, net_pay, period_label, period_start, period_end")
+        .select("id, staff_id, staff_name, net_pay, period_label, period_start, period_end")
+        .eq("status", "Disbursed")
         .or(`period_label.eq.${periodLabelFull},and(period_start.eq.${periodRange.start},period_end.eq.${periodRange.end})`);
       return data ?? [];
     },
@@ -844,6 +845,50 @@ const SalaryDisbursement = () => {
     }
   };
 
+  /** Saved net pay for this cut-off, used to flag corrections after an unlock. */
+  const savedNetFor = (staff: any) => {
+    const row: any = periodPayouts.find(
+      (p: any) => (p.staff_name || "").trim().toLowerCase() === (staff.name || "").trim().toLowerCase(),
+    );
+    return row ? parseCurrency(row.net_pay) : null;
+  };
+
+  const handleVoid = async (staff: any) => {
+    if (!window.confirm(
+      `Void ${staff.name}'s disbursement for ${periodLabelFull}?\n\nThe salary transaction is voided (money returns to the fund) and every ticket in this cut-off unlocks for editing. Re-disburse afterwards to lock it again.`,
+    )) return;
+    const row: any = periodPayouts.find(
+      (p: any) => (p.staff_name || "").trim().toLowerCase() === (staff.name || "").trim().toLowerCase(),
+    );
+    if (!row?.id) {
+      toast({ title: "Nothing to void", description: "No saved disbursement found for this cut-off.", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("salary_disbursements").update({ status: "Voided" }).eq("id", row.id);
+    if (error) {
+      toast({ title: "Void failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase
+      .from("transactions")
+      .update({ status: "Voided" })
+      .eq("type", "Salary Disbursement")
+      .eq("description", `${staff.name} — ${periodLabelFull}`);
+    setDisbursedList((prev) => prev.filter((d) => d.staffId !== staff.staffId));
+    setEditingStaff((prev) => prev.filter((id) => id !== staff.staffId));
+    logActivityAsync({
+      serviceId: "SALARY",
+      username,
+      role: userRole || "",
+      activity: `Voided disbursement of ${fmtCurrency(parseCurrency(row.net_pay))} for ${staff.name} (${periodLabelFull})`,
+    });
+    toast({ title: "Disbursement voided", description: `${staff.name}'s tickets for this cut-off are unlocked.` });
+    refetchLogs();
+    ["salaryDisbursements", "disbursedPeriods", "fundTransactions", "transactions"].forEach((k) =>
+      queryClient.invalidateQueries({ queryKey: [k] }),
+    );
+  };
+
   const totalDisbursed = disbursedList.reduce((sum, d) => sum + d.amount, 0);
 
   /** Read-only review of this cut-off: who has been paid and who is still pending. */
@@ -1126,6 +1171,17 @@ const SalaryDisbursement = () => {
                                       Edit
                                     </Button>
                                   )}
+                                  {isDone && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                      title="Void this disbursement"
+                                      onClick={() => handleVoid(staff)}
+                                    >
+                                      Void
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1268,6 +1324,11 @@ const SalaryDisbursement = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
+                                {isDone && savedNetFor(staff) !== null && Math.abs((savedNetFor(staff) as number) - final) > 0.5 && (
+                                  <p className="mb-1 whitespace-nowrap text-[11px] font-semibold text-amber-600">
+                                    Needs re-disburse ({final - (savedNetFor(staff) as number) > 0 ? "+" : "−"}{fmtCurrency(Math.abs(final - (savedNetFor(staff) as number)))})
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-1">
                                   <Button
                                     size="sm"
@@ -1286,6 +1347,17 @@ const SalaryDisbursement = () => {
                                       onClick={() => setEditingStaff((prev) => [...prev, staff.staffId])}
                                     >
                                       Edit
+                                    </Button>
+                                  )}
+                                  {isDone && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                      title="Void this disbursement"
+                                      onClick={() => handleVoid(staff)}
+                                    >
+                                      Void
                                     </Button>
                                   )}
                                 </div>
