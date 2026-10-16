@@ -20,6 +20,7 @@ export const useDisbursedPeriods = () =>
       const { data } = await supabase
         .from("salary_disbursements")
         .select("staff_name, period_start, period_end, period_label")
+        .eq("status", "Disbursed")
         .order("period_end", { ascending: false })
         .limit(500);
       return (data ?? []).map((r: any) => ({

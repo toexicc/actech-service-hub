@@ -647,6 +647,7 @@ const CompletedTransactions = () => {
                                 partsCost={partsCost}
                                 commissionRate={commissionRate}
                                 locked={!!paidOut}
+                                canUnlock
                                 lockNote={
                                   paidOut
                                     ? `${paidOut.staffName} was already disbursed for ${paidOut.label}.`
