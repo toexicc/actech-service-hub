@@ -778,6 +778,7 @@ const SalaryDisbursement = () => {
           .from("transactions")
           .update({
             amount: Number(finalAmount.toFixed(2)),
+            status: "Completed",
             client_name: staff.name,
             fund_name: fundSource,
             created_by_name: username,
