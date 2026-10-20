@@ -138,13 +138,28 @@ export function useQueueEntries(opts: { activeOnly?: boolean; kind?: QueueKind }
   const mounted = useRef(true);
 
   const refetch = useCallback(async () => {
-    let query = supabase
-      .from("queue_entries")
-      .select(LIST_COLUMNS)
-      .order("created_at", { ascending: true });
-    if (activeOnly) query = query.in("status", ["waiting", "proceed"]);
-    if (kind) query = query.eq("kind", kind);
-    const { data, error } = await query;
+    // The backend returns at most 1000 rows per request, so history views
+    // (activeOnly=false) page through every record instead of stopping at 1000.
+    const PAGE = 1000;
+    let data: any[] = [];
+    let error: any = null;
+    for (let from = 0; ; from += PAGE) {
+      let query = supabase
+        .from("queue_entries")
+        .select(LIST_COLUMNS)
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (activeOnly) query = query.in("status", ["waiting", "proceed"]);
+      if (kind) query = query.eq("kind", kind);
+      const res = await query;
+      if (res.error) {
+        error = res.error;
+        break;
+      }
+      const rows = res.data ?? [];
+      data = data.concat(rows);
+      if (rows.length < PAGE) break;
+    }
     if (!mounted.current) return;
     if (error) {
       setError("We couldn't load the queue right now. Retrying…");
