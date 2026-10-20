@@ -95,6 +95,11 @@ const CONTACT_LINKS = {
   phone: "tel:09456479905",
 };
 
+// The embedded shop map and its "Get directions" button are temporarily hidden
+// on the public tracking page. Flip this to true to bring them back.
+const SHOW_SHOP_MAP: boolean = false;
+
+
 
 
 // The terms are rendered as an image so they always display, even where PDF
@@ -1821,20 +1826,24 @@ const ServiceTracking = () => {
                     <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Visit Us</p>
                     <h3 className="text-lg font-semibold">AC Tech Repair PH</h3>
                     <p className="text-sm text-muted-foreground">{shopAddress}</p>
-                    <div className="aspect-video w-full overflow-hidden rounded-xl border border-border/60 bg-muted/40">
-                      <iframe
-                        title="Shop location map"
-                        src={shopMapEmbed}
-                        className="h-full w-full"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button asChild variant="outline" className="flex-1 rounded-xl">
-                        <a href={shopDirections} target="_blank" rel="noreferrer">Get directions</a>
-                      </Button>
-                    </div>
+                    {SHOW_SHOP_MAP && (
+                      <>
+                        <div className="aspect-video w-full overflow-hidden rounded-xl border border-border/60 bg-muted/40">
+                          <iframe
+                            title="Shop location map"
+                            src={shopMapEmbed}
+                            className="h-full w-full"
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button asChild variant="outline" className="flex-1 rounded-xl">
+                            <a href={shopDirections} target="_blank" rel="noreferrer">Get directions</a>
+                          </Button>
+                        </div>
+                      </>
+                    )}
 
                     <Separator />
 
