@@ -1,3 +1,4 @@
+import { fetchTodayAssignments, pickRoundRobin, manilaDayNumber } from "@/lib/techRotation";
 import { DeviceAccessoryPicker } from "@/components/DeviceAccessoryPicker";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -1248,7 +1249,7 @@ const ServiceForm = ({
                       </FormControl>
                       {preview && (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Rotation pool: {preview} — the technician with the lightest live workload is picked on submit
+                          Rotation pool: {preview} — whoever has the fewest tickets today is picked on submit (ties rotate)
                         </p>
                       )}
 
