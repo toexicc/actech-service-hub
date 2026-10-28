@@ -12,7 +12,7 @@ import { format } from "date-fns";
 const peso = (n: number) => `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Inventory-focused summary used on the Inventory Overview tab and the Admin + Inventory dashboard. */
-export function InventoryOverview({ showSuppliers = true }: { showSuppliers?: boolean }) {
+export function InventoryOverview() {
   const navigate = useNavigate();
   const { data: items = [] } = useInventory();
   const { data: moves = [] } = useStockMovements();
@@ -47,16 +47,7 @@ export function InventoryOverview({ showSuppliers = true }: { showSuppliers?: bo
       used.set(k, cur);
     });
     const topUsed = [...used.values()].sort((a, b) => b.qty - a.qty).slice(0, 5);
-    const suppliers = new Map<string, { parts: number; last: string }>();
-    items.forEach((i) => {
-      const s = (i.supplier ?? "").trim();
-      if (!s) return;
-      const cur = suppliers.get(s) ?? { parts: 0, last: "" };
-      cur.parts += 1;
-      if ((i.dateOrdered ?? "") > cur.last) cur.last = i.dateOrdered ?? "";
-      suppliers.set(s, cur);
-    });
-    return { low, forOrdering, value, pending, openReq, topUsed, suppliers: [...suppliers.entries()].sort((a, b) => b[1].parts - a[1].parts) };
+    return { low, forOrdering, value, pending, openReq, topUsed };
   }, [items, moves, requests]);
 
   const ordered = partsTickets.filter((t: any) => t.parts_ordered);
@@ -85,7 +76,7 @@ export function InventoryOverview({ showSuppliers = true }: { showSuppliers?: bo
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Reorder suggestions</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Reorder Suggestions</CardTitle></CardHeader>
           <CardContent className="space-y-1 text-sm">
             {stats.low.length === 0 && <p className="text-muted-foreground">Nothing is running low.</p>}
             {stats.low.slice(0, 8).map((i) => (
@@ -109,7 +100,7 @@ export function InventoryOverview({ showSuppliers = true }: { showSuppliers?: bo
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Most used (30 days)</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Most Used</CardTitle></CardHeader>
           <CardContent className="space-y-1 text-sm">
             {stats.topUsed.length === 0 && <p className="text-muted-foreground">No stock used yet.</p>}
             {stats.topUsed.map((u) => (
@@ -118,7 +109,7 @@ export function InventoryOverview({ showSuppliers = true }: { showSuppliers?: bo
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Recent stock movement</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Recent Stock Movements</CardTitle></CardHeader>
           <CardContent className="space-y-1 text-sm">
             {moves.length === 0 && <p className="text-muted-foreground">No movements yet.</p>}
             {moves.slice(0, 8).map((m) => (
@@ -129,20 +120,6 @@ export function InventoryOverview({ showSuppliers = true }: { showSuppliers?: bo
             ))}
           </CardContent>
         </Card>
-        {showSuppliers && (
-          <Card className="lg:col-span-2">
-            <CardHeader className="pb-2"><CardTitle className="text-base">Suppliers</CardTitle></CardHeader>
-            <CardContent className="grid gap-1 text-sm sm:grid-cols-2">
-              {stats.suppliers.length === 0 && <p className="text-muted-foreground">No suppliers recorded on parts yet.</p>}
-              {stats.suppliers.map(([name, s]) => (
-                <div key={name} className="flex justify-between border-b py-1">
-                  <span className="truncate">{name}</span>
-                  <span className="text-xs text-muted-foreground">{s.parts} parts{s.last ? ` · last ordered ${s.last}` : ""}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
