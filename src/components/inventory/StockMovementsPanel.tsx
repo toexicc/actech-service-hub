@@ -193,11 +193,11 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && filtered.length === 0 && <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No movements match.</td></tr>}
+              {isLoading && <tr><td colSpan={colCount} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {!isLoading && filtered.length === 0 && <tr><td colSpan={colCount} className="p-6 text-center text-muted-foreground">No movements match.</td></tr>}
               {filtered.slice(0, 300).map((r) => (
                 <tr key={r.id} className="border-t align-top">
-                  {canReview && (
+                  {showReviewCols && (
                     <td className="p-2">
                       {r.status === "pending" && (
                         <Checkbox
