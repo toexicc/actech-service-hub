@@ -118,11 +118,28 @@ const TermsImageViewer = ({ className = "" }: { className?: string }) => (
 // Public, tracking-safe snapshot of a ticket. The services table is not
 // readable by anonymous visitors, so /track reads through a database function
 // that returns only the fields the client is allowed to see.
-export const fetchPublicServiceSnapshot = async (serviceId: string): Promise<any | null> => {
+// The ticket only opens after the client confirms the last 4 digits of the
+// phone number on file; the verified PIN is kept for this browser session.
+const pinKey = (id: string) => `track-pin:${id.trim().toUpperCase()}`;
+export const getTrackPin = (id: string) => {
+  try { return sessionStorage.getItem(pinKey(id)) ?? ""; } catch { return ""; }
+};
+export const setTrackPin = (id: string, pin: string) => {
+  try { sessionStorage.setItem(pinKey(id), pin); } catch { /* ignore */ }
+};
+
+export const fetchPublicServiceSnapshot = async (serviceId: string, pin?: string): Promise<any | null> => {
   try {
-    const { data, error } = await supabase.rpc("public_service_snapshot", {
-      _service_id: serviceId,
-    });
+    const last4 = pin ?? getTrackPin(serviceId);
+    if (last4) {
+      const { data, error } = await supabase.rpc("public_service_snapshot_verified", {
+        _service_id: serviceId,
+        _last4: last4,
+      });
+      if (!error && data) return data as any;
+    }
+    // Signed-in staff can still read the snapshot without a PIN.
+    const { data, error } = await supabase.rpc("public_service_snapshot", { _service_id: serviceId });
     if (error || !data) return null;
     return data as any;
   } catch {
@@ -269,6 +286,14 @@ const ServiceTracking = () => {
   const [selectedIdx, setSelectedIdx] = useState<number[]>([]);
   const [optionChoice, setOptionChoice] = useState<Record<number, string>>({});
 
+  // Phone PIN gate
+  const [pinTarget, setPinTarget] = useState<string | null>(null);
+  const [pinValue, setPinValue] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinChecking, setPinChecking] = useState(false);
+  const [pinFails, setPinFails] = useState(0);
+  const [pinLockedUntil, setPinLockedUntil] = useState(0);
+
 
 
   const { toast } = useToast();
@@ -358,6 +383,16 @@ const ServiceTracking = () => {
       // The database is the source of truth; the legacy sheet is only a
       // fallback for very old tickets that were never migrated.
       const snapshot = await fetchPublicServiceSnapshot(targetId);
+
+      if (!snapshot) {
+        const { data: pinStatus } = await supabase.rpc("public_track_pin_status", { _service_id: targetId });
+        if (pinStatus === "needs_pin" || pinStatus === "no_contact") {
+          setPinError(pinStatus === "no_contact" ? "No phone number is on file for this ticket. Please contact the front desk." : "");
+          setPinValue("");
+          setPinTarget(targetId.toUpperCase());
+          return;
+        }
+      }
 
       let sheetRecord: any = null;
       try {
@@ -2138,6 +2173,63 @@ const ServiceTracking = () => {
         title={pdfModalTitle}
         filename={pdfModalFilename}
       />
+
+      <Dialog open={!!pinTarget} onOpenChange={(o) => { if (!o) setPinTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4" /> Verify it's you</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!pinTarget || pinValue.length !== 4) return;
+              if (Date.now() < pinLockedUntil) {
+                setPinError("Too many tries. Please wait a few minutes and try again.");
+                return;
+              }
+              setPinChecking(true);
+              const snap = await fetchPublicServiceSnapshot(pinTarget, pinValue);
+              setPinChecking(false);
+              if (snap) {
+                setTrackPin(pinTarget, pinValue);
+                const id = pinTarget;
+                setPinTarget(null);
+                setPinFails(0);
+                handleSearch(id);
+              } else {
+                const fails = pinFails + 1;
+                setPinFails(fails);
+                if (fails >= 5) {
+                  setPinLockedUntil(Date.now() + 5 * 60 * 1000);
+                  setPinFails(0);
+                  setPinError("Too many tries. Please wait a few minutes and try again.");
+                } else {
+                  setPinError("Doesn't match our records. Please try again.");
+                }
+              }
+            }}
+          >
+            <p className="text-sm text-muted-foreground">
+              Enter the last 4 digits of the phone number you gave us for <span className="font-mono font-medium text-foreground">{pinTarget}</span>.
+            </p>
+            <Input
+              inputMode="numeric"
+              autoFocus
+              maxLength={4}
+              placeholder="••••"
+              value={pinValue}
+              onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+              className="text-center text-lg tracking-[0.5em]"
+            />
+            {pinError && <p className="text-sm text-destructive">{pinError}</p>}
+            <Button type="submit" className="w-full" disabled={pinValue.length !== 4 || pinChecking}>
+              {pinChecking ? "Checking…" : "Open my ticket"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
 
       <AlertDialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
         <AlertDialogContent className="!flex !flex-col gap-4 max-h-[90dvh] overflow-hidden sm:max-w-lg">

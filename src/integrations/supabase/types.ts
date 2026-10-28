@@ -1632,6 +1632,18 @@ export type Database = {
       }
       public_release_summary: { Args: { _service_id: string }; Returns: Json }
       public_service_snapshot: { Args: { _service_id: string }; Returns: Json }
+      public_service_snapshot_verified: {
+        Args: { _last4: string; _service_id: string }
+        Returns: Json
+      }
+      public_track_pin_matches: {
+        Args: { _last4: string; _service_id: string }
+        Returns: string
+      }
+      public_track_pin_status: {
+        Args: { _service_id: string }
+        Returns: string
+      }
       staff_directory: {
         Args: never
         Returns: {
