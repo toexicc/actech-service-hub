@@ -120,6 +120,9 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
 
   const pendingVisible = filtered.filter((r) => r.status === "pending");
   const allChecked = pendingVisible.length > 0 && pendingVisible.every((r) => selected.has(r.id));
+  // The select-all circle and action buttons only matter when something is waiting for review.
+  const showReviewCols = canReview && pendingVisible.length > 0;
+  const colCount = showReviewCols ? 9 : canReview ? 7 : 7;
 
   return (
     <Card>
@@ -170,7 +173,7 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                {canReview && (
+                {showReviewCols && (
                   <th className="w-8 p-2">
                     <Checkbox
                       checked={allChecked}
@@ -186,15 +189,15 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
                 <th className="p-2">Ticket</th>
                 <th className="p-2">By</th>
                 <th className="p-2">Status</th>
-                {canReview && <th className="p-2 text-right">Action</th>}
+                {canReview && showReviewCols && <th className="p-2 text-right">Action</th>}
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
-              {!isLoading && filtered.length === 0 && <tr><td colSpan={9} className="p-6 text-center text-muted-foreground">No movements match.</td></tr>}
+              {isLoading && <tr><td colSpan={colCount} className="p-6 text-center text-muted-foreground">Loading…</td></tr>}
+              {!isLoading && filtered.length === 0 && <tr><td colSpan={colCount} className="p-6 text-center text-muted-foreground">No movements match.</td></tr>}
               {filtered.slice(0, 300).map((r) => (
                 <tr key={r.id} className="border-t align-top">
-                  {canReview && (
+                  {showReviewCols && (
                     <td className="p-2">
                       {r.status === "pending" && (
                         <Checkbox
@@ -227,7 +230,7 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
                       <div className="mt-1 text-xs text-muted-foreground">{r.reviewed_by_name}{r.review_reason ? ` — ${r.review_reason}` : ""}</div>
                     )}
                   </td>
-                  {canReview && (
+                  {showReviewCols && (
                     <td className="whitespace-nowrap p-2 text-right">
                       {r.status === "pending" && (
                         <div className="flex justify-end gap-1">
