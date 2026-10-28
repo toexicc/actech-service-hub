@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       });
       // Remove the auto-assigned admin role if this isn't the bootstrap user
       await admin.from("user_roles").delete().eq("user_id", uid);
-      await admin.from("user_roles").insert({ user_id: uid, role: body.role });
+      await admin.from("user_roles").insert(rolesFor(body.role).map((role) => ({ user_id: uid, role })));
       return new Response(JSON.stringify({ ok: true, user_id: uid }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
       if (body.role) {
         const { error: delErr } = await admin.from("user_roles").delete().eq("user_id", body.user_id);
         if (delErr) return fail(`Role update failed — ${delErr.message}`);
-        const { error: insErr } = await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
+        const { error: insErr } = await admin.from("user_roles").insert(rolesFor(body.role).map((role) => ({ user_id: body.user_id, role })));
         if (insErr) return fail(`Role update failed — ${insErr.message}`);
       }
       let passwordChanged = false;

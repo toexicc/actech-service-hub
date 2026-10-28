@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "technician" | "management";
+export type AppRole = "admin" | "technician" | "management" | "inventory";
 
 export interface AuthProfile {
   id: string;
@@ -25,6 +25,10 @@ interface AuthContextValue {
   isManagement: boolean;
   isAdminOrManagement: boolean;
   isTechnician: boolean;
+  /** Admin + Inventory staff (extra inventory role). */
+  isInventory: boolean;
+  /** Can edit inventory, approve stock movements and handle part requests. */
+  hasInventoryAccess: boolean;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -54,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const primaryRole = r.includes("admin") ? "admin" : r.includes("management") ? "management" : r.includes("technician") ? "technician" : "";
       sessionStorage.setItem("authenticated", "true");
       sessionStorage.setItem("userRole", primaryRole);
+      sessionStorage.setItem("hasInventoryRole", r.includes("inventory") ? "true" : "false");
       sessionStorage.setItem("username", (prof as any)?.username ?? "");
       sessionStorage.setItem("userFullName", (prof as any)?.name ?? "");
       sessionStorage.setItem("staffId", (prof as any)?.staff_id ?? uid);
@@ -119,6 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isManagement = roles.includes("management");
   const isTechnician = roles.includes("technician");
   const isAdminOrManagement = isAdmin || isManagement;
+  const isInventory = roles.includes("inventory");
+  const hasInventoryAccess = isInventory || isManagement;
 
   return (
     <AuthContext.Provider
@@ -132,6 +139,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isManagement,
         isAdminOrManagement,
         isTechnician,
+        isInventory,
+        hasInventoryAccess,
         signOut,
         refresh,
       }}
