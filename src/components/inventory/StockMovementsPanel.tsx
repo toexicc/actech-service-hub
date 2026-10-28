@@ -173,7 +173,7 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                {canReview && (
+                {showReviewCols && (
                   <th className="w-8 p-2">
                     <Checkbox
                       checked={allChecked}
@@ -189,7 +189,7 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
                 <th className="p-2">Ticket</th>
                 <th className="p-2">By</th>
                 <th className="p-2">Status</th>
-                {canReview && <th className="p-2 text-right">Action</th>}
+                {canReview && showReviewCols && <th className="p-2 text-right">Action</th>}
               </tr>
             </thead>
             <tbody>
