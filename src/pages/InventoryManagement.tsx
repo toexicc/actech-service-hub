@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -152,6 +152,26 @@ const InventoryManagement = () => {
     remarks: ""
   });
   const [duplicateFrom, setDuplicateFrom] = useState<string | null>(null);
+
+  const handleClearNewPart = () => {
+    setNewPart({
+      partName: "",
+      deviceType: "",
+      brand: "",
+      model: "",
+      partType: "",
+      partTypeOther: "",
+      color: "",
+      quantity: "",
+      orderedQuantity: "",
+      dateOrdered: "",
+      supplier: "",
+      costPerUnit: "",
+      status: "In Stock",
+      remarks: ""
+    });
+    setDuplicateFrom(null);
+  };
 
   // Fill the Add New Part form from an existing part (Duplicate / Use as template)
   const prefillFromPart = (item: InventoryItem, markDuplicate: boolean) => {
@@ -1183,15 +1203,15 @@ const InventoryManagement = () => {
                     Add New Part
                   </Button>
                 </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[95dvh] !flex flex-col overflow-hidden">
+              <DialogHeader className="shrink-0 pb-1">
                 <DialogTitle>{duplicateFrom ? `Duplicate of ${duplicateFrom}` : "Add New Part"}</DialogTitle>
                 <DialogDescription>
                   {duplicateFrom ? "Change what differs (model, color, part type…) and save as a new part" : "Register a new part in the inventory"}
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="grid flex-1 gap-3 overflow-y-auto py-1 pr-1">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="partName">Part Name *</Label>
                     <Input
@@ -1221,7 +1241,7 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="brand">Brand</Label>
                     <Input
@@ -1242,7 +1262,7 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="partType">Part Type</Label>
                     {newPart.partType === "Others" ? (
@@ -1289,7 +1309,7 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="quantity">
                       {newPart.status === "On Order" ? "Ordered Quantity *" : "Initial Quantity *"}
@@ -1316,7 +1336,7 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="supplier">Supplier</Label>
                     <Input
@@ -1338,7 +1358,7 @@ const InventoryManagement = () => {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newPart.dateOrdered ? format(new Date(newPart.dateOrdered), "PPP") : "Pick a date"}
+                          {newPart.dateOrdered ? format(new Date(newPart.dateOrdered), "MM/dd/yyyy") : "Pick a date"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -1351,26 +1371,25 @@ const InventoryManagement = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={newPart.status} onValueChange={(value) => setNewPart({...newPart, status: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="In Stock">In Stock</SelectItem>
-                      <SelectItem value="Low Stock">Low Stock</SelectItem>
-                      <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                      <SelectItem value="On Order">On Order</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select value={newPart.status} onValueChange={(value) => setNewPart({...newPart, status: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="In Stock">In Stock</SelectItem>
+                        <SelectItem value="Low Stock">Low Stock</SelectItem>
+                        <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                        <SelectItem value="On Order">On Order</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="remarks">Remarks</Label>
-                  <Textarea
+                  <Input
                     id="remarks"
                     value={newPart.remarks}
                     onChange={(e) => setNewPart({...newPart, remarks: e.target.value})}
@@ -1415,7 +1434,10 @@ const InventoryManagement = () => {
                   </div>
                 )}
               </div>
-              <DialogFooter>
+              <DialogFooter className="shrink-0 border-t pt-3">
+                <Button variant="ghost" onClick={handleClearNewPart} disabled={isSubmitting}>
+                  Clear
+                </Button>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
                   Cancel
                 </Button>
@@ -1488,20 +1510,7 @@ const InventoryManagement = () => {
             <CardTitle>Filters & Search</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-5">
-              <div className="space-y-2">
-                <Label>Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search ID, name, brand, model, color, type..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-
+            <div className="grid gap-4 md:grid-cols-4">
               <div className="space-y-2">
                 <Label>Device Type</Label>
                 <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
@@ -1601,6 +1610,29 @@ const InventoryManagement = () => {
                 <CardTitle>Inventory Items</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Search */}
+                <div className="relative mb-4 max-w-2xl">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search part ID, name, brand, model, color, type..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-9 pr-8"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => { setSearchQuery(""); setCurrentPage(1); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 {isLoading ? (
                   <div className="overflow-x-auto">
                     <Table>
@@ -1901,8 +1933,8 @@ const InventoryManagement = () => {
               <CardContent>
                 {/* Filters */}
                 <div className="mb-6 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Search className="h-4 w-4 text-muted-foreground" />
+                  <div className="relative max-w-2xl">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Search by Log ID..."
                       value={logIdSearch}
@@ -1910,8 +1942,18 @@ const InventoryManagement = () => {
                         setLogIdSearch(e.target.value);
                         setLogsCurrentPage(1);
                       }}
-                      className="max-w-xs"
+                      className="pl-9 pr-8"
                     />
+                    {logIdSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setLogIdSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
