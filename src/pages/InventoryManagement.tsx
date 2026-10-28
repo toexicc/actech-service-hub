@@ -1486,7 +1486,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Stock</p>
@@ -1500,7 +1500,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
@@ -1512,7 +1512,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>
