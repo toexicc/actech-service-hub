@@ -118,11 +118,28 @@ const TermsImageViewer = ({ className = "" }: { className?: string }) => (
 // Public, tracking-safe snapshot of a ticket. The services table is not
 // readable by anonymous visitors, so /track reads through a database function
 // that returns only the fields the client is allowed to see.
-export const fetchPublicServiceSnapshot = async (serviceId: string): Promise<any | null> => {
+// The ticket only opens after the client confirms the last 4 digits of the
+// phone number on file; the verified PIN is kept for this browser session.
+const pinKey = (id: string) => `track-pin:${id.trim().toUpperCase()}`;
+export const getTrackPin = (id: string) => {
+  try { return sessionStorage.getItem(pinKey(id)) ?? ""; } catch { return ""; }
+};
+export const setTrackPin = (id: string, pin: string) => {
+  try { sessionStorage.setItem(pinKey(id), pin); } catch { /* ignore */ }
+};
+
+export const fetchPublicServiceSnapshot = async (serviceId: string, pin?: string): Promise<any | null> => {
   try {
-    const { data, error } = await supabase.rpc("public_service_snapshot", {
-      _service_id: serviceId,
-    });
+    const last4 = pin ?? getTrackPin(serviceId);
+    if (last4) {
+      const { data, error } = await supabase.rpc("public_service_snapshot_verified", {
+        _service_id: serviceId,
+        _last4: last4,
+      });
+      if (!error && data) return data as any;
+    }
+    // Signed-in staff can still read the snapshot without a PIN.
+    const { data, error } = await supabase.rpc("public_service_snapshot", { _service_id: serviceId });
     if (error || !data) return null;
     return data as any;
   } catch {
