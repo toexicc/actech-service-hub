@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy, X } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy, X, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -942,6 +942,41 @@ const InventoryManagement = () => {
     return filteredAndSortedInventory.slice(startIndex, endIndex);
   }, [filteredAndSortedInventory, currentPage, itemsPerPage]);
 
+  // Export the currently filtered inventory list as CSV
+  const handleDownloadCsv = () => {
+    const headers = ["Part ID", "Part Name", "Device Type", "Brand", "Model", "Color", "Part Type", "Quantity", "Cost per Unit", "Supplier", "Date Ordered", "Status", "Last Updated", "Remarks"];
+    const escapeCsv = (value: any) => {
+      const s = value == null || value === "" ? "" : String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = filteredAndSortedInventory.map((item: any) => ([
+      item.partId,
+      item.partName,
+      item.deviceType || "",
+      item.brand || "",
+      item.model || "",
+      item.color || "",
+      item.partType || "",
+      item.quantity ?? "",
+      item.costPerUnit || "",
+      item.supplier || "",
+      item.dateOrdered || "",
+      item.status || "",
+      formatTimestamp(item.lastUpdated),
+      item.remarks || "",
+    ]));
+    const csv = [headers, ...rows].map((r) => r.map(escapeCsv).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inventory-items-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  };
+
   // Filtered and sorted logs (most recent first)
   const filteredLogs = useMemo(() => {
     const filtered = logs.filter(log => {
@@ -1473,9 +1508,9 @@ const InventoryManagement = () => {
 
         {/* Stats */}
         <div className="grid gap-3 md:grid-cols-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Parts</p>
                   <p className="text-2xl font-bold">{inventory.length}</p>
@@ -1485,9 +1520,9 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Stock</p>
                   <p className="text-xl sm:text-2xl font-bold text-green-600">
@@ -1499,9 +1534,9 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
                   <p className="text-xl sm:text-2xl font-bold text-orange-600">{lowStockCount}</p>
@@ -1511,9 +1546,9 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>
                   <p className="text-xl sm:text-2xl font-bold text-destructive">{outOfStockCount}</p>
@@ -1625,6 +1660,10 @@ const InventoryManagement = () => {
                       <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Button variant="outline" onClick={handleDownloadCsv} disabled={isLoading} title="Download CSV">
+                    <Download className="h-4 w-4 mr-1" />
+                    CSV
+                  </Button>
                   <Button variant="outline" size="icon" onClick={() => { refetchInventory(); refetchLogs(); }} disabled={isLoading || isLogsLoading} title="Reload table">
                     <RefreshCw className={`h-4 w-4 ${isLoading || isLogsLoading ? "animate-spin" : ""}`} />
                   </Button>
@@ -1735,10 +1774,10 @@ const InventoryManagement = () => {
                                     <AlertTriangle className="inline-block ml-2 h-4 w-4 text-destructive" />
                                   )}
                                 </TableCell>
-                                <TableCell>{item.partName}</TableCell>
+                                <TableCell className="min-w-[150px]">{item.partName}</TableCell>
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
-                                <TableCell className="max-w-[120px] truncate" title={item.brand || ""}>{item.brand || "N/A"}</TableCell>
-                                <TableCell className="max-w-[140px] truncate" title={item.model || ""}>{item.model || "N/A"}</TableCell>
+                                <TableCell>{item.brand || "N/A"}</TableCell>
+                                <TableCell className="min-w-[190px]">{item.model || "N/A"}</TableCell>
                                 <TableCell>{item.color || "N/A"}</TableCell>
                                 <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
@@ -1758,9 +1797,7 @@ const InventoryManagement = () => {
                                   </span>
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap text-xs">{formatTimestamp(item.lastUpdated)}</TableCell>
-                                <TableCell className="max-w-[200px] truncate" title={item.remarks}>
-                                  {item.remarks || "N/A"}
-                                </TableCell>
+                                <TableCell className="whitespace-normal">{item.remarks || "N/A"}</TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                   {item.partId ? (
                                     <Button
