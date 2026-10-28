@@ -177,6 +177,10 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
     } else if (notification.type === 'message') {
       // Open the messaging panel on the originating conversation when known
       onOpenMessaging?.(notification.threadId);
+    } else if (notification.type === 'part_request' && ['Stock movement needs approval', 'Stock change rejected'].includes(notification.title)) {
+      navigate('/inventory-management?tab=movements');
+    } else if (notification.type === 'part_request' && notification.title === 'New part request') {
+      navigate('/inventory-management?tab=requests');
     } else if (notification.type === 'part_request' || notification.type === 'others') {
       // Check if it's a transfer notification with a direct chat link
       const serviceId = notification.serviceId;

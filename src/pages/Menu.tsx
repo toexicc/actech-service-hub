@@ -13,6 +13,8 @@ import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { useInventory } from "@/hooks/useInventory";
 import { useClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import DashboardLayout from "@/components/DashboardLayout";
+import { InventoryOverview } from "@/components/inventory/InventoryOverview";
+import { PartRequestsInbox } from "@/components/inventory/PartRequestsInbox";
 import { StatCard } from "@/components/ui/stat-card";
 import {
   MessageSquare,
@@ -87,6 +89,7 @@ const Menu = () => {
   const dashboardItemsPerPage = 5;
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
+  const isInventoryStaff = sessionStorage.getItem("hasInventoryRole") === "true";
 
   const isTechnician = userRole === "technician";
   const isManagement = userRole === "management";
@@ -450,6 +453,13 @@ const Menu = () => {
           </div>
         </div>
 
+        {isInventoryStaff && (
+          <section className="mb-8 space-y-4">
+            <h2 className="text-lg font-semibold">Inventory</h2>
+            <InventoryOverview showSuppliers={false} />
+            <PartRequestsInbox compact />
+          </section>
+        )}
         {/* Quick actions */}
         <section className="mb-6">
           <div className="glass-panel rounded-xl sm:rounded-2xl p-3">
