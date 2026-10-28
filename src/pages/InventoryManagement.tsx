@@ -1509,7 +1509,7 @@ const InventoryManagement = () => {
         {/* Stats */}
         <div className="grid gap-3 md:grid-cols-4 mb-6">
           <Card className="h-full">
-            <CardContent className="flex h-full items-center p-4">
+            <CardContent className="flex h-full items-center p-4 pt-4 sm:pt-4">
               <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Parts</p>
@@ -1521,7 +1521,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card className="h-full">
-            <CardContent className="flex h-full items-center p-4">
+            <CardContent className="flex h-full items-center p-4 pt-4 sm:pt-4">
               <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Stock</p>
@@ -1535,7 +1535,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card className="h-full">
-            <CardContent className="flex h-full items-center p-4">
+            <CardContent className="flex h-full items-center p-4 pt-4 sm:pt-4">
               <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
@@ -1547,7 +1547,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card className="h-full">
-            <CardContent className="flex h-full items-center p-4">
+            <CardContent className="flex h-full items-center p-4 pt-4 sm:pt-4">
               <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>

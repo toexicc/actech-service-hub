@@ -456,7 +456,7 @@ const Menu = () => {
         {isInventoryStaff && (
           <section className="mb-8 space-y-4">
             <h2 className="text-lg font-semibold">Inventory</h2>
-            <InventoryOverview showSuppliers={false} />
+            <InventoryOverview />
             <PartRequestsInbox compact />
           </section>
         )}
