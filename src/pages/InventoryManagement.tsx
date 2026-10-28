@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy, X, Download } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, RefreshCw, Copy, X, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -1563,21 +1563,12 @@ const InventoryManagement = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="items">
-              <Package className="h-4 w-4 mr-2" />
-              Inventory Items
-            </TabsTrigger>
+            <TabsTrigger value="items">Inventory Items</TabsTrigger>
             <TabsTrigger value="requests">Requests</TabsTrigger>
             <TabsTrigger value="movements">Movements</TabsTrigger>
-            <TabsTrigger value="fast-moving">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Pre-Ordered Parts
-            </TabsTrigger>
+            <TabsTrigger value="fast-moving">Pre-Ordered Parts</TabsTrigger>
             {!isViewOnly && (
-              <TabsTrigger value="logs">
-                <FileText className="h-4 w-4 mr-2" />
-                Inventory Logs
-              </TabsTrigger>
+              <TabsTrigger value="logs">Inventory Logs</TabsTrigger>
             )}
           </TabsList>
 
