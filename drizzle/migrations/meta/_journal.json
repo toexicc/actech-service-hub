@@ -15,6 +15,13 @@
       "when": 1793156141542,
       "tag": "0001_track_pin_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793206693389,
+      "tag": "0002_migration",
+      "breakpoints": true
     }
   ]
 }
