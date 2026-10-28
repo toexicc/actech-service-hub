@@ -1040,6 +1040,26 @@ const InventoryManagement = () => {
     return "";
   };
 
+  const formatTimestamp = (value: string) => {
+    if (!value) return "N/A";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(d).reduce<Record<string, string>>((acc, p) => {
+      acc[p.type] = p.value;
+      return acc;
+    }, {});
+    return `${parts.month}/${parts.day}/${parts.year} - ${parts.hour}:${parts.minute}:${parts.second}`;
+  };
+
   const lowStockCount = inventory.filter(i => i.quantity > 0 && i.quantity < 5).length;
   const outOfStockCount = inventory.filter(i => i.quantity === 0 || i.status === "Out of Stock").length;
 
@@ -1452,9 +1472,9 @@ const InventoryManagement = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="grid gap-3 md:grid-cols-4 mb-6">
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Parts</p>
@@ -1466,7 +1486,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Stock</p>
@@ -1480,7 +1500,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
@@ -1492,7 +1512,7 @@ const InventoryManagement = () => {
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>
@@ -1503,73 +1523,6 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Filters & Search</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              <div className="space-y-2">
-                <Label>Device Type</Label>
-                <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Device Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Device Types</SelectItem>
-                    {deviceTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Select value={brandFilter} onValueChange={setBrandFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Models" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Models</SelectItem>
-                    {models.map(model => (
-                      <SelectItem key={model} value={model}>{model}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="In Stock">In Stock</SelectItem>
-                    <SelectItem value="Low Stock">Low Stock</SelectItem>
-                    <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                    <SelectItem value="On Order">On Order</SelectItem>
-                    <SelectItem value="For Ordering">For Ordering</SelectItem>
-                    <SelectItem value="Ordered">Ordered</SelectItem>
-                    <SelectItem value="Received">Received</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Reload Button */}
-              <div className="flex items-end">
-                <Button variant="outline" size="icon" onClick={() => { refetchInventory(); refetchLogs(); }} disabled={isLoading || isLogsLoading} title="Reload table">
-                  <RefreshCw className={`h-4 w-4 ${isLoading || isLogsLoading ? "animate-spin" : ""}`} />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Tabs for Inventory Items and Logs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1610,32 +1563,75 @@ const InventoryManagement = () => {
                 <CardTitle>Inventory Items</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Search */}
-                <div className="relative mb-4 max-w-2xl">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search part ID, name, brand, model, color, type..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="pl-9 pr-8"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => { setSearchQuery(""); setCurrentPage(1); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label="Clear search"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+                {/* Search & Filters */}
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search part ID, name, brand, model, color, type..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="pl-9 pr-8"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => { setSearchQuery(""); setCurrentPage(1); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <Select value={deviceTypeFilter} onValueChange={(v) => { setDeviceTypeFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="All Device Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Device Types</SelectItem>
+                      {deviceTypes.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={brandFilter} onValueChange={(v) => { setBrandFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="All Models" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Models</SelectItem>
+                      {models.map(model => (
+                        <SelectItem key={model} value={model}>{model}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="In Stock">In Stock</SelectItem>
+                      <SelectItem value="Low Stock">Low Stock</SelectItem>
+                      <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                      <SelectItem value="On Order">On Order</SelectItem>
+                      <SelectItem value="For Ordering">For Ordering</SelectItem>
+                      <SelectItem value="Ordered">Ordered</SelectItem>
+                      <SelectItem value="Received">Received</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="icon" onClick={() => { refetchInventory(); refetchLogs(); }} disabled={isLoading || isLogsLoading} title="Reload table">
+                    <RefreshCw className={`h-4 w-4 ${isLoading || isLogsLoading ? "animate-spin" : ""}`} />
+                  </Button>
                 </div>
                 {isLoading ? (
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="[&_th]:py-2 [&_td]:py-1.5 [&_td]:text-sm">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Part ID</TableHead>
@@ -1679,7 +1675,7 @@ const InventoryManagement = () => {
                 ) : (
                   <>
                     <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="[&_th]:py-2 [&_td]:py-1.5 [&_td]:text-sm">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("partId")}>
@@ -1741,8 +1737,8 @@ const InventoryManagement = () => {
                                 </TableCell>
                                 <TableCell>{item.partName}</TableCell>
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
-                                <TableCell>{item.brand || "N/A"}</TableCell>
-                                <TableCell>{item.model || "N/A"}</TableCell>
+                                <TableCell className="max-w-[120px] truncate" title={item.brand || ""}>{item.brand || "N/A"}</TableCell>
+                                <TableCell className="max-w-[140px] truncate" title={item.model || ""}>{item.model || "N/A"}</TableCell>
                                 <TableCell>{item.color || "N/A"}</TableCell>
                                 <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
@@ -1761,7 +1757,7 @@ const InventoryManagement = () => {
                                     {item.status}
                                   </span>
                                 </TableCell>
-                                <TableCell>{item.lastUpdated || "N/A"}</TableCell>
+                                <TableCell className="whitespace-nowrap text-xs">{formatTimestamp(item.lastUpdated)}</TableCell>
                                 <TableCell className="max-w-[200px] truncate" title={item.remarks}>
                                   {item.remarks || "N/A"}
                                 </TableCell>
