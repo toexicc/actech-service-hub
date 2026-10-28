@@ -82,7 +82,7 @@ export function PartRequestsInbox({ stockByPart, compact = false }: { stockByPar
     });
   };
 
-  const update = async (r: PartRequestRow, patch: Record<string, unknown>, msg: string) => {
+  const update = async (r: PartRequestRow, patch: { status?: string; acknowledged_at?: string; acknowledged_by_name?: string | null }, msg: string) => {
     const { error } = await supabase.from("part_requests").update(patch).eq("id", r.id);
     if (error) {
       toast({ title: "Could not update request", description: error.message, variant: "destructive" });
