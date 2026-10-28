@@ -1774,10 +1774,10 @@ const InventoryManagement = () => {
                                     <AlertTriangle className="inline-block ml-2 h-4 w-4 text-destructive" />
                                   )}
                                 </TableCell>
-                                <TableCell>{item.partName}</TableCell>
+                                <TableCell className="min-w-[150px]">{item.partName}</TableCell>
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
                                 <TableCell>{item.brand || "N/A"}</TableCell>
-                                <TableCell>{item.model || "N/A"}</TableCell>
+                                <TableCell className="min-w-[190px]">{item.model || "N/A"}</TableCell>
                                 <TableCell>{item.color || "N/A"}</TableCell>
                                 <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
