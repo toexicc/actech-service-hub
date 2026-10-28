@@ -286,6 +286,14 @@ const ServiceTracking = () => {
   const [selectedIdx, setSelectedIdx] = useState<number[]>([]);
   const [optionChoice, setOptionChoice] = useState<Record<number, string>>({});
 
+  // Phone PIN gate
+  const [pinTarget, setPinTarget] = useState<string | null>(null);
+  const [pinValue, setPinValue] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinChecking, setPinChecking] = useState(false);
+  const [pinFails, setPinFails] = useState(0);
+  const [pinLockedUntil, setPinLockedUntil] = useState(0);
+
 
 
   const { toast } = useToast();
