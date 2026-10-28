@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
