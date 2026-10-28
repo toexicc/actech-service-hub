@@ -376,6 +376,16 @@ const ServiceTracking = () => {
       // fallback for very old tickets that were never migrated.
       const snapshot = await fetchPublicServiceSnapshot(targetId);
 
+      if (!snapshot) {
+        const { data: pinStatus } = await supabase.rpc("public_track_pin_status", { _service_id: targetId });
+        if (pinStatus === "needs_pin" || pinStatus === "no_contact") {
+          setPinError(pinStatus === "no_contact" ? "No phone number is on file for this ticket. Please contact the front desk." : "");
+          setPinValue("");
+          setPinTarget(targetId.toUpperCase());
+          return;
+        }
+      }
+
       let sheetRecord: any = null;
       try {
         const response = await fetch(
