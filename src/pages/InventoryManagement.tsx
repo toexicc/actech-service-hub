@@ -1473,9 +1473,9 @@ const InventoryManagement = () => {
 
         {/* Stats */}
         <div className="grid gap-3 md:grid-cols-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Parts</p>
                   <p className="text-2xl font-bold">{inventory.length}</p>
@@ -1485,9 +1485,9 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Stock</p>
                   <p className="text-xl sm:text-2xl font-bold text-green-600">
@@ -1499,9 +1499,9 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Low Stock</p>
                   <p className="text-xl sm:text-2xl font-bold text-orange-600">{lowStockCount}</p>
@@ -1511,9 +1511,9 @@ const InventoryManagement = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+          <Card className="h-full">
+            <CardContent className="flex h-full items-center p-4">
+              <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Out of Stock</p>
                   <p className="text-xl sm:text-2xl font-bold text-destructive">{outOfStockCount}</p>
@@ -1737,8 +1737,8 @@ const InventoryManagement = () => {
                                 </TableCell>
                                 <TableCell>{item.partName}</TableCell>
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
-                                <TableCell className="max-w-[120px] truncate" title={item.brand || ""}>{item.brand || "N/A"}</TableCell>
-                                <TableCell className="max-w-[140px] truncate" title={item.model || ""}>{item.model || "N/A"}</TableCell>
+                                <TableCell>{item.brand || "N/A"}</TableCell>
+                                <TableCell>{item.model || "N/A"}</TableCell>
                                 <TableCell>{item.color || "N/A"}</TableCell>
                                 <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
@@ -1758,9 +1758,7 @@ const InventoryManagement = () => {
                                   </span>
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap text-xs">{formatTimestamp(item.lastUpdated)}</TableCell>
-                                <TableCell className="max-w-[200px] truncate" title={item.remarks}>
-                                  {item.remarks || "N/A"}
-                                </TableCell>
+                                <TableCell className="whitespace-normal">{item.remarks || "N/A"}</TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                   {item.partId ? (
                                     <Button
