@@ -697,6 +697,8 @@ export type Database = {
       }
       part_requests: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by_name: string | null
           brand: string | null
           cancelled_at: string | null
           cancelled_reason: string | null
@@ -716,6 +718,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_name?: string | null
           brand?: string | null
           cancelled_at?: string | null
           cancelled_reason?: string | null
@@ -735,6 +739,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_name?: string | null
           brand?: string | null
           cancelled_at?: string | null
           cancelled_reason?: string | null
@@ -1454,6 +1460,69 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          delta: number
+          id: string
+          movement_type: string
+          notes: string | null
+          part_id: string | null
+          part_name: string | null
+          part_source: string
+          quantity_after: number
+          quantity_before: number
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          service_id: string | null
+          status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          delta?: number
+          id?: string
+          movement_type: string
+          notes?: string | null
+          part_id?: string | null
+          part_name?: string | null
+          part_source?: string
+          quantity_after?: number
+          quantity_before?: number
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          service_id?: string | null
+          status?: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          delta?: number
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          part_id?: string | null
+          part_name?: string | null
+          part_source?: string
+          quantity_after?: number
+          quantity_before?: number
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          service_id?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -1603,6 +1672,7 @@ export type Database = {
           username: string
         }[]
       }
+      has_inventory_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1618,6 +1688,17 @@ export type Database = {
       is_thread_member: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
+      }
+      notify_inventory_staff: {
+        Args: {
+          _exclude: string
+          _include_management: boolean
+          _link: string
+          _message: string
+          _service_id: string
+          _title: string
+        }
+        Returns: undefined
       }
       public_client_services: {
         Args: { _client_id: string }
@@ -1643,6 +1724,10 @@ export type Database = {
       public_track_pin_status: {
         Args: { _service_id: string }
         Returns: string
+      }
+      review_stock_movement: {
+        Args: { _approve: boolean; _ids: string[]; _reason?: string }
+        Returns: number
       }
       staff_directory: {
         Args: never

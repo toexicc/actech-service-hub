@@ -29,6 +29,13 @@
       "when": 1793207445670,
       "tag": "0003_add_inventory_role",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793207498629,
+      "tag": "0004_stock_movements_and_request_alerts",
+      "breakpoints": true
     }
   ]
 }
