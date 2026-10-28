@@ -2219,7 +2219,7 @@ const ServiceTracking = () => {
               maxLength={4}
               placeholder="••••"
               value={pinValue}
-              onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+              onChange={(e) => { setPinValue(e.target.value.replace(/[^0-9#*]/g, "").slice(0, 4)); setPinError(""); }}
               className="text-center text-lg tracking-[0.5em]"
             />
             {pinError && <p className="text-sm text-destructive">{pinError}</p>}
