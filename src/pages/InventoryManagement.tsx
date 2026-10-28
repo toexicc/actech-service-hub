@@ -1568,10 +1568,7 @@ const InventoryManagement = () => {
             <TabsTrigger value="movements">Movements</TabsTrigger>
             <TabsTrigger value="fast-moving">Pre-Ordered Parts</TabsTrigger>
             {!isViewOnly && (
-              <TabsTrigger value="logs">
-                <FileText className="h-4 w-4 mr-2" />
-                Inventory Logs
-              </TabsTrigger>
+              <TabsTrigger value="logs">Inventory Logs</TabsTrigger>
             )}
           </TabsList>
 
