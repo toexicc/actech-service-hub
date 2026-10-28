@@ -1631,7 +1631,7 @@ const InventoryManagement = () => {
                 </div>
                 {isLoading ? (
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="[&_th]:py-2 [&_td]:py-1.5 [&_td]:text-sm">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Part ID</TableHead>
@@ -1675,7 +1675,7 @@ const InventoryManagement = () => {
                 ) : (
                   <>
                     <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="[&_th]:py-2 [&_td]:py-1.5 [&_td]:text-sm">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="cursor-pointer" onClick={() => handleSort("partId")}>
@@ -1737,8 +1737,8 @@ const InventoryManagement = () => {
                                 </TableCell>
                                 <TableCell>{item.partName}</TableCell>
                                 <TableCell>{item.deviceType || "N/A"}</TableCell>
-                                <TableCell>{item.brand || "N/A"}</TableCell>
-                                <TableCell>{item.model || "N/A"}</TableCell>
+                                <TableCell className="max-w-[120px] truncate" title={item.brand || ""}>{item.brand || "N/A"}</TableCell>
+                                <TableCell className="max-w-[140px] truncate" title={item.model || ""}>{item.model || "N/A"}</TableCell>
                                 <TableCell>{item.color || "N/A"}</TableCell>
                                 <TableCell>{item.partType || "N/A"}</TableCell>
                                 <TableCell className={getStatusColor(item)}>
@@ -1757,7 +1757,7 @@ const InventoryManagement = () => {
                                     {item.status}
                                   </span>
                                 </TableCell>
-                                <TableCell>{item.lastUpdated || "N/A"}</TableCell>
+                                <TableCell className="whitespace-nowrap text-xs">{formatTimestamp(item.lastUpdated)}</TableCell>
                                 <TableCell className="max-w-[200px] truncate" title={item.remarks}>
                                   {item.remarks || "N/A"}
                                 </TableCell>
