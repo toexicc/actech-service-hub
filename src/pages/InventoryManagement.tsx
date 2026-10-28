@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy, X } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, ShoppingCart, RefreshCw, Copy, X, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -942,6 +942,41 @@ const InventoryManagement = () => {
     return filteredAndSortedInventory.slice(startIndex, endIndex);
   }, [filteredAndSortedInventory, currentPage, itemsPerPage]);
 
+  // Export the currently filtered inventory list as CSV
+  const handleDownloadCsv = () => {
+    const headers = ["Part ID", "Part Name", "Device Type", "Brand", "Model", "Color", "Part Type", "Quantity", "Cost per Unit", "Supplier", "Date Ordered", "Status", "Last Updated", "Remarks"];
+    const escapeCsv = (value: any) => {
+      const s = value == null || value === "" ? "" : String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = filteredAndSortedInventory.map((item: any) => ([
+      item.partId,
+      item.partName,
+      item.deviceType || "",
+      item.brand || "",
+      item.model || "",
+      item.color || "",
+      item.partType || "",
+      item.quantity ?? "",
+      item.costPerUnit || "",
+      item.supplier || "",
+      item.dateOrdered || "",
+      item.status || "",
+      formatTimestamp(item.lastUpdated),
+      item.remarks || "",
+    ]));
+    const csv = [headers, ...rows].map((r) => r.map(escapeCsv).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inventory-items-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  };
+
   // Filtered and sorted logs (most recent first)
   const filteredLogs = useMemo(() => {
     const filtered = logs.filter(log => {
@@ -1625,6 +1660,10 @@ const InventoryManagement = () => {
                       <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Button variant="outline" onClick={handleDownloadCsv} disabled={isLoading} title="Download CSV">
+                    <Download className="h-4 w-4 mr-1" />
+                    CSV
+                  </Button>
                   <Button variant="outline" size="icon" onClick={() => { refetchInventory(); refetchLogs(); }} disabled={isLoading || isLogsLoading} title="Reload table">
                     <RefreshCw className={`h-4 w-4 ${isLoading || isLogsLoading ? "animate-spin" : ""}`} />
                   </Button>
