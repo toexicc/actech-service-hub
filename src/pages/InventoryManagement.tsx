@@ -151,6 +151,31 @@ const InventoryManagement = () => {
     status: "In Stock",
     remarks: ""
   });
+  const [duplicateFrom, setDuplicateFrom] = useState<string | null>(null);
+
+  // Fill the Add New Part form from an existing part (Duplicate / Use as template)
+  const prefillFromPart = (item: InventoryItem, markDuplicate: boolean) => {
+    const pt = item.partType || "";
+    const preset = ["OEM", "Original"].includes(pt);
+    setNewPart({
+      partName: item.partName || "",
+      deviceType: item.deviceType || "",
+      brand: item.brand || "",
+      model: item.model || "",
+      partType: pt ? (preset ? pt : "Others") : "",
+      partTypeOther: pt && !preset ? pt : "",
+      color: item.color || "",
+      quantity: "0",
+      orderedQuantity: "",
+      dateOrdered: "",
+      supplier: item.supplier || "",
+      costPerUnit: item.costPerUnit || "",
+      status: "In Stock",
+      remarks: "",
+    });
+    if (markDuplicate) setDuplicateFrom(item.partId);
+    setIsAddDialogOpen(true);
+  };
 
   // Batch add parts state
   const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
@@ -826,13 +851,13 @@ const InventoryManagement = () => {
       if (brandFilter !== "all" && item.model !== brandFilter) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
       
-      if (debouncedSearch) {
-        const query = debouncedSearch.toLowerCase();
-        return (
-          item.partId.toLowerCase().includes(query) ||
-          item.partName.toLowerCase().includes(query) ||
-          item.model.toLowerCase().includes(query)
-        );
+      if (debouncedSearch.trim()) {
+        const haystack = [
+          item.partId, item.partName, item.brand, item.deviceType, item.model,
+          item.color, item.partType, item.supplier, item.status, item.remarks,
+        ].filter(Boolean).join(" ").toLowerCase();
+        const tokens = debouncedSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        return tokens.every((t) => haystack.includes(t));
       }
       
       return true;
@@ -1132,8 +1157,10 @@ const InventoryManagement = () => {
                 </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Part</DialogTitle>
-                <DialogDescription>Register a new part in the inventory</DialogDescription>
+                <DialogTitle>{duplicateFrom ? `Duplicate of ${duplicateFrom}` : "Add New Part"}</DialogTitle>
+                <DialogDescription>
+                  {duplicateFrom ? "Change what differs (model, color, part type…) and save as a new part" : "Register a new part in the inventory"}
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -1322,6 +1349,43 @@ const InventoryManagement = () => {
                     placeholder="Additional notes..."
                   />
                 </div>
+
+                {similarParts.length > 0 && (
+                  <div className="space-y-2 rounded-md border bg-muted/40 p-3">
+                    <p className="text-sm font-medium">
+                      {similarParts.some((s) => s.exact) ? "This part may already exist" : "Similar existing parts"}
+                    </p>
+                    <div className="space-y-2">
+                      {similarParts.map(({ item: s, exact }) => (
+                        <div key={s.partId} className={cn("flex flex-col gap-2 rounded border bg-background p-2 sm:flex-row sm:items-center sm:justify-between", exact && "border-destructive")}>
+                          <div className="min-w-0 text-xs">
+                            <div className="font-medium text-sm truncate">{s.partName}</div>
+                            <div className="text-muted-foreground">
+                              {[s.partId, s.brand, s.deviceType, s.model, s.color, s.partType].filter(Boolean).join(" · ")} · Qty {s.quantity}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => prefillFromPart(s, false)}>
+                              Use as template
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setIsAddDialogOpen(false);
+                                setEditingPart(s);
+                                setIsEditDialogOpen(true);
+                              }}
+                            >
+                              Open
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
@@ -1402,7 +1466,7 @@ const InventoryManagement = () => {
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Part ID, Name, Model..."
+                    placeholder="Search ID, name, brand, model, color, type..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8"
@@ -1671,6 +1735,15 @@ const InventoryManagement = () => {
                                         }}
                                       >
                                         <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        title="Duplicate this part"
+                                        aria-label="Duplicate part"
+                                        onClick={() => prefillFromPart(item, true)}
+                                      >
+                                        <Copy className="h-4 w-4" />
                                       </Button>
                                       <Button
                                         size="sm"
