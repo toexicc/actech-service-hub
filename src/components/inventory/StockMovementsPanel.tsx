@@ -120,6 +120,9 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
 
   const pendingVisible = filtered.filter((r) => r.status === "pending");
   const allChecked = pendingVisible.length > 0 && pendingVisible.every((r) => selected.has(r.id));
+  // The select-all circle and action buttons only matter when something is waiting for review.
+  const showReviewCols = canReview && pendingVisible.length > 0;
+  const colCount = 9 - (canReview && !showReviewCols ? 1 : 0) - (canReview && !showReviewCols ? 1 : 0);
 
   return (
     <Card>
