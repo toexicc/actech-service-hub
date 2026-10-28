@@ -76,7 +76,7 @@ const StaffManagement = () => {
         username: staff.username,
         password: staff.password,
         name: staff.name,
-        role: staff.role?.toLowerCase() as "admin" | "technician" | "management",
+        role: (staff.hasInventory && staff.role?.toLowerCase() === "admin" ? "admin_inventory" : staff.role?.toLowerCase()) as any,
         department: staff.department,
         status: staff.status?.toLowerCase() as "active" | "inactive",
         salary: staff.salary || "",
@@ -477,6 +477,7 @@ const StaffManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="admin_inventory">Admin + Inventory</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
@@ -577,6 +578,7 @@ const StaffManagement = () => {
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="admin_inventory">Admin + Inventory</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
@@ -636,14 +638,14 @@ const StaffManagement = () => {
                           <TableCell>
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                staff.role === "admin"
+                                (staff.role === "admin" || staff.role === "admin_inventory")
                                   ? "bg-purple-100 text-purple-800"
                                   : staff.role === "technician"
                                   ? "bg-blue-100 text-blue-800"
                                   : "bg-gray-100 text-gray-800"
                               }`}
                             >
-                              {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}
+                              {staff.role === "admin_inventory" ? "Admin + Inventory" : staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}
                             </span>
                           </TableCell>
                           <TableCell>{staff.department || "-"}</TableCell>
@@ -816,6 +818,7 @@ const StaffManagement = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="admin_inventory">Admin + Inventory</SelectItem>
                         <SelectItem value="technician">Technician</SelectItem>
                         <SelectItem value="management">Management</SelectItem>
                       </SelectContent>
