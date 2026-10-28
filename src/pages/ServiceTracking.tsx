@@ -2174,6 +2174,63 @@ const ServiceTracking = () => {
         filename={pdfModalFilename}
       />
 
+      <Dialog open={!!pinTarget} onOpenChange={(o) => { if (!o) setPinTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4" /> Verify it's you</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!pinTarget || pinValue.length !== 4) return;
+              if (Date.now() < pinLockedUntil) {
+                setPinError("Too many tries. Please wait a few minutes and try again.");
+                return;
+              }
+              setPinChecking(true);
+              const snap = await fetchPublicServiceSnapshot(pinTarget, pinValue);
+              setPinChecking(false);
+              if (snap) {
+                setTrackPin(pinTarget, pinValue);
+                const id = pinTarget;
+                setPinTarget(null);
+                setPinFails(0);
+                handleSearch(id);
+              } else {
+                const fails = pinFails + 1;
+                setPinFails(fails);
+                if (fails >= 5) {
+                  setPinLockedUntil(Date.now() + 5 * 60 * 1000);
+                  setPinFails(0);
+                  setPinError("Too many tries. Please wait a few minutes and try again.");
+                } else {
+                  setPinError("Doesn't match our records. Please try again.");
+                }
+              }
+            }}
+          >
+            <p className="text-sm text-muted-foreground">
+              Enter the last 4 digits of the phone number you gave us for <span className="font-mono font-medium text-foreground">{pinTarget}</span>.
+            </p>
+            <Input
+              inputMode="numeric"
+              autoFocus
+              maxLength={4}
+              placeholder="••••"
+              value={pinValue}
+              onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+              className="text-center text-lg tracking-[0.5em]"
+            />
+            {pinError && <p className="text-sm text-destructive">{pinError}</p>}
+            <Button type="submit" className="w-full" disabled={pinValue.length !== 4 || pinChecking}>
+              {pinChecking ? "Checking…" : "Open my ticket"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+
       <AlertDialog open={confirmApproveOpen} onOpenChange={setConfirmApproveOpen}>
         <AlertDialogContent className="!flex !flex-col gap-4 max-h-[90dvh] overflow-hidden sm:max-w-lg">
           <AlertDialogHeader className="shrink-0">
