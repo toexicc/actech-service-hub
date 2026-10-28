@@ -193,11 +193,9 @@ const ServiceForm = ({
         staff.role?.toLowerCase() === "technician" &&
         staff.status?.toLowerCase() !== "inactive" &&
         staff.name !== SPECIAL_CASE_TECHNICIAN &&
-        // Hide absent / on-leave technicians from assignment.
-        (showUnavailableTechs ||
-          !availability ||
-          (!availability.isOnLeave(staff.name) &&
-            (!availability.hasAttendanceToday || availability.isAvailable(staff.name))))
+        // Every active technician stays in the pool all day unless on approved
+        // leave — timing in earlier must not change who receives tickets.
+        (showUnavailableTechs || !availability || !availability.isOnLeave(staff.name))
       )
       .map((staff) => ({
         name: staff.name,
@@ -583,13 +581,10 @@ const ServiceForm = ({
     setIsSubmitting(true);
 
 
-    // Auto-assign technicians (internal form only) via round-robin across
-    // the technicians of each selected department. Fairness is measured on the
-    // technician's *live* workload only: tickets that are already closed out
-    // (Completed / Cancelled / any RTO) or that have been dropped back to the
-    // client (Done Repair - Advise Client) are dead weight and must not make a
-    // technician look permanently overloaded. We also ignore anything older
-    // than 45 days so a stale backlog can't freeze the rotation.
+    // Auto-assign technicians (internal form only) via a daily round-robin:
+    // whoever has received the fewest tickets today (Manila date) gets the
+    // next one; ties go to whoever was assigned longest ago, then to a roster
+    // order that rotates each day (never alphabetical favouritism).
     if (!isPublic) {
       const depts = (data.technicianDepartments || "")
         .split(",")
@@ -597,43 +592,15 @@ const ServiceForm = ({
         .filter(Boolean);
       if (depts.length > 0) {
         try {
-          const CLOSED = [
-            "Completed",
-            "Cancelled",
-            "RTO",
-            "RTO - ACTech",
-            "RTO - Client",
-            "Done Repair - Advise Client",
-          ];
-          const since = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: rows } = await supabase
-            .from("services")
-            .select("technicians,status")
-            .not("status", "in", `(${CLOSED.map((s) => `"${s}"`).join(",")})`)
-            .gte("date_received", since);
-          const loadCount = new Map<string, number>();
-          (rows ?? []).forEach((r: any) => {
-            (r.technicians ?? []).forEach((t: string) => {
-              const key = String(t).trim();
-              if (!key) return;
-              loadCount.set(key, (loadCount.get(key) ?? 0) + 1);
-            });
-          });
-
+          const { loadCount, lastAt } = await fetchTodayAssignments();
           const assigned: string[] = [];
           for (const dept of depts) {
-            const pool = technicianList.filter((t) => t.department === dept);
+            const pool = technicianList.filter((t) => t.department === dept && !assigned.includes(t.name));
             if (pool.length === 0) continue;
-            const sorted = [...pool].sort((a, b) => {
-              const la = loadCount.get(a.name) ?? 0;
-              const lb = loadCount.get(b.name) ?? 0;
-              if (la !== lb) return la - lb;
-              return a.name.localeCompare(b.name);
-            });
-            const pick = sorted[0].name;
-            if (!assigned.includes(pick)) assigned.push(pick);
-            // Optimistically bump their load so a second dept doesn't pick the same tech.
+            const pick = pickRoundRobin(pool.map((t) => t.name), loadCount, lastAt, manilaDayNumber());
+            assigned.push(pick);
             loadCount.set(pick, (loadCount.get(pick) ?? 0) + 1);
+            lastAt.set(pick, Date.now());
           }
           if (assigned.length === 0) {
             toast({
