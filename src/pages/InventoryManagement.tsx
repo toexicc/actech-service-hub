@@ -5,6 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import { InventoryOverview } from "@/components/inventory/InventoryOverview";
+import { PartRequestsInbox } from "@/components/inventory/PartRequestsInbox";
+import { StockMovementsPanel } from "@/components/inventory/StockMovementsPanel";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,7 +79,8 @@ const InventoryManagement = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   
   // Check if user is admin (view-only mode)
-  const isViewOnly = userRole === "admin";
+  const { hasInventoryAccess } = useAuth();
+  const isViewOnly = userRole === "admin" && !hasInventoryAccess;
   
   useEffect(() => {
     if (!sessionStorage.getItem("authenticated")) {
@@ -90,7 +95,7 @@ const InventoryManagement = () => {
   // Update tab when URL params change
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && ["items", "logs", "fast-moving"].includes(tabFromUrl)) {
+    if (tabFromUrl && ["overview", "items", "requests", "movements", "logs", "fast-moving"].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -1467,11 +1472,14 @@ const InventoryManagement = () => {
 
         {/* Tabs for Inventory Items and Logs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full max-w-lg ${isViewOnly ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="items">
               <Package className="h-4 w-4 mr-2" />
               Inventory Items
             </TabsTrigger>
+            <TabsTrigger value="requests">Requests</TabsTrigger>
+            <TabsTrigger value="movements">Movements</TabsTrigger>
             <TabsTrigger value="fast-moving">
               <ShoppingCart className="h-4 w-4 mr-2" />
               Pre-Ordered Parts
@@ -1483,6 +1491,16 @@ const InventoryManagement = () => {
               </TabsTrigger>
             )}
           </TabsList>
+
+          <TabsContent value="overview">
+            <InventoryOverview />
+          </TabsContent>
+          <TabsContent value="requests">
+            <PartRequestsInbox stockByPart={new Map(inventory.map((i: any) => [i.partId, i.quantity]))} />
+          </TabsContent>
+          <TabsContent value="movements">
+            <StockMovementsPanel canReview={hasInventoryAccess} />
+          </TabsContent>
 
           {/* Inventory Items Tab */}
           <TabsContent value="items">

@@ -13,6 +13,8 @@ export interface StaffMember {
   salaryType?: string;
   email?: string;
   userId?: string;
+  /** Has the extra inventory role (Admin + Inventory). */
+  hasInventory?: boolean;
 }
 
 const fetchStaffList = async (): Promise<StaffMember[]> => {
@@ -38,7 +40,9 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
     }
   }
   const roleMap = new Map<string, string>();
+  const inventoryIds = new Set<string>();
   (roles ?? []).forEach((r: any) => {
+    if (r.role === "inventory") { inventoryIds.add(r.user_id); return; }
     const prev = roleMap.get(r.user_id);
     const rank = (x: string) => (x === "admin" ? 3 : x === "management" ? 2 : x === "technician" ? 1 : 0);
     if (!prev || rank(r.role) > rank(prev)) roleMap.set(r.user_id, r.role);
@@ -65,6 +69,7 @@ const fetchStaffList = async (): Promise<StaffMember[]> => {
     salaryType: p.salary_type ?? "monthly",
     email: emails[p.id] ?? p.username ?? "",
     userId: p.id,
+    hasInventory: inventoryIds.has(p.id),
   }));
 };
 

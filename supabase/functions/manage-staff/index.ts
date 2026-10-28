@@ -9,7 +9,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 
-type Role = "admin" | "technician" | "management";
+type Role = "admin" | "technician" | "management" | "admin_inventory";
+// "admin_inventory" is stored as two role rows: admin + inventory.
+const rolesFor = (role: Role): string[] => (role === "admin_inventory" ? ["admin", "inventory"] : [role]);
 
 interface CreateBody {
   action: "create";
@@ -121,7 +123,7 @@ Deno.serve(async (req) => {
       });
       // Remove the auto-assigned admin role if this isn't the bootstrap user
       await admin.from("user_roles").delete().eq("user_id", uid);
-      await admin.from("user_roles").insert({ user_id: uid, role: body.role });
+      await admin.from("user_roles").insert(rolesFor(body.role).map((role) => ({ user_id: uid, role })));
       return new Response(JSON.stringify({ ok: true, user_id: uid }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -148,7 +150,7 @@ Deno.serve(async (req) => {
       if (body.role) {
         const { error: delErr } = await admin.from("user_roles").delete().eq("user_id", body.user_id);
         if (delErr) return fail(`Role update failed — ${delErr.message}`);
-        const { error: insErr } = await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
+        const { error: insErr } = await admin.from("user_roles").insert(rolesFor(body.role).map((role) => ({ user_id: body.user_id, role })));
         if (insErr) return fail(`Role update failed — ${insErr.message}`);
       }
       let passwordChanged = false;
