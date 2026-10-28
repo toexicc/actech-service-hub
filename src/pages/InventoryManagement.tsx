@@ -1040,6 +1040,26 @@ const InventoryManagement = () => {
     return "";
   };
 
+  const formatTimestamp = (value: string) => {
+    if (!value) return "N/A";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(d).reduce<Record<string, string>>((acc, p) => {
+      acc[p.type] = p.value;
+      return acc;
+    }, {});
+    return `${parts.month}/${parts.day}/${parts.year} - ${parts.hour}:${parts.minute}:${parts.second}`;
+  };
+
   const lowStockCount = inventory.filter(i => i.quantity > 0 && i.quantity < 5).length;
   const outOfStockCount = inventory.filter(i => i.quantity === 0 || i.status === "Out of Stock").length;
 
@@ -1452,9 +1472,9 @@ const InventoryManagement = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="grid gap-3 md:grid-cols-4 mb-6">
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Parts</p>
