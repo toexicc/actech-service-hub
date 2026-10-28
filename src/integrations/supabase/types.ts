@@ -1658,7 +1658,7 @@ export type Database = {
       tidy_device_value: { Args: { _v: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "technician" | "management"
+      app_role: "admin" | "technician" | "management" | "inventory"
       service_file_kind:
         | "intake"
         | "quotation"
@@ -1812,7 +1812,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "technician", "management"],
+      app_role: ["admin", "technician", "management", "inventory"],
       service_file_kind: [
         "intake",
         "quotation",
