@@ -230,7 +230,7 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
                       <div className="mt-1 text-xs text-muted-foreground">{r.reviewed_by_name}{r.review_reason ? ` — ${r.review_reason}` : ""}</div>
                     )}
                   </td>
-                  {canReview && (
+                  {showReviewCols && (
                     <td className="whitespace-nowrap p-2 text-right">
                       {r.status === "pending" && (
                         <div className="flex justify-end gap-1">
