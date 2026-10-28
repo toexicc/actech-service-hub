@@ -845,6 +845,34 @@ const InventoryManagement = () => {
     return Array.from(modelSet).sort();
   }, [inventory]);
 
+  // Suggest existing parts that look like the one being added
+  const debouncedNewName = useDebounce(newPart.partName, 250);
+  const similarParts = useMemo(() => {
+    const norm = (s?: string) => (s || "").toLowerCase().trim();
+    const nameTokens = norm(debouncedNewName).split(/\s+/).filter((t) => t.length >= 2);
+    if (!isAddDialogOpen || nameTokens.length === 0) return [];
+    const typed = newPart.partType === "Others" ? newPart.partTypeOther : newPart.partType;
+    return inventory
+      .map((item) => {
+        const name = norm(item.partName);
+        const hits = nameTokens.filter((t) => name.includes(t)).length;
+        let score = hits / nameTokens.length;
+        if (newPart.brand && norm(item.brand) === norm(newPart.brand)) score += 0.3;
+        if (newPart.model && norm(item.model) === norm(newPart.model)) score += 0.3;
+        if (newPart.deviceType && item.deviceType === newPart.deviceType) score += 0.1;
+        const exact =
+          name === norm(debouncedNewName) &&
+          norm(item.brand) === norm(newPart.brand) &&
+          norm(item.model) === norm(newPart.model) &&
+          norm(item.color) === norm(newPart.color) &&
+          norm(item.partType) === norm(typed);
+        return { item, score, exact, hits };
+      })
+      .filter((r) => r.hits > 0 && r.score >= 0.5)
+      .sort((a, b) => Number(b.exact) - Number(a.exact) || b.score - a.score)
+      .slice(0, 5);
+  }, [inventory, debouncedNewName, newPart.brand, newPart.model, newPart.deviceType, newPart.color, newPart.partType, newPart.partTypeOther, isAddDialogOpen]);
+
   const filteredAndSortedInventory = useMemo(() => {
     let filtered = inventory.filter(item => {
       if (deviceTypeFilter !== "all" && item.deviceType !== deviceTypeFilter) return false;
