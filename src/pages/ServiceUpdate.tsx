@@ -241,7 +241,7 @@ const ServiceUpdate = () => {
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
   const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
-  // Only technicians on approved leave are hidden, not absent technicians;
+  // New assignments require today's time-in and no approved leave;
   // technicians already on this ticket are always kept so the field never blanks.
   const technicians = useMemo(() => {
     const assigned = new Set(
@@ -253,8 +253,7 @@ const ServiceUpdate = () => {
     return technicianData
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
-        if (showUnavailableTechs || !availability) return true;
-        return availability.isAvailable(staff.name);
+        return availability?.isAvailable(staff.name) ?? false;
       })
       .map((staff) => ({
         name: staff.name,

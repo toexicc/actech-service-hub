@@ -194,9 +194,8 @@ const ServiceForm = ({
         staff.role?.toLowerCase() === "technician" &&
         staff.status?.toLowerCase() !== "inactive" &&
         staff.name !== SPECIAL_CASE_TECHNICIAN &&
-        // Every active technician stays in the pool all day unless on approved
-        // leave — timing in earlier must not change who receives tickets.
-        (showUnavailableTechs || !availability || !availability.isOnLeave(staff.name))
+        // Only present staff without approved leave can receive new tickets.
+        (showUnavailableTechs || availability?.isAvailable(staff.name))
       )
       .map((staff) => ({
         name: staff.name,
@@ -596,7 +595,10 @@ const ServiceForm = ({
           const { loadCount, lastAt } = await fetchTodayAssignments();
           const assigned: string[] = [];
           for (const dept of depts) {
-            const pool = technicianList.filter((t) => t.department === dept && !assigned.includes(t.name));
+            const pool = technicianList.filter((t) =>
+              t.department === dept && !assigned.includes(t.name) &&
+              availability?.isAvailable(t.name)
+            );
             if (pool.length === 0) continue;
             const pick = pickRoundRobin(pool.map((t) => t.name), loadCount, lastAt, manilaDayNumber());
             assigned.push(pick);
@@ -606,7 +608,7 @@ const ServiceForm = ({
           if (assigned.length === 0) {
             toast({
               title: "No technicians available",
-              description: "None of the selected departments have active technicians.",
+              description: "No eligible technicians have timed in today in the selected departments, or they are on approved leave.",
               variant: "destructive",
             });
             setIsSubmitting(false);

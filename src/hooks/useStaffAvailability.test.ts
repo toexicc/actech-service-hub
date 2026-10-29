@@ -32,21 +32,21 @@ const availability = () => useStaffAvailability(new Date("2026-10-29T09:49:00Z")
   isAvailable: (name: string) => boolean;
 }>;
 
-describe("technician attendance independence", () => {
+describe("technician attendance eligibility", () => {
   beforeEach(() => {
     records.attendance = [];
     records.leaves = [];
   });
 
-  it("keeps an absent technician eligible when another has timed in", async () => {
+  it("excludes an absent technician when another has timed in", async () => {
     records.attendance = [{ staff_id: "early", staff_name: "Early Technician", time_in: "2026-10-29T01:00:00Z" }];
     const result = await availability();
-    expect(result.isAvailable("Absent Technician")).toBe(true);
+    expect(result.isAvailable("Absent Technician")).toBe(false);
     expect(result.isAvailable("Early Technician")).toBe(true);
   });
 
-  it("keeps technicians eligible before anyone has timed in", async () => {
-    expect((await availability()).isAvailable("Active Technician")).toBe(true);
+  it("excludes technicians before anyone has timed in", async () => {
+    expect((await availability()).isAvailable("Active Technician")).toBe(false);
   });
 
   it("excludes approved leave even when the technician timed in", async () => {

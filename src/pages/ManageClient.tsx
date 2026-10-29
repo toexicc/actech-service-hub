@@ -323,8 +323,8 @@ const ManageClient = () => {
   };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
-  // Every active technician remains eligible regardless of attendance; only
-  // approved leave excludes them. Technicians already assigned are ALWAYS kept
+  // New assignments require today's time-in and no approved leave.
+  // Technicians already assigned are ALWAYS kept
   // in the list, otherwise the field renders blank and the assignment is lost.
   const technicians = useMemo(() => {
     const assigned = new Set(
@@ -336,8 +336,7 @@ const ManageClient = () => {
     return technicianData
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
-        if (showUnavailableTechs || !availability) return true;
-        return availability.isAvailable(staff.name);
+        return availability?.isAvailable(staff.name) ?? false;
       })
       .map((staff) => ({
         name: staff.name,
