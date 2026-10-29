@@ -2537,8 +2537,8 @@ const ManageClient = () => {
                     <TicketFlagsPanel
                       service={serviceData}
                       canEditNote={userRole === "management" || userRole === "admin"}
-                      canToggleWaitingForParts={userRole === "management"}
-                      canToggleOrdered={userRole === "management"}
+                      canToggleWaitingForParts={canTogglePartFlags}
+                      canToggleOrdered={canTogglePartFlags}
                       onChange={(patch) => setServiceData((prev: any) => (prev ? { ...prev, ...patch } : prev))}
                     />
                   )}
