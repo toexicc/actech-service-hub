@@ -349,7 +349,7 @@ export function TicketFlagsPanel({
                 ? "Repair paused — parts/supplies are being procured. Turnaround time is not counting."
                 : canToggleWaitingForParts && !readOnlyToggles
                   ? "Turn on when the repair is paused while parts/supplies are being procured."
-                  : "Only management can switch this on or off."}
+                  : "Only management or inventory staff can switch this on or off."}
             </p>
           </div>
           <Switch
@@ -367,7 +367,7 @@ export function TicketFlagsPanel({
                 ? "The parts for this ticket have been ordered."
                 : canToggleOrdered && !readOnlyToggles
                   ? "Turn on once the parts have been ordered — this switches Waiting for Parts off."
-                  : "Only management can switch this on or off."}
+                  : "Only management or inventory staff can switch this on or off."}
             </p>
           </div>
           <Switch checked={!!service?.partsOrdered} disabled={busyOrdered || readOnlyToggles || !canToggleOrdered} onCheckedChange={toggleOrdered} />

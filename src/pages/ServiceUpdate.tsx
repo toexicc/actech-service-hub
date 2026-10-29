@@ -171,6 +171,10 @@ const ServiceUpdate = () => {
 
   const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Unknown";
   const userRole = sessionStorage.getItem("userRole") || "Unknown";
+  // Management, and Admin + Inventory staff, may switch the Ordered flag.
+  const canTogglePartFlags =
+    userRole.toLowerCase() === "management" ||
+    (userRole.toLowerCase() === "admin" && sessionStorage.getItem("hasInventoryRole") === "true");
   
   // Get current user's full name if they're a technician
   const currentUserFullName = useMemo(() => {
@@ -1556,7 +1560,7 @@ const ServiceUpdate = () => {
                     }
                     showBackjob={false}
                     readOnlyToggles={userRole === "technician"}
-                    canToggleOrdered={userRole === "management"}
+                    canToggleOrdered={canTogglePartFlags}
                     canEditTechNote
                   />
                 )}
