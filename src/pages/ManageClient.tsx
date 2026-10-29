@@ -214,6 +214,10 @@ const ManageClient = () => {
   const userRole = (sessionStorage.getItem("userRole") || "").toLowerCase();
   const canEditAdminRep = userRole === "admin" || userRole === "management";
   const canDeleteService = userRole === "management";
+  // Management, and Admin + Inventory staff, may switch the parts flags.
+  const canTogglePartFlags =
+    userRole === "management" ||
+    (userRole === "admin" && sessionStorage.getItem("hasInventoryRole") === "true");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [isDeletingService, setIsDeletingService] = useState(false);
