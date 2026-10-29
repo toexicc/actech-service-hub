@@ -251,7 +251,6 @@ const ManageClient = () => {
 
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
-  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // (technician option list is derived further below, once the assigned
   // technician state exists, so assigned staff are never filtered out)
 
@@ -343,7 +342,7 @@ const ManageClient = () => {
         department: staff.department || "",
         displayName: `${staff.name} - ${staff.department || ""}`,
       }));
-  }, [technicianData, availability, showUnavailableTechs, updateTechnician]);
+  }, [technicianData, availability, updateTechnician]);
 
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
@@ -2819,15 +2818,6 @@ const ManageClient = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <Label htmlFor="technician">Technician:</Label>
-                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <input
-                            type="checkbox"
-                            className="h-3.5 w-3.5 accent-primary"
-                            checked={showUnavailableTechs}
-                            onChange={(e) => setShowUnavailableTechs(e.target.checked)}
-                          />
-                          Show unavailable staff
-                        </label>
                       </div>
 
                       <MultiSelect
