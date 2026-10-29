@@ -323,9 +323,8 @@ const ManageClient = () => {
   };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
-  // Technicians who are absent (no Time In today) or on leave are hidden so they
-  // don't get assigned. When no attendance exists yet for the day we only hide
-  // staff on leave. Technicians already assigned to this ticket are ALWAYS kept
+  // Every active technician remains eligible regardless of attendance; only
+  // approved leave excludes them. Technicians already assigned are ALWAYS kept
   // in the list, otherwise the field renders blank and the assignment is lost.
   const technicians = useMemo(() => {
     const assigned = new Set(
@@ -338,8 +337,6 @@ const ManageClient = () => {
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
         if (showUnavailableTechs || !availability) return true;
-        if (availability.isOnLeave(staff.name)) return false;
-        if (!availability.hasAttendanceToday) return true;
         return availability.isAvailable(staff.name);
       })
       .map((staff) => ({
