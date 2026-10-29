@@ -16,9 +16,9 @@ export interface LeaveRecord {
 const normName = (n: string) => String(n ?? "").split(" - ")[0].trim().toLowerCase();
 
 /**
- * Staff availability for a given day: a person counts as available when they
- * have timed in for the day and are not on an approved leave.
- * Used to keep absent / on-leave technicians out of assignment dropdowns.
+ * Assignment availability for a given day: approved leave is the only
+ * attendance-related exclusion. Callers supply the active technician roster;
+ * absence or time-in timing must not remove anyone from that roster.
  */
 export const useStaffAvailability = (day: Date = new Date()) => {
   const dayKey = format(day, "yyyy-MM-dd");
@@ -65,11 +65,11 @@ export const useStaffAvailability = (day: Date = new Date()) => {
           status: l.status,
           notes: l.notes,
         })) as LeaveRecord[],
-        /** True when the person timed in today and is not on leave. */
+        /** True for a named roster member not on approved leave, even if absent. */
         isAvailable: (name: string) => {
           const n = normName(name);
           if (!n) return false;
-          return presentNames.has(n) && !onLeaveNames.has(n);
+          return !onLeaveNames.has(n);
         },
         isOnLeave: (name: string) => onLeaveNames.has(normName(name)),
         hasAttendanceToday: presentNames.size > 0,
