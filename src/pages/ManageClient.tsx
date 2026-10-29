@@ -251,7 +251,6 @@ const ManageClient = () => {
 
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
-  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // (technician option list is derived further below, once the assigned
   // technician state exists, so assigned staff are never filtered out)
 
@@ -323,8 +322,8 @@ const ManageClient = () => {
   };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
-  // Every active technician remains eligible regardless of attendance; only
-  // approved leave excludes them. Technicians already assigned are ALWAYS kept
+  // New assignments require today's time-in and no approved leave.
+  // Technicians already assigned are ALWAYS kept
   // in the list, otherwise the field renders blank and the assignment is lost.
   const technicians = useMemo(() => {
     const assigned = new Set(
@@ -336,15 +335,14 @@ const ManageClient = () => {
     return technicianData
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
-        if (showUnavailableTechs || !availability) return true;
-        return availability.isAvailable(staff.name);
+        return availability?.isAvailable(staff.name) ?? false;
       })
       .map((staff) => ({
         name: staff.name,
         department: staff.department || "",
         displayName: `${staff.name} - ${staff.department || ""}`,
       }));
-  }, [technicianData, availability, showUnavailableTechs, updateTechnician]);
+  }, [technicianData, availability, updateTechnician]);
 
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
@@ -2820,15 +2818,6 @@ const ManageClient = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <Label htmlFor="technician">Technician:</Label>
-                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <input
-                            type="checkbox"
-                            className="h-3.5 w-3.5 accent-primary"
-                            checked={showUnavailableTechs}
-                            onChange={(e) => setShowUnavailableTechs(e.target.checked)}
-                          />
-                          Show unavailable staff
-                        </label>
                       </div>
 
                       <MultiSelect
@@ -2849,7 +2838,7 @@ const ManageClient = () => {
                             group: tech.department,
                           });
                           const withSpecial = (opts: { label: string; value: string; group: string }[]) => [
-                            specialOption,
+                            ...(technicians.some((tech) => tech.name === SPECIAL_CASE_TECH) ? [specialOption] : []),
                             ...opts.filter((o) => o.value !== SPECIAL_CASE_TECH),
                           ];
 

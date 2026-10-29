@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 export interface LeaveRecord {
   id: string;
@@ -16,12 +16,11 @@ export interface LeaveRecord {
 const normName = (n: string) => String(n ?? "").split(" - ")[0].trim().toLowerCase();
 
 /**
- * Assignment availability for a given day: approved leave is the only
- * attendance-related exclusion. Callers supply the active technician roster;
- * absence or time-in timing must not remove anyone from that roster.
+ * Assignment availability requires today's time-in and no approved leave.
+ * Callers supply the active technician roster. Time-in order is not priority.
  */
 export const useStaffAvailability = (day: Date = new Date()) => {
-  const dayKey = format(day, "yyyy-MM-dd");
+  const dayKey = formatInTimeZone(day, "Asia/Manila", "yyyy-MM-dd");
   return useQuery({
     queryKey: ["staffAvailability", dayKey],
     queryFn: async () => {
@@ -65,11 +64,11 @@ export const useStaffAvailability = (day: Date = new Date()) => {
           status: l.status,
           notes: l.notes,
         })) as LeaveRecord[],
-        /** True for a named roster member not on approved leave, even if absent. */
+        /** True only when timed in today and not on approved leave. */
         isAvailable: (name: string) => {
           const n = normName(name);
           if (!n) return false;
-          return !onLeaveNames.has(n);
+          return presentNames.has(n) && !onLeaveNames.has(n);
         },
         isOnLeave: (name: string) => onLeaveNames.has(normName(name)),
         hasAttendanceToday: presentNames.size > 0,

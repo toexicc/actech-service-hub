@@ -185,7 +185,6 @@ const ServiceUpdate = () => {
 
   // Derive technicians list with display names
   const { data: availability } = useStaffAvailability();
-  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // (technician option list is derived below, after the assigned technician
   // state exists, so assigned staff are never filtered out)
 
@@ -241,7 +240,7 @@ const ServiceUpdate = () => {
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
   const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
-  // Only technicians on approved leave are hidden, not absent technicians;
+  // New assignments require today's time-in and no approved leave;
   // technicians already on this ticket are always kept so the field never blanks.
   const technicians = useMemo(() => {
     const assigned = new Set(
@@ -253,15 +252,14 @@ const ServiceUpdate = () => {
     return technicianData
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
-        if (showUnavailableTechs || !availability) return true;
-        return availability.isAvailable(staff.name);
+        return availability?.isAvailable(staff.name) ?? false;
       })
       .map((staff) => ({
         name: staff.name,
         department: staff.department || "",
         displayName: `${staff.name} - ${staff.department || ""}`,
       }));
-  }, [technicianData, availability, showUnavailableTechs, updateTechnician]);
+  }, [technicianData, availability, updateTechnician]);
 
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
@@ -1586,15 +1584,6 @@ const ServiceUpdate = () => {
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="technician">Assigned Technician:</Label>
 
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        className="h-3.5 w-3.5 accent-primary"
-                        checked={showUnavailableTechs}
-                        onChange={(e) => setShowUnavailableTechs(e.target.checked)}
-                      />
-                      Show unavailable staff
-                    </label>
                   </div>
 
                   <MultiSelect
@@ -1627,7 +1616,7 @@ const ServiceUpdate = () => {
                         return [
                           unassignedOption,
                           ...all,
-                          ...(all.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
+                          ...(!all.some((o) => o.value === SPECIAL_CASE_TECH) && technicians.some((tech) => tech.name === SPECIAL_CASE_TECH) ? [specialOption] : []),
                         ];
                       }
 
@@ -1641,7 +1630,7 @@ const ServiceUpdate = () => {
                       return [
                         unassignedOption,
                         ...filtered,
-                        ...(filtered.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
+                        ...(!filtered.some((o) => o.value === SPECIAL_CASE_TECH) && technicians.some((tech) => tech.name === SPECIAL_CASE_TECH) ? [specialOption] : []),
                       ];
                     })()}
 
