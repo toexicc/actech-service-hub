@@ -2838,7 +2838,7 @@ const ManageClient = () => {
                             group: tech.department,
                           });
                           const withSpecial = (opts: { label: string; value: string; group: string }[]) => [
-                            specialOption,
+                            ...(technicians.some((tech) => tech.name === SPECIAL_CASE_TECH) ? [specialOption] : []),
                             ...opts.filter((o) => o.value !== SPECIAL_CASE_TECH),
                           ];
 

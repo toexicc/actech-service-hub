@@ -1616,7 +1616,7 @@ const ServiceUpdate = () => {
                         return [
                           unassignedOption,
                           ...all,
-                          ...(all.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
+                          ...(!all.some((o) => o.value === SPECIAL_CASE_TECH) && technicians.some((tech) => tech.name === SPECIAL_CASE_TECH) ? [specialOption] : []),
                         ];
                       }
 
@@ -1630,7 +1630,7 @@ const ServiceUpdate = () => {
                       return [
                         unassignedOption,
                         ...filtered,
-                        ...(filtered.some((o) => o.value === SPECIAL_CASE_TECH) ? [] : [specialOption]),
+                        ...(!filtered.some((o) => o.value === SPECIAL_CASE_TECH) && technicians.some((tech) => tech.name === SPECIAL_CASE_TECH) ? [specialOption] : []),
                       ];
                     })()}
 
