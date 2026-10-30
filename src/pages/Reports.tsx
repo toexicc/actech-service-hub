@@ -9,7 +9,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { useServices, useCompletedServices, useArchivedCompletedServices, completedWindowStart } from "@/hooks/useServices";
+import { useServices, mapServiceRow } from "@/hooks/useServices";
+import { fetchReportPages, reportBounds, inReportPeriod as inPeriod } from "@/lib/reportData";
 import { useClosedDates } from "@/hooks/useClosedDates";
 import { useServiceStatusLogs } from "@/hooks/useServiceStatusLogs";
 import { useStaff } from "@/hooks/useStaff";
@@ -54,7 +55,6 @@ import {
   monthPeriod,
   lastMonths,
   previousPeriod,
-  inPeriod,
   toDate,
   peso,
   compactPeso,
@@ -207,49 +207,11 @@ const Reports = () => {
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
 
   const { data: activeData = [], isLoading: loadingActive } = useServices();
-  const { data: completedData = [], isLoading: loadingCompleted } = useCompletedServices();
 
 
   const { data: closedDates = [] } = useClosedDates();
   const { data: staffList = [] } = useStaff();
 
-
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["transactions", "reports"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("type, amount, category, status, payment_method, transaction_date")
-        .limit(5000);
-      if (error) throw error;
-      return (data ?? []).map((t: any) => ({
-        type: t.type,
-        amount: Number(t.amount ?? 0),
-        category: t.category ?? "",
-        status: t.status ?? "",
-        paymentMethod: t.payment_method ?? "",
-        transactionDate: t.transaction_date,
-      }));
-    },
-    staleTime: 30 * 1000,
-  });
-
-  const { data: expenses = [] } = useQuery({
-    queryKey: ["expenses", "reports"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("expenses")
-        .select("amount, category, expense_date")
-        .limit(5000);
-      if (error) throw error;
-      return (data ?? []).map((e: any) => ({
-        amount: Number(e.amount ?? 0),
-        category: e.category ?? "Uncategorized",
-        expenseDate: e.expense_date,
-      }));
-    },
-    staleTime: 30 * 1000,
-  });
 
   const period: Period = useMemo(() => {
     if (mode === "month") {
@@ -298,27 +260,68 @@ const Reports = () => {
     return { start: startOfDay(start), end: endOfDay(now), label: `Last ${preset} days` };
   }, [mode, monthKey, preset, rangeFrom, rangeTo]);
 
-  // Logs and the completed backlog are loaded for exactly the selected period,
-  // so older months / "This year" / "All time" are complete instead of being
-  // silently cut off by the live list's rolling window.
+  // Load both selected and comparison periods, without a global row limit.
+  const comparisonPeriod = useMemo(() => previousPeriod(period), [period]);
+  const bounds = reportBounds({ ...period, start: comparisonPeriod?.start ?? period.start });
+  const { data: transactions = [], isLoading: loadingTransactions, isError: transactionsFailed } = useQuery({
+    queryKey: ["transactions", "reports", bounds.start, bounds.end],
+    queryFn: async () => {
+      const rows = await fetchReportPages((from, to) => {
+        let query = supabase.from("transactions")
+          .select("id,type,amount,category,status,payment_method,transaction_date")
+          .order("transaction_date", { ascending: false }).order("id")
+          .range(from, to);
+        if (bounds.start) query = query.gte("transaction_date", bounds.start);
+        if (bounds.end) query = query.lte("transaction_date", bounds.end);
+        return query;
+      });
+      return rows.map((t) => ({
+        type: t.type, amount: Number(t.amount ?? 0), category: t.category ?? "",
+        status: t.status ?? "", paymentMethod: t.payment_method ?? "",
+        transactionDate: t.transaction_date,
+      }));
+    },
+    staleTime: 30 * 1000,
+  });
+  const { data: expenses = [], isLoading: loadingExpenses, isError: expensesFailed } = useQuery({
+    queryKey: ["expenses", "reports", bounds.start, bounds.end],
+    queryFn: async () => {
+      const rows = await fetchReportPages((from, to) => {
+        let query = supabase.from("expenses").select("id,amount,category,expense_date")
+          .order("expense_date", { ascending: false }).order("id").range(from, to);
+        if (bounds.start) query = query.gte("expense_date", bounds.start);
+        if (bounds.end) query = query.lte("expense_date", bounds.end);
+        return query;
+      });
+      return rows.map((e) => ({ amount: Number(e.amount ?? 0), category: e.category ?? "Uncategorized", expenseDate: e.expense_date }));
+    },
+    staleTime: 30 * 1000,
+  });
+  const { data: completedData = [], isLoading: loadingCompleted, isError: completedFailed } = useQuery({
+    queryKey: ["services", "reports", bounds.start, bounds.end],
+    queryFn: async () => {
+      const rows = await fetchReportPages((from, to) => {
+        let query = supabase.from("services")
+          .select("service_id,status,date_received,created_at,date_completed,last_updated,target_date,final_cost,total_cost,parts_cost,discount,technicians,technician_departments,admin_reps,receiving_staff,device_type,brand,model,client_name,service,waiting_for_parts")
+          .eq("status", "Completed").order("date_completed", { ascending: false }).order("service_id")
+          .range(from, to);
+        if (bounds.start && bounds.end) {
+          // Include intake-scoped tickets AND work completed now from older intakes.
+          query = query.or(`and(date_received.gte.${bounds.start},date_received.lte.${bounds.end}),and(date_completed.gte.${bounds.start},date_completed.lte.${bounds.end}),and(date_completed.is.null,last_updated.gte.${bounds.start},last_updated.lte.${bounds.end})`);
+        }
+        return query;
+      });
+      return rows.map(mapServiceRow);
+    },
+    staleTime: 60 * 1000,
+  });
   const {
-    data: statusLogs = [],
-    isLoading: loadingLogs,
-    isError: logsFailed,
-    refetch: refetchLogs,
+    data: statusLogs = [], isLoading: loadingLogs, isError: logsFailed, refetch: refetchLogs,
   } = useServiceStatusLogs(period.start ?? null);
-
-  const needsArchive = !period.start || period.start < completedWindowStart();
-  const { data: archivedData = [] } = useArchivedCompletedServices(
-    needsArchive,
-    period.start ?? null,
-  );
-
   const allServices = useMemo(
-    () => [...(activeData as any[]), ...(completedData as any[]), ...(archivedData as any[])],
-    [activeData, completedData, archivedData],
+    () => [...(activeData as any[]), ...completedData],
+    [activeData, completedData],
   );
-
 
   // Durations count working time only (10:00-19:00 Manila minus a 1.5h break),
   // and skip days the shop was closed.
@@ -677,7 +680,7 @@ const Reports = () => {
     return buckets.filter((b) => b.hour >= 6 && b.hour <= 22);
   }, [report]);
 
-  const isLoading = loadingActive || loadingCompleted || loadingLogs;
+  const isLoading = loadingActive || loadingCompleted || loadingLogs || loadingTransactions || loadingExpenses;
 
   return (
     <DashboardLayout>
@@ -807,6 +810,9 @@ const Reports = () => {
           expenses and net revenue are always by payment date.
         </p>
 
+        {(transactionsFailed || expensesFailed || completedFailed) && (
+          <p role="alert" className="mb-4 text-sm text-destructive">Some report records could not be loaded. Totals are incomplete; please reload before using them.</p>
+        )}
         <TallyLine start={period.start ?? undefined} end={period.end ?? undefined} />
 
         {/* KPIs */}
