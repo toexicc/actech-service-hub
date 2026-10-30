@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import termsImage from "@/assets/terms-and-conditions.jpg";
 import { parseServiceBreakdownItems, parseQuotedBreakdown, parseApprovalRemark, approvalRemarkText, parseInterimRemark, normalizeQuotedBreakdown, quotedSelectedTotal, lineEffectiveCost, lineDisplayName, validateQuotedLines, requiredLinesSatisfied, vatAmount, computeFinalCost, rushAmount, effectiveDiscount, discountIsConditional, BUNDLE_DISCOUNT_NOTICE, type QuotedLine } from "@/lib/serviceApproval";
 import { diagnosisFieldsFromRecord, composeClientDiagnosis } from "@/lib/diagnosisSections";
+import { canRespondToQuote } from "@/lib/clientApprovalEligibility";
 
 
 
@@ -862,10 +863,12 @@ const ServiceTracking = () => {
     alreadyApproved.length > 0 &&
     quotedLines.length > 0 &&
     !quotedLines.some((l) => isLineApproved(l));
-  const canRespond =
-    isWaitingToProceed &&
-    !serviceData?.approvalLocked &&
-    (!approvalRecord || (approvalRecord.decision === "Approved" && hasPendingLines));
+  const canRespond = canRespondToQuote({
+    isWaitingToProceed,
+    approvalLocked: !!serviceData?.approvalLocked,
+    previousDecision: approvalRecord?.decision,
+    hasPendingLines,
+  });
 
 
   // Pre-tick whatever the shop marked as selected, plus anything already approved.
