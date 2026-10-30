@@ -302,7 +302,7 @@ const Reports = () => {
     queryFn: async () => {
       const rows = await fetchReportPages((from, to) => {
         let query = supabase.from("services")
-          .select("service_id,status,date_received,created_at,date_completed,last_updated,target_date,final_cost,total_cost,parts_cost,discount,technicians,technician_departments,admin_reps,receiving_staff,device_type,brand,model,client_name,service,waiting_for_parts")
+          .select("service_id,status,priority,source,date_received,created_at,date_completed,last_updated,target_date,final_cost,total_cost,parts_cost,discount,technicians,technician_departments,admin_reps,receiving_staff,device_type,brand,model,client_name,service,waiting_for_parts")
           .eq("status", "Completed").order("date_completed", { ascending: false }).order("service_id")
           .range(from, to);
         if (bounds.start && bounds.end) {

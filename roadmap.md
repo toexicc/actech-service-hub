@@ -11,4 +11,4 @@
 - [x] Remove Credit Card/Installment from public tracking, add Admin tracker filtering, and add the daily front-duty acknowledgement.
 - [x] Device accessory choices: Charger - Cable above Charger - Adaptor and Cable, Adaptor/Brick, plus Tempered Glass/Screen Protector.
 - [x] Admin + Inventory role, stock movement approvals, part request inbox, inventory dashboard
-- [ ] Correct Reports cutoff payment/expense pagination and include older-intake completed work.
+- [x] Correct Reports cutoff payment/expense pagination and include older-intake completed work.
