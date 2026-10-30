@@ -1,4 +1,5 @@
 # Project Architecture Rules
+- Reports paginate date-scoped financial and completed-ticket queries, including the comparison period and older-intake completions; interpret picker days in Manila so totals are complete across browser timezones.
 
 - Public quote response eligibility lives in a tested helper; reopened declines may respond only while Waiting to Proceed and unlocked, preserving completed approvals and partial-approval locks.
 
