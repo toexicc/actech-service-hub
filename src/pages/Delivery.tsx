@@ -106,6 +106,9 @@ const Delivery = () => {
                   {e.cost != null && <span className="font-medium text-foreground">₱{Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>}
                 </div>
                 {e.notes && <p className="text-xs">{e.notes}</p>}
+                {e.status === "done" && e.completed_at && (
+                  <p className="text-xs text-muted-foreground">Picked up {format(parseISO(e.completed_at), "MM/dd/yyyy hh:mm a")}</p>
+                )}
                 {e.status !== "done" && (
                   <div className="flex gap-2 pt-0.5">
                     <Button size="sm" className="flex-1 h-9" disabled={busy} onClick={() => openDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
