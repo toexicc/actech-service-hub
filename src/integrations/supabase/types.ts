@@ -462,6 +462,60 @@ export type Database = {
         }
         Relationships: []
       }
+      interim_reports: {
+        Row: {
+          ai_interim_report: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          decided_at: string | null
+          decision_note: string | null
+          id: string
+          interim_breakdown_text: string | null
+          interim_diagnosis: string | null
+          interim_summary: string | null
+          interim_warranty: string | null
+          round: number
+          service_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_interim_report?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          decided_at?: string | null
+          decision_note?: string | null
+          id?: string
+          interim_breakdown_text?: string | null
+          interim_diagnosis?: string | null
+          interim_summary?: string | null
+          interim_warranty?: string | null
+          round: number
+          service_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_interim_report?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          decided_at?: string | null
+          decision_note?: string | null
+          id?: string
+          interim_breakdown_text?: string | null
+          interim_diagnosis?: string | null
+          interim_summary?: string | null
+          interim_warranty?: string | null
+          round?: number
+          service_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_parts: {
         Row: {
           brand: string | null
@@ -757,6 +811,69 @@ export type Database = {
           requested_by_name?: string | null
           service_id?: string | null
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pickup_schedules: {
+        Row: {
+          address: string | null
+          city: string | null
+          client_name: string
+          completed_at: string | null
+          contact_number: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          kind: string
+          notes: string | null
+          reschedule_reason: string | null
+          rescheduled_from: string | null
+          schedule_date: string
+          service_id: string | null
+          status: string
+          time_window: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          client_name: string
+          completed_at?: string | null
+          contact_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          reschedule_reason?: string | null
+          rescheduled_from?: string | null
+          schedule_date: string
+          service_id?: string | null
+          status?: string
+          time_window?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          client_name?: string
+          completed_at?: string | null
+          contact_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          reschedule_reason?: string | null
+          rescheduled_from?: string | null
+          schedule_date?: string
+          service_id?: string | null
+          status?: string
+          time_window?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1168,6 +1285,7 @@ export type Database = {
           internal_admin_notes: string | null
           internal_technician_notes: string | null
           is_backjob: boolean
+          is_on_hold: boolean
           is_released: boolean
           issue_description: string | null
           labor_cost: number
@@ -1176,6 +1294,7 @@ export type Database = {
           memory: string | null
           mode_of_transfer: string | null
           model: string | null
+          on_hold_reason: string | null
           part_id: string | null
           parts_cost: number
           parts_ordered: boolean
@@ -1269,6 +1388,7 @@ export type Database = {
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
           is_backjob?: boolean
+          is_on_hold?: boolean
           is_released?: boolean
           issue_description?: string | null
           labor_cost?: number
@@ -1277,6 +1397,7 @@ export type Database = {
           memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
+          on_hold_reason?: string | null
           part_id?: string | null
           parts_cost?: number
           parts_ordered?: boolean
@@ -1370,6 +1491,7 @@ export type Database = {
           internal_admin_notes?: string | null
           internal_technician_notes?: string | null
           is_backjob?: boolean
+          is_on_hold?: boolean
           is_released?: boolean
           issue_description?: string | null
           labor_cost?: number
@@ -1378,6 +1500,7 @@ export type Database = {
           memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
+          on_hold_reason?: string | null
           part_id?: string | null
           parts_cost?: number
           parts_ordered?: boolean
@@ -1743,7 +1866,7 @@ export type Database = {
       tidy_device_value: { Args: { _v: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "technician" | "management" | "inventory"
+      app_role: "admin" | "technician" | "management" | "inventory" | "delivery"
       service_file_kind:
         | "intake"
         | "quotation"
@@ -1897,7 +2020,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "technician", "management", "inventory"],
+      app_role: ["admin", "technician", "management", "inventory", "delivery"],
       service_file_kind: [
         "intake",
         "quotation",
