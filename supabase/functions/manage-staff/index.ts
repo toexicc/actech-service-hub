@@ -9,7 +9,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 
-type Role = "admin" | "technician" | "management" | "admin_inventory";
+type Role = "admin" | "technician" | "management" | "admin_inventory" | "delivery";
 // "admin_inventory" is stored as two role rows: admin + inventory.
 const rolesFor = (role: Role): string[] => (role === "admin_inventory" ? ["admin", "inventory"] : [role]);
 

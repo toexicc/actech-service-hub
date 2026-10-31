@@ -34,6 +34,7 @@ const adminSection: NavSection = {
   items: [
     { title: "Point of Sales", icon: ShoppingCart, path: "/pos", roles: ["management", "admin"], iconName: "ShoppingCart" },
     { title: "Client Intake Form", icon: FileText, path: "/service-form", iconName: "FileText" },
+    { title: "Pickup Schedule", icon: CalendarDays, path: "/pickup-schedule", roles: ["admin", "management"], iconName: "CalendarDays" },
     { title: "Manage Client", icon: Users, path: "/manage-client", iconName: "Users" },
     { title: "Customer Management", icon: UserCog, path: "/customer-management", iconName: "UserCog" },
     { title: "Service Tracker", icon: ClipboardList, path: "/service-tracker", iconName: "ClipboardList" },

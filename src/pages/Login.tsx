@@ -18,10 +18,10 @@ const Login = () => {
   const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
 
   useEffect(() => {
-    if (!loading && user) navigate("/menu", { replace: true });
+    if (!loading && user) navigate(roles.includes("delivery") ? "/delivery" : "/menu", { replace: true });
   }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -478,6 +478,7 @@ const StaffManagement = () => {
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="admin_inventory">Admin + Inventory</SelectItem>
+                      <SelectItem value="delivery">Delivery</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
@@ -579,6 +580,7 @@ const StaffManagement = () => {
                       <SelectItem value="all">All Roles</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="admin_inventory">Admin + Inventory</SelectItem>
+                      <SelectItem value="delivery">Delivery</SelectItem>
                       <SelectItem value="technician">Technician</SelectItem>
                       <SelectItem value="management">Management</SelectItem>
                     </SelectContent>
@@ -819,6 +821,7 @@ const StaffManagement = () => {
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="admin_inventory">Admin + Inventory</SelectItem>
+                      <SelectItem value="delivery">Delivery</SelectItem>
                         <SelectItem value="technician">Technician</SelectItem>
                         <SelectItem value="management">Management</SelectItem>
                       </SelectContent>
