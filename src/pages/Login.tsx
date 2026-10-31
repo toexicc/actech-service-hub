@@ -22,7 +22,7 @@ const Login = () => {
 
   useEffect(() => {
     if (!loading && user) navigate(roles.includes("delivery") ? "/delivery" : "/menu", { replace: true });
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
