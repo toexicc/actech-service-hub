@@ -41,6 +41,10 @@ const ProtectedRoute = ({ children, roles }: Props) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
+  if (userRoles.includes("delivery") && !roles?.includes("delivery")) {
+    return <Navigate to="/delivery" replace />;
+  }
+
   if (roles && roles.length > 0 && !userRoles.some((r) => roles.includes(r))) {
     return <Navigate to="/menu" replace />;
   }

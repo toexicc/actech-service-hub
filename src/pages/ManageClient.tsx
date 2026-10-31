@@ -56,6 +56,8 @@ import {
   type QuotedLine,
 } from "@/lib/serviceApproval";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
+import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
+import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
@@ -355,6 +357,7 @@ const ManageClient = () => {
   // Interim report (new findings raised mid-repair by the technician)
   const [interimNeeded, setInterimNeeded] = useState(false);
   const [interimApprovedNow, setInterimApprovedNow] = useState(false);
+  const [interimRoundsKey, setInterimRoundsKey] = useState(0);
   const [interim, setInterim] = useState<InterimReportValues>({
     findings: "",
     report: "",
@@ -508,6 +511,36 @@ const ManageClient = () => {
       toast({ title: "Error", description: e?.message || "Could not resend the approval.", variant: "destructive" });
     } finally {
       setIsReopeningApproval(false);
+    }
+  };
+
+  const [isTogglingOnHold, setIsTogglingOnHold] = useState(false);
+  const handleToggleOnHold = async (next: boolean) => {
+    if (!serviceData?.serviceId || isTogglingOnHold) return;
+    let reason: string | null = null;
+    if (next) {
+      reason = window.prompt("Reason for putting this ticket On Hold (shown to the client):", "") ?? null;
+      if (reason === null) return;
+    }
+    setIsTogglingOnHold(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .update({ is_on_hold: next, on_hold_reason: next ? reason?.trim() || null : null, last_updated: new Date().toISOString() } as any)
+        .eq("service_id", serviceData.serviceId);
+      if (error) throw new Error(error.message);
+      setServiceData((prev: any) => (prev ? { ...prev, isOnHold: next, onHoldReason: next ? reason?.trim() || "" : "" } : prev));
+      await logActivity({
+        serviceId: serviceData.serviceId,
+        username: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Admin",
+        role: sessionStorage.getItem("userRole") || "admin",
+        activity: next ? `Put On Hold${reason?.trim() ? `: ${reason.trim()}` : ""}` : `Taken off hold (continues at ${serviceData.status})`,
+      });
+      toast({ title: next ? "Ticket is On Hold" : "Ticket resumed", description: next ? "Tracking page now shows On Hold." : `Continues at ${serviceData.status}.` });
+    } catch (e: any) {
+      toast({ title: "Could not update On Hold", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsTogglingOnHold(false);
     }
   };
 
@@ -1622,6 +1655,7 @@ const ManageClient = () => {
 
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
+      try { await syncLatestInterimRound(sid, interim, interimApprovedNow); setInterimRoundsKey((n) => n + 1); } catch { /* history only */ }
 
       // Fire-and-forget mirror to the data bridge (non-blocking, ignore failures)
       try {
@@ -2473,6 +2507,22 @@ const ManageClient = () => {
 
                   <Separator />
 
+                  <div className="flex items-start justify-between gap-4 rounded-xl border border-warning/30 bg-warning/10 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">On Hold</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceData.isOnHold
+                          ? `Paused at ${serviceData.status}${serviceData.onHoldReason ? ` — ${serviceData.onHoldReason}` : ""}. Tracking page shows On Hold.`
+                          : "Pause this ticket without changing its status."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!serviceData.isOnHold}
+                      disabled={isTogglingOnHold || !canEditAdminRep}
+                      onCheckedChange={handleToggleOnHold}
+                    />
+                  </div>
+
                   {canEditAdminRep && (
                     <div className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-background/60 p-3">
                       <div>
@@ -2792,7 +2842,7 @@ const ManageClient = () => {
                           {STATUS_OPTIONS.filter(
                             (status) =>
                               // Pre-approved tickets skip the client approval stage.
-                              !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
+                              status !== "On Hold" && !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
                           ).map((status) => (
                             <SelectItem key={status} value={status}>
                               {status}
@@ -3242,6 +3292,9 @@ const ManageClient = () => {
 
 
                   {/* AI Interim Report + interim photos (view only) */}
+                  {serviceData?.serviceId && (
+                    <InterimRoundsHistory serviceId={serviceData.serviceId} canAdd={canEditAdminRep} refreshKey={interimRoundsKey} onStarted={() => { setInterim((prev) => Object.fromEntries(Object.keys(prev).map((k) => [k, ""])) as any); setInterimNeeded(true); setInterimRoundsKey((n) => n + 1); }} />
+                  )}
                   {serviceData?.serviceId && (
                     <InterimReportBlock
                       serviceId={serviceData.serviceId}

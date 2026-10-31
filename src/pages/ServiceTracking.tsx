@@ -142,7 +142,12 @@ export const fetchPublicServiceSnapshot = async (serviceId: string, pin?: string
     // Signed-in staff can still read the snapshot without a PIN.
     const { data, error } = await supabase.rpc("public_service_snapshot", { _service_id: serviceId });
     if (error || !data) return null;
-    return data as any;
+    const sid = String((data as any).service_id || serviceId);
+    const [{ data: hold }, { data: rounds }] = await Promise.all([
+      supabase.from("services").select("is_on_hold").eq("service_id", sid).maybeSingle(),
+      supabase.from("interim_reports").select("round,ai_interim_report,interim_warranty,interim_summary,interim_breakdown_text,status,created_at,decided_at").eq("service_id", sid).order("round"),
+    ]);
+    return { ...(data as any), is_on_hold: !!hold?.is_on_hold, interim_rounds: rounds || [] };
   } catch {
     return null;
   }
@@ -212,6 +217,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Customer-facing "Admin Notes (Customer)" — this is what /track displays.
       customerNotes: pick(sb.remarks ?? (row as any).remarks, sheetData.customerNotes ?? sheetData.remarks),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+      isOnHold: !!(row as any).is_on_hold,
+      interimRounds: Array.isArray((row as any).interim_rounds) ? (row as any).interim_rounds : [],
       waitingForParts: !!((sb as any).waitingForParts ?? (row as any).waiting_for_parts),
       partsOrdered: !!((sb as any).partsOrdered ?? (row as any).parts_ordered),
       hasPreOrder: !!(row as any).has_pre_order,
@@ -1113,14 +1120,15 @@ const ServiceTracking = () => {
             "Cancelled": { label: "Cancelled", tone: "bg-destructive/15 text-destructive border-destructive/30" },
           };
           const currentStatus = serviceData.status || "";
-          const isClosed = isClosedStatus(currentStatus);
+          const onHoldToggle = !!(serviceData as any).isOnHold;
+          const isClosed = isClosedStatus(currentStatus) || onHoldToggle;
           const CLOSED_BANNER: Record<string, string> = {
             "RTO": "This device has been returned to its owner. Please contact the shop if you have questions.",
             "Cancelled": "This service has been cancelled. Please contact the shop for details.",
             "On Hold": "This service is currently on hold. Please contact the shop for an update.",
           };
-          const closedBanner = isClosed ? (CLOSED_BANNER[currentStatus] ?? CLOSED_BANNER["On Hold"]) : "";
-          const offPath = OFF_PATH[currentStatus];
+          const closedBanner = isClosed ? (onHoldToggle ? CLOSED_BANNER["On Hold"] : (CLOSED_BANNER[currentStatus] ?? CLOSED_BANNER["On Hold"])) : "";
+          const offPath = onHoldToggle ? OFF_PATH["On Hold"] : OFF_PATH[currentStatus];
           const statusToStep = (s: string): number => {
             if (!s) return 1;
             // Merge Ongoing Service into the Proceed Repair step
@@ -1440,6 +1448,28 @@ const ServiceTracking = () => {
                       />
                     )}
 
+
+                    {(() => {
+                      const rounds: any[] = (serviceData as any).interimRounds || [];
+                      const latest = rounds.reduce((m, r) => Math.max(m, Number(r.round) || 0), 0);
+                      const earlier = rounds.filter((r) => Number(r.round) < latest && String(r.ai_interim_report || "").trim());
+                      if (!earlier.length) return null;
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-muted-foreground">Earlier interim reports</p>
+                          {earlier.map((r) => (
+                            <details key={r.round} className="rounded-lg border bg-card p-3">
+                              <summary className="cursor-pointer text-sm font-medium">
+                                Round {r.round} · {r.created_at ? new Date(r.created_at).toLocaleDateString("en-US", { timeZone: "Asia/Manila", month: "2-digit", day: "2-digit", year: "numeric" }) : ""} · <span className="capitalize">{r.status}</span>
+                              </summary>
+                              <div className="mt-2">
+                                <AiReportCard report={composeClientDiagnosis({ diagnosis: r.ai_interim_report, warranty: r.interim_warranty })} title={`Interim Report - Round ${r.round}`} />
+                              </div>
+                            </details>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
 
 

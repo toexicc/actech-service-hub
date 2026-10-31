@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "technician" | "management" | "inventory";
+export type AppRole = "admin" | "technician" | "management" | "inventory" | "delivery";
 
 export interface AuthProfile {
   id: string;
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     hydratedUserIdRef.current = uid;
     // Compatibility shim for legacy pages reading sessionStorage
     try {
-      const primaryRole = r.includes("admin") ? "admin" : r.includes("management") ? "management" : r.includes("technician") ? "technician" : "";
+      const primaryRole = r.includes("delivery") ? "delivery" : r.includes("admin") ? "admin" : r.includes("management") ? "management" : r.includes("technician") ? "technician" : "";
       sessionStorage.setItem("authenticated", "true");
       sessionStorage.setItem("userRole", primaryRole);
       sessionStorage.setItem("hasInventoryRole", r.includes("inventory") ? "true" : "false");

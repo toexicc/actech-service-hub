@@ -31,6 +31,8 @@ export interface ServiceRecord {
 
   clientApprovedAt?: string;
   autoApproveDiagnosis?: boolean;
+  isOnHold?: boolean;
+  onHoldReason?: string;
   waitingForParts?: boolean;
   waitingPartsNote?: string;
   waitingPartsNoteTech?: string;
@@ -152,6 +154,8 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
 
   clientApprovedAt: r.client_approved_at ?? "",
   autoApproveDiagnosis: !!r.auto_approve_diagnosis,
+  isOnHold: !!(r as any).is_on_hold,
+  onHoldReason: (r as any).on_hold_reason ?? "",
   waitingForParts: !!(r as any).waiting_for_parts,
   waitingPartsNote: (r as any).waiting_parts_note ?? "",
   waitingPartsNoteTech: (r as any).waiting_parts_note_tech ?? "",
@@ -247,7 +251,7 @@ const LIST_COLUMNS = [
   "waiting_for_parts","parts_ordered","waiting_parts_note","waiting_parts_note_tech","is_backjob","rush_fee","vat_requested","rto_reason",
   "is_released","released_at","has_pre_order","device_out_with_client","has_device_accessory","device_accessories",
   "approval_locked","approved_services","pending_services",
-  "client_approved_at","auto_approve_diagnosis",
+  "client_approved_at","auto_approve_diagnosis","is_on_hold","on_hold_reason",
   "interim_needed","interim_created_at","interim_approved_at",
 ].join(",");
 

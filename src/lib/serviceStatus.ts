@@ -128,7 +128,9 @@ export const isOverdueEligible = (service: {
   waitingForParts?: boolean;
   partsOrdered?: boolean;
   hasPreOrder?: boolean;
+  isOnHold?: boolean;
 }): boolean => {
+  if (isOnHold(service)) return false;
   const status = (service.status || "").trim().toLowerCase();
   if (!isTimeTrackedStatus(status)) return false;
   if (status === "waiting to proceed") return false;
@@ -145,3 +147,10 @@ export const isPartsPaused = (service: {
   waitingForParts?: boolean;
   partsOrdered?: boolean;
 }): boolean => !!service.waitingForParts || !!service.partsOrdered;
+
+/**
+ * On Hold is a toggle that pauses a ticket without replacing its real status.
+ * Older tickets may still carry the legacy "On Hold" status value.
+ */
+export const isOnHold = (service: { status?: string | null; isOnHold?: boolean; is_on_hold?: boolean | null }): boolean =>
+  !!(service.isOnHold || service.is_on_hold) || (service.status || "").trim().toLowerCase() === "on hold";

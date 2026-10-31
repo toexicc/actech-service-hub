@@ -41,6 +41,8 @@ import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity, logTicketOpened } from "@/lib/activityLogger";
 import { notifyServiceStatusChange, notifyNewServiceAssignment, notifyAiDiagnosisGenerated, notifyAiOutputGenerated, notifyTechnicianConcern, notifyInterimReportSubmitted, notifyInterimConfirmedDiagnosis } from "@/lib/serviceNotifications";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
+import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
+import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
@@ -274,6 +276,7 @@ const ServiceUpdate = () => {
   const [updateDiagSummary, setUpdateDiagSummary] = useState("");
   // Interim report (new findings discovered during Ongoing Service)
   const [interimNeeded, setInterimNeeded] = useState(false);
+  const [interimRoundsKey, setInterimRoundsKey] = useState(0);
   const [interim, setInterim] = useState<InterimReportValues>({
     findings: "",
     report: "",
@@ -1054,6 +1057,7 @@ const ServiceUpdate = () => {
       }).eq("service_id", sid).select("service_id");
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
+      if (!sbUpdateError) { try { await syncLatestInterimRound(sid, interim, false); setInterimRoundsKey((n) => n + 1); } catch { /* history only */ } }
 
 
       // A policy mismatch returns no error but affects zero rows — treat as failure.
@@ -1659,6 +1663,11 @@ const ServiceUpdate = () => {
                     </div>
 
                   </div>
+                  {(serviceData as any)?.isOnHold && (
+                    <div className="rounded-lg border border-warning/30 bg-warning/10 p-2 text-sm">
+                      <span className="font-semibold">On Hold</span> — paused by admin{(serviceData as any)?.onHoldReason ? `: ${(serviceData as any).onHoldReason}` : ""}. Only admin/management can resume it.
+                    </div>
+                  )}
                   {suggestedNext && !statusChanged && (
                     <p className="text-xs text-muted-foreground">
                       Next step is usually <span className="font-medium">{suggestedNext}</span>. Choose it first — the fields for that stage will appear below.
@@ -1684,7 +1693,7 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map((status) => (
+                      {STATUS_OPTIONS.filter((status) => status !== "On Hold").map((status) => (
                         <SelectItem
                           key={status}
                           value={status}
@@ -1934,6 +1943,7 @@ const ServiceUpdate = () => {
                 )}
 
 
+                <InterimRoundsHistory serviceId={serviceData.serviceId} canAdd={isOngoingService} refreshKey={interimRoundsKey} onStarted={() => { setInterim((prev) => Object.fromEntries(Object.keys(prev).map((k) => [k, ""])) as any); setInterimNeeded(true); setInterimRoundsKey((n) => n + 1); }} />
                 {(isOngoingService || interimNeeded || !!interim.report.trim()) && (
                   <InterimReportBlock
                     serviceId={serviceData.serviceId}
