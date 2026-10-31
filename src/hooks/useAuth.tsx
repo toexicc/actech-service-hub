@@ -93,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         hydratedUserIdRef.current = null;
         setProfile(null);
         setRoles([]);
+        setRolesReady(true);
         if (event === "SIGNED_OUT") setLoading(false);
       }
     });
@@ -139,6 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         profile,
         roles,
+        rolesReady,
         loading,
         isAdmin,
         isManagement,
