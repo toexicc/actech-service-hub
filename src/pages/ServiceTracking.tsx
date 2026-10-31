@@ -1449,6 +1449,28 @@ const ServiceTracking = () => {
                     )}
 
 
+                    {(() => {
+                      const rounds: any[] = (serviceData as any).interimRounds || [];
+                      const latest = rounds.reduce((m, r) => Math.max(m, Number(r.round) || 0), 0);
+                      const earlier = rounds.filter((r) => Number(r.round) < latest && String(r.ai_interim_report || "").trim());
+                      if (!earlier.length) return null;
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-muted-foreground">Earlier interim reports</p>
+                          {earlier.map((r) => (
+                            <details key={r.round} className="rounded-lg border bg-card p-3">
+                              <summary className="cursor-pointer text-sm font-medium">
+                                Round {r.round} · {r.created_at ? new Date(r.created_at).toLocaleDateString("en-US", { timeZone: "Asia/Manila", month: "2-digit", day: "2-digit", year: "numeric" }) : ""} · <span className="capitalize">{r.status}</span>
+                              </summary>
+                              <div className="mt-2">
+                                <AiReportCard report={composeClientDiagnosis({ diagnosis: r.ai_interim_report, warranty: r.interim_warranty })} title={`Interim Report - Round ${r.round}`} />
+                              </div>
+                            </details>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
 
 
 
