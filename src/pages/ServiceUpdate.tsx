@@ -1659,6 +1659,11 @@ const ServiceUpdate = () => {
                     </div>
 
                   </div>
+                  {(serviceData as any)?.isOnHold && (
+                    <div className="rounded-lg border border-warning/30 bg-warning/10 p-2 text-sm">
+                      <span className="font-semibold">On Hold</span> — paused by admin{(serviceData as any)?.onHoldReason ? `: ${(serviceData as any).onHoldReason}` : ""}. Only admin/management can resume it.
+                    </div>
+                  )}
                   {suggestedNext && !statusChanged && (
                     <p className="text-xs text-muted-foreground">
                       Next step is usually <span className="font-medium">{suggestedNext}</span>. Choose it first — the fields for that stage will appear below.
