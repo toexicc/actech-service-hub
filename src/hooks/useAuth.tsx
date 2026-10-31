@@ -20,6 +20,8 @@ interface AuthContextValue {
   user: User | null;
   profile: AuthProfile | null;
   roles: AppRole[];
+  /** True once the signed-in user's roles have finished loading. Guards wait on this. */
+  rolesReady: boolean;
   loading: boolean;
   isAdmin: boolean;
   isManagement: boolean;
@@ -40,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [rolesReady, setRolesReady] = useState(false);
   const [loading, setLoading] = useState(true);
   // Id of the user whose profile/roles are already hydrated in state.
   const hydratedUserIdRef = useRef<string | null>(null);
