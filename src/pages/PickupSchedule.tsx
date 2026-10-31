@@ -148,7 +148,6 @@ const PickupSchedule = () => {
           </CardContent>
         </Card>
       </div>
-      <PickupZoneNote highlight={zone} />
       </TabsContent>
       </Tabs>
 
