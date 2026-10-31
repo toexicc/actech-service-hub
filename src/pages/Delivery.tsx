@@ -27,6 +27,8 @@ const Delivery = () => {
   const [resched, setResched] = useState<PickupEntry | null>(null);
   const [newDate, setNewDate] = useState("");
   const [reason, setReason] = useState("");
+  const [doneEntry, setDoneEntry] = useState<PickupEntry | null>(null);
+  const [doneTime, setDoneTime] = useState("");
   const [busy, setBusy] = useState(false);
 
   const dayKey = format(selected, "yyyy-MM-dd");
@@ -34,12 +36,25 @@ const Delivery = () => {
   const zone = zoneForDate(dayKey);
   useEffect(() => { logViewThrottled(dayKey); }, [dayKey]);
 
-  const markDone = async (e: PickupEntry) => {
+  const openDone = (e: PickupEntry) => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setDoneTime(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+    setDoneEntry(e);
+  };
+
+  const confirmDone = async () => {
+    if (!doneEntry || !doneTime) { toast({ title: "Pickup time is required", variant: "destructive" }); return; }
+    const at = new Date(doneTime);
+    if (isNaN(at.getTime())) { toast({ title: "Invalid pickup time", variant: "destructive" }); return; }
     setBusy(true);
-    const { error } = await supabase.from("pickup_schedules").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", e.id);
+    const { error } = await supabase.from("pickup_schedules").update({ status: "done", completed_at: at.toISOString() }).eq("id", doneEntry.id);
     setBusy(false);
-    if (error) toast({ title: "Could not update", description: error.message, variant: "destructive" });
-    else { toast({ title: "Marked done" }); void logPickup("pickup_done", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
+    if (error) { toast({ title: "Could not update", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Marked done" });
+    void logPickup("pickup_done", doneEntry.id, { client_name: doneEntry.client_name, date: doneEntry.schedule_date, picked_up_at: at.toISOString() });
+    setDoneEntry(null);
+    refresh();
   };
 
   const doResched = async () => {
