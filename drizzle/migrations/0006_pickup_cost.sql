@@ -1,0 +1,1 @@
+ALTER TABLE public.pickup_schedules ADD COLUMN IF NOT EXISTS cost numeric;

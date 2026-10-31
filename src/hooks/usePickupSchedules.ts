@@ -18,6 +18,7 @@ export interface PickupEntry {
   rescheduled_from: string | null;
   completed_at: string | null;
   created_by_name: string | null;
+  cost: number | null;
 }
 
 export const usePickupSchedules = (month: Date) => {
