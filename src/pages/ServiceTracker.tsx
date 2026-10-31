@@ -85,9 +85,12 @@ const STATUS_COUNT_CARDS = [
   "Done Repair - For Release",
   "Done Repair - Advise Client",
   "Completed",
-  "RTO",
+  "RTO - ACTech",
+  "RTO - Client",
   "On Hold",
 ] as const;
+
+const STATUS_CARD_LABEL: Record<string, string> = { "RTO - ACTech": "RTO - AC Tech" };
 
 const isDoneCompleted = (s: any) => isCompletedStatus(String(s?.status || ""));
 
@@ -917,7 +920,11 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     if (includeStatus && statusFilter !== "all") {
       const st = String(service.status || "").trim();
       const ok =
-        statusFilter === "RTO"
+        statusFilter === "On Hold"
+          ? isOnHold(service as any)
+          : statusFilter === "RTO - ACTech"
+          ? /^rto/i.test(st) && st !== "RTO - Client"
+          : statusFilter === "RTO"
           ? /^rto/i.test(st)
           : statusFilter === "Completed"
           ? st === "Completed" && !service.isBackjob
@@ -1039,7 +1046,12 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
     services.forEach((service) => {
       if (!passesFilters(service, false)) return;
       const status = (service.status || "").trim();
-      if (/^rto/i.test(status)) counts["RTO"] += 1;
+      const held = isOnHold(service as any);
+      if (held) counts["On Hold"] += 1;
+      if (status === "On Hold") {
+        /* legacy status — counted by the On Hold card above */
+      } else if (status === "RTO - Client") counts["RTO - Client"] += 1;
+      else if (/^rto/i.test(status)) counts["RTO - ACTech"] += 1;
       else if (status === "Completed" && (service as any).isBackjob) {
         /* counted by the Completed - Backjob card only */
       } else if (status in counts) counts[status] += 1;
@@ -1616,7 +1628,7 @@ ${customMessage ? `\n💬 Message: ${customMessage}` : ""}
                 )}
               >
                 <p className="text-2xl font-bold tabular-nums text-foreground">{statusCounts[status] ?? 0}</p>
-                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{status}</p>
+                <p className="mt-1 text-[11px] leading-tight text-muted-foreground">{STATUS_CARD_LABEL[status] ?? status}</p>
               </button>
             );
           })}
