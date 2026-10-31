@@ -324,9 +324,14 @@ serve(async (req) => {
       update.status = "Done Repair - Under Observation";
       update.client_approved_at = nowIso;
       update.interim_needed = false;
+      // Declined extra work pauses the ticket until staff follow up.
+      update.is_on_hold = true;
+      update.on_hold_reason = `Client declined interim work: ${reason}`;
     } else {
-      // Declined: park the ticket On Hold so staff prepare the unit for return.
-      update.status = "On Hold";
+      // Declined: put the ticket On Hold (toggle) so staff prepare the unit for
+      // return; the status itself stays Waiting to Proceed.
+      update.is_on_hold = true;
+      update.on_hold_reason = `Client declined: ${reason}`;
       update.client_approved_at = nowIso;
       update.approval_locked = true;
     }
@@ -337,6 +342,17 @@ serve(async (req) => {
       .eq("service_id", serviceId);
 
     if (updateError) return json({ error: updateError.message }, 500);
+
+    if (isInterimRound) {
+      // Close the latest pending interim round with the client's decision.
+      const { data: pendingRound } = await admin.from("interim_reports").select("id")
+        .eq("service_id", serviceId).eq("status", "pending").order("round", { ascending: false }).limit(1).maybeSingle();
+      if (pendingRound?.id) {
+        await admin.from("interim_reports").update({
+          status: approved ? "approved" : "declined", decided_at: nowIso, decision_note: approved ? null : reason,
+        }).eq("id", pendingRound.id);
+      }
+    }
 
     const resultingStatus = (update.status as string) ?? status;
 
@@ -422,7 +438,7 @@ serve(async (req) => {
           : `Service ${serviceId}: Proceed Repair`;
         const message = !approved
           ? isInterimRound
-            ? `${clientName} declined the additional (interim) work for ${serviceId} (${deviceInfo}). Reason: ${reason || "(none provided)"}. The approved repair stands — ticket is back to Done Repair - Under Observation.`
+            ? `${clientName} declined the additional (interim) work for ${serviceId} (${deviceInfo}). Reason: ${reason || "(none provided)"}. The approved repair stands — ticket is back to Done Repair - Under Observation and On Hold.`
             : `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`
