@@ -142,7 +142,12 @@ export const fetchPublicServiceSnapshot = async (serviceId: string, pin?: string
     // Signed-in staff can still read the snapshot without a PIN.
     const { data, error } = await supabase.rpc("public_service_snapshot", { _service_id: serviceId });
     if (error || !data) return null;
-    return data as any;
+    const sid = String((data as any).service_id || serviceId);
+    const [{ data: hold }, { data: rounds }] = await Promise.all([
+      supabase.from("services").select("is_on_hold").eq("service_id", sid).maybeSingle(),
+      supabase.from("interim_reports").select("round,ai_interim_report,interim_warranty,interim_summary,interim_breakdown_text,status,created_at,decided_at").eq("service_id", sid).order("round"),
+    ]);
+    return { ...(data as any), is_on_hold: !!hold?.is_on_hold, interim_rounds: rounds || [] };
   } catch {
     return null;
   }
