@@ -21,7 +21,7 @@ export const PickupCalendar = ({ selected, onSelect, month, onMonthChange, entri
       onMonthChange={onMonthChange}
       modifiers={{ booked }}
       modifiersClassNames={{ booked: "font-bold underline decoration-primary decoration-2 underline-offset-4" }}
-      className="p-3 pointer-events-auto mx-auto"
+      className="w-full p-3 pointer-events-auto"
     />
   );
 };
