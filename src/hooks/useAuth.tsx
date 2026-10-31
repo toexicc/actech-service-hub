@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(prof as AuthProfile | null);
     const r = (roleRows ?? []).map((x: any) => x.role as AppRole);
     setRoles(r);
+    setRolesReady(true);
     hydratedUserIdRef.current = uid;
     // Compatibility shim for legacy pages reading sessionStorage
     try {
@@ -84,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const uid = sess.user.id;
         setLoading(true);
+        setRolesReady(false);
         setTimeout(() => {
           loadProfileAndRoles(uid).finally(() => setLoading(false));
         }, 0);
