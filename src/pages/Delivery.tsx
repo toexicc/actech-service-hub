@@ -108,7 +108,7 @@ const Delivery = () => {
                 {e.notes && <p className="text-xs">{e.notes}</p>}
                 {e.status !== "done" && (
                   <div className="flex gap-2 pt-0.5">
-                    <Button size="sm" className="flex-1 h-9" disabled={busy} onClick={() => markDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
+                    <Button size="sm" className="flex-1 h-9" disabled={busy} onClick={() => openDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
                     <Button size="sm" className="flex-1 h-9" variant="outline" onClick={() => { setResched(e); setNewDate(""); setReason(""); }}><CalendarClock className="h-4 w-4 mr-1" />Reschedule</Button>
                   </div>
                 )}
@@ -117,6 +117,25 @@ const Delivery = () => {
           ))}
         </section>
       </main>
+
+      <Dialog open={!!doneEntry} onOpenChange={(o) => !o && setDoneEntry(null)}>
+        <DialogContent className="!flex !flex-col max-h-[95dvh]">
+          <DialogHeader className="shrink-0"><DialogTitle>Confirm pickup done</DialogTitle></DialogHeader>
+          <div className="overflow-y-auto grid gap-3 px-1">
+            <p className="text-sm text-muted-foreground">
+              Mark <span className="font-medium text-foreground">{doneEntry?.client_name}</span> as done? Enter the actual pickup time.
+            </p>
+            <div>
+              <Label>Time of pickup</Label>
+              <Input type="datetime-local" value={doneTime} onChange={(e) => setDoneTime(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setDoneEntry(null)}>Cancel</Button>
+            <Button disabled={busy} onClick={confirmDone}><Check className="h-4 w-4 mr-1" />Confirm done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!resched} onOpenChange={(o) => !o && setResched(null)}>
         <DialogContent className="!flex !flex-col max-h-[95dvh]">
