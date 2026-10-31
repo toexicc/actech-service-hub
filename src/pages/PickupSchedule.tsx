@@ -15,9 +15,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { PickupCalendar } from "@/components/pickup/PickupCalendar";
 import { PickupZoneNote } from "@/components/pickup/PickupZoneNote";
 import { usePickupSchedules, PickupEntry, STATUS_STYLE } from "@/hooks/usePickupSchedules";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PickupLogs } from "@/components/pickup/PickupLogs";
+import { logPickup, parseCost } from "@/lib/pickupLog";
+import { useQuery } from "@tanstack/react-query";
 import { NORTH, SOUTH, cityMatchesDate, zoneForDate, ZONE_LABEL } from "@/lib/pickupZones";
 
-const empty = { schedule_date: "", kind: "pickup", client_name: "", service_id: "", contact_number: "", city: "", address: "", time_window: "", notes: "" };
+const empty = { schedule_date: "", kind: "pickup", client_name: "", service_id: "", contact_number: "", city: "", address: "", time_window: "", notes: "", cost: "" };
 
 const PickupSchedule = () => {
   const { toast } = useToast();
@@ -39,7 +43,7 @@ const PickupSchedule = () => {
   const openNew = () => { setEditId(null); setForm({ ...empty, schedule_date: dayKey }); setOtherCity(false); setOpen(true); };
   const openEdit = (e: PickupEntry) => {
     setEditId(e.id);
-    setForm({ schedule_date: e.schedule_date, kind: e.kind, client_name: e.client_name, service_id: e.service_id || "", contact_number: e.contact_number || "", city: e.city || "", address: e.address || "", time_window: e.time_window || "", notes: e.notes || "" });
+    setForm({ schedule_date: e.schedule_date, kind: e.kind, client_name: e.client_name, service_id: e.service_id || "", contact_number: e.contact_number || "", city: e.city || "", address: e.address || "", time_window: e.time_window || "", notes: e.notes || "", cost: e.cost != null ? String(e.cost) : "" });
     setOtherCity(!!e.city && ![...NORTH, ...SOUTH].includes(e.city as never));
     setOpen(true);
   };
@@ -47,13 +51,21 @@ const PickupSchedule = () => {
   const save = async () => {
     if (!form.client_name.trim() || !form.schedule_date) { toast({ title: "Client and date are required", variant: "destructive" }); return; }
     setSaving(true);
-    const payload = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, typeof v === "string" && v.trim() === "" ? null : typeof v === "string" ? v.trim() : v])) as Record<string, string | null>;
-    payload.service_id = payload.service_id ? payload.service_id.toUpperCase() : null;
-    let error;
+    const { cost: rawCost, ...rest } = form;
+    const payload = Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, typeof v === "string" && v.trim() === "" ? null : typeof v === "string" ? v.trim() : v])) as Record<string, string | number | null>;
+    payload.cost = parseCost(rawCost);
+    payload.service_id = payload.service_id ? String(payload.service_id).toUpperCase() : null;
+    let error; let newId = editId;
+    const prev = editId ? entries.find((x) => x.id === editId) : undefined;
     if (editId) ({ error } = await supabase.from("pickup_schedules").update(payload as never).eq("id", editId));
     else {
       const { data: me } = await supabase.rpc("get_my_name");
-      ({ error } = await supabase.from("pickup_schedules").insert({ ...payload, created_by: user?.id, created_by_name: me } as never));
+      const res = await supabase.from("pickup_schedules").insert({ ...payload, created_by: user?.id, created_by_name: me } as never).select("id").single();
+      error = res.error; newId = (res.data as { id: string } | null)?.id ?? null;
+    }
+    if (!error && newId) {
+      const fields = prev ? Object.keys(payload).filter((k) => String((prev as never)[k] ?? "") !== String(payload[k] ?? "")) : undefined;
+      void logPickup(editId ? "pickup_updated" : "pickup_created", newId, { client_name: payload.client_name, date: payload.schedule_date, cost: payload.cost, fields });
     }
     setSaving(false);
     if (error) { toast({ title: "Could not save", description: error.message, variant: "destructive" }); return; }
@@ -66,8 +78,17 @@ const PickupSchedule = () => {
     if (!window.confirm(`Cancel ${e.kind} for ${e.client_name}?`)) return;
     const { error } = await supabase.from("pickup_schedules").update({ status: "cancelled" }).eq("id", e.id);
     if (error) toast({ title: "Could not cancel", description: error.message, variant: "destructive" });
-    else refresh();
+    else { void logPickup("pickup_cancelled", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
   };
+
+  const { data: lastView } = useQuery({
+    queryKey: ["pickup_last_view", dayKey],
+    queryFn: async () => {
+      const { data } = await supabase.from("activity_logs").select("created_at,actor_name").eq("entity_type", "pickup").eq("action", "pickup_viewed").eq("entity_id", dayKey).order("created_at", { ascending: false }).limit(1);
+      return data?.[0] ?? null;
+    },
+    staleTime: 30_000,
+  });
 
   const f = (k: keyof typeof empty) => (ev: { target: { value: string } }) => setForm((p) => ({ ...p, [k]: ev.target.value }));
 
@@ -77,12 +98,17 @@ const PickupSchedule = () => {
         <h1 className="text-2xl font-bold">Pickup Schedule</h1>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Add schedule</Button>
       </div>
+      <Tabs defaultValue="schedule">
+      <TabsList><TabsTrigger value="schedule">Schedule</TabsTrigger><TabsTrigger value="logs">Logs</TabsTrigger></TabsList>
+      <TabsContent value="logs"><PickupLogs /></TabsContent>
+      <TabsContent value="schedule" className="space-y-4">
       <PickupZoneNote highlight={zone} />
-      <div className="grid gap-4 md:grid-cols-[auto_1fr]">
+      <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
         <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">{format(selected, "MM/dd/yyyy (EEEE)")}{zone && <span className="ml-2 text-sm font-normal text-muted-foreground">{ZONE_LABEL[zone]}</span>}</CardTitle>
+            <p className="text-xs text-muted-foreground">{lastView ? `Last viewed by ${lastView.actor_name || "rider"}: ${new Date(lastView.created_at).toLocaleString("en-US", { timeZone: "Asia/Manila", month: "2-digit", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Not yet viewed by rider"}</p>
           </CardHeader>
           <CardContent className="space-y-2">
             {dayEntries.length === 0 && <p className="text-sm text-muted-foreground">Nothing scheduled for this day.</p>}
@@ -95,7 +121,7 @@ const PickupSchedule = () => {
                     <span className={`rounded px-2 py-0.5 text-xs capitalize ${STATUS_STYLE[e.status] || ""}`}>{e.status}</span>
                   </div>
                   <p className="text-muted-foreground">{[e.time_window, e.city, e.address].filter(Boolean).join(" · ")}</p>
-                  <p className="text-muted-foreground">{[e.service_id, e.contact_number].filter(Boolean).join(" · ")}</p>
+                  <p className="text-muted-foreground">{[e.service_id, e.contact_number, e.cost != null ? `₱${Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</p>
                   {e.notes && <p>{e.notes}</p>}
                   {e.reschedule_reason && <p className="text-xs text-muted-foreground">Rescheduled from {e.rescheduled_from ? format(parseISO(e.rescheduled_from), "MM/dd/yyyy") : "—"}: {e.reschedule_reason}</p>}
                 </div>
@@ -110,6 +136,8 @@ const PickupSchedule = () => {
           </CardContent>
         </Card>
       </div>
+      </TabsContent>
+      </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="!flex !flex-col max-h-[95dvh] max-w-lg">
@@ -148,6 +176,7 @@ const PickupSchedule = () => {
                 <AlertTriangle className="h-4 w-4 shrink-0" />{form.city} isn't on the {ZONE_LABEL[zoneForDate(form.schedule_date)!]} route for this day.
               </p>
             )}
+            <div className="grid grid-cols-2 gap-3"><div><Label>Cost (₱)</Label><Input inputMode="decimal" placeholder="0.00" value={form.cost} onChange={f("cost")} /></div><div /></div>
             <div><Label>Address</Label><Input value={form.address} onChange={f("address")} /></div>
             <div><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={f("notes")} /></div>
           </div>

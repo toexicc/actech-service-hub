@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { PickupCalendar } from "@/components/pickup/PickupCalendar";
-import { PickupZoneNote } from "@/components/pickup/PickupZoneNote";
+import { logPickup, logViewThrottled } from "@/lib/pickupLog";
 import { usePickupSchedules, PickupEntry, STATUS_STYLE } from "@/hooks/usePickupSchedules";
 import { zoneForDate, ZONE_LABEL } from "@/lib/pickupZones";
 
@@ -32,13 +32,14 @@ const Delivery = () => {
   const dayKey = format(selected, "yyyy-MM-dd");
   const day = useMemo(() => entries.filter((e) => e.schedule_date === dayKey && e.status !== "cancelled"), [entries, dayKey]);
   const zone = zoneForDate(dayKey);
+  useEffect(() => { logViewThrottled(dayKey); }, [dayKey]);
 
   const markDone = async (e: PickupEntry) => {
     setBusy(true);
     const { error } = await supabase.from("pickup_schedules").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", e.id);
     setBusy(false);
     if (error) toast({ title: "Could not update", description: error.message, variant: "destructive" });
-    else { toast({ title: "Marked done" }); refresh(); }
+    else { toast({ title: "Marked done" }); void logPickup("pickup_done", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
   };
 
   const doResched = async () => {
@@ -49,6 +50,7 @@ const Delivery = () => {
     }).eq("id", resched.id);
     setBusy(false);
     if (error) { toast({ title: "Could not reschedule", description: error.message, variant: "destructive" }); return; }
+    void logPickup("pickup_rescheduled", resched.id, { client_name: resched.client_name, from: resched.schedule_date, to: newDate, reason: reason.trim() });
     toast({ title: `Moved to ${format(parseISO(newDate), "MM/dd/yyyy")}` });
     setResched(null);
     refresh();
@@ -65,36 +67,40 @@ const Delivery = () => {
         <h1 className="text-lg font-bold">Pickup & Delivery</h1>
         <Button variant="ghost" size="sm" onClick={logout}><LogOut className="h-4 w-4 mr-1" />Sign out</Button>
       </header>
-      <main className="mx-auto max-w-3xl space-y-4 p-4">
-        <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
-        <div>
-          <h2 className="font-semibold">{format(selected, "EEEE, MM/dd/yyyy")}</h2>
-          {zone && <p className="text-sm text-muted-foreground">{ZONE_LABEL[zone]} route</p>}
-        </div>
-        {day.length === 0 && <p className="text-sm text-muted-foreground">No pickups or deliveries this day.</p>}
-        {day.map((e) => (
-          <Card key={e.id}>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="capitalize">{e.kind}</Badge>
-                <span className="font-semibold text-base">{e.client_name}</span>
-                <span className={`rounded px-2 py-0.5 text-xs capitalize ${STATUS_STYLE[e.status] || ""}`}>{e.status}</span>
-              </div>
-              {e.time_window && <p className="font-medium">{e.time_window}</p>}
-              {(e.city || e.address) && <p className="flex gap-1"><MapPin className="h-4 w-4 shrink-0 mt-0.5" />{[e.address, e.city].filter(Boolean).join(", ")}</p>}
-              {e.contact_number && <a href={`tel:${e.contact_number}`} className="flex items-center gap-1 text-primary underline"><Phone className="h-4 w-4" />{e.contact_number}</a>}
-              {e.service_id && <p className="text-muted-foreground">Ticket {e.service_id}</p>}
-              {e.notes && <p>{e.notes}</p>}
-              {e.status !== "done" && (
-                <div className="flex gap-2 pt-1">
-                  <Button className="flex-1 h-11" disabled={busy} onClick={() => markDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
-                  <Button className="flex-1 h-11" variant="outline" onClick={() => { setResched(e); setNewDate(""); setReason(""); }}><CalendarClock className="h-4 w-4 mr-1" />Reschedule</Button>
+      <main className="mx-auto max-w-6xl p-3 sm:p-4 grid gap-4 lg:grid-cols-[auto_1fr] lg:items-start">
+        <Card className="lg:sticky lg:top-20 w-fit mx-auto lg:mx-0"><CardContent className="p-2 first:pt-2 sm:p-2 sm:first:pt-2"><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
+        <section className="space-y-2 min-w-0">
+          <div>
+            <h2 className="font-semibold">{format(selected, "EEEE, MM/dd/yyyy")}</h2>
+            {zone && <p className="text-xs text-muted-foreground">{ZONE_LABEL[zone]} route</p>}
+          </div>
+          {day.length === 0 && <p className="text-sm text-muted-foreground">No pickups or deliveries this day.</p>}
+          {day.map((e) => (
+            <Card key={e.id}>
+              <CardContent className="p-3 first:pt-3 sm:p-3 sm:first:pt-3 space-y-1.5 text-sm">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="capitalize px-1.5 py-0 text-xs">{e.kind}</Badge>
+                  <span className="font-semibold">{e.client_name}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[11px] capitalize ${STATUS_STYLE[e.status] || ""}`}>{e.status}</span>
+                  {e.time_window && <span className="ml-auto text-xs font-medium">{e.time_window}</span>}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-        <PickupZoneNote highlight={zone} />
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  {(e.city || e.address) && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 shrink-0" />{[e.address, e.city].filter(Boolean).join(", ")}</span>}
+                  {e.contact_number && <a href={`tel:${e.contact_number}`} className="flex items-center gap-1 text-primary underline"><Phone className="h-3.5 w-3.5" />{e.contact_number}</a>}
+                  {e.service_id && <span>Ticket {e.service_id}</span>}
+                  {e.cost != null && <span className="font-medium text-foreground">₱{Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>}
+                </div>
+                {e.notes && <p className="text-xs">{e.notes}</p>}
+                {e.status !== "done" && (
+                  <div className="flex gap-2 pt-0.5">
+                    <Button size="sm" className="flex-1 h-9" disabled={busy} onClick={() => markDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
+                    <Button size="sm" className="flex-1 h-9" variant="outline" onClick={() => { setResched(e); setNewDate(""); setReason(""); }}><CalendarClock className="h-4 w-4 mr-1" />Reschedule</Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </section>
       </main>
 
       <Dialog open={!!resched} onOpenChange={(o) => !o && setResched(null)}>
