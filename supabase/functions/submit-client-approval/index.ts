@@ -382,7 +382,7 @@ serve(async (req) => {
           : `Client approved on /track — ${approvedItems.join(", ") || "diagnosis"}. Status auto-changed to ${resultingStatus}`
         : isInterimRound
         ? `Client declined the interim (additional) work on /track — ${reason}. Earlier approval stands; status auto-changed to ${resultingStatus}`
-        : `Client declined on /track — ${reason}. Status auto-changed to ${resultingStatus}`;
+        : `Client declined on /track — ${reason}. Ticket put On Hold (status stays ${resultingStatus})`;
 
       await admin.from("activity_logs").insert({
         action,
