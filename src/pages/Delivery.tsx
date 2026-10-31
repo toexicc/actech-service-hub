@@ -27,6 +27,8 @@ const Delivery = () => {
   const [resched, setResched] = useState<PickupEntry | null>(null);
   const [newDate, setNewDate] = useState("");
   const [reason, setReason] = useState("");
+  const [doneEntry, setDoneEntry] = useState<PickupEntry | null>(null);
+  const [doneTime, setDoneTime] = useState("");
   const [busy, setBusy] = useState(false);
 
   const dayKey = format(selected, "yyyy-MM-dd");
@@ -34,12 +36,25 @@ const Delivery = () => {
   const zone = zoneForDate(dayKey);
   useEffect(() => { logViewThrottled(dayKey); }, [dayKey]);
 
-  const markDone = async (e: PickupEntry) => {
+  const openDone = (e: PickupEntry) => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setDoneTime(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+    setDoneEntry(e);
+  };
+
+  const confirmDone = async () => {
+    if (!doneEntry || !doneTime) { toast({ title: "Pickup time is required", variant: "destructive" }); return; }
+    const at = new Date(doneTime);
+    if (isNaN(at.getTime())) { toast({ title: "Invalid pickup time", variant: "destructive" }); return; }
     setBusy(true);
-    const { error } = await supabase.from("pickup_schedules").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", e.id);
+    const { error } = await supabase.from("pickup_schedules").update({ status: "done", completed_at: at.toISOString() }).eq("id", doneEntry.id);
     setBusy(false);
-    if (error) toast({ title: "Could not update", description: error.message, variant: "destructive" });
-    else { toast({ title: "Marked done" }); void logPickup("pickup_done", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
+    if (error) { toast({ title: "Could not update", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Marked done" });
+    void logPickup("pickup_done", doneEntry.id, { client_name: doneEntry.client_name, date: doneEntry.schedule_date, picked_up_at: at.toISOString() });
+    setDoneEntry(null);
+    refresh();
   };
 
   const doResched = async () => {
@@ -91,9 +106,12 @@ const Delivery = () => {
                   {e.cost != null && <span className="font-medium text-foreground">₱{Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>}
                 </div>
                 {e.notes && <p className="text-xs">{e.notes}</p>}
+                {e.status === "done" && e.completed_at && (
+                  <p className="text-xs text-muted-foreground">Picked up {format(parseISO(e.completed_at), "MM/dd/yyyy hh:mm a")}</p>
+                )}
                 {e.status !== "done" && (
                   <div className="flex gap-2 pt-0.5">
-                    <Button size="sm" className="flex-1 h-9" disabled={busy} onClick={() => markDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
+                    <Button size="sm" className="flex-1 h-9" disabled={busy} onClick={() => openDone(e)}><Check className="h-4 w-4 mr-1" />Done</Button>
                     <Button size="sm" className="flex-1 h-9" variant="outline" onClick={() => { setResched(e); setNewDate(""); setReason(""); }}><CalendarClock className="h-4 w-4 mr-1" />Reschedule</Button>
                   </div>
                 )}
@@ -102,6 +120,25 @@ const Delivery = () => {
           ))}
         </section>
       </main>
+
+      <Dialog open={!!doneEntry} onOpenChange={(o) => !o && setDoneEntry(null)}>
+        <DialogContent className="!flex !flex-col max-h-[95dvh]">
+          <DialogHeader className="shrink-0"><DialogTitle>Confirm pickup done</DialogTitle></DialogHeader>
+          <div className="overflow-y-auto grid gap-3 px-1">
+            <p className="text-sm text-muted-foreground">
+              Mark <span className="font-medium text-foreground">{doneEntry?.client_name}</span> as done? Enter the actual pickup time.
+            </p>
+            <div>
+              <Label>Time of pickup</Label>
+              <Input type="datetime-local" value={doneTime} onChange={(e) => setDoneTime(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setDoneEntry(null)}>Cancel</Button>
+            <Button disabled={busy} onClick={confirmDone}><Check className="h-4 w-4 mr-1" />Confirm done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!resched} onOpenChange={(o) => !o && setResched(null)}>
         <DialogContent className="!flex !flex-col max-h-[95dvh]">
