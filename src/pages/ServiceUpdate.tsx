@@ -1684,7 +1684,7 @@ const ServiceUpdate = () => {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map((status) => (
+                      {STATUS_OPTIONS.filter((status) => status !== "On Hold").map((status) => (
                         <SelectItem
                           key={status}
                           value={status}

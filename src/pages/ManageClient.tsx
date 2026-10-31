@@ -2792,7 +2792,7 @@ const ManageClient = () => {
                           {STATUS_OPTIONS.filter(
                             (status) =>
                               // Pre-approved tickets skip the client approval stage.
-                              !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
+                              status !== "On Hold" && !(serviceData.autoApproveDiagnosis && status === "Waiting to Proceed"),
                           ).map((status) => (
                             <SelectItem key={status} value={status}>
                               {status}
