@@ -109,9 +109,9 @@ const PickupSchedule = () => {
       <TabsList><TabsTrigger value="schedule">Schedule</TabsTrigger><TabsTrigger value="logs">Logs</TabsTrigger></TabsList>
       <TabsContent value="logs"><PickupLogs /></TabsContent>
       <TabsContent value="schedule" className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
+      <div className="grid gap-4 md:grid-cols-[360px_1fr] md:items-start">
         <div className="space-y-4">
-          <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
+          <Card><CardContent className="p-2"><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
           <PickupZoneNote highlight={zone} />
         </div>
         <Card>
