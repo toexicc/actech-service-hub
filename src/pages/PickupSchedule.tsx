@@ -109,7 +109,6 @@ const PickupSchedule = () => {
       <TabsList><TabsTrigger value="schedule">Schedule</TabsTrigger><TabsTrigger value="logs">Logs</TabsTrigger></TabsList>
       <TabsContent value="logs"><PickupLogs /></TabsContent>
       <TabsContent value="schedule" className="space-y-4">
-      <PickupZoneNote highlight={zone} />
       <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
         <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
         <Card>
@@ -132,17 +131,21 @@ const PickupSchedule = () => {
                   {e.notes && <p>{e.notes}</p>}
                   {e.reschedule_reason && <p className="text-xs text-muted-foreground">Rescheduled from {e.rescheduled_from ? format(parseISO(e.rescheduled_from), "MM/dd/yyyy") : "—"}: {e.reschedule_reason}</p>}
                 </div>
-                {e.status !== "cancelled" && (
-                  <div className="flex shrink-0 gap-1">
-                    <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" aria-label="Cancel" onClick={() => cancelEntry(e)}><X className="h-4 w-4" /></Button>
-                  </div>
-                )}
+                <div className="flex shrink-0 gap-1">
+                  {e.status !== "cancelled" && (
+                    <>
+                      <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" aria-label="Cancel" onClick={() => cancelEntry(e)}><X className="h-4 w-4" /></Button>
+                    </>
+                  )}
+                  <Button size="icon" variant="ghost" aria-label="Delete" className="text-destructive hover:text-destructive" onClick={() => deleteEntry(e)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
       </div>
+      <PickupZoneNote highlight={zone} />
       </TabsContent>
       </Tabs>
 
