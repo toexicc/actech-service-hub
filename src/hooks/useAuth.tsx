@@ -84,6 +84,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (hydratedUserIdRef.current === sess.user.id) return;
 
         const uid = sess.user.id;
+        // Mark the session immediately so pages gating on the legacy
+        // "authenticated" flag don't bounce a direct URL load back to login
+        // while roles are still loading.
+        try { sessionStorage.setItem("authenticated", "true"); } catch {}
         setLoading(true);
         setRolesReady(false);
         setTimeout(() => {
@@ -104,11 +108,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (sess?.user) {
         // The subscription may have already hydrated this user.
         if (hydratedUserIdRef.current === sess.user.id) {
-          setLoading(false);
-          return;
-        }
+        setLoading(false);
+        return;
+      }
+      if (sess?.user) {
+        try { sessionStorage.setItem("authenticated", "true"); } catch {}
         loadProfileAndRoles(sess.user.id).finally(() => setLoading(false));
       } else {
+        try { sessionStorage.removeItem("authenticated"); } catch {}
         setLoading(false);
       }
     });
