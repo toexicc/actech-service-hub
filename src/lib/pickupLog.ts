@@ -4,13 +4,14 @@ export const VIEW_THROTTLE_MS = 5 * 60 * 1000;
 
 export type PickupAction =
   | "pickup_viewed" | "pickup_created" | "pickup_updated"
-  | "pickup_cancelled" | "pickup_done" | "pickup_rescheduled";
+  | "pickup_cancelled" | "pickup_deleted" | "pickup_done" | "pickup_rescheduled";
 
 export const ACTION_LABEL: Record<PickupAction, string> = {
   pickup_viewed: "Viewed schedule",
   pickup_created: "Created",
   pickup_updated: "Edited",
   pickup_cancelled: "Cancelled",
+  pickup_deleted: "Deleted",
   pickup_done: "Marked done",
   pickup_rescheduled: "Rescheduled",
 };

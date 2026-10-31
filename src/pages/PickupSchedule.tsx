@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Plus, Pencil, X } from "lucide-react";
+import { AlertTriangle, Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -81,6 +81,13 @@ const PickupSchedule = () => {
     else { void logPickup("pickup_cancelled", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
   };
 
+  const deleteEntry = async (e: PickupEntry) => {
+    if (!window.confirm(`Permanently delete the ${e.kind} for ${e.client_name}? This cannot be undone.`)) return;
+    const { error } = await supabase.from("pickup_schedules").delete().eq("id", e.id);
+    if (error) toast({ title: "Could not delete", description: error.message, variant: "destructive" });
+    else { void logPickup("pickup_deleted", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
+  };
+
   const { data: lastView } = useQuery({
     queryKey: ["pickup_last_view", dayKey],
     queryFn: async () => {
@@ -102,7 +109,6 @@ const PickupSchedule = () => {
       <TabsList><TabsTrigger value="schedule">Schedule</TabsTrigger><TabsTrigger value="logs">Logs</TabsTrigger></TabsList>
       <TabsContent value="logs"><PickupLogs /></TabsContent>
       <TabsContent value="schedule" className="space-y-4">
-      <PickupZoneNote highlight={zone} />
       <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
         <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
         <Card>
@@ -125,17 +131,21 @@ const PickupSchedule = () => {
                   {e.notes && <p>{e.notes}</p>}
                   {e.reschedule_reason && <p className="text-xs text-muted-foreground">Rescheduled from {e.rescheduled_from ? format(parseISO(e.rescheduled_from), "MM/dd/yyyy") : "—"}: {e.reschedule_reason}</p>}
                 </div>
-                {e.status !== "cancelled" && (
-                  <div className="flex shrink-0 gap-1">
-                    <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" aria-label="Cancel" onClick={() => cancelEntry(e)}><X className="h-4 w-4" /></Button>
-                  </div>
-                )}
+                <div className="flex shrink-0 gap-1">
+                  {e.status !== "cancelled" && (
+                    <>
+                      <Button size="icon" variant="ghost" aria-label="Edit" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" aria-label="Cancel" onClick={() => cancelEntry(e)}><X className="h-4 w-4" /></Button>
+                    </>
+                  )}
+                  <Button size="icon" variant="ghost" aria-label="Delete" className="text-destructive hover:text-destructive" onClick={() => deleteEntry(e)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
       </div>
+      <PickupZoneNote highlight={zone} />
       </TabsContent>
       </Tabs>
 

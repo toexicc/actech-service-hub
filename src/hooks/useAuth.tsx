@@ -20,6 +20,8 @@ interface AuthContextValue {
   user: User | null;
   profile: AuthProfile | null;
   roles: AppRole[];
+  /** True once the signed-in user's roles have finished loading. Guards wait on this. */
+  rolesReady: boolean;
   loading: boolean;
   isAdmin: boolean;
   isManagement: boolean;
@@ -40,6 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [rolesReady, setRolesReady] = useState(false);
   const [loading, setLoading] = useState(true);
   // Id of the user whose profile/roles are already hydrated in state.
   const hydratedUserIdRef = useRef<string | null>(null);
@@ -52,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(prof as AuthProfile | null);
     const r = (roleRows ?? []).map((x: any) => x.role as AppRole);
     setRoles(r);
+    setRolesReady(true);
     hydratedUserIdRef.current = uid;
     // Compatibility shim for legacy pages reading sessionStorage
     try {
@@ -80,7 +84,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (hydratedUserIdRef.current === sess.user.id) return;
 
         const uid = sess.user.id;
+        // Mark the session immediately so pages gating on the legacy
+        // "authenticated" flag don't bounce a direct URL load back to login
+        // while roles are still loading.
+        try { sessionStorage.setItem("authenticated", "true"); } catch {}
         setLoading(true);
+        setRolesReady(false);
         setTimeout(() => {
           loadProfileAndRoles(uid).finally(() => setLoading(false));
         }, 0);
@@ -88,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         hydratedUserIdRef.current = null;
         setProfile(null);
         setRoles([]);
+        setRolesReady(true);
         if (event === "SIGNED_OUT") setLoading(false);
       }
     });
@@ -101,8 +111,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false);
           return;
         }
+        try { sessionStorage.setItem("authenticated", "true"); } catch {}
         loadProfileAndRoles(sess.user.id).finally(() => setLoading(false));
       } else {
+        try { sessionStorage.removeItem("authenticated"); } catch {}
         setLoading(false);
       }
     });
@@ -134,6 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         profile,
         roles,
+        rolesReady,
         loading,
         isAdmin,
         isManagement,
