@@ -56,6 +56,8 @@ import {
   type QuotedLine,
 } from "@/lib/serviceApproval";
 import { InterimReportBlock, type InterimReportValues } from "@/components/InterimReportBlock";
+import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
+import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { useStaffAvailability } from "@/hooks/useStaffAvailability";
 import { useServiceLiveWatch } from "@/hooks/useServiceLiveWatch";
 import { useIsTabActive } from "@/components/workbench/TabActiveContext";
@@ -355,6 +357,7 @@ const ManageClient = () => {
   // Interim report (new findings raised mid-repair by the technician)
   const [interimNeeded, setInterimNeeded] = useState(false);
   const [interimApprovedNow, setInterimApprovedNow] = useState(false);
+  const [interimRoundsKey, setInterimRoundsKey] = useState(0);
   const [interim, setInterim] = useState<InterimReportValues>({
     findings: "",
     report: "",
@@ -1652,6 +1655,7 @@ const ManageClient = () => {
 
       // Don't let our own write raise the "updated elsewhere" banner.
       syncBaseline(saveStamp);
+      try { await syncLatestInterimRound(sid, interim, interimApprovedNow); setInterimRoundsKey((n) => n + 1); } catch { /* history only */ }
 
       // Fire-and-forget mirror to the data bridge (non-blocking, ignore failures)
       try {
@@ -3288,6 +3292,9 @@ const ManageClient = () => {
 
 
                   {/* AI Interim Report + interim photos (view only) */}
+                  {serviceData?.serviceId && (
+                    <InterimRoundsHistory serviceId={serviceData.serviceId} canAdd={canEditAdminRep} refreshKey={interimRoundsKey} onStarted={() => { setInterim((prev) => Object.fromEntries(Object.keys(prev).map((k) => [k, ""])) as any); setInterimNeeded(true); setInterimRoundsKey((n) => n + 1); }} />
+                  )}
                   {serviceData?.serviceId && (
                     <InterimReportBlock
                       serviceId={serviceData.serviceId}
