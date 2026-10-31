@@ -822,6 +822,7 @@ export type Database = {
           client_name: string
           completed_at: string | null
           contact_number: string | null
+          cost: number | null
           created_at: string
           created_by: string | null
           created_by_name: string | null
@@ -842,6 +843,7 @@ export type Database = {
           client_name: string
           completed_at?: string | null
           contact_number?: string | null
+          cost?: number | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -862,6 +864,7 @@ export type Database = {
           client_name?: string
           completed_at?: string | null
           contact_number?: string | null
+          cost?: number | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
