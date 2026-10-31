@@ -108,10 +108,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (sess?.user) {
         // The subscription may have already hydrated this user.
         if (hydratedUserIdRef.current === sess.user.id) {
-        setLoading(false);
-        return;
-      }
-      if (sess?.user) {
+          setLoading(false);
+          return;
+        }
         try { sessionStorage.setItem("authenticated", "true"); } catch {}
         loadProfileAndRoles(sess.user.id).finally(() => setLoading(false));
       } else {
