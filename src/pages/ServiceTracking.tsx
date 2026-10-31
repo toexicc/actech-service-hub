@@ -212,6 +212,8 @@ const mergeWithSupabase = async (serviceId: string, sheetData: any): Promise<any
       // Customer-facing "Admin Notes (Customer)" — this is what /track displays.
       customerNotes: pick(sb.remarks ?? (row as any).remarks, sheetData.customerNotes ?? sheetData.remarks),
       autoApproveDiagnosis: !!(sb as any).autoApproveDiagnosis,
+      isOnHold: !!(row as any).is_on_hold,
+      interimRounds: Array.isArray((row as any).interim_rounds) ? (row as any).interim_rounds : [],
       waitingForParts: !!((sb as any).waitingForParts ?? (row as any).waiting_for_parts),
       partsOrdered: !!((sb as any).partsOrdered ?? (row as any).parts_ordered),
       hasPreOrder: !!(row as any).has_pre_order,
@@ -1113,14 +1115,15 @@ const ServiceTracking = () => {
             "Cancelled": { label: "Cancelled", tone: "bg-destructive/15 text-destructive border-destructive/30" },
           };
           const currentStatus = serviceData.status || "";
-          const isClosed = isClosedStatus(currentStatus);
+          const onHoldToggle = !!(serviceData as any).isOnHold;
+          const isClosed = isClosedStatus(currentStatus) || onHoldToggle;
           const CLOSED_BANNER: Record<string, string> = {
             "RTO": "This device has been returned to its owner. Please contact the shop if you have questions.",
             "Cancelled": "This service has been cancelled. Please contact the shop for details.",
             "On Hold": "This service is currently on hold. Please contact the shop for an update.",
           };
-          const closedBanner = isClosed ? (CLOSED_BANNER[currentStatus] ?? CLOSED_BANNER["On Hold"]) : "";
-          const offPath = OFF_PATH[currentStatus];
+          const closedBanner = isClosed ? (onHoldToggle ? CLOSED_BANNER["On Hold"] : (CLOSED_BANNER[currentStatus] ?? CLOSED_BANNER["On Hold"])) : "";
+          const offPath = onHoldToggle ? OFF_PATH["On Hold"] : OFF_PATH[currentStatus];
           const statusToStep = (s: string): number => {
             if (!s) return 1;
             // Merge Ongoing Service into the Proceed Repair step
