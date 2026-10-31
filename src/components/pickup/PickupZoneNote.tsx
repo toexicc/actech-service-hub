@@ -9,7 +9,7 @@ const ZONES = [
 
 export const PickupZoneNote = ({ highlight }: { highlight?: PickupZone | null }) => (
   <Card>
-    <CardContent className="flex flex-col gap-2 text-xs sm:flex-row sm:gap-6">
+    <CardContent className="flex flex-col gap-2 text-xs">
       {ZONES.map(([z, label, list]) => (
         <div key={z} className={cn("min-w-0 flex-1 rounded-md border p-2", highlight === z && "border-primary bg-primary/5")}>
           <p className="font-semibold">{label}</p>
