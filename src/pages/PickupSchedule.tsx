@@ -110,7 +110,10 @@ const PickupSchedule = () => {
       <TabsContent value="logs"><PickupLogs /></TabsContent>
       <TabsContent value="schedule" className="space-y-4">
       <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
-        <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
+        <div className="space-y-4">
+          <Card><CardContent><PickupCalendar selected={selected} onSelect={setSelected} month={month} onMonthChange={setMonth} entries={entries} /></CardContent></Card>
+          <PickupZoneNote highlight={zone} />
+        </div>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">{format(selected, "MM/dd/yyyy (EEEE)")}{zone && <span className="ml-2 text-sm font-normal text-muted-foreground">{ZONE_LABEL[zone]}</span>}</CardTitle>
@@ -145,7 +148,6 @@ const PickupSchedule = () => {
           </CardContent>
         </Card>
       </div>
-      <PickupZoneNote highlight={zone} />
       </TabsContent>
       </Tabs>
 
