@@ -65,7 +65,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const isMobile = useIsMobile();
   // Live-refresh cached data when other staff change records.
-  const { isAdmin: rtAdmin, isManagement: rtMgmt } = useAuth();
+  const { isAdmin: rtAdmin, isManagement: rtMgmt, user: authUser, rolesReady } = useAuth();
   useRealtimeInvalidate(true, rtAdmin || rtMgmt);
 
   const [collapsed, setCollapsed] = useState(false);
@@ -81,12 +81,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const { openTab } = useWorkbench();
 
   useEffect(() => {
-    if (!sessionStorage.getItem("authenticated")) {
-      navigate("/");
-    } else {
-      setIsAuthChecked(true);
+    // Wait for the auth hook to hydrate before trusting (or rejecting) the
+    // session; the legacy sessionStorage flag may not be written yet on a
+    // direct URL load, which used to bounce the page back to login.
+    if (!authUser) {
+      if (rolesReady) navigate("/");
+      return;
     }
-  }, [navigate]);
+    if (rolesReady) setIsAuthChecked(true);
+  }, [authUser, rolesReady, navigate]);
 
   useEffect(() => {
     if (adminSection.items.some((i) => location.pathname === i.path)) setAdminOpen(true);
