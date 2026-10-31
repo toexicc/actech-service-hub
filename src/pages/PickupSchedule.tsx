@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Plus, Pencil, X } from "lucide-react";
+import { AlertTriangle, Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -79,6 +79,13 @@ const PickupSchedule = () => {
     const { error } = await supabase.from("pickup_schedules").update({ status: "cancelled" }).eq("id", e.id);
     if (error) toast({ title: "Could not cancel", description: error.message, variant: "destructive" });
     else { void logPickup("pickup_cancelled", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
+  };
+
+  const deleteEntry = async (e: PickupEntry) => {
+    if (!window.confirm(`Permanently delete the ${e.kind} for ${e.client_name}? This cannot be undone.`)) return;
+    const { error } = await supabase.from("pickup_schedules").delete().eq("id", e.id);
+    if (error) toast({ title: "Could not delete", description: error.message, variant: "destructive" });
+    else { void logPickup("pickup_deleted", e.id, { client_name: e.client_name, date: e.schedule_date }); refresh(); }
   };
 
   const { data: lastView } = useQuery({
