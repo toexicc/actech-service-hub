@@ -324,6 +324,8 @@ const ManageClient = () => {
   };
   const [updateAdminRep, setUpdateAdminRep] = useState("");
   const [updateTechnician, setUpdateTechnician] = useState("");
+  // Opt-in toggle so admins can assign even when the technician has no time-in today.
+  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // New assignments require today's time-in and no approved leave.
   // Technicians already assigned are ALWAYS kept
   // in the list, otherwise the field renders blank and the assignment is lost.
@@ -337,6 +339,7 @@ const ManageClient = () => {
     return technicianData
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
+        if (showUnavailableTechs) return true;
         return availability?.isAvailable(staff.name) ?? false;
       })
       .map((staff) => ({
@@ -344,7 +347,7 @@ const ManageClient = () => {
         department: staff.department || "",
         displayName: `${staff.name} - ${staff.department || ""}`,
       }));
-  }, [technicianData, availability, updateTechnician]);
+  }, [technicianData, availability, updateTechnician, showUnavailableTechs]);
 
   const [updateClientType, setUpdateClientType] = useState("");
   const [updatePriority, setUpdatePriority] = useState("");
@@ -2868,6 +2871,14 @@ const ManageClient = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <Label htmlFor="technician">Technician:</Label>
+                        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                          <Checkbox
+                            checked={showUnavailableTechs}
+                            onCheckedChange={(v) => setShowUnavailableTechs(v === true)}
+                            aria-label="Show unavailable staff"
+                          />
+                          Show unavailable staff
+                        </label>
                       </div>
 
                       <MultiSelect
