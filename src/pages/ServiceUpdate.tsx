@@ -242,6 +242,8 @@ const ServiceUpdate = () => {
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
   const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
+  // Opt-in toggle so staff can assign even when the technician has no time-in today.
+  const [showUnavailableTechs, setShowUnavailableTechs] = useState(false);
   // New assignments require today's time-in and no approved leave;
   // technicians already on this ticket are always kept so the field never blanks.
   const technicians = useMemo(() => {
@@ -254,6 +256,7 @@ const ServiceUpdate = () => {
     return technicianData
       .filter((staff) => {
         if (assigned.has((staff.name || "").trim().toLowerCase())) return true;
+        if (showUnavailableTechs) return true;
         return availability?.isAvailable(staff.name) ?? false;
       })
       .map((staff) => ({
@@ -261,7 +264,7 @@ const ServiceUpdate = () => {
         department: staff.department || "",
         displayName: `${staff.name} - ${staff.department || ""}`,
       }));
-  }, [technicianData, availability, updateTechnician]);
+  }, [technicianData, availability, updateTechnician, showUnavailableTechs]);
 
   const [updateTechnicianDiagnosis, setUpdateTechnicianDiagnosis] = useState("");
   const [updateTechnicianNotesInternal, setUpdateTechnicianNotesInternal] = useState("");
@@ -1587,7 +1590,14 @@ const ServiceUpdate = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="technician">Assigned Technician:</Label>
-
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                      <Checkbox
+                        checked={showUnavailableTechs}
+                        onCheckedChange={(v) => setShowUnavailableTechs(v === true)}
+                        aria-label="Show unavailable staff"
+                      />
+                      Show unavailable staff
+                    </label>
                   </div>
 
                   <MultiSelect
