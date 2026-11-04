@@ -14,14 +14,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PickupCalendar } from "@/components/pickup/PickupCalendar";
 import { PickupZoneNote } from "@/components/pickup/PickupZoneNote";
-import { usePickupSchedules, PickupEntry, STATUS_STYLE } from "@/hooks/usePickupSchedules";
+import { usePickupSchedules, PickupEntry, STATUS_STYLE, statusLabel } from "@/hooks/usePickupSchedules";
+import { summarizePayments } from "@/hooks/useServicePayments";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PickupLogs } from "@/components/pickup/PickupLogs";
 import { logPickup, parseCost } from "@/lib/pickupLog";
 import { useQuery } from "@tanstack/react-query";
 import { NORTH, SOUTH, cityMatchesDate, zoneForDate, ZONE_LABEL } from "@/lib/pickupZones";
 
-const empty = { schedule_date: "", kind: "pickup", client_name: "", service_id: "", contact_number: "", city: "", address: "", time_window: "", notes: "", cost: "" };
+const empty = { schedule_date: "", kind: "pickup", client_name: "", service_id: "", contact_number: "", city: "", address: "", time_window: "", notes: "", cost: "", status: "scheduled", device_label: "", technician: "", inclusion: "", client_instructions: "", delivery_payment: "", repair_payment: "" };
+type ServiceHit = { service_id: string; client_name: string; contact_number: string | null; address: string | null; brand: string | null; model: string | null; technicians: string[] | null; device_accessories: string[] | null; final_cost: number | null; total_cost: number | null };
 
 const PickupSchedule = () => {
   const { toast } = useToast();
@@ -34,16 +36,39 @@ const PickupSchedule = () => {
   const [form, setForm] = useState(empty);
   const [otherCity, setOtherCity] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [svcQuery, setSvcQuery] = useState("");
+  const [svcHits, setSvcHits] = useState<ServiceHit[]>([]);
+
+  const searchService = async (q: string) => {
+    setSvcQuery(q);
+    if (q.trim().length < 3) { setSvcHits([]); return; }
+    const { data } = await supabase.from("services").select("service_id,client_name,contact_number,address,brand,model,technicians,device_accessories,final_cost,total_cost").ilike("service_id", `%${q.trim()}%`).order("created_at", { ascending: false }).limit(8);
+    setSvcHits((data || []) as ServiceHit[]);
+  };
+
+  const pickService = async (s: ServiceHit) => {
+    setSvcHits([]); setSvcQuery(s.service_id);
+    const { data: tx } = await supabase.from("transactions").select("id,transaction_id,type,status,amount,payment_method,transaction_date,created_at").eq("service_id", s.service_id);
+    const paid = summarizePayments(tx || []).transactionsPaid;
+    const due = Number(s.final_cost) > 0 ? Number(s.final_cost) : Number(s.total_cost) || 0;
+    const bal = Math.max(0, due - paid);
+    const repair = due <= 0 ? "" : bal <= 0.009 ? "Paid" : `Not yet paid – ₱${bal.toLocaleString(undefined, { minimumFractionDigits: 2 })} balance`;
+    setForm((p) => ({
+      ...p, service_id: s.service_id, client_name: s.client_name || p.client_name, contact_number: s.contact_number || p.contact_number,
+      address: p.address || s.address || "", device_label: [s.brand, s.model].filter(Boolean).join(" - "),
+      technician: (s.technicians || []).join(", "), inclusion: (s.device_accessories || []).join(", "), repair_payment: repair,
+    }));
+  };
 
   const dayKey = format(selected, "yyyy-MM-dd");
   const dayEntries = useMemo(() => entries.filter((e) => e.schedule_date === dayKey), [entries, dayKey]);
   const zone = zoneForDate(dayKey);
   const mismatch = form.schedule_date && form.city ? cityMatchesDate(form.city, form.schedule_date) === false : false;
 
-  const openNew = () => { setEditId(null); setForm({ ...empty, schedule_date: dayKey }); setOtherCity(false); setOpen(true); };
+  const openNew = () => { setSvcQuery(""); setSvcHits([]); setEditId(null); setForm({ ...empty, schedule_date: dayKey }); setOtherCity(false); setOpen(true); };
   const openEdit = (e: PickupEntry) => {
-    setEditId(e.id);
-    setForm({ schedule_date: e.schedule_date, kind: e.kind, client_name: e.client_name, service_id: e.service_id || "", contact_number: e.contact_number || "", city: e.city || "", address: e.address || "", time_window: e.time_window || "", notes: e.notes || "", cost: e.cost != null ? String(e.cost) : "" });
+    setEditId(e.id); setSvcQuery(e.service_id || ""); setSvcHits([]);
+    setForm({ schedule_date: e.schedule_date, kind: e.kind, client_name: e.client_name, service_id: e.service_id || "", contact_number: e.contact_number || "", city: e.city || "", address: e.address || "", time_window: e.time_window || "", notes: e.notes || "", cost: e.cost != null ? String(e.cost) : "", status: e.status === "cancelled" ? "scheduled" : e.status, device_label: e.device_label || "", technician: e.technician || "", inclusion: e.inclusion || "", client_instructions: e.client_instructions || "", delivery_payment: e.delivery_payment || "", repair_payment: e.repair_payment || "" });
     setOtherCity(!!e.city && ![...NORTH, ...SOUTH].includes(e.city as never));
     setOpen(true);
   };
@@ -54,6 +79,7 @@ const PickupSchedule = () => {
     const { cost: rawCost, ...rest } = form;
     const payload = Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, typeof v === "string" && v.trim() === "" ? null : typeof v === "string" ? v.trim() : v])) as Record<string, string | number | null>;
     payload.cost = parseCost(rawCost);
+    if (payload.status === "done" && prev?.status !== "done") payload.completed_at = new Date().toISOString();
     payload.service_id = payload.service_id ? String(payload.service_id).toUpperCase() : null;
     let error; let newId = editId;
     const prev = editId ? entries.find((x) => x.id === editId) : undefined;
@@ -65,7 +91,7 @@ const PickupSchedule = () => {
     }
     if (!error && newId) {
       const fields = prev ? Object.keys(payload).filter((k) => String((prev as never)[k] ?? "") !== String(payload[k] ?? "")) : undefined;
-      void logPickup(editId ? "pickup_updated" : "pickup_created", newId, { client_name: payload.client_name, date: payload.schedule_date, cost: payload.cost, fields });
+      void logPickup(editId ? "pickup_updated" : "pickup_created", newId, { client_name: payload.client_name, date: payload.schedule_date, cost: payload.cost, status: payload.status, service_id: payload.service_id, delivery_payment: payload.delivery_payment, repair_payment: payload.repair_payment, fields });
     }
     setSaving(false);
     if (error) { toast({ title: "Could not save", description: error.message, variant: "destructive" }); return; }
@@ -127,8 +153,12 @@ const PickupSchedule = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="capitalize">{e.kind}</Badge>
                     <span className="font-semibold">{e.client_name}</span>
-                    <span className={`rounded px-2 py-0.5 text-xs capitalize ${STATUS_STYLE[e.status] || ""}`}>{e.status}</span>
+                    <span className={`rounded px-2 py-0.5 text-xs ${STATUS_STYLE[e.status] || ""}`}>{statusLabel(e.status, e.kind)}</span>
                   </div>
+                  {(e.device_label || e.technician) && <p className="text-muted-foreground">{[e.device_label, e.technician && `Tech: ${e.technician}`].filter(Boolean).join(" · ")}</p>}
+                  {e.inclusion && <p className="text-muted-foreground">Inclusion: {e.inclusion}</p>}
+                  {e.client_instructions && <p>Instructions: {e.client_instructions}</p>}
+                  {(e.delivery_payment || e.repair_payment) && <p className="text-muted-foreground">{[e.delivery_payment && `Delivery: ${e.delivery_payment}`, e.repair_payment && `Repair: ${e.repair_payment}`].filter(Boolean).join(" · ")}</p>}
                   <p className="text-muted-foreground">{[e.time_window, e.city, e.address].filter(Boolean).join(" · ")}</p>
                   <p className="text-muted-foreground">{[e.service_id, e.contact_number, e.cost != null ? `₱${Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</p>
                   {e.notes && <p>{e.notes}</p>}
@@ -164,11 +194,32 @@ const PickupSchedule = () => {
                 </Select>
               </div>
             </div>
-            <div><Label>Client name</Label><Input value={form.client_name} onChange={f("client_name")} /></div>
+            {form.kind === "delivery" && (
+              <div className="relative"><Label>Service ID</Label>
+                <Input placeholder="Search ticket e.g. AC0411" value={svcQuery} onChange={(ev) => searchService(ev.target.value.toUpperCase())} />
+                {svcHits.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-56 overflow-y-auto">
+                    {svcHits.map((h) => (
+                      <button type="button" key={h.service_id} className="block w-full px-3 py-2 text-left text-sm hover:bg-accent" onClick={() => pickService(h)}>
+                        <span className="font-medium">{h.service_id}</span> · {h.client_name} <span className="text-muted-foreground">{[h.brand, h.model].filter(Boolean).join(" ")}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Service ID (optional)</Label><Input value={form.service_id} onChange={f("service_id")} /></div>
-              <div><Label>Contact</Label><Input value={form.contact_number} onChange={f("contact_number")} /></div>
+              <div><Label>Client name</Label><Input value={form.client_name} onChange={f("client_name")} /></div>
+              <div><Label>Contact number</Label><Input value={form.contact_number} onChange={f("contact_number")} /></div>
             </div>
+            {form.kind === "delivery" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Device brand - model</Label><Input readOnly className="bg-muted" value={form.device_label} /></div>
+                <div><Label>Technician</Label><Input readOnly className="bg-muted" value={form.technician} /></div>
+              </div>
+            )}
+            {form.kind === "delivery" && <div><Label>Inclusion</Label><Input placeholder="e.g. Charger - Cable, Case" value={form.inclusion} onChange={f("inclusion")} /></div>}
+            <div><Label>Address</Label><Input value={form.address} onChange={f("address")} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>City</Label>
                 <Select value={otherCity ? "__other" : form.city} onValueChange={(v) => { if (v === "__other") { setOtherCity(true); setForm((p) => ({ ...p, city: "" })); } else { setOtherCity(false); setForm((p) => ({ ...p, city: v })); } }}>
@@ -181,16 +232,33 @@ const PickupSchedule = () => {
                 </Select>
                 {otherCity && <Input className="mt-2" placeholder="City" value={form.city} onChange={f("city")} />}
               </div>
-              <div><Label>Time window</Label><Input placeholder="e.g. 1–3 PM" value={form.time_window} onChange={f("time_window")} /></div>
+              <div><Label>Available time to {form.kind === "delivery" ? "deliver" : "pick up"}</Label><Input placeholder="e.g. 1–3 PM" value={form.time_window} onChange={f("time_window")} /></div>
             </div>
             {mismatch && (
               <p className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive">
                 <AlertTriangle className="h-4 w-4 shrink-0" />{form.city} isn't on the {ZONE_LABEL[zoneForDate(form.schedule_date)!]} route for this day.
               </p>
             )}
-            <div className="grid grid-cols-2 gap-3"><div><Label>Cost (₱)</Label><Input inputMode="decimal" placeholder="0.00" value={form.cost} onChange={f("cost")} /></div><div /></div>
-            <div><Label>Address</Label><Input value={form.address} onChange={f("address")} /></div>
-            <div><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={f("notes")} /></div>
+            <div><Label>Instructions of client</Label><Input placeholder={form.kind === "delivery" ? "e.g. Drop at the lobby" : "e.g. Pickup at the lobby"} value={form.client_instructions} onChange={f("client_instructions")} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Delivery payment</Label><Input placeholder={form.kind === "delivery" ? "e.g. Paid" : "e.g. Free"} value={form.delivery_payment} onChange={f("delivery_payment")} /></div>
+              {form.kind === "delivery" ? <div><Label>Payment for repair</Label><Input placeholder="e.g. Not yet paid" value={form.repair_payment} onChange={f("repair_payment")} /></div>
+                : <div><Label>Service ID (optional)</Label><Input value={form.service_id} onChange={f("service_id")} /></div>}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Cost (₱)</Label><Input inputMode="decimal" placeholder="0.00" value={form.cost} onChange={f("cost")} /></div>
+              <div><Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scheduled">Pending</SelectItem>
+                    <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                    <SelectItem value="done">{form.kind === "delivery" ? "Delivered" : "Picked up"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div><Label>Internal notes</Label><Textarea rows={2} value={form.notes} onChange={f("notes")} /></div>
           </div>
           <DialogFooter className="shrink-0">
             <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>

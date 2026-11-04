@@ -19,6 +19,12 @@ export interface PickupEntry {
   completed_at: string | null;
   created_by_name: string | null;
   cost: number | null;
+  device_label: string | null;
+  technician: string | null;
+  inclusion: string | null;
+  client_instructions: string | null;
+  delivery_payment: string | null;
+  repair_payment: string | null;
 }
 
 export const usePickupSchedules = (month: Date) => {
@@ -50,3 +56,10 @@ export const STATUS_STYLE: Record<string, string> = {
   done: "bg-secondary text-secondary-foreground",
   cancelled: "bg-muted text-muted-foreground line-through",
 };
+
+/** Display label for stored status; storage values stay scheduled/rescheduled/done/cancelled. */
+export const statusLabel = (status: string, kind: string) =>
+  status === "scheduled" ? "Pending"
+  : status === "rescheduled" ? "Rescheduled"
+  : status === "done" ? (kind === "delivery" ? "Delivered" : "Picked up")
+  : status === "cancelled" ? "Cancelled" : status;
