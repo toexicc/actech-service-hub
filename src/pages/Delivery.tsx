@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { PickupCalendar } from "@/components/pickup/PickupCalendar";
 import { logPickup, logViewThrottled } from "@/lib/pickupLog";
-import { usePickupSchedules, PickupEntry, STATUS_STYLE } from "@/hooks/usePickupSchedules";
+import { usePickupSchedules, PickupEntry, STATUS_STYLE, statusLabel } from "@/hooks/usePickupSchedules";
 import { zoneForDate, ZONE_LABEL } from "@/lib/pickupZones";
 
 const Delivery = () => {
@@ -96,7 +96,7 @@ const Delivery = () => {
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Badge variant="outline" className="capitalize px-1.5 py-0 text-xs">{e.kind}</Badge>
                   <span className="font-semibold">{e.client_name}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-[11px] capitalize ${STATUS_STYLE[e.status] || ""}`}>{e.status}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[11px] ${STATUS_STYLE[e.status] || ""}`}>{statusLabel(e.status, e.kind)}</span>
                   {e.time_window && <span className="ml-auto text-xs font-medium">{e.time_window}</span>}
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -105,9 +105,12 @@ const Delivery = () => {
                   {e.service_id && <span>Ticket {e.service_id}</span>}
                   {e.cost != null && <span className="font-medium text-foreground">₱{Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>}
                 </div>
+                {(e.device_label || e.inclusion) && <p className="text-xs text-muted-foreground">{[e.device_label, e.inclusion && `Incl: ${e.inclusion}`].filter(Boolean).join(" · ")}</p>}
+                {e.client_instructions && <p className="text-xs font-medium">📍 {e.client_instructions}</p>}
+                {(e.delivery_payment || e.repair_payment) && <p className="text-xs">{[e.delivery_payment && `Delivery: ${e.delivery_payment}`, e.repair_payment && `Repair: ${e.repair_payment}`].filter(Boolean).join(" · ")}</p>}
                 {e.notes && <p className="text-xs">{e.notes}</p>}
                 {e.status === "done" && e.completed_at && (
-                  <p className="text-xs text-muted-foreground">Picked up {format(parseISO(e.completed_at), "MM/dd/yyyy hh:mm a")}</p>
+                  <p className="text-xs text-muted-foreground">{e.kind === "delivery" ? "Delivered" : "Picked up"} {format(parseISO(e.completed_at), "MM/dd/yyyy hh:mm a")}</p>
                 )}
                 {e.status !== "done" && (
                   <div className="flex gap-2 pt-0.5">
