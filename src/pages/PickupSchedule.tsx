@@ -41,8 +41,12 @@ const PickupSchedule = () => {
 
   const searchService = async (q: string) => {
     setSvcQuery(q);
-    if (q.trim().length < 3) { setSvcHits([]); return; }
-    const { data } = await supabase.from("services").select("service_id,client_name,contact_number,address,brand,model,technicians,device_accessories,final_cost,total_cost").ilike("service_id", `%${q.trim()}%`).order("created_at", { ascending: false }).limit(8);
+    const term = q.trim();
+    if (term.length < 3) { setSvcHits([]); return; }
+    const like = `%${term}%`;
+    const { data } = await supabase.from("services").select("service_id,client_name,contact_number,address,brand,model,technicians,device_accessories,final_cost,total_cost")
+      .or([`service_id.ilike.${like}`, `client_name.ilike.${like}`, `brand.ilike.${like}`, `model.ilike.${like}`].join(","))
+      .order("created_at", { ascending: false }).limit(8);
     setSvcHits((data || []) as ServiceHit[]);
   };
 
@@ -196,7 +200,7 @@ const PickupSchedule = () => {
             </div>
             {form.kind === "delivery" && (
               <div className="relative"><Label>Service ID</Label>
-                <Input placeholder="Search ticket e.g. AC0411" value={svcQuery} onChange={(ev) => searchService(ev.target.value.toUpperCase())} />
+                <Input placeholder="Search by Service ID, client name, or device" value={svcQuery} onChange={(ev) => searchService(ev.target.value)} />
                 {svcHits.length > 0 && (
                   <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-56 overflow-y-auto">
                     {svcHits.map((h) => (
