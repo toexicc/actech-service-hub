@@ -1,0 +1,1 @@
+ALTER TABLE public.pickup_schedules ADD COLUMN IF NOT EXISTS device_label text, ADD COLUMN IF NOT EXISTS technician text, ADD COLUMN IF NOT EXISTS inclusion text, ADD COLUMN IF NOT EXISTS client_instructions text, ADD COLUMN IF NOT EXISTS delivery_payment text, ADD COLUMN IF NOT EXISTS repair_payment text;

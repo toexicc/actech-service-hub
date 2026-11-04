@@ -819,6 +819,7 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          client_instructions: string | null
           client_name: string
           completed_at: string | null
           contact_number: string | null
@@ -826,20 +827,26 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string | null
+          delivery_payment: string | null
+          device_label: string | null
           id: string
+          inclusion: string | null
           kind: string
           notes: string | null
+          repair_payment: string | null
           reschedule_reason: string | null
           rescheduled_from: string | null
           schedule_date: string
           service_id: string | null
           status: string
+          technician: string | null
           time_window: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
           city?: string | null
+          client_instructions?: string | null
           client_name: string
           completed_at?: string | null
           contact_number?: string | null
@@ -847,20 +854,26 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          delivery_payment?: string | null
+          device_label?: string | null
           id?: string
+          inclusion?: string | null
           kind?: string
           notes?: string | null
+          repair_payment?: string | null
           reschedule_reason?: string | null
           rescheduled_from?: string | null
           schedule_date: string
           service_id?: string | null
           status?: string
+          technician?: string | null
           time_window?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
           city?: string | null
+          client_instructions?: string | null
           client_name?: string
           completed_at?: string | null
           contact_number?: string | null
@@ -868,14 +881,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          delivery_payment?: string | null
+          device_label?: string | null
           id?: string
+          inclusion?: string | null
           kind?: string
           notes?: string | null
+          repair_payment?: string | null
           reschedule_reason?: string | null
           rescheduled_from?: string | null
           schedule_date?: string
           service_id?: string | null
           status?: string
+          technician?: string | null
           time_window?: string | null
           updated_at?: string
         }
