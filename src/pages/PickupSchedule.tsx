@@ -79,7 +79,7 @@ const PickupSchedule = () => {
     const { cost: rawCost, ...rest } = form;
     const payload = Object.fromEntries(Object.entries(rest).map(([k, v]) => [k, typeof v === "string" && v.trim() === "" ? null : typeof v === "string" ? v.trim() : v])) as Record<string, string | number | null>;
     payload.cost = parseCost(rawCost);
-    if (payload.status === "done" && prev?.status !== "done") payload.completed_at = new Date().toISOString();
+    if (payload.status === "done" && (editId ? entries.find((x) => x.id === editId)?.status : "") !== "done") payload.completed_at = new Date().toISOString();
     payload.service_id = payload.service_id ? String(payload.service_id).toUpperCase() : null;
     let error; let newId = editId;
     const prev = editId ? entries.find((x) => x.id === editId) : undefined;
