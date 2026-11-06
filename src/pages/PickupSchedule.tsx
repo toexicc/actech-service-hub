@@ -167,6 +167,7 @@ const PickupSchedule = () => {
                   <p className="text-muted-foreground">{[e.service_id, e.contact_number, e.cost != null ? `₱${Number(e.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : null].filter(Boolean).join(" · ")}</p>
                   {e.notes && <p>{e.notes}</p>}
                   {e.reschedule_reason && <p className="text-xs text-muted-foreground">Rescheduled from {e.rescheduled_from ? format(parseISO(e.rescheduled_from), "MM/dd/yyyy") : "—"}: {e.reschedule_reason}</p>}
+                  <p className="!mt-2 border-t pt-2 text-xs text-muted-foreground break-words">Created by: <span className="font-medium text-foreground">{e.created_by_name?.trim() || "Not recorded"}</span></p>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   {e.status !== "cancelled" && (
