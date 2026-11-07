@@ -18,8 +18,8 @@ const IMAGE_EXT = /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif|tiff?)$/i;
 // Accept large originals; the compressed output is what must stay small.
 export const MAX_INPUT_BYTES = 25 * 1024 * 1024; // 25MB per source photo
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB after compression
-const MAX_DIMENSION = 1600;
-const JPEG_QUALITY = 0.8;
+const MAX_DIMENSION = 1200;
+const JPEG_QUALITY = 0.72;
 
 export const looksLikeImage = (file: File): boolean => {
   const type = (file.type || "").toLowerCase();

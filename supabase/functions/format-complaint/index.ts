@@ -128,6 +128,8 @@ STRICT RULES:
       body: JSON.stringify({
         model: 'google/gemini-3.8-flash',
         temperature: 0.3,
+        max_tokens: 1500,
+        reasoning_effort: 'low',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Raw complaint:\n${rawComplaint}\n\nRewrite it now following the rules exactly.` },

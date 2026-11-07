@@ -294,6 +294,8 @@ Produce the report now using the EXACT template. Do not include this instruction
       body: JSON.stringify({
         model: 'google/gemini-3.8-flash',
         temperature: 0.2,
+        max_tokens: 1500,
+        reasoning_effort: 'low',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
