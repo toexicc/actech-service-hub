@@ -96,7 +96,7 @@ export function MultiSelect({
                     handleUnselect(item);
                   }}
                 >
-                  {option?.label}
+                  {option?.label || item}
                   <button
                     className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onKeyDown={(e) => {
