@@ -43,6 +43,7 @@ export const DEVICE_TYPES_BY_DEPARTMENT: Record<string, string[]> = {
     "Computer (iMac)",
     "Desktop Computer (Windows)",
     "Computer (Mac Mini)",
+    "Hard Drive and Data Recovery",
     "Others"
   ],
   "Laptop (Screens)": [
@@ -60,6 +61,7 @@ export const DEVICE_TYPES_BY_DEPARTMENT: Record<string, string[]> = {
     "Gaming Controllers",
     "Headphones",
     "AirPods",
+    "Hard Drive and Data Recovery",
     "Others"
   ],
   "Mobile (Daily Repairs)": [

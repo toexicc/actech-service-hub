@@ -2912,8 +2912,11 @@ const ManageClient = () => {
                             return withSpecial(technicians.map(toOption));
                           }
 
-                          // Filter by department only for predefined device types
+                          // Filter by department only for predefined device types,
+                          // but never hide technicians already assigned to this ticket
+                          const assignedNames = updateTechnician ? updateTechnician.split(", ") : [];
                           const filteredTechs = technicians.filter((tech) => {
+                            if (assignedNames.includes(tech.name)) return true;
                             const deptDeviceTypes = DEVICE_TYPES_BY_DEPARTMENT[tech.department];
                             return deptDeviceTypes && deptDeviceTypes.includes(deviceType);
                           });
