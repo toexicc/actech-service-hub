@@ -116,6 +116,7 @@ export const TIME_FRAME_OPTIONS = [
   "Next Business Day",
   "1-2 Days",
   "3-5 Days",
+  "5-7 Days",
   "1-2 Weeks",
   "2-4 Weeks"
 ] as const;

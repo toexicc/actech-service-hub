@@ -4148,7 +4148,7 @@ const ManageClient = () => {
           <DialogHeader>
             <DialogTitle>Reason for {updateStatus}</DialogTitle>
             <DialogDescription>
-              {/^RTO/i.test(updateStatus) && "Put the ticket On Hold first, keeping its current repair status, or proceed with RTO. "}
+              {/^RTO/i.test(updateStatus) && "Put the ticket On Hold, keeping its current repair status, or proceed with RTO. "}
               This reason is shown to the client on their tracking page. Please be clear and factual.
             </DialogDescription>
           </DialogHeader>
@@ -4161,7 +4161,7 @@ const ManageClient = () => {
           <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
           {/^RTO/i.test(updateStatus) && (
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="rto-on-hold">On Hold first</Label>
+              <Label htmlFor="rto-on-hold">On Hold</Label>
               <Switch id="rto-on-hold" checked={rtoOnHold} onCheckedChange={setRtoOnHold} disabled={isTogglingOnHold} />
             </div>
           )}
