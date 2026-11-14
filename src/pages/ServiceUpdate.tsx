@@ -45,6 +45,7 @@ import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
 import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
+import { rtoHoldUpdate } from "@/lib/rtoHold";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { sanitizeNumber } from "@/lib/validation";
@@ -240,6 +241,7 @@ const ServiceUpdate = () => {
   // RTO - ACTech needs a client-visible reason before the status is saved.
   const [rtoReasonInput, setRtoReasonInput] = useState("");
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
+  const [isHoldingRto, setIsHoldingRto] = useState(false);
   const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
   // Opt-in toggle so staff can assign even when the technician has no time-in today.
@@ -876,6 +878,27 @@ const ServiceUpdate = () => {
   };
 
   const formStatus = updateStatus;
+  const handleHoldInsteadOfRto = async () => {
+    if (!serviceData?.serviceId || !rtoReasonInput.trim() || isHoldingRto) return;
+    setIsHoldingRto(true);
+    try {
+      const { data, error } = await supabase.from("services")
+        .update({ ...rtoHoldUpdate(rtoReasonInput), last_updated: new Date().toISOString() })
+        .eq("service_id", serviceData.serviceId).select("service_id");
+      if (error || !data?.length) throw new Error(error?.message || "Ticket could not be updated.");
+      logTicketActivity(serviceData.serviceId, "Put On Hold instead of RTO", {
+        reason: rtoReasonInput.trim(), proposed_status: updateStatus,
+      });
+      rtoConfirmRef.current = false;
+      setRtoModalOpen(false);
+      await handleSearch();
+      toast({ title: "Ticket is On Hold", description: "The repair status is unchanged. RTO was not set." });
+    } catch (e: any) {
+      toast({ title: "Could not update On Hold", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsHoldingRto(false);
+    }
+  };
   const handleUpdate = async () => {
     const sid = requireLoadedTicket();
     if (!sid) return;
@@ -2444,11 +2467,12 @@ const ServiceUpdate = () => {
       </Dialog>
 
       {/* RTO reason — shown to the client on /track */}
-      <Dialog open={rtoModalOpen} onOpenChange={setRtoModalOpen}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={rtoModalOpen} onOpenChange={(open) => { if (!isHoldingRto) setRtoModalOpen(open); }}>
+        <DialogContent className="max-w-lg !flex-col max-h-[95dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reason for {updateStatus}</DialogTitle>
             <DialogDescription>
+              Put the ticket On Hold first, keeping its current repair status, or proceed with RTO.
               This reason is shown to the client on their tracking page. Please be clear and factual.
             </DialogDescription>
           </DialogHeader>
@@ -2459,12 +2483,15 @@ const ServiceUpdate = () => {
             rows={5}
           />
           <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRtoModalOpen(false)}>
+          <DialogFooter className="shrink-0 flex-wrap gap-2">
+            <Button variant="outline" disabled={isHoldingRto} onClick={() => setRtoModalOpen(false)}>
               Cancel
             </Button>
+            <Button variant="secondary" disabled={!rtoReasonInput.trim() || isHoldingRto} onClick={handleHoldInsteadOfRto}>
+              {isHoldingRto ? "Saving…" : "Put On Hold first"}
+            </Button>
             <Button
-              disabled={!rtoReasonInput.trim()}
+              disabled={!rtoReasonInput.trim() || isHoldingRto}
               onClick={() => {
                 setRtoModalOpen(false);
                 rtoConfirmRef.current = true;

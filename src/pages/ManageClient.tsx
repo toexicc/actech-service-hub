@@ -5,6 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate, getManilaDate } from "@/lib/timezone";
 import { isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { rtoHoldUpdate } from "@/lib/rtoHold";
 import {
   CalendarIcon,
   Eye,
@@ -518,6 +519,27 @@ const ManageClient = () => {
   };
 
   const [isTogglingOnHold, setIsTogglingOnHold] = useState(false);
+  const handleHoldInsteadOfRto = async () => {
+    if (!serviceData?.serviceId || !rtoReasonInput.trim() || isTogglingOnHold) return;
+    setIsTogglingOnHold(true);
+    try {
+      const { data, error } = await supabase.from("services")
+        .update({ ...rtoHoldUpdate(rtoReasonInput), last_updated: new Date().toISOString() })
+        .eq("service_id", serviceData.serviceId).select("service_id");
+      if (error || !data?.length) throw new Error(error?.message || "Ticket could not be updated.");
+      logTicketActivity(serviceData.serviceId, "Put On Hold instead of RTO", {
+        reason: rtoReasonInput.trim(), proposed_status: updateStatus,
+      });
+      rtoConfirmRef.current = false;
+      setRtoModalOpen(false);
+      await handleSearch();
+      toast({ title: "Ticket is On Hold", description: "The repair status is unchanged. RTO was not set." });
+    } catch (e: any) {
+      toast({ title: "Could not update On Hold", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsTogglingOnHold(false);
+    }
+  };
   const handleToggleOnHold = async (next: boolean) => {
     if (!serviceData?.serviceId || isTogglingOnHold) return;
     let reason: string | null = null;
@@ -4114,11 +4136,12 @@ const ManageClient = () => {
       </Dialog>
 
       {/* RTO reason — shown to the client on /track */}
-      <Dialog open={rtoModalOpen} onOpenChange={setRtoModalOpen}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={rtoModalOpen} onOpenChange={(open) => { if (!isTogglingOnHold) setRtoModalOpen(open); }}>
+        <DialogContent className="max-w-lg !flex-col max-h-[95dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reason for {updateStatus}</DialogTitle>
             <DialogDescription>
+              {/^RTO/i.test(updateStatus) && "Put the ticket On Hold first, keeping its current repair status, or proceed with RTO. "}
               This reason is shown to the client on their tracking page. Please be clear and factual.
             </DialogDescription>
           </DialogHeader>
@@ -4129,12 +4152,17 @@ const ManageClient = () => {
             rows={5}
           />
           <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRtoModalOpen(false)}>
+          <DialogFooter className="shrink-0 flex-wrap gap-2">
+            <Button variant="outline" disabled={isTogglingOnHold} onClick={() => setRtoModalOpen(false)}>
               Cancel
             </Button>
+            {/^RTO/i.test(updateStatus) && (
+              <Button variant="secondary" disabled={!rtoReasonInput.trim() || isTogglingOnHold} onClick={handleHoldInsteadOfRto}>
+                {isTogglingOnHold ? "Saving…" : "Put On Hold first"}
+              </Button>
+            )}
             <Button
-              disabled={!rtoReasonInput.trim()}
+              disabled={!rtoReasonInput.trim() || isTogglingOnHold}
               onClick={() => {
                 setRtoModalOpen(false);
                 rtoConfirmRef.current = true;
