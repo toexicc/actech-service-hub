@@ -20,7 +20,7 @@ import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { Search, Loader2 } from "lucide-react";
 import { generateServicePDF } from "@/lib/pdfGenerator";
 import { uploadServicePdf } from "@/lib/servicePdfStorage";
-import { DEVICE_TYPES, DEVICE_TYPES_BY_DEPARTMENT } from "@/lib/constants";
+import { DEVICE_TYPES, DEVICE_TYPES_BY_DEPARTMENT, TIME_FRAME_OPTIONS } from "@/lib/constants";
 import SignatureCanvasComponent, { type SignatureCanvasRef } from "@/components/SignatureCanvas";
 import { DeviceAnnotationCanvas } from "@/components/DeviceAnnotationCanvas";
 import { handleError, withErrorHandling } from "@/lib/errorHandling";
@@ -1865,12 +1865,9 @@ const ServiceForm = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Same-Day">Same-Day</SelectItem>
-                        <SelectItem value="Next Business Day">Next Business Day</SelectItem>
-                        <SelectItem value="1-2 Days">1-2 Days</SelectItem>
-                        <SelectItem value="3-5 Days">3-5 Days</SelectItem>
-                        <SelectItem value="1-2 Weeks">1-2 Weeks</SelectItem>
-                        <SelectItem value="2-4 Weeks">2-4 Weeks</SelectItem>
+                        {TIME_FRAME_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

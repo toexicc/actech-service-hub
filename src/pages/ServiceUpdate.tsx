@@ -2479,7 +2479,7 @@ const ServiceUpdate = () => {
           <DialogHeader>
             <DialogTitle>Reason for {updateStatus}</DialogTitle>
             <DialogDescription>
-              Put the ticket On Hold first, keeping its current repair status, or proceed with RTO.
+              Put the ticket On Hold, keeping its current repair status, or proceed with RTO.
               This reason is shown to the client on their tracking page. Please be clear and factual.
             </DialogDescription>
           </DialogHeader>
@@ -2491,7 +2491,7 @@ const ServiceUpdate = () => {
           />
           <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="rto-on-hold">On Hold first</Label>
+            <Label htmlFor="rto-on-hold">On Hold</Label>
             <Switch id="rto-on-hold" checked={rtoOnHold} onCheckedChange={setRtoOnHold} disabled={isHoldingRto} />
           </div>
           <DialogFooter className="shrink-0 flex-wrap gap-2">
