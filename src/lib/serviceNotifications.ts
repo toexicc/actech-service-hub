@@ -2,6 +2,7 @@ import { createNotification } from './notifications';
 import { fetchStaffList, type StaffMember } from './staffList';
 import { supabase } from '@/integrations/supabase/client';
 import { logSystemTicketActivity } from './activityLogger';
+import { holdAlertNames } from './rtoHold';
 
 /** One audit entry per ticket for the alerts that were just dispatched. */
 const logDispatch = (
@@ -69,6 +70,24 @@ interface ServiceInfo {
   device?: string;
   targetDate?: string;
 }
+
+/** Every hold/return decision alerts the assigned admins and Romar. */
+export const notifyHoldOrRto = async (service: ServiceInfo, outcome: string, reason: string, byName: string) => {
+  try {
+    const staff = await fetchStaffList();
+    const seen = new Set<string>();
+    const recipients = holdAlertNames(service.adminRep || service.receivingStaff || '')
+      .map((name) => findStaffByName(staff, name))
+      .filter((person): person is StaffMember => !!person?.staffId)
+      .filter((person) => seen.has(person.staffId) ? false : (seen.add(person.staffId), true))
+      .map((person) => ({
+        userId: person.staffId, serviceId: service.serviceId,
+        title: `${outcome}: ${service.serviceId}`,
+        message: `${byName || 'Staff'} set ${service.clientName}'s ticket to ${outcome}. Reason: ${reason || 'Not provided'}. Please follow up with the client.`,
+      }));
+    await sendViaEdge(recipients);
+  } catch { /* A saved decision must not fail because of notification delivery. */ }
+};
 
 const isPastTargetDate = (value?: string): boolean => {
   const raw = String(value || '').trim();

@@ -13,3 +13,4 @@
 - [x] Admin + Inventory role, stock movement approvals, part request inbox, inventory dashboard
 - [x] Correct Reports cutoff payment/expense pagination and include older-intake completed work.
 - [x] Interim decline stays Ongoing Service with On Hold; offer On Hold before RTO in both staff editors (12 tests passed; signed-in click-through unavailable).
+- [ ] Default RTO dialog to On Hold and alert assigned admins plus Romar on holds, returns, and client declines.

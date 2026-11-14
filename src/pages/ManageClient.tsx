@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate, getManilaDate } from "@/lib/timezone";
 import { isTimeTrackedStatus } from "@/lib/serviceStatus";
-import { rtoHoldUpdate } from "@/lib/rtoHold";
+import { rtoHoldUpdate, DEFAULT_RTO_ON_HOLD } from "@/lib/rtoHold";
 import {
   CalendarIcon,
   Eye,
@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { notifyAdminConcern } from "@/lib/serviceNotifications";
+import { notifyAdminConcern, notifyHoldOrRto } from "@/lib/serviceNotifications";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
@@ -393,6 +393,7 @@ const ManageClient = () => {
   const [rushFee, setRushFee] = useState(false);
   // RTO always captures a client-visible reason before the status is saved.
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
+  const [rtoOnHold, setRtoOnHold] = useState(DEFAULT_RTO_ON_HOLD);
   const [rtoReasonInput, setRtoReasonInput] = useState("");
   const rtoConfirmRef = useRef(false);
   const [partsModalOpen, setPartsModalOpen] = useState(false);
@@ -530,6 +531,7 @@ const ManageClient = () => {
       logTicketActivity(serviceData.serviceId, "Put On Hold instead of RTO", {
         reason: rtoReasonInput.trim(), proposed_status: updateStatus,
       });
+      await notifyHoldOrRto(serviceData, "On Hold", rtoReasonInput.trim(), sessionStorage.getItem("userFullName") || "Admin");
       rtoConfirmRef.current = false;
       setRtoModalOpen(false);
       await handleSearch();
@@ -562,6 +564,7 @@ const ManageClient = () => {
         activity: next ? `Put On Hold${reason?.trim() ? `: ${reason.trim()}` : ""}` : `Taken off hold (continues at ${serviceData.status})`,
       });
       toast({ title: next ? "Ticket is On Hold" : "Ticket resumed", description: next ? "Tracking page now shows On Hold." : `Continues at ${serviceData.status}.` });
+      if (next) void notifyHoldOrRto(serviceData, "On Hold", reason?.trim() || "", sessionStorage.getItem("userFullName") || "Admin");
     } catch (e: any) {
       toast({ title: "Could not update On Hold", description: e?.message, variant: "destructive" });
     } finally {
@@ -1429,6 +1432,7 @@ const ManageClient = () => {
 
     // RTO / Cancelled / On Hold always need a reason the client can read on /track.
     if (isRtoMove && !rtoConfirmRef.current) {
+      setRtoOnHold(DEFAULT_RTO_ON_HOLD);
       setRtoReasonInput((serviceData as any).rtoReason || "");
       setRtoModalOpen(true);
       return;
@@ -1817,6 +1821,9 @@ const ManageClient = () => {
         // Send notifications for status changes
         const userFullName = sessionStorage.getItem("userFullName") || username;
         const userRole = sessionStorage.getItem("userRole");
+        if (isRtoMove && /^RTO/i.test(updateStatus)) {
+          void notifyHoldOrRto({ ...serviceData, adminRep: updateAdminRep }, updateStatus, rtoReasonInput.trim(), userFullName);
+        }
         if (updateStatus !== serviceData.status) {
           notifyServiceStatusChange(
             {
@@ -4152,24 +4159,29 @@ const ManageClient = () => {
             rows={5}
           />
           <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
+          {/^RTO/i.test(updateStatus) && (
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="rto-on-hold">On Hold first</Label>
+              <Switch id="rto-on-hold" checked={rtoOnHold} onCheckedChange={setRtoOnHold} disabled={isTogglingOnHold} />
+            </div>
+          )}
           <DialogFooter className="shrink-0 flex-wrap gap-2">
             <Button variant="outline" disabled={isTogglingOnHold} onClick={() => setRtoModalOpen(false)}>
               Cancel
             </Button>
-            {/^RTO/i.test(updateStatus) && (
-              <Button variant="secondary" disabled={!rtoReasonInput.trim() || isTogglingOnHold} onClick={handleHoldInsteadOfRto}>
-                {isTogglingOnHold ? "Saving…" : "Put On Hold first"}
-              </Button>
-            )}
             <Button
               disabled={!rtoReasonInput.trim() || isTogglingOnHold}
               onClick={() => {
+                if (/^RTO/i.test(updateStatus) && rtoOnHold) {
+                  void handleHoldInsteadOfRto();
+                  return;
+                }
                 setRtoModalOpen(false);
                 rtoConfirmRef.current = true;
                 handleUpdate();
               }}
             >
-              Save reason & set {updateStatus}
+              {isTogglingOnHold ? "Saving…" : /^RTO/i.test(updateStatus) && rtoOnHold ? "Save & put On Hold" : `Save reason & set ${updateStatus}`}
             </Button>
           </DialogFooter>
         </DialogContent>
