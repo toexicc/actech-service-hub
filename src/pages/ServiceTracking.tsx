@@ -2247,7 +2247,7 @@ const ServiceTracking = () => {
               Enter the last 4 digits of the phone number you gave us for <span className="font-mono font-medium text-foreground">{pinTarget}</span>.
             </p>
             <Input
-              inputMode="numeric"
+              inputMode="tel"
               autoFocus
               maxLength={4}
               placeholder="••••"
