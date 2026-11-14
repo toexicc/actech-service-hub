@@ -45,7 +45,8 @@ import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
 import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { createNotification } from "@/lib/notifications";
 import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
-import { rtoHoldUpdate } from "@/lib/rtoHold";
+import { rtoHoldUpdate, DEFAULT_RTO_ON_HOLD } from "@/lib/rtoHold";
+import { notifyHoldOrRto } from "@/lib/serviceNotifications";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
 import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { sanitizeNumber } from "@/lib/validation";
@@ -241,6 +242,7 @@ const ServiceUpdate = () => {
   // RTO - ACTech needs a client-visible reason before the status is saved.
   const [rtoReasonInput, setRtoReasonInput] = useState("");
   const [rtoModalOpen, setRtoModalOpen] = useState(false);
+  const [rtoOnHold, setRtoOnHold] = useState(DEFAULT_RTO_ON_HOLD);
   const [isHoldingRto, setIsHoldingRto] = useState(false);
   const rtoConfirmRef = useRef(false);
   const [updateTechnician, setUpdateTechnician] = useState("");
@@ -889,6 +891,7 @@ const ServiceUpdate = () => {
       logTicketActivity(serviceData.serviceId, "Put On Hold instead of RTO", {
         reason: rtoReasonInput.trim(), proposed_status: updateStatus,
       });
+      await notifyHoldOrRto(serviceData, "On Hold", rtoReasonInput.trim(), sessionStorage.getItem("userFullName") || username);
       rtoConfirmRef.current = false;
       setRtoModalOpen(false);
       await handleSearch();
@@ -929,6 +932,7 @@ const ServiceUpdate = () => {
     const isRtoMove =
       /^RTO/i.test((updateStatus || "").trim()) && updateStatus !== serviceData.status;
     if (isRtoMove && !rtoConfirmRef.current) {
+      setRtoOnHold(DEFAULT_RTO_ON_HOLD);
       setRtoReasonInput((serviceData as any).rtoReason || "");
       setRtoModalOpen(true);
       return;
@@ -1217,6 +1221,9 @@ const ServiceUpdate = () => {
         }
 
         // Status change notification
+        if (isRtoMove) {
+          backgroundTasks.push(notifyHoldOrRto(serviceData, updateStatus, rtoReasonInput.trim(), userFullName));
+        }
         if (updateStatus !== serviceData.status) {
           backgroundTasks.push(
             Promise.resolve(notifyServiceStatusChange(
@@ -2483,22 +2490,27 @@ const ServiceUpdate = () => {
             rows={5}
           />
           <p className="text-xs text-muted-foreground">{rtoReasonInput.length}/700</p>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="rto-on-hold">On Hold first</Label>
+            <Switch id="rto-on-hold" checked={rtoOnHold} onCheckedChange={setRtoOnHold} disabled={isHoldingRto} />
+          </div>
           <DialogFooter className="shrink-0 flex-wrap gap-2">
             <Button variant="outline" disabled={isHoldingRto} onClick={() => setRtoModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="secondary" disabled={!rtoReasonInput.trim() || isHoldingRto} onClick={handleHoldInsteadOfRto}>
-              {isHoldingRto ? "Saving…" : "Put On Hold first"}
-            </Button>
             <Button
               disabled={!rtoReasonInput.trim() || isHoldingRto}
               onClick={() => {
+                if (rtoOnHold) {
+                  void handleHoldInsteadOfRto();
+                  return;
+                }
                 setRtoModalOpen(false);
                 rtoConfirmRef.current = true;
                 handleUpdate();
               }}
             >
-              Save reason & set {updateStatus}
+              {isHoldingRto ? "Saving…" : rtoOnHold ? "Save & put On Hold" : `Save reason & set ${updateStatus}`}
             </Button>
           </DialogFooter>
         </DialogContent>

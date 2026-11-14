@@ -396,6 +396,7 @@ serve(async (req) => {
     // Notify assigned admins + technicians.
     try {
       const names: string[] = [
+        ...(!approved ? ["Romar Badilles"] : []),
         ...(Array.isArray(row.admin_reps) ? row.admin_reps : []),
         ...(Array.isArray(row.technicians) ? row.technicians : []),
         ...(row.receiving_staff ? [String(row.receiving_staff)] : []),
