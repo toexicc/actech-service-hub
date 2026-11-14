@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { interimDeclineUpdate } from "./decline.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -319,14 +320,9 @@ serve(async (req) => {
       }
 
     } else if (isInterimRound) {
-      // A declined interim round only turns down the extra work — the approved
-      // repair is already done, so the ticket returns to observation.
-      update.status = "Done Repair - Under Observation";
+      // Only the additional work is declined; pause the ongoing repair.
+      Object.assign(update, interimDeclineUpdate(reason));
       update.client_approved_at = nowIso;
-      update.interim_needed = false;
-      // Declined extra work pauses the ticket until staff follow up.
-      update.is_on_hold = true;
-      update.on_hold_reason = `Client declined interim work: ${reason}`;
     } else {
       // Declined: put the ticket On Hold (toggle) so staff prepare the unit for
       // return; the status itself stays Waiting to Proceed.
@@ -438,7 +434,7 @@ serve(async (req) => {
           : `Service ${serviceId}: Proceed Repair`;
         const message = !approved
           ? isInterimRound
-            ? `${clientName} declined the additional (interim) work for ${serviceId} (${deviceInfo}). Reason: ${reason || "(none provided)"}. The approved repair stands — ticket is back to Done Repair - Under Observation and On Hold.`
+            ? `${clientName} declined the additional (interim) work for ${serviceId} (${deviceInfo}). Reason: ${reason || "(none provided)"}. The original approval stands — ticket is at Ongoing Service with On Hold turned on.`
             : `${clientName} declined the service for ${serviceId} (${clientName}'s ${deviceInfo}). Reason: ${reason || "(none provided)"}. Please prepare the device for return to owner. Ticket is now On Hold.`
           : blockAdvance
           ? `${clientName} approved only: ${approvedItems.join(", ")} for ${serviceId}. Pending approval: ${pendingItems.join(", ")}. Confirm with the client, then move it to Proceed Repair manually.`

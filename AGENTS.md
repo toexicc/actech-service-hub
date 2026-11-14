@@ -10,5 +10,6 @@
 - Intake auto-assignment uses a daily round-robin (fewest tickets today, then longest since last assignment, then day-rotated roster); use the shared staff availability check for eligibility so intake and ticket-edit screens follow the same attendance rule.
 - Inventory staff = admin role + extra 'inventory' role row; stock changes are captured by database triggers into stock_movements (auto-approved for inventory/management), so every code path that edits stock is audited without client changes.
 - On Hold is the `services.is_on_hold` toggle layered over the real status (use `isOnHold` from serviceStatus); the legacy "On Hold" status is display-only so paused tickets resume at their own status.
+- Interim decline transitions use the tested function-local helper; proposed RTO holds use a status-free update so another staff member's latest repair stage is preserved.
 - Interim reports are versioned in `interim_reports` (one pending round at a time, rules in `src/lib/interimRounds.ts`); `services.interim_*` mirrors the open round so the existing approval flow keeps working.
 - Delivery staff have a single `delivery` role row and are confined to /delivery by ProtectedRoute; pickup entries live in `pickup_schedules`, and zone/day rules live in `src/lib/pickupZones.ts`.

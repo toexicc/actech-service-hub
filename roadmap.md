@@ -12,3 +12,4 @@
 - [x] Device accessory choices: Charger - Cable above Charger - Adaptor and Cable, Adaptor/Brick, plus Tempered Glass/Screen Protector.
 - [x] Admin + Inventory role, stock movement approvals, part request inbox, inventory dashboard
 - [x] Correct Reports cutoff payment/expense pagination and include older-intake completed work.
+- [ ] Interim decline stays Ongoing Service with On Hold; offer On Hold before RTO in both staff editors.
