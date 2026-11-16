@@ -299,7 +299,7 @@ const SalaryDisbursement = () => {
     return m;
   }, [periodAttendance]);
 
-  /** Total late minutes (past the 10:10 AM grace) per staff for the period. */
+  /** Total late minutes (past 10:00 AM, no grace) per staff for the period. */
   const lateMinutesByStaffId = useMemo(() => {
     const m: Record<string, number> = {};
     periodAttendance.forEach((r: any) => {

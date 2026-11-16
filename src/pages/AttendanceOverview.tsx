@@ -293,7 +293,7 @@ const AttendanceOverview = () => {
           log_date: bulkDate,
           time_in: timeIn,
           time_out: isoFor(bulkDate, entry.timeOut),
-          is_late: entry.timeIn > "10:10",
+          is_late: entry.timeIn > "10:00",
           is_overtime: !!entry.timeOut && entry.timeOut > "18:00",
         };
       });
