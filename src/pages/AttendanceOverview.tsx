@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatWorkedTime, formatPayableTime } from "@/lib/attendanceHours";
+import { formatWorkedTime, formatPayableTime, lateThresholdFor } from "@/lib/attendanceHours";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -293,7 +293,7 @@ const AttendanceOverview = () => {
           log_date: bulkDate,
           time_in: timeIn,
           time_out: isoFor(bulkDate, entry.timeOut),
-          is_late: entry.timeIn > "10:00",
+          is_late: entry.timeIn > lateThresholdFor(bulkDate),
           is_overtime: !!entry.timeOut && entry.timeOut > "18:00",
         };
       });
