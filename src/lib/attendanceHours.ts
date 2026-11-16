@@ -5,7 +5,9 @@
  *
  * Rules:
  * - Hours are counted from 10:00 AM; earlier taps don't add time.
- * - No grace period: any tap-in at 10:01 AM or later is late.
+ * - No grace period from NO_GRACE_START_DATE onward: any tap-in at 10:01 AM
+ *   or later is late. Attendance dated before that keeps the old 10-minute
+ *   grace period (10:11 AM or later is late).
  * - Lateness (past 10:00 AM) is deducted separately via lateMinutes — it does
  *   NOT reduce worked hours or overtime.
  * - Approved overtime counts everything past 7:00 PM, regardless of tap-in time.
@@ -21,6 +23,12 @@ const manilaMinutes = (iso: string) => {
   return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
 };
 
+/** Manila calendar date (yyyy-MM-dd) for an ISO timestamp. */
+const manilaDate = (iso: string) => {
+  const shifted = new Date(new Date(iso).getTime() + MANILA_OFFSET_MIN * 60000);
+  return shifted.toISOString().slice(0, 10);
+};
+
 /** Full shift length in hours after the unpaid lunch break. */
 export const FULL_SHIFT_HOURS = 8;
 
@@ -30,8 +38,24 @@ const SHIFT_START_MIN = 10 * 60;
 /** Shift ends at 7:00 PM Manila; approved overtime counts everything past it. */
 const SHIFT_END_MIN = 19 * 60;
 
-/** No grace period: tap-ins at 10:01 AM or later are late. */
-const GRACE_MIN = 0;
+/**
+ * First Manila date the no-grace rule applies to. Attendance dated before
+ * this keeps the old 10-minute grace period; from this date onward any
+ * tap-in at 10:01 AM or later is late.
+ */
+export const NO_GRACE_START_DATE = "2026-11-17";
+
+/** Grace minutes for a Manila attendance date (yyyy-MM-dd). */
+const graceMinutesFor = (dateStr: string): number => (dateStr >= NO_GRACE_START_DATE ? 0 : 10);
+
+/**
+ * "HH:MM" threshold after which a tap-in counts as late for a Manila
+ * attendance date — "10:00" from NO_GRACE_START_DATE onward, "10:10" before.
+ */
+export const lateThresholdFor = (dateStr: string): string => {
+  const mins = SHIFT_START_MIN + graceMinutesFor(dateStr);
+  return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+};
 
 /** Worked minutes between time in / out (counted from 10:00 AM), minus lunch.
  *  Lateness is not penalised here — it is deducted separately via lateMinutes. */
@@ -61,11 +85,17 @@ export const overtimeHours = (
   return Math.max(0, (toMin - SHIFT_END_MIN) / 60);
 };
 
-/** Late minutes past 10:00 AM (no grace period), whole minutes. */
+/**
+ * Late minutes past 10:00 AM, whole minutes. The attendance date is taken
+ * from the timestamp itself: before NO_GRACE_START_DATE the old 10-minute
+ * grace applies (10:12 = 2 min late); from that date onward there is no
+ * grace (10:12 = 12 min late).
+ */
 export const lateMinutes = (ti: string | null): number => {
   if (!ti) return 0;
   const tiMin = manilaMinutes(ti);
-  return Math.max(0, Math.ceil(tiMin - (SHIFT_START_MIN + GRACE_MIN)));
+  const grace = graceMinutesFor(manilaDate(ti));
+  return Math.max(0, Math.ceil(tiMin - (SHIFT_START_MIN + grace)));
 };
 
 /** Worked hours as a decimal number (lunch excluded). */
