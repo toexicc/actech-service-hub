@@ -5,8 +5,8 @@
  *
  * Rules:
  * - Hours are counted from 10:00 AM; earlier taps don't add time.
- * - 10-minute grace period: tap-ins up to 10:10 AM are not late.
- * - Lateness (past 10:10 AM) is deducted separately via lateMinutes — it does
+ * - No grace period: any tap-in at 10:01 AM or later is late.
+ * - Lateness (past 10:00 AM) is deducted separately via lateMinutes — it does
  *   NOT reduce worked hours or overtime.
  * - Approved overtime counts everything past 7:00 PM, regardless of tap-in time.
  */
@@ -30,8 +30,8 @@ const SHIFT_START_MIN = 10 * 60;
 /** Shift ends at 7:00 PM Manila; approved overtime counts everything past it. */
 const SHIFT_END_MIN = 19 * 60;
 
-/** 10-minute grace period: tap-ins up to 10:10 AM are not late. */
-const GRACE_MIN = 10;
+/** No grace period: tap-ins at 10:01 AM or later are late. */
+const GRACE_MIN = 0;
 
 /** Worked minutes between time in / out (counted from 10:00 AM), minus lunch.
  *  Lateness is not penalised here — it is deducted separately via lateMinutes. */
@@ -61,7 +61,7 @@ export const overtimeHours = (
   return Math.max(0, (toMin - SHIFT_END_MIN) / 60);
 };
 
-/** Late minutes beyond the 10-minute grace period (past 10:10 AM), whole minutes. */
+/** Late minutes past 10:00 AM (no grace period), whole minutes. */
 export const lateMinutes = (ti: string | null): number => {
   if (!ti) return 0;
   const tiMin = manilaMinutes(ti);
