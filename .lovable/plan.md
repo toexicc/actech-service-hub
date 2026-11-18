@@ -34,7 +34,7 @@ One row per device, with the columns you use today:
 - "Add devices" form for a batch: shared company info filled once, then rows of serial / model / issue / location (paste many rows at once). Each row creates a normal ticket (client type = Company) with its own Service ID and goes through normal auto-assignment.
 - Existing company tickets can also be attached to a company.
 
-**5. Quotation / Billing Statement generator** (matches your SHOPEE format)
+**5. Quotation / Billing Statement generator** (matches your SHOPEE format, using the same branded header, logo, fonts, colors and footer as the existing intake, quotation, receipt and warranty documents so branding stays consistent)
 - Choose: one document for selected devices, or one document per device.
 - Header: ACTECH REPAIR PH INC., address, phone numbers, date.
 - Customer Name (contact/department, e.g. SOC 8), Company Name.
@@ -58,5 +58,5 @@ One row per device, with the columns you use today:
 - New `services` columns: `company_id`, `company_batch_id`, `company_location`, `needs_individual_quote`, `quotation_request_status` (nullable/default, additive).
 - Public link uses a security-definer function `public_company_services(_token)` returning limited fields only (no phone, password, internal notes).
 - Pages: `/company-repairs`, `/company-repairs/:id`, public `/company/:token`. Nav entry in DashboardLayout after Service Tracker.
-- PDF via pdf-lib (existing pattern), stored in `quotation-forms` bucket, linked in `service_files` (kind quotation) for each included ticket.
+- PDF via pdf-lib, reusing the shared header/branding drawing code from the existing document generators (no new styling), stored in `quotation-forms` bucket, linked in `service_files` (kind quotation) for each included ticket.
 - Pure helpers (VAT/subtotal math, quotation numbering, grouping) with tests.
