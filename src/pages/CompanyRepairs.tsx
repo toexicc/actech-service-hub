@@ -272,9 +272,9 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
               <h1 className="text-xl font-bold leading-tight">{company.name}</h1>
               <p className="text-sm text-muted-foreground">{[company.contact_person, company.contact_number, company.email].filter(Boolean).join(" · ") || "No contact details yet"}</p>
             </div>
-            {canManage && <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={onEdit}>Edit</Button>
-              <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" />Add devices</Button>
+            {canManage && <div className="flex w-full gap-2 sm:w-auto">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onEdit}>Edit</Button>
+              <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" />Add devices</Button>
             </div>}
           </div>
           {canManage && (
@@ -307,11 +307,11 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
               <Input className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search serial, model, ticket, issue" />
             </div>
             <Select value={batchFilter} onValueChange={setBatchFilter}>
-              <SelectTrigger className="w-48"><SelectValue placeholder="Batch" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Batch" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All batches</SelectItem>{batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={locFilter} onValueChange={setLocFilter}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="Location" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Location" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All locations</SelectItem>{locations.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -347,7 +347,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={8} className="p-10 text-center text-muted-foreground">No devices here.</td></tr>}
+                {rows.length === 0 && <tr><td colSpan={8} className="p-10 text-left sm:text-center text-muted-foreground">No devices here.</td></tr>}
                 {rows.map((s) => {
                   const line = lineFromService(s as any);
                   const total = Number(s.final_cost) || Number(s.service_cost) || 0;
