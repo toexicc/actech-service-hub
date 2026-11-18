@@ -289,6 +289,133 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          billing_address: string | null
+          contact_number: string | null
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          public_token: string
+          tin: string | null
+          updated_at: string
+          vat_default: boolean
+        }
+        Insert: {
+          billing_address?: string | null
+          contact_number?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          public_token?: string
+          tin?: string | null
+          updated_at?: string
+          vat_default?: boolean
+        }
+        Update: {
+          billing_address?: string | null
+          contact_number?: string | null
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          public_token?: string
+          tin?: string | null
+          updated_at?: string
+          vat_default?: boolean
+        }
+        Relationships: []
+      }
+      company_batches: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          label: string
+          received_date: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          label: string
+          received_date?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          received_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_batches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_quotations: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          final_amount: number
+          id: string
+          mode: string
+          payload: Json
+          quotation_no: string
+          service_ids: string[]
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          final_amount?: number
+          id?: string
+          mode?: string
+          payload?: Json
+          quotation_no: string
+          service_ids?: string[]
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          final_amount?: number
+          id?: string
+          mode?: string
+          payload?: Json
+          quotation_no?: string
+          service_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_quotations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       device_catalog: {
         Row: {
           brand: string | null
@@ -1268,6 +1395,9 @@ export type Database = {
           client_name: string
           client_type: string | null
           color: string | null
+          company_batch_id: string | null
+          company_id: string | null
+          company_location: string | null
           conditions: Json
           contact_number: string | null
           created_at: string
@@ -1315,6 +1445,7 @@ export type Database = {
           memory: string | null
           mode_of_transfer: string | null
           model: string | null
+          needs_individual_quote: boolean
           on_hold_reason: string | null
           part_id: string | null
           parts_cost: number
@@ -1324,6 +1455,7 @@ export type Database = {
           pending_services: string[]
           pre_order: string | null
           priority: string | null
+          quotation_request_status: string | null
           quoted_breakdown: Json
           receiving_staff: string | null
           released_at: string | null
@@ -1371,6 +1503,9 @@ export type Database = {
           client_name: string
           client_type?: string | null
           color?: string | null
+          company_batch_id?: string | null
+          company_id?: string | null
+          company_location?: string | null
           conditions?: Json
           contact_number?: string | null
           created_at?: string
@@ -1418,6 +1553,7 @@ export type Database = {
           memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
+          needs_individual_quote?: boolean
           on_hold_reason?: string | null
           part_id?: string | null
           parts_cost?: number
@@ -1427,6 +1563,7 @@ export type Database = {
           pending_services?: string[]
           pre_order?: string | null
           priority?: string | null
+          quotation_request_status?: string | null
           quoted_breakdown?: Json
           receiving_staff?: string | null
           released_at?: string | null
@@ -1474,6 +1611,9 @@ export type Database = {
           client_name?: string
           client_type?: string | null
           color?: string | null
+          company_batch_id?: string | null
+          company_id?: string | null
+          company_location?: string | null
           conditions?: Json
           contact_number?: string | null
           created_at?: string
@@ -1521,6 +1661,7 @@ export type Database = {
           memory?: string | null
           mode_of_transfer?: string | null
           model?: string | null
+          needs_individual_quote?: boolean
           on_hold_reason?: string | null
           part_id?: string | null
           parts_cost?: number
@@ -1530,6 +1671,7 @@ export type Database = {
           pending_services?: string[]
           pre_order?: string | null
           priority?: string | null
+          quotation_request_status?: string | null
           quoted_breakdown?: Json
           receiving_staff?: string | null
           released_at?: string | null
@@ -1855,6 +1997,7 @@ export type Database = {
           target_date: string
         }[]
       }
+      public_company_portal: { Args: { _token: string }; Returns: Json }
       public_release_summary: { Args: { _service_id: string }; Returns: Json }
       public_service_snapshot: { Args: { _service_id: string }; Returns: Json }
       public_service_snapshot_verified: {

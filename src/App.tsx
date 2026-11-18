@@ -22,6 +22,7 @@ import OpenDashboard from "./pages/OpenDashboard";
 import NotFound from "./pages/NotFound";
 import QueueDisplay from "./pages/QueueDisplay";
 import PublicRelease from "./pages/PublicRelease";
+import CompanyPortal from "./pages/CompanyPortal";
 import Delivery from "./pages/Delivery";
 
 // Configure QueryClient with caching settings for fast navigation
@@ -74,11 +75,13 @@ const App = () => (
               <Route path="/intake" element={<ServiceForm />} />
               <Route path="/queue" element={<QueueDisplay />} />
               <Route path="/release" element={<PublicRelease />} />
+              <Route path="/company/:token" element={<CompanyPortal />} />
 
               {/* All authenticated workbench pages render through a single
                   keep-alive shell so switching tabs no longer remounts pages. */}
               <Route path="/delivery" element={<ProtectedRoute roles={["delivery"]}><Delivery /></ProtectedRoute>} />
               <Route path="/pickup-schedule" element={<WorkbenchShell />} />
+              <Route path="/company-repairs" element={<WorkbenchShell />} />
               <Route path="/menu" element={<WorkbenchShell />} />
               <Route path="/pos" element={<WorkbenchShell />} />
               <Route path="/service-form" element={<WorkbenchShell />} />

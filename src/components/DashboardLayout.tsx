@@ -9,7 +9,7 @@ import {
   Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
   Monitor, ShoppingCart, Loader2, Clock, Search, BarChart3, ShieldCheck,
-  MoreHorizontal, PlusCircle, CalendarDays,
+  MoreHorizontal, PlusCircle, CalendarDays, Building2,
 } from "lucide-react";
 import acTechLogo from "@/assets/S_S_Marketing-2.png";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,6 +38,7 @@ const adminSection: NavSection = {
     { title: "Manage Client", icon: Users, path: "/manage-client", iconName: "Users" },
     { title: "Customer Management", icon: UserCog, path: "/customer-management", iconName: "UserCog" },
     { title: "Service Tracker", icon: ClipboardList, path: "/service-tracker", iconName: "ClipboardList" },
+    { title: "Company Repairs", icon: Building2, path: "/company-repairs", iconName: "Building2" },
     { title: "Queue Console", icon: Monitor, path: "/queueing", iconName: "Monitor" },
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
     { title: "Completed Services", icon: DollarSign, path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
@@ -55,6 +56,7 @@ const techSection: NavSection = {
   items: [
     { title: "Service Update", icon: Wrench, path: "/service-update", iconName: "Wrench" },
     { title: "Service Tracking", icon: ClipboardList, path: "/service-tracking", iconName: "ClipboardList" },
+    { title: "Company Repairs", icon: Building2, path: "/company-repairs", roles: ["technician"], iconName: "Building2" },
     { title: "Tech Dashboard", icon: Monitor, path: "/tech-dashboard", roles: ["management"], iconName: "Monitor" },
   ],
   roles: ["technician", "management"],

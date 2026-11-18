@@ -13,3 +13,4 @@
 - Interim decline transitions use the tested function-local helper; proposed RTO holds use a status-free update so another staff member's latest repair stage is preserved.
 - Interim reports are versioned in `interim_reports` (one pending round at a time, rules in `src/lib/interimRounds.ts`); `services.interim_*` mirrors the open round so the existing approval flow keeps working.
 - Delivery staff have a single `delivery` role row and are confined to /delivery by ProtectedRoute; pickup entries live in `pickup_schedules`, and zone/day rules live in `src/lib/pickupZones.ts`.
+- Company Repairs groups normal tickets via `services.company_id`/`company_batch_id` (each device stays its own ticket for Manage Client/Service Update); quotations store their payload in `company_quotations` and the PDF is regenerated on demand with the shared pdfPremiumKit letterhead, and the public `/company/:token` page reads only through `public_company_portal`.

@@ -19,6 +19,7 @@ import AttendanceOverview from "@/pages/AttendanceOverview";
 import QueueAdmin from "@/pages/QueueAdmin";
 import Reports from "@/pages/Reports";
 import PickupSchedule from "@/pages/PickupSchedule";
+import CompanyRepairs from "@/pages/CompanyRepairs";
 
 export interface WorkbenchRouteDef {
   path: string;
@@ -29,6 +30,7 @@ export interface WorkbenchRouteDef {
 // Order matters only for the fallback matcher below.
 export const workbenchRoutes: WorkbenchRouteDef[] = [
   { path: "/pickup-schedule", element: <ProtectedRoute roles={["admin", "management"]}><PickupSchedule /></ProtectedRoute> },
+  { path: "/company-repairs", element: <ProtectedRoute roles={["admin", "management", "technician"]}><CompanyRepairs /></ProtectedRoute> },
   { path: "/menu", element: <ProtectedRoute><Menu /></ProtectedRoute> },
   { path: "/pos", element: <ProtectedRoute><PointOfSales /></ProtectedRoute> },
   { path: "/service-form", element: <ProtectedRoute><ServiceForm /></ProtectedRoute> },

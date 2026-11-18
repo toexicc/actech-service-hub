@@ -14,3 +14,5 @@
 - [x] Correct Reports cutoff payment/expense pagination and include older-intake completed work.
 - [x] Interim decline stays Ongoing Service with On Hold; offer On Hold before RTO in both staff editors (12 tests passed; signed-in click-through unavailable).
 - [x] Default RTO dialog to On Hold and alert assigned admins plus Romar on holds, returns, and client declines (14 tests passed; signed-in delivery checks unavailable).
+
+- [x] Company Repairs page, client link and branded billing statements
