@@ -22,6 +22,7 @@ import { generateCompanyQuotationPdf } from "@/lib/companyQuotationPdf";
 import { downloadPdfBytes } from "@/lib/pdfActions";
 import { QuotationDialog, type QuoteMode } from "@/components/company/QuotationDialog";
 import { logActivityAsync } from "@/lib/activityLogger";
+import { CompanyIntakeDialog } from "@/components/company/CompanyIntakeDialog";
 
 type Company = {
   id: string; name: string; contact_person: string | null; contact_number: string | null; email: string | null;
@@ -217,6 +218,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
   const [locFilter, setLocFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState<Stage | null>(null);
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -314,7 +316,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
             </div>
             {canManage && <div className="flex w-full gap-2 sm:w-auto">
               <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onEdit}>Edit</Button>
-              <Button size="sm" className="flex-1 sm:flex-none" onClick={() => navigate(`/service-form?company=${company.id}`)}><Plus className="h-4 w-4 mr-1" />Intake device</Button>
+              <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setIntakeOpen(true)}><Plus className="h-4 w-4 mr-1" />Intake devices</Button>
             </div>}
           </div>
           {canManage && (
@@ -368,7 +370,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
 
           {rows.length === 0 && (
             <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-              No devices here.{canManage && <> Use <b>Intake device</b> to add one through the normal intake form.</>}
+              No devices here.{canManage && <> Use <b>Intake devices</b> to add several at once.</>}
             </div>
           )}
           {groups.map((g) => (
@@ -432,6 +434,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
         </Card>
       )}
 
+      {canManage && <CompanyIntakeDialog open={intakeOpen} onOpenChange={setIntakeOpen} company={company} batches={batches.filter((b) => b.company_id === company.id)} actor={profileName} onDone={reload} />}
       {canManage && <QuotationDialog open={quoteOpen} onOpenChange={setQuoteOpen} companyName={company.name} defaultCustomer={company.contact_person ?? ""} vatDefault={company.vat_default} initialLines={initialLines} busy={busy} onGenerate={generate} />}
       {extra}
     </div>
