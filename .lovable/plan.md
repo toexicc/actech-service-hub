@@ -12,6 +12,12 @@
 - After saving, a **Same company, next device** button keeps the company, batch and location and clears only the device fields. Bulk intake is just repeating this quickly.
 - Remove the spreadsheet-style "Add devices" dialog. Its button now opens this intake form with the company already picked.
 
+## 1b. Fill company tickets in automatically (less work for staff)
+- The issue the company reports **becomes the chief complaint**, kept on the same AI-format step as normal intake.
+- **Requesting Invoice (Add VAT to Total Cost)** is switched on by default for company tickets. It follows the company's "VAT on quotations" setting, and staff can still turn it off.
+- Client type is set to Company, and client name, contact and address come from the company record. Staff only type the device details and the issue.
+- On company tickets in Manage Client, the **Service Quotation Form** is replaced by a **Company Quotation Form**: the company billing-statement document with the same branding, created from that ticket's diagnosis and service breakdown. The status gate that requires a quotation before moving forward accepts the Company Quotation Form. Combined quotations for several devices are still made from the Company Repairs page.
+
 ## 2. Company Repairs page in the style of Service Tracker
 - Company list: one card per company showing in-progress, awaiting-quote and completed counts.
 - Inside a company: the header, client link and summary boxes stay. Devices show as **cards grouped by batch**, styled like the Service Tracker cards: ticket ID, model, serial, status chip, technician, quote status and total.
