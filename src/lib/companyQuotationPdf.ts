@@ -107,29 +107,27 @@ export const generateCompanyQuotationPdf = async (quotationNo: string, p: QuoteP
     setDraw(doc, BORDER); doc.setLineWidth(0.3); doc.line(M, y - 2, M + CONTENT_W, y - 2);
   });
 
-  // Timeframe
-  if (p.timeframe?.trim()) {
-    doc.setFontSize(7.8);
-    const tl = doc.splitTextToSize(p.timeframe, CONTENT_W - 8) as string[];
-    const h = tl.length * 3.5 + 11;
-    ensure(h + 4, false);
-    y += 2;
-    card(doc, M, y, CONTENT_W, h);
-    doc.setFont("helvetica", "bold"); setText(doc, NAVY); doc.setFontSize(8.4);
-    doc.text("ESTIMATED TIMEFRAME", M + 4, y + 5.5);
-    doc.setFont("helvetica", "normal"); setText(doc, INK); doc.setFontSize(7.8);
-    doc.text(tl, M + 4, y + 10);
-    y += h + 3;
-  }
-
-  // Totals
+  // Totals (right) and timeframe (left) share one row so short quotes fit on one page.
   const t = quoteTotals(p);
   const rows: [string, string][] = [];
   if (t.discount > 0) rows.push(["Discount", "- " + peso(t.discount)]);
   if (p.vatIncluded) { rows.push(["Sub Total", peso(t.subTotal)]); rows.push(["Add: VAT 12%", peso(t.vat)]); }
   const boxW = 84;
-  const h = rows.length * 5.5 + 15 + (p.warranty ? 6 : 0);
-  ensure(h + 2, false);
+  const tfW = CONTENT_W - boxW - 4;
+  doc.setFontSize(7.8);
+  const wl = p.warranty ? (doc.splitTextToSize(`Warranty: ${p.warranty}`, boxW - 8) as string[]) : [];
+  const h = rows.length * 5.5 + 15 + wl.length * 3.4;
+  const tl = p.timeframe?.trim() ? (doc.splitTextToSize(p.timeframe, tfW - 8) as string[]) : [];
+  const tfH = tl.length ? tl.length * 3.5 + 11 : 0;
+  ensure(Math.max(h, tfH) + 4, false);
+  y += 2;
+  if (tl.length) {
+    card(doc, M, y, tfW, tfH);
+    doc.setFont("helvetica", "bold"); setText(doc, NAVY); doc.setFontSize(8.4);
+    doc.text("ESTIMATED TIMEFRAME", M + 4, y + 5.5);
+    doc.setFont("helvetica", "normal"); setText(doc, INK); doc.setFontSize(7.8);
+    doc.text(tl, M + 4, y + 10);
+  }
   const bx = M + CONTENT_W - boxW;
   card(doc, bx, y, boxW, h);
   let ry = y + 6;
@@ -146,7 +144,7 @@ export const generateCompanyQuotationPdf = async (quotationNo: string, p: QuoteP
   doc.text(peso(t.finalAmount), bx + boxW - 5, ry + 2.3, { align: "right" });
   if (p.warranty) {
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.6); setText(doc, ACCENT);
-    doc.text(`Warranty: ${p.warranty}`, bx + 4, ry + 10);
+    doc.text(wl, bx + 4, ry + 10);
   }
 
   drawFooter(doc, DISCLAIMER);
