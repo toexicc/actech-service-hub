@@ -199,7 +199,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
     return true;
   });
 
-  const shareUrl = `${window.location.origin}/company/${company.public_token}`;
+  const shareUrl = `https://actechrepair-service.com/company/${company.public_token}`;
   const regenerate = async () => {
     if (!confirm("Make a new link? The old link will stop working.")) return;
     const token = Array.from(crypto.getRandomValues(new Uint8Array(18))).map((b) => b.toString(16).padStart(2, "0")).join("");
