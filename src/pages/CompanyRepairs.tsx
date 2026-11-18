@@ -248,23 +248,53 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
 
   const downloadQuote = async (q: Quote) => downloadPdfBytes(await generateCompanyQuotationPdf(q.quotation_no, q.payload), `${q.quotation_no} ${company.name}.pdf`);
 
+  const stats = [
+    { label: "Devices", value: services.length },
+    { label: "In progress", value: services.filter((s) => !isClosedStatus(s.status)).length },
+    { label: "Awaiting quote", value: services.filter((s) => !isClosedStatus(s.status) && (s.quotation_request_status ?? "RFQ") === "RFQ").length },
+    { label: "Completed", value: services.filter((s) => isClosedStatus(s.status)).length },
+    { label: "Quoted total", value: peso(quotes.reduce((a, q) => a + (Number(q.final_amount) || 0), 0)) },
+  ];
+  const editLocation = (s: Svc) => {
+    const v = window.prompt("Location", s.company_location ?? "");
+    if (v !== null && v !== (s.company_location ?? "")) updateSvc([s.service_id], { company_location: v.trim() || null }, "Company location set");
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />Companies</Button>
-        <h1 className="text-2xl font-bold flex-1 min-w-0">{company.name}</h1>
-        {canManage && <Button variant="outline" size="sm" onClick={onEdit}>Edit company</Button>}
-        {canManage && <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" />Add devices</Button>}
-      </div>
+      <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />All companies</Button>
 
-      {canManage && (
-        <Card><CardContent className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-medium">Client link:</span>
-          <code className="truncate max-w-full flex-1 rounded bg-muted px-2 py-1 text-xs">{shareUrl}</code>
-          <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied"); }}><Copy className="h-4 w-4 mr-1" />Copy</Button>
-          <Button size="sm" variant="ghost" onClick={regenerate}><RefreshCw className="h-4 w-4 mr-1" />New link</Button>
-        </CardContent></Card>
-      )}
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-bold leading-tight">{company.name}</h1>
+              <p className="text-sm text-muted-foreground">{[company.contact_person, company.contact_number, company.email].filter(Boolean).join(" · ") || "No contact details yet"}</p>
+            </div>
+            {canManage && <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={onEdit}>Edit</Button>
+              <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" />Add devices</Button>
+            </div>}
+          </div>
+          {canManage && (
+            <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+              <span className="text-xs font-medium text-muted-foreground shrink-0">Client link</span>
+              <span className="truncate flex-1 font-mono text-xs">{shareUrl}</span>
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copied"); }}><Copy className="h-3.5 w-3.5 mr-1" />Copy</Button>
+              <Button size="sm" variant="ghost" className="h-7" onClick={regenerate} title="Make a new link"><RefreshCw className="h-3.5 w-3.5" /></Button>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {stats.map((st) => (
+              <div key={st.label} className="rounded-md border px-3 py-2">
+                <div className="text-xs text-muted-foreground">{st.label}</div>
+                <div className="text-lg font-semibold">{st.value}</div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="space-y-3">
@@ -272,75 +302,95 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
               <TabsList><TabsTrigger value="ongoing">Ongoing</TabsTrigger><TabsTrigger value="completed">Completed</TabsTrigger><TabsTrigger value="all">All</TabsTrigger></TabsList>
             </Tabs>
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search serial, model, ticket, issue" />
+            </div>
             <Select value={batchFilter} onValueChange={setBatchFilter}>
-              <SelectTrigger className="w-56"><SelectValue placeholder="Batch" /></SelectTrigger>
+              <SelectTrigger className="w-48"><SelectValue placeholder="Batch" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All batches</SelectItem>{batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>)}</SelectContent>
             </Select>
             <Select value={locFilter} onValueChange={setLocFilter}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Location" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All locations</SelectItem>{locations.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
             </Select>
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-8" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search serial, model, ticket, issue" />
-            </div>
           </div>
 
           {canManage && selected.size > 0 && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted p-2 text-sm">
-              <span className="font-medium">{selected.size} selected</span>
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2 text-sm">
+              <span className="font-medium px-1">{selected.size} selected</span>
               <Button size="sm" onClick={() => setQuoteOpen(true)}><FileText className="h-4 w-4 mr-1" />Generate quotation</Button>
               <Select onValueChange={(v) => updateSvc([...selected], { company_batch_id: v }, "Company batch set")}>
-                <SelectTrigger className="w-48 h-8"><SelectValue placeholder="Move to batch" /></SelectTrigger>
+                <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Move to batch" /></SelectTrigger>
                 <SelectContent>{batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>)}</SelectContent>
               </Select>
               <Select onValueChange={(v) => updateSvc([...selected], { quotation_request_status: v }, "Quotation request status set")}>
                 <SelectTrigger className="w-44 h-8"><SelectValue placeholder="Set quotation status" /></SelectTrigger>
                 <SelectContent>{QUOTATION_REQUEST_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
               </Select>
-              <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+              <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Set())}>Clear</Button>
             </div>
           )}
 
           <div className="overflow-x-auto rounded-md border">
             <table className="w-full text-sm">
-              <thead className="bg-muted text-xs uppercase text-muted-foreground">
-                <tr>
-                  {canManage && <th className="p-2 w-8"><Checkbox checked={rows.length > 0 && rows.every((r) => selected.has(r.service_id))} onCheckedChange={(v) => setSelected(v ? new Set(rows.map((r) => r.service_id)) : new Set())} aria-label="Select all" /></th>}
-                  <th className="p-2 text-left">Ticket</th><th className="p-2 text-left">Batch</th><th className="p-2 text-left">Location</th>
-                  <th className="p-2 text-left">Serial</th><th className="p-2 text-left">Model</th><th className="p-2 text-left min-w-[200px]">Issue reported</th>
-                  <th className="p-2 text-left min-w-[160px]">Parts / cost</th><th className="p-2 text-right">Total</th>
-                  <th className="p-2 text-center">Own quote</th><th className="p-2 text-left">Quotation</th><th className="p-2 text-left">Status</th><th className="p-2 text-left">Document</th>
+              <thead className="bg-muted/60 text-xs text-muted-foreground">
+                <tr className="text-left">
+                  {canManage && <th className="p-3 w-8"><Checkbox checked={rows.length > 0 && rows.every((r) => selected.has(r.service_id))} onCheckedChange={(v) => setSelected(v ? new Set(rows.map((r) => r.service_id)) : new Set())} aria-label="Select all" /></th>}
+                  <th className="p-3 font-medium">Ticket</th>
+                  <th className="p-3 font-medium min-w-[180px]">Device</th>
+                  <th className="p-3 font-medium min-w-[220px]">Issue reported</th>
+                  <th className="p-3 font-medium min-w-[180px]">Parts / cost</th>
+                  <th className="p-3 font-medium text-right">Total</th>
+                  <th className="p-3 font-medium min-w-[170px]">Quotation</th>
+                  <th className="p-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={13} className="p-6 text-center text-muted-foreground">No devices here.</td></tr>}
+                {rows.length === 0 && <tr><td colSpan={8} className="p-10 text-center text-muted-foreground">No devices here.</td></tr>}
                 {rows.map((s) => {
                   const line = lineFromService(s as any);
                   const total = Number(s.final_cost) || Number(s.service_cost) || 0;
                   const q = quoteFor(s.service_id);
+                  const meta = [batchLabel(s.company_batch_id), s.company_location].filter(Boolean).join(" · ");
                   return (
-                    <tr key={s.service_id} className="border-t align-top">
-                      {canManage && <td className="p-2"><Checkbox checked={selected.has(s.service_id)} onCheckedChange={() => toggle(s.service_id)} aria-label={`Select ${s.service_id}`} /></td>}
-                      <td className="p-2 whitespace-nowrap"><button className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => openTicket(s.service_id)}>{s.service_id}</button><div className="text-xs text-muted-foreground">{fmtDate(s.date_received)}</div></td>
-                      <td className="p-2 text-xs">{batchLabel(s.company_batch_id)}</td>
-                      <td className="p-2">{canManage ? (
-                        <Input className="h-8 w-20" defaultValue={s.company_location ?? ""} onBlur={(e) => e.target.value !== (s.company_location ?? "") && updateSvc([s.service_id], { company_location: e.target.value || null }, "Company location set")} />
-                      ) : s.company_location}</td>
-                      <td className="p-2 font-mono text-xs">{s.serial_number}</td>
-                      <td className="p-2">{[s.brand, s.model].filter(Boolean).join(" ")}</td>
-                      <td className="p-2 text-xs whitespace-pre-line">{s.chief_complaint || s.issue_description}</td>
-                      <td className="p-2 text-xs">{line.solutions.map((x, i) => <div key={i}>{x.name} – {peso(x.cost)}</div>)}</td>
-                      <td className="p-2 text-right whitespace-nowrap">{peso(total)}</td>
-                      <td className="p-2 text-center"><Checkbox disabled={!canManage} checked={!!s.needs_individual_quote} onCheckedChange={(v) => updateSvc([s.service_id], { needs_individual_quote: !!v }, "Individual quotation flag set")} aria-label="Requires individual quotation" /></td>
-                      <td className="p-2">{canManage ? (
-                        <Select value={s.quotation_request_status ?? "RFQ"} onValueChange={(v) => updateSvc([s.service_id], { quotation_request_status: v }, "Quotation request status set")}>
-                          <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                          <SelectContent>{QUOTATION_REQUEST_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                        </Select>
-                      ) : (s.quotation_request_status ?? "RFQ")}</td>
-                      <td className="p-2 text-xs"><Badge variant="outline" className="whitespace-nowrap">{s.status}</Badge>{s.is_on_hold && <Badge className="ml-1">On Hold</Badge>}</td>
-                      <td className="p-2">{q && <Button size="sm" variant="ghost" onClick={() => downloadQuote(q)}><Download className="h-4 w-4 mr-1" />{q.quotation_no}</Button>}</td>
+                    <tr key={s.service_id} className={`border-t align-top hover:bg-muted/30 ${selected.has(s.service_id) ? "bg-primary/5" : ""}`}>
+                      {canManage && <td className="p-3"><Checkbox checked={selected.has(s.service_id)} onCheckedChange={() => toggle(s.service_id)} aria-label={`Select ${s.service_id}`} /></td>}
+                      <td className="p-3 whitespace-nowrap">
+                        <button className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => openTicket(s.service_id)}>{s.service_id}</button>
+                        <div className="text-xs text-muted-foreground">{fmtDate(s.date_received)}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-medium">{[s.brand, s.model].filter(Boolean).join(" ") || "—"}</div>
+                        {s.serial_number && <div className="font-mono text-xs text-muted-foreground">SN {s.serial_number}</div>}
+                        <button type="button" disabled={!canManage} onClick={() => editLocation(s)} className="text-xs text-muted-foreground hover:text-foreground disabled:hover:text-muted-foreground text-left">
+                          {meta || (canManage ? "+ Set location" : "")}
+                        </button>
+                      </td>
+                      <td className="p-3 text-xs"><p className="line-clamp-3 whitespace-pre-line" title={s.chief_complaint || s.issue_description || ""}>{s.chief_complaint || s.issue_description}</p></td>
+                      <td className="p-3 text-xs space-y-0.5">
+                        {line.solutions.length === 0 ? <span className="text-muted-foreground">Not quoted yet</span> :
+                          line.solutions.map((x, i) => <div key={i} className="flex justify-between gap-3"><span>{x.name}</span><span className="tabular-nums text-muted-foreground">{peso(x.cost)}</span></div>)}
+                      </td>
+                      <td className="p-3 text-right font-semibold tabular-nums whitespace-nowrap">{total ? peso(total) : "—"}</td>
+                      <td className="p-3 space-y-1.5">
+                        {canManage ? (
+                          <Select value={s.quotation_request_status ?? "RFQ"} onValueChange={(v) => updateSvc([s.service_id], { quotation_request_status: v }, "Quotation request status set")}>
+                            <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                            <SelectContent>{QUOTATION_REQUEST_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                          </Select>
+                        ) : <div className="text-xs">{s.quotation_request_status ?? "RFQ"}</div>}
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Checkbox className="h-3.5 w-3.5" disabled={!canManage} checked={!!s.needs_individual_quote} onCheckedChange={(v) => updateSvc([s.service_id], { needs_individual_quote: !!v }, "Individual quotation flag set")} />Own quotation
+                        </label>
+                        {q && <button className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={() => downloadQuote(q)}><Download className="h-3 w-3" />{q.quotation_no}</button>}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge variant="outline" className="whitespace-nowrap font-normal">{s.status}</Badge>
+                          {s.is_on_hold && <Badge variant="secondary">On Hold</Badge>}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
