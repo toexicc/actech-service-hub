@@ -43,6 +43,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { invokeAiFunction } from "@/lib/aiFormatters";
 import { cn } from "@/lib/utils";
+import { CompanyIntakeFields, emptyCompanyIntake, resolveCompanyBatch, type CompanyIntake, type CompanyRecord } from "@/components/company/CompanyIntakeFields";
 
 const SPECIAL_CASE_TECHNICIAN = "John Paul Espedido";
 const SPECIAL_CASE_DEPARTMENT = "Special Cases";
@@ -148,6 +149,13 @@ const ServiceForm = ({
   const [termsRead, setTermsRead] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Company Repairs intake: company/batch/location kept between devices.
+  const [companyIntake, setCompanyIntake] = useState<CompanyIntake>(() => {
+    const q = new URLSearchParams(location.search);
+    return { ...emptyCompanyIntake(), companyId: q.get("company") ?? "", batchId: q.get("batch") ?? "none", location: q.get("location") ?? "" };
+  });
+  const pickedCompanyRef = useRef<CompanyRecord | null>(null);
+  const [lastCompanyTicket, setLastCompanyTicket] = useState<string | null>(null);
   const [showOtherDeviceInput, setShowOtherDeviceInput] = useState(false);
   const [clientMatches, setClientMatches] = useState<any[]>([]);
   const [isSearchingClient, setIsSearchingClient] = useState(false);
@@ -216,6 +224,16 @@ const ServiceForm = ({
     preloadPdfAssets();
   }, [navigate]);
 
+  const applyCompanyContact = (c: CompanyRecord) => {
+    pickedCompanyRef.current = c;
+    form.setValue("clientType", "Company");
+    form.setValue("clientId", "");
+    form.setValue("clientName", c.name);
+    if (c.contact_number) form.setValue("phone", c.contact_number);
+    if (c.email) form.setValue("email", c.email);
+    if (c.billing_address) form.setValue("address" as any, c.billing_address);
+  };
+
   const form = useForm<FormValues>({
     resolver: zodResolver(activeSchema as typeof formSchema),
     defaultValues: {
@@ -264,6 +282,9 @@ const ServiceForm = ({
       annotationNotes: "",
     },
   });
+  useEffect(() => {
+    if (!isPublic && new URLSearchParams(location.search).get("company")) form.setValue("clientType", "Company");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-select logged in admin on form load
   useEffect(() => {
@@ -696,6 +717,17 @@ const ServiceForm = ({
         throw new Error(createError?.message || "Could not create the service ticket.");
       }
       const finalServiceId = createdServiceId;
+      if (!isPublic && data.clientType === "Company" && companyIntake.companyId) {
+        const batchId = await resolveCompanyBatch(companyIntake).catch(() => null);
+        if (batchId && companyIntake.batchId === "new") setCompanyIntake((v) => ({ ...v, batchId, newBatch: "" }));
+        await supabase.from("services").update({
+          company_id: companyIntake.companyId,
+          company_batch_id: batchId,
+          company_location: companyIntake.location.trim() || null,
+          quotation_request_status: "RFQ",
+          vat_requested: pickedCompanyRef.current?.vat_default ?? true,
+        } as any).eq("service_id", finalServiceId);
+      }
       const accessories = data.hasDeviceAccessory ? data.deviceAccessories || [] : [];
       if ((data.deviceOutWithClient || data.hasDeviceAccessory) && finalServiceId) {
         await supabase
@@ -960,7 +992,13 @@ const ServiceForm = ({
 
         // Staff intake: jump straight to the new ticket. Pre-Order tickets also
         // open the payment window with a suggested 50% down payment.
-        if (!isPublic && !embedded) {
+        if (!isPublic && !embedded && data.clientType === "Company" && pickedCompanyRef.current) {
+          // Bulk company intake: stay on the form with the company kept.
+          applyCompanyContact(pickedCompanyRef.current);
+          form.setValue("receivingStaff", data.receivingStaff || "");
+          setLastCompanyTicket(finalServiceId);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else if (!isPublic && !embedded) {
           const params = new URLSearchParams({ serviceId: finalServiceId });
           if (data.hasPreOrder) {
             params.set("pos", "1");
@@ -1267,6 +1305,15 @@ const ServiceForm = ({
             <div>
               <h2 className="text-xl font-semibold text-blue-600 mb-4">Contact Information</h2>
               <div className="grid md:grid-cols-2 gap-4">
+                {!isPublic && form.watch("clientType") === "Company" && (
+                  <CompanyIntakeFields value={companyIntake} onChange={setCompanyIntake} onCompanyPicked={applyCompanyContact} />
+                )}
+                {!isPublic && lastCompanyTicket && form.watch("clientType") === "Company" && (
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-2 text-sm md:col-span-2">
+                    <span>Saved <b>{lastCompanyTicket}</b>. Same company, next device — just fill in the device and issue.</span>
+                    <Button type="button" size="sm" variant="outline" className="ml-auto" onClick={() => navigate(`/manage-client?serviceId=${lastCompanyTicket}`)}>Open ticket</Button>
+                  </div>
+                )}
                 {!isPublic && (
                   <>
                     <FormField
@@ -1288,6 +1335,7 @@ const ServiceForm = ({
                               <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
                               <SelectItem value="Delivery - AC Tech">Delivery - AC Tech</SelectItem>
                               <SelectItem value="Delivery - Courier">Delivery - Courier</SelectItem>
+                              <SelectItem value="Company">Company (bulk / corporate)</SelectItem>
 
                             </SelectContent>
                           </Select>

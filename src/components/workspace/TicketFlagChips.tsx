@@ -95,6 +95,9 @@ export function TicketFlagChips({
       cls: "border-cyan-400/40 bg-cyan-500/15 text-cyan-700",
     });
   }
+  if (service?.companyId) {
+    chips.push({ key: "company", label: "Company", cls: "border-primary/40 bg-primary/10 text-primary" });
+  }
   if (service?.isReleased && !hideReleased) {
     chips.push({
       key: "released",

@@ -1,4 +1,5 @@
 import TicketSearchSuggestions from "@/components/TicketSearchSuggestions";
+import { CompanyTicketPanel } from "@/components/company/CompanyTicketPanel";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -1387,6 +1388,9 @@ const ServiceUpdate = () => {
             />
           )}
           <TicketWorkspaceHero service={serviceData} isLive={isLive} />
+          {serviceData.serviceId && (
+            <CompanyTicketPanel serviceId={serviceData.serviceId} canEdit={false} actor={sessionStorage.getItem("userFullName") || ""} />
+          )}
           <StatusProgressBar
             serviceId={serviceData.serviceId || ""}
             clientName={serviceData.clientName || ""}

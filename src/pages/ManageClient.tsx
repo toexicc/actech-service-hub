@@ -80,6 +80,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { supabase } from "@/integrations/supabase/client";
 import { mapServiceRow } from "@/hooks/useServices";
+import { CompanyTicketPanel, buildCompanyTicketQuotation, type CompanyTicket } from "@/components/company/CompanyTicketPanel";
 import { mergeWithSupabase, mergeSupabaseOverSheet, supabaseRowToSheetShape } from "@/lib/serviceRecordShape";
 import {
   formatDiagnosisWithAI,
@@ -187,6 +188,7 @@ const ManageClient = () => {
   // runs the lookup once the input has caught up.
   const [pendingSearchId, setPendingSearchId] = useState<string | null>(null);
   const [serviceData, setServiceData] = useState<any>(null);
+  const [companyTicket, setCompanyTicket] = useState<CompanyTicket | null>(null);
   useEffect(() => {
     if (serviceData?.serviceId) logTicketOpened(serviceData.serviceId, "Manage Client");
   }, [serviceData?.serviceId]);
@@ -1477,9 +1479,9 @@ const ManageClient = () => {
       !serviceData.quotationPdfUrl
     ) {
       toast({
-        title: "Service Quotation Form Required",
+        title: `${companyTicket ? "Company" : "Service"} Quotation Form Required`,
         description:
-          "Save your service cost and diagnosis first, generate the Service Quotation Form, then change the status.",
+          `Save your service cost and diagnosis first, generate the ${companyTicket ? "Company" : "Service"} Quotation Form, then change the status.`,
         variant: "destructive",
       });
       return;
@@ -2076,6 +2078,7 @@ const ManageClient = () => {
 
   const handleGenerateQuotation = async () => {
     if (!serviceData) return;
+    if (companyTicket) return handleGenerateCompanyQuotation();
 
     // A quotation must always ship with at least one required (locked) service.
     if (quotedLines.length) {
@@ -2293,6 +2296,24 @@ const ManageClient = () => {
     }
   };
 
+  const handleGenerateCompanyQuotation = async () => {
+    if (!serviceData?.serviceId || !companyTicket) return;
+    setIsUpdatingQuotation(true);
+    try {
+      const actor = sessionStorage.getItem("userFullName") || "Admin";
+      const blob = await buildCompanyTicketQuotation(serviceData.serviceId, companyTicket, actor);
+      await uploadServicePdf({ serviceId: serviceData.serviceId, clientName: serviceData.clientName || "", kind: "quotation", blob });
+      setServiceData((prev: any) => (prev ? { ...prev, quotationPdfUrl: prev.quotationPdfUrl || "generated" } : prev));
+      logActivity({ serviceId: serviceData.serviceId, username: actor, role: sessionStorage.getItem("userRole") || "admin", activity: "Company quotation form generated" }).catch(() => {});
+      toast({ title: "Success", description: "Company quotation form generated" });
+      handleSearch();
+    } catch (e) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Could not generate the company quotation", variant: "destructive" });
+    } finally {
+      setIsUpdatingQuotation(false);
+    }
+  };
+
   const handleViewQuotationPDF = async () => {
     const signed = serviceData?.serviceId ? await getServicePdfSignedUrl(serviceData.serviceId, "quotation") : null;
     const url =
@@ -2314,7 +2335,7 @@ const ManageClient = () => {
         serviceId: serviceData?.serviceId,
       }),
     );
-    setPdfModalTitle("Service Quotation Form");
+    setPdfModalTitle(companyTicket ? "Company Quotation Form" : "Service Quotation Form");
     setPdfModalOpen(true);
   };
 
@@ -2430,6 +2451,14 @@ const ManageClient = () => {
                 ) : null
               }
             />
+            {serviceData.serviceId && (
+              <CompanyTicketPanel
+                serviceId={serviceData.serviceId}
+                canEdit
+                actor={sessionStorage.getItem("userFullName") || "Admin"}
+                onLoaded={setCompanyTicket}
+              />
+            )}
 
             <StatusProgressBar
               serviceId={serviceData.serviceId || ""}
@@ -2526,8 +2555,8 @@ const ManageClient = () => {
                       },
                       {
                         kind: "quotation",
-                        title: "Service Quotation Form",
-                        hint: "Quoted services and pricing",
+                        title: companyTicket ? "Company Quotation Form" : "Service Quotation Form",
+                        hint: companyTicket ? `Billing statement for ${companyTicket.companyName}` : "Quoted services and pricing",
                         onGenerate: handleGenerateQuotation,
                         generating: isUpdatingQuotation,
                       },

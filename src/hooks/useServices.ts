@@ -39,6 +39,7 @@ export interface ServiceRecord {
   partsOrdered?: boolean;
   targetReviewPending?: boolean;
   isBackjob?: boolean;
+  companyId?: string | null;
   rushFee?: boolean;
   isReleased?: boolean;
   releasedAt?: string;
@@ -162,6 +163,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   partsOrdered: !!(r as any).parts_ordered,
   targetReviewPending: !!(r as any).target_review_pending,
   isBackjob: !!(r as any).is_backjob,
+  companyId: (r as any).company_id ?? null,
   rushFee: !!(r as any).rush_fee,
   isReleased: !!(r as any).is_released,
   releasedAt: (r as any).released_at ?? "",
@@ -240,7 +242,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
 const LIST_COLUMNS = [
   "service_id","client_id","client_name","contact_number","email",
   "device_type","brand","model","serial_number","color","memory",
-  "service","status","priority","client_type","source",
+  "service","status","priority","client_type","source","company_id",
   "technicians","technician_departments","admin_reps","receiving_staff",
   "date_received","service_date","target_date","estimated_completion",
   "date_completed","repair_time_frame","last_updated","created_at",

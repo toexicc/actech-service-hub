@@ -143,7 +143,8 @@ type FlagKey =
   | "rush"
   | "interim"
   | "invoice"
-  | "deviceOut";
+  | "deviceOut"
+  | "company";
 const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolean }[] = [
   { key: "today", label: "Today", match: isTodayService },
   { key: "waitingParts", label: "Waiting for Parts", match: (s) => !!s.waitingForParts },
@@ -176,6 +177,7 @@ const FLAG_COUNT_CARDS: { key: FlagKey; label: string; match: (s: any) => boolea
   },
   { key: "invoice", label: "Invoice", match: (s) => !!s.vatRequested && isOpenTicket(s) },
   { key: "deviceOut", label: "Device Out", match: (s) => !!s.deviceOutWithClient && isOpenTicket(s) },
+  { key: "company", label: "Company", match: (s) => !!s.companyId && isOpenTicket(s) },
 ];
 
 

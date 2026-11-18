@@ -175,12 +175,12 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
   company: Company; services: Svc[]; batches: Batch[]; quotes: Quote[]; canManage: boolean; profileName: string;
   onBack: () => void; onEdit: () => void; reload: () => void; openTicket: (id: string) => void; extra: React.ReactNode;
 }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"ongoing" | "completed" | "all">("ongoing");
   const [batchFilter, setBatchFilter] = useState("all");
   const [locFilter, setLocFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [addOpen, setAddOpen] = useState(false);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -255,6 +255,15 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
     { label: "Completed", value: services.filter((s) => isClosedStatus(s.status)).length },
     { label: "Quoted total", value: peso(quotes.reduce((a, q) => a + (Number(q.final_amount) || 0), 0)) },
   ];
+  const groups = useMemo(() => {
+    const m = new Map<string, { key: string; label: string; items: Svc[] }>();
+    rows.forEach((r) => {
+      const key = r.company_batch_id ?? "none";
+      if (!m.has(key)) m.set(key, { key, label: batchLabel(r.company_batch_id) || "No batch", items: [] });
+      m.get(key)!.items.push(r);
+    });
+    return [...m.values()];
+  }, [rows, batches]); // eslint-disable-line react-hooks/exhaustive-deps
   const editLocation = (s: Svc) => {
     const v = window.prompt("Location", s.company_location ?? "");
     if (v !== null && v !== (s.company_location ?? "")) updateSvc([s.service_id], { company_location: v.trim() || null }, "Company location set");
@@ -274,7 +283,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
             </div>
             {canManage && <div className="flex w-full gap-2 sm:w-auto">
               <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={onEdit}>Edit</Button>
-              <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" />Add devices</Button>
+              <Button size="sm" className="flex-1 sm:flex-none" onClick={() => navigate(`/service-form?company=${company.id}`)}><Plus className="h-4 w-4 mr-1" />Intake device</Button>
             </div>}
           </div>
           {canManage && (
@@ -332,71 +341,54 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/60 text-xs text-muted-foreground">
-                <tr className="text-left">
-                  {canManage && <th className="p-3 w-8"><Checkbox checked={rows.length > 0 && rows.every((r) => selected.has(r.service_id))} onCheckedChange={(v) => setSelected(v ? new Set(rows.map((r) => r.service_id)) : new Set())} aria-label="Select all" /></th>}
-                  <th className="p-3 font-medium">Ticket</th>
-                  <th className="p-3 font-medium min-w-[180px]">Device</th>
-                  <th className="p-3 font-medium min-w-[220px]">Issue reported</th>
-                  <th className="p-3 font-medium min-w-[180px]">Parts / cost</th>
-                  <th className="p-3 font-medium text-right">Total</th>
-                  <th className="p-3 font-medium min-w-[170px]">Quotation</th>
-                  <th className="p-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length === 0 && <tr><td colSpan={8} className="p-10 text-left sm:text-center text-muted-foreground">No devices here.</td></tr>}
-                {rows.map((s) => {
-                  const line = lineFromService(s as any);
+          {rows.length === 0 && (
+            <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
+              No devices here.{canManage && <> Use <b>Intake device</b> to add one through the normal intake form.</>}
+            </div>
+          )}
+          {groups.map((g) => (
+            <div key={g.key} className="space-y-2">
+              <div className="flex items-center gap-2">
+                {canManage && <Checkbox checked={g.items.every((r) => selected.has(r.service_id))} onCheckedChange={(v) => setSelected((cur) => { const n = new Set(cur); g.items.forEach((r) => (v ? n.add(r.service_id) : n.delete(r.service_id))); return n; })} aria-label={`Select ${g.label}`} />}
+                <h3 className="text-sm font-semibold">{g.label}</h3>
+                <span className="text-xs text-muted-foreground">{g.items.length} device{g.items.length > 1 ? "s" : ""}</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {g.items.map((s) => {
                   const total = Number(s.final_cost) || Number(s.service_cost) || 0;
                   const q = quoteFor(s.service_id);
-                  const meta = [batchLabel(s.company_batch_id), s.company_location].filter(Boolean).join(" · ");
+                  const sel = selected.has(s.service_id);
                   return (
-                    <tr key={s.service_id} className={`border-t align-top hover:bg-muted/30 ${selected.has(s.service_id) ? "bg-primary/5" : ""}`}>
-                      {canManage && <td className="p-3"><Checkbox checked={selected.has(s.service_id)} onCheckedChange={() => toggle(s.service_id)} aria-label={`Select ${s.service_id}`} /></td>}
-                      <td className="p-3 whitespace-nowrap">
-                        <button className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => openTicket(s.service_id)}>{s.service_id}</button>
-                        <div className="text-xs text-muted-foreground">{fmtDate(s.date_received)}</div>
-                      </td>
-                      <td className="p-3">
-                        <div className="font-medium">{[s.brand, s.model].filter(Boolean).join(" ") || "—"}</div>
-                        {s.serial_number && <div className="font-mono text-xs text-muted-foreground">SN {s.serial_number}</div>}
-                        <button type="button" disabled={!canManage} onClick={() => editLocation(s)} className="text-xs text-muted-foreground hover:text-foreground disabled:hover:text-muted-foreground text-left">
-                          {meta || (canManage ? "+ Set location" : "")}
-                        </button>
-                      </td>
-                      <td className="p-3 text-xs"><p className="line-clamp-3 whitespace-pre-line" title={s.chief_complaint || s.issue_description || ""}>{s.chief_complaint || s.issue_description}</p></td>
-                      <td className="p-3 text-xs space-y-0.5">
-                        {line.solutions.length === 0 ? <span className="text-muted-foreground">Not quoted yet</span> :
-                          line.solutions.map((x, i) => <div key={i} className="flex justify-between gap-3"><span>{x.name}</span><span className="tabular-nums text-muted-foreground">{peso(x.cost)}</span></div>)}
-                      </td>
-                      <td className="p-3 text-right font-semibold tabular-nums whitespace-nowrap">{total ? peso(total) : "—"}</td>
-                      <td className="p-3 space-y-1.5">
-                        {canManage ? (
-                          <Select value={s.quotation_request_status ?? "RFQ"} onValueChange={(v) => updateSvc([s.service_id], { quotation_request_status: v }, "Quotation request status set")}>
-                            <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                            <SelectContent>{QUOTATION_REQUEST_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                          </Select>
-                        ) : <div className="text-xs">{s.quotation_request_status ?? "RFQ"}</div>}
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Checkbox className="h-3.5 w-3.5" disabled={!canManage} checked={!!s.needs_individual_quote} onCheckedChange={(v) => updateSvc([s.service_id], { needs_individual_quote: !!v }, "Individual quotation flag set")} />Own quotation
-                        </label>
-                        {q && <button className="flex items-center gap-1 text-xs text-primary hover:underline" onClick={() => downloadQuote(q)}><Download className="h-3 w-3" />{q.quotation_no}</button>}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex flex-col items-start gap-1">
-                          <Badge variant="outline" className="whitespace-nowrap font-normal">{s.status}</Badge>
-                          {s.is_on_hold && <Badge variant="secondary">On Hold</Badge>}
+                    <div key={s.service_id} role="button" tabIndex={0} onClick={() => openTicket(s.service_id)} onKeyDown={(e) => e.key === "Enter" && openTicket(s.service_id)}
+                      className={`cursor-pointer rounded-lg border bg-card p-3 transition-colors hover:border-primary ${sel ? "border-primary ring-1 ring-primary" : ""}`}>
+                      <div className="flex items-start gap-2">
+                        {canManage && <div onClick={(e) => e.stopPropagation()}><Checkbox checked={sel} onCheckedChange={() => toggle(s.service_id)} aria-label={`Select ${s.service_id}`} /></div>}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-primary">{s.service_id}</span>
+                            <span className="text-sm font-semibold tabular-nums">{total ? peso(total) : ""}</span>
+                          </div>
+                          <div className="font-medium">{[s.brand, s.model].filter(Boolean).join(" ") || s.device_type || "Device"}</div>
+                          <div className="text-xs text-muted-foreground">{[s.serial_number && `SN ${s.serial_number}`, s.company_location, fmtDate(s.date_received)].filter(Boolean).join(" · ")}</div>
+                          <p className="mt-1 line-clamp-2 text-xs">{s.chief_complaint || s.issue_description}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-1">
+                            <Badge variant="outline" className="font-normal">{s.status}</Badge>
+                            {s.is_on_hold && <Badge variant="secondary">On Hold</Badge>}
+                            <Badge variant="secondary" className="font-normal">Quote: {s.quotation_request_status ?? "RFQ"}</Badge>
+                            {s.needs_individual_quote && <Badge variant="secondary" className="font-normal">Own quotation</Badge>}
+                          </div>
+                          <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                            <span className="truncate">{(s.technicians ?? []).join(", ") || "No technician"}</span>
+                            {q && <button className="flex shrink-0 items-center gap-1 text-primary hover:underline" onClick={(e) => { e.stopPropagation(); downloadQuote(q); }}><Download className="h-3 w-3" />{q.quotation_no}</button>}
+                          </div>
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -415,110 +407,9 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
         </Card>
       )}
 
-      {canManage && <AddDevicesDialog open={addOpen} onOpenChange={setAddOpen} company={company} batches={batches} profileName={profileName} onDone={reload} />}
       {canManage && <QuotationDialog open={quoteOpen} onOpenChange={setQuoteOpen} companyName={company.name} defaultCustomer={company.contact_person ?? ""} vatDefault={company.vat_default} initialLines={initialLines} busy={busy} onGenerate={generate} />}
       {extra}
     </div>
   );
 }
 
-type DraftRow = { serial: string; brand: string; model: string; issue: string; location: string };
-const blankRow = (): DraftRow => ({ serial: "", brand: "", model: "", issue: "", location: "" });
-
-function AddDevicesDialog({ open, onOpenChange, company, batches, profileName, onDone }: {
-  open: boolean; onOpenChange: (v: boolean) => void; company: Company; batches: Batch[]; profileName: string; onDone: () => void;
-}) {
-  const [batchId, setBatchId] = useState("new");
-  const [batchName, setBatchName] = useState("");
-  const [deviceType, setDeviceType] = useState<string>("");
-  const [rows, setRows] = useState<DraftRow[]>([blankRow()]);
-  const [paste, setPaste] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (open) { setRows([blankRow()]); setPaste(""); setBatchId("new"); setBatchName(`Faulty Devices - ${fmtDate(new Date().toISOString())}`); }
-  }, [open]);
-
-  const applyPaste = () => {
-    const parsed = paste.split(/\r?\n/).map((l) => l.split("\t")).filter((c) => c.some((x) => x.trim()))
-      .map(([serial = "", model = "", issue = "", location = ""]) => ({ serial: serial.trim(), brand: "", model: model.trim(), issue: issue.trim(), location: location.trim() }));
-    if (parsed.length) { setRows(parsed); setPaste(""); }
-  };
-  const patch = (i: number, p: Partial<DraftRow>) => setRows((r) => r.map((x, k) => (k === i ? { ...x, ...p } : x)));
-
-  const submit = async () => {
-    const good = rows.filter((r) => r.serial || r.model || r.issue);
-    if (!good.length) return toast.error("Add at least one device");
-    if (!deviceType) return toast.error("Pick a device type");
-    setBusy(true);
-    try {
-      let bid = batchId;
-      if (bid === "new") {
-        const { data, error } = await supabase.from("company_batches").insert({ company_id: company.id, label: batchName || "Batch", received_date: new Date().toISOString().slice(0, 10) }).select("id").single();
-        if (error) throw error;
-        bid = data.id;
-      }
-      let made = 0;
-      for (const r of good) {
-        const { data: sid, error } = await supabase.rpc("create_service_atomic", {
-          _payload: {
-            client_name: company.name, contact_number: company.contact_number ?? "", email: company.email ?? "",
-            address: company.billing_address ?? "", client_type: "Company", device_type: deviceType,
-            brand: r.brand, model: r.model, serial_number: r.serial, chief_complaint: r.issue, issue_description: r.issue,
-            receiving_staff: profileName, source: "Company Repairs", priority: "Normal",
-          },
-        });
-        if (error) throw error;
-        await supabase.from("services").update({ company_id: company.id, company_batch_id: bid, company_location: r.location || null, quotation_request_status: "RFQ" }).eq("service_id", sid as string);
-        made++;
-      }
-      toast.success(`${made} ticket${made > 1 ? "s" : ""} created`);
-      onOpenChange(false); onDone();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Could not add devices");
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl !flex !flex-col max-h-[95dvh]">
-        <DialogHeader className="shrink-0"><DialogTitle>Add devices — {company.name}</DialogTitle></DialogHeader>
-        <div className="flex-1 overflow-y-auto space-y-3">
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div><Label>Batch</Label>
-              <Select value={batchId} onValueChange={setBatchId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="new">New batch…</SelectItem>{batches.map((b) => <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {batchId === "new" && <div><Label>Batch name</Label><Input value={batchName} onChange={(e) => setBatchName(e.target.value)} /></div>}
-            <div><Label>Device type</Label>
-              <Select value={deviceType} onValueChange={setDeviceType}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>{DEVICE_TYPES.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <Label>Paste from spreadsheet (Serial, Model, Issue, Location columns)</Label>
-            <div className="flex gap-2"><Textarea rows={2} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Copy rows from Sheets and paste here" /><Button variant="outline" onClick={applyPaste} disabled={!paste.trim()}>Use rows</Button></div>
-          </div>
-          <div className="space-y-2">
-            {rows.map((r, i) => (
-              <div key={i} className="grid gap-2 grid-cols-2 sm:grid-cols-[1fr_0.8fr_1fr_2fr_0.6fr]">
-                <Input value={r.serial} onChange={(e) => patch(i, { serial: e.target.value })} placeholder="Serial" />
-                <Input value={r.brand} onChange={(e) => patch(i, { brand: e.target.value })} placeholder="Brand" />
-                <Input value={r.model} onChange={(e) => patch(i, { model: e.target.value })} placeholder="Model" />
-                <Input value={r.issue} onChange={(e) => patch(i, { issue: e.target.value })} placeholder="Issue reported" />
-                <Input value={r.location} onChange={(e) => patch(i, { location: e.target.value })} placeholder="Location" />
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => setRows((r) => [...r, blankRow()])}><Plus className="h-4 w-4 mr-1" />Row</Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Each device becomes its own ticket. Assign technicians from Manage Client as usual.</p>
-        </div>
-        <DialogFooter className="shrink-0"><Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy} onClick={submit}>{busy ? "Creating…" : `Create ${rows.filter((r) => r.serial || r.model || r.issue).length} ticket(s)`}</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
