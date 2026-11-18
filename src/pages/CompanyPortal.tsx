@@ -15,6 +15,7 @@ import { downloadPdfBytes } from "@/lib/pdfActions";
 import type { QuotePayload } from "@/lib/companyQuotation";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/S_S_Marketing-2.png";
+import { QuotationPreviewButton } from "@/components/company/QuotationPreviewButton";
 
 type Svc = { service_id: string; batch_id: string | null; location: string | null; serial_number: string | null; brand: string | null; model: string | null; issue: string | null; status: string; is_on_hold: boolean; quotation_status: string | null; total: number; date_received: string; date_completed: string | null };
 type Portal = {
@@ -195,8 +196,8 @@ export default function CompanyPortal() {
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Quoted</p>
                           <p className="font-semibold">{s.total ? peso(s.total) : "Pending"}</p>
                         </div>
-                        <div className="flex gap-1.5">
-                          {quote && <Button size="sm" variant="outline" className="rounded-full" onClick={() => dl(quote)}><Download className="h-3.5 w-3.5 mr-1" />{quote.quotation_no}</Button>}
+                        <div className="flex flex-wrap gap-1.5">
+                          {quote && <QuotationPreviewButton quotationNo={quote.quotation_no} payload={quote.payload} compact />}
                           <Button size="sm" variant="ghost" className="rounded-full" asChild>
                             <a href={`/track/${s.service_id}`} target="_blank" rel="noreferrer">{s.service_id}<ExternalLink className="h-3.5 w-3.5 ml-1" /></a>
                           </Button>
@@ -222,6 +223,7 @@ export default function CompanyPortal() {
                     <Badge variant="secondary">{x.service_ids.length} device{x.service_ids.length > 1 ? "s" : ""}</Badge>
                     <span className="text-muted-foreground">{fmtDate(x.created_at)}</span>
                     <span className="ml-auto font-semibold">{peso(x.final_amount)}</span>
+                    <QuotationPreviewButton quotationNo={x.quotation_no} payload={x.payload} />
                     <Button size="sm" variant="outline" className="rounded-full" onClick={() => dl(x)}><Download className="h-3.5 w-3.5 mr-1" />PDF</Button>
                   </div>
                 ))}

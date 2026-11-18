@@ -23,6 +23,7 @@ import { downloadPdfBytes } from "@/lib/pdfActions";
 import { QuotationDialog, type QuoteMode } from "@/components/company/QuotationDialog";
 import { logActivityAsync } from "@/lib/activityLogger";
 import { CompanyIntakeDialog } from "@/components/company/CompanyIntakeDialog";
+import { QuotationPreviewButton } from "@/components/company/QuotationPreviewButton";
 
 type Company = {
   id: string; name: string; contact_person: string | null; contact_number: string | null; email: string | null;
@@ -406,7 +407,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
                           </div>
                           <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                             <span className="truncate">{(s.technicians ?? []).join(", ") || "No technician"}</span>
-                            {q && <button className="flex shrink-0 items-center gap-1 text-primary hover:underline" onClick={(e) => { e.stopPropagation(); downloadQuote(q); }}><Download className="h-3 w-3" />{q.quotation_no}</button>}
+                            {q && <QuotationPreviewButton quotationNo={q.quotation_no} payload={q.payload} compact />}
                           </div>
                         </div>
                       </div>
@@ -427,7 +428,10 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
               <div key={q.id} className="flex flex-wrap items-center gap-2 text-sm border-b last:border-0 py-1.5">
                 <span className="font-medium">{q.quotation_no}</span>
                 <span className="text-muted-foreground">{fmtDate(q.created_at)} · {q.service_ids.length} device(s) · {peso(q.final_amount)}{q.created_by_name ? ` · ${q.created_by_name}` : ""}</span>
-                <Button size="sm" variant="ghost" className="ml-auto" onClick={() => downloadQuote(q)}><Download className="h-4 w-4 mr-1" />Download</Button>
+                <div className="ml-auto flex flex-wrap gap-2">
+                  <QuotationPreviewButton quotationNo={q.quotation_no} payload={q.payload} />
+                  <Button size="sm" variant="ghost" onClick={() => downloadQuote(q)}><Download className="h-4 w-4 mr-1" />Download</Button>
+                </div>
               </div>
             ))}
           </CardContent>
