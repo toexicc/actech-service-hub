@@ -31,7 +31,39 @@ type Batch = { id: string; company_id: string; label: string; received_date: str
 type Svc = Record<string, any> & { service_id: string };
 type Quote = { id: string; quotation_no: string; service_ids: string[]; payload: QuotePayload; final_amount: number; created_at: string; created_by_name: string | null };
 
-const SERVICE_COLS = "service_id,company_id,company_batch_id,company_location,needs_individual_quote,quotation_request_status,serial_number,brand,model,device_type,chief_complaint,issue_description,quoted_breakdown,diagnosis_warranty,service_cost,final_cost,status,is_on_hold,technicians,date_received,date_completed";
+const SERVICE_COLS = "service_id,company_id,company_batch_id,company_location,needs_individual_quote,quotation_request_status,serial_number,brand,model,device_type,chief_complaint,issue_description,quoted_breakdown,diagnosis_warranty,service_cost,final_cost,status,is_on_hold,payment_status,technicians,date_received,date_completed";
+
+type Stage = "diagnosis" | "approval" | "repair" | "payment" | "completed";
+const STAGES: { key: Stage; label: string }[] = [
+  { key: "diagnosis", label: "Pending diagnosis" },
+  { key: "approval", label: "Pending approval" },
+  { key: "repair", label: "In repair" },
+  { key: "payment", label: "Pending payment" },
+  { key: "completed", label: "Completed" },
+];
+const stageOf = (s: Svc): Stage | null => {
+  const st = String(s.status ?? "");
+  if (isClosedStatus(st)) return st === "Completed" ? "completed" : null;
+  if (st === "Pending Diagnosis" || st === "Confirmed Diagnosis") return "diagnosis";
+  if (st === "Waiting to Proceed") return "approval";
+  if (st.startsWith("Done Repair - For Release") || st.startsWith("Done Repair - Advise")) return String(s.payment_status ?? "").toLowerCase() === "paid" ? "completed" : "payment";
+  return "repair";
+};
+const StageCards = ({ list, active, onPick }: { list: Svc[]; active?: Stage | null; onPick?: (k: Stage | null) => void }) => (
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+    {STAGES.map((st) => {
+      const n = list.filter((x) => stageOf(x) === st.key).length;
+      const on = active === st.key;
+      return (
+        <button key={st.key} type="button" disabled={!onPick} onClick={() => onPick?.(on ? null : st.key)}
+          className={`rounded-lg border bg-card px-3 py-2 text-left transition-colors ${onPick ? "hover:border-primary" : ""} ${on ? "border-primary ring-1 ring-primary" : ""}`}>
+          <div className="text-xs text-muted-foreground">{st.label}</div>
+          <div className="text-xl font-semibold">{n}</div>
+        </button>
+      );
+    })}
+  </div>
+);
 
 const fmtDate = (iso?: string | null) => {
   if (!iso) return "";
@@ -100,6 +132,7 @@ export default function CompanyRepairs() {
           </div>
           {canManage && <Button onClick={() => { setCompanyForm(emptyCompany); setCompanyOpen(true); }}><Plus className="h-4 w-4 mr-1" />New company</Button>}
         </div>
+        {!loading && <StageCards list={services} />}
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : companies.length === 0 ? (
           <Card><CardContent className="text-sm text-muted-foreground">No companies yet.</CardContent></Card>
         ) : (
@@ -116,8 +149,11 @@ export default function CompanyRepairs() {
                       <div className="flex items-center gap-2 font-semibold"><Building2 className="h-4 w-4" />{c.name}</div>
                       {c.contact_person && <p className="text-xs text-muted-foreground">{c.contact_person}</p>}
                       <div className="flex flex-wrap gap-1.5">
-                        <Badge variant="secondary">{ongoing} ongoing</Badge>
-                        <Badge variant="outline">{mine.length - ongoing} completed</Badge>
+                        {STAGES.map((st) => {
+                          const n = mine.filter((x) => stageOf(x) === st.key).length;
+                          return n > 0 ? <Badge key={st.key} variant={st.key === "completed" ? "outline" : "secondary"}>{n} {st.label.toLowerCase()}</Badge> : null;
+                        })}
+                        {ongoing === 0 && mine.length === 0 && <Badge variant="outline">No devices yet</Badge>}
                         {rfq > 0 && <Badge>{rfq} awaiting quotation</Badge>}
                       </div>
                     </CardContent>
@@ -176,10 +212,11 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
   onBack: () => void; onEdit: () => void; reload: () => void; openTicket: (id: string) => void; extra: React.ReactNode;
 }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"ongoing" | "completed" | "all">("ongoing");
+  const [tab, setTab] = useState<"ongoing" | "completed" | "all">("all");
   const [batchFilter, setBatchFilter] = useState("all");
   const [locFilter, setLocFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [stage, setStage] = useState<Stage | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -192,6 +229,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
     const closed = isClosedStatus(s.status);
     if (tab === "ongoing" && closed) return false;
     if (tab === "completed" && !closed) return false;
+    if (stage && stageOf(s) !== stage) return false;
     if (batchFilter !== "all" && s.company_batch_id !== batchFilter) return false;
     if (locFilter !== "all" && s.company_location !== locFilter) return false;
     const q = search.trim().toLowerCase();
@@ -248,13 +286,6 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
 
   const downloadQuote = async (q: Quote) => downloadPdfBytes(await generateCompanyQuotationPdf(q.quotation_no, q.payload), `${q.quotation_no} ${company.name}.pdf`);
 
-  const stats = [
-    { label: "Devices", value: services.length },
-    { label: "In progress", value: services.filter((s) => !isClosedStatus(s.status)).length },
-    { label: "Awaiting quote", value: services.filter((s) => !isClosedStatus(s.status) && (s.quotation_request_status ?? "RFQ") === "RFQ").length },
-    { label: "Completed", value: services.filter((s) => isClosedStatus(s.status)).length },
-    { label: "Quoted total", value: peso(quotes.reduce((a, q) => a + (Number(q.final_amount) || 0), 0)) },
-  ];
   const groups = useMemo(() => {
     const m = new Map<string, { key: string; label: string; items: Svc[] }>();
     rows.forEach((r) => {
@@ -294,14 +325,8 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
               <Button size="sm" variant="ghost" className="h-7" onClick={regenerate} title="Make a new link"><RefreshCw className="h-3.5 w-3.5" /></Button>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {stats.map((st) => (
-              <div key={st.label} className="rounded-md border px-3 py-2">
-                <div className="text-xs text-muted-foreground">{st.label}</div>
-                <div className="text-lg font-semibold">{st.value}</div>
-              </div>
-            ))}
-          </div>
+          <StageCards list={services} active={stage} onPick={(k) => { setStage(k); if (k) setTab("all"); }} />
+          <p className="text-xs text-muted-foreground">{services.length} devices · Quoted total {peso(quotes.reduce((a, q) => a + (Number(q.final_amount) || 0), 0))}{stage ? " · tap the card again to clear" : ""}</p>
         </CardContent>
       </Card>
 
@@ -309,7 +334,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-              <TabsList><TabsTrigger value="ongoing">Ongoing</TabsTrigger><TabsTrigger value="completed">Completed</TabsTrigger><TabsTrigger value="all">All</TabsTrigger></TabsList>
+              <TabsList><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="ongoing">Ongoing</TabsTrigger><TabsTrigger value="completed">Completed</TabsTrigger></TabsList>
             </Tabs>
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
