@@ -185,7 +185,7 @@ export default function CompanyPortal() {
                       </div>
                       {s.issue && <p className="text-sm text-foreground/80 whitespace-pre-line line-clamp-3">{s.issue}</p>}
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span>{batchLabel(s.batch_id)}</span>
+                        {s.batch_id && <span>{batchLabel(s.batch_id)}</span>}
                         {s.location && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{s.location}</span>}
                         <span>Received {fmtDate(s.date_received)}</span>
                         {s.date_completed && <span>Done {fmtDate(s.date_completed)}</span>}
