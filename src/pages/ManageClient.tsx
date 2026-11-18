@@ -3123,6 +3123,7 @@ const ManageClient = () => {
                           <SelectItem value="Returning Client - Pickup">Returning Client - Pickup</SelectItem>
                           <SelectItem value="Delivery - AC Tech">Delivery - AC Tech</SelectItem>
                           <SelectItem value="Delivery - Courier">Delivery - Courier</SelectItem>
+                          <SelectItem value="Company">Company (bulk / corporate)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

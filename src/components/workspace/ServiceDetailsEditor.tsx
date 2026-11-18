@@ -23,6 +23,7 @@ const CLIENT_TYPE_OPTIONS = [
   "Returning Client - Pickup",
   "Delivery - AC Tech",
   "Delivery - Courier",
+  "Company",
 
 ];
 
