@@ -326,7 +326,7 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
             </div>
           )}
           <StageCards list={services} active={stage} onPick={(k) => { setStage(k); if (k) setTab("all"); }} />
-          <p className="text-xs text-muted-foreground">{services.length} devices · Quoted total {peso(quotes.reduce((a, q) => a + (Number(q.final_amount) || 0), 0))}{stage ? " · tap the card again to clear" : ""}</p>
+          <p className="text-xs text-muted-foreground">{services.length} device{services.length === 1 ? "" : "s"} · Quoted total {peso(quotes.reduce((a, q) => a + (Number(q.final_amount) || 0), 0))}{stage ? " · tap the card again to clear" : ""}</p>
         </CardContent>
       </Card>
 
