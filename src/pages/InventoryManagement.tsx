@@ -33,6 +33,8 @@ import { logInventoryActivity } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { deriveStockStatus } from "@/lib/stockStatus";
 import { InventoryImportDialog } from "@/components/inventory/InventoryImportDialog";
+import { PageGuide } from "@/components/PageGuide";
+import { INVENTORY_GUIDE } from "@/lib/pageGuides";
 
 interface InventoryItem {
   partId: string;
@@ -585,12 +587,29 @@ const InventoryManagement = () => {
         formData.append("orderedQuantity", stockAdjustment.quantity);
         formData.append("remarks", stockAdjustment.remarks || `Ordered: ${stockAdjustment.quantity} units`);
       } else {
+        // The server only knows "add" and "subtract" (anything else is treated as add), so turn each
+        // option into one of those: Remove takes stock out, Manual Adjustment sets the exact count.
+        const entered = Math.max(0, parseInt(stockAdjustment.quantity, 10) || 0);
+        const current = Number(selectedPart.quantity) || 0;
+        const delta =
+          stockAdjustment.type === "add"
+            ? entered
+            : stockAdjustment.type === "remove"
+              ? -Math.min(entered, current)
+              : entered - current;
+        if (delta === 0) {
+          toast({ title: "No change", description: `${selectedPart.partId} already has ${current} in stock.` });
+          return;
+        }
         formData.append("action", "adjustStock");
         formData.append("partId", selectedPart.partId);
-        formData.append("adjustmentType", stockAdjustment.type);
-        formData.append("quantity", stockAdjustment.quantity);
-        formData.append("remarks", stockAdjustment.remarks);
-        formData.append("previousQuantity", selectedPart.quantity.toString());
+        formData.append("adjustmentType", delta > 0 ? "add" : "subtract");
+        formData.append("quantity", String(Math.abs(delta)));
+        formData.append(
+          "remarks",
+          stockAdjustment.remarks || (stockAdjustment.type === "adjust" ? `Recount: ${current} → ${entered}` : ""),
+        );
+        formData.append("previousQuantity", String(current));
       }
       
       formData.append("adjustedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
@@ -1167,9 +1186,12 @@ const InventoryManagement = () => {
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 animate-fade-in">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
-          <p className="text-muted-foreground">Track parts and materials</p>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
+            <p className="text-muted-foreground">Track parts and materials</p>
+          </div>
+          <PageGuide guide={INVENTORY_GUIDE} />
         </div>
 
         <div className="flex justify-end gap-2 mb-6">
@@ -2375,6 +2397,11 @@ const InventoryManagement = () => {
                 {stockAdjustment.type === "order" && (
                   <p className="text-xs text-muted-foreground">
                     This will set status to "On Order" without changing current stock
+                  </p>
+                )}
+                {stockAdjustment.type === "adjust" && (
+                  <p className="text-xs text-muted-foreground">
+                    Enter the actual count on the shelf. Stock is set to exactly this number.
                   </p>
                 )}
               </div>

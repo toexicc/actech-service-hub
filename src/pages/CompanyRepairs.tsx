@@ -24,6 +24,8 @@ import { QuotationDialog, type QuoteMode } from "@/components/company/QuotationD
 import { logActivityAsync } from "@/lib/activityLogger";
 import { CompanyIntakeDialog } from "@/components/company/CompanyIntakeDialog";
 import { QuotationPreviewButton } from "@/components/company/QuotationPreviewButton";
+import { PageGuide } from "@/components/PageGuide";
+import { COMPANY_GUIDE } from "@/lib/pageGuides";
 
 type Company = {
   id: string; name: string; contact_person: string | null; contact_number: string | null; email: string | null;
@@ -132,7 +134,10 @@ export default function CompanyRepairs() {
             <h1 className="text-2xl font-bold">Company Repairs</h1>
             <p className="text-sm text-muted-foreground">Bulk repairs for companies. Each device is still its own ticket.</p>
           </div>
-          {canManage && <Button onClick={() => { setCompanyForm(emptyCompany); setCompanyOpen(true); }}><Plus className="h-4 w-4 mr-1" />New company</Button>}
+          <div className="flex flex-wrap items-center gap-2">
+            <PageGuide guide={COMPANY_GUIDE} />
+            {canManage && <Button onClick={() => { setCompanyForm(emptyCompany); setCompanyOpen(true); }}><Plus className="h-4 w-4 mr-1" />New company</Button>}
+          </div>
         </div>
         {!loading && <StageCards list={services} />}
         {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : companies.length === 0 ? (
@@ -305,7 +310,10 @@ function CompanyDetail({ company, services, batches, quotes, canManage, profileN
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />All companies</Button>
+      <div className="flex items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-1" />All companies</Button>
+        <PageGuide guide={COMPANY_GUIDE} />
+      </div>
 
       <Card>
         <CardContent className="space-y-4">
