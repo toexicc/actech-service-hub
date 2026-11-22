@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { COMPANY_GUIDE, INVENTORY_GUIDE, type PageGuideContent } from "./pageGuides";
+import { CHECK_PARTS_GUIDE, COMPANY_GUIDE, INVENTORY_GUIDE, type PageGuideContent } from "./pageGuides";
 
 const guides: [string, PageGuideContent][] = [
   ["inventory", INVENTORY_GUIDE],
   ["company", COMPANY_GUIDE],
+  ["check parts", CHECK_PARTS_GUIDE],
 ];
 
 for (const [name, guide] of guides) {

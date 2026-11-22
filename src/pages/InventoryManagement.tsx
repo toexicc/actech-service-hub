@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, RefreshCw, Copy, X, Download, Upload } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, RefreshCw, Copy, X, Download, Upload, ClipboardPlus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,8 @@ import { logInventoryActivity } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { deriveStockStatus } from "@/lib/stockStatus";
 import { InventoryImportDialog } from "@/components/inventory/InventoryImportDialog";
+import { InventoryItemsTable } from "@/components/inventory/InventoryItemsTable";
+import { AssignToTicketDialog } from "@/components/inventory/AssignToTicketDialog";
 import { PageGuide } from "@/components/PageGuide";
 import { INVENTORY_GUIDE } from "@/lib/pageGuides";
 
@@ -130,7 +132,6 @@ const InventoryManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingPart, setEditingPart] = useState<InventoryItem | null>(null);
-  const [selectedPartForLogs, setSelectedPartForLogs] = useState<string | null>(null);
   const [selectedPart, setSelectedPart] = useState<InventoryItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
@@ -152,6 +153,15 @@ const InventoryManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [logsCurrentPage, setLogsCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  // Parts list page size (the logs tab keeps 10 per page).
+  const ITEMS_PAGE_SIZE = 25;
+  // Assign to Ticket: optional part picked from a row's menu
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignPartId, setAssignPartId] = useState<string | null>(null);
+  const openAssign = (partId: string | null) => {
+    setAssignPartId(partId);
+    setAssignOpen(true);
+  };
 
   // Form states for new part
   const [newPart, setNewPart] = useState({
@@ -1018,10 +1028,10 @@ const InventoryManagement = () => {
 
   // Paginated inventory items
   const paginatedInventory = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    const startIndex = (currentPage - 1) * ITEMS_PAGE_SIZE;
+    const endIndex = startIndex + ITEMS_PAGE_SIZE;
     return filteredAndSortedInventory.slice(startIndex, endIndex);
-  }, [filteredAndSortedInventory, currentPage, itemsPerPage]);
+  }, [filteredAndSortedInventory, currentPage, ITEMS_PAGE_SIZE]);
 
   // Export the currently filtered inventory list as CSV
   const handleDownloadCsv = () => {
@@ -1141,7 +1151,7 @@ const InventoryManagement = () => {
     return Array.from(users).sort();
   }, [logs]);
 
-  const totalPages = Math.ceil(filteredAndSortedInventory.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedInventory.length / ITEMS_PAGE_SIZE);
   const logsTotalPages = Math.ceil(filteredLogs.length / itemsPerPage);
 
   const handleSort = (field: SortField) => {
@@ -1153,10 +1163,11 @@ const InventoryManagement = () => {
     }
   };
 
-  const getStatusColor = (item: InventoryItem) => {
-    if (item.status === "Out of Stock" || item.quantity <= 0) return "text-destructive font-semibold";
-    if (item.status === "Low Stock") return "text-orange-600 font-semibold";
-    return "";
+  const showPartQr = async (item: InventoryItem) => {
+    if (!item.partId) return;
+    const dataUrl = await QRCode.toDataURL(item.partId, { width: 300, margin: 1 });
+    setSelectedQRCode({ partName: item.partName, qrCode: dataUrl });
+    setQrCodeDialogOpen(true);
   };
 
   const formatTimestamp = (value: string) => {
@@ -1194,7 +1205,7 @@ const InventoryManagement = () => {
           <PageGuide guide={INVENTORY_GUIDE} />
         </div>
 
-        <div className="flex justify-end gap-2 mb-6">
+        <div className="flex flex-wrap justify-end gap-2 mb-6">
 
           {!isViewOnly && (
             <>
@@ -1616,6 +1627,18 @@ const InventoryManagement = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+              {/* Record parts used on a ticket straight from Inventory (inventory staff and management) */}
+              {hasInventoryAccess && (
+                <Button
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/10"
+                  onClick={() => openAssign(null)}
+                >
+                  <ClipboardPlus className="h-4 w-4 mr-2" />
+                  Assign to Ticket
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -1774,296 +1797,79 @@ const InventoryManagement = () => {
                   </Button>
                 </div>
                 {isLoading ? (
-                  <div className="overflow-x-auto">
-                    <Table className="[&_th]:py-2 [&_td]:py-1.5 [&_td]:text-sm">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Part ID</TableHead>
-                          <TableHead>Part Name</TableHead>
-                          <TableHead>Device Type</TableHead>
-                          <TableHead>Brand</TableHead>
-                          <TableHead>Model</TableHead>
-                          <TableHead>Part Type</TableHead>
-                          <TableHead>Quantity</TableHead>
-                          <TableHead>Re-order</TableHead>
-                          {!isViewOnly && <TableHead>Cost</TableHead>}
-                          <TableHead>Status</TableHead>
-                          <TableHead>Last Updated</TableHead>
-                          <TableHead>Remarks</TableHead>
-                          <TableHead>QR Code</TableHead>
-                          {!isViewOnly && <TableHead>Actions</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Array.from({ length: 8 }).map((_, i) => (
-                          <TableRow key={`skeleton-${i}`}>
-                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                            {!isViewOnly && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
-                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                            {!isViewOnly && <TableCell><Skeleton className="h-8 w-20" /></TableCell>}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-2">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <Skeleton key={`skeleton-${i}`} className="h-14 w-full rounded-lg" />
+                    ))}
                   </div>
                 ) : filteredAndSortedInventory.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No inventory items found</div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
-                    <Table className="[&_th]:py-2 [&_td]:py-1.5 [&_td]:text-sm">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="cursor-pointer" onClick={() => handleSort("partId")}>
-                            <div className="flex items-center gap-1">
-                              Part ID <ArrowUpDown className="h-4 w-4" />
-                            </div>
-                          </TableHead>
-                          <TableHead className="cursor-pointer" onClick={() => handleSort("partName")}>
-                            <div className="flex items-center gap-1">
-                              Part Name <ArrowUpDown className="h-4 w-4" />
-                            </div>
-                          </TableHead>
-                          <TableHead>Device Type</TableHead>
-                          <TableHead>Brand</TableHead>
-                          <TableHead>Model</TableHead>
-                          <TableHead>Color</TableHead>
-                          <TableHead>Part Type</TableHead>
-                          <TableHead className="cursor-pointer" onClick={() => handleSort("quantity")}>
-                            <div className="flex items-center gap-1">
-                              Quantity <ArrowUpDown className="h-4 w-4" />
-                            </div>
-                          </TableHead>
-                          <TableHead title="Shows as Low Stock at or below this number">Re-order</TableHead>
-                          {!isViewOnly && <TableHead>Cost</TableHead>}
-                          <TableHead>Supplier</TableHead>
-                          <TableHead>Date Ordered</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="cursor-pointer" onClick={() => handleSort("lastUpdated")}>
-                            <div className="flex items-center gap-1">
-                              Last Updated <ArrowUpDown className="h-4 w-4" />
-                            </div>
-                          </TableHead>
-                          <TableHead>Remarks</TableHead>
-                          <TableHead>QR Code</TableHead>
-                          {!isViewOnly && <TableHead>Actions</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedInventory.map((item) => {
-                          const itemLogs = logs
-                            .filter(log => log.partId === item.partId)
-                            .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-                            .slice(0, 10);
-                          
-                          return (
-                            <>
-                              <TableRow
-                                key={item.partId}
-                                className={`cursor-pointer hover:bg-muted/50 ${
-                                  item.quantity <= 0 || item.status === "Out of Stock" ? "bg-destructive/10" :
-                                  item.status === "Low Stock" ? "bg-orange-50" : ""
-                                }`}
-                                onClick={() => setSelectedPartForLogs(selectedPartForLogs === item.partId ? null : item.partId)}
-                              >
-                                <TableCell className="font-medium">
-                                  {item.partId}
-                                  {(item.quantity === 0 || item.status === "Out of Stock") && (
-                                    <AlertTriangle className="inline-block ml-2 h-4 w-4 text-destructive" />
-                                  )}
-                                </TableCell>
-                                <TableCell className="min-w-[150px]">{item.partName}</TableCell>
-                                <TableCell>{item.deviceType || "N/A"}</TableCell>
-                                <TableCell>{item.brand || "N/A"}</TableCell>
-                                <TableCell className="min-w-[190px]">{item.model || "N/A"}</TableCell>
-                                <TableCell>{item.color || "N/A"}</TableCell>
-                                <TableCell>{item.partType || "N/A"}</TableCell>
-                                <TableCell className={getStatusColor(item)}>
-                                  {item.quantity}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">{item.reorderLevel ? item.reorderLevel : "—"}</TableCell>
-                                {!isViewOnly && <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>}
-                                <TableCell>{item.supplier || "N/A"}</TableCell>
-                                <TableCell>{item.dateOrdered || "N/A"}</TableCell>
-                                <TableCell>
-                                  <span className={`px-2 py-1 rounded text-xs ${
-                                    item.status === "Out of Stock" ? "bg-destructive/20 text-destructive" :
-                                    item.status === "Low Stock" ? "bg-orange-100 text-orange-800" :
-                                    item.status === "In Stock" ? "bg-green-100 text-green-800" :
-                                    "bg-blue-100 text-blue-800"
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap text-xs">{formatTimestamp(item.lastUpdated)}</TableCell>
-                                <TableCell className="whitespace-normal">{item.remarks || "N/A"}</TableCell>
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                  {item.partId ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={async () => {
-                                        const dataUrl = await QRCode.toDataURL(item.partId, { width: 300, margin: 1 });
-                                        setSelectedQRCode({ partName: item.partName, qrCode: dataUrl });
-                                        setQrCodeDialogOpen(true);
-                                      }}
-                                    >
-                                      <QrCode className="h-4 w-4 mr-1" />
-                                      View
-                                    </Button>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">No QR</span>
-                                  )}
-                                </TableCell>
-                                {!isViewOnly && (
-                                  <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setEditingPart(item);
-                                          setIsEditDialogOpen(true);
-                                        }}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        title="Duplicate this part"
-                                        aria-label="Duplicate part"
-                                        onClick={() => prefillFromPart(item, true)}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-destructive hover:bg-destructive/10"
-                                        onClick={() => {
-                                          setSelectedPart(item);
-                                          setIsDeleteDialogOpen(true);
-                                        }}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                      {item.status === "On Order" ? (
-                                        <Button
-                                          size="sm"
-                                          variant="default"
-                                          className="bg-green-600 hover:bg-green-700"
-                                          onClick={() => {
-                                            setReceivingItem(item);
-                                            setReceiveQty(orderedQuantityFrom(item.remarks));
-                                          }}
-                                          disabled={isSubmitting}
-                                        >
-                                          {isSubmitting ? "Processing..." : "Receive"}
-                                        </Button>
-                                      ) : (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => {
-                                            setSelectedPart(item);
-                                            setIsStockDialogOpen(true);
-                                          }}
-                                        >
-                                          Adjust
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                )}
-                              </TableRow>
-                              {selectedPartForLogs === item.partId && itemLogs.length > 0 && (
-                                <TableRow key={`${item.partId}-logs`}>
-                                  <TableCell colSpan={10} className="bg-muted/30 p-4">
-                                    <div className="space-y-2">
-                                      <h4 className="font-semibold text-sm flex items-center gap-2">
-                                        <FileText className="h-4 w-4" />
-                                        Recent Activity (Last 10 Logs)
-                                      </h4>
-                                      <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
-                                        {itemLogs.map((log) => (
-                                          <div key={log.logId} className="text-sm bg-background p-3 rounded border">
-                                            <div className="flex justify-between items-start mb-1">
-                                              <span className="font-medium text-primary">{log.transactionType}</span>
-                                              <span className="text-xs text-muted-foreground">{log.dateTime}</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                              <div>
-                                                <span className="text-muted-foreground">Changed:</span> {log.quantityChanged} units
-                                              </div>
-                                              <div>
-                                                <span className="text-muted-foreground">Stock:</span> {log.previousQuantity} → {log.newQuantity}
-                                              </div>
-                                              <div>
-                                                <span className="text-muted-foreground">By:</span> {log.username} ({log.role})
-                                              </div>
-                                              {log.remarks && (
-                                                <div className="col-span-2">
-                                                  <span className="text-muted-foreground">Remarks:</span> {log.remarks}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
+                    <InventoryItemsTable
+                      items={paginatedInventory}
+                      logs={logs}
+                      readOnly={isViewOnly}
+                      showCost={!isViewOnly}
+                      sortField={sortField}
+                      sortOrder={sortOrder}
+                      onSort={handleSort}
+                      busy={isSubmitting}
+                      actions={{
+                        onAdjust: (item) => {
+                          setSelectedPart(item);
+                          setIsStockDialogOpen(true);
+                        },
+                        onReceive: (item) => {
+                          setReceivingItem(item);
+                          setReceiveQty(orderedQuantityFrom(item.remarks));
+                        },
+                        onEdit: (item) => {
+                          setEditingPart(item);
+                          setIsEditDialogOpen(true);
+                        },
+                        onDuplicate: (item) => prefillFromPart(item, true),
+                        onDelete: (item) => {
+                          setSelectedPart(item);
+                          setIsDeleteDialogOpen(true);
+                        },
+                        onShowQr: showPartQr,
+                        onAssign: hasInventoryAccess ? (item) => openAssign(item.partId) : undefined,
+                      }}
+                    />
 
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="text-sm text-muted-foreground">
-                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedInventory.length)} of {filteredAndSortedInventory.length} items
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          Previous
-                        </Button>
-                        <div className="text-sm">
-                          Page {currentPage} of {totalPages}
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm text-muted-foreground">
+                          Showing {((currentPage - 1) * ITEMS_PAGE_SIZE) + 1} to {Math.min(currentPage * ITEMS_PAGE_SIZE, filteredAndSortedInventory.length)} of {filteredAndSortedInventory.length} items
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={currentPage === totalPages}
-                        >
-                          Next
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                          </Button>
+                          <div className="text-sm">
+                            Page {currentPage} of {totalPages}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -2501,6 +2307,12 @@ const InventoryManagement = () => {
         </Dialog>
 
         {/* Import parts from a CSV file */}
+        <AssignToTicketDialog
+          open={assignOpen}
+          onOpenChange={setAssignOpen}
+          initialPartId={assignPartId}
+          onSaved={() => invalidateAll()}
+        />
         <InventoryImportDialog
           open={isImportDialogOpen}
           onOpenChange={setIsImportDialogOpen}

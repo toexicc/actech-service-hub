@@ -90,6 +90,7 @@ const App = () => (
               <Route path="/service-update" element={<WorkbenchShell />} />
               <Route path="/service-tracker" element={<WorkbenchShell />} />
               <Route path="/inventory-management" element={<WorkbenchShell />} />
+              <Route path="/parts-availability" element={<WorkbenchShell />} />
               <Route path="/customer-management" element={<WorkbenchShell />} />
               <Route path="/staff-management" element={<WorkbenchShell />} />
               <Route path="/completed-transactions" element={<WorkbenchShell />} />

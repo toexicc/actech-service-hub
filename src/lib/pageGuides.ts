@@ -36,6 +36,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "**Pre-Ordered Parts**: parts ordered for specific tickets, from order to arrival.",
         "**Inventory Logs**: the history of added parts, edits, stock in and out, and parts used on tickets.",
       ],
+      tips: ["Technicians and admins can look parts up on **Check Parts** in the menu. It's view-only."],
     },
     {
       id: "status",
@@ -57,10 +58,13 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       steps: [
         "Open **Inventory Items** and type in the search box. SKU, name, brand, model, colour and type all work.",
         "Narrow the list with the device type, model and status filters.",
-        "Click a part's row to see its last 10 log entries.",
-        "Click **View** under QR Code to show the part's QR label for printing or scanning.",
+        "Click a part to open its details (supplier, cost, remarks) and recent activity. Click it again to close.",
+        "For a part's QR label, open its **⋯** menu and choose **QR code**.",
       ],
-      tips: ["**CSV** downloads the list exactly as it's filtered on screen."],
+      tips: [
+        "Click **Part**, **SKU**, **Stock** or **Updated** at the top of the list to sort by it.",
+        "**CSV** downloads the list exactly as it's filtered on screen.",
+      ],
     },
     {
       id: "tickets",
@@ -79,6 +83,20 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       ],
     },
     {
+      id: "assign",
+      title: "Assign parts to a ticket from Inventory",
+      who: "inventory staff and management",
+      steps: [
+        "Click **Assign to Ticket** (beside Add New Part), or open a part's **⋯** menu and choose **Assign to ticket**.",
+        "Type the ticket number or the client's name and pick the ticket. With an empty search you'll see the latest open tickets.",
+        "Add the parts and how many were used, then click **Save parts**. Stock goes down and the ticket's Parts Used updates, the same as recording them on the ticket.",
+      ],
+      tips: [
+        "Use this when a technician takes a part from you, so the count stays right even if they forget to record it.",
+        "The **Not enough in stock** warning works here too.",
+      ],
+    },
+    {
       id: "add",
       title: "Add a new part",
       who: "inventory staff and management",
@@ -90,7 +108,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       ],
       tips: [
         "Parts added here get an automatic ID (PRT…). To give a new part your own SKU, add it with **Import CSV** instead.",
-        "The copy icon on a row (**Duplicate**) starts a new part with the same details.",
+        "**Duplicate** in a part's **⋯** menu starts a new part with the same details.",
       ],
     },
     {
@@ -146,6 +164,41 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "Import never deletes parts, and blank cells never erase what's already saved.",
         "Use **Stock count** right after a full physical count.",
         "Downloading a Google Sheet tab with File → Download → Comma-separated values (.csv) also works.",
+      ],
+    },
+  ],
+};
+
+export const CHECK_PARTS_GUIDE: PageGuideContent = {
+  title: "How to use Check Parts",
+  intro: "Look up any part to see if it's in stock. This page is view-only; inventory staff make changes in Inventory Management.",
+  sections: [
+    {
+      id: "search",
+      title: "Find a part",
+      steps: [
+        "Type in the search box: SKU, part name, model or brand all work. A few words are enough, e.g. \"battery 13 pro\".",
+        "Narrow it with the device type and stock filters (**In stock (1+)**, **Low stock**, **Out of stock**).",
+        "Click a part to see more details, like the supplier and remarks.",
+      ],
+      tips: ["Click **Part**, **SKU**, **Stock** or **Updated** at the top of the list to sort by it."],
+    },
+    {
+      id: "status",
+      title: "What the stock status means",
+      points: [
+        "**In Stock**: there's enough on the shelf.",
+        "**Low Stock**: only a few left. Tell inventory staff if you'll need more soon.",
+        "**Out of Stock**: none left. Use **Request a part** to ask for it.",
+        "**On Order**: it's been ordered and hasn't arrived yet.",
+      ],
+    },
+    {
+      id: "use",
+      title: "Using a part on a ticket",
+      steps: [
+        "Record it on the ticket in **Service Update** under **Parts Used from Inventory**, then click **Update**.",
+        "The stock goes down by itself, and inventory staff approve the change.",
       ],
     },
   ],

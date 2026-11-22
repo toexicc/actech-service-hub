@@ -1,9 +1,9 @@
-import { X, Home, FileText, Users, ClipboardList, Package, ShoppingCart, Wrench } from "lucide-react";
+import { X, Home, FileText, Users, ClipboardList, Package, PackageSearch, ShoppingCart, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkbench } from "./WorkbenchContext";
 
 const ICONS: Record<string, any> = {
-  Home, FileText, Users, ClipboardList, Package, ShoppingCart, Wrench,
+  Home, FileText, Users, ClipboardList, Package, PackageSearch, ShoppingCart, Wrench,
 };
 
 export function TabBar() {

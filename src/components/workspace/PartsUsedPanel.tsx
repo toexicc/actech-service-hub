@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Package, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,10 +58,12 @@ interface Props {
   serviceId: string;
   partsUsed?: string;
   onSaved?: () => void;
+  /** Start with this part added (quantity 1) if the ticket doesn't list it yet. */
+  addPartId?: string;
 }
 
-/** Parts-used editor shared by the technician and admin/management workspaces. */
-export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
+/** Parts-used editor shared by the technician and admin/management workspaces and Inventory's Assign to Ticket. */
+export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Props) => {
   const { toast } = useToast();
   const { data: inventoryData = [] } = useInventory();
   const { data: fastMovingData = [] } = useFastMovingParts();
@@ -105,7 +107,13 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
 
   const filtered = useMemo(() => inventory.filter(i => matchesSearch(i, search)), [inventory, search]);
 
+  // Load the ticket's saved parts. Runs again only when the ticket or its saved parts change (or the
+  // parts list first arrives), so a background refresh of stock doesn't wipe what's being edited.
+  const initKey = `${serviceId}|${partsUsed || ""}|${inventory.length > 0}|${addPartId || ""}`;
+  const initKeyRef = useRef("");
   useEffect(() => {
+    if (initKeyRef.current === initKey) return;
+    initKeyRef.current = initKey;
     const parsed = parsePartsString(partsUsed || "");
     const byId: Record<string, number> = {};
     const rest: Record<string, number> = {};
@@ -116,9 +124,10 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
       if (found) byId[found.id] = qty;
       else rest[token] = qty;
     });
+    if (addPartId && !byId[addPartId] && inventory.some(i => i.id === addPartId)) byId[addPartId] = 1;
     setSelected(byId);
     setUnmatched(rest);
-  }, [partsUsed, inventory]);
+  }, [initKey, partsUsed, inventory, addPartId]);
 
   const actualCost = useMemo(
     () =>

@@ -20,6 +20,7 @@ import QueueAdmin from "@/pages/QueueAdmin";
 import Reports from "@/pages/Reports";
 import PickupSchedule from "@/pages/PickupSchedule";
 import CompanyRepairs from "@/pages/CompanyRepairs";
+import PartsAvailability from "@/pages/PartsAvailability";
 
 export interface WorkbenchRouteDef {
   path: string;
@@ -39,6 +40,7 @@ export const workbenchRoutes: WorkbenchRouteDef[] = [
   { path: "/service-update", element: <ProtectedRoute><ServiceUpdate /></ProtectedRoute> },
   { path: "/service-tracker", element: <ProtectedRoute><ServiceTracker /></ProtectedRoute> },
   { path: "/inventory-management", element: <ProtectedRoute><InventoryManagement /></ProtectedRoute> },
+  { path: "/parts-availability", element: <ProtectedRoute roles={["admin", "management", "technician"]}><PartsAvailability /></ProtectedRoute> },
   { path: "/customer-management", element: <ProtectedRoute><CustomerManagement /></ProtectedRoute> },
   { path: "/staff-management", element: <ProtectedRoute roles={["admin", "management"]}><StaffManagement /></ProtectedRoute> },
   { path: "/completed-transactions", element: <ProtectedRoute><CompletedTransactions /></ProtectedRoute> },

@@ -10,7 +10,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import {
-  Home, FileText, Users, ClipboardList, Package, ShoppingCart, DollarSign,
+  Home, FileText, Users, ClipboardList, Package, PackageSearch, ShoppingCart, DollarSign,
   UserCog, LayoutDashboard, Wrench, Monitor, Search, Clock, Settings,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ const PAGES: Array<{ label: string; path: string; roles?: string[]; iconName: st
   { label: "Customer Management", path: "/customer-management", iconName: "UserCog" },
   { label: "Service Tracker", path: "/service-tracker", iconName: "ClipboardList" },
   { label: "Inventory Management", path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
+  { label: "Check Parts", path: "/parts-availability", roles: ["admin", "technician"], iconName: "PackageSearch" },
   { label: "Completed Services", path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
   { label: "Transaction Tracker", path: "/pos", roles: ["management"], iconName: "DollarSign" },
   { label: "Salary Disbursement", path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
@@ -46,7 +47,7 @@ const PAGES: Array<{ label: string; path: string; roles?: string[]; iconName: st
 ];
 
 const ICONS: Record<string, any> = {
-  Home, FileText, Users, ClipboardList, Package, ShoppingCart, DollarSign,
+  Home, FileText, Users, ClipboardList, Package, PackageSearch, ShoppingCart, DollarSign,
   UserCog, LayoutDashboard, Wrench, Monitor, Clock, Settings,
 };
 

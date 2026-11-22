@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import {
-  Home, FileText, Users, Settings, ClipboardList, Package, DollarSign, UserCog,
+  Home, FileText, Users, Settings, ClipboardList, Package, PackageSearch, DollarSign, UserCog,
   LayoutDashboard, LogOut, ChevronLeft, ChevronRight, ChevronDown, Wrench,
   Monitor, ShoppingCart, Loader2, Clock, Search, BarChart3, ShieldCheck,
   MoreHorizontal, PlusCircle, CalendarDays, Building2,
@@ -41,6 +41,7 @@ const adminSection: NavSection = {
     { title: "Company Repairs", icon: Building2, path: "/company-repairs", iconName: "Building2" },
     { title: "Queue Console", icon: Monitor, path: "/queueing", iconName: "Monitor" },
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
+    { title: "Check Parts", icon: PackageSearch, path: "/parts-availability", roles: ["admin"], iconName: "PackageSearch" },
     { title: "Completed Services", icon: DollarSign, path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
     { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"], iconName: "Settings" },
@@ -57,6 +58,7 @@ const techSection: NavSection = {
     { title: "Service Update", icon: Wrench, path: "/service-update", iconName: "Wrench" },
     { title: "Service Tracking", icon: ClipboardList, path: "/service-tracking", iconName: "ClipboardList" },
     { title: "Company Repairs", icon: Building2, path: "/company-repairs", roles: ["technician"], iconName: "Building2" },
+    { title: "Check Parts", icon: PackageSearch, path: "/parts-availability", roles: ["technician"], iconName: "PackageSearch" },
     { title: "Tech Dashboard", icon: Monitor, path: "/tech-dashboard", roles: ["management"], iconName: "Monitor" },
   ],
   roles: ["technician", "management"],
