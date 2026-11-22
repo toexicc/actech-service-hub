@@ -11,6 +11,7 @@ import { classifyStatus, isOverdueEligible, isTimeTrackedStatus } from "@/lib/se
 
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { useInventory } from "@/hooks/useInventory";
+import { isLowOrOut } from "@/lib/stockStatus";
 import { useClientInquiriesData } from "@/hooks/useClientInquiriesData";
 import DashboardLayout from "@/components/DashboardLayout";
 import { InventoryOverview } from "@/components/inventory/InventoryOverview";
@@ -218,18 +219,20 @@ const Menu = () => {
       }));
   }, [fastMovingParts, isManagement]);
 
-  // Low stock items (management only)
+  // Low stock items (management only). Status comes from quantity and re-order level
+  // (lib/stockStatus); parts with a re-order level set come first.
   const lowStockItems = useMemo(() => {
     if (!isManagement) return [];
     return inventoryItems
+      .filter((it: any) => isLowOrOut(String(it.status ?? "")))
       .map((it: any) => ({
         partId: it.partId,
         partName: it.partName,
         model: it.model,
         quantity: Number(it.quantity ?? 0),
+        reorderLevel: Number(it.reorderLevel ?? 0),
       }))
-      .filter((it) => Number.isFinite(it.quantity) && it.quantity <= 2)
-      .sort((a, b) => a.quantity - b.quantity);
+      .sort((a, b) => Number(b.reorderLevel > 0) - Number(a.reorderLevel > 0) || a.quantity - b.quantity);
   }, [inventoryItems, isManagement]);
 
   const handleEditService = (serviceId: string) => {

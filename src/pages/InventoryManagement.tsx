@@ -18,7 +18,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { DATA_BRIDGE_URL } from "@/lib/dataBridge";
 import { DEVICE_TYPES } from "@/lib/constants";
-import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, RefreshCw, Copy, X, Download } from "lucide-react";
+import { Package, Plus, ArrowUpDown, AlertTriangle, Search, FileText, ChevronLeft, ChevronRight, Calendar, Loader2, QrCode, Edit, Trash2, CalendarIcon, RefreshCw, Copy, X, Download, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
 import { logInventoryActivity } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
+import { deriveStockStatus } from "@/lib/stockStatus";
+import { InventoryImportDialog } from "@/components/inventory/InventoryImportDialog";
 
 interface InventoryItem {
   partId: string;
@@ -41,14 +43,25 @@ interface InventoryItem {
   partType?: string;
   color?: string;
   quantity: number;
+  reorderLevel?: number;
   dateOrdered?: string;
   supplier?: string;
   costPerUnit?: string;
+  sellingPrice?: number;
+  /** Worked out from quantity and re-order level by useInventory. */
   status: string;
+  /** Saved status; only "On Order" / "For Ordering" are kept as set. */
+  storedStatus?: string;
   lastUpdated: string;
   remarks: string;
   qrCode?: string;
 }
+
+// The ordered quantity is kept in remarks as "Ordered: N units" when a part is added or ordered.
+const orderedQuantityFrom = (remarks?: string) => {
+  const m = String(remarks || "").match(/Ordered:\s*(\d+)/i);
+  return m ? m[1] : "";
+};
 
 interface InventoryLog {
   logId: string;
@@ -120,6 +133,10 @@ const InventoryManagement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
   const [selectedQRCode, setSelectedQRCode] = useState<{partName: string, qrCode: string} | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  // Receive Order asks how many arrived before adding them to stock
+  const [receivingItem, setReceivingItem] = useState<InventoryItem | null>(null);
+  const [receiveQty, setReceiveQty] = useState("");
   
   // Log filters
   const [logIdSearch, setLogIdSearch] = useState("");
@@ -148,6 +165,7 @@ const InventoryManagement = () => {
     dateOrdered: "",
     supplier: "",
     costPerUnit: "",
+    reorderLevel: "",
     status: "In Stock",
     remarks: ""
   });
@@ -167,6 +185,7 @@ const InventoryManagement = () => {
       dateOrdered: "",
       supplier: "",
       costPerUnit: "",
+      reorderLevel: "",
       status: "In Stock",
       remarks: ""
     });
@@ -190,6 +209,7 @@ const InventoryManagement = () => {
       dateOrdered: "",
       supplier: item.supplier || "",
       costPerUnit: item.costPerUnit || "",
+      reorderLevel: item.reorderLevel ? String(item.reorderLevel) : "",
       status: "In Stock",
       remarks: "",
     });
@@ -202,6 +222,7 @@ const InventoryManagement = () => {
   const [batchDeviceType, setBatchDeviceType] = useState("");
   const [batchBrand, setBatchBrand] = useState("");
   const [batchModel, setBatchModel] = useState("");
+  const [batchReorderLevel, setBatchReorderLevel] = useState("");
   const [batchParts, setBatchParts] = useState<Array<{
     partName: string;
     quantity: string;
@@ -292,6 +313,17 @@ const InventoryManagement = () => {
 
       if (result.result === "success" || result.status === "success") {
         const partId = result.partId || "NEW";
+        // The add action does not take a re-order level, so save it on the new part directly.
+        const reorderLevel = Math.max(0, parseInt(newPart.reorderLevel, 10) || 0);
+        if (result.partId && reorderLevel > 0) {
+          await supabase
+            .from("inventory_parts")
+            .update({
+              reorder_level: reorderLevel,
+              status: deriveStockStatus(Number(actualQuantity) || 0, reorderLevel, newPart.status),
+            })
+            .eq("part_id", result.partId);
+        }
         logInventoryActivity(partId, `Added new part: ${newPart.partName} (${newPart.deviceType}) - Qty: ${isOnOrder ? newPart.orderedQuantity : newPart.quantity}`);
         
         toast({
@@ -314,6 +346,7 @@ const InventoryManagement = () => {
           dateOrdered: "",
           supplier: "",
           costPerUnit: "",
+          reorderLevel: "",
           status: "In Stock",
           remarks: ""
         });
@@ -356,6 +389,7 @@ const InventoryManagement = () => {
         dateOrdered: "",
         supplier: "",
         costPerUnit: "",
+        reorderLevel: "",
         status: "In Stock",
         remarks: "",
       });
@@ -398,6 +432,7 @@ const InventoryManagement = () => {
       let successCount = 0;
       let failCount = 0;
       const batchBaseTs = Date.now();
+      const createdPartIds: string[] = [];
 
       for (let i = 0; i < validParts.length; i++) {
         const part = validParts[i];
@@ -459,6 +494,7 @@ const InventoryManagement = () => {
 
           if (response.ok && isSuccess) {
             successCount++;
+            if (result?.partId) createdPartIds.push(String(result.partId));
             logInventoryActivity(partId, `Batch added: ${part.partName} (${batchDeviceType}) - Qty: ${part.quantity}`);
           } else {
             failCount++;
@@ -471,6 +507,12 @@ const InventoryManagement = () => {
         }
       }
 
+      // The add action does not take a re-order level, so save it on the new parts directly.
+      const batchReorder = Math.max(0, parseInt(batchReorderLevel, 10) || 0);
+      if (batchReorder > 0 && createdPartIds.length > 0) {
+        await supabase.from("inventory_parts").update({ reorder_level: batchReorder }).in("part_id", createdPartIds);
+      }
+
       if (successCount > 0) {
         toast({
           title: "Success",
@@ -480,6 +522,7 @@ const InventoryManagement = () => {
         setBatchDeviceType("");
         setBatchBrand("");
         setBatchModel("");
+        setBatchReorderLevel("");
         setBatchParts([{ partName: "", quantity: "", costPerUnit: "", status: "In Stock", supplier: "", dateOrdered: "", color: "" }]);
         fetchInventory();
         fetchInventoryLogs();
@@ -652,6 +695,7 @@ const InventoryManagement = () => {
     const originalQty = inventory.find((i) => i.partId === editingPart.partId)?.quantity ?? 0;
     const nextQty = Math.max(0, Math.floor(Number(editingPart.quantity) || 0));
     const qtyChanged = nextQty !== originalQty;
+    const nextReorder = Math.max(0, Math.floor(Number(editingPart.reorderLevel) || 0));
 
     setIsSubmitting(true);
     try {
@@ -669,7 +713,8 @@ const InventoryManagement = () => {
           cost_price: sanitizeNumber(String(editingPart.costPerUnit ?? "0")),
           notes: editingPart.remarks || "",
           quantity: nextQty,
-          ...(qtyChanged ? { status: nextQty === 0 ? "Out of Stock" : "In Stock" } : {}),
+          reorder_level: nextReorder,
+          status: deriveStockStatus(nextQty, nextReorder, editingPart.storedStatus),
           updated_at: new Date().toISOString(),
         })
         .eq("part_id", editingPart.partId);
@@ -786,9 +831,24 @@ const InventoryManagement = () => {
     }
   };
 
-  const handleReceiveOrder = async (item: InventoryItem) => {
+  const handleReceiveOrder = async (item: InventoryItem, receivedQty: number) => {
     setIsSubmitting(true);
     try {
+      // Add what arrived to stock first (receiveOrder on its own only changes the status).
+      if (receivedQty > 0) {
+        const addForm = new FormData();
+        addForm.append("action", "adjustStock");
+        addForm.append("partId", item.partId);
+        addForm.append("adjustmentType", "add");
+        addForm.append("quantity", String(receivedQty));
+        addForm.append("remarks", `Order received: ${receivedQty} unit(s)`);
+        addForm.append("previousQuantity", String(item.quantity));
+        addForm.append("adjustedBy", (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Admin");
+        addForm.append("userRole", sessionStorage.getItem("userRole") || "Management");
+        const addResponse = await fetch(DATA_BRIDGE_URL, { method: "POST", body: addForm });
+        if (!addResponse.ok) throw new Error("Could not add the received stock");
+      }
+
       const formData = new FormData();
       formData.append("action", "receiveOrder");
       formData.append("partId", item.partId);
@@ -813,12 +873,13 @@ const InventoryManagement = () => {
         (response.ok && result === null);
 
       if (isSuccess) {
-        logInventoryActivity(item.partId, `Order received for: ${item.partName}`);
-        
+        logInventoryActivity(item.partId, `Order received for: ${item.partName} - Qty: ${receivedQty}`);
+
         toast({
           title: "Success",
-          description: `Order received! Stock updated.`,
+          description: receivedQty > 0 ? `Order received! ${receivedQty} added to stock.` : "Order marked as received.",
         });
+        setReceivingItem(null);
         fetchInventory();
         fetchInventoryLogs();
       } else {
@@ -834,11 +895,12 @@ const InventoryManagement = () => {
 
       if (isCorsFetchError) {
         console.warn("Receive order fetch error (likely CORS after successful POST):", error);
-        logInventoryActivity(item.partId, `Order received for: ${item.partName}`);
+        logInventoryActivity(item.partId, `Order received for: ${item.partName} - Qty: ${receivedQty}`);
         toast({
           title: "Success",
           description: "Order received! Stock updated.",
         });
+        setReceivingItem(null);
         fetchInventory();
         fetchInventoryLogs();
         return;
@@ -944,7 +1006,8 @@ const InventoryManagement = () => {
 
   // Export the currently filtered inventory list as CSV
   const handleDownloadCsv = () => {
-    const headers = ["Part ID", "Part Name", "Device Type", "Brand", "Model", "Color", "Part Type", "Quantity", "Cost per Unit", "Supplier", "Date Ordered", "Status", "Last Updated", "Remarks"];
+    // Same column names the Import CSV button reads, so a download can be edited and uploaded back.
+    const headers = ["Part ID", "Part Name", "Device Type", "Brand", "Model", "Color", "Part Type", "Quantity", "Re-Order Level", "Cost per Unit", "Selling Price", "Supplier", "Date Ordered", "Status", "Last Updated", "Remarks"];
     const escapeCsv = (value: any) => {
       const s = value == null || value === "" ? "" : String(value);
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -958,7 +1021,9 @@ const InventoryManagement = () => {
       item.color || "",
       item.partType || "",
       item.quantity ?? "",
+      item.reorderLevel ?? 0,
       item.costPerUnit || "",
+      item.sellingPrice ?? 0,
       item.supplier || "",
       item.dateOrdered || "",
       item.status || "",
@@ -1070,8 +1135,8 @@ const InventoryManagement = () => {
   };
 
   const getStatusColor = (item: InventoryItem) => {
-    if (item.status === "Out of Stock" || item.quantity === 0) return "text-destructive font-semibold";
-    if (item.quantity < 5) return "text-orange-600 font-semibold";
+    if (item.status === "Out of Stock" || item.quantity <= 0) return "text-destructive font-semibold";
+    if (item.status === "Low Stock") return "text-orange-600 font-semibold";
     return "";
   };
 
@@ -1095,8 +1160,9 @@ const InventoryManagement = () => {
     return `${parts.month}/${parts.day}/${parts.year} - ${parts.hour}:${parts.minute}:${parts.second}`;
   };
 
-  const lowStockCount = inventory.filter(i => i.quantity > 0 && i.quantity < 5).length;
-  const outOfStockCount = inventory.filter(i => i.quantity === 0 || i.status === "Out of Stock").length;
+  // Status comes from quantity and re-order level (lib/stockStatus), same rule everywhere.
+  const lowStockCount = inventory.filter(i => i.status === "Low Stock").length;
+  const outOfStockCount = inventory.filter(i => i.status === "Out of Stock").length;
 
   return (
     <DashboardLayout>
@@ -1110,6 +1176,12 @@ const InventoryManagement = () => {
 
           {!isViewOnly && (
             <>
+              {/* Import parts from a CSV (inventory staff and management only) */}
+              <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+
               {/* Batch Add Parts Button */}
               <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
                 <DialogTrigger asChild>
@@ -1125,7 +1197,7 @@ const InventoryManagement = () => {
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     {/* Shared device info */}
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
                       <div className="space-y-2">
                         <Label>Device Type *</Label>
                         <Select value={batchDeviceType} onValueChange={setBatchDeviceType}>
@@ -1153,6 +1225,16 @@ const InventoryManagement = () => {
                           value={batchModel}
                           onChange={(e) => setBatchModel(e.target.value)}
                           placeholder="e.g., iPhone 15 Pro"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Re-order Level</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={batchReorderLevel}
+                          onChange={(e) => setBatchReorderLevel(e.target.value)}
+                          placeholder="0 (for all rows)"
                         />
                       </div>
                     </div>
@@ -1200,9 +1282,7 @@ const InventoryManagement = () => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="In Stock">In Stock</SelectItem>
-                                <SelectItem value="Low Stock">Low Stock</SelectItem>
-                                <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                                <SelectItem value="In Stock">In stock now</SelectItem>
                                 <SelectItem value="On Order">On Order</SelectItem>
                               </SelectContent>
                             </Select>
@@ -1364,7 +1444,7 @@ const InventoryManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="quantity">
                       {newPart.status === "On Order" ? "Ordered Quantity *" : "Initial Quantity *"}
@@ -1387,6 +1467,17 @@ const InventoryManagement = () => {
                       value={newPart.costPerUnit}
                       onChange={(e) => setNewPart({...newPart, costPerUnit: e.target.value})}
                       placeholder="₱0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reorderLevel">Re-order Level</Label>
+                    <Input
+                      id="reorderLevel"
+                      type="number"
+                      min={0}
+                      value={newPart.reorderLevel}
+                      onChange={(e) => setNewPart({...newPart, reorderLevel: e.target.value})}
+                      placeholder="0"
                     />
                   </div>
                 </div>
@@ -1433,12 +1524,11 @@ const InventoryManagement = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="In Stock">In Stock</SelectItem>
-                        <SelectItem value="Low Stock">Low Stock</SelectItem>
-                        <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                        <SelectItem value="On Order">On Order</SelectItem>
+                        <SelectItem value="In Stock">In stock now</SelectItem>
+                        <SelectItem value="On Order">On Order (not arrived yet)</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">Low / Out of Stock is set automatically from the quantity and re-order level.</p>
                   </div>
                 </div>
 
@@ -1671,6 +1761,7 @@ const InventoryManagement = () => {
                           <TableHead>Model</TableHead>
                           <TableHead>Part Type</TableHead>
                           <TableHead>Quantity</TableHead>
+                          <TableHead>Re-order</TableHead>
                           {!isViewOnly && <TableHead>Cost</TableHead>}
                           <TableHead>Status</TableHead>
                           <TableHead>Last Updated</TableHead>
@@ -1689,6 +1780,7 @@ const InventoryManagement = () => {
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                             {!isViewOnly && <TableCell><Skeleton className="h-4 w-16" /></TableCell>}
                             <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -1728,6 +1820,7 @@ const InventoryManagement = () => {
                               Quantity <ArrowUpDown className="h-4 w-4" />
                             </div>
                           </TableHead>
+                          <TableHead title="Shows as Low Stock at or below this number">Re-order</TableHead>
                           {!isViewOnly && <TableHead>Cost</TableHead>}
                           <TableHead>Supplier</TableHead>
                           <TableHead>Date Ordered</TableHead>
@@ -1754,8 +1847,8 @@ const InventoryManagement = () => {
                               <TableRow
                                 key={item.partId}
                                 className={`cursor-pointer hover:bg-muted/50 ${
-                                  item.quantity === 0 || item.status === "Out of Stock" ? "bg-destructive/10" : 
-                                  item.quantity < 5 ? "bg-orange-50" : ""
+                                  item.quantity <= 0 || item.status === "Out of Stock" ? "bg-destructive/10" :
+                                  item.status === "Low Stock" ? "bg-orange-50" : ""
                                 }`}
                                 onClick={() => setSelectedPartForLogs(selectedPartForLogs === item.partId ? null : item.partId)}
                               >
@@ -1774,6 +1867,7 @@ const InventoryManagement = () => {
                                 <TableCell className={getStatusColor(item)}>
                                   {item.quantity}
                                 </TableCell>
+                                <TableCell className="text-muted-foreground">{item.reorderLevel ? item.reorderLevel : "—"}</TableCell>
                                 {!isViewOnly && <TableCell>{item.costPerUnit ? `₱${item.costPerUnit}` : "N/A"}</TableCell>}
                                 <TableCell>{item.supplier || "N/A"}</TableCell>
                                 <TableCell>{item.dateOrdered || "N/A"}</TableCell>
@@ -1845,7 +1939,10 @@ const InventoryManagement = () => {
                                           size="sm"
                                           variant="default"
                                           className="bg-green-600 hover:bg-green-700"
-                                          onClick={() => handleReceiveOrder(item)}
+                                          onClick={() => {
+                                            setReceivingItem(item);
+                                            setReceiveQty(orderedQuantityFrom(item.remarks));
+                                          }}
                                           disabled={isSubmitting}
                                         >
                                           {isSubmitting ? "Processing..." : "Receive"}
@@ -2330,6 +2427,58 @@ const InventoryManagement = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Receive Order: how many arrived */}
+        <Dialog open={!!receivingItem} onOpenChange={(open) => { if (!open && !isSubmitting) setReceivingItem(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Receive order</DialogTitle>
+              <DialogDescription>
+                {receivingItem?.partName} — current stock {receivingItem?.quantity ?? 0}. Enter how many arrived; they are added to stock.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="receive-qty">Quantity received</Label>
+              <Input
+                id="receive-qty"
+                type="number"
+                min={0}
+                value={receiveQty}
+                onChange={(e) => setReceiveQty(e.target.value)}
+                placeholder="0"
+              />
+              {receivingItem && orderedQuantityFrom(receivingItem.remarks) && (
+                <p className="text-xs text-muted-foreground">Ordered: {orderedQuantityFrom(receivingItem.remarks)}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReceivingItem(null)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => receivingItem && handleReceiveOrder(receivingItem, Math.max(0, Math.floor(Number(receiveQty) || 0)))}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Receiving...
+                  </>
+                ) : (
+                  "Receive"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Import parts from a CSV file */}
+        <InventoryImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          inventory={inventory}
+          onImported={() => invalidateAll()}
+        />
+
         {/* QR Code View Dialog */}
         <Dialog open={qrCodeDialogOpen} onOpenChange={setQrCodeDialogOpen}>
           <DialogContent className="sm:max-w-md">
@@ -2516,6 +2665,22 @@ const InventoryManagement = () => {
                   />
                   <p className="text-xs text-muted-foreground">
                     Editing the stock directly is temporary — changes are logged.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-reorderLevel">Re-order Level</Label>
+                  <Input
+                    id="edit-reorderLevel"
+                    type="number"
+                    min={0}
+                    value={String(editingPart.reorderLevel ?? 0)}
+                    onChange={(e) =>
+                      setEditingPart({ ...editingPart, reorderLevel: Math.max(0, Math.floor(Number(e.target.value) || 0)) })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Shows as Low Stock at or below this number. 0 means no low-stock warning.
                   </p>
                 </div>
 

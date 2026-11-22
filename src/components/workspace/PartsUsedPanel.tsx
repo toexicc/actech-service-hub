@@ -10,6 +10,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { applyPartsDelta } from "@/lib/inventoryDelta";
 import { logTicketActivity } from "@/lib/activityLogger";
+import { findShortfalls, type StockShortfall } from "@/lib/partsStock";
 
 interface PartItem {
   id: string;
@@ -33,6 +34,9 @@ const matchesSearch = (item: PartItem, search: string) => {
     .toLowerCase();
   return tokens.every(t => haystack.includes(t));
 };
+
+// With the full parts list (~900 items) the picker only lists the first matches; typing narrows it.
+const MAX_LISTED = 100;
 
 const partLabel = (item: PartItem) =>
   [item.brand, item.deviceType, item.model, item.color, item.partType].filter(Boolean).join(" • ");
@@ -65,6 +69,9 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [unmatched, setUnmatched] = useState<Record<string, number>>({});
   const [isSaving, setIsSaving] = useState(false);
+  // Parts this save would take more of than is in stock; shown as a warning before saving.
+  const [shortfalls, setShortfalls] = useState<StockShortfall[]>([]);
+  useEffect(() => setShortfalls([]), [selected]);
 
   const inventory = useMemo<PartItem[]>(() => {
     const regular: PartItem[] = (inventoryData as any[]).map(item => ({
@@ -122,8 +129,16 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
     [selected, inventory],
   );
 
-  const handleSave = async () => {
+  const handleSave = async (saveAnyway = false) => {
     if (isSaving || !serviceId) return;
+    if (!saveAnyway) {
+      const short = findShortfalls(partsUsed || "", selected, inventory);
+      if (short.length > 0) {
+        setShortfalls(short);
+        return;
+      }
+    }
+    setShortfalls([]);
     setIsSaving(true);
     try {
       const lines = [
@@ -182,7 +197,7 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
         <Label className="text-sm">Add Part</Label>
         <Input
           value={search}
-          placeholder="Search by ID, name, brand, model..."
+          placeholder="Search by SKU, name, brand, model..."
           onChange={e => setSearch(e.target.value)}
         />
         <Select value="" onValueChange={partId => setSelected(prev => ({ ...prev, [partId]: prev[partId] || 1 }))}>
@@ -190,12 +205,17 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
             <SelectValue placeholder="Select part to add..." />
           </SelectTrigger>
           <SelectContent className="bg-background z-50">
-            {filtered.map(item => (
+            {filtered.slice(0, MAX_LISTED).map(item => (
               <SelectItem key={item.id} value={item.id}>
                 {item.id} - {item.name}
                 {partLabel(item) ? ` [${partLabel(item)}]` : ""} (Stock: {item.quantity})
               </SelectItem>
             ))}
+            {filtered.length > MAX_LISTED && (
+              <div className="px-2 py-2 text-xs text-muted-foreground">
+                Showing {MAX_LISTED} of {filtered.length} parts. Type a SKU or name above to narrow it down.
+              </div>
+            )}
             {filtered.length === 0 && (
               <div className="px-2 py-2 text-sm text-muted-foreground">No parts match the search</div>
             )}
@@ -213,6 +233,7 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
                 <p className="text-xs text-muted-foreground">
                   {id}
                   {item && partLabel(item) ? ` • ${partLabel(item)}` : ""}
+                  {item ? ` • In stock: ${item.quantity}` : ""}
                 </p>
               </div>
               <Input
@@ -277,11 +298,31 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved }: Props) => {
         )}
       </div>
 
+      {shortfalls.length > 0 && (
+        <div className="space-y-2 rounded-md border border-orange-300 bg-orange-50 p-3 text-sm text-orange-900 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-100">
+          <p className="font-medium">Not enough in stock</p>
+          {shortfalls.map((s) => (
+            <p key={s.id}>
+              {s.name}: taking {s.needed}, only {s.inStock} in stock
+            </p>
+          ))}
+          <p className="text-xs">If you save anyway, stock goes to 0 for these parts — recount them when you can.</p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShortfalls([])}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => handleSave(true)} disabled={isSaving}>
+              Save anyway
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Parts cost: <span className="font-semibold text-foreground">₱{actualCost.toFixed(2)}</span>
         </p>
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={() => handleSave()} disabled={isSaving}>
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Save parts
         </Button>

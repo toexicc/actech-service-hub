@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { deriveStockStatus } from "@/lib/stockStatus";
 
-interface InventoryItem {
+export interface InventoryItem {
   partId: string;
   partName: string;
   deviceType: string;
@@ -10,14 +11,38 @@ interface InventoryItem {
   partType?: string;
   color?: string;
   quantity: number;
+  reorderLevel: number;
   dateOrdered?: string;
   supplier?: string;
   costPerUnit?: string;
+  sellingPrice?: number;
+  /** Worked out from quantity and re-order level (see lib/stockStatus). */
   status: string;
+  /** The status column as saved; only "On Order" / "For Ordering" matter now. */
+  storedStatus: string;
   lastUpdated: string;
   remarks: string;
   qrCode?: string;
 }
+
+// The API returns at most 1,000 rows per request, so read in pages until a short page comes back.
+// A second sort key keeps the paging stable when many rows share one created_at (bulk imports).
+const PAGE_SIZE = 1000;
+const fetchAllRows = async (table: "inventory_parts" | "fast_moving_parts", columns: string): Promise<any[]> => {
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await (supabase as any)
+      .from(table)
+      .select(columns)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+  return rows;
+};
 
 interface InventoryLog {
   logId: string;
@@ -35,40 +60,47 @@ interface InventoryLog {
 }
 
 const fetchInventory = async (): Promise<InventoryItem[]> => {
-  const { data, error } = await supabase
-    .from("inventory_parts")
-    .select("part_id, part_name, category, brand, device_model, part_type, color, quantity, date_ordered, supplier, cost_price, status, notes, updated_at, created_at")
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return (data ?? []).map((r: any) => ({
-    partId: r.part_id ?? "",
-    partName: r.part_name ?? "",
-    deviceType: r.category ?? "",
-    brand: r.brand ?? "",
-    model: r.device_model ?? "",
-    partType: r.part_type ?? "",
-    color: r.color ?? "",
-    quantity: Number(r.quantity ?? 0),
-    dateOrdered: r.date_ordered ?? "",
-    supplier: r.supplier ?? "",
-    costPerUnit: String(r.cost_price ?? 0),
-    status: r.status ?? "In Stock",
-    lastUpdated: r.updated_at ?? "",
-    remarks: r.notes ?? "",
-    qrCode: r.part_id ?? "",
-  }));
+  const data = await fetchAllRows(
+    "inventory_parts",
+    "id, part_id, part_name, category, brand, device_model, part_type, color, quantity, reorder_level, date_ordered, supplier, cost_price, selling_price, status, notes, updated_at, created_at",
+  );
+  return data.map((r: any) => {
+    const quantity = Number(r.quantity ?? 0);
+    const reorderLevel = Number(r.reorder_level ?? 0);
+    const storedStatus = r.status ?? "In Stock";
+    return {
+      partId: r.part_id ?? "",
+      partName: r.part_name ?? "",
+      deviceType: r.category ?? "",
+      brand: r.brand ?? "",
+      model: r.device_model ?? "",
+      partType: r.part_type ?? "",
+      color: r.color ?? "",
+      quantity,
+      reorderLevel,
+      dateOrdered: r.date_ordered ?? "",
+      supplier: r.supplier ?? "",
+      costPerUnit: String(r.cost_price ?? 0),
+      sellingPrice: Number(r.selling_price ?? 0),
+      status: deriveStockStatus(quantity, reorderLevel, storedStatus),
+      storedStatus,
+      lastUpdated: r.updated_at ?? "",
+      remarks: r.notes ?? "",
+      qrCode: r.part_id ?? "",
+    };
+  });
 };
 
 const fetchInventoryLogs = async (): Promise<InventoryLog[]> => {
-  const [{ data, error }, { data: parts }, { data: fastParts }] = await Promise.all([
+  const [{ data, error }, parts, fastParts] = await Promise.all([
     supabase
       .from("part_logs")
       .select("id, part_id, action, quantity, notes, performed_by_name, created_at")
       .order("created_at", { ascending: false })
       .limit(1000),
-    supabase.from("inventory_parts").select("part_id,part_name,category").limit(2000),
-    supabase.from("fast_moving_parts").select("part_id,part_name,category").limit(2000),
+    // Name lookups only: a failure here should not hide the logs themselves.
+    fetchAllRows("inventory_parts", "id, part_id, part_name, category, created_at").catch(() => []),
+    fetchAllRows("fast_moving_parts", "id, part_id, part_name, category, created_at").catch(() => []),
   ]);
   if (error) throw error;
 

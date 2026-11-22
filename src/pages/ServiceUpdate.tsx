@@ -69,6 +69,7 @@ import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
 
 import { applyPartsDelta } from "@/lib/inventoryDelta";
+import { findShortfalls, formatPartsUsed, type StockShortfall } from "@/lib/partsStock";
 
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
@@ -600,6 +601,9 @@ const ServiceUpdate = () => {
   const [partsModalOpen, setPartsModalOpen] = useState(false);
   const partsConfirmRef = useRef(false);
   const clearPartsRef = useRef(false);
+  // Parts this save would take more of than is in stock; non-empty opens the warning.
+  const [stockShortfalls, setStockShortfalls] = useState<StockShortfall[]>([]);
+  const stockConfirmedRef = useRef("");
   useEffect(() => {
     const sid = serviceData?.serviceId;
     if (!sid || syncedQuotationRef.current === sid) return;
@@ -929,6 +933,14 @@ const ServiceUpdate = () => {
     }
     const updateStatus = liveStatus && !statusTouched ? liveStatus : formStatus;
 
+    // Warn before taking more of a part than is in stock (only what was added since the
+    // last save counts). Once confirmed, the same shortfall is not asked about again.
+    const shortfalls = findShortfalls(String(serviceData.partsUsed || ""), selectedParts, inventory);
+    if (shortfalls.length > 0 && stockConfirmedRef.current !== JSON.stringify(shortfalls)) {
+      setStockShortfalls(shortfalls);
+      return;
+    }
+
     // RTO - ACTech needs a reason before the status is saved.
     const isRtoMove =
       /^RTO/i.test((updateStatus || "").trim()) && updateStatus !== serviceData.status;
@@ -961,6 +973,7 @@ const ServiceUpdate = () => {
 
 
 
+    stockConfirmedRef.current = "";
     setIsUpdating(true);
     try {
       const actualCost = calculateActualCost();
@@ -978,10 +991,9 @@ const ServiceUpdate = () => {
         .filter(([_, qty]) => qty > 0)
         .map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
       
-      // Store Part ID instead of Part Name in Column AU (Parts Used)
-      const partsUsedString = [...partsUsedArray, ...unmatchedArray]
-        .map(part => part.id ? `${part.id} (${part.quantity})` : `${part.name} (${part.quantity})`)
-        .join(", ");
+      // Store Part ID instead of Part Name ("ID (qty)"), the same lines the Parts Used panel saves
+      const partsUsedLines = formatPartsUsed([...partsUsedArray, ...unmatchedArray]);
+      const partsUsedString = partsUsedLines.join(", ");
       
       const noParts = partsUsedString.trim() === "";
       // For Google Sheets: send a single space when no parts so Apps Script updates the cell and clears previous value
@@ -1079,7 +1091,7 @@ const ServiceUpdate = () => {
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,
-        parts_used: partsUsedArray.map((p: any) => p.partId || p.partName || p),
+        parts_used: partsUsedLines,
         parts_cost: actualCost,
         discount: discountAmount,
         final_cost: finalCost,
@@ -2225,7 +2237,7 @@ const ServiceUpdate = () => {
                               No parts match "{partSearch}"
                             </p>
                           ) : (
-                            filteredInventory.map((item) => (
+                            filteredInventory.slice(0, 100).map((item) => (
                               <div key={`search-${item.id}`} className="flex flex-col gap-2 rounded border p-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex-1 min-w-0">
                                   <p className="break-words font-medium leading-tight">{item.name}</p>
@@ -2250,6 +2262,11 @@ const ServiceUpdate = () => {
                                 </Button>
                               </div>
                             ))
+                          )}
+                          {filteredInventory.length > 100 && (
+                            <p className="text-xs text-muted-foreground text-center py-1">
+                              Showing 100 of {filteredInventory.length} matches. Type more of the SKU or name to narrow it down.
+                            </p>
                           )}
                         </div>
                       )}
@@ -2515,6 +2532,47 @@ const ServiceUpdate = () => {
               }}
             >
               {isHoldingRto ? "Saving…" : rtoOnHold ? "Save & put On Hold" : `Save reason & set ${updateStatus}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Taking more of a part than is in stock */}
+      <Dialog open={stockShortfalls.length > 0} onOpenChange={(open) => { if (!open) setStockShortfalls([]); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Not enough in stock</DialogTitle>
+            <DialogDescription>
+              Inventory shows fewer pieces than this save would take. If you save anyway, stock goes to 0 for these parts — recount them when you can.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {stockShortfalls.map((s) => (
+              <div key={s.id} className="flex items-start justify-between gap-3 rounded border p-2">
+                <div className="min-w-0">
+                  <p className="font-medium">{s.name}</p>
+                  <p className="text-xs text-muted-foreground">{s.id}</p>
+                </div>
+                <p className="shrink-0 text-right text-xs">
+                  Taking <span className="font-semibold">{s.needed}</span>
+                  <br />
+                  In stock <span className="font-semibold">{s.inStock}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setStockShortfalls([])}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                stockConfirmedRef.current = JSON.stringify(stockShortfalls);
+                setStockShortfalls([]);
+                handleUpdate();
+              }}
+            >
+              Save anyway
             </Button>
           </DialogFooter>
         </DialogContent>

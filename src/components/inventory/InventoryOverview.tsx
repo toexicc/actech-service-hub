@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInventory } from "@/hooks/useInventory";
+import { isLowOrOut } from "@/lib/stockStatus";
 import { useStockMovements, TYPE_LABEL } from "./StockMovementsPanel";
 import { usePartRequestsAll } from "./PartRequestsInbox";
 import { format } from "date-fns";
@@ -32,7 +33,11 @@ export function InventoryOverview() {
   });
 
   const stats = useMemo(() => {
-    const low = items.filter((i) => i.status === "Low Stock" || i.status === "Out of Stock" || (i.quantity <= 2 && i.status === "In Stock"));
+    // Status is worked out from quantity and re-order level (lib/stockStatus).
+    // Parts with a re-order level set come first: those are the ones the shop keeps on hand.
+    const low = items
+      .filter((i) => isLowOrOut(i.status))
+      .sort((a, b) => Number((b.reorderLevel ?? 0) > 0) - Number((a.reorderLevel ?? 0) > 0) || a.quantity - b.quantity);
     const forOrdering = items.filter((i) => i.status === "For Ordering");
     const value = items.reduce((s, i) => s + i.quantity * (parseFloat(String(i.costPerUnit ?? "0")) || 0), 0);
     const pending = moves.filter((m) => m.status === "pending").length;

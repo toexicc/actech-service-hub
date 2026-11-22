@@ -3,6 +3,7 @@
 // and writes a row to part_logs for each change.
 import { supabase } from "@/integrations/supabase/client";
 import { logSystemTicketActivity } from "@/lib/activityLogger";
+import { deriveStockStatus } from "@/lib/stockStatus";
 
 
 interface PartCount {
@@ -31,11 +32,11 @@ const adjustOne = async (
 ) => {
   // Try inventory_parts first
   let table: "inventory_parts" | "fast_moving_parts" = "inventory_parts";
-  let row: { id: string; quantity: number } | null = null;
+  let row: { id: string; quantity: number; reorder_level?: number | null; status?: string | null } | null = null;
 
   const { data: invRow } = await supabase
     .from("inventory_parts")
-    .select("id,quantity")
+    .select("id,quantity,reorder_level,status")
     .eq("part_id", partId)
     .maybeSingle();
   if (invRow) {
@@ -54,7 +55,12 @@ const adjustOne = async (
   if (!row) return; // unknown part; skip
 
   const newQty = Math.max(0, (row.quantity || 0) + delta);
-  await supabase.from(table).update({ quantity: newQty }).eq("id", row.id);
+  // Keep the saved status in step with the new quantity (pre-ordered parts keep their own workflow status).
+  const update =
+    table === "inventory_parts"
+      ? { quantity: newQty, status: deriveStockStatus(newQty, row.reorder_level, row.status) }
+      : { quantity: newQty };
+  await supabase.from(table).update(update).eq("id", row.id);
 
   await supabase.from("part_logs").insert({
     part_id: partId,
