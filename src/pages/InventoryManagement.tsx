@@ -1177,10 +1177,12 @@ const InventoryManagement = () => {
           {!isViewOnly && (
             <>
               {/* Import parts from a CSV (inventory staff and management only) */}
-              <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import CSV
-              </Button>
+              {hasInventoryAccess && (
+                <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+              )}
 
               {/* Batch Add Parts Button */}
               <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>

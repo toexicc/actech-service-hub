@@ -16,6 +16,7 @@ import {
   type ExistingPart,
   type ImportMode,
   type ImportPlan,
+  type PlannedUpdate,
 } from "@/lib/inventoryImport";
 
 interface InventoryLike {
@@ -143,6 +144,30 @@ export function InventoryImportDialog({ open, onOpenChange, inventory, onImporte
     const logs: Record<string, unknown>[] = [];
     setProgress({ done, total });
 
+    const editLog = (u: PlannedUpdate) => {
+      const notes: string[] = [];
+      if (u.quantityTo !== undefined) notes.push(`stock count ${u.quantityFrom} → ${u.quantityTo}`);
+      if (u.changes.length) notes.push(u.changes.map((c) => c.label).join(", "));
+      return {
+        part_id: u.existing.partId,
+        action: "EDIT",
+        quantity: u.quantityTo !== undefined ? u.quantityTo - (u.quantityFrom ?? 0) : 0,
+        performed_by: performerId,
+        performed_by_name: performedBy,
+        notes: `Updated from ${fileName}: ${notes.join("; ")}`,
+      };
+    };
+    // History in Inventory Logs for whatever was saved, also when the import stops part-way.
+    // (Stock movements are recorded by the database on their own.)
+    let logsWritten = false;
+    const writeLogs = async () => {
+      if (logsWritten) return;
+      logsWritten = true;
+      for (const rows of chunk(logs, LOG_CHUNK)) {
+        await supabase.from("part_logs").insert(rows as any);
+      }
+    };
+
     try {
       for (const rows of chunk(plan.creates, INSERT_CHUNK)) {
         const { error } = await supabase.from("inventory_parts").insert(rows.map(toInsertRecord) as any);
@@ -164,32 +189,34 @@ export function InventoryImportDialog({ open, onOpenChange, inventory, onImporte
 
       for (const batch of chunk(plan.updates, UPDATE_CONCURRENCY)) {
         const results = await Promise.all(
-          batch.map((u) => supabase.from("inventory_parts").update(toUpdatePatch(u) as any).eq("part_id", u.existing.partId)),
+          batch.map((u) =>
+            supabase
+              .from("inventory_parts")
+              .update(toUpdatePatch(u) as any)
+              .eq("part_id", u.existing.partId)
+              .select("part_id"),
+          ),
         );
-        const failed = results.find((r) => r.error);
-        if (failed?.error) throw new Error(`Updating parts stopped after ${updated}: ${failed.error.message}`);
-        updated += batch.length;
-        done += batch.length;
+        // An update the database refuses for this account comes back with no error and no rows,
+        // so a part only counts as saved when it comes back.
+        const isSaved = (i: number) => !results[i].error && (results[i].data ?? []).length > 0;
+        const saved = batch.filter((_, i) => isSaved(i));
+        saved.forEach((u) => logs.push(editLog(u)));
+        updated += saved.length;
+        done += saved.length;
         setProgress({ done, total });
-        batch.forEach((u) => {
-          const notes: string[] = [];
-          if (u.quantityTo !== undefined) notes.push(`stock count ${u.quantityFrom} → ${u.quantityTo}`);
-          if (u.changes.length) notes.push(u.changes.map((c) => c.label).join(", "));
-          logs.push({
-            part_id: u.existing.partId,
-            action: "EDIT",
-            quantity: u.quantityTo !== undefined ? u.quantityTo - (u.quantityFrom ?? 0) : 0,
-            performed_by: performerId,
-            performed_by_name: performedBy,
-            notes: `Updated from ${fileName}: ${notes.join("; ")}`,
-          });
-        });
+        const failedAt = batch.findIndex((_, i) => !isSaved(i));
+        if (failedAt >= 0) {
+          const error = results[failedAt].error;
+          throw new Error(
+            `Updating parts stopped after ${updated}: ${batch[failedAt].existing.partId} ${
+              error ? `could not be saved (${error.message})` : "was not saved (this account may not be allowed to edit parts)"
+            }`,
+          );
+        }
       }
 
-      // History in Inventory Logs; stock movements are recorded by the database on their own.
-      for (const rows of chunk(logs, LOG_CHUNK)) {
-        await supabase.from("part_logs").insert(rows as any);
-      }
+      await writeLogs();
       logInventoryActivity("IMPORT", `Imported ${fileName}: ${created} new, ${updated} updated (${mode === "stock" ? "stock count" : "details only"})`);
       toast({ title: "Import finished", description: `${created} new part(s) added, ${updated} updated.` });
       onImported?.();
@@ -197,6 +224,7 @@ export function InventoryImportDialog({ open, onOpenChange, inventory, onImporte
       reset();
       onOpenChange(false);
     } catch (e) {
+      await writeLogs().catch(() => undefined);
       logInventoryActivity("IMPORT", `Import of ${fileName} stopped: ${created} new, ${updated} updated before the error`);
       onImported?.();
       toast({
