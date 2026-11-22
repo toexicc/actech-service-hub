@@ -407,17 +407,21 @@ export function InventoryItemsTable<T extends InventoryRow>({
                     className={cn("cursor-pointer align-top [&_td]:py-3", open && "bg-muted/40 hover:bg-muted/40")}
                     onClick={() => toggle(item.partId)}
                   >
-                    <TableCell className="max-w-[420px]">
-                      <p className="font-medium leading-snug text-foreground">{item.partName}</p>
-                      <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{item.partId}</p>
+                    <TableCell>
+                      <div className="max-w-[420px]">
+                        <p className="font-medium leading-snug text-foreground">{item.partName}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{item.partId}</p>
+                      </div>
                     </TableCell>
-                    <TableCell className="min-w-[150px] max-w-[240px]">
-                      <p className="text-sm">{item.deviceType || "—"}</p>
-                      {deviceLine(item) && (
-                        <p className="truncate text-xs text-muted-foreground" title={deviceLine(item)}>
-                          {deviceLine(item)}
-                        </p>
-                      )}
+                    <TableCell>
+                      <div className="w-[150px] lg:w-[200px]">
+                        <p className="truncate text-sm">{item.deviceType || "—"}</p>
+                        {deviceLine(item) && (
+                          <p className="truncate text-xs text-muted-foreground" title={deviceLine(item)}>
+                            {deviceLine(item)}
+                          </p>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="min-w-[90px]">
                       {item.partType ? (
