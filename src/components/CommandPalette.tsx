@@ -43,7 +43,6 @@ const PAGES: Array<{ label: string; path: string; roles?: string[]; iconName: st
   { label: "Attendance", path: "/attendance-overview", roles: ["management"], iconName: "Clock" },
   { label: "Service Update", path: "/service-update", iconName: "Wrench" },
   { label: "Tech Dashboard", path: "/tech-dashboard", roles: ["management"], iconName: "Monitor" },
-  { label: "Request for Parts", path: "/request-for-parts", iconName: "ShoppingCart" },
 ];
 
 const ICONS: Record<string, any> = {

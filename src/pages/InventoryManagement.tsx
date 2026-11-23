@@ -28,7 +28,6 @@ import { sanitizeInput, sanitizeNumber, textFieldSchema } from "@/lib/validation
 import { useInventory, useInventoryLogs, useInvalidateInventory } from "@/hooks/useInventory";
 import QRCode from "qrcode";
 import DashboardLayout from "@/components/DashboardLayout";
-import { FastMovingPartsTab } from "@/components/FastMovingPartsTab";
 import { logInventoryActivity } from "@/lib/activityLogger";
 import { supabase } from "@/integrations/supabase/client";
 import { deriveStockStatus } from "@/lib/stockStatus";
@@ -91,8 +90,9 @@ const InventoryManagement = () => {
   const { toast } = useToast();
   const userRole = sessionStorage.getItem("userRole");
   
-  // Get initial tab from URL params
-  const initialTab = searchParams.get("tab") || "items";
+  // Get initial tab from URL params (the old Pre-Ordered Parts tab now lives in Requests)
+  const tabParam = (tab: string | null) => (tab === "fast-moving" ? "requests" : tab);
+  const initialTab = tabParam(searchParams.get("tab")) || "items";
   const [activeTab, setActiveTab] = useState(initialTab);
   
   // Check if user is admin (view-only mode)
@@ -111,8 +111,8 @@ const InventoryManagement = () => {
   
   // Update tab when URL params change
   useEffect(() => {
-    const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && ["overview", "items", "requests", "movements", "logs", "fast-moving"].includes(tabFromUrl)) {
+    const tabFromUrl = tabParam(searchParams.get("tab"));
+    if (tabFromUrl && ["overview", "items", "requests", "movements", "logs"].includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
@@ -1703,7 +1703,6 @@ const InventoryManagement = () => {
             <TabsTrigger value="items">Inventory Items</TabsTrigger>
             <TabsTrigger value="requests">Requests</TabsTrigger>
             <TabsTrigger value="movements">Movements</TabsTrigger>
-            <TabsTrigger value="fast-moving">Pre-Ordered Parts</TabsTrigger>
             {!isViewOnly && (
               <TabsTrigger value="logs">Inventory Logs</TabsTrigger>
             )}
@@ -1713,7 +1712,7 @@ const InventoryManagement = () => {
             <InventoryOverview />
           </TabsContent>
           <TabsContent value="requests">
-            <PartRequestsInbox stockByPart={new Map(inventory.map((i: any) => [i.partId, i.quantity]))} />
+            <PartRequestsInbox />
           </TabsContent>
           <TabsContent value="movements">
             <StockMovementsPanel canReview={hasInventoryAccess} />
@@ -2146,16 +2145,6 @@ const InventoryManagement = () => {
             </Card>
           </TabsContent>
 
-          {/* Fast Moving Parts Tab */}
-          <TabsContent value="fast-moving">
-            <FastMovingPartsTab 
-              isViewOnly={isViewOnly} 
-              searchQuery={debouncedSearch}
-              deviceTypeFilter={deviceTypeFilter}
-              modelFilter={brandFilter}
-              statusFilter={statusFilter}
-            />
-          </TabsContent>
         </Tabs>
 
         {/* Stock Adjustment Dialog */}

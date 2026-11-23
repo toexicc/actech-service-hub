@@ -8,7 +8,8 @@ import { useInventory } from "@/hooks/useInventory";
 import { isLowOrOut } from "@/lib/stockStatus";
 import { useStockMovements } from "./StockMovementsPanel";
 import { FROM_SHEET, movementLabel } from "@/lib/stockMovements";
-import { usePartRequestsAll } from "./PartRequestsInbox";
+import { usePartRequestsAll } from "@/hooks/usePartRequests";
+import { isOpenRequest } from "@/lib/partRequests";
 import { formatManilaDate } from "@/lib/timezone";
 
 const peso = (n: number) => `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -42,7 +43,7 @@ export function InventoryOverview() {
     const forOrdering = items.filter((i) => i.status === "For Ordering");
     const value = items.reduce((s, i) => s + i.quantity * (parseFloat(String(i.costPerUnit ?? "0")) || 0), 0);
     const pending = moves.filter((m) => m.status === "pending").length;
-    const openReq = requests.filter((r) => !["Received", "Released to technician", "Cancelled"].includes(r.status));
+    const openReq = requests.filter((r) => isOpenRequest(r.status));
     const since = Date.now() - 30 * 86400000;
     const used = new Map<string, { name: string; qty: number }>();
     moves.forEach((m) => {

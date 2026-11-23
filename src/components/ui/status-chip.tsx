@@ -9,13 +9,13 @@ interface StatusChipProps {
 function toneFor(status: string): string {
   const s = status.toLowerCase();
   if (s.includes("done") || s.includes("release") || s.includes("completed") || s.includes("released"))
-    return "bg-success/12 text-success border-success/25";
+    return "bg-success/10 text-success border-success/25";
   if (s.includes("pending") || s.includes("waiting") || s.includes("advise") || s.includes("observation"))
-    return "bg-warning/12 text-warning border-warning/25";
+    return "bg-warning/10 text-warning border-warning/25";
   if (s.includes("cancel") || s.includes("reject") || s.includes("failed"))
-    return "bg-destructive/12 text-destructive border-destructive/25";
+    return "bg-destructive/10 text-destructive border-destructive/25";
   if (s.includes("proceed") || s.includes("repair") || s.includes("confirmed"))
-    return "bg-primary/12 text-primary border-primary/25";
+    return "bg-primary/10 text-primary border-primary/25";
   return "bg-muted text-muted-foreground border-border";
 }
 

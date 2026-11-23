@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate, getManilaDate } from "@/lib/timezone";
-import { isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { isClosedStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
 import { rtoHoldUpdate, DEFAULT_RTO_ON_HOLD } from "@/lib/rtoHold";
 import {
   CalendarIcon,
@@ -34,7 +34,7 @@ import { notifyAdminConcern, notifyHoldOrRto } from "@/lib/serviceNotifications"
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
-import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
+import { TicketPartsPanel } from "@/components/parts/TicketPartsPanel";
 import { announceServiceLoad } from "@/lib/loadToastGuard";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { DeviceAnnotationPanel } from "@/components/workspace/DeviceAnnotationPanel";
@@ -2658,21 +2658,23 @@ const ManageClient = () => {
                     <CollapsibleTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
                         <span>
-                          Parts Used
+                          Parts & Requests
                           <span className="ml-2 text-xs font-normal text-muted-foreground">
                             {Array.isArray(serviceData.partsUsed) && serviceData.partsUsed.length > 0
-                              ? `${serviceData.partsUsed.length} item(s)`
-                              : "none recorded"}
+                              ? `${serviceData.partsUsed.length} on ticket`
+                              : "none on ticket"}
                           </span>
                         </span>
                         <ChevronDown className={cn("h-4 w-4 transition-transform", isPartsUsedOpen && "rotate-180")} />
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pt-4">
-                      <PartsUsedPanel
+                      <TicketPartsPanel
                         serviceId={serviceData.serviceId}
                         partsUsed={serviceData.partsUsed}
-                        onSaved={handleSearch}
+                        closed={isClosedStatus(serviceData.status || "")}
+                        device={serviceData.device || serviceData.deviceType}
+                        onTicketChanged={handleSearch}
                       />
                     </CollapsibleContent>
                   </Collapsible>
@@ -4033,6 +4035,22 @@ const ManageClient = () => {
                           />
                         </PopoverContent>
                       </Popover>
+                      {(() => {
+                        // The database fills an empty target date from the time frame, and an automatic
+                        // date follows the repair time frame until staff pick one.
+                        const saved = parseDateMMDDYYYY(serviceData.targetDate);
+                        const unchanged =
+                          !!updateTargetDate && !!saved && format(updateTargetDate, "yyyy-MM-dd") === format(saved, "yyyy-MM-dd");
+                        if (!updateTargetDate)
+                          return <p className="text-xs text-muted-foreground">Leave it empty and it's filled in from the time frame when you save.</p>;
+                        if (unchanged && (serviceData as any).targetDateAuto)
+                          return (
+                            <p className="text-xs text-muted-foreground">
+                              Set automatically from the time frame. It follows the repair time frame until you pick a date yourself.
+                            </p>
+                          );
+                        return null;
+                      })()}
                     </div>
                   </div>
 

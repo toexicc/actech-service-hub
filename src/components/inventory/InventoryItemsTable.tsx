@@ -84,9 +84,9 @@ interface Props<T extends InventoryRow> {
 }
 
 const STATUS_TONE: Record<string, string> = {
-  "In Stock": "bg-success/12 text-success border-success/25",
-  "Low Stock": "bg-warning/12 text-warning border-warning/25",
-  "Out of Stock": "bg-destructive/12 text-destructive border-destructive/25",
+  "In Stock": "bg-success/10 text-success border-success/25",
+  "Low Stock": "bg-warning/10 text-warning border-warning/25",
+  "Out of Stock": "bg-destructive/10 text-destructive border-destructive/25",
 };
 
 export function StockStatusBadge({ status }: { status: string }) {
@@ -94,7 +94,7 @@ export function StockStatusBadge({ status }: { status: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium",
-        STATUS_TONE[status] ?? "bg-primary/12 text-primary border-primary/25",
+        STATUS_TONE[status] ?? "bg-primary/10 text-primary border-primary/25",
       )}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />

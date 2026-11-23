@@ -100,7 +100,7 @@ const App = () => (
                   <OpenDashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/request-for-parts" element={<WorkbenchShell />} />
+              <Route path="/request-for-parts" element={<Navigate to="/parts-availability" replace />} />
               <Route path="/salary-disbursement" element={<WorkbenchShell />} />
               <Route path="/attendance-overview" element={<WorkbenchShell />} />
               <Route path="/reports" element={<WorkbenchShell />} />

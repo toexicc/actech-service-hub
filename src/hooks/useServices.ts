@@ -38,6 +38,8 @@ export interface ServiceRecord {
   waitingPartsNoteTech?: string;
   partsOrdered?: boolean;
   targetReviewPending?: boolean;
+  /** The target date was filled in from the time frame (not picked by staff). */
+  targetDateAuto?: boolean;
   isBackjob?: boolean;
   companyId?: string | null;
   rushFee?: boolean;
@@ -162,6 +164,7 @@ export const mapServiceRow = (r: any): ServiceRecord => ({
   waitingPartsNoteTech: (r as any).waiting_parts_note_tech ?? "",
   partsOrdered: !!(r as any).parts_ordered,
   targetReviewPending: !!(r as any).target_review_pending,
+  targetDateAuto: !!(r as any).target_date_auto,
   isBackjob: !!(r as any).is_backjob,
   companyId: (r as any).company_id ?? null,
   rushFee: !!(r as any).rush_fee,

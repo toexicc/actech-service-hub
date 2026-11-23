@@ -31,9 +31,8 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       points: [
         "**Overview**: what's running low, reorder suggestions, tickets waiting for parts, most-used parts and the latest stock movements.",
         "**Inventory Items**: the full parts list with quantity, re-order level and status.",
-        "**Requests**: part requests sent by technicians from **Request for Parts**.",
+        "**Requests**: parts requested from tickets (Service Update and Manage Client). Approving one takes the stock and adds the part to the ticket.",
         "**Movements**: every stock change and where each part went: the ticket, client, device and technician. Changes that need approval wait here.",
-        "**Pre-Ordered Parts**: parts ordered for specific tickets, from order to arrival.",
         "**Inventory Logs**: the history of added parts, edits, stock in and out, and parts used on tickets.",
       ],
       tips: ["Technicians and admins can look parts up on **Check Parts** in the menu. It's view-only."],
@@ -68,18 +67,17 @@ export const INVENTORY_GUIDE: PageGuideContent = {
     },
     {
       id: "tickets",
-      title: "Record parts used on a ticket",
+      title: "How parts get onto a ticket",
       who: "technicians and staff",
       steps: [
-        "Open the ticket: technicians use **Service Update** (Parts Used from Inventory), admin and management can use the **Parts Used** panel in **Manage Client**.",
-        "Search the part by SKU or name, add it, and set how many you used.",
-        "Save (**Update** in Service Update, **Save parts** in the Parts Used panel). The stock goes down by itself.",
-        "If inventory shows fewer than you're taking, you'll see **Not enough in stock**. Check the shelf first. **Save anyway** brings that part to 0, so recount it afterwards.",
+        "Open the ticket: technicians in **Service Update**, admin and management in **Manage Client**, and find **Parts**.",
+        "Search the part (or **Scan** its QR label) and check the stock, then click **Request**, set the quantity and **Send request**.",
+        "Inventory staff approve it in **Requests**. That takes the stock and adds the part to the ticket's parts used.",
       ],
       tips: [
-        "Taking a part off a ticket puts it back in stock.",
-        "Only parts added since the last save count toward the warning, so re-saving a ticket never deducts twice.",
-        "Stock changes made by technicians wait in **Movements** for inventory staff to approve.",
+        "Parts aren't added to a ticket by hand anymore: every part goes through a request, or inventory's **Assign to Ticket**.",
+        "Out-of-stock parts can still be requested. They come in as **For Ordering** so inventory orders them.",
+        "A part that wasn't used goes back to inventory staff, who take it off the ticket with **Assign to Ticket**. It goes back into stock.",
       ],
     },
     {
@@ -92,7 +90,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "Add the parts and how many were used, then click **Save parts**. Stock goes down and the ticket's Parts Used updates, the same as recording them on the ticket.",
       ],
       tips: [
-        "Use this when a technician takes a part from you, so the count stays right even if they forget to record it.",
+        "Use this to hand over a part without a request, or to take an unused part off a ticket (it goes back into stock).",
         "The **Not enough in stock** warning works here too.",
         "Each part you assign shows in **Movements** as **Used on ticket**.",
       ],
@@ -109,7 +107,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "Pick a start and end date to look at a period. Without dates the list shows the latest 1,000 changes.",
       ],
       tips: [
-        "Parts recorded on a ticket (Service Update, the Parts Used panel or **Assign to Ticket**) are linked to that ticket by themselves.",
+        "Parts added to a ticket (approved requests and **Assign to Ticket**) are linked to that ticket by themselves.",
         "Rows by **Google Sheet** are the stock in and stock out history copied from the old Google Sheet. The sheet only had dates, so they show **from sheet** instead of a time.",
         "**Returned from ticket** means a part was taken off a ticket and went back into stock.",
         "**CSV** downloads the list as it's filtered, with the client, device and technician for each ticket.",
@@ -156,16 +154,19 @@ export const INVENTORY_GUIDE: PageGuideContent = {
     },
     {
       id: "requests",
-      title: "Part requests and approvals",
+      title: "Approve part requests",
       who: "inventory staff and management",
       steps: [
-        "New technician requests appear in **Requests** with a **New** badge. Click **Receive request** so the technician knows you've seen it.",
-        "Move each request along with its status menu: For Ordering, Ordering, Ordered, Received, Released to technician (or Cancelled).",
-        "In **Movements**, click the **Pending** card (or the yellow banner) to see stock changes waiting for approval, then approve ✓ or reject ✗ each one. Tick several to review them together.",
+        "New requests show in **Requests** with a **New** badge, plus the ticket, client, device and how many are on hand. Click **Mark as seen** so the requester knows you have it.",
+        "In stock: click **Approve & add**, check the part and quantity, then **Approve & add to ticket**. The stock goes down and the part is added to the ticket's parts used.",
+        "Not in stock: move the request along with its status menu (For Ordering, Ordering, Ordered). When the part arrives, receive the stock in **Inventory Items**, set the request to **Received**, then approve it.",
+        "A request typed in by name has no SKU: when approving, search and pick the inventory part to give. Add it with **Add New Part** first if it's new.",
+        "Click **Decline** for a request you won't fill. The reason goes to the requester.",
       ],
       tips: [
-        "Changes by inventory staff and management are approved automatically.",
-        "Rejecting needs a reason. It undoes the stock change and tells the person why.",
+        "The requester is notified when you approve, decline or change the status.",
+        "Approval is blocked when there isn't enough stock, so the count never goes below zero.",
+        "Stock changes made by staff without inventory access wait in **Movements** under **Pending**: approve ✓ or reject ✗ them there. Rejecting needs a reason and undoes the change.",
       ],
     },
     {
@@ -183,6 +184,62 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "Import never deletes parts, and blank cells never erase what's already saved.",
         "Use **Stock count** right after a full physical count.",
         "Downloading a Google Sheet tab with File → Download → Comma-separated values (.csv) also works.",
+      ],
+    },
+  ],
+};
+
+export const PARTS_REQUEST_GUIDE: PageGuideContent = {
+  title: "How parts requests work",
+  intro: "Parts get onto a ticket through a request. When inventory staff approve it, the part is taken out of stock and added to the ticket.",
+  sections: [
+    {
+      id: "request",
+      title: "Request a part",
+      steps: [
+        "In the ticket's **Parts** section, search by SKU, part name or model, or tap **Scan** to read a part's QR label.",
+        "Each result shows the stock: **In stock**, **Low**, **Out of stock** or **On order**.",
+        "Click **Request**, set the quantity, add a note if inventory should know something (e.g. needed today), then **Send request**.",
+        "The request shows under **Requests** on the ticket, and in Inventory → **Requests** for inventory staff.",
+      ],
+      tips: [
+        "Requests are sent right away. You don't need to click **Update**.",
+        "Not in the list? Click **Can't find it? Request a part that's not in the list** and type the part's name.",
+        "If there isn't enough in stock, the request goes in as **Needs ordering** so inventory orders it.",
+      ],
+    },
+    {
+      id: "status",
+      title: "What the request status means",
+      points: [
+        "**Waiting for inventory**: it's in stock and waiting for inventory staff to approve it.",
+        "**Needs ordering**, **Being ordered**, **Ordered**: there isn't enough in stock yet, and inventory is getting it.",
+        "**Arrived, waiting for inventory to release it**: it's in, and inventory approves it next.",
+        "**Approved, on this ticket**: it's out of stock and listed under **On this ticket**.",
+        "**Cancelled**: you cancelled it, or inventory declined it. The reason is shown.",
+      ],
+      tips: ["You get a notification when your request is approved, declined or changes status."],
+    },
+    {
+      id: "change",
+      title: "Cancel a request or return a part",
+      points: [
+        "Changed your mind before it's approved? Click **Cancel request** on it.",
+        "A part that's on the ticket but wasn't used goes back to inventory staff. They take it off the ticket with **Assign to Ticket**, and it goes back into stock.",
+      ],
+    },
+    {
+      id: "approve",
+      title: "Approve requests",
+      who: "inventory staff and management",
+      steps: [
+        "Click **Approve & add** on a request (here or in Inventory → **Requests**).",
+        "Check the part and quantity. For a request typed in by name, search and pick the inventory part to give.",
+        "Click **Approve & add to ticket**. The stock goes down, the part is added to the ticket's parts used, and the requester is told.",
+      ],
+      tips: [
+        "**Decline** needs a reason, which the requester sees.",
+        "Approval is blocked when there isn't enough in stock. Receive the stock first.",
       ],
     },
   ],
@@ -214,11 +271,12 @@ export const CHECK_PARTS_GUIDE: PageGuideContent = {
     },
     {
       id: "use",
-      title: "Using a part on a ticket",
+      title: "Getting a part for a ticket",
       steps: [
-        "Record it on the ticket in **Service Update** under **Parts Used from Inventory**, then click **Update**.",
-        "The stock goes down by itself, and inventory staff approve the change.",
+        "Click **Request a part**, pick your ticket, then search the part and click **Request**. You can do the same from the ticket's **Parts** section in **Service Update**.",
+        "Inventory staff approve it. That takes it out of stock and adds it to the ticket's parts used.",
       ],
+      tips: ["Out of stock? Request it anyway. Inventory sees it needs ordering and you're told when it changes."],
     },
   ],
 };

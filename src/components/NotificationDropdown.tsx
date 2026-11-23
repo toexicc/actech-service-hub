@@ -202,14 +202,14 @@ export const NotificationDropdown = ({ userId, userRole, onOpenMessaging }: Noti
         } else {
           navigate(`/service-update?serviceId=${encodeURIComponent(serviceId)}`);
         }
+      } else if (serviceId) {
+        // Part request updates open the ticket, where its requests are listed under Parts
+        const isAdmin = userRole === 'admin' || userRole === 'management';
+        navigate(isAdmin
+          ? `/manage-client?serviceId=${encodeURIComponent(serviceId)}`
+          : `/service-update?serviceId=${encodeURIComponent(serviceId)}`);
       } else {
-        // For other part request notifications
-        const isManagement = userRole === 'management';
-        if (isManagement) {
-          navigate('/inventory-management?tab=fast-moving');
-        } else {
-          navigate('/request-for-parts');
-        }
+        navigate(userRole === 'management' ? '/inventory-management?tab=requests' : '/parts-availability');
       }
     }
   };

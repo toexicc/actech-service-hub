@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 // every open device. The open ticket timeline keeps its own filtered channel.
 const TABLE_KEYS: Record<string, string[][]> = {
   services: [["services"], ["doneServices"]],
-  part_requests: [["partRequests"], ["part-requests"]],
+  part_requests: [["partRequests"], ["part-requests"], ["fastMovingParts"]],
   inventory_parts: [["inventory"]],
   fast_moving_parts: [["fastMovingParts"]],
   transactions: [["transactions"], ["fundTransactions"]],

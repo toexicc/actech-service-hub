@@ -639,7 +639,7 @@ const Menu = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate("/inventory-management?tab=fast-moving")}
+                    onClick={() => navigate("/inventory-management?tab=requests")}
                   >
                     <ExternalLink className="h-4 w-4 mr-1" />
                     View All
@@ -668,7 +668,7 @@ const Menu = () => {
                               <TableRow
                                 key={p.partId}
                                 className="cursor-pointer hover:bg-muted/50"
-                                onClick={() => navigate("/inventory-management?tab=fast-moving")}
+                                onClick={() => navigate("/inventory-management?tab=requests")}
                               >
                                 <TableCell className="font-medium">{p.serviceId}</TableCell>
                                 <TableCell>{p.partName}</TableCell>

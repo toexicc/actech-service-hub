@@ -154,13 +154,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
     const adminItems = adminSection.items.filter(canViewItem);
     const techItems = techSection.items.filter(canViewItem);
-    const requestParts: NavItem = { title: "Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" };
+    const checkParts: NavItem = { title: "Parts", icon: PackageSearch, path: "/parts-availability", iconName: "PackageSearch" };
 
     if (userRole === "technician") {
       return [
         dashboard,
         ...techItems.filter((item) => ["/service-update", "/service-tracking"].includes(item.path)),
-        requestParts,
+        checkParts,
       ];
     }
 
@@ -206,11 +206,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       if (items.length) sections.push({ title: "Technician Portal", items });
     }
 
-    if (userRole === "admin") {
-      const items = uniqueVisible([{ title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" }]);
-      if (items.length) sections.push({ title: "Parts", items });
-    }
-
     return sections;
   }, [mobileNavItems, userRole]);
 
@@ -221,7 +216,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const currentNavItem = useMemo(() => {
     const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
-    const items = [dashboard, ...adminSection.items, ...techSection.items, { title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" }];
+    const items = [dashboard, ...adminSection.items, ...techSection.items];
     return items.find((item) => item.path === location.pathname) || dashboard;
   }, [location.pathname]);
 
@@ -293,15 +288,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </button>
         {renderNavSection(adminSection, adminOpen, setAdminOpen)}
         {renderNavSection(techSection, techOpen, setTechOpen)}
-        {(userRole === "admin" || userRole === "technician") && (
-          <button
-            onClick={() => handleNavClick({ title: "Request for Parts", icon: ShoppingCart, path: "/request-for-parts", iconName: "ShoppingCart" })}
-            className={cn("nav-item w-full", location.pathname === "/request-for-parts" && "nav-item-active", !isMobile && collapsed && "justify-center px-2")}
-          >
-            <ShoppingCart className="h-4 w-4 shrink-0" />
-            {(isMobile || !collapsed) && <span>Request for Parts</span>}
-          </button>
-        )}
       </nav>
       <div className="shrink-0 p-3 mt-auto">
         {(isMobile || !collapsed) && (

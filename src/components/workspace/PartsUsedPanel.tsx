@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useInventory } from "@/hooks/useInventory";
-import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { applyPartsDelta } from "@/lib/inventoryDelta";
 import { logTicketActivity } from "@/lib/activityLogger";
 import { findShortfalls, type StockShortfall } from "@/lib/partsStock";
@@ -62,11 +61,10 @@ interface Props {
   addPartId?: string;
 }
 
-/** Parts-used editor shared by the technician and admin/management workspaces and Inventory's Assign to Ticket. */
+/** Parts-used editor for Inventory's Assign to Ticket (inventory staff record parts directly; everyone else requests them). */
 export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Props) => {
   const { toast } = useToast();
   const { data: inventoryData = [] } = useInventory();
-  const { data: fastMovingData = [] } = useFastMovingParts();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [unmatched, setUnmatched] = useState<Record<string, number>>({});
@@ -88,22 +86,8 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
       cost: typeof item.costPerUnit === "string" ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
       quantity: item.quantity || 0,
     }));
-    const fast: PartItem[] = (fastMovingData as any[])
-      .filter(part => part.status === "Received")
-      .map(part => ({
-        id: part.partId,
-        name: part.partName,
-        deviceType: part.deviceType || "",
-        model: part.model || "",
-        brand: part.brand || "",
-        partType: part.partType || "",
-        color: "",
-        supplier: part.supplier || "",
-        cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
-        quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0,
-      }));
-    return [...regular, ...fast];
-  }, [inventoryData, fastMovingData]);
+    return regular;
+  }, [inventoryData]);
 
   const filtered = useMemo(() => inventory.filter(i => matchesSearch(i, search)), [inventory, search]);
 

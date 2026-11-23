@@ -25,7 +25,7 @@ import { generateServicePDF } from "@/lib/pdfGenerator";
 import { getServicePdfSignedUrl, servicePdfDownloadName } from "@/lib/servicePdfStorage";
 import { syncApprovedQuotation } from "@/lib/approvedQuotationSync";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
-import { FileText, Package, Camera, Loader2, QrCode, Eye, EyeOff, Wrench, Search, AlertTriangle } from "lucide-react";
+import { FileText, Camera, Loader2, Eye, EyeOff, Wrench, Search, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/page-header";
 import { TicketWorkspaceHero } from "@/components/TicketWorkspaceHero";
@@ -36,7 +36,6 @@ import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { DeviceAnnotationPanel } from "@/components/workspace/DeviceAnnotationPanel";
 import BackjobLinkRow from "@/components/workspace/BackjobLinkRow";
 
-import { QRScanner } from "@/components/QRScanner";
 import logo from "@/assets/S_S_Marketing-2.png";
 import { normalizeGoogleDrivePdfUrl, cn } from "@/lib/utils";
 import { logActivity, logAiFormatActivity, diffFields, diffBreakdown, logTicketActivity, logTicketOpened } from "@/lib/activityLogger";
@@ -45,7 +44,8 @@ import { InterimReportBlock, type InterimReportValues } from "@/components/Inter
 import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
 import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { createNotification } from "@/lib/notifications";
-import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
+import { technicianAllowedNextStatuses, statusRank, isClosedStatus } from "@/lib/serviceStatus";
+import { TicketPartsPanel } from "@/components/parts/TicketPartsPanel";
 import { rtoHoldUpdate, DEFAULT_RTO_ON_HOLD } from "@/lib/rtoHold";
 import { notifyHoldOrRto } from "@/lib/serviceNotifications";
 import { STATUS_OPTIONS, DEVICE_TYPES_BY_DEPARTMENT, DEVICE_TYPES } from "@/lib/constants";
@@ -54,7 +54,6 @@ import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useTechnicians, useStaff } from "@/hooks/useStaff";
 import { useInventory } from "@/hooks/useInventory";
-import { useFastMovingParts } from "@/hooks/useFastMovingParts";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
 import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
@@ -68,8 +67,7 @@ import { displayDate } from "@/lib/timezone";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
 
-import { applyPartsDelta } from "@/lib/inventoryDelta";
-import { findShortfalls, formatPartsUsed, type StockShortfall } from "@/lib/partsStock";
+import { formatPartsUsed } from "@/lib/partsStock";
 
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
@@ -95,33 +93,6 @@ interface InventoryItem {
   cost: number;
   quantity: number;
 }
-
-/** Token-based match across every useful part field. */
-const matchesPartSearch = (item: InventoryItem, search: string) => {
-  const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return true;
-  const haystack = [
-    item.id,
-    item.name,
-    item.brand,
-    item.deviceType,
-    item.model,
-    item.partType,
-    item.color,
-    item.supplier,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return tokens.every((t) => haystack.includes(t));
-};
-
-/** Compact label with the identifying attributes of a part. */
-const partLabel = (item: InventoryItem) =>
-  [item.brand, item.deviceType, item.model, item.color, item.partType]
-    .filter(Boolean)
-    .join(" • ");
-
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
@@ -165,7 +136,6 @@ const ServiceUpdate = () => {
   const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
@@ -173,7 +143,6 @@ const ServiceUpdate = () => {
   const { data: staffData = [] } = useStaff();
   const { data: technicianData = [] } = useTechnicians();
   const { data: inventoryData = [] } = useInventory();
-  const { data: fastMovingData = [] } = useFastMovingParts();
 
   const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Unknown";
   const userRole = sessionStorage.getItem("userRole") || "Unknown";
@@ -196,44 +165,24 @@ const ServiceUpdate = () => {
 
 
 
-  // Combine regular inventory with received fast moving parts
-  const inventory = useMemo(() => {
-    const allInventory: InventoryItem[] = inventoryData.map((item) => ({
-      id: item.partId,
-      name: item.partName,
-      deviceType: item.deviceType || "",
-      model: item.model || "",
-      brand: item.brand || "",
-      partType: item.partType || "",
-      color: item.color || "",
-      supplier: item.supplier || "",
-      cost: typeof item.costPerUnit === 'string' ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
-      quantity: item.quantity || 0
-    }));
-
-    const receivedParts: InventoryItem[] = fastMovingData
-      .filter((part) => part.status === "Received")
-      .map((part) => ({
-        id: part.partId,
-        name: part.partName,
-        deviceType: part.deviceType || "",
-        model: part.model || "",
-        brand: part.brand || "",
-        partType: part.partType || "",
-        color: "",
-        supplier: part.supplier || "",
-        cost: parseFloat(String(part.cost || "0").replace(/[^0-9.]/g, "")) || 0,
-        quantity: parseInt(String(part.quantity || "0").replace(/[^0-9]/g, "")) || 0
-      }));
-
-    return [...allInventory, ...receivedParts];
-  }, [inventoryData, fastMovingData]);
-
-  const [partSearch, setPartSearch] = useState("");
-  const filteredInventory = useMemo(
-    () => inventory.filter((item) => matchesPartSearch(item, partSearch)),
-    [inventory, partSearch],
+  // The parts list, used to read the ticket's parts used ("PART-ID (qty)") for the Google Sheet copy.
+  const inventory = useMemo(
+    () =>
+      inventoryData.map((item): InventoryItem => ({
+        id: item.partId,
+        name: item.partName,
+        deviceType: item.deviceType || "",
+        model: item.model || "",
+        brand: item.brand || "",
+        partType: item.partType || "",
+        color: item.color || "",
+        supplier: item.supplier || "",
+        cost: typeof item.costPerUnit === "string" ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
+        quantity: item.quantity || 0,
+      })),
+    [inventoryData],
   );
+
 
 
   // Update form fields
@@ -429,7 +378,7 @@ const ServiceUpdate = () => {
       return "RTO - ACTech — write the report explaining why the device is being returned, then click Update.";
     if (showDiagnosisStage)
       return "Enter the technician diagnosis and run the AI formatter, then click Update to save it with this status.";
-    if (showPartsStage) return "Select the parts used from inventory, then click Update.";
+    if (showPartsStage) return "Request any parts you need in the Parts section (inventory adds them once approved), then click Update.";
     if (showReportStage)
       return "Enter the technician report and run the AI formatter, then click Update.";
     return "Add any remarks or notes for this stage, then click Update.";
@@ -534,42 +483,6 @@ const ServiceUpdate = () => {
     }, 0);
   };
 
-  const handleQRScan = (decodedText: string) => {
-    try {
-      // The QR code contains the part ID directly
-      const partId = decodedText.trim();
-      
-      // Find matching part in inventory by ID
-      const foundPart = inventory.find(item => item.id === partId);
-
-      if (foundPart) {
-        setSelectedParts(prev => ({
-          ...prev,
-          [foundPart.id]: (prev[foundPart.id] || 0) + 1
-        }));
-        toast({
-          title: "Part Added",
-          description: `${foundPart.name} has been added to the service`,
-        });
-      } else {
-        toast({
-          title: "Part Not Found",
-          description: `Could not find part with ID: ${partId}`,
-          variant: "destructive",
-        });
-      }
-      
-      setShowQRScanner(false);
-    } catch (error) {
-      toast({
-        title: "Scan Error",
-        description: "Failed to process the scanned QR code",
-        variant: "destructive",
-      });
-      setShowQRScanner(false);
-    }
-  };
-
   const handleViewPDF = () =>
     openPdfModal(serviceData?.pdfUrl, serviceData?.serviceId, "intake", "Client Intake Form");
 
@@ -602,8 +515,6 @@ const ServiceUpdate = () => {
   const partsConfirmRef = useRef(false);
   const clearPartsRef = useRef(false);
   // Parts this save would take more of than is in stock; non-empty opens the warning.
-  const [stockShortfalls, setStockShortfalls] = useState<StockShortfall[]>([]);
-  const stockConfirmedRef = useRef("");
   useEffect(() => {
     const sid = serviceData?.serviceId;
     if (!sid || syncedQuotationRef.current === sid) return;
@@ -933,14 +844,6 @@ const ServiceUpdate = () => {
     }
     const updateStatus = liveStatus && !statusTouched ? liveStatus : formStatus;
 
-    // Warn before taking more of a part than is in stock (only what was added since the
-    // last save counts). Once confirmed, the same shortfall is not asked about again.
-    const shortfalls = findShortfalls(String(serviceData.partsUsed || ""), selectedParts, inventory);
-    if (shortfalls.length > 0 && stockConfirmedRef.current !== JSON.stringify(shortfalls)) {
-      setStockShortfalls(shortfalls);
-      return;
-    }
-
     // RTO - ACTech needs a reason before the status is saved.
     const isRtoMove =
       /^RTO/i.test((updateStatus || "").trim()) && updateStatus !== serviceData.status;
@@ -973,7 +876,6 @@ const ServiceUpdate = () => {
 
 
 
-    stockConfirmedRef.current = "";
     setIsUpdating(true);
     try {
       const actualCost = calculateActualCost();
@@ -1091,8 +993,6 @@ const ServiceUpdate = () => {
         ai_report: updateServiceReport,
         internal_technician_notes: updateTechnicianNotesInternal,
         technician_report: technicianReportToPersist,
-        parts_used: partsUsedLines,
-        parts_cost: actualCost,
         discount: discountAmount,
         final_cost: finalCost,
         ...(isRtoMove ? { rto_reason: rtoReasonInput.trim() } : {}),
@@ -1175,37 +1075,10 @@ const ServiceUpdate = () => {
         ]);
         const changes: string[] = [...fieldSummaries];
 
-        const samePartsList = (a: string, b: string) =>
-          a.split(/\s*,\s*/).map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join(",") ===
-          b.split(/\s*,\s*/).map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join(",");
-        const prevParts = (serviceData.partsUsed || "").trim();
-        const newPartsDisplay = partsUsedString.trim();
-        if (!samePartsList(newPartsDisplay, prevParts)) {
-          if (newPartsDisplay) {
-            changes.push(`Parts used: ${newPartsDisplay}, Actual cost: ₱${actualCost}`);
-          } else {
-            changes.push("Parts removed");
-          }
-        }
-        
         if (deviceReportPhotos.length > 0) changes.push(`Added ${deviceReportPhotos.length} device report photo${deviceReportPhotos.length > 1 ? 's' : ''}`);
 
         // Run all background tasks in parallel, non-blocking
         const backgroundTasks: Promise<any>[] = [];
-
-        // Inventory deduction / restock from parts_used diff
-        const performerId = sessionStorage.getItem("authUserId");
-        backgroundTasks.push(
-          applyPartsDelta({
-            serviceId: sid,
-            prevPartsString: String(serviceData.partsUsed || ""),
-            newParts: [...partsUsedArray, ...unmatchedArray].map((p: any) => ({
-              id: p.id, name: p.name, quantity: p.quantity,
-            })),
-            performerId,
-            performerName: userFullName,
-          }).catch(() => {})
-        );
 
         // AI fields update
         if (updateAIDiagnosis || updateServiceReport) {
@@ -1451,6 +1324,7 @@ const ServiceUpdate = () => {
 
           <div className="grid gap-8 grid-cols-1 xl:grid-cols-2">
 
+            <div className="min-w-0 space-y-8">
             {/* Client Information */}
             <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
               <CardHeader className="border-b border-border/50">
@@ -1625,6 +1499,23 @@ const ServiceUpdate = () => {
 
               </CardContent>
             </Card>
+
+            {serviceData.serviceId && (
+              <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
+                <CardContent className="p-4 sm:p-6">
+                  <TicketPartsPanel
+                    serviceId={serviceData.serviceId}
+                    partsUsed={serviceData.partsUsed}
+                    closed={isClosedStatus(serviceData.status || "")}
+                    device={serviceData.device || serviceData.deviceType}
+                    onTicketChanged={handleSearch}
+                    large
+                    className="border-0 bg-transparent p-0"
+                  />
+                </CardContent>
+              </Card>
+            )}
+            </div>
 
             {/* Service Update */}
             <Card className="rounded-2xl border-border/60 bg-[hsl(var(--surface-glass))] shadow-[var(--shadow-float)] backdrop-blur">
@@ -2208,238 +2099,6 @@ const ServiceUpdate = () => {
                   />
                 </div>
 
-                <Separator />
-
-                {/* Parts Used from Inventory - Only shown when actual sheet status is "Ongoing Service" */}
-                {showPartsStage && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Package className="h-5 w-5" />
-                      <Label className="text-lg font-semibold">Parts Used from Inventory</Label>
-                    </div>
-                  
-                  {inventory.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No inventory items available</p>
-                  ) : (
-                    <div className="space-y-3">
-                      <Input
-                        type="text"
-                        placeholder="Search by Part ID, name, brand, device type, model, color, supplier..."
-                        className="w-full"
-                        value={partSearch}
-                        onChange={(e) => setPartSearch(e.target.value)}
-                      />
-
-                      {partSearch.trim() !== "" && (
-                        <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
-                          {filteredInventory.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-2">
-                              No parts match "{partSearch}"
-                            </p>
-                          ) : (
-                            filteredInventory.slice(0, 100).map((item) => (
-                              <div key={`search-${item.id}`} className="flex flex-col gap-2 rounded border p-2 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <p className="break-words font-medium leading-tight">{item.name}</p>
-                                  <p className="break-words text-xs text-muted-foreground">
-                                    ID: {item.id}
-                                    {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
-                                  </p>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full sm:w-auto"
-                                  disabled={!!selectedParts[item.id]}
-                                  onClick={() =>
-                                    setSelectedParts((prev) => ({
-                                      ...prev,
-                                      [item.id]: (prev[item.id] || 0) + 1,
-                                    }))
-                                  }
-                                >
-                                  {selectedParts[item.id] ? "Added" : "Add"}
-                                </Button>
-                              </div>
-                            ))
-                          )}
-                          {filteredInventory.length > 100 && (
-                            <p className="text-xs text-muted-foreground text-center py-1">
-                              Showing 100 of {filteredInventory.length} matches. Type more of the SKU or name to narrow it down.
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="space-y-2 border rounded-md p-3 max-h-64 overflow-y-auto">
-                        {inventory.map((item) => {
-                          const qty = selectedParts[item.id] || 0;
-                          if (qty === 0) return null; // Only show selected parts
-                          return (
-                            <div key={item.id} className="flex flex-col gap-2 rounded bg-muted p-2 sm:flex-row sm:items-center sm:justify-between">
-                               <div className="flex-1 min-w-0">
-                                 <p className="break-words font-medium leading-tight">{item.name}</p>
-                                 <p className="break-words text-xs text-muted-foreground">
-                                   ID: {item.id}
-                                   {partLabel(item) ? ` • ${partLabel(item)}` : ""} • Stock: {item.quantity}
-                                 </p>
-                               </div>
-
-                               <div className="grid grid-cols-[5rem_1fr] items-center gap-2 sm:flex sm:shrink-0 sm:items-center">
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max={item.quantity + qty}
-                                  value={qty}
-                                  onChange={(e) => {
-                                    const newQty = Math.min(parseInt(e.target.value) || 0, item.quantity + qty);
-                                    if (newQty > 0) {
-                                      setSelectedParts(prev => ({
-                                        ...prev,
-                                        [item.id]: newQty
-                                      }));
-                                    }
-                                  }}
-                                   className="w-full sm:w-20"
-                                  placeholder="Qty"
-                                />
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                   className="w-full sm:w-auto"
-                                  onClick={() => {
-                                    setSelectedParts(prev => {
-                                      const newParts = { ...prev };
-                                      delete newParts[item.id];
-                                      return newParts;
-                                    });
-                                  }}
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {Object.keys(selectedParts).filter(id => selectedParts[id] > 0).length === 0 && Object.keys(unmatchedParts).length === 0 && (
-                          <p className="text-sm text-muted-foreground text-center py-2">No parts selected yet</p>
-                        )}
-                      </div>
-                      
-                      {Object.keys(unmatchedParts).length > 0 && (
-                        <div className="space-y-2 border rounded-md p-3">
-                          <Label className="text-sm">Unmatched parts from record:</Label>
-                          <div className="space-y-2">
-                            {Object.entries(unmatchedParts).map(([name, qty]) => (
-                              <div key={name} className="flex flex-col gap-2 rounded bg-muted/40 p-2 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <p className="break-words font-medium leading-tight">{name}</p>
-                                  <p className="text-xs text-muted-foreground">Not found in current inventory</p>
-                                </div>
-                                <div className="grid gap-2 sm:flex sm:shrink-0 sm:items-center">
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={qty}
-                                    onChange={(e) => {
-                                      const newQty = Math.max(1, parseInt(e.target.value) || 1);
-                                      setUnmatchedParts(prev => ({ ...prev, [name]: newQty }));
-                                    }}
-                                    className="w-full sm:w-20"
-                                  />
-                                  <Select
-                                    value=""
-                                    onValueChange={(partId) => {
-                                      setSelectedParts(prev => ({ ...prev, [partId]: qty }));
-                                      setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
-                                    }}
-                                  >
-                                    <SelectTrigger className="w-full sm:min-w-[220px]">
-                                      <SelectValue placeholder="Map to inventory item..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-background z-50">
-                                      {inventory.map((item) => (
-                                        <SelectItem key={item.id} value={item.id}>
-                                          {item.name}{partLabel(item) ? ` [${partLabel(item)}]` : ''} (Stock: {item.quantity})
-                                        </SelectItem>
-
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="w-full sm:w-auto"
-                                    onClick={() => {
-                                      setUnmatchedParts(prev => { const p = { ...prev }; delete p[name]; return p; });
-                                    }}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="space-y-2">
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <div className="flex-1">
-                            <Label className="text-sm">Add Part:</Label>
-                            <Select
-                              value=""
-                              onValueChange={(partId) => {
-                                setSelectedParts(prev => ({
-                                  ...prev,
-                                  [partId]: 1
-                                }));
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select part to add..." />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background z-50">
-                                {filteredInventory.map((item) => (
-                                  <SelectItem key={item.id} value={item.id}>
-                                    {item.id} - {item.name}{partLabel(item) ? ` [${partLabel(item)}]` : ''} (Stock: {item.quantity})
-                                  </SelectItem>
-                                ))}
-                                {filteredInventory.length === 0 && (
-                                  <div className="px-2 py-2 text-sm text-muted-foreground">No parts match the search</div>
-                                )}
-
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-sm">Scan QR:</Label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setShowQRScanner(true)}
-                              className="w-full"
-                            >
-                              <QrCode className="h-4 w-4 mr-2" />
-                              Scan Part
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {showQRScanner && (
-                        <div className="mt-4">
-                          <QRScanner
-                            onScan={handleQRScan}
-                            onClose={() => setShowQRScanner(false)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                )}
-
                 <Button onClick={handleUpdate} disabled={isUpdating} className="w-full">
                   {isUpdating ? (
                     <>
@@ -2532,47 +2191,6 @@ const ServiceUpdate = () => {
               }}
             >
               {isHoldingRto ? "Saving…" : rtoOnHold ? "Save & put On Hold" : `Save reason & set ${updateStatus}`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Taking more of a part than is in stock */}
-      <Dialog open={stockShortfalls.length > 0} onOpenChange={(open) => { if (!open) setStockShortfalls([]); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Not enough in stock</DialogTitle>
-            <DialogDescription>
-              Inventory shows fewer pieces than this save would take. If you save anyway, stock goes to 0 for these parts — recount them when you can.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            {stockShortfalls.map((s) => (
-              <div key={s.id} className="flex items-start justify-between gap-3 rounded border p-2">
-                <div className="min-w-0">
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">{s.id}</p>
-                </div>
-                <p className="shrink-0 text-right text-xs">
-                  Taking <span className="font-semibold">{s.needed}</span>
-                  <br />
-                  In stock <span className="font-semibold">{s.inStock}</span>
-                </p>
-              </div>
-            ))}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setStockShortfalls([])}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                stockConfirmedRef.current = JSON.stringify(stockShortfalls);
-                setStockShortfalls([]);
-                handleUpdate();
-              }}
-            >
-              Save anyway
             </Button>
           </DialogFooter>
         </DialogContent>

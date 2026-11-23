@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, RefreshCw, Search, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,16 +10,18 @@ import { useInventory } from "@/hooks/useInventory";
 import { InventoryItemsTable, type ItemsSortField } from "@/components/inventory/InventoryItemsTable";
 import { PageGuide } from "@/components/PageGuide";
 import { CHECK_PARTS_GUIDE } from "@/lib/pageGuides";
+import { AssignToTicketDialog } from "@/components/inventory/AssignToTicketDialog";
 
 const PAGE_SIZE = 25;
 type Availability = "all" | "available" | "low" | "out";
 
 /**
  * Check Parts: a read-only, searchable view of the parts list so technicians and admins can see
- * whether a part is in stock. No costs and no stock buttons; changes happen in Inventory Management.
+ * whether a part is in stock. No costs and no stock buttons; "Request a part" asks inventory for a part
+ * for one of your tickets (the same request panel as Service Update).
  */
 export default function PartsAvailability() {
-  const navigate = useNavigate();
+  const [requestOpen, setRequestOpen] = useState(false);
   const { data: inventory = [], isLoading, isFetching, refetch } = useInventory();
   const [search, setSearch] = useState("");
   const debounced = useDebounce(search, 200);
@@ -86,7 +87,7 @@ export default function PartsAvailability() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <PageGuide guide={CHECK_PARTS_GUIDE} />
-          <Button variant="outline" size="sm" onClick={() => navigate("/request-for-parts")}>
+          <Button variant="outline" size="sm" onClick={() => setRequestOpen(true)}>
             <ShoppingCart className="mr-2 h-4 w-4" />
             Request a part
           </Button>
@@ -196,6 +197,7 @@ export default function PartsAvailability() {
           )}
         </CardContent>
       </Card>
+      <AssignToTicketDialog mode="request" open={requestOpen} onOpenChange={setRequestOpen} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
 import { isClosedStatus } from "@/lib/serviceStatus";
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
+import { TicketPartsPanel } from "@/components/parts/TicketPartsPanel";
 
 interface TicketRow {
   service_id: string;
@@ -31,13 +32,16 @@ interface Props {
   /** Part picked from a row's menu; it's added to the ticket's list ready to save. */
   initialPartId?: string | null;
   onSaved?: () => void;
+  /** "assign" (inventory staff record parts directly) or "request" (anyone asks inventory for a part). */
+  mode?: "assign" | "request";
 }
 
 /**
- * Inventory's "Assign to Ticket": find a ticket, then record parts on it with the same Parts Used
- * editor the ticket screens use, so stock, logs and warnings behave exactly the same.
+ * Find a ticket, then either record parts on it directly (Inventory's "Assign to Ticket", inventory staff)
+ * or request parts for it (Check Parts' "Request a part", same panel as the ticket screens).
  */
-export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSaved }: Props) {
+export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSaved, mode = "assign" }: Props) {
+  const requesting = mode === "request";
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 300);
   const [results, setResults] = useState<TicketRow[]>([]);
@@ -75,11 +79,13 @@ export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSave
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[92dvh] max-w-2xl flex-col">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Assign parts to a ticket</DialogTitle>
+          <DialogTitle>{requesting ? "Request a part for a ticket" : "Assign parts to a ticket"}</DialogTitle>
           <DialogDescription>
-            {ticket
-              ? "Add the parts and how many were used, then save. Stock goes down the same way as recording parts on the ticket itself."
-              : "Find the ticket by its number or the client's name."}
+            {!ticket
+              ? "Find the ticket by its number or the client's name."
+              : requesting
+                ? "Search the part, check the stock and send the request. Inventory adds it to the ticket once they approve it."
+                : "Add the parts and how many were used, then save. Stock goes down right away and the parts are added to the ticket."}
           </DialogDescription>
         </DialogHeader>
 
@@ -147,15 +153,25 @@ export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSave
                   Change ticket
                 </Button>
               </div>
-              <PartsUsedPanel
-                serviceId={ticket.service_id}
-                partsUsed={(ticket.parts_used ?? []).join(", ")}
-                addPartId={initialPartId ?? undefined}
-                onSaved={() => {
-                  onSaved?.();
-                  onOpenChange(false);
-                }}
-              />
+              {requesting ? (
+                <TicketPartsPanel
+                  serviceId={ticket.service_id}
+                  partsUsed={ticket.parts_used ?? []}
+                  closed={isClosedStatus(ticket.status ?? "")}
+                  device={deviceOf(ticket)}
+                  initialPartId={initialPartId}
+                />
+              ) : (
+                <PartsUsedPanel
+                  serviceId={ticket.service_id}
+                  partsUsed={(ticket.parts_used ?? []).join(", ")}
+                  addPartId={initialPartId ?? undefined}
+                  onSaved={() => {
+                    onSaved?.();
+                    onOpenChange(false);
+                  }}
+                />
+              )}
             </div>
           )}
         </div>

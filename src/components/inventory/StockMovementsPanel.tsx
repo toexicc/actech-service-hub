@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { formatManilaDate } from "@/lib/timezone";
+import { ticketDevice, useTicketSummaries, type TicketSummary } from "@/hooks/useTicketSummaries";
 import { FROM_SHEET, manilaDayBounds, movementInView, movementLabel, type MovementView } from "@/lib/stockMovements";
 
 export { TYPE_LABEL, movementLabel } from "@/lib/stockMovements";
@@ -67,39 +68,9 @@ export const useStockMovements = (range?: { from?: string; to?: string }) =>
     refetchInterval: 60 * 1000,
   });
 
-interface TicketInfo {
-  service_id: string;
-  client_name: string | null;
-  brand: string | null;
-  model: string | null;
-  device_type: string | null;
-  technicians: string[] | null;
-  status: string | null;
-}
-
-/** Client, device and technician for the tickets the movements point at. */
-const useTicketInfo = (ids: string[]) =>
-  useQuery({
-    queryKey: ["movement-tickets", ids],
-    enabled: ids.length > 0,
-    staleTime: 60 * 1000,
-    queryFn: async (): Promise<Record<string, TicketInfo>> => {
-      const out: Record<string, TicketInfo> = {};
-      for (let i = 0; i < ids.length; i += 150) {
-        const { data, error } = await (supabase as any)
-          .from("services")
-          .select("service_id, client_name, brand, model, device_type, technicians, status")
-          .in("service_id", ids.slice(i, i + 150));
-        if (error) throw error;
-        (data ?? []).forEach((t: TicketInfo) => (out[t.service_id] = t));
-      }
-      return out;
-    },
-  });
-
 const PAGE_SIZE = 50;
 
-const deviceOf = (t?: TicketInfo) => (t ? [t.brand, t.model].filter(Boolean).join(" ") || t.device_type || "" : "");
+const deviceOf = (t?: TicketSummary) => ticketDevice(t);
 
 const statusTone = (s: string) =>
   s === "pending"
@@ -135,7 +106,7 @@ export function StockMovementsPanel({ canReview, partFilter }: { canReview: bool
     });
     return [...ids].sort();
   }, [rows]);
-  const { data: tickets = {} } = useTicketInfo(ticketIds);
+  const { data: tickets = {} } = useTicketSummaries(ticketIds);
 
   // Technicians work tickets in Service Update; everyone else opens them in Manage Client.
   const openTicket = (id: string) =>
