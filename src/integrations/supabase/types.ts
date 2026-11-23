@@ -880,6 +880,9 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by_name: string | null
+          approved_at: string | null
+          approved_by: string | null
+          approved_by_name: string | null
           brand: string | null
           cancelled_at: string | null
           cancelled_reason: string | null
@@ -901,6 +904,9 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by_name?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
           brand?: string | null
           cancelled_at?: string | null
           cancelled_reason?: string | null
@@ -922,6 +928,9 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by_name?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
           brand?: string | null
           cancelled_at?: string | null
           cancelled_reason?: string | null
@@ -1472,6 +1481,7 @@ export type Database = {
           source: string | null
           status: Database["public"]["Enums"]["service_status"]
           target_date: string | null
+          target_date_auto: boolean
           target_review_pending: boolean
           technician_departments: string[]
           technician_diagnosis: string | null
@@ -1580,6 +1590,7 @@ export type Database = {
           source?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
+          target_date_auto?: boolean
           target_review_pending?: boolean
           technician_departments?: string[]
           technician_diagnosis?: string | null
@@ -1688,6 +1699,7 @@ export type Database = {
           source?: string | null
           status?: Database["public"]["Enums"]["service_status"]
           target_date?: string | null
+          target_date_auto?: boolean
           target_review_pending?: boolean
           technician_departments?: string[]
           technician_diagnosis?: string | null
@@ -1932,6 +1944,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_part_request: {
+        Args: { _id: string; _part_id?: string; _quantity?: number }
+        Returns: Json
+      }
       create_service_atomic: {
         Args: { _payload: Json; _queue_id?: string }
         Returns: string
@@ -2026,6 +2042,10 @@ export type Database = {
           staff_id: string
           username: string
         }[]
+      }
+      target_date_from_time_frame: {
+        Args: { _from: string; _time_frame: string }
+        Returns: string
       }
       tidy_device_value: { Args: { _v: string }; Returns: string }
     }
