@@ -6,9 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInventory } from "@/hooks/useInventory";
 import { isLowOrOut } from "@/lib/stockStatus";
-import { useStockMovements, TYPE_LABEL } from "./StockMovementsPanel";
+import { useStockMovements } from "./StockMovementsPanel";
+import { FROM_SHEET, movementLabel } from "@/lib/stockMovements";
 import { usePartRequestsAll } from "./PartRequestsInbox";
-import { format } from "date-fns";
+import { formatManilaDate } from "@/lib/timezone";
 
 const peso = (n: number) => `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -119,8 +120,14 @@ export function InventoryOverview() {
             {moves.length === 0 && <p className="text-muted-foreground">No movements yet.</p>}
             {moves.slice(0, 8).map((m) => (
               <div key={m.id} className="flex justify-between gap-2 border-b py-1 last:border-0">
-                <span className="truncate">{TYPE_LABEL[m.movement_type] ?? m.movement_type}: {m.part_name} <span className="text-muted-foreground">· {m.actor_name}</span></span>
-                <span className="shrink-0 text-xs text-muted-foreground">{format(new Date(m.created_at), "MM/dd h:mm a")}</span>
+                <span className="truncate">
+                  {movementLabel(m)}: {m.part_name}
+                  {m.service_id && <span className="font-mono text-xs"> · {m.service_id}</span>}
+                  <span className="text-muted-foreground"> · {m.actor_name}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {formatManilaDate(m.created_at, m.actor_name === FROM_SHEET ? "MM/dd" : "MM/dd h:mm a")}
+                </span>
               </div>
             ))}
           </CardContent>

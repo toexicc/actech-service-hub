@@ -151,6 +151,8 @@ export const useInvalidateInventory = () => {
     invalidateAll: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["inventoryLogs"] });
+      // Stock changes write movements by database trigger, so Movements and the overview refresh too.
+      queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
     },
   };
 };

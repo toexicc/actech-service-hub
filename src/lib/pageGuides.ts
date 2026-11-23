@@ -32,7 +32,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "**Overview**: what's running low, reorder suggestions, tickets waiting for parts, most-used parts and the latest stock movements.",
         "**Inventory Items**: the full parts list with quantity, re-order level and status.",
         "**Requests**: part requests sent by technicians from **Request for Parts**.",
-        "**Movements**: every stock change, who made it and for which ticket. Changes that need approval wait here.",
+        "**Movements**: every stock change and where each part went: the ticket, client, device and technician. Changes that need approval wait here.",
         "**Pre-Ordered Parts**: parts ordered for specific tickets, from order to arrival.",
         "**Inventory Logs**: the history of added parts, edits, stock in and out, and parts used on tickets.",
       ],
@@ -94,6 +94,25 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       tips: [
         "Use this when a technician takes a part from you, so the count stays right even if they forget to record it.",
         "The **Not enough in stock** warning works here too.",
+        "Each part you assign shows in **Movements** as **Used on ticket**.",
+      ],
+    },
+    {
+      id: "movements",
+      title: "See where parts went (Movements)",
+      intro: "Every stock change is listed here, newest first, with the ticket it went to.",
+      steps: [
+        "Open **Movements**. Each row shows the part, the change (for example **-1**, with the count before → after) and where it went.",
+        "**Used on ticket** rows show the ticket number, client, device and technician. Click the ticket number to open the ticket.",
+        "Click a card at the top to switch the list: **All movements**, **Used on tickets**, **Stock in**, **Stock out** (parts that left without a ticket, like returns and recounts) or **Pending**.",
+        "Search by part, SKU, ticket number, client, technician or staff name. Click a part's name to see only that part's history.",
+        "Pick a start and end date to look at a period. Without dates the list shows the latest 1,000 changes.",
+      ],
+      tips: [
+        "Parts recorded on a ticket (Service Update, the Parts Used panel or **Assign to Ticket**) are linked to that ticket by themselves.",
+        "Rows by **Google Sheet** are the stock in and stock out history copied from the old Google Sheet. The sheet only had dates, so they show **from sheet** instead of a time.",
+        "**Returned from ticket** means a part was taken off a ticket and went back into stock.",
+        "**CSV** downloads the list as it's filtered, with the client, device and technician for each ticket.",
       ],
     },
     {
@@ -142,7 +161,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       steps: [
         "New technician requests appear in **Requests** with a **New** badge. Click **Receive request** so the technician knows you've seen it.",
         "Move each request along with its status menu: For Ordering, Ordering, Ordered, Received, Released to technician (or Cancelled).",
-        "In **Movements**, check pending stock changes and approve or reject them. Tick several to review them together.",
+        "In **Movements**, click the **Pending** card (or the yellow banner) to see stock changes waiting for approval, then approve ✓ or reject ✗ each one. Tick several to review them together.",
       ],
       tips: [
         "Changes by inventory staff and management are approved automatically.",
