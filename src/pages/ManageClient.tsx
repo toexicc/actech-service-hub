@@ -35,6 +35,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetailsEditor } from "@/components/workspace/ServiceDetailsEditor";
 import { TicketPartsPanel } from "@/components/parts/TicketPartsPanel";
+import { partsUsedText } from "@/lib/partRequests";
+import { parsePartsUsed } from "@/lib/partsStock";
 import { announceServiceLoad } from "@/lib/loadToastGuard";
 import { TicketFlagsPanel } from "@/components/workspace/TicketFlagsPanel";
 import { DeviceAnnotationPanel } from "@/components/workspace/DeviceAnnotationPanel";
@@ -2660,9 +2662,10 @@ const ManageClient = () => {
                         <span>
                           Parts & Requests
                           <span className="ml-2 text-xs font-normal text-muted-foreground">
-                            {Array.isArray(serviceData.partsUsed) && serviceData.partsUsed.length > 0
-                              ? `${serviceData.partsUsed.length} on ticket`
-                              : "none on ticket"}
+                            {(() => {
+                              const n = Object.keys(parsePartsUsed(partsUsedText(serviceData.partsUsed as any))).length;
+                              return n > 0 ? `${n} on ticket` : "none on ticket";
+                            })()}
                           </span>
                         </span>
                         <ChevronDown className={cn("h-4 w-4 transition-transform", isPartsUsedOpen && "rotate-180")} />

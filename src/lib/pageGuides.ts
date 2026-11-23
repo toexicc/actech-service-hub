@@ -265,7 +265,7 @@ export const CHECK_PARTS_GUIDE: PageGuideContent = {
       points: [
         "**In Stock**: there's enough on the shelf.",
         "**Low Stock**: only a few left. Tell inventory staff if you'll need more soon.",
-        "**Out of Stock**: none left. Use **Request a part** to ask for it.",
+        "**Out of Stock**: none left. You can still request it from the ticket, and inventory orders it.",
         "**On Order**: it's been ordered and hasn't arrived yet.",
       ],
     },
@@ -273,8 +273,8 @@ export const CHECK_PARTS_GUIDE: PageGuideContent = {
       id: "use",
       title: "Getting a part for a ticket",
       steps: [
-        "Click **Request a part**, pick your ticket, then search the part and click **Request**. You can do the same from the ticket's **Parts** section in **Service Update**.",
-        "Inventory staff approve it. That takes it out of stock and adds it to the ticket's parts used.",
+        "Open the ticket (**Service Update** for technicians, **Manage Client** for admin and management) and go to its **Parts** section.",
+        "Search the part and click **Request**. Inventory staff approve it, which takes it out of stock and adds it to the ticket's parts used.",
       ],
       tips: ["Out of stock? Request it anyway. Inventory sees it needs ordering and you're told when it changes."],
     },

@@ -24,6 +24,9 @@ const STORAGE_KEY = "actech-workbench-tabs-v1";
 
 const HOME_TAB: WorkbenchTab = { id: "home", title: "Dashboard", path: "/menu", pinned: true, iconName: "Home" };
 
+/** Pages that were removed; tabs saved for them are dropped (Request for Parts → requests on the ticket). */
+const RETIRED_PATHS = new Set(["/request-for-parts"]);
+
 const canonicalizeTab = (tab: WorkbenchTab): WorkbenchTab => {
   if (tab.path === "/menu" || tab.id === "page:/menu") {
     return HOME_TAB;
@@ -37,6 +40,7 @@ function normalizeTabs(inputTabs: WorkbenchTab[], inputActiveId: string | null):
   const idMap = new Map<string, string>();
 
   for (const rawTab of [HOME_TAB, ...inputTabs]) {
+    if (RETIRED_PATHS.has(String(rawTab.path || "").split("?")[0])) continue;
     const tab = canonicalizeTab(rawTab);
     const existing = tabs.find((t) => t.path === tab.path);
     if (existing) {

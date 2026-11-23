@@ -154,7 +154,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     const dashboard: NavItem = { title: "Dashboard", icon: Home, path: "/menu", iconName: "Home" };
     const adminItems = adminSection.items.filter(canViewItem);
     const techItems = techSection.items.filter(canViewItem);
-    const checkParts: NavItem = { title: "Parts", icon: PackageSearch, path: "/parts-availability", iconName: "PackageSearch" };
+    const checkParts: NavItem = { title: "Check Parts", icon: PackageSearch, path: "/parts-availability", iconName: "PackageSearch" };
 
     if (userRole === "technician") {
       return [
