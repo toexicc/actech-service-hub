@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { format, parse } from "date-fns";
 import { displayDate, getManilaDate } from "@/lib/timezone";
-import { isClosedStatus, isTimeTrackedStatus } from "@/lib/serviceStatus";
+import { isTimeTrackedStatus } from "@/lib/serviceStatus";
 import { rtoHoldUpdate, DEFAULT_RTO_ON_HOLD } from "@/lib/rtoHold";
 import {
   CalendarIcon,
@@ -2675,7 +2675,7 @@ const ManageClient = () => {
                       <TicketPartsPanel
                         serviceId={serviceData.serviceId}
                         partsUsed={serviceData.partsUsed}
-                        closed={isClosedStatus(serviceData.status || "")}
+                        status={serviceData.status}
                         device={serviceData.device || serviceData.deviceType}
                         onTicketChanged={handleSearch}
                       />

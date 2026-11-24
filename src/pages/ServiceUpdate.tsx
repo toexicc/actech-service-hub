@@ -44,7 +44,7 @@ import { InterimReportBlock, type InterimReportValues } from "@/components/Inter
 import { InterimRoundsHistory } from "@/components/InterimRoundsHistory";
 import { syncLatestInterimRound } from "@/lib/interimRounds";
 import { createNotification } from "@/lib/notifications";
-import { technicianAllowedNextStatuses, statusRank, isClosedStatus } from "@/lib/serviceStatus";
+import { technicianAllowedNextStatuses, statusRank } from "@/lib/serviceStatus";
 import { TicketPartsPanel } from "@/components/parts/TicketPartsPanel";
 import { rtoHoldUpdate, DEFAULT_RTO_ON_HOLD } from "@/lib/rtoHold";
 import { notifyHoldOrRto } from "@/lib/serviceNotifications";
@@ -53,7 +53,6 @@ import { describeDeviceConditions } from "@/lib/deviceConditions";
 import { sanitizeNumber } from "@/lib/validation";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useTechnicians, useStaff } from "@/hooks/useStaff";
-import { useInventory } from "@/hooks/useInventory";
 import { preloadPdfAssets } from "@/lib/pdfAssets";
 import { StatusProgressBar } from "@/components/StatusProgressBar";
 import { TicketOverviewRow } from "@/components/workspace/TicketOverviewRow";
@@ -67,7 +66,6 @@ import { displayDate } from "@/lib/timezone";
 import { ActivityTimeline } from "@/components/workspace/ActivityTimeline";
 import { getStatusGuidance } from "@/lib/serviceNotifications";
 
-import { formatPartsUsed } from "@/lib/partsStock";
 
 
 // Normalize Google Drive image URLs (same behavior as DeviceReportUpload)
@@ -80,19 +78,6 @@ const getAnnotationImageUrl = (url: string): string => {
   }
   return url;
 };
-
-interface InventoryItem {
-  id: string;
-  name: string;
-  deviceType?: string;
-  model?: string;
-  brand?: string;
-  partType?: string;
-  color?: string;
-  supplier?: string;
-  cost: number;
-  quantity: number;
-}
 
 const ServiceUpdate = () => {
   const navigate = useNavigate();
@@ -132,17 +117,14 @@ const ServiceUpdate = () => {
   };
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedParts, setSelectedParts] = useState<{[key: string]: number}>({});
-  const [unmatchedParts, setUnmatchedParts] = useState<{[name: string]: number}>({});
   const [deviceReportPhotos, setDeviceReportPhotos] = useState<File[]>([]);
   const [existingDeviceReportPhotoUrls, setExistingDeviceReportPhotoUrls] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
-  // Use React Query for staff and inventory
+  // Use React Query for staff
   const { data: staffData = [] } = useStaff();
   const { data: technicianData = [] } = useTechnicians();
-  const { data: inventoryData = [] } = useInventory();
 
   const username = (sessionStorage.getItem("userFullName") || sessionStorage.getItem("username")) || "Unknown";
   const userRole = sessionStorage.getItem("userRole") || "Unknown";
@@ -165,23 +147,6 @@ const ServiceUpdate = () => {
 
 
 
-  // The parts list, used to read the ticket's parts used ("PART-ID (qty)") for the Google Sheet copy.
-  const inventory = useMemo(
-    () =>
-      inventoryData.map((item): InventoryItem => ({
-        id: item.partId,
-        name: item.partName,
-        deviceType: item.deviceType || "",
-        model: item.model || "",
-        brand: item.brand || "",
-        partType: item.partType || "",
-        color: item.color || "",
-        supplier: item.supplier || "",
-        cost: typeof item.costPerUnit === "string" ? parseFloat(item.costPerUnit.replace(/[^0-9.]/g, "")) || 0 : 0,
-        quantity: item.quantity || 0,
-      })),
-    [inventoryData],
-  );
 
 
 
@@ -266,40 +231,6 @@ const ServiceUpdate = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Parse existing parts when both service data and inventory are available
-  useEffect(() => {
-    if (serviceData && serviceData.partsUsed) {
-      const partsMapById: {[key: string]: number} = {};
-      const unmatched: {[name: string]: number} = {};
-      
-      const raw = String(serviceData.partsUsed);
-      const items = raw.split(',').map((p: string) => p.trim()).filter(Boolean);
-      items.forEach((partStr: string) => {
-        const match = partStr.match(/^(.+?)\s*\((?:x\s*)?(\d+)\)$/i);
-        if (!match) return;
-        const tokenRaw = match[1].trim();
-        const token = tokenRaw.toLowerCase();
-        const qty = parseInt(match[2]);
-
-        // Match by Part ID (exact match, case-insensitive) - handles FM prefix parts from Fast Moving Inventory
-        // Fallback to name match for legacy rows that stored part names instead of IDs
-        const found =
-          inventory.find(i => i.id?.toLowerCase() === token) ||
-          inventory.find(i => i.name?.toLowerCase() === token);
-
-        if (found) {
-          partsMapById[found.id] = qty;
-        } else {
-          unmatched[tokenRaw] = qty;
-        }
-      });
-      setSelectedParts(partsMapById);
-      setUnmatchedParts(unmatched);
-    } else {
-      setSelectedParts({});
-      setUnmatchedParts({});
-    }
-  }, [serviceData, inventory]);
 
   // ---- Status-first flow ----------------------------------------------------
   // Picking a new status is always step 1 (nothing is revealed before that), but
@@ -476,12 +407,6 @@ const ServiceUpdate = () => {
 
 
 
-  const calculateActualCost = () => {
-    return Object.entries(selectedParts).reduce((total, [itemId, qty]) => {
-      const item = inventory.find(i => i.id === itemId);
-      return total + (item ? item.cost * qty : 0);
-    }, 0);
-  };
 
   const handleViewPDF = () =>
     openPdfModal(serviceData?.pdfUrl, serviceData?.serviceId, "intake", "Client Intake Form");
@@ -878,31 +803,8 @@ const ServiceUpdate = () => {
 
     setIsUpdating(true);
     try {
-      const actualCost = calculateActualCost();
-      const partsUsedArray = Object.entries(selectedParts)
-        .filter(([_, qty]) => qty > 0)
-        .map(([itemId, qty]) => {
-          const item = inventory.find(i => i.id === itemId);
-          return {
-            id: itemId,
-            name: item?.name || "Unknown",
-            quantity: qty
-          };
-        });
-      const unmatchedArray = Object.entries(unmatchedParts)
-        .filter(([_, qty]) => qty > 0)
-        .map(([name, qty]) => ({ id: null as any, name, quantity: qty }));
-      
-      // Store Part ID instead of Part Name ("ID (qty)"), the same lines the Parts Used panel saves
-      const partsUsedLines = formatPartsUsed([...partsUsedArray, ...unmatchedArray]);
-      const partsUsedString = partsUsedLines.join(", ");
-      
-      const noParts = partsUsedString.trim() === "";
-      // For Google Sheets: send a single space when no parts so Apps Script updates the cell and clears previous value
-      const partsUsedForSheet = noParts ? " " : partsUsedString;
-      
-      // Parts data prepared for update
-
+      // Parts are not part of this save: they change only through approved requests and returns,
+      // so a page loaded before an approval can never overwrite them.
       const formData = new FormData();
       formData.append("action", "updateTechnicianService");
       formData.append("serviceId", sid);
@@ -925,9 +827,6 @@ const ServiceUpdate = () => {
       formData.append("technicianReport", updateTechnicianReport);
       formData.append("aiDiagnosis", updateAIDiagnosis);
       formData.append("aiReport", updateServiceReport);
-      formData.append("actualCost", actualCost.toString());
-      formData.append("partsUsed", partsUsedForSheet); // Single space if no parts so Apps Script clears cell
-      formData.append("partsUsedData", JSON.stringify([...partsUsedArray, ...unmatchedArray])); // Empty array if no parts
       formData.append("discount", discountAmount.toString());
       formData.append("finalCost", finalCost.toString());
       formData.append("username", username);
@@ -1033,8 +932,7 @@ const ServiceUpdate = () => {
           description: "Service information updated successfully",
         });
         
-        // Clear selected parts and new photos
-        setSelectedParts({});
+        // Clear new photos
         setDeviceReportPhotos([]);
         // Refresh the data to show updated photos
         handleSearch();
@@ -1506,7 +1404,7 @@ const ServiceUpdate = () => {
                   <TicketPartsPanel
                     serviceId={serviceData.serviceId}
                     partsUsed={serviceData.partsUsed}
-                    closed={isClosedStatus(serviceData.status || "")}
+                    status={serviceData.status}
                     device={serviceData.device || serviceData.deviceType}
                     onTicketChanged={handleSearch}
                     large

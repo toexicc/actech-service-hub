@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { displayDate } from "@/lib/timezone";
 import { WorkspacePanel } from "./WorkspacePanel";
 import { Button } from "@/components/ui/button";
+import { isPartsLogAction, partsLogFilter } from "@/lib/partRequests";
+import { cn } from "@/lib/utils";
 
 interface ActivityLogRow {
   id: string;
@@ -80,10 +82,12 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
   const [take, setTake] = useState(limit);
   const [hasMore, setHasMore] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // "Parts": only requests, returns, approvals, direct adds, defective parts, stock changes and Waiting for Parts.
+  const [partsOnly, setPartsOnly] = useState(false);
 
   useEffect(() => {
     setTake(limit);
-  }, [serviceId, limit]);
+  }, [serviceId, limit, partsOnly]);
 
   /**
    * Payments and voids are logged from the payment modal and the transaction
@@ -123,13 +127,21 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
       }
       setLoading(true);
       try {
-        const { data } = await supabase
-          .from("activity_logs")
-          .select("id, actor_name, action, changes, created_at")
-          .eq("entity_id", serviceId)
-          .order("created_at", { ascending: false })
-          .limit(take + 1);
-        const list = (data as ActivityLogRow[]) ?? [];
+        const query = () =>
+          supabase.from("activity_logs").select("id, actor_name, action, changes, created_at").eq("entity_id", serviceId);
+        let list: ActivityLogRow[] = [];
+        if (partsOnly) {
+          const { data, error } = await query().or(partsLogFilter()).order("created_at", { ascending: false }).limit(take + 1);
+          if (!error) list = (data as ActivityLogRow[]) ?? [];
+          else {
+            // Fallback: filter a larger page here if the filtered query isn't accepted.
+            const { data: all } = await query().order("created_at", { ascending: false }).limit((take + 1) * 5);
+            list = ((all as ActivityLogRow[]) ?? []).filter((r) => isPartsLogAction(r.action)).slice(0, take + 1);
+          }
+        } else {
+          const { data } = await query().order("created_at", { ascending: false }).limit(take + 1);
+          list = (data as ActivityLogRow[]) ?? [];
+        }
         if (!cancelled) {
           setHasMore(list.length > take);
           setRows(list.slice(0, take));
@@ -144,7 +156,7 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
     return () => {
       cancelled = true;
     };
-  }, [serviceId, take, reloadKey]);
+  }, [serviceId, take, reloadKey, partsOnly]);
 
   return (
     <WorkspacePanel
@@ -152,15 +164,36 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
       icon={<Activity className="h-4 w-4" />}
       bodyClassName="p-0"
       action={
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-[11px]"
-          onClick={() => setReloadKey((k) => k + 1)}
-        >
-          <RefreshCw className={`mr-1 h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-1">
+          <div className="flex rounded-md border border-border/60 p-0.5" role="group" aria-label="Show">
+            {([
+              [false, "All"],
+              [true, "Parts"],
+            ] as const).map(([value, text]) => (
+              <button
+                key={text}
+                type="button"
+                aria-pressed={partsOnly === value}
+                onClick={() => setPartsOnly(value)}
+                className={cn(
+                  "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
+                  partsOnly === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px]"
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            <RefreshCw className={`mr-1 h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       }
     >
       {loading && rows.length === 0 ? (
@@ -168,7 +201,7 @@ export function ActivityTimeline({ serviceId, limit = 40 }: { serviceId?: string
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground px-4 py-4">No activity yet.</p>
+        <p className="text-xs text-muted-foreground px-4 py-4">{partsOnly ? "No parts activity yet." : "No activity yet."}</p>
       ) : (
         <>
           <ul className="divide-y divide-border/50 max-h-96 overflow-y-auto">

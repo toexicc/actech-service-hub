@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
 import { isClosedStatus } from "@/lib/serviceStatus";
+import { isPartsLocked } from "@/lib/partRequests";
 import { PartsUsedPanel } from "@/components/workspace/PartsUsedPanel";
 
 interface TicketRow {
@@ -71,6 +72,13 @@ export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSave
     };
   }, [debounced, open, ticket]);
 
+  // Load the ticket again when it's picked, so the parts shown (and saved on top of) are the latest.
+  const pickTicket = async (t: TicketRow) => {
+    setTicket(t);
+    const { data } = await (supabase as any).from("services").select(TICKET_COLS).eq("service_id", t.service_id).maybeSingle();
+    if (data) setTicket((cur) => (cur?.service_id === t.service_id ? (data as TicketRow) : cur));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[92dvh] max-w-2xl flex-col">
@@ -112,7 +120,7 @@ export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSave
                     <button
                       key={t.service_id}
                       type="button"
-                      onClick={() => setTicket(t)}
+                      onClick={() => pickTicket(t)}
                       className="flex w-full items-start justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-left transition-colors hover:border-primary"
                     >
                       <div className="min-w-0">
@@ -122,6 +130,7 @@ export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSave
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-xs text-muted-foreground">{t.status}</p>
+                        {isPartsLocked(t.status) && <p className="text-[11px] font-medium text-warning">Parts locked</p>}
                         {(t.parts_used?.length ?? 0) > 0 && (
                           <p className="mt-0.5 text-[11px] text-muted-foreground">{t.parts_used!.length} part(s) recorded</p>
                         )}
@@ -151,6 +160,7 @@ export function AssignToTicketDialog({ open, onOpenChange, initialPartId, onSave
                 serviceId={ticket.service_id}
                 partsUsed={(ticket.parts_used ?? []).join(", ")}
                 addPartId={initialPartId ?? undefined}
+                status={ticket.status}
                 onSaved={() => {
                   onSaved?.();
                   onOpenChange(false);

@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { logTicketActivity } from "@/lib/activityLogger";
-import { newRequestId } from "@/lib/partRequests";
+import { newRequestId, type ReturnReason } from "@/lib/partRequests";
 
 export interface PartRequestRow {
   id: string;
@@ -24,10 +23,19 @@ export interface PartRequestRow {
   cancelled_reason: string | null;
   created_at: string;
   updated_at: string | null;
+  /** "request" (add a part) or "return" (take a part off the ticket). */
+  kind: string;
+  return_reason: ReturnReason | null;
+  /** Made after the repair was done, when the ticket's parts were locked. */
+  after_lock: boolean;
+  defect_status: string | null;
+  defect_note: string | null;
+  defect_updated_at: string | null;
+  defect_updated_by_name: string | null;
 }
 
 const COLUMNS =
-  "id,request_id,part_id,part_name,brand,device_model,quantity,status,service_id,requested_by,requested_by_name,notes,acknowledged_at,acknowledged_by_name,approved_at,approved_by_name,cancelled_at,cancelled_reason,created_at,updated_at";
+  "id,request_id,part_id,part_name,brand,device_model,quantity,status,service_id,requested_by,requested_by_name,notes,acknowledged_at,acknowledged_by_name,approved_at,approved_by_name,cancelled_at,cancelled_reason,created_at,updated_at,kind,return_reason,after_lock,defect_status,defect_note,defect_updated_at,defect_updated_by_name";
 
 /** Every request, newest first (Inventory → Requests and the overview). */
 export const usePartRequestsAll = () =>
@@ -95,15 +103,21 @@ const notify = async (r: PartRequestRow, title: string, message: string, actorId
 const label = (r: Pick<PartRequestRow, "quantity" | "part_name" | "part_id">) =>
   `${r.quantity}× ${r.part_name || r.part_id || "part"}`;
 
+// Every request and return event (added, cancelled, declined, status changes, approvals, defective updates)
+// is written to the ticket's activity log by the database, with who did it.
+
 export interface NewPartRequest {
   serviceId: string;
+  /** "return" to take a part off the ticket (needs returnReason); default "request". */
+  kind?: "request" | "return";
+  returnReason?: ReturnReason | null;
   partId?: string | null;
   partName: string;
   brand?: string | null;
   deviceModel?: string | null;
   quantity: number;
   notes?: string | null;
-  status: "Requested" | "For Ordering";
+  status?: "Requested" | "For Ordering";
   requestedBy: string | null;
   requestedByName: string;
 }
@@ -120,20 +134,16 @@ export async function createPartRequest(input: NewPartRequest): Promise<PartRequ
       device_model: input.deviceModel || null,
       quantity: Math.max(1, Math.floor(input.quantity) || 1),
       notes: input.notes?.trim() || null,
-      status: input.status,
+      status: input.status ?? "Requested",
+      kind: input.kind ?? "request",
+      return_reason: input.kind === "return" ? input.returnReason ?? null : null,
       requested_by: input.requestedBy,
       requested_by_name: input.requestedByName,
     })
     .select(COLUMNS)
     .single();
   if (error) throw new Error(error.message);
-  const row = data as PartRequestRow;
-  logTicketActivity(input.serviceId, `Part requested: ${label(row)}${row.part_id ? ` (${row.part_id})` : ""}`, {
-    Request: row.request_id,
-    Status: row.status,
-    ...(row.notes ? { Note: row.notes } : {}),
-  });
-  return row;
+  return data as PartRequestRow;
 }
 
 export interface ApproveResult {
@@ -155,6 +165,28 @@ export async function approvePartRequest(id: string, partId?: string | null, qua
   return data as ApproveResult;
 }
 
+export interface ReturnResult {
+  service_id: string;
+  part_id: string;
+  quantity: number;
+  reason: ReturnReason;
+  stock_after: number | null;
+  parts_used: string[];
+}
+
+/** Takes the part off the ticket; back into stock unless it's defective (inventory staff and management only). */
+export async function approvePartReturn(id: string): Promise<ReturnResult> {
+  const { data, error } = await (supabase as any).rpc("approve_part_return", { _id: id });
+  if (error) throw new Error(error.message);
+  return data as ReturnResult;
+}
+
+/** Defective list: where the part is with the supplier (Sent to supplier, Replaced, Credited, Disposed). */
+export async function setDefectStatus(id: string, status: string, note?: string | null): Promise<void> {
+  const { error } = await (supabase as any).rpc("set_defect_status", { _id: id, _status: status, _note: note ?? null });
+  if (error) throw new Error(error.message);
+}
+
 /** Cancel (by the requester) or decline (by inventory, with a reason the requester sees). */
 export async function cancelPartRequest(
   r: PartRequestRow,
@@ -166,14 +198,8 @@ export async function cancelPartRequest(
     .update({ status: "Cancelled", cancelled_at: new Date().toISOString(), cancelled_reason: reason })
     .eq("id", r.id);
   if (error) throw new Error(error.message);
-  if (r.service_id) {
-    logTicketActivity(r.service_id, `Part request ${opts.declined ? "declined" : "cancelled"}: ${label(r)}`, {
-      Request: r.request_id,
-      Reason: reason,
-    });
-  }
   if (opts.declined) {
-    await notify(r, "Part request declined", `${opts.byName} declined ${label(r)}${r.service_id ? ` for ${r.service_id}` : ""}: ${reason}`, opts.byId);
+    await notify(r, r.kind === "return" ? "Part return declined" : "Part request declined", `${opts.byName} declined ${label(r)}${r.service_id ? ` for ${r.service_id}` : ""}: ${reason}`, opts.byId);
   }
 }
 
@@ -200,5 +226,11 @@ export async function acknowledgePartRequest(r: PartRequestRow, opts: { byName: 
     .update({ acknowledged_at: new Date().toISOString(), acknowledged_by_name: opts.byName })
     .eq("id", r.id);
   if (error) throw new Error(error.message);
-  await notify(r, "Part request update", `${opts.byName} has seen your request for ${label(r)}${r.service_id ? ` (${r.service_id})` : ""}.`, opts.byId);
+  const ret = r.kind === "return";
+  await notify(
+    r,
+    ret ? "Part return update" : "Part request update",
+    `${opts.byName} has seen your ${ret ? "return of" : "request for"} ${label(r)}${r.service_id ? ` (${r.service_id})` : ""}.`,
+    opts.byId,
+  );
 }

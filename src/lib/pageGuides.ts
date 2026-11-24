@@ -31,7 +31,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       points: [
         "**Overview**: what's running low, reorder suggestions, tickets waiting for parts, most-used parts and the latest stock movements.",
         "**Inventory Items**: the full parts list with quantity, re-order level and status.",
-        "**Requests**: parts requested from tickets (Service Update and Manage Client). Approving one takes the stock and adds the part to the ticket.",
+        "**Requests**: parts requested from tickets (Service Update and Manage Client) and parts asked to be taken off them (returns). **Defective** lists defective parts to send back to the supplier.",
         "**Movements**: every stock change and where each part went: the ticket, client, device and technician. Changes that need approval wait here.",
         "**Inventory Logs**: the history of added parts, edits, stock in and out, and parts used on tickets.",
       ],
@@ -77,7 +77,8 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       tips: [
         "Parts aren't added to a ticket by hand anymore: every part goes through a request, or inventory's **Assign to Ticket**.",
         "Out-of-stock parts can still be requested. They come in as **For Ordering** so inventory orders them.",
-        "A part that wasn't used goes back to inventory staff, who take it off the ticket with **Assign to Ticket**. It goes back into stock.",
+        "To take a part off a ticket (not used, wrong entry or defective), click **Return** beside it in the ticket's **Parts** section. Inventory staff or management approve it.",
+        "From **Done Repair - Under Observation** onward the ticket's parts are locked: changes still go through a request or return, and someone other than the person who asked approves them.",
       ],
     },
     {
@@ -90,9 +91,10 @@ export const INVENTORY_GUIDE: PageGuideContent = {
         "Add the parts and how many were used, then click **Save parts**. Stock goes down and the ticket's Parts Used updates, the same as recording them on the ticket.",
       ],
       tips: [
-        "Use this to hand over a part without a request, or to take an unused part off a ticket (it goes back into stock).",
+        "Use this to hand over a part without a request. It only adds parts: to take one off, use **Return** in the ticket's **Parts** section.",
+        "Tickets whose parts are locked (Done Repair onward) can't be changed here. Use a request or return on the ticket.",
         "The **Not enough in stock** warning works here too.",
-        "Each part you assign shows in **Movements** as **Used on ticket**.",
+        "Each part you assign shows in **Movements** as **Used on ticket**, and on the ticket's **Activity** with your name.",
       ],
     },
     {
@@ -109,7 +111,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
       tips: [
         "Parts added to a ticket (approved requests and **Assign to Ticket**) are linked to that ticket by themselves.",
         "Rows by **Google Sheet** are the stock in and stock out history copied from the old Google Sheet. The sheet only had dates, so they show **from sheet** instead of a time.",
-        "**Returned from ticket** means a part was taken off a ticket and went back into stock.",
+        "**Returned from ticket** means an approved return took a part off a ticket and put it back into stock. Defective returns don't change stock, so they're on the **Defective** list in **Requests** instead.",
         "**CSV** downloads the list as it's filtered, with the client, device and technician for each ticket.",
       ],
     },
@@ -154,18 +156,22 @@ export const INVENTORY_GUIDE: PageGuideContent = {
     },
     {
       id: "requests",
-      title: "Approve part requests",
+      title: "Approve part requests and returns",
       who: "inventory staff and management",
       steps: [
-        "New requests show in **Requests** with a **New** badge, plus the ticket, client, device and how many are on hand. Click **Mark as seen** so the requester knows you have it.",
+        "New requests and returns show in **Requests** with a **New** badge, plus the ticket, client, device and how many are on hand. Click **Mark as seen** so the requester knows you have it. **Waiting** shows everything not done yet.",
         "In stock: click **Approve & add**, check the part and quantity, then **Approve & add to ticket**. The stock goes down and the part is added to the ticket's parts used.",
         "Not in stock: move the request along with its status menu (For Ordering, Ordering, Ordered). When the part arrives, receive the stock in **Inventory Items**, set the request to **Received**, then approve it.",
         "A request typed in by name has no SKU: when approving, search and pick the inventory part to give. Add it with **Add New Part** first if it's new.",
-        "Click **Decline** for a request you won't fill. The reason goes to the requester.",
+        "Returns have a **Return** badge with the reason (**Not used**, **Wrong entry** or **Defective**). Click **Approve return**: the part comes off the ticket and its cost comes off the parts cost. Not used and wrong entry go back into stock; defective parts don't, and go on the **Defective** list.",
+        "In **Defective**, set where each part is (**Sent to supplier**, **Replaced**, **Credited** or **Disposed**), add a note such as the courier or supplier reference, and click **Save**.",
+        "Click **Decline** for a request or return you won't approve. The reason goes to the requester.",
       ],
       tips: [
         "The requester is notified when you approve, decline or change the status.",
         "Approval is blocked when there isn't enough stock, so the count never goes below zero.",
+        "**After repair done** marks a request or return made after the ticket's parts were locked. On a locked ticket the person who asked can't approve it: another inventory staff member or management does.",
+        "Every request, return, approval and decline is written to the ticket's **Activity** log with who asked and who approved. Click **Parts** there to see only parts entries.",
         "Stock changes made by staff without inventory access wait in **Movements** under **Pending**: approve ✓ or reject ✗ them there. Rejecting needs a reason and undoes the change.",
       ],
     },
@@ -191,7 +197,7 @@ export const INVENTORY_GUIDE: PageGuideContent = {
 
 export const PARTS_REQUEST_GUIDE: PageGuideContent = {
   title: "How parts requests work",
-  intro: "Parts get onto a ticket through a request. When inventory staff approve it, the part is taken out of stock and added to the ticket.",
+  intro: "Parts get onto a ticket through a request and come off through a return. Inventory staff or management approve both, and each step is logged on the ticket with who did it.",
   sections: [
     {
       id: "request",
@@ -217,15 +223,31 @@ export const PARTS_REQUEST_GUIDE: PageGuideContent = {
         "**Arrived, waiting for inventory to release it**: it's in, and inventory approves it next.",
         "**Approved, on this ticket**: it's out of stock and listed under **On this ticket**.",
         "**Cancelled**: you cancelled it, or inventory declined it. The reason is shown.",
+        "Returns: **Waiting for approval**, then **Approved, taken off this ticket**.",
       ],
       tips: ["You get a notification when your request is approved, declined or changes status."],
     },
     {
       id: "change",
-      title: "Cancel a request or return a part",
+      title: "Return a part (not used, wrong entry, defective)",
+      steps: [
+        "Under **On this ticket**, click **Return** beside the part.",
+        "Pick why: **Not used** (goes back into stock), **Wrong entry** (recorded by mistake, goes back into stock) or **Defective** (set aside for the supplier; say what's wrong with it).",
+        "Set how many and click **Send for approval**. Once inventory staff or management approve it, the part comes off the ticket and its cost comes off the parts cost.",
+      ],
+      tips: [
+        "Changed your mind before it's approved? Click **Cancel request** or **Cancel return** on it.",
+        "Parts can't be taken off a ticket any other way, so every removal has a reason and an approver.",
+      ],
+    },
+    {
+      id: "locked",
+      title: "When parts are locked",
       points: [
-        "Changed your mind before it's approved? Click **Cancel request** on it.",
-        "A part that's on the ticket but wasn't used goes back to inventory staff. They take it off the ticket with **Assign to Ticket**, and it goes back into stock.",
+        "From **Done Repair - Under Observation** onward (also For Release, Advise Client, Completed, Cancelled and RTO), the ticket's parts are locked.",
+        "You can still request or return a part, but someone other than you approves it: inventory staff or management.",
+        "Cancelled and RTO tickets can't get new parts. Parts can still be returned.",
+        "Requests and returns made while locked show **After repair done** so inventory knows.",
       ],
     },
     {
@@ -236,10 +258,20 @@ export const PARTS_REQUEST_GUIDE: PageGuideContent = {
         "Click **Approve & add** on a request (here or in Inventory → **Requests**).",
         "Check the part and quantity. For a request typed in by name, search and pick the inventory part to give.",
         "Click **Approve & add to ticket**. The stock goes down, the part is added to the ticket's parts used, and the requester is told.",
+        "For a return, click **Approve return**. Not used and wrong entry go back into stock; defective parts go on the **Defective** list in Inventory → Requests.",
       ],
       tips: [
         "**Decline** needs a reason, which the requester sees.",
         "Approval is blocked when there isn't enough in stock. Receive the stock first.",
+        "On a locked ticket you can't approve your own request or return.",
+      ],
+    },
+    {
+      id: "log",
+      title: "Who did what (ticket Activity)",
+      points: [
+        "Every request, return, approval, decline and direct add from Inventory is written to the ticket's **Activity** with the person's name and role: who asked, who approved, the reason, and the parts before → after.",
+        "Click **Parts** at the top of **Activity** to see only parts entries. Click **Details** on an entry for the full record.",
       ],
     },
   ],

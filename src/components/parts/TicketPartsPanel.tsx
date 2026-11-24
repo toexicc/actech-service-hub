@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Package, QrCode, Search, Send, X } from "lucide-react";
+import { Loader2, Lock, Package, QrCode, Search, Send, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useInventory, type InventoryItem } from "@/hooks/useInventory";
@@ -12,22 +11,33 @@ import {
   initialRequestStatus,
   isApprovedRequest,
   isOpenRequest,
+  isPartsLocked,
   matchesPartSearch,
+  noPartAdditions,
   partsUsedText,
+  returnableQty,
 } from "@/lib/partRequests";
 import { parsePartsUsed } from "@/lib/partsStock";
 import { formatManilaDate } from "@/lib/timezone";
 import { PARTS_REQUEST_GUIDE } from "@/lib/pageGuides";
 import { PageGuide } from "@/components/PageGuide";
 import { QRScanner } from "@/components/QRScanner";
-import { ApproveRequestDialog, CancelRequestDialog, RequestStatusBadge, StockPill } from "./RequestBits";
+import {
+  AfterLockBadge,
+  ApproveRequestDialog,
+  CancelRequestDialog,
+  RequestStatusBadge,
+  ReturnBadge,
+  ReturnPartDialog,
+  StockPill,
+} from "./RequestBits";
 import { cn } from "@/lib/utils";
 
 interface Props {
   serviceId: string;
   partsUsed?: string | string[] | null;
-  /** Completed, cancelled and RTO tickets can't get new requests. */
-  closed?: boolean;
+  /** The ticket's status: parts lock from Done Repair onward, and cancelled/RTO tickets get no new parts. */
+  status?: string | null;
   /** The ticket's device, saved with requests typed in by name. */
   device?: string;
   /** Start with this part in the search (e.g. from Check Parts). */
@@ -45,10 +55,13 @@ const sortForPicking = (a: InventoryItem, b: InventoryItem) =>
   Number(b.quantity > 0) - Number(a.quantity > 0) || a.partName.localeCompare(b.partName);
 
 /**
- * Parts on a ticket (Service Update and Manage Client). Staff don't add parts here directly: they request
- * them, and inventory staff approve the request, which takes the stock and puts the part on the ticket.
+ * Parts on a ticket (Service Update and Manage Client). Nobody edits parts here directly: staff request parts
+ * or ask to return them, and inventory staff or management approve. Once the repair is done the parts are
+ * locked: changes still go through requests and returns, and nobody can approve their own.
  */
-export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device, initialPartId, onTicketChanged, large = false, className }: Props) {
+export function TicketPartsPanel({ serviceId, partsUsed, status, device, initialPartId, onTicketChanged, large = false, className }: Props) {
+  const locked = isPartsLocked(status);
+  const noAdds = noPartAdditions(status);
   const { toast } = useToast();
   const { user, profile, hasInventoryAccess } = useAuth();
   const { data: inventory = [] } = useInventory();
@@ -64,6 +77,7 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
   const [sending, setSending] = useState(false);
   const [approving, setApproving] = useState<PartRequestRow | null>(null);
   const [cancelling, setCancelling] = useState<{ row: PartRequestRow; mode: "decline" | "cancel" } | null>(null);
+  const [returning, setReturning] = useState<{ id: string; name: string; max: number } | null>(null);
 
   useEffect(() => {
     setSearch(initialPartId ?? "");
@@ -86,9 +100,17 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
     [partsUsed, byId],
   );
 
+  // Open requests to add a part (to avoid asking twice) and quantities already waiting to be returned.
   const openByPart = useMemo(() => {
     const m = new Map<string, PartRequestRow>();
-    requests.filter((r) => isOpenRequest(r.status) && r.part_id).forEach((r) => m.set(r.part_id!, r));
+    requests.filter((r) => r.kind !== "return" && isOpenRequest(r.status) && r.part_id).forEach((r) => m.set(r.part_id!, r));
+    return m;
+  }, [requests]);
+  const pendingReturns = useMemo(() => {
+    const m = new Map<string, number>();
+    requests
+      .filter((r) => r.kind === "return" && isOpenRequest(r.status) && r.part_id)
+      .forEach((r) => m.set(r.part_id!.toLowerCase(), (m.get(r.part_id!.toLowerCase()) ?? 0) + r.quantity));
     return m;
   }, [requests]);
 
@@ -201,11 +223,25 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
           {!large && <Package className="mt-0.5 h-4 w-4 text-muted-foreground" />}
           <div>
             <h3 className={large ? "text-2xl font-semibold tracking-tight" : "text-sm font-semibold"}>Parts</h3>
-            <p className="text-xs text-muted-foreground">Request parts here. Inventory adds them to the ticket when they approve.</p>
+            <p className="text-xs text-muted-foreground">
+              Request or return parts here. Inventory staff or management approve every change.
+            </p>
           </div>
         </div>
         <PageGuide guide={PARTS_REQUEST_GUIDE} label="How it works" />
       </div>
+
+      {locked && (
+        <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <p>
+            <span className="font-medium">Parts are locked</span> ({status}).{" "}
+            {noAdds
+              ? "Parts can't be added to this ticket, but they can still be returned. Someone other than the person who asked approves the return."
+              : "Changes still go through a request or return, and someone other than the person who asked has to approve them."}
+          </p>
+        </div>
+      )}
 
       {/* On the ticket */}
       <section className="space-y-2">
@@ -214,15 +250,35 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
           <p className="text-sm text-muted-foreground">No parts on this ticket yet.</p>
         ) : (
           <ul className="divide-y rounded-lg border">
-            {onTicket.map(({ token, count, part }) => (
-              <li key={token} className="flex items-center justify-between gap-3 px-3 py-2">
-                <div className="min-w-0">
-                  <p className="text-sm leading-snug">{part?.partName ?? token}</p>
-                  {part && <p className="font-mono text-[11px] text-muted-foreground">{part.partId}</p>}
-                </div>
-                <span className="shrink-0 text-sm font-semibold tabular-nums">× {count}</span>
-              </li>
-            ))}
+            {onTicket.map(({ token, count, part }) => {
+              const pendingBack = pendingReturns.get((part?.partId ?? token).toLowerCase()) ?? 0;
+              const canReturn = returnableQty(count, pendingBack);
+              return (
+                <li key={token} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm leading-snug">{part?.partName ?? token}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {part && <span className="font-mono">{part.partId}</span>}
+                      {pendingBack > 0 && <span>{part ? " · " : ""}{pendingBack} waiting to be returned</span>}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-sm font-semibold tabular-nums">× {count}</span>
+                    {canReturn > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-2 text-muted-foreground"
+                        onClick={() => setReturning({ id: part?.partId ?? token, name: part?.partName ?? token, max: canReturn })}
+                      >
+                        <Undo2 className="mr-1 h-3.5 w-3.5" />
+                        Return
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -242,6 +298,9 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
               const open = isOpenRequest(r.status);
               const mine = !!user?.id && r.requested_by === user.id;
               const stock = r.part_id ? byId.get(r.part_id.toLowerCase()) : undefined;
+              const isReturn = r.kind === "return";
+              // On a locked ticket nobody approves their own change (the database enforces this too).
+              const ownLockedChange = locked && mine;
               return (
                 <li key={r.id} className={cn("rounded-lg border p-3", !open && "bg-muted/30")}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -254,11 +313,20 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
                         {formatManilaDate(r.created_at, "MMM d, h:mm a")}
                       </p>
                     </div>
-                    <RequestStatusBadge status={r.status} plain />
+                    <RequestStatusBadge status={r.status} plain kind={r.kind} />
                   </div>
+                  {(isReturn || r.after_lock) && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <ReturnBadge request={r} />
+                      <AfterLockBadge request={r} />
+                    </div>
+                  )}
                   {r.notes && <p className="mt-1 text-xs">{r.notes}</p>}
                   {isApprovedRequest(r.status) && r.approved_by_name && (
-                    <p className="mt-1 text-xs text-muted-foreground">Approved by {r.approved_by_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Approved by {r.approved_by_name}
+                      {isReturn && r.return_reason === "defective" && r.defect_status ? ` · Defective part: ${r.defect_status}` : ""}
+                    </p>
                   )}
                   {r.status === "Cancelled" && r.cancelled_reason && (
                     <p className="mt-1 text-xs text-muted-foreground">Reason: {r.cancelled_reason}</p>
@@ -267,19 +335,23 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {hasInventoryAccess && (
                         <>
-                          <Button size="sm" className="h-8" onClick={() => setApproving(r)}>
-                            Approve & add
-                          </Button>
+                          {ownLockedChange ? (
+                            <span className="text-xs text-muted-foreground">Someone else has to approve this (parts are locked).</span>
+                          ) : (
+                            <Button size="sm" className="h-8" onClick={() => setApproving(r)}>
+                              {isReturn ? "Approve return" : "Approve & add"}
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" className="h-8" onClick={() => setCancelling({ row: r, mode: "decline" })}>
                             Decline
                           </Button>
-                          {stock && <StockPill onHand={stock.quantity} status={stock.status} />}
+                          {stock && !isReturn && <StockPill onHand={stock.quantity} status={stock.status} />}
                         </>
                       )}
                       {mine && !hasInventoryAccess && (
                         <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" onClick={() => setCancelling({ row: r, mode: "cancel" })}>
                           <X className="mr-1 h-3.5 w-3.5" />
-                          Cancel request
+                          {isReturn ? "Cancel return" : "Cancel request"}
                         </Button>
                       )}
                     </div>
@@ -294,8 +366,8 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
       {/* Ask for a part */}
       <section className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Request a part</p>
-        {closed ? (
-          <p className="text-sm text-muted-foreground">This ticket is closed, so new parts can't be requested.</p>
+        {noAdds ? (
+          <p className="text-sm text-muted-foreground">This ticket is {status}, so new parts can't be requested.</p>
         ) : (
           <>
             <div className="flex gap-2">
@@ -374,6 +446,12 @@ export function TicketPartsPanel({ serviceId, partsUsed, closed = false, device,
       </section>
 
       <ApproveRequestDialog request={approving} onOpenChange={(o) => !o && setApproving(null)} onApproved={() => onTicketChanged?.()} />
+      <ReturnPartDialog
+        serviceId={serviceId}
+        part={returning ? { id: returning.id, name: returning.name } : null}
+        maxQty={returning?.max ?? 1}
+        onOpenChange={(o) => !o && setReturning(null)}
+      />
       <CancelRequestDialog
         request={cancelling?.row ?? null}
         mode={cancelling?.mode ?? "cancel"}

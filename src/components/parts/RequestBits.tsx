@@ -10,12 +10,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { useInventory } from "@/hooks/useInventory";
 import {
   approvePartRequest,
+  approvePartReturn,
   cancelPartRequest,
+  createPartRequest,
   useRefreshAfterRequest,
   type ApproveResult,
   type PartRequestRow,
 } from "@/hooks/usePartRequests";
-import { matchesPartSearch, requestStatusText, requestTone, stockLevel, stockText } from "@/lib/partRequests";
+import {
+  matchesPartSearch,
+  RETURN_REASONS,
+  requestStatusText,
+  requestTone,
+  returnReasonLabel,
+  stockLevel,
+  stockText,
+  type ReturnReason,
+} from "@/lib/partRequests";
 import { cn } from "@/lib/utils";
 
 const TONE: Record<string, string> = {
@@ -27,7 +38,7 @@ const TONE: Record<string, string> = {
 };
 
 /** Request status. Requesters see it in words ("Waiting for inventory"); inventory sees the status name. */
-export function RequestStatusBadge({ status, plain = false }: { status: string; plain?: boolean }) {
+export function RequestStatusBadge({ status, plain = false, kind = "request" }: { status: string; plain?: boolean; kind?: string }) {
   return (
     <span
       className={cn(
@@ -35,7 +46,33 @@ export function RequestStatusBadge({ status, plain = false }: { status: string; 
         TONE[requestTone(status)],
       )}
     >
-      {plain ? requestStatusText(status) : status}
+      {plain ? requestStatusText(status, kind) : status}
+    </span>
+  );
+}
+
+/** "Return · Defective" etc. for returns; nothing for ordinary requests. */
+export function ReturnBadge({ request }: { request: Pick<PartRequestRow, "kind" | "return_reason"> }) {
+  if (request.kind !== "return") return null;
+  const defective = request.return_reason === "defective";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium",
+        defective ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-border bg-muted text-foreground",
+      )}
+    >
+      Return · {returnReasonLabel(request.return_reason)}
+    </span>
+  );
+}
+
+/** Shown on requests and returns made after the repair was done (parts locked). */
+export function AfterLockBadge({ request }: { request: Pick<PartRequestRow, "after_lock"> }) {
+  if (!request.after_lock) return null;
+  return (
+    <span className="inline-flex items-center whitespace-nowrap rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+      After repair done
     </span>
   );
 }
@@ -68,6 +105,21 @@ export function StockPill({ onHand, status, className }: { onHand: number; statu
  * then the stock is taken and the part goes onto the ticket in one step.
  */
 export function ApproveRequestDialog({
+  request,
+  onOpenChange,
+  onApproved,
+}: {
+  request: PartRequestRow | null;
+  onOpenChange: (open: boolean) => void;
+  onApproved?: (result?: ApproveResult) => void;
+}) {
+  if (request?.kind === "return") {
+    return <ApproveReturnDialog request={request} onOpenChange={onOpenChange} onApproved={() => onApproved?.()} />;
+  }
+  return <ApproveAddDialog request={request} onOpenChange={onOpenChange} onApproved={onApproved} />;
+}
+
+function ApproveAddDialog({
   request,
   onOpenChange,
   onApproved,
@@ -282,7 +334,9 @@ export function CancelRequestDialog({
     <Dialog open={!!request} onOpenChange={(o) => !busy && onOpenChange(o)}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{declining ? "Decline part request" : "Cancel part request"}</DialogTitle>
+          <DialogTitle>
+            {declining ? "Decline" : "Cancel"} {request?.kind === "return" ? "part return" : "part request"}
+          </DialogTitle>
           <DialogDescription>
             {request ? `${request.quantity}× ${request.part_name || request.part_id} for ${request.service_id}` : ""}
           </DialogDescription>
@@ -298,6 +352,207 @@ export function CancelRequestDialog({
           <Button variant="destructive" onClick={submit} disabled={busy || (declining && !reason.trim())}>
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {declining ? "Decline" : "Cancel request"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Approve a return: the part comes off the ticket; back into stock unless it's defective. */
+function ApproveReturnDialog({
+  request,
+  onOpenChange,
+  onApproved,
+}: {
+  request: PartRequestRow;
+  onOpenChange: (open: boolean) => void;
+  onApproved?: () => void;
+}) {
+  const refresh = useRefreshAfterRequest();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const defective = request.return_reason === "defective";
+
+  const approve = async () => {
+    setBusy(true);
+    try {
+      const res = await approvePartReturn(request.id);
+      toast({
+        title: `Taken off ${res.service_id}`,
+        description: defective
+          ? `${res.quantity}× ${request.part_name || request.part_id} is on the Defective list. Stock didn't change.`
+          : `${res.quantity}× ${request.part_name || request.part_id} is back in stock${res.stock_after != null ? ` (${res.stock_after} now)` : ""}.`,
+      });
+      refresh();
+      onApproved?.();
+      onOpenChange(false);
+    } catch (e) {
+      toast({ title: "Could not approve the return", description: e instanceof Error ? e.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !busy && onOpenChange(o)}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Approve part return</DialogTitle>
+          <DialogDescription>
+            {request.quantity}× {request.part_name || request.part_id} comes off {request.service_id}'s parts used, and its cost comes off the parts cost.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <ReturnBadge request={request} />
+              <AfterLockBadge request={request} />
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Requested by {request.requested_by_name || "—"} · {request.request_id}
+              {request.part_id ? ` · ${request.part_id}` : ""}
+            </p>
+            {request.notes && <p className="mt-1 text-xs">{request.notes}</p>}
+          </div>
+          <p className={cn("text-sm", defective ? "text-destructive" : "text-success")}>
+            {defective
+              ? "Defective: stock doesn't change. The part goes on the Defective list to send back to the supplier."
+              : "The part goes back into stock."}
+          </p>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button onClick={approve} disabled={busy}>
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Approve return
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Ask to take a part off a ticket: why (not used, wrong entry, defective), how many, and a note. */
+export function ReturnPartDialog({
+  serviceId,
+  part,
+  maxQty,
+  onOpenChange,
+}: {
+  serviceId: string;
+  /** The part on the ticket: its SKU (or the line's name) and display name. */
+  part: { id: string; name: string } | null;
+  maxQty: number;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { user, profile } = useAuth();
+  const refresh = useRefreshAfterRequest();
+  const { toast } = useToast();
+  const [reason, setReason] = useState<ReturnReason | null>(null);
+  const [qty, setQty] = useState(1);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setReason(null);
+    setQty(1);
+    setNote("");
+    setBusy(false);
+  }, [part?.id]);
+
+  const needsNote = reason === "defective";
+  const submit = async () => {
+    if (!part || !reason || busy || (needsNote && !note.trim())) return;
+    setBusy(true);
+    try {
+      await createPartRequest({
+        serviceId,
+        kind: "return",
+        returnReason: reason,
+        partId: part.id,
+        partName: part.name,
+        quantity: Math.min(Math.max(1, qty), Math.max(1, maxQty)),
+        notes: note,
+        requestedBy: user?.id ?? null,
+        requestedByName: profile?.name || sessionStorage.getItem("userFullName") || "Staff",
+      });
+      toast({ title: "Return sent for approval", description: "Inventory staff or management approve it, then the part comes off the ticket." });
+      refresh();
+      onOpenChange(false);
+    } catch (e) {
+      toast({ title: "Could not send the return", description: e instanceof Error ? e.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!part} onOpenChange={(o) => !busy && onOpenChange(o)}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Return a part</DialogTitle>
+          <DialogDescription>{part ? `${part.name} on ${serviceId}` : ""}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Why is it coming off the ticket?</Label>
+            <div className="grid gap-2">
+              {RETURN_REASONS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setReason(r.value)}
+                  className={cn(
+                    "rounded-lg border p-3 text-left transition-colors hover:border-primary/60",
+                    reason === r.value && "border-primary bg-primary/5 ring-1 ring-primary/30",
+                  )}
+                >
+                  <p className="text-sm font-medium">{r.label}</p>
+                  <p className="text-xs text-muted-foreground">{r.effect}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-[5.5rem_1fr] gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="return-qty" className="text-xs">
+                Quantity
+              </Label>
+              <Input
+                id="return-qty"
+                type="number"
+                min={1}
+                max={maxQty}
+                value={qty}
+                onChange={(e) => setQty(Math.min(Math.max(1, parseInt(e.target.value, 10) || 1), Math.max(1, maxQty)))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="return-note" className="text-xs">
+                {needsNote ? "What's wrong with it?" : "Note (optional)"}
+              </Label>
+              <Input
+                id="return-note"
+                placeholder={needsNote ? "e.g. no display after install" : "e.g. client declined"}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {maxQty} on the ticket can be returned. Inventory staff or management approve it; the ticket's log records who asked and who approved.
+          </p>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={busy || !reason || (needsNote && !note.trim())}>
+            {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Send for approval
           </Button>
         </DialogFooter>
       </DialogContent>

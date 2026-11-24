@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   initialRequestStatus,
+  isDefectSettled,
+  isPartsLocked,
+  isPartsLogAction,
+  partsLogFilter,
+  noPartAdditions,
+  returnableQty,
+  returnReasonLabel,
   isApprovedRequest,
   isOpenRequest,
   matchesPartSearch,
@@ -86,5 +93,66 @@ describe("helpers", () => {
     expect(partsUsedText(["A (1)", "B (2)"])).toBe("A (1), B (2)");
     expect(partsUsedText("A (1)")).toBe("A (1)");
     expect(partsUsedText(null)).toBe("");
+  });
+});
+
+describe("locking and returns", () => {
+  it("locks parts from Done Repair onward and on closed tickets", () => {
+    ["Pending Diagnosis", "Ongoing Service", "Backjob", "Proceed Repair"].forEach((st) => expect(isPartsLocked(st)).toBe(false));
+    ["Done Repair - Under Observation", "Done Repair - For Release", "Done Repair - Advise Client", "Completed", "Cancelled", "RTO - Client"].forEach(
+      (st) => expect(isPartsLocked(st)).toBe(true),
+    );
+  });
+
+  it("allows no new parts on cancelled and RTO tickets", () => {
+    expect(noPartAdditions("RTO - ACTech")).toBe(true);
+    expect(noPartAdditions("Cancelled")).toBe(true);
+    expect(noPartAdditions("Completed")).toBe(false);
+  });
+
+  it("names return reasons and returns", () => {
+    expect(returnReasonLabel("defective")).toBe("Defective");
+    expect(returnReasonLabel("wrong_entry")).toBe("Wrong entry");
+    expect(requestStatusText("Requested", "return")).toBe("Waiting for approval");
+    expect(requestStatusText("Approved", "return")).toBe("Approved, taken off this ticket");
+  });
+
+  it("counts what can still be returned", () => {
+    expect(returnableQty(2, 0)).toBe(2);
+    expect(returnableQty(2, 1)).toBe(1);
+    expect(returnableQty(1, 2)).toBe(0);
+  });
+
+  it("knows when a defective part is settled", () => {
+    expect(isDefectSettled("Sent to supplier")).toBe(false);
+    expect(isDefectSettled("Replaced")).toBe(true);
+  });
+});
+
+describe("parts log filter", () => {
+  it("picks out parts entries on a ticket's log", () => {
+    [
+      "Part requested: 1× LCD (LCD-A2681-OEM)",
+      "Part return approved: BAT-1 (1) taken off the ticket · Defective",
+      "Parts added directly (Assign to Ticket): LCD-1 (+1). Added by Kenneth Perez",
+      "Parts used added from the Google Sheet Stock Out log",
+      "Defective part BAT-1: Sent to supplier",
+      "Waiting for Parts turned on",
+      "Technician parts update saved",
+      "Stock change on this ticket approved: LCD (-1) by Kenneth",
+    ].forEach((a) => expect(isPartsLogAction(a)).toBe(true));
+  });
+
+  it("leaves other entries out", () => {
+    ["Service updated (/manage-client)", "Notification sent: Ready for pickup", "Technician department changed", "Technician departments updated", "POS: payment"].forEach((a) =>
+      expect(isPartsLogAction(a)).toBe(false),
+    );
+    expect(isPartsLogAction(null)).toBe(false);
+  });
+
+  it("builds the database filter from the same patterns", () => {
+    expect(partsLogFilter()).toBe(
+      "action.ilike.Part*,action.ilike.Defective*part*,action.ilike.Waiting*for*Parts*,action.ilike.Technician*parts*update*,action.ilike.Stock*change*",
+    );
   });
 });

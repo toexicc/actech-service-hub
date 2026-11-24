@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Package, Save } from "lucide-react";
+import { Loader2, Lock, Package, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useInventory } from "@/hooks/useInventory";
 import { applyPartsDelta } from "@/lib/inventoryDelta";
-import { logTicketActivity } from "@/lib/activityLogger";
 import { findShortfalls, type StockShortfall } from "@/lib/partsStock";
+import { isPartsLocked } from "@/lib/partRequests";
 
 interface PartItem {
   id: string;
@@ -59,15 +59,24 @@ interface Props {
   onSaved?: () => void;
   /** Start with this part added (quantity 1) if the ticket doesn't list it yet. */
   addPartId?: string;
+  /** The ticket's status; parts are locked from Done Repair onward (see isPartsLocked). */
+  status?: string | null;
 }
 
-/** Parts-used editor for Inventory's Assign to Ticket (inventory staff record parts directly; everyone else requests them). */
-export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Props) => {
+/**
+ * Inventory's Assign to Ticket: inventory staff and management add parts to a ticket directly (stock goes down).
+ * It only adds: parts already on the ticket can't be lowered or removed here, because taking a part off goes
+ * through Return on the ticket (reason, approval and log). Locked tickets (Done Repair onward) can't be edited.
+ */
+export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId, status }: Props) => {
+  const locked = isPartsLocked(status);
   const { toast } = useToast();
   const { data: inventoryData = [] } = useInventory();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, number>>({});
   const [unmatched, setUnmatched] = useState<Record<string, number>>({});
+  // What's already on the ticket: quantities here can only go up.
+  const [saved, setSaved] = useState<Record<string, number>>({});
   const [isSaving, setIsSaving] = useState(false);
   // Parts this save would take more of than is in stock; shown as a warning before saving.
   const [shortfalls, setShortfalls] = useState<StockShortfall[]>([]);
@@ -108,6 +117,7 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
       if (found) byId[found.id] = qty;
       else rest[token] = qty;
     });
+    setSaved({ ...byId });
     if (addPartId && !byId[addPartId] && inventory.some(i => i.id === addPartId)) byId[addPartId] = 1;
     setSelected(byId);
     setUnmatched(rest);
@@ -124,6 +134,15 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
 
   const handleSave = async (saveAnyway = false) => {
     if (isSaving || !serviceId) return;
+    const lowered = Object.entries(saved).find(([id, q]) => (selected[id] ?? 0) < q);
+    if (lowered) {
+      toast({
+        title: "Parts can only be added here",
+        description: `To take ${lowered[0]} off this ticket, use Return in the ticket's Parts section.`,
+        variant: "destructive",
+      });
+      return;
+    }
     if (!saveAnyway) {
       const short = findShortfalls(partsUsed || "", selected, inventory);
       if (short.length > 0) {
@@ -159,17 +178,17 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
         performerName: sessionStorage.getItem("userFullName") || sessionStorage.getItem("username") || "Staff",
       });
 
-      logTicketActivity(serviceId, "Parts used updated", {
-        Parts: { from: partsUsed || "None", to: lines.join(", ") || "None" },
-        "Parts cost": `₱${actualCost.toFixed(2)}`,
-      });
-
-      toast({ title: "Parts saved", description: "Parts used and inventory were updated." });
+      // The database writes the ticket log for this ("Parts added directly", with who added them).
+      toast({ title: "Parts saved", description: "The parts were added to the ticket and taken out of stock." });
       onSaved?.();
     } catch (e) {
+      const msg = e instanceof Error ? e.message : "Please try again.";
       toast({
         title: "Could not save parts",
-        description: e instanceof Error ? e.message : "Please try again.",
+        // The UI never lowers parts, so this means the ticket changed since it was opened (e.g. a request was approved).
+        description: /can only be added here/i.test(msg)
+          ? "This ticket's parts changed since you opened it. Pick the ticket again to see the latest parts, then add yours."
+          : msg,
         variant: "destructive",
       });
     } finally {
@@ -179,12 +198,32 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
 
   const selectedIds = Object.keys(selected).filter(id => selected[id] > 0);
 
+  if (locked) {
+    return (
+      <div className="space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4 text-warning" />
+          <h3 className="font-semibold">Parts are locked ({status})</h3>
+        </div>
+        <p>
+          This ticket's repair is done, so its parts can't be changed here. Use <strong>Request</strong> or{" "}
+          <strong>Return</strong> in the ticket's Parts section; someone other than the person who asked approves it.
+        </p>
+        <p className="text-xs text-muted-foreground">On the ticket: {partsUsed || "no parts"}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 rounded-xl border border-border/60 bg-background/60 p-4">
       <div className="flex items-center gap-2">
         <Package className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold">Parts Used</h3>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Add parts and how many, then save. To take a part off this ticket, use <strong>Return</strong> in the ticket's Parts
+        section (it records the reason and who approved it).
+      </p>
 
       <div className="space-y-2">
         <Label className="text-sm">Add Part</Label>
@@ -231,26 +270,31 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
               </div>
               <Input
                 type="number"
-                min="1"
+                min={saved[id] || 1}
                 value={selected[id]}
                 className="w-20"
                 onChange={e =>
-                  setSelected(prev => ({ ...prev, [id]: Math.max(1, parseInt(e.target.value) || 1) }))
+                  setSelected(prev => ({ ...prev, [id]: Math.max(saved[id] || 1, parseInt(e.target.value) || 1) }))
                 }
+                aria-label={saved[id] ? `Quantity (at least ${saved[id]}, already on the ticket)` : "Quantity"}
               />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  setSelected(prev => {
-                    const next = { ...prev };
-                    delete next[id];
-                    return next;
-                  })
-                }
-              >
-                Remove
-              </Button>
+              {saved[id] ? (
+                <span className="w-16 text-right text-[11px] leading-tight text-muted-foreground">{saved[id]} on ticket</span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setSelected(prev => {
+                      const next = { ...prev };
+                      delete next[id];
+                      return next;
+                    })
+                  }
+                >
+                  Remove
+                </Button>
+              )}
             </div>
           );
         })}
@@ -261,28 +305,7 @@ export const PartsUsedPanel = ({ serviceId, partsUsed, onSaved, addPartId }: Pro
               <p className="truncate font-medium">{name}</p>
               <p className="text-xs text-muted-foreground">Not found in current inventory</p>
             </div>
-            <Input
-              type="number"
-              min="1"
-              value={qty}
-              className="w-20"
-              onChange={e =>
-                setUnmatched(prev => ({ ...prev, [name]: Math.max(1, parseInt(e.target.value) || 1) }))
-              }
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() =>
-                setUnmatched(prev => {
-                  const next = { ...prev };
-                  delete next[name];
-                  return next;
-                })
-              }
-            >
-              Remove
-            </Button>
+            <span className="shrink-0 text-sm font-semibold tabular-nums">× {qty}</span>
           </div>
         ))}
 

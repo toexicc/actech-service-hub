@@ -827,7 +827,8 @@ async function updateService(b: Record<string, any>) {
   }
   if ("internalTechnicianNotes" in b)
     patch.internal_technician_notes = b.internalTechnicianNotes;
-  if ("partsUsed" in b) patch.parts_used = splitList(b.partsUsed);
+  // Parts are never written here: they change only through approved part requests/returns
+  // (and Inventory's Assign to Ticket). The database guard ignores parts changes from this bridge anyway.
   if ("aiToggle" in b) patch.ai_toggle = b.aiToggle;
   if ("preOrder" in b) patch.pre_order = b.preOrder;
   if ("partId" in b) patch.part_id = b.partId;
