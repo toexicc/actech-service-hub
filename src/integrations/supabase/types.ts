@@ -880,6 +880,7 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by_name: string | null
+          after_lock: boolean
           approved_at: string | null
           approved_by: string | null
           approved_by_name: string | null
@@ -887,9 +888,14 @@ export type Database = {
           cancelled_at: string | null
           cancelled_reason: string | null
           created_at: string
+          defect_note: string | null
+          defect_status: string | null
+          defect_updated_at: string | null
+          defect_updated_by_name: string | null
           device_model: string | null
           id: string
           inquiry_id: string | null
+          kind: string
           notes: string | null
           part_id: string | null
           part_name: string | null
@@ -897,6 +903,7 @@ export type Database = {
           request_id: string
           requested_by: string | null
           requested_by_name: string | null
+          return_reason: string | null
           service_id: string | null
           status: string
           updated_at: string
@@ -904,6 +911,7 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by_name?: string | null
+          after_lock?: boolean
           approved_at?: string | null
           approved_by?: string | null
           approved_by_name?: string | null
@@ -911,9 +919,14 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          defect_note?: string | null
+          defect_status?: string | null
+          defect_updated_at?: string | null
+          defect_updated_by_name?: string | null
           device_model?: string | null
           id?: string
           inquiry_id?: string | null
+          kind?: string
           notes?: string | null
           part_id?: string | null
           part_name?: string | null
@@ -921,6 +934,7 @@ export type Database = {
           request_id: string
           requested_by?: string | null
           requested_by_name?: string | null
+          return_reason?: string | null
           service_id?: string | null
           status?: string
           updated_at?: string
@@ -928,6 +942,7 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by_name?: string | null
+          after_lock?: boolean
           approved_at?: string | null
           approved_by?: string | null
           approved_by_name?: string | null
@@ -935,9 +950,14 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_reason?: string | null
           created_at?: string
+          defect_note?: string | null
+          defect_status?: string | null
+          defect_updated_at?: string | null
+          defect_updated_by_name?: string | null
           device_model?: string | null
           id?: string
           inquiry_id?: string | null
+          kind?: string
           notes?: string | null
           part_id?: string | null
           part_name?: string | null
@@ -945,6 +965,7 @@ export type Database = {
           request_id?: string
           requested_by?: string | null
           requested_by_name?: string | null
+          return_reason?: string | null
           service_id?: string | null
           status?: string
           updated_at?: string
@@ -1944,10 +1965,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      actor_label: { Args: { _uid: string }; Returns: Record<string, unknown> }
       approve_part_request: {
         Args: { _id: string; _part_id?: string; _quantity?: number }
         Returns: Json
       }
+      approve_part_return: { Args: { _id: string }; Returns: Json }
       create_service_atomic: {
         Args: { _payload: Json; _queue_id?: string }
         Returns: string
@@ -2002,6 +2025,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      part_line_id: { Args: { _line: string }; Returns: string }
+      part_line_qty: { Args: { _line: string }; Returns: number }
+      parts_locked_status: { Args: { _status: string }; Returns: boolean }
+      parts_no_additions_status: { Args: { _status: string }; Returns: boolean }
       public_client_services: {
         Args: { _client_id: string }
         Returns: {
@@ -2031,6 +2058,10 @@ export type Database = {
       review_stock_movement: {
         Args: { _approve: boolean; _ids: string[]; _reason?: string }
         Returns: number
+      }
+      set_defect_status: {
+        Args: { _id: string; _note?: string; _status: string }
+        Returns: undefined
       }
       staff_directory: {
         Args: never
