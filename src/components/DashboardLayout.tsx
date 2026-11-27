@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { PARTS_LOOKUP_ROLES } from "@/lib/inventoryAccess";
 import { useState, useEffect, useRef, createContext, useContext, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ const adminSection: NavSection = {
     { title: "Company Repairs", icon: Building2, path: "/company-repairs", iconName: "Building2" },
     { title: "Queue Console", icon: Monitor, path: "/queueing", iconName: "Monitor" },
     { title: "Inventory Management", icon: Package, path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
-    { title: "Check Parts", icon: PackageSearch, path: "/parts-availability", roles: ["admin"], iconName: "PackageSearch" },
+    { title: "Check Parts", icon: PackageSearch, path: "/parts-availability", roles: PARTS_LOOKUP_ROLES, iconName: "PackageSearch" },
     { title: "Completed Services", icon: DollarSign, path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
     { title: "Salary Disbursement", icon: DollarSign, path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },
     { title: "Staff Management", icon: Settings, path: "/staff-management", roles: ["management"], iconName: "Settings" },

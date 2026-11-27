@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
+import { PARTS_LOOKUP_ROLES } from "@/lib/inventoryAccess";
 import { useWorkbench } from "@/components/workbench/WorkbenchContext";
 import { fetchStaffList } from "@/lib/staffList";
 
@@ -35,7 +36,7 @@ const PAGES: Array<{ label: string; path: string; roles?: string[]; iconName: st
   { label: "Customer Management", path: "/customer-management", iconName: "UserCog" },
   { label: "Service Tracker", path: "/service-tracker", iconName: "ClipboardList" },
   { label: "Inventory Management", path: "/inventory-management", roles: ["management", "admin"], iconName: "Package" },
-  { label: "Check Parts", path: "/parts-availability", roles: ["admin", "technician"], iconName: "PackageSearch" },
+  { label: "Check Parts", path: "/parts-availability", roles: PARTS_LOOKUP_ROLES, iconName: "PackageSearch" },
   { label: "Completed Services", path: "/completed-transactions", roles: ["management"], iconName: "DollarSign" },
   { label: "Transaction Tracker", path: "/pos", roles: ["management"], iconName: "DollarSign" },
   { label: "Salary Disbursement", path: "/salary-disbursement", roles: ["management"], iconName: "DollarSign" },

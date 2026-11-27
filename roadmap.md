@@ -17,3 +17,5 @@
 
 - [x] Company Repairs page, client link and branded billing statements
 - [x] Add staff/client company quotation previews and explain quotation-to-intake field mapping.
+- [x] Ensure Management has all inventory access points and verify role parity.
+- [x] Keep current dashboard metric cards; do not restore Pending Inquiries.

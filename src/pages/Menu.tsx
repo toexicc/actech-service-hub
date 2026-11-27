@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useServices, useCompletedServices } from "@/hooks/useServices";
+import { useAuth } from "@/hooks/useAuth";
 import { filterAssigned } from "@/lib/technicianMatch";
 import { parseManilaDate } from "@/lib/timezone";
 import { classifyStatus, isOverdueEligible, isTimeTrackedStatus } from "@/lib/serviceStatus";
@@ -90,7 +91,7 @@ const Menu = () => {
   const dashboardItemsPerPage = 5;
   const userFullName = sessionStorage.getItem("userFullName") || "User";
   const userRole = sessionStorage.getItem("userRole");
-  const isInventoryStaff = sessionStorage.getItem("hasInventoryRole") === "true";
+  const { hasInventoryAccess } = useAuth();
 
   const isTechnician = userRole === "technician";
   const isManagement = userRole === "management";
@@ -456,7 +457,7 @@ const Menu = () => {
           </div>
         </div>
 
-        {isInventoryStaff && (
+        {hasInventoryAccess && (
           <section className="mb-8 space-y-4">
             <h2 className="text-lg font-semibold">Inventory</h2>
             <InventoryOverview />

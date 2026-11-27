@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { canManageInventory } from "@/lib/inventoryAccess";
 
 export type AppRole = "admin" | "technician" | "management" | "inventory" | "delivery";
 
@@ -137,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isTechnician = roles.includes("technician");
   const isAdminOrManagement = isAdmin || isManagement;
   const isInventory = roles.includes("inventory");
-  const hasInventoryAccess = isInventory || isManagement;
+  const hasInventoryAccess = canManageInventory(roles);
 
   return (
     <AuthContext.Provider
